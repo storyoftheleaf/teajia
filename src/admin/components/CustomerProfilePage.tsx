@@ -128,7 +128,7 @@ const OwnerPrivateNote: React.FC<{
         <button
           onClick={save}
           disabled={!dirty || saving}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tea-gold text-tea-bg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Save
@@ -139,7 +139,7 @@ const OwnerPrivateNote: React.FC<{
         onChange={e => setBody(e.target.value)}
         rows={4}
         placeholder="Context that belongs with the relationship, not in public or staff-facing notes..."
-        className="w-full bg-tea-bg border border-tea-border rounded-lg p-3 text-sm text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-sec"
+        className="w-full bg-tea-bg border border-tea-border rounded-xl p-3 text-sm text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-sec"
       />
     </div>
   );
@@ -191,7 +191,7 @@ const SampleOfferModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
-      <div className="bg-tea-bg border border-tea-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl flex flex-col max-h-[88vh]">
+      <div className="bg-tea-bg border border-tea-border rounded-t-xl sm:rounded-xl w-full sm:max-w-lg shadow-2xl flex flex-col max-h-[88vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
           <h3 className="font-serif text-tea-text text-lg">Send sample to {firstName}</h3>
           <button onClick={onClose} className="text-tea-text-sec hover:text-tea-text transition-colors p-1"><X size={20} /></button>
@@ -203,7 +203,7 @@ const SampleOfferModal: React.FC<{
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Pick a tea to sample…"
-              className="w-full bg-tea-surface border border-tea-border rounded-lg pl-8 pr-3 py-1.5 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
+              className="w-full bg-tea-surface border border-tea-border rounded-xl pl-8 pr-3 py-1.5 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
             />
           </div>
           <div className="space-y-1.5 max-h-44 overflow-y-auto">
@@ -215,7 +215,7 @@ const SampleOfferModal: React.FC<{
                   selectedId === p.id ? 'bg-tea-gold/8 border-tea-gold/25' : 'bg-tea-surface border-tea-border hover:bg-tea-elevated'
                 }`}
               >
-                {p.imageUrl && <img src={p.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />}
+                {p.imageUrl && <img src={p.imageUrl} alt="" className="w-8 h-8 rounded-xl object-cover shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-tea-text truncate">{p.givenName || p.productName}</p>
                   <p className="text-ui-11 text-tea-text-sec">{[p.type, p.originRegion].filter(Boolean).join(' · ')}</p>
@@ -231,9 +231,9 @@ const SampleOfferModal: React.FC<{
                 onChange={e => setNote(e.target.value)}
                 placeholder="Add a personal note…"
                 rows={2}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg p-2.5 text-sm text-tea-text resize-none focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
+                className="w-full bg-tea-surface border border-tea-border rounded-xl p-2.5 text-sm text-tea-text resize-none focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
               />
-              <pre className="text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-3 font-sans">
+              <pre className="text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-xl p-3 font-sans">
                 {message}
               </pre>
               <div className="flex gap-2">
@@ -405,7 +405,7 @@ export const CustomerProfilePage: React.FC = () => {
                 {CONTACT_RELATIONSHIP_ORDER
                   .filter(kind => customer.relationshipKinds?.includes(kind))
                   .map(kind => (
-                    <div key={kind} className="bg-tea-bg border border-tea-border rounded-lg p-3">
+                    <div key={kind} className="bg-tea-bg border border-tea-border rounded-xl p-3">
                       <div className="text-sm font-serif text-tea-text mb-1">{CONTACT_RELATIONSHIP_TAXONOMY[kind].label}</div>
                       <div className="text-ui-11 text-tea-text-sec leading-relaxed">
                         {CONTACT_RELATIONSHIP_TAXONOMY[kind].description}
@@ -518,7 +518,7 @@ export const CustomerProfilePage: React.FC = () => {
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {teas.map(tea => (
-                  <div key={tea.id} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg p-2.5">
+                  <div key={tea.id} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-xl p-2.5">
                     {tea.image_url ? (
                       <img src={tea.image_url} alt="" className="w-8 h-8 rounded object-cover shrink-0" />
                     ) : (
@@ -549,7 +549,7 @@ export const CustomerProfilePage: React.FC = () => {
                   .sort((a, b) => (b.event_date || '').localeCompare(a.event_date || ''))
                   .map(evt => (
                     <div key={evt.id}
-                      className="flex items-center justify-between gap-3 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-lg"
+                      className="flex items-center justify-between gap-3 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-xl"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${evt.attended === 1 ? 'bg-green-400' : 'bg-tea-text-dim'}`} />
@@ -585,7 +585,7 @@ export const CustomerProfilePage: React.FC = () => {
               </p>
               <div className="space-y-2">
                 {journey.impressions.slice(0, 8).map((imp, i) => (
-                  <div key={i} className="bg-tea-surface border border-tea-border rounded-lg px-4 py-3">
+                  <div key={i} className="bg-tea-surface border border-tea-border rounded-xl px-4 py-3">
                     <p className="text-sm text-tea-text italic leading-relaxed">"{imp.text}"</p>
                     <div className="flex items-center justify-between mt-1.5">
                       <p className="text-ui-10 text-tea-text-sec">
@@ -616,7 +616,7 @@ export const CustomerProfilePage: React.FC = () => {
               <div className="space-y-1.5">
                 {orders.map((order: any) => (
                   <div key={order.id}
-                    className="flex items-center justify-between px-3 py-2.5 bg-tea-surface border border-tea-border rounded-lg text-sm"
+                    className="flex items-center justify-between px-3 py-2.5 bg-tea-surface border border-tea-border rounded-xl text-sm"
                   >
                     <span className="text-tea-text">
                       #{order.invoice_number}

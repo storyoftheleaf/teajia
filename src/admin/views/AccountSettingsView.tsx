@@ -313,7 +313,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
 
       <form id="account-profile-form" onSubmit={handleSave} className="space-y-6">
         {/* Read-only section */}
-        <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
+        <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-4">
           <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
             System
           </h2>
@@ -328,7 +328,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         </div>
 
         {/* Editable profile */}
-        <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
+        <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-4">
           <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
             Profile
           </h2>
@@ -389,7 +389,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         </div>
 
         {/* Commerce */}
-        <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-4">
+        <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-4">
           <h2 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim mb-1">
             Commerce
           </h2>
@@ -804,7 +804,7 @@ const IntegrationsSection: React.FC<{
   };
 
   return (
-    <div className="bg-tea-surface rounded-lg border border-tea-border p-5 space-y-3">
+    <div className="bg-tea-surface rounded-xl border border-tea-border p-5 space-y-3">
       <div>
         <h3 className="text-sm text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
           OpenAI API Key
@@ -949,7 +949,7 @@ const TransferOwnershipSection: React.FC<{
   };
 
   return (
-    <div className="bg-tea-surface rounded-lg border border-tea-border overflow-hidden">
+    <div className="bg-tea-surface rounded-xl border border-tea-border overflow-hidden">
       <div className="px-5 py-4 flex items-start gap-4">
         <AlertTriangle size={16} className="text-tea-text-dim mt-0.5 shrink-0" />
         <div className="flex-1 min-w-0">

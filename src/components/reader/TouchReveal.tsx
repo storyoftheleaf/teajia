@@ -21,7 +21,7 @@ const TouchReveal: React.FC<TouchRevealProps> = ({
   const handleToggle = () => setRevealed((prev) => !prev);
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
+    <div className="relative overflow-hidden rounded-xl">
       {/* Underlying content */}
       <div>{children}</div>
 

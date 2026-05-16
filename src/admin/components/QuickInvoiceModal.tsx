@@ -292,7 +292,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-tea-bg w-full max-w-xl shadow-2xl relative flex flex-col max-h-[96vh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 duration-300">
+      <div className="bg-tea-bg w-full max-w-xl shadow-2xl relative flex flex-col max-h-[96vh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 duration-300">
 
         {/* Header */}
         <div className="px-6 pt-5 pb-0 shrink-0">
@@ -510,12 +510,12 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                             type="number" min={0} step={1}
                             value={item.quantity}
                             onChange={e => updateItem(item.localId, { quantity: Number(e.target.value) || 0 })}
-                            className="w-14 bg-tea-surface border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-center"
+                            className="w-14 bg-tea-surface border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-center"
                           />
                           <select
                             value={item.unit}
                             onChange={e => updateItem(item.localId, { unit: e.target.value as 'g' | 'pcs' })}
-                            className="bg-tea-surface border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
+                            className="bg-tea-surface border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
                           >
                             <option value="g">g</option>
                             <option value="pcs">pcs</option>
@@ -527,7 +527,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                               type="number" min={0} step={0.01}
                               value={item.price}
                               onChange={e => updateItem(item.localId, { price: Number(e.target.value) || 0 })}
-                              className="w-full bg-tea-surface border border-tea-border rounded-lg pl-5 pr-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
+                              className="w-full bg-tea-surface border border-tea-border rounded-xl pl-5 pr-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
                               placeholder="0.00"
                             />
                           </div>
@@ -585,7 +585,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 type="number" min={0} step={0.01}
                 value={shipping}
                 onChange={e => setShipping(Number(e.target.value) || 0)}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg pl-6 pr-2 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-right"
+                className="w-full bg-tea-surface border border-tea-border rounded-xl pl-6 pr-2 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-right"
               />
             </div>
           </div>

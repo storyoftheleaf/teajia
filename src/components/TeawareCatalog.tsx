@@ -284,7 +284,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                       >
                         <div className="flex items-center py-3 lg:py-4 px-2 gap-3">
                           {/* Thumbnail */}
-                          <div className="w-12 h-12 rounded-sm overflow-hidden shrink-0 bg-tea-elevated">
+                          <div className="w-12 h-12 rounded-md overflow-hidden shrink-0 bg-tea-elevated">
                             {item.image ? (
                               <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                             ) : (

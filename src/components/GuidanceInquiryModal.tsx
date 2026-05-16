@@ -95,7 +95,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
     >
       <div
         ref={focusTrapRef}
-        className="bg-tea-bg max-w-md md:max-w-2xl w-full p-8 rounded-lg relative shadow-2xl animate-[scaleIn_0.3s_ease-out]"
+        className="bg-tea-bg max-w-md md:max-w-2xl w-full p-8 rounded-xl relative shadow-2xl animate-[scaleIn_0.3s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -131,7 +131,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
+                    className="w-full px-4 py-2 input-warm rounded-md text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                     placeholder="your name"
                   />
                   {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
@@ -148,7 +148,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
+                    className="w-full px-4 py-2 input-warm rounded-md text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                     placeholder="your@email.com"
                   />
                   {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
@@ -166,7 +166,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                   value={formData.vision}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300 resize-none h-24"
+                  className="w-full px-4 py-2 input-warm rounded-md text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300 resize-none h-24"
                   placeholder={
                     formData.serviceType === 'design'
                       ? "Describe the tea space you're imagining..."
@@ -203,7 +203,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                             key={option.id}
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, serviceType: option.id, teachingFormat: '', spaceType: '', budget: '' }))}
-                            className={`p-3 text-left rounded-sm border transition-all duration-200 ${
+                            className={`p-3 text-left rounded-md border transition-all duration-200 ${
                               formData.serviceType === option.id
                                 ? 'border-tea-gold bg-tea-gold/8'
                                 : 'border-tea-border hover:border-tea-gold/50'
@@ -228,7 +228,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                               key={option.id}
                               type="button"
                               onClick={() => setFormData(prev => ({ ...prev, teachingFormat: option.id }))}
-                              className={`p-3 text-left rounded-sm border transition-all duration-200 ${
+                              className={`p-3 text-left rounded-md border transition-all duration-200 ${
                                 formData.teachingFormat === option.id
                                   ? 'border-tea-gold bg-tea-gold/8'
                                   : 'border-tea-border hover:border-tea-gold/50'
@@ -251,7 +251,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                                 key={level}
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, experienceLevel: level as 'beginner' | 'intermediate' | 'advanced' }))}
-                                className={`flex-1 py-2 px-3 text-xs uppercase tracking-wider rounded-sm border transition-all ${
+                                className={`flex-1 py-2 px-3 text-xs uppercase tracking-wider rounded-md border transition-all ${
                                   formData.experienceLevel === level
                                     ? 'border-tea-gold bg-tea-gold text-tea-bg'
                                     : 'border-tea-border text-tea-text/70 hover:border-tea-gold/50'
@@ -283,7 +283,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                                 key={option.id}
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, spaceType: option.id as 'home' | 'commercial' | 'outdoor' }))}
-                                className={`flex-1 py-2 px-3 text-xs uppercase tracking-wider rounded-sm border transition-all ${
+                                className={`flex-1 py-2 px-3 text-xs uppercase tracking-wider rounded-md border transition-all ${
                                   formData.spaceType === option.id
                                     ? 'border-tea-gold bg-tea-gold text-tea-bg'
                                     : 'border-tea-border text-tea-text/70 hover:border-tea-gold/50'
@@ -311,7 +311,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                                 key={option.id}
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, budget: option.id as 'under-5k' | '5k-15k' | '15k-50k' | 'over-50k' }))}
-                                className={`py-2 px-3 text-xs rounded-sm border transition-all ${
+                                className={`py-2 px-3 text-xs rounded-md border transition-all ${
                                   formData.budget === option.id
                                     ? 'border-tea-gold bg-tea-gold text-tea-bg'
                                     : 'border-tea-border text-tea-text/70 hover:border-tea-gold/50'
@@ -336,7 +336,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 input-warm rounded-sm text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
+                        className="w-full px-4 py-2 input-warm rounded-md text-tea-text placeholder-tea-text-sec focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors duration-300"
                         placeholder="Your phone number"
                       />
                     </div>
@@ -381,7 +381,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
 
               <button
                 onClick={onClose}
-                className="px-6 py-2 bg-tea-gold/8 hover:bg-tea-gold/15 text-tea-gold uppercase tracking-wider text-xs font-medium rounded-sm transition-colors duration-300"
+                className="px-6 py-2 bg-tea-gold/8 hover:bg-tea-gold/15 text-tea-gold uppercase tracking-wider text-xs font-medium rounded-md transition-colors duration-300"
               >
                 Close
               </button>

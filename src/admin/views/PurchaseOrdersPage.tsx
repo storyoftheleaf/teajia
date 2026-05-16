@@ -106,7 +106,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-tea-surface rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
+        className="bg-tea-surface rounded-t-xl sm:rounded-xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
@@ -228,7 +228,7 @@ const ReceiveStockPrompt: React.FC<{
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="bg-tea-surface rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+          className="bg-tea-surface rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
           onClick={e => e.stopPropagation()}
         >
           <p className="text-sm text-tea-text-sec text-center">No line items to receive.</p>
@@ -252,7 +252,7 @@ const ReceiveStockPrompt: React.FC<{
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-tea-surface rounded-t-2xl sm:rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+        className="bg-tea-surface rounded-t-xl sm:rounded-xl w-full max-w-md overflow-hidden shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-tea-border flex items-center justify-between">
@@ -354,7 +354,7 @@ export const PurchaseOrdersPage: React.FC = () => {
         <h1 className="text-sm font-semibold text-tea-text tracking-wide flex-1">Purchase Orders</h1>
         <button
           onClick={() => setIsNewFormOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-elevated border border-tea-border rounded-lg text-xs text-tea-text hover:border-tea-gold/40 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-elevated border border-tea-border rounded-xl text-xs text-tea-text hover:border-tea-gold/40 transition-colors"
         >
           <Plus size={13} />
           New PO
@@ -415,7 +415,7 @@ export const PurchaseOrdersPage: React.FC = () => {
                         value={order.status}
                         onChange={e => statusMutation.mutate({ id: order.id, status: e.target.value })}
                         disabled={statusMutation.isPending}
-                        className="appearance-none bg-tea-elevated border border-tea-border rounded-lg pl-3 pr-7 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold cursor-pointer"
+                        className="appearance-none bg-tea-elevated border border-tea-border rounded-xl pl-3 pr-7 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold cursor-pointer"
                       >
                         {PO_STATUSES.map(s => (
                           <option key={s} value={s}>{STATUS_LABELS[s]}</option>

@@ -288,7 +288,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
   const totalCapacity = venue.spaces.reduce((sum, s) => sum + s.capacity, 0);
 
   return (
-    <div className="border border-tea-border rounded-lg overflow-hidden">
+    <div className="border border-tea-border rounded-xl overflow-hidden">
       {/* Venue header */}
       <div className="flex items-start gap-4 p-4">
         {/* Venue photo thumbnail */}
@@ -551,7 +551,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
   };
 
   return (
-    <div className="border border-tea-gold/30 rounded-lg p-4 space-y-4">
+    <div className="border border-tea-gold/30 rounded-xl p-4 space-y-4">
       <p className="text-xs uppercase tracking-widest text-tea-text-sec font-medium">New Venue</p>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Venue Name *">

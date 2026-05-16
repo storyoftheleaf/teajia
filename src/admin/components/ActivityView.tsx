@@ -70,7 +70,7 @@ export const ActivityView: React.FC<ActivityViewProps> = ({ products }) => {
 
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
-        <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
+        <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -177,7 +177,7 @@ function InquiriesView() {
 
       <div className="space-y-3">
         {inquiries.map((inq: any) => (
-          <div key={inq.id} className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-3">
+          <div key={inq.id} className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-tea-text font-medium text-sm">{inq.name}</p>

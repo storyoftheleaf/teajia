@@ -126,7 +126,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
         <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
           <X size={20} />
         </button>
@@ -149,7 +149,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
               <div>
@@ -160,7 +160,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                   step={0.01}
                   value={shippingCost}
                   onChange={(e) => setShippingCost(Number(e.target.value) || 0)}
-                  className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors num"
+                  className="w-full bg-tea-surface border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors num"
                 />
               </div>
             </div>
@@ -172,7 +172,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors resize-none"
+                className="w-full bg-tea-surface border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors resize-none"
                 placeholder="notes"
               />
             </div>
@@ -199,7 +199,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                       value={productSearch}
                       onChange={(e) => setProductSearch(e.target.value)}
                       placeholder="Search products..."
-                      className="w-full bg-tea-bg border border-tea-border rounded-lg pl-7 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                      className="w-full bg-tea-bg border border-tea-border rounded-xl pl-7 pr-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                       autoFocus
                     />
                   </div>
@@ -208,7 +208,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                       <button
                         key={product.id}
                         onClick={() => addProduct(product)}
-                        className="w-full text-left px-2 py-1.5 rounded-lg text-xs hover:bg-tea-elevated/50 transition-colors flex justify-between items-center"
+                        className="w-full text-left px-2 py-1.5 rounded-xl text-xs hover:bg-tea-elevated/50 transition-colors flex justify-between items-center"
                       >
                         <span className="text-tea-text truncate">{product.givenName || product.productName}</span>
                         <span className="text-tea-text-sec text-ui-10 shrink-0 ml-2">${product.pricePerGramUSD.toFixed(2)}/g</span>
@@ -220,7 +220,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
 
               <div className="space-y-2">
                 {items.map((item, index) => (
-                  <div key={index} className="bg-tea-surface border border-tea-border rounded-lg p-3">
+                  <div key={index} className="bg-tea-surface border border-tea-border rounded-xl p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-tea-text font-medium truncate">{item.given_name || item.product_name}</span>
                       <button
@@ -276,7 +276,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
           <button
             onClick={handleSave}
             disabled={loading || fetching || items.length === 0}
-            className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-xl hover:bg-tea-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {loading && <Loader2 size={14} className="animate-spin" />}
             <Pencil size={14} /> Save Changes

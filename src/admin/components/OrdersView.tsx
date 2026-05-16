@@ -295,7 +295,7 @@ export const OrdersView = () => {
         {/* Row 1: filter + actions */}
         <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2.5 md:h-16 md:py-0">
           {/* Pipeline Summary — segmented filter */}
-          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
+          <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
             {([
               { id: 'all',     label: 'All',     dot: null },
               { id: 'Pending', label: 'Pending', dot: 'bg-amber-400' },
@@ -332,7 +332,7 @@ export const OrdersView = () => {
 
           <button
             onClick={() => setShowQuickInvoice(true)}
-            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-lg hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
+            className="ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text border border-tea-border rounded-xl hover:border-tea-gold/50 hover:text-tea-gold transition-colors"
           >
             <Plus size={11} /> Invoice
           </button>
@@ -593,7 +593,7 @@ export const OrdersView = () => {
           <div className="text-center py-4">
             <button
               onClick={() => setPageSize(prev => prev + 50)}
-              className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-lg hover:bg-tea-surface transition-colors"
+              className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-[0.2em] border border-tea-border px-4 py-2 rounded-xl hover:bg-tea-surface transition-colors"
             >
               Load More
             </button>
@@ -604,7 +604,7 @@ export const OrdersView = () => {
       {/* INVOICE DETAILS MODAL */}
       {viewingInvoice && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-            <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-lg p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button onClick={() => { setViewingInvoice(null); setInvoiceTimeline([]); }} className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
                     <X size={24} />
                 </button>
@@ -699,7 +699,7 @@ export const OrdersView = () => {
                                               value={linkState.query}
                                               onChange={e => setLinkState(s => s ? { ...s, query: e.target.value } : null)}
                                               placeholder="Search inventory…"
-                                              className="w-full bg-tea-bg border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
+                                              className="w-full bg-tea-bg border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
                                             />
                                             {linkSuggestions.length > 0 && (
                                               <div className="absolute top-full left-0 right-0 mt-0.5 bg-tea-elevated border border-tea-border rounded-xl shadow-lg z-10 max-h-32 overflow-y-auto custom-scrollbar">
@@ -776,7 +776,7 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
                             <PackageCheck size={18} /> Confirm Order & Deduct Stock
                         </button>
@@ -803,7 +803,7 @@ export const OrdersView = () => {
                           total: `$${total} USD`,
                         });
                       }}
-                      className="w-full py-3 border border-tea-border rounded-lg text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
+                      className="w-full py-3 border border-tea-border rounded-xl text-xs uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface flex items-center justify-center gap-2 transition-all"
                     >
                       <MessageCircle size={14} /> Notify Customer via WhatsApp
                     </button>
@@ -920,7 +920,7 @@ const MobileActions: React.FC<{
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 bottom-full mb-1 bg-tea-surface border border-tea-border rounded-lg shadow-2xl z-50 min-w-[140px] py-1 max-h-[min(240px,40vh)] overflow-y-auto">
+          <div className="absolute right-0 bottom-full mb-1 bg-tea-surface border border-tea-border rounded-xl shadow-2xl z-50 min-w-[140px] py-1 max-h-[min(240px,40vh)] overflow-y-auto">
             {isPending && (
               <>
                 <button onClick={() => { setOpen(false); onEdit(); }} className="w-full text-left px-3 py-2 text-xs hover:bg-tea-elevated/50 flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors">

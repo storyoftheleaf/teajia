@@ -59,14 +59,14 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
           onChange={(e) => setName(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Quick add tea name…"
-          className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
+          className="flex-1 min-w-0 bg-tea-surface/60 text-tea-text text-ui-13 rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
         />
 
         {/* Type picker */}
         <select
           value={type}
           onChange={(e) => setType(e.target.value as TeaType | '')}
-          className="shrink-0 bg-tea-surface/60 text-ui-12 rounded-lg px-2 py-2 border border-tea-border outline-none focus:border-tea-gold/40 appearance-none cursor-pointer"
+          className="shrink-0 bg-tea-surface/60 text-ui-12 rounded-xl px-2 py-2 border border-tea-border outline-none focus:border-tea-gold/40 appearance-none cursor-pointer"
           style={typeColor ? { color: typeColor, borderColor: `${typeColor}40` } : { color: 'var(--tea-text-dim)' }}
         >
           <option value="">Type</option>
@@ -79,7 +79,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
           type="button"
           onClick={handleAdd}
           disabled={!name.trim()}
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-30 disabled:cursor-default"
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-30 disabled:cursor-default"
           title="Add to session"
         >
           <Plus size={14} />

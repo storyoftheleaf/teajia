@@ -69,7 +69,7 @@ export const SharedCollection: React.FC = () => {
           >
             {/* Image */}
             {item.image && (
-              <div className="w-14 h-14 rounded-sm overflow-hidden shrink-0 bg-tea-text/5">
+              <div className="w-14 h-14 rounded-md overflow-hidden shrink-0 bg-tea-text/5">
                 <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
               </div>
             )}

@@ -39,7 +39,7 @@ export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSectio
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="search the library"
-          className="w-full pl-10 pr-10 py-2.5 bg-tea-text/5 rounded-lg text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-text/30 outline-none focus:ring-2 focus:ring-tea-gold/30 transition-shadow"
+          className="w-full pl-10 pr-10 py-2.5 bg-tea-text/5 rounded-xl text-sm text-tea-text placeholder:text-tea-text/30 dark:placeholder:text-tea-text/30 outline-none focus:ring-2 focus:ring-tea-gold/30 transition-shadow"
         />
         {query && (
           <button
@@ -53,7 +53,7 @@ export const LibrarySearch: React.FC<LibrarySearchProps> = ({ onNavigateToSectio
 
       {/* Results dropdown */}
       {query.trim() && (
-        <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-bg rounded-lg shadow-lg border border-tea-border max-h-72 overflow-y-auto">
+        <div className="absolute z-10 left-0 right-0 mt-1 bg-tea-bg rounded-xl shadow-lg border border-tea-border max-h-72 overflow-y-auto">
           {results.length === 0 ? (
             <p className="px-4 py-3 text-xs text-tea-text/40">
               Nothing matched — try different words.

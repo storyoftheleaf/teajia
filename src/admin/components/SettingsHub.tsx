@@ -35,7 +35,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({ isPlatform }) => {
 
       {visibleTabs.length > 1 && (
         <div className="flex items-center gap-1 px-3 md:px-6 py-2 border-b border-tea-border bg-tea-bg overflow-x-auto hide-scrollbar flex-shrink-0">
-          <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
+          <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5">
             {visibleTabs.map(tab => (
               <button
                 key={tab.id}

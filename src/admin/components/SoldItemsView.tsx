@@ -142,7 +142,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               )}
               {activeTab === 'archive' && (
                 <div className="ml-auto">
-                  <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                  <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-xl disabled:opacity-50">
                     <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
                   </button>
                 </div>
@@ -161,7 +161,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
               </h2>
             </div>
 
-            <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5 md:ml-4">
+            <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5 md:ml-4">
               <button
                 onClick={() => setActiveTab('archive')}
                 className={`px-2 md:px-3 py-1.5 rounded-md text-ui-10 md:text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-1 md:gap-1.5 ${activeTab === 'archive' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
@@ -184,7 +184,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
             <div className="ml-auto flex items-center gap-2 shrink-0">
               {activeTab === 'archive' && (
-                <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg disabled:opacity-50">
+                <button onClick={handleExportArchive} disabled={soldOutProducts.length === 0} className="flex items-center gap-1 md:gap-2 text-ui-10 md:text-xs uppercase tracking-[0.15em] md:tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-2 md:px-3 py-1.5 border border-transparent hover:border-tea-border rounded-xl disabled:opacity-50">
                   <Download size={14} /> <span className="hidden md:inline">Export CSV</span><span className="md:hidden">CSV</span>
                 </button>
               )}

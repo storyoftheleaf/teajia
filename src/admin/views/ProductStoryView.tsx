@@ -217,7 +217,7 @@ const FlavorCloud: React.FC<{ words: string[] }> = ({ words }) => (
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: i * 0.04 }}
-        className={`px-3 py-1.5 text-xs font-serif italic rounded-sm ${
+        className={`px-3 py-1.5 text-xs font-serif italic rounded-md ${
           i === 0
             ? 'bg-tea-gold/15 text-tea-gold'
             : i < 4
@@ -597,7 +597,7 @@ export const ProductStoryView: React.FC = () => {
         <section className="mb-12">
           <SectionLabel>Available now</SectionLabel>
 
-          <div className="bg-tea-surface border border-tea-border rounded-sm p-6">
+          <div className="bg-tea-surface border border-tea-border rounded-md p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
               <div>
                 <p className="text-xs text-tea-text-dim mb-1">Current stock</p>

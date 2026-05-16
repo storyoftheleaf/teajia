@@ -266,7 +266,7 @@ export const CollectionsView: React.FC = () => {
             className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm"
             onClick={() => !creatingSubmitting && setCreating(false)}
           />
-          <div className="relative w-full max-w-sm bg-tea-surface border border-tea-border rounded-2xl shadow-2xl p-5">
+          <div className="relative w-full max-w-sm bg-tea-surface border border-tea-border rounded-xl shadow-2xl p-5">
             <h2 className="text-sm font-medium text-tea-text mb-3">New collection</h2>
             <input
               type="text"
@@ -275,7 +275,7 @@ export const CollectionsView: React.FC = () => {
               onKeyDown={e => { if (e.key === 'Enter') handleCreateDraft(); }}
               placeholder="Title"
               autoFocus
-              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 mb-4"
+              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 mb-4"
             />
             <div className="flex items-center justify-between gap-3">
               <button
@@ -290,7 +290,7 @@ export const CollectionsView: React.FC = () => {
                 type="button"
                 onClick={handleCreateDraft}
                 disabled={!newTitle.trim() || creatingSubmitting}
-                className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
               >
                 {creatingSubmitting ? <Loader2 size={12} className="animate-spin" /> : null}
                 Create draft
@@ -316,7 +316,7 @@ const ThumbnailStrip: React.FC<{ urls: string[] }> = ({ urls }) => {
       {urls.slice(0, 3).map((u, i) => (
         <div
           key={i}
-          className="flex-1 rounded-sm bg-tea-elevated overflow-hidden"
+          className="flex-1 rounded-md bg-tea-elevated overflow-hidden"
         >
           <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" />
         </div>

@@ -57,7 +57,7 @@ const GuestInviteClaimPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );
@@ -208,7 +208,7 @@ const GuestInviteClaimPage: React.FC = () => {
               onChange={(e) => setFullName(e.target.value)}
               placeholder="your full name"
               autoComplete="name"
-              className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+              className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
             />
           </div>
 
@@ -221,7 +221,7 @@ const GuestInviteClaimPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMethod('whatsapp')}
-                className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-md transition-colors ${
                   method === 'whatsapp'
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
@@ -232,7 +232,7 @@ const GuestInviteClaimPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setMethod('email')}
-                className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-md transition-colors ${
                   method === 'email'
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
@@ -249,7 +249,7 @@ const GuestInviteClaimPage: React.FC = () => {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="0912-345-678"
                 autoComplete="tel"
-                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
               />
             ) : (
               <input
@@ -258,14 +258,14 @@ const GuestInviteClaimPage: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 autoComplete="email"
-                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
               />
             )}
           </div>
 
           {/* Error */}
           {claimMutation.isError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md">
               <p className="text-sm text-red-400">
                 {(claimMutation.error as Error)?.message || 'Something went wrong. Please try again.'}
               </p>
@@ -277,7 +277,7 @@ const GuestInviteClaimPage: React.FC = () => {
             type="button"
             disabled={!isValid || claimMutation.isPending}
             onClick={() => claimMutation.mutate()}
-            className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center"
+            className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center"
           >
             {claimMutation.isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

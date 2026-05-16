@@ -174,7 +174,7 @@ const InfographicCircle: React.FC<InfographicCircleProps> = ({
         {data.map((d, i) => (
           <div key={i} className="flex items-center gap-1.5">
             <div
-              className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+              className="w-2.5 h-2.5 rounded-md flex-shrink-0"
               style={{ background: d.color ?? TEA_COLORS[i % TEA_COLORS.length] }}
             />
             <span className="text-xs text-tea-text-sec">

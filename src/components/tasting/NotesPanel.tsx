@@ -113,7 +113,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
               return (
                 <div
                   key={note.id}
-                  className={`rounded-lg pl-3 pr-1 py-1 flex items-start gap-2 transition-colors ${starred ? 'bg-tea-gold/10' : 'bg-tea-surface'}`}
+                  className={`rounded-xl pl-3 pr-1 py-1 flex items-start gap-2 transition-colors ${starred ? 'bg-tea-gold/10' : 'bg-tea-surface'}`}
                 >
                   <textarea
                     value={getText(note)}

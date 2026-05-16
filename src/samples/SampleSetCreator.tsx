@@ -161,7 +161,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
     }
   };
 
-  const inputCls = "w-full bg-tea-surface/60 text-tea-text rounded-lg px-3 py-2.5 text-sm border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim";
+  const inputCls = "w-full bg-tea-surface/60 text-tea-text rounded-xl px-3 py-2.5 text-sm border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim";
 
   return (
     <motion.div
@@ -305,7 +305,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
                   if (!isNaN(v) && v > 0) setGrams(v);
                 }}
                 placeholder="custom"
-                className="w-20 bg-tea-surface/60 text-tea-text rounded-lg px-2 py-1 text-xs num
+                className="w-20 bg-tea-surface/60 text-tea-text rounded-xl px-2 py-1 text-xs num
                            border border-tea-border focus:border-tea-gold/40 outline-none
                            placeholder:text-tea-text-dim"
               />
@@ -483,7 +483,7 @@ function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduate
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-lg px-4 py-3 hover:bg-tea-elevated active:scale-[0.99] transition-all ${isActive ? 'bg-tea-elevated ring-1 ring-inset ring-tea-gold/25' : 'bg-tea-surface'}`}
+      className={`w-full text-left rounded-xl px-4 py-3 hover:bg-tea-elevated active:scale-[0.99] transition-all ${isActive ? 'bg-tea-elevated ring-1 ring-inset ring-tea-gold/25' : 'bg-tea-surface'}`}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex-1 min-w-0">

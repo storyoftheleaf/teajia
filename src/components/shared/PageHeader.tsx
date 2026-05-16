@@ -93,7 +93,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     onClick={() => {
                       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
                     }}
-                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-tea-text/5 text-tea-text-sec"
+                    className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-tea-text/5 text-tea-text-sec"
                     aria-label="Search"
                   >
                     <Icons.Search className="w-5 h-5" />

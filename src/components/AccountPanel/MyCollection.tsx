@@ -152,7 +152,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
             {/* Thumbnail */}
             {item.image && (
               <div
-                className="w-10 h-10 rounded-sm bg-tea-bg/5 overflow-hidden shrink-0 cursor-pointer"
+                className="w-10 h-10 rounded-md bg-tea-bg/5 overflow-hidden shrink-0 cursor-pointer"
                 onClick={() => onViewItem?.(item)}
               >
                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />

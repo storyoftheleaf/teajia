@@ -303,7 +303,7 @@ const SealModal: React.FC<{ seal: JourneySeal; onClose: () => void }> = ({ seal,
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.9, opacity: 0 }}
-      className="bg-tea-surface border border-tea-border rounded-2xl p-6 max-w-xs w-full text-center"
+      className="bg-tea-surface border border-tea-border rounded-xl p-6 max-w-xs w-full text-center"
       onClick={e => e.stopPropagation()}
     >
       <div className="w-20 h-20 rounded-full border border-tea-border mx-auto mb-4 overflow-hidden flex items-center justify-center">
@@ -349,7 +349,7 @@ const SampleRequestPrompt: React.FC<{ waNumber: string }> = ({ waNumber }) => {
   };
 
   return (
-    <div className="bg-tea-surface border border-tea-border rounded-2xl p-5">
+    <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
       <p className="text-xs text-tea-text-sec mb-3">What are you curious to try?</p>
       <textarea
         value={note}
@@ -408,7 +408,7 @@ const AccountJourneyPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );

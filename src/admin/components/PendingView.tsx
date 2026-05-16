@@ -86,7 +86,7 @@ export const PendingView: React.FC = () => {
         ) : orders.length === 0 ? (
           <p className="text-sm text-tea-text-dim py-4">No pending orders.</p>
         ) : (
-          <div className="flex flex-col divide-y divide-tea-border rounded-lg border border-tea-border overflow-hidden">
+          <div className="flex flex-col divide-y divide-tea-border rounded-xl border border-tea-border overflow-hidden">
             {orders.map((order) => {
               const total = (Number(order.computed_total) || 0) + (Number(order.shipping_cost_usd) || 0);
               const age = getDaysAge(order.created_at);

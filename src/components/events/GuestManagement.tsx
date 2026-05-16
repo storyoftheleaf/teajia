@@ -201,7 +201,7 @@ const GuestManagement: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-40 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-40 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );
@@ -356,7 +356,7 @@ const GuestManagement: React.FC = () => {
                   </div>
                   {/* Recap prose */}
                   {recapContent && (
-                    <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-sm">
+                    <div className="mb-8 p-5 bg-tea-surface border border-tea-border rounded-md">
                       {recapContent.split('\n').filter(Boolean).map((para, idx) => (
                         <p key={idx} className="text-sm text-tea-text leading-relaxed mb-3 last:mb-0">
                           {para}
@@ -366,7 +366,7 @@ const GuestManagement: React.FC = () => {
                   )}
                 </>
               ) : (
-                <div className="p-5 bg-tea-surface border border-tea-border rounded-sm text-center mb-8">
+                <div className="p-5 bg-tea-surface border border-tea-border rounded-md text-center mb-8">
                   <p className="text-sm text-tea-text-sec italic leading-relaxed">
                     Your session recap will appear here after the host publishes it.
                   </p>
@@ -625,7 +625,7 @@ const GuestManagement: React.FC = () => {
                 <button
                   onClick={() => claimSeat.mutate()}
                   disabled={claimSeat.isPending}
-                  className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
+                  className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-tea-gold/20"
                 >
                   {claimSeat.isPending ? (
                     <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
@@ -832,7 +832,7 @@ const GuestManagement: React.FC = () => {
             <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>
             <div className={`grid gap-2 ${event.venuePhotos.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {event.venuePhotos.slice(0, 2).map((url, idx) => (
-                <div key={idx} className="rounded-sm overflow-hidden border border-tea-border aspect-[4/3]">
+                <div key={idx} className="rounded-md overflow-hidden border border-tea-border aspect-[4/3]">
                   <img
                     src={url}
                     alt={`Venue photo ${idx + 1}`}
@@ -908,7 +908,7 @@ const GuestManagement: React.FC = () => {
                   updateGuests.mutate({ plusOne: next });
                 }}
                 disabled={updateGuests.isPending}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm text-xs uppercase tracking-[0.15em] border transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs uppercase tracking-[0.15em] border transition-all duration-200 ${
                   currentPlusOne
                     ? 'bg-tea-gold/10 border-tea-border text-tea-gold'
                     : 'bg-tea-surface border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text'
@@ -945,7 +945,7 @@ const GuestManagement: React.FC = () => {
               onChange={e => { setNotesValue(e.target.value); setNotesSaved(false); }}
               placeholder="Allergies, dietary needs, or anything helpful for the host..."
               rows={3}
-              className="w-full bg-tea-bg border border-tea-border rounded-sm px-3 py-2.5 text-sm text-tea-text placeholder-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/40 transition-colors"
+              className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2.5 text-sm text-tea-text placeholder-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/40 transition-colors"
             />
             <div className="flex items-center justify-between mt-2">
               {notesSaved ? (
@@ -988,7 +988,7 @@ const GuestManagement: React.FC = () => {
                 checked={!!attendee.showInGuestList}
                 onChange={(e) => updateGuestListVisibility.mutate(e.target.checked)}
                 disabled={updateGuestListVisibility.isPending}
-                className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
+                className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
               />
               <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                 Show my first name to other confirmed guests
@@ -1067,14 +1067,14 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="flex-1 py-3 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-md hover:bg-tea-elevated transition-colors"
           >
             Keep My Seat
           </button>
           <button
             onClick={onConfirm}
             disabled={isPending}
-            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
+            className="flex-1 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-[0.15em] rounded-md hover:bg-red-500/20 disabled:opacity-50 transition-colors flex items-center justify-center"
           >
             {isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />

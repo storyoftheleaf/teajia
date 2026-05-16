@@ -56,7 +56,7 @@ const ProjectProvenance: React.FC<{ projectId: string }> = ({ projectId }) => {
   );
 };
 
-const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-sm';
+const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-md';
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 interface ProjectDetailProps {

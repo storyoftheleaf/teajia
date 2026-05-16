@@ -108,7 +108,7 @@ export function TastingControlRoom() {
 
       {confirmComplete && (
         <div className="fixed inset-0 z-50 bg-tea-bg/80 backdrop-blur-sm flex items-center justify-center px-6">
-          <div className="max-w-sm w-full rounded-2xl bg-tea-surface border border-tea-border p-6 text-center">
+          <div className="max-w-sm w-full rounded-xl bg-tea-surface border border-tea-border p-6 text-center">
             <p className="font-display font-light text-ui-17 text-tea-text mb-2">
               End the session for everyone?
             </p>

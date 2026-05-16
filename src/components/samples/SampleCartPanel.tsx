@@ -252,7 +252,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <button
               type="button"
               onClick={handleSaveAsSet}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
             >
               <BookOpen size={13} />
               Save as Sample Set
@@ -263,7 +263,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <button
               type="button"
               onClick={handlePrint}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
             >
               <Printer size={13} />
               Print
@@ -271,7 +271,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <button
               type="button"
               onClick={handleWhatsApp}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 hover:bg-tea-surface transition-colors"
             >
               <MessageCircle size={13} />
               WhatsApp

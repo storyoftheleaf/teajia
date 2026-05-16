@@ -103,7 +103,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-        className="relative z-10 w-full sm:max-w-sm bg-tea-elevated rounded-t-2xl sm:rounded-xl border border-tea-border p-5 pb-5 shadow-xl"
+        className="relative z-10 w-full sm:max-w-sm bg-tea-elevated rounded-t-xl sm:rounded-xl border border-tea-border p-5 pb-5 shadow-xl"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -170,7 +170,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               </p>
 
               {directSent ? (
-                <div className="flex items-center gap-2 py-3 px-3 rounded-lg bg-tea-gold/10 text-tea-gold text-sm font-medium">
+                <div className="flex items-center gap-2 py-3 px-3 rounded-xl bg-tea-gold/10 text-tea-gold text-sm font-medium">
                   <Check size={14} strokeWidth={2.5} />
                   Card sent to {accountSlug}
                 </div>

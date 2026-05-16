@@ -123,7 +123,7 @@ export const EventsManager: React.FC = () => {
             onChange={e => setSearchRaw(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') setSearchRaw(''); }}
             placeholder="Search by title, date, location, or status…"
-            className="w-full pl-9 pr-8 py-2.5 text-sm bg-tea-surface/60 border border-tea-border text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors rounded-sm"
+            className="w-full pl-9 pr-8 py-2.5 text-sm bg-tea-surface/60 border border-tea-border text-tea-text placeholder:text-tea-text-dim/50 focus:outline-none focus:border-tea-gold/50 transition-colors rounded-md"
           />
           {searchRaw && (
             <button
@@ -143,14 +143,14 @@ export const EventsManager: React.FC = () => {
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex gap-5 py-5 border-b border-tea-border animate-pulse">
               <div className="w-14 shrink-0 flex flex-col items-center gap-1.5 pt-1">
-                <div className="h-2 w-8 bg-tea-surface/60 rounded-sm" />
-                <div className="h-7 w-10 bg-tea-surface/60 rounded-sm" />
-                <div className="h-2 w-7 bg-tea-surface/60 rounded-sm" />
+                <div className="h-2 w-8 bg-tea-surface/60 rounded-md" />
+                <div className="h-7 w-10 bg-tea-surface/60 rounded-md" />
+                <div className="h-2 w-7 bg-tea-surface/60 rounded-md" />
               </div>
               <div className="flex-1 min-w-0 space-y-2">
-                <div className="h-4 w-2/3 bg-tea-surface/60 rounded-sm" />
-                <div className="h-3 w-1/2 bg-tea-surface/40 rounded-sm" />
-                <div className="h-2.5 w-1/3 bg-tea-surface/40 rounded-sm mt-3" />
+                <div className="h-4 w-2/3 bg-tea-surface/60 rounded-md" />
+                <div className="h-3 w-1/2 bg-tea-surface/40 rounded-md" />
+                <div className="h-2.5 w-1/3 bg-tea-surface/40 rounded-md mt-3" />
               </div>
             </div>
           ))}
@@ -161,7 +161,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-tea-gold-lt transition-colors rounded-sm"
+            className="inline-flex items-center gap-2 bg-tea-gold text-tea-bg px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-tea-gold-lt transition-colors rounded-md"
           >
             <Plus size={13} />
             Create your first event

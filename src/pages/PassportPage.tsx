@@ -227,7 +227,7 @@ const FlavorProfile: React.FC<{ words: string[] }> = ({ words }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.04, duration: 0.3 }}
-            className={`px-3 py-1.5 text-xs font-serif italic rounded-sm ${
+            className={`px-3 py-1.5 text-xs font-serif italic rounded-md ${
               i === 0
                 ? 'bg-tea-gold/15 text-tea-gold'
                 : i < 3

@@ -173,7 +173,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <div className="flex flex-row h-full max-h-[80vh] w-full max-w-5xl items-center justify-center gap-12">
             
             {/* Player Frame */}
-            <div className="h-full aspect-[9/16] bg-black relative rounded-sm shadow-2xl overflow-hidden border border-tea-border shrink-0 group">
+            <div className="h-full aspect-[9/16] bg-black relative rounded-md shadow-2xl overflow-hidden border border-tea-border shrink-0 group">
                {renderPlayer()}
                
                {/* Progress Bar Placeholder (Only in thumb mode) */}
@@ -341,7 +341,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
             </div>
             
             {/* Vinyl / Cover Art */}
-            <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-sm overflow-hidden border border-tea-border mt-[-10vh]">
+            <div className="relative z-10 w-[70vw] max-w-[300px] aspect-square shadow-2xl rounded-md overflow-hidden border border-tea-border mt-[-10vh]">
                <img src={story.thumbnailUrl} className="w-full h-full object-cover" alt="cover" loading="lazy" />
             </div>
          </div>
@@ -405,9 +405,9 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          <div className="w-full max-w-6xl px-12 flex items-center justify-center gap-[clamp(2rem,5vw,5rem)] z-10">
 
             {/* Art - Left Side */}
-            <div className="w-[clamp(220px,35vw,400px)] aspect-square shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-sm relative group perspective-1000">
-               <div className="absolute inset-0 bg-tea-elevated/5 transform translate-x-4 translate-y-4 rounded-sm border border-tea-border -z-10"></div>
-               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-sm border border-tea-border" alt="album art" loading="lazy" />
+            <div className="w-[clamp(220px,35vw,400px)] aspect-square shrink-0 shadow-[0_30px_60px_rgba(0,0,0,0.5)] rounded-md relative group perspective-1000">
+               <div className="absolute inset-0 bg-tea-elevated/5 transform translate-x-4 translate-y-4 rounded-md border border-tea-border -z-10"></div>
+               <img src={story.thumbnailUrl} className="w-full h-full object-cover rounded-md border border-tea-border" alt="album art" loading="lazy" />
                
                {/* Vinyl shine effect overlay */}
                <div className="absolute inset-0 bg-gradient-to-tr from-tea-gold/5 to-transparent pointer-events-none"></div>

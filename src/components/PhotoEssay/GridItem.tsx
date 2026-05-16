@@ -23,7 +23,7 @@ export const GridItem: React.FC<GridItemProps> = ({ image, index, onClick }) => 
     <button
       onClick={onClick}
       style={isLoaded ? { aspectRatio: aspectRatio.toString() } : { aspectRatio: '1' }}
-      className="group relative rounded-lg overflow-hidden bg-tea-text/5 hover:shadow-xl transition-all duration-300 cursor-pointer w-full"
+      className="group relative rounded-xl overflow-hidden bg-tea-text/5 hover:shadow-xl transition-all duration-300 cursor-pointer w-full"
     >
       {/* Loading State */}
       {!isLoaded && !hasError && (

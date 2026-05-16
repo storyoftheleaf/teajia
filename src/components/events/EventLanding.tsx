@@ -25,7 +25,7 @@ const PublicTeaMenuSection: React.FC<PublicTeaMenuProps> = ({ items }) => {
       </p>
       <div className="space-y-3">
         {sorted.map((item, idx) => (
-          <div key={item.id} className="flex items-start gap-4 p-4 bg-tea-surface border border-tea-border rounded-sm">
+          <div key={item.id} className="flex items-start gap-4 p-4 bg-tea-surface border border-tea-border rounded-md">
             <span className="font-serif text-xl text-tea-gold/30 leading-none shrink-0 mt-0.5">{idx + 1}</span>
             <div className="flex-1 min-w-0">
               {item.productType && (
@@ -56,7 +56,7 @@ const VenuePhotosSection: React.FC<VenuePhotosProps> = ({ photos }) => {
       <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec mb-4">The Space</p>
       <div className={`grid gap-2 ${visible.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {visible.map((url, idx) => (
-          <div key={idx} className="rounded-sm overflow-hidden border border-tea-border aspect-[4/3]">
+          <div key={idx} className="rounded-md overflow-hidden border border-tea-border aspect-[4/3]">
             <img
               src={url}
               alt={`Venue photo ${idx + 1}`}
@@ -240,7 +240,7 @@ const EventLanding: React.FC = () => {
         <div className="text-center max-w-xs">
           <div className="animate-pulse">
             <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-            <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+            <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
           </div>
           {loadingTooLong && (
             <p className="text-ui-12 text-tea-text-dim mt-8 leading-relaxed">
@@ -474,20 +474,20 @@ const EventLanding: React.FC = () => {
                   {myAttendee.status === 'confirmed' && (
                     <button
                       onClick={() => navigate(`/m/${myAttendee.magic_token || myAttendee.magicToken}`)}
-                      className="py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                      className="py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-md hover:border-tea-gold/40 transition-colors"
                     >
                       Invite a Friend
                     </button>
                   )}
                   <button
                     onClick={() => setShowCancelConfirm(true)}
-                    className="py-[13px] bg-tea-surface border border-tea-border text-tea-text-sec text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-red-400/30 hover:text-red-400 transition-colors"
+                    className="py-[13px] bg-tea-surface border border-tea-border text-tea-text-sec text-ui-11 uppercase tracking-[0.2em] rounded-md hover:border-red-400/30 hover:text-red-400 transition-colors"
                   >
                     Cancel {myAttendee.status === 'confirmed' ? 'My Seat' : 'Registration'}
                   </button>
                 </div>
                 {showCancelConfirm && (
-                  <div className="bg-tea-surface border border-tea-border rounded-sm p-4 space-y-3">
+                  <div className="bg-tea-surface border border-tea-border rounded-md p-4 space-y-3">
                     <p className="text-sm font-serif text-tea-text text-center">Cancel your spot?</p>
                     <p className="text-ui-11 text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
                     {cancelFeedback && <p className="text-ui-11 text-red-400 text-center">{cancelFeedback}</p>}
@@ -514,7 +514,7 @@ const EventLanding: React.FC = () => {
                           }
                         }}
                         disabled={cancelling}
-                        className="flex-1 py-2.5 text-ui-11 uppercase tracking-[0.15em] text-red-400 hover:text-red-300 border border-red-400/30 rounded-sm hover:border-red-400/50 transition-colors disabled:opacity-50"
+                        className="flex-1 py-2.5 text-ui-11 uppercase tracking-[0.15em] text-red-400 hover:text-red-300 border border-red-400/30 rounded-md hover:border-red-400/50 transition-colors disabled:opacity-50"
                       >
                         {cancelling ? 'Cancelling…' : 'Yes, cancel'}
                       </button>
@@ -527,7 +527,7 @@ const EventLanding: React.FC = () => {
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowRSVP(true)}
-                  className="w-full py-[15px] bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
+                  className="w-full py-[15px] bg-tea-gold text-tea-bg text-ui-11 uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 transition-all duration-300 shadow-[0_6px_20px_rgba(184,146,78,0.3)]"
                 >
                   {isInstantConfirm ? 'Reserve My Seat' : 'Request Your Seat'}
                 </button>
@@ -557,7 +557,7 @@ const EventLanding: React.FC = () => {
               </p>
               <button
                 onClick={() => setShowRSVP(true)}
-                className="w-full py-[15px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.25em] rounded-sm hover:border-tea-gold/40 transition-colors"
+                className="w-full py-[15px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.25em] rounded-md hover:border-tea-gold/40 transition-colors"
               >
                 Join the Waitlist
               </button>
@@ -577,7 +577,7 @@ const EventLanding: React.FC = () => {
               {isCompleted && slug && (
                 <button
                   onClick={() => navigate(`/event/${slug}/recap`)}
-                  className="w-full flex items-center justify-center gap-2.5 py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-sm hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="w-full flex items-center justify-center gap-2.5 py-[13px] bg-tea-surface border border-tea-border text-tea-text text-ui-11 uppercase tracking-[0.2em] rounded-md hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
                   View session recap

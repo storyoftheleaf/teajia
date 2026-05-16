@@ -39,7 +39,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Add to order" className="bg-tea-surface border border-tea-border rounded-lg w-full max-w-sm p-8 shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div ref={focusTrapRef} role="dialog" aria-modal="true" aria-label="Add to order" className="bg-tea-surface border border-tea-border rounded-xl w-full max-w-sm p-8 shadow-lg" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-2xl font-serif text-tea-text mb-2">Add to Order</h3>
         <p className="text-tea-text-sec text-sm mb-6 font-serif italic">{product.givenName} <span className="text-tea-border mx-2">•</span> {product.productName}</p>
 
@@ -51,7 +51,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               onKeyDown={(e) => { if (e.key === 'Enter' && Number(quantity) > 0) onConfirm(Number(quantity)); }}
               inputMode="numeric"
               onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-              className="w-full bg-tea-surface border border-tea-border rounded-lg p-3 text-tea-text focus:border-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-lg transition-colors placeholder-tea-text-sec/50"
+              className="w-full bg-tea-surface border border-tea-border rounded-xl p-3 text-tea-text focus:border-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-lg transition-colors placeholder-tea-text-sec/50"
               placeholder="0"
             />
             {product.type !== 'Teaware' && (
@@ -73,10 +73,10 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <span className="text-2xl font-serif text-tea-gold">{formatCurrency(totalUSD, currency, rates)}</span>
           </div>
           <div className="pt-6 flex gap-4">
-            <button onClick={onClose} className="flex-1 py-3 text-xs font-bold uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text transition-colors border border-transparent hover:border-tea-border rounded-lg focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none">Cancel</button>
+            <button onClick={onClose} className="flex-1 py-3 text-xs font-bold uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text transition-colors border border-transparent hover:border-tea-border rounded-xl focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none">Cancel</button>
             <button 
               onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
-              className="flex-1 py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+              className="flex-1 py-3 bg-tea-gold text-tea-bg font-bold text-xs uppercase tracking-[0.2em] rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
               disabled={!quantity || Number(quantity) <= 0}
             >
               Add Item

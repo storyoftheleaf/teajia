@@ -52,7 +52,7 @@ const SourceModal = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+      <form onSubmit={handleSubmit} className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
         <div className="flex justify-between items-center p-6 border-b border-tea-border">
           <h3 className="text-lg font-serif text-tea-text">{isEditing ? 'Edit Source' : 'New Source'}</h3>
           <button type="button" onClick={onClose} className="text-tea-text-sec hover:text-tea-text"><XIcon size={20} /></button>
@@ -91,7 +91,7 @@ const SourceModal = ({
         </div>
         <div className="flex justify-between gap-3 p-6 border-t border-tea-border">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50">
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add Source'}
           </button>
         </div>
@@ -201,7 +201,7 @@ const CollapsibleSection = ({ title, defaultOpen = true, children }: {
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mx-3 mb-2 rounded-lg bg-tea-surface">
+    <div className="mx-3 mb-2 rounded-xl bg-tea-surface">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3 group">
         <span className="text-ui-12 text-tea-gold uppercase tracking-[0.15em] font-bold">{title}</span>
         <ChevronRight size={14} className={`text-tea-text-dim transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
@@ -953,7 +953,7 @@ export const SourcesView = () => {
               {/* Toggle Edit Mode */}
               <button
                 onClick={() => setIsEditMode(!isEditMode)}
-                className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-lg ${
+                className={`flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold transition-all px-3 py-1.5 border rounded-xl ${
                   isEditMode
                     ? 'bg-tea-gold text-tea-bg border-tea-gold hover:bg-tea-gold/90'
                     : 'text-tea-text-sec border-transparent hover:border-tea-border hover:text-tea-text'
@@ -967,7 +967,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg"
+                className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-xl"
               >
                 <Plus size={14} /> New
               </button>
@@ -978,7 +978,7 @@ export const SourcesView = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Show/Hide Columns"
                 >
                   <Columns size={14} />
@@ -1013,7 +1013,7 @@ export const SourcesView = () => {
                     const el = document.getElementById('sources-groupby-dropdown');
                     if (el) el.classList.toggle('hidden');
                   }}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                   title="Group By"
                 >
                   <Layers size={14} />
@@ -1037,7 +1037,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -1396,7 +1396,7 @@ export const SourcesView = () => {
                 ) : (
                   <>
                     {panelSupplied.length > 0 && (
-                      <div className="bg-tea-bg rounded-lg border border-tea-border overflow-hidden mb-3">
+                      <div className="bg-tea-bg rounded-xl border border-tea-border overflow-hidden mb-3">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-tea-border text-tea-text-sec">
@@ -1457,7 +1457,7 @@ export const SourcesView = () => {
                           <Plus size={12} /> Link a tea
                         </button>
                       ) : (
-                        <div className="bg-tea-bg border border-tea-border rounded-lg shadow-lg overflow-hidden max-w-sm">
+                        <div className="bg-tea-bg border border-tea-border rounded-xl shadow-lg overflow-hidden max-w-sm">
                           <div className="p-2 border-b border-tea-border flex items-center gap-2">
                             <Search size={12} className="text-tea-text-sec" />
                             <input
@@ -1549,7 +1549,7 @@ export const SourcesView = () => {
                           {vendorTxs.slice(0, 10).map((tx) => {
                             const txTotal = tx.items.reduce((s, i) => s + lineTotal(i), 0);
                             return (
-                              <div key={tx.id} className="bg-tea-bg rounded-lg border border-tea-border p-3">
+                              <div key={tx.id} className="bg-tea-bg rounded-xl border border-tea-border p-3">
                                 <div className="flex items-center justify-between mb-1.5">
                                   <div className="flex items-center gap-2">
                                     {tx.direction === 'purchase' ? (
@@ -1641,13 +1641,13 @@ export const SourcesView = () => {
                             {vendorDetails.storefrontUrl && (
                               <div className="flex-1">
                                 <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
-                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
+                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                             {vendorDetails.businessCardUrl && (
                               <div className="flex-1">
                                 <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
-                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
+                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                           </div>

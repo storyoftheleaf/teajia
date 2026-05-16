@@ -21,7 +21,7 @@ const TeawareCard: React.FC<{
       hidden: { opacity: 0, y: 20 },
       visible: { opacity: 1, y: 0 }
     }}
-    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-sec/50 transition-all duration-500 flex flex-col rounded-lg shadow-2xl"
+    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-sec/50 transition-all duration-500 flex flex-col rounded-xl shadow-2xl"
   >
     <div className="aspect-[4/3] overflow-hidden relative bg-tea-bg/50 flex items-center justify-center">
       {product.imageUrl ? (
@@ -156,7 +156,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
             </div>
 
             {/* View Toggle */}
-            <div className="flex items-center bg-tea-surface rounded-lg border border-tea-border p-0.5">
+            <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5">
               <button
                 onClick={() => setViewMode('database')}
                 className={`p-1.5 rounded-md transition-colors ${viewMode === 'database' ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec hover:text-tea-text'}`}
@@ -175,7 +175,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
             <div className="w-px h-4 bg-tea-border mx-1" />
 
-            <button onClick={() => { if (products.length > 0) onAdd(products[0]); }} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-lg">
+            <button onClick={() => { if (products.length > 0) onAdd(products[0]); }} className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-bold text-tea-text-sec hover:text-tea-text transition-colors px-3 py-1.5 border border-transparent hover:border-tea-border rounded-xl">
               <Plus size={14} /> New
             </button>
           </div>

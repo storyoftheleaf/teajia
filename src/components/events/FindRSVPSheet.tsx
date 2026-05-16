@@ -86,7 +86,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl animate-[slideUp_0.3s_ease-out]"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-xl md:rounded-xl shadow-2xl animate-[slideUp_0.3s_ease-out]"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -122,7 +122,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                   key={id}
                   type="button"
                   onClick={() => { setMethod(id); setContact(''); findMutation.reset(); }}
-                  className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                  className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-md transition-colors ${
                     method === id
                       ? 'bg-tea-gold/10 text-tea-gold'
                       : 'bg-tea-surface text-tea-text-sec hover:text-tea-text border border-tea-border'
@@ -151,7 +151,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                   onChange={(e) => setContact(e.target.value)}
                   placeholder={method === 'email' ? 'your@email.com' : '+62 812 3456 7890'}
                   autoFocus
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
             )}
@@ -163,7 +163,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
                 ? "We couldn't find your reservation. Try searching by your other contact method, or message the host directly."
                 : raw || 'Something went wrong. Try again in a moment.';
               return (
-                <div className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-sm">
+                <div className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-md">
                   <p className="text-sm text-tea-text-sec leading-relaxed">{friendly}</p>
                 </div>
               );
@@ -172,7 +172,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
             <button
               type="submit"
               disabled={!canSubmit || findMutation.isPending}
-              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
             >
               {findMutation.isPending ? (
                 <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

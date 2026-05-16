@@ -168,7 +168,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="flex items-center gap-2 w-full py-2 px-3 rounded-lg bg-tea-surface/60 text-tea-text-dim text-xs hover:text-tea-text-sec transition-colors"
+        className="flex items-center gap-2 w-full py-2 px-3 rounded-xl bg-tea-surface/60 text-tea-text-dim text-xs hover:text-tea-text-sec transition-colors"
       >
         <Store size={13} />
         <span>Add vendor info</span>
@@ -178,7 +178,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
 
   if (!editing) {
     return (
-      <div className="rounded-lg bg-tea-surface/60 overflow-hidden">
+      <div className="rounded-xl bg-tea-surface/60 overflow-hidden">
         {/* Photos strip */}
         {hasPhotos && (
           <div className="flex gap-0">
@@ -255,7 +255,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
 
   // ── Edit mode ──
   return (
-    <div className="rounded-lg bg-tea-surface/60 p-3 space-y-3">
+    <div className="rounded-xl bg-tea-surface/60 p-3 space-y-3">
       {/* Hidden file inputs */}
       <input ref={storefrontRef} type="file" accept="image/*" capture="environment" className="hidden"
         onChange={(e) => handlePhotoUpload(e, 'storefrontUrl', setStorefrontState)} />
@@ -268,7 +268,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
           type="button"
           onClick={() => storefrontRef.current?.click()}
           disabled={storefrontState === 'loading'}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-lg bg-tea-bg text-tea-text-sec text-xs hover:text-tea-text transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-tea-bg text-tea-text-sec text-xs hover:text-tea-text transition-colors"
         >
           {storefrontState === 'loading' ? <Loader2 size={14} className="animate-spin" /> :
            storefrontState === 'done' ? <Check size={14} className="text-tea-gold" /> :
@@ -281,7 +281,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
           type="button"
           onClick={() => cardRef.current?.click()}
           disabled={cardState === 'loading'}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-lg bg-tea-bg text-tea-text-sec text-xs hover:text-tea-text transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-tea-bg text-tea-text-sec text-xs hover:text-tea-text transition-colors"
         >
           {cardState === 'loading' ? <Loader2 size={14} className="animate-spin" /> :
            cardState === 'done' ? <Check size={14} className="text-tea-gold" /> :
@@ -296,7 +296,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
         type="button"
         onClick={handleGeoPin}
         disabled={geoState === 'loading'}
-        className="flex items-center gap-2 w-full py-2.5 rounded-lg bg-tea-bg text-tea-text-sec text-xs hover:text-tea-text transition-colors justify-center"
+        className="flex items-center gap-2 w-full py-2.5 rounded-xl bg-tea-bg text-tea-text-sec text-xs hover:text-tea-text transition-colors justify-center"
       >
         {geoState === 'loading' ? <Loader2 size={14} className="animate-spin" /> :
          geoState === 'done' ? <Check size={14} className="text-tea-gold" /> :
@@ -357,7 +357,7 @@ export const VendorInfoPanel: React.FC<VendorInfoPanelProps> = ({
       <button
         type="button"
         onClick={() => setEditing(false)}
-        className="w-full py-2.5 rounded-lg bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-90"
+        className="w-full py-2.5 rounded-xl bg-tea-gold text-tea-bg text-xs font-semibold uppercase tracking-[0.1em] transition-opacity hover:opacity-90"
       >
         Done
       </button>

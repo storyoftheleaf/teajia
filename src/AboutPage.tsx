@@ -22,7 +22,7 @@ export default function AboutPage() {
 
       {/* Hero image — full-width editorial strip */}
       {/* Adrian: drop your wide establishing image here (landscape, 3:2 or 16:9) */}
-      <div className="aspect-[3/2] md:aspect-[16/7] bg-tea-elevated rounded-lg mb-12 md:mb-16 overflow-hidden">
+      <div className="aspect-[3/2] md:aspect-[16/7] bg-tea-elevated rounded-xl mb-12 md:mb-16 overflow-hidden">
         <img
           src=""
           alt="TeajiA — the practice"
@@ -77,7 +77,7 @@ export default function AboutPage() {
           <img
             src="https://images.unsplash.com/photo-1545239351-ef35f43d514b?w=600&q=80&auto=format"
             alt="Adrian Rasmussen"
-            className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-text/5 rounded-lg shrink-0"
+            className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-text/5 rounded-xl shrink-0"
             loading="lazy"
           />
 
@@ -118,7 +118,7 @@ export default function AboutPage() {
       </section>
 
       {/* Brand philosophy */}
-      <section className="mb-16 md:mb-20 bg-tea-surface border border-tea-border p-8 md:p-12 rounded-lg">
+      <section className="mb-16 md:mb-20 bg-tea-surface border border-tea-border p-8 md:p-12 rounded-xl">
         <p className="font-sans text-ui-10 uppercase tracking-widest text-tea-gold mb-3">
           Philosophy
         </p>

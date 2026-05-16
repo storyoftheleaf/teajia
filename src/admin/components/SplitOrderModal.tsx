@@ -57,7 +57,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+      <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-md p-6 shadow-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors" aria-label="Close">
           <X size={20} />
         </button>
@@ -78,7 +78,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
                 <button
                   key={item.id}
                   onClick={() => toggleItem(item.id)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left ${
                     isChecked ? 'bg-tea-gold/8 border-tea-border' : 'bg-tea-surface border-tea-border hover:bg-tea-elevated/50'
                   }`}
                 >
@@ -104,7 +104,7 @@ export const SplitOrderModal: React.FC<SplitOrderModalProps> = ({
             <button
               onClick={handleSplit}
               disabled={!canSplit || loading}
-              className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-xl hover:bg-tea-gold/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading && <Loader2 size={14} className="animate-spin" />}
               <Scissors size={14} /> Split

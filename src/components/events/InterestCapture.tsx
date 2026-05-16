@@ -45,7 +45,7 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
         <button
           type="button"
           onClick={() => setMethod('whatsapp')}
-          className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${
+          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
             method === 'whatsapp'
               ? 'bg-tea-gold/10 text-tea-gold'
               : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -56,7 +56,7 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
         <button
           type="button"
           onClick={() => setMethod('email')}
-          className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${
+          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
             method === 'email'
               ? 'bg-tea-gold/10 text-tea-gold'
               : 'bg-tea-surface text-tea-text-sec hover:text-tea-text'
@@ -72,13 +72,13 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
           value={contact}
           onChange={(e) => setContact(e.target.value)}
           placeholder={method === 'email' ? 'your@email.com' : '0912-345-678'}
-          className="flex-1 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+          className="flex-1 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
         />
         <button
           type="button"
           disabled={!isValid || mutation.isPending}
           onClick={() => mutation.mutate()}
-          className="px-4 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          className="px-4 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
         >
           {mutation.isPending ? (
             <span className="inline-block w-3.5 h-3.5 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

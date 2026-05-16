@@ -75,7 +75,7 @@ const StatCard: React.FC<{
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3, delay: index * 0.06 }}
-    className="bg-tea-surface border border-tea-border rounded-sm p-5 flex flex-col gap-3"
+    className="bg-tea-surface border border-tea-border rounded-md p-5 flex flex-col gap-3"
   >
     <div className="flex items-center gap-2 text-tea-text-dim">
       {icon}
@@ -232,7 +232,7 @@ export const VendorProfileView: React.FC = () => {
               {vendor.tags.map(tag => (
                 <span
                   key={tag}
-                  className="text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-sm"
+                  className="text-ui-10 uppercase tracking-[0.15em] px-2.5 py-1 bg-tea-surface text-tea-text-sec rounded-md"
                 >
                   {tag}
                 </span>
@@ -288,7 +288,7 @@ export const VendorProfileView: React.FC = () => {
               No products linked to this vendor yet.
             </p>
           ) : (
-            <div className="border border-tea-border rounded-sm overflow-hidden">
+            <div className="border border-tea-border rounded-md overflow-hidden">
               {/* Table header */}
               <div className="grid grid-cols-[1fr_80px_80px_80px] gap-4 px-5 py-3 bg-tea-surface border-b border-tea-border">
                 <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">Tea</span>
@@ -347,7 +347,7 @@ export const VendorProfileView: React.FC = () => {
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  className="flex items-center justify-between px-5 py-4 bg-tea-surface border border-tea-border rounded-sm"
+                  className="flex items-center justify-between px-5 py-4 bg-tea-surface border border-tea-border rounded-md"
                 >
                   <div>
                     <p className="text-sm font-serif text-tea-text">
@@ -359,7 +359,7 @@ export const VendorProfileView: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span
-                      className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-sm ${
+                      className={`text-ui-10 uppercase tracking-[0.1em] px-2 py-0.5 rounded-md ${
                         inv.status === 'Filled'
                           ? 'bg-tea-gold/15 text-tea-gold'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border'

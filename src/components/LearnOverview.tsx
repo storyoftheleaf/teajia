@@ -13,7 +13,7 @@ import { teaMapPins } from '../data/teaMapPins';
 
 type LearnView = 'overview' | 'course' | 'glossary' | 'playlists' | 'videos' | 'visual-guides' | 'journeys' | 'wisdom' | 'spaces';
 
-const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-sm';
+const CTA_FOCUS = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 rounded-md';
 
 const PIN_TYPE_LABELS: Record<string, string> = {
   farm: 'Terroir',
@@ -201,7 +201,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
         </div>
 
         {/* Start Here — new user callout */}
-        <div className="mb-5 px-4 py-3.5 rounded-sm bg-tea-surface/60 border border-tea-border flex items-start gap-3">
+        <div className="mb-5 px-4 py-3.5 rounded-md bg-tea-surface/60 border border-tea-border flex items-start gap-3">
           <span className="text-tea-gold/60 mt-0.5 shrink-0" aria-hidden="true">
             <Icons.Leaf className="w-4 h-4" />
           </span>
@@ -318,7 +318,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
               <div className="relative" style={{ padding: 'clamp(24px, 4vw, 48px)' }}>
                 {/* Category + badge */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-sm">
+                  <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold font-sans border border-tea-border px-2.5 py-1 rounded-md">
                     {GLOSSARY_CATEGORIES[spotlightTerm.category].label}
                   </span>
                 </div>

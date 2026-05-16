@@ -292,7 +292,7 @@ export const CollectionShareSheet: React.FC<CollectionShareSheetProps> = ({
         onClick={submitting ? undefined : (phase === 'success' ? handleDone : onClose)}
       />
 
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[90vh]">
         {phase === 'form' ? (
           <FormPhase
             mode={mode} setMode={setMode}
@@ -389,7 +389,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
   <>
     <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
           <BookOpen size={14} className="text-tea-gold" />
         </div>
         <div className="min-w-0">
@@ -413,7 +413,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
     </header>
 
     <div className="px-5 pb-1 flex-shrink-0">
-      <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
+      <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-xl">
         <button
           type="button"
           role="tab"
@@ -478,7 +478,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
               data-1p-ignore
               data-lpignore="true"
               name="collection-title"
-              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
           </div>
 
@@ -494,7 +494,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
               autoComplete="off"
               spellCheck
               name="collection-note"
-              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 resize-none"
+              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 resize-none"
             />
           </div>
 
@@ -521,7 +521,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
               autoComplete="off"
               spellCheck={false}
               name="collection-search"
-              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
           </div>
 
@@ -543,7 +543,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedCollectionId(c.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                           isSelected ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                         }`}
                       >
@@ -609,7 +609,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
               autoComplete="off"
               spellCheck={false}
               name="tea-house-search"
-              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
           </div>
 
@@ -631,7 +631,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedTeaHouseId(isSelected ? null : h.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                           isSelected ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                         }`}
                       >
@@ -666,11 +666,11 @@ const FormPhase: React.FC<FormPhaseProps> = ({
               autoComplete="off"
               spellCheck
               name="tea-house-note"
-              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 resize-none"
+              className="w-full px-3 py-2 text-sm bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40 resize-none"
             />
           </div>
 
-          <div className="px-3 py-2.5 bg-tea-bg rounded-lg">
+          <div className="px-3 py-2.5 bg-tea-bg rounded-xl">
             <p className="text-ui-11 text-tea-text-sec">
               Sending {count} product{count !== 1 ? 's' : ''} to their inbound queue.
             </p>
@@ -695,7 +695,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitNew}
           disabled={!canSubmitNew || submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Publishing…</>
@@ -707,7 +707,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitExisting}
           disabled={!canSubmitExisting || submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Adding…</>
@@ -719,7 +719,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
           type="button"
           onClick={onSubmitTeaHouse}
           disabled={!canSubmitTeaHouse || submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting
             ? <><Loader2 size={12} className="animate-spin" /> Sending…</>
@@ -768,7 +768,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
       <>
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
               <CheckCircle2 size={15} className="text-tea-gold" />
             </div>
             <div className="min-w-0">
@@ -791,7 +791,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 pt-2 flex flex-col gap-4">
-          <div className="px-3 py-3 bg-tea-bg rounded-lg">
+          <div className="px-3 py-3 bg-tea-bg rounded-xl">
             <p className="text-ui-12 text-tea-text-sec italic">
               They'll see this in their inbound queue at /admin/collections.
             </p>
@@ -800,7 +800,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
           <button
             type="button"
             onClick={() => { navigate(`/admin/collections/${success.collectionId}`); onDone(); }}
-            className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-lg hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
+            className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-xl hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
           >
             <span className="text-ui-12 text-tea-text">View collection</span>
             <ArrowRight size={13} className="text-tea-text-sec group-hover:text-tea-gold transition-colors" />
@@ -811,7 +811,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
           <button
             type="button"
             onClick={onDone}
-            className="px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
+            className="px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
           >
             Done
           </button>
@@ -825,7 +825,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
     <>
       <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
             <CheckCircle2 size={15} className="text-tea-gold" />
           </div>
           <div className="min-w-0">
@@ -855,13 +855,13 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
               Shareable link
             </label>
             <div className="flex items-stretch gap-2">
-              <div className="flex-1 min-w-0 px-3 py-2 bg-tea-bg border border-tea-border rounded-lg overflow-hidden">
+              <div className="flex-1 min-w-0 px-3 py-2 bg-tea-bg border border-tea-border rounded-xl overflow-hidden">
                 <p className="text-ui-12 text-tea-text font-mono truncate">{url}</p>
               </div>
               <button
                 type="button"
                 onClick={copyUrl}
-                className="flex items-center gap-1.5 px-3 py-2 bg-tea-elevated text-tea-text rounded-lg text-ui-11 uppercase tracking-wide hover:bg-tea-gold-lt hover:text-tea-gold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 bg-tea-elevated text-tea-text rounded-xl text-ui-11 uppercase tracking-wide hover:bg-tea-gold-lt hover:text-tea-gold transition-colors"
               >
                 {copied
                   ? <><Check size={11} /> Copied</>
@@ -884,7 +884,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
                     href={buildWhatsAppUrl(r.phone || '', buildRecipientMessage(r))}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-lg hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
+                    className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-bg border border-tea-border rounded-xl hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
                   >
                     <MessageCircle size={13} className="text-tea-gold flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -902,7 +902,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         )}
 
         {recipientsWithoutPhone.length > 0 && url && (
-          <div className="px-3 py-2.5 bg-tea-bg rounded-lg">
+          <div className="px-3 py-2.5 bg-tea-bg rounded-xl">
             <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim mb-1">
               No phone on file
             </p>
@@ -920,7 +920,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         )}
 
         {!url && (
-          <div className="px-3 py-3 bg-tea-bg rounded-lg">
+          <div className="px-3 py-3 bg-tea-bg rounded-xl">
             <p className="text-ui-12 text-tea-text">
               Added {success.addedCount} product{success.addedCount !== 1 ? 's' : ''} to this collection.
             </p>
@@ -933,7 +933,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         <button
           type="button"
           onClick={() => { navigate(`/admin/collections/${success.collectionId}`); onDone(); }}
-          className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-lg hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
+          className="flex items-center justify-between px-3 py-2.5 bg-tea-bg border border-tea-border rounded-xl hover:border-tea-gold/40 hover:bg-tea-elevated transition-colors group"
         >
           <span className="text-ui-12 text-tea-text">View collection</span>
           <ArrowRight size={13} className="text-tea-text-sec group-hover:text-tea-gold transition-colors" />
@@ -944,7 +944,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
         <button
           type="button"
           onClick={onDone}
-          className="px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
+          className="px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors"
         >
           Done
         </button>

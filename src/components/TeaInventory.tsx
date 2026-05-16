@@ -525,7 +525,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
              <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price per</span>
-               <div className="flex items-center gap-0.5 border border-tea-border rounded-sm overflow-hidden">
+               <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
                  {([25, 50, 100] as const).map(g => (
                    <button
                      key={g}
@@ -576,7 +576,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             {openFilter && (
                <>
                   <div className="fixed inset-0 z-overlay" onClick={() => setOpenFilter(null)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-xl shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button
@@ -683,7 +683,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                              }}
                              className={[
                                'flex items-center gap-1 text-ui-11 transition-colors py-0.5',
-                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-md',
                                isActive
                                  ? 'text-tea-text border-b border-tea-gold/60'
                                  : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',
@@ -725,7 +725,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                              }}
                              className={[
                                'flex items-center gap-1 text-ui-11 transition-colors py-0.5',
-                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-md',
                                isActive
                                  ? 'text-tea-text border-b border-tea-gold/60'
                                  : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',
@@ -886,7 +886,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             )}
                                             {/* Stock badge */}
                                             {stockBadge && (
-                                                <span className={`shrink-0 text-ui-10 uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${stockBadge.cls}`}>
+                                                <span className={`shrink-0 text-ui-10 uppercase tracking-widest px-1.5 py-0.5 rounded-md ${stockBadge.cls}`}>
                                                     {stockBadge.label}
                                                 </span>
                                             )}
@@ -960,7 +960,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                 className="flex flex-col items-center shrink-0 group"
                 style={{ width: '72px' }}
               >
-                <div className="w-14 h-14 rounded-sm overflow-hidden bg-tea-elevated mb-1.5 group-hover:ring-1 group-hover:ring-tea-gold/30 transition-all">
+                <div className="w-14 h-14 rounded-md overflow-hidden bg-tea-elevated mb-1.5 group-hover:ring-1 group-hover:ring-tea-gold/30 transition-all">
                   {item.image ? (
                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
@@ -981,7 +981,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1" />

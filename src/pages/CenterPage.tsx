@@ -55,7 +55,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
   const photo = entry.photos?.[0];
 
   return (
-    <div className="shrink-0 w-40 bg-tea-surface rounded-sm overflow-hidden">
+    <div className="shrink-0 w-40 bg-tea-surface rounded-md overflow-hidden">
       {photo ? (
         <img src={photo} alt={entry.name} className="w-full h-24 object-cover" loading="lazy" />
       ) : (
@@ -76,7 +76,7 @@ function QueueCard({ entry }: { entry: TeaCompassEntry }) {
                 key={v}
                 onClick={() => { setVerdict(v); setOpen(false); }}
                 className={[
-                  'text-ui-10 px-2 py-0.5 rounded-sm transition-colors duration-100',
+                  'text-ui-10 px-2 py-0.5 rounded-md transition-colors duration-100',
                   verdict === v
                     ? 'bg-tea-gold text-tea-bg'
                     : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text',
@@ -130,7 +130,7 @@ function StatCard({
   href?: string;
 }) {
   const inner = (
-    <div className="flex-1 min-w-[88px] bg-tea-surface px-4 py-4 rounded-sm text-center">
+    <div className="flex-1 min-w-[88px] bg-tea-surface px-4 py-4 rounded-md text-center">
       <p className="text-2xl font-display text-tea-text">{value}</p>
       <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mt-1">{label}</p>
     </div>
@@ -282,7 +282,7 @@ export default function CenterPage() {
 
         {/* Identity */}
         <div className="mb-8">
-          <div className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-sm mb-3">
+          <div className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold bg-tea-gold/8 px-2.5 py-1 rounded-md mb-3">
             {tier}
           </div>
           <h1 className="font-display text-4xl text-tea-text leading-tight">
@@ -367,12 +367,12 @@ export default function CenterPage() {
               value={memberSearch}
               onChange={(e) => setMemberSearch(e.target.value)}
               placeholder="Find members"
-              className="w-full bg-tea-surface border border-tea-border px-4 py-3 text-tea-text text-sm rounded-sm outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim"
+              className="w-full bg-tea-surface border border-tea-border px-4 py-3 text-tea-text text-sm rounded-md outline-none focus:border-tea-gold transition-colors placeholder-tea-text-dim"
             />
           </div>
 
           {memberResults.length > 0 && (
-            <div className="mt-1 bg-tea-surface border border-tea-border rounded-sm overflow-hidden">
+            <div className="mt-1 bg-tea-surface border border-tea-border rounded-md overflow-hidden">
               {memberResults.map((m) => (
                 <div
                   key={m.id}

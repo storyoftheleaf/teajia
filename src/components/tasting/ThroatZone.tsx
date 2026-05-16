@@ -51,7 +51,7 @@ const ChineseConceptToggle: React.FC<ChineseConceptToggleProps> = ({
     whileTap={{ scale: 0.98 }}
     onClick={onToggle}
     aria-pressed={active}
-    className={`flex items-center gap-3 w-full text-left py-2.5 px-3 rounded-lg transition-colors duration-200 min-h-[44px] ${
+    className={`flex items-center gap-3 w-full text-left py-2.5 px-3 rounded-xl transition-colors duration-200 min-h-[44px] ${
       active ? 'bg-tea-gold/10' : 'bg-tea-surface hover:bg-tea-elevated'
     }`}
   >

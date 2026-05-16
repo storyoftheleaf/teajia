@@ -41,9 +41,9 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   return (
     <button
       onClick={() => navigate(`/event/${event.slug}`)}
-      className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+      className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-md"
     >
-      <div className="relative overflow-hidden rounded-sm" style={{ background: 'var(--color-tea-surface, #1e1710)' }}>
+      <div className="relative overflow-hidden rounded-md" style={{ background: 'var(--color-tea-surface, #1e1710)' }}>
         {/* Flyer image or gradient hero */}
         {event.flyerImageUrl ? (
           <div className="w-full aspect-[16/9] overflow-hidden">
@@ -124,12 +124,12 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
 // ── Skeleton card ──────────────────────────────────────────────────────────────
 const EventCardSkeleton: React.FC = () => (
-  <div className="rounded-sm overflow-hidden animate-pulse bg-tea-surface">
+  <div className="rounded-md overflow-hidden animate-pulse bg-tea-surface">
     <div className="aspect-[16/9] bg-tea-elevated" />
     <div className="px-4 py-4 space-y-2">
-      <div className="h-3 w-24 bg-tea-elevated rounded-sm" />
-      <div className="h-5 w-48 bg-tea-elevated rounded-sm" />
-      <div className="h-3 w-32 bg-tea-elevated rounded-sm" />
+      <div className="h-3 w-24 bg-tea-elevated rounded-md" />
+      <div className="h-5 w-48 bg-tea-elevated rounded-md" />
+      <div className="h-3 w-32 bg-tea-elevated rounded-md" />
     </div>
   </div>
 );

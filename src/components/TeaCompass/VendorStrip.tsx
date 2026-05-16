@@ -379,7 +379,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
           <button
             type="button"
             onClick={() => setContactMenuOpen((o) => !o)}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${
+            className={`flex items-center justify-center w-8 h-8 rounded-xl transition-colors ${
               contactMenuOpen || hasDetails ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-surface text-tea-text-dim hover:text-tea-text-sec'
             }`}
             aria-label="Vendor contact options"
@@ -395,7 +395,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-lg p-1.5 shadow-lg border border-tea-border min-w-[180px]"
+                className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-1.5 shadow-lg border border-tea-border min-w-[180px]"
               >
                 {/* Hidden file inputs */}
                   <input ref={businessCardRef} type="file" accept="image/*" capture="environment" className="hidden"
@@ -586,7 +586,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   type="button"
                   onClick={handleCreateVendor}
                   disabled={!newName.trim()}
-                  className="bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] px-4 py-2.5 rounded-lg disabled:opacity-40 transition-opacity"
+                  className="bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] px-4 py-2.5 rounded-xl disabled:opacity-40 transition-opacity"
                 >
                   Add
                 </button>

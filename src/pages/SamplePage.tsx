@@ -290,7 +290,7 @@ const SamplePage: React.FC = () => {
             className="flex gap-2 overflow-x-auto scrollbar-hide"
           >
             {sample.photos.map((url, i) => (
-              <img key={i} src={url} alt="" className="h-32 w-32 rounded-lg object-cover flex-shrink-0" loading="lazy" />
+              <img key={i} src={url} alt="" className="h-32 w-32 rounded-xl object-cover flex-shrink-0" loading="lazy" />
             ))}
           </motion.div>
         )}
@@ -312,7 +312,7 @@ const SamplePage: React.FC = () => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-tea-surface rounded-lg p-4 space-y-3"
+            className="bg-tea-surface rounded-xl p-4 space-y-3"
           >
             <div>
               <p className="text-xs uppercase tracking-[0.1em] text-tea-text-dim mb-1">Source</p>
@@ -323,7 +323,7 @@ const SamplePage: React.FC = () => {
               {sample.sourceContact?.whatsapp && (
                 <button
                   onClick={handleWhatsAppAsk}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
                 >
                   <MessageCircle size={14} /> WhatsApp
                 </button>
@@ -331,18 +331,18 @@ const SamplePage: React.FC = () => {
               {sample.sourceContact?.phone && (
                 <a
                   href={`tel:${sample.sourceContact.phone}`}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-tea-surface text-tea-text-sec text-xs font-medium hover:bg-tea-elevated transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-tea-surface text-tea-text-sec text-xs font-medium hover:bg-tea-elevated transition-colors"
                 >
                   <Phone size={14} /> Call
                 </a>
               )}
               {sample.sourceContact?.wechat && (
-                <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-tea-surface text-tea-text-sec text-xs">
+                <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-tea-surface text-tea-text-sec text-xs">
                   WeChat: {sample.sourceContact.wechat}
                 </span>
               )}
               {sample.sourceContact?.line && (
-                <span className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-tea-surface text-tea-text-sec text-xs">
+                <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-tea-surface text-tea-text-sec text-xs">
                   LINE: {sample.sourceContact.line}
                 </span>
               )}
@@ -393,7 +393,7 @@ const SamplePage: React.FC = () => {
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
                 rows={3}
-                className="w-full bg-tea-surface rounded-lg p-3 text-sm text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold/50 transition-colors"
+                className="w-full bg-tea-surface rounded-xl p-3 text-sm text-tea-text outline-none resize-none border border-tea-border focus:border-tea-gold/50 transition-colors"
                 placeholder="Private notes about this sample..."
               />
             ) : (
@@ -419,7 +419,7 @@ const SamplePage: React.FC = () => {
                 const vCfg = VERDICT_CONFIG[t.verdict];
                 const VIcon = VERDICT_ICONS[t.verdict];
                 return (
-                  <div key={t.id} className="bg-tea-surface rounded-lg p-3">
+                  <div key={t.id} className="bg-tea-surface rounded-xl p-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         {t.tasterName && (
@@ -456,7 +456,7 @@ const SamplePage: React.FC = () => {
         >
           <button
             onClick={() => setShowTasting(true)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-lg text-sm font-medium text-tea-text hover:bg-tea-elevated transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-xl text-sm font-medium text-tea-text hover:bg-tea-elevated transition-colors"
           >
             <span className="flex items-center gap-2">
               <Leaf size={16} className="text-tea-gold" />
@@ -494,7 +494,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={handleOrderInquiry}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-xl hover:bg-tea-gold/90 transition-colors"
             >
               <ShoppingCart size={16} />
               I'd like to order this
@@ -524,7 +524,7 @@ const SamplePage: React.FC = () => {
           >
             <button
               onClick={() => navigate(`/admin/compass?tab=sourcing&fromSample=${sample.id}`)}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-lg hover:bg-tea-gold/90 transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-bold rounded-xl hover:bg-tea-gold/90 transition-colors"
             >
               <ExternalLink size={16} />
               Promote to Tea Compass

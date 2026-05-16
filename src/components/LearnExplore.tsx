@@ -138,7 +138,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
       <div className="mb-4 -mx-2 md:mx-0">
         <button
           onClick={backToGrid}
-          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors active:bg-tea-text/[0.08]"
+          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-xl bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors active:bg-tea-text/[0.08]"
         >
           <div className="w-8 h-8 rounded-full bg-tea-text/[0.05] flex items-center justify-center shrink-0">
             <Icons.Back className="w-4 h-4 text-tea-text-sec" />
@@ -171,7 +171,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
             >
               <CardContainer className="hover:-translate-y-0.5 hover:shadow-lg transition-all h-full">
                 <div className="p-5 flex flex-col items-center text-center gap-3">
-                  <div className={`w-12 h-12 rounded-lg ${tile.accentBg} flex items-center justify-center`}>
+                  <div className={`w-12 h-12 rounded-xl ${tile.accentBg} flex items-center justify-center`}>
                     <span className={tile.accentText}>{tile.icon}</span>
                   </div>
                   <div>
@@ -224,7 +224,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                           </div>
                         </div>
                         <div className="flex items-center gap-3 mb-2">
-                          <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
+                          <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${DIFFICULTY_COLORS[collection.difficulty]}`}>
                             {collection.difficulty}
                           </span>
                           <span className="text-ui-11 text-tea-text/40">
@@ -269,7 +269,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                       {collection.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-tea-border">
                           {collection.tags.map(tag => (
-                            <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                            <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-text/5 text-tea-text/50">
                               {tag}
                             </span>
                           ))}
@@ -316,13 +316,13 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 <button
                   key={entry.id}
                   onClick={() => toggleWisdomCard(entry.id)}
-                  className={`text-left w-full transition-all duration-300 rounded-lg ${getWisdomCardStyle(entry)}`}
+                  className={`text-left w-full transition-all duration-300 rounded-xl ${getWisdomCardStyle(entry)}`}
                 >
                   <CardContainer className="transition-all h-full">
                     <div className="p-5">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
+                          <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
                             {WISDOM_TYPE_LABELS[entry.type]}
                           </span>
                           {entry.teaReferenced && (
@@ -346,7 +346,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                       </p>
                       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
                         {entry.teaReferenced && (
-                          <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-tea-gold/5 mb-3">
+                          <div className="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-tea-gold/5 mb-3">
                             <Icons.Leaf className="w-3.5 h-3.5 text-tea-gold" />
                             <span className="text-xs text-tea-text/70">
                               Tea: <span className="font-medium text-tea-text">{entry.teaReferenced}</span>
@@ -356,7 +356,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                         {entry.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {entry.tags.map(tag => (
-                              <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                              <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-text/5 text-tea-text/50">
                                 {tag}
                               </span>
                             ))}
@@ -430,11 +430,11 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 key={item.id}
                 className="flex items-center gap-4 py-3.5 px-1 group cursor-pointer hover:bg-tea-elevated/50 transition-colors text-left"
               >
-                <div className="w-8 h-8 rounded-sm bg-tea-green/10 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-md bg-tea-green/10 flex items-center justify-center shrink-0">
                   <Icons.Download className="w-4 h-4 text-tea-green" />
                 </div>
                 <span className="font-serif text-sm text-tea-text flex-1">{item.title}</span>
-                <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
+                <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
                 <Icons.Next className="w-4 h-4 text-tea-text/30 group-hover:text-tea-gold transition-colors shrink-0" />
               </button>
             ))}
@@ -454,7 +454,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
               <div key={item.id} className="cursor-pointer">
                 <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                   <div className="p-5 flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-sm bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-md bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-3">
                       <span className="text-orange-600 dark:text-orange-400">
                         {REFERENCE_ICONS[item.id] || <Icons.Grid className="w-6 h-6" />}
                       </span>
@@ -486,7 +486,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                   <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/10 text-tea-gold border border-tea-border">
+                        <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-tea-gold/10 text-tea-gold border border-tea-border">
                           {SPACE_TYPE_LABELS[space.spaceType]}
                         </span>
                         <div
@@ -532,7 +532,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
           {onNavigateToAdvise && (
             <button
               onClick={onNavigateToAdvise}
-              className="flex items-center justify-between w-full py-3 px-4 rounded-lg bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
+              className="flex items-center justify-between w-full py-3 px-4 rounded-xl bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
             >
               <div className="flex items-center gap-3">
                 <Icons.Sparkles className="w-4 h-4 text-tea-gold" />

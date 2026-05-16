@@ -376,7 +376,7 @@ const JourneyPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-40 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-40 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );
@@ -545,7 +545,7 @@ const PreferencesPanel: React.FC<{ contact: string; token: string }> = ({ contac
 
   return (
     <div className="space-y-5">
-      <div className="p-4 bg-tea-surface border border-tea-border rounded-sm">
+      <div className="p-4 bg-tea-surface border border-tea-border rounded-md">
         <p className="text-xs text-tea-text-sec mb-1">Verified as</p>
         <p className="text-sm text-tea-text">{contact}</p>
       </div>
@@ -558,20 +558,20 @@ const PreferencesPanel: React.FC<{ contact: string; token: string }> = ({ contac
           Delete my data
         </button>
       ) : (
-        <div className="p-4 bg-tea-surface border border-red-500/20 rounded-sm space-y-3">
+        <div className="p-4 bg-tea-surface border border-red-500/20 rounded-md space-y-3">
           <p className="text-sm text-tea-text-sec">
             This will permanently remove your journey data. This cannot be undone.
           </p>
           <div className="flex gap-3">
             <button
               onClick={() => setDeleteConfirm(false)}
-              className="flex-1 py-2.5 text-xs uppercase tracking-[0.15em] text-tea-text-sec border border-tea-border rounded-sm hover:border-tea-gold/30 transition-colors"
+              className="flex-1 py-2.5 text-xs uppercase tracking-[0.15em] text-tea-text-sec border border-tea-border rounded-md hover:border-tea-gold/30 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleDelete}
-              className="flex-1 py-2.5 text-xs uppercase tracking-[0.15em] text-red-400 border border-red-500/20 rounded-sm hover:bg-red-500/10 transition-colors"
+              className="flex-1 py-2.5 text-xs uppercase tracking-[0.15em] text-red-400 border border-red-500/20 rounded-md hover:bg-red-500/10 transition-colors"
             >
               Delete
             </button>

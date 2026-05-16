@@ -38,10 +38,10 @@ export const Videos: React.FC<VideosProps> = ({ onBack }) => {
             className="group rounded-[1px] p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-sm flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
                 <Icons.Film className="w-4 h-4" />
               </div>
-              <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm ${FORMAT_COLORS[item.format] || ''}`}>
+              <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md ${FORMAT_COLORS[item.format] || ''}`}>
                 {item.format}
               </span>
               <span className="text-ui-10 text-tea-text/30 ml-auto">

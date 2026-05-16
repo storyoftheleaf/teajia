@@ -49,7 +49,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
           <button
             key={project.id}
             onClick={() => handleProjectClick(project)}
-            className="group text-left bg-tea-bg rounded-lg overflow-hidden border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg"
+            className="group text-left bg-tea-bg rounded-xl overflow-hidden border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg"
           >
             {/* Image */}
             <div className="aspect-[4/3] relative overflow-hidden">
@@ -102,14 +102,14 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
       {/* View All / CTA */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
         {!showAll && DESIGN_PROJECTS.filter(p => p.status === 'completed').length > maxProjects && (
-          <button className="px-6 py-2 border border-tea-border text-tea-text rounded-lg hover:border-tea-gold hover:text-tea-gold transition-colors text-sm">
+          <button className="px-6 py-2 border border-tea-border text-tea-text rounded-xl hover:border-tea-gold hover:text-tea-gold transition-colors text-sm">
             View All Projects
           </button>
         )}
         {onInquiryClick && (
           <button
             onClick={onInquiryClick}
-            className="px-6 py-2 bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-colors text-sm font-medium"
+            className="px-6 py-2 bg-tea-gold text-tea-bg rounded-xl hover:bg-tea-gold/90 transition-colors text-sm font-medium"
           >
             Start Your Project
           </button>
@@ -123,7 +123,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
           onClick={closeModal}
         >
           <div
-            className="bg-tea-bg  max-w-4xl w-full max-h-[90vh] overflow-y-auto overscroll-contain rounded-lg shadow-2xl animate-[scaleIn_0.3s_ease-out]"
+            className="bg-tea-bg  max-w-4xl w-full max-h-[90vh] overflow-y-auto overscroll-contain rounded-xl shadow-2xl animate-[scaleIn_0.3s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -198,7 +198,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
                         key={i}
                         src={img}
                         alt={`${selectedProject.title} - Image ${i + 1}`}
-                        className="w-full aspect-[4/3] object-cover rounded-lg"
+                        className="w-full aspect-[4/3] object-cover rounded-xl"
                       />
                     ))}
                   </div>
@@ -207,7 +207,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
 
               {/* Testimonial */}
               {selectedProject.testimonial && (
-                <div className="bg-tea-gold/10 rounded-lg p-6 mb-8">
+                <div className="bg-tea-gold/10 rounded-xl p-6 mb-8">
                   <Icons.Message className="w-8 h-8 text-tea-gold/40 mb-4" />
                   <p className="text-tea-text text-lg italic font-serif mb-4">
                     "{selectedProject.testimonial.quote}"
@@ -236,7 +236,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
                     closeModal();
                     onInquiryClick?.();
                   }}
-                  className="px-8 py-3 bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-colors font-medium"
+                  className="px-8 py-3 bg-tea-gold text-tea-bg rounded-xl hover:bg-tea-gold/90 transition-colors font-medium"
                 >
                   Start a Project Like This
                 </button>

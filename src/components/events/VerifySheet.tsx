@@ -93,7 +93,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
 
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-bg border-t border-tea-border md:border rounded-t-xl md:rounded-xl shadow-2xl overflow-hidden flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -129,7 +129,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                     key={m}
                     type="button"
                     onClick={() => setMethod(m)}
-                    className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-sm transition-colors ${
+                    className={`flex-1 py-2.5 text-xs uppercase tracking-[0.15em] rounded-md transition-colors ${
                       method === m
                         ? 'bg-tea-gold/10 text-tea-gold'
                         : 'bg-tea-surface text-tea-text-sec hover:text-tea-text border border-tea-border'
@@ -146,7 +146,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 onChange={(e) => setContact(e.target.value)}
                 placeholder={method === 'email' ? 'your@email.com' : '0912-345-678'}
                 autoFocus
-                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                 onKeyDown={(e) => { if (e.key === 'Enter' && isContactValid) requestMutation.mutate(); }}
               />
 
@@ -160,7 +160,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 type="button"
                 disabled={!isContactValid || requestMutation.isPending}
                 onClick={() => requestMutation.mutate()}
-                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
                 {requestMutation.isPending ? (
                   <span className="w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
@@ -192,7 +192,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                     value={digit}
                     onChange={(e) => handleCodeInput(idx, e.target.value)}
                     onKeyDown={(e) => handleCodeKeyDown(idx, e)}
-                    className="w-11 h-14 text-center bg-tea-surface border border-tea-border rounded-sm text-tea-text text-xl font-serif focus:outline-none focus:border-tea-gold transition-colors"
+                    className="w-11 h-14 text-center bg-tea-surface border border-tea-border rounded-md text-tea-text text-xl font-serif focus:outline-none focus:border-tea-gold transition-colors"
                     autoFocus={idx === 0}
                     aria-label={`Code digit ${idx + 1}`}
                   />
@@ -209,7 +209,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 type="button"
                 disabled={!isCodeComplete || confirmMutation.isPending}
                 onClick={() => confirmMutation.mutate()}
-                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                className="w-full py-3.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
               >
                 {confirmMutation.isPending ? (
                   <span className="w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

@@ -69,7 +69,7 @@ export default function McpPage() {
               to it, but it is not required for another person to use Teajia MCP.
             </p>
           </div>
-          <div className="rounded-lg border border-tea-border bg-tea-surface p-4">
+          <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
             <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">MCP endpoint</p>
             <code className="block break-all rounded-md border border-tea-border bg-tea-bg px-3 py-3 text-ui-12 text-tea-text">
               {MCP_URL}
@@ -101,7 +101,7 @@ export default function McpPage() {
               copy: 'Search can run freely. Sales, stock, and payment changes should be reviewed before final action.',
             },
           ].map((item) => (
-            <article key={item.title} className="rounded-lg border border-tea-border bg-tea-surface p-5">
+            <article key={item.title} className="rounded-xl border border-tea-border bg-tea-surface p-5">
               <item.icon size={19} className="mb-4 text-tea-gold" />
               <h2 className="mb-2 text-ui-17 font-medium text-tea-text">{item.title}</h2>
               <p className="text-ui-13 leading-[1.6] text-tea-text-sec">{item.copy}</p>
@@ -119,15 +119,15 @@ export default function McpPage() {
             </p>
           </div>
           <div className="space-y-3">
-            <div className="rounded-lg border border-tea-border bg-tea-surface p-4">
+            <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
               <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">URL</p>
               <code className="break-all text-ui-13 text-tea-text">{MCP_URL}</code>
             </div>
-            <div className="rounded-lg border border-tea-border bg-tea-surface p-4">
+            <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
               <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">Header</p>
               <code className="break-all text-ui-13 text-tea-text">Authorization: Bearer tjmcp_...</code>
             </div>
-            <div className="rounded-lg border border-tea-border bg-tea-surface p-4">
+            <div className="rounded-xl border border-tea-border bg-tea-surface p-4">
               <p className="mb-2 text-ui-10 uppercase tracking-[0.16em] text-tea-text-sec">Rule</p>
               <p className="text-ui-13 leading-[1.6] text-tea-text-sec">
                 Do not paste the token into chat. Store it in the MCP client settings or server environment.
@@ -138,7 +138,7 @@ export default function McpPage() {
 
         <section className="grid gap-4 lg:grid-cols-3">
           {CLIENTS.map((client) => (
-            <article key={client.name} className="rounded-lg border border-tea-border bg-tea-surface p-5">
+            <article key={client.name} className="rounded-xl border border-tea-border bg-tea-surface p-5">
               <div className="mb-4 flex items-center gap-2">
                 <MessagesSquare size={17} className="text-tea-gold" />
                 <h2 className="text-ui-17 font-medium text-tea-text">{client.name}</h2>
@@ -162,7 +162,7 @@ export default function McpPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {TOOL_GROUPS.map((group) => (
-              <article key={group.title} className="rounded-lg border border-tea-border bg-tea-surface p-5">
+              <article key={group.title} className="rounded-xl border border-tea-border bg-tea-surface p-5">
                 <h3 className="mb-2 text-ui-17 font-medium text-tea-text">{group.title}</h3>
                 <p className="mb-4 text-ui-13 leading-[1.6] text-tea-text-sec">{group.copy}</p>
                 <div className="flex flex-wrap gap-2">

@@ -202,7 +202,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
 
       {/* Search results dropdown */}
       {showSearchDropdown && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-52 overflow-y-auto">
+        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-xl shadow-lg max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="px-3 py-2 text-sm text-tea-text-dim italic">No matches — add as new</div>
           ) : (
@@ -242,7 +242,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
 
       {/* Hint chips — shown on empty focus when a type is selected */}
       {showHints && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-lg shadow-lg p-2">
+        <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-xl shadow-lg p-2">
           <p className="text-ui-10 text-tea-text-dim uppercase tracking-[0.1em] mb-1.5 px-1">Examples</p>
           <div className="flex flex-wrap gap-1.5">
             {hintSuggestions.map((hint) => (

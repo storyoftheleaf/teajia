@@ -74,7 +74,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
       <div className="px-6 pb-6">
         <button
           onClick={onOpenSignIn}
-          className="w-full py-3.5 bg-tea-gold text-tea-bg text-ui-12 uppercase tracking-[0.22em] font-semibold rounded-sm hover:bg-tea-gold-lt transition-colors"
+          className="w-full py-3.5 bg-tea-gold text-tea-bg text-ui-12 uppercase tracking-[0.22em] font-semibold rounded-md hover:bg-tea-gold-lt transition-colors"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
           Sign In

@@ -129,7 +129,7 @@ export const TaxonomyChipPicker: React.FC<TaxonomyChipPickerProps> = ({
                       title={term.hint}
                       className={[
                         'flex items-center gap-1 text-ui-11 transition-colors py-0.5',
-                        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-md',
                         isSelected
                           ? 'text-tea-text border-b border-tea-gold/60'
                           : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',

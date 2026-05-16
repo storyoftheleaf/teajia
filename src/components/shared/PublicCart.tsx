@@ -297,7 +297,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {/* Undo toast */}
           {undoItem && (
             <div className="relative z-20 mb-4 cart-slide-up">
-              <div className="flex items-center justify-between bg-tea-bg border border-tea-border text-tea-text px-4 py-3 rounded-sm">
+              <div className="flex items-center justify-between bg-tea-bg border border-tea-border text-tea-text px-4 py-3 rounded-md">
                 <span className="text-xs">{undoItem.item.name} removed</span>
                 <button
                   onClick={handleUndo}
@@ -345,7 +345,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               <p className="font-serif text-sm text-tea-text-sec italic mb-4">
                 Fill in your details below. Your order inquiry will be generated automatically.
               </p>
-              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-sm border border-tea-border" id="inquiry-form">
+              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-md border border-tea-border" id="inquiry-form">
                 <div>
                   <label htmlFor="inquiry-name" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Name *
@@ -515,7 +515,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {/* Persistent success message — editorial confirmation, no green */}
               {successMessage?.show && (
-                <div className="cart-fade-in border border-tea-border rounded-sm px-4 py-3 flex items-center justify-between gap-2">
+                <div className="cart-fade-in border border-tea-border rounded-md px-4 py-3 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <Icons.Check className="w-4 h-4 text-tea-text-sec shrink-0" />
                     <span className="text-xs text-tea-text">
@@ -543,7 +543,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {checkoutError && (
                 <div
-                  className="cart-fade-in border border-tea-border rounded-sm px-4 py-3 flex items-start justify-between gap-2 bg-tea-elevated"
+                  className="cart-fade-in border border-tea-border rounded-md px-4 py-3 flex items-start justify-between gap-2 bg-tea-elevated"
                   role="alert"
                 >
                   <div className="flex items-start gap-3">

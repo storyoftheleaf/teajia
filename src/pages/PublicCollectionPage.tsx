@@ -354,7 +354,7 @@ const CatalogEntry: React.FC<{
           <img
             src={item.image_url}
             alt=""
-            className="block w-full max-w-[420px] rounded-sm"
+            className="block w-full max-w-[420px] rounded-md"
             loading="lazy"
           />
         </figure>

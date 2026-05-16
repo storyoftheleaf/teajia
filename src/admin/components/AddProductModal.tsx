@@ -150,7 +150,7 @@ const VendorPicker = ({
       />
 
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-xl shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
           {isNew && query.trim() && (
             <button
               type="button"
@@ -610,7 +610,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec";
   const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
-  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold placeholder-tea-text-sec transition-colors font-sans";
+  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-xl px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold placeholder-tea-text-sec transition-colors font-sans";
 
   return (
     <div
@@ -997,7 +997,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative">
                     <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
-                    <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                    <div className={`w-3.5 h-3.5 rounded-md border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
                       {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </div>
                   </div>
@@ -1007,7 +1007,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <div className="relative">
                     <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
-                    <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                    <div className={`w-3.5 h-3.5 rounded-md border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
                       {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                     </div>
                   </div>
@@ -1048,14 +1048,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
                         <label
                             htmlFor="img-upload"
-                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-xl p-3 cursor-pointer hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
                             {uploading ? <Loader2 className="animate-spin text-tea-gold" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
                             <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
                         </label>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:bg-tea-gold/5 transition-colors mt-1">
+                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-xl hover:bg-tea-gold/5 transition-colors mt-1">
                         <div className="w-20 h-20 md:w-24 md:h-24 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0 cursor-pointer">
                             <ImageThumbnail src={formData.imageUrl} type={formData.type} />
                         </div>
@@ -1336,7 +1336,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <span>Loading sourcing data…</span>
               </div>
             ) : compassSource ? (
-              <div className="bg-tea-bg/50 border border-tea-border rounded-lg p-3 space-y-2 text-ui-12">
+              <div className="bg-tea-bg/50 border border-tea-border rounded-xl p-3 space-y-2 text-ui-12">
                 {compassSource.vendorName && (
                   <div className="flex gap-2">
                     <span className="text-tea-text-dim w-20 shrink-0">Vendor</span>
@@ -1428,7 +1428,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     if (form) form.requestSubmit();
                 }}
                 disabled={loading || uploading}
-                className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg"
+                className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
                 <span>Save item</span>

@@ -166,7 +166,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
             <div key={item.id} className="min-w-[200px] max-w-[240px] shrink-0 cursor-pointer">
               <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                 <div className="p-4">
-                  <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${getTypeColor(item.type)}`}>
+                  <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${getTypeColor(item.type)}`}>
                     {item.type}
                   </span>
                   <h4 className="text-base text-tea-text mt-2 mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
@@ -206,11 +206,11 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
               key={item.id}
               className="flex items-center gap-4 py-3.5 px-1 group cursor-pointer hover:bg-tea-elevated/50 transition-colors text-left"
             >
-              <div className="w-8 h-8 rounded-sm bg-tea-green/10 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-md bg-tea-green/10 flex items-center justify-center shrink-0">
                 <Icons.Download className="w-4 h-4 text-tea-green" />
               </div>
               <span className="text-sm text-tea-text flex-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</span>
-              <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
+              <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md hidden sm:inline ${getTypeColor(item.type)}`}>{item.type}</span>
               <Icons.Next className="w-4 h-4 text-tea-text/30 group-hover:text-tea-gold transition-colors shrink-0" />
             </button>
           ))}
@@ -228,7 +228,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
           {MUSIC.map(item => (
             <CardContainer key={item.id} className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
               <div className="p-4">
-                <div className="w-10 h-10 rounded-sm bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-md bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center mb-3">
                   <Icons.Music className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <h4 className="text-sm text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
@@ -254,7 +254,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
           {VIDEOS.map(item => (
             <CardContainer key={item.id} className="w-[220px] cursor-pointer hover:-translate-y-0.5 transition-all">
               <div className="p-4">
-                <div className="w-10 h-10 rounded-sm bg-tea-text/10 flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-md bg-tea-text/10 flex items-center justify-center mb-3">
                   <Icons.Play className="w-5 h-5 text-tea-text/60" />
                 </div>
                 <h4 className="text-sm text-tea-text mb-1" style={{ fontFamily: 'var(--font-display)' }}>{item.title}</h4>
@@ -301,7 +301,7 @@ export const LearnLibrary: React.FC<LearnLibraryProps> = ({ watchedStories }) =>
             <div key={item.id} className="cursor-pointer">
               <CardContainer className="hover:-translate-y-0.5 transition-all h-full">
                 <div className="p-5 flex flex-col items-center text-center">
-                  <div className="w-12 h-12 rounded-sm bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-3">
+                  <div className="w-12 h-12 rounded-md bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-3">
                     <span className="text-orange-600 dark:text-orange-400">
                       {REFERENCE_ICONS[item.id] || <Icons.Grid className="w-6 h-6" />}
                     </span>

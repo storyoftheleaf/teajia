@@ -138,7 +138,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ entries, onClose, onRe
                         <img
                           src={entry.photos[0]}
                           alt=""
-                          className="w-full h-20 object-cover rounded-lg mb-2"
+                          className="w-full h-20 object-cover rounded-xl mb-2"
                         />
                       )}
 

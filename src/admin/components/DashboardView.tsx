@@ -161,7 +161,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
 
       {/* KPI Cards — horizontal scroll on mobile, grid on desktop */}
       <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <DollarSign size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
@@ -170,7 +170,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Capital deployed</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 group-hover:opacity-10 transition-opacity text-tea-gold">
              <PieIcon size={60} strokeWidth={1} className="md:w-20 md:h-20" />
           </div>
@@ -179,7 +179,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">At current prices</p>
         </div>
 
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden group hover:border-tea-gold/30 transition-colors duration-200 min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <p className="text-tea-text-sec text-ui-10 md:text-xs uppercase tracking-[0.2em] mb-2 md:mb-4 font-bold">Unrealized P&L</p>
           <h3 className="text-2xl md:text-5xl font-serif font-light text-tea-gold num">+{fmtDollars(metrics.potentialProfit)}</h3>
           <p className="text-ui-10 md:text-xs text-tea-text-sec/70 mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
@@ -189,7 +189,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
 
         {/* CHART 1: Currency Exposure */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-72 md:h-96">
           <div className="flex justify-between items-center mb-4 md:mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Capital Exposure by Currency</h4>
             <div className="text-ui-10 md:text-xs text-tea-text-sec uppercase tracking-wider">USD Equiv.</div>
@@ -227,7 +227,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 2: Live Exchange Rates */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-auto md:h-96 flex flex-col">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-auto md:h-96 flex flex-col">
           <div className="flex justify-between items-center mb-4 md:mb-6">
             <div>
               <h4 className="text-sm font-medium text-tea-text font-serif">Live Exchange Rates</h4>
@@ -240,7 +240,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 md:pr-2 space-y-2 md:space-y-3">
             {rates.filter(r => r.currency !== 'USD' && r.currency !== 'UNK').map(rate => (
-              <div key={rate.currency} className="flex justify-between items-center p-2.5 md:p-3 bg-tea-bg/50 border border-tea-border rounded-lg">
+              <div key={rate.currency} className="flex justify-between items-center p-2.5 md:p-3 bg-tea-bg/50 border border-tea-border rounded-xl">
                 <div className="flex items-center gap-2 md:gap-3">
                   <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-tea-surface border border-tea-border flex items-center justify-center text-ui-10 md:text-xs font-bold text-tea-text-sec">
                     {rate.currency}
@@ -270,7 +270,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 3: Value by Region */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-72 md:h-96">
           <div className="flex justify-between items-center mb-4 md:mb-6">
             <h4 className="text-sm font-medium text-tea-text font-serif">Asset Value by Terroir</h4>
             <MapPin className="w-4 h-4 text-tea-text-sec" />
@@ -291,7 +291,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
         </div>
 
         {/* CHART 4: Portfolio Composition */}
-        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-72 md:h-96 lg:col-span-2">
+        <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-72 md:h-96 lg:col-span-2">
            <h4 className="text-sm font-medium text-tea-text font-serif mb-4 md:mb-6">Portfolio Distribution (Retail Value)</h4>
            <ResponsiveContainer width="100%" height="90%">
             <BarChart data={metrics.typeValue}>
@@ -320,7 +320,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
       {/* Revenue over time */}
       {revenueData && revenueData.weekly_revenue.length > 0 && (
         <div className="mt-8">
-          <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-lg h-64 md:h-80">
+          <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl h-64 md:h-80">
             <div className="flex items-center gap-2 mb-4 md:mb-6">
               <TrendingUp className="w-4 h-4 text-tea-gold" />
               <h4 className="text-sm font-medium text-tea-text font-serif">Weekly Revenue (Last 6 Months)</h4>
@@ -344,7 +344,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
 
           {/* Inventory age alerts */}
           {revenueData.inventory_age_alerts.length > 0 && (
-            <div className="mt-4 bg-tea-surface border border-tea-border rounded-lg p-5">
+            <div className="mt-4 bg-tea-surface border border-tea-border rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-amber-500/70" />
                 <h4 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Inventory Not Sold in 90+ Days</h4>
@@ -379,19 +379,19 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           {/* KPI cards */}
           {customerMetrics && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Customers</p>
                 <p className="text-2xl font-serif font-light text-tea-text mt-1 num">{customerMetrics.totalCustomers}</p>
               </div>
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Active Buyers</p>
                 <p className="text-2xl font-serif font-light text-tea-text mt-1 num">{customerMetrics.activeCustomers}</p>
               </div>
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Total Revenue</p>
                 <p className="text-2xl font-serif font-light text-tea-gold mt-1 num">${customerMetrics.totalRevenue.toFixed(0)}</p>
               </div>
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="text-xs font-sans text-tea-text-dim uppercase tracking-wider">Avg Order Value</p>
                 <p className="text-2xl font-serif font-light text-tea-text mt-1 num">${customerMetrics.avgOrderValue.toFixed(0)}</p>
               </div>
@@ -401,7 +401,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Top 10 by spend */}
             {rfmData && rfmData.top10.length > 0 && (
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4 lg:col-span-1">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4 lg:col-span-1">
                 <div className="flex items-center gap-2 mb-3">
                   <DollarSign className="w-3.5 h-3.5 text-tea-gold" />
                   <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Top by Spend</h3>
@@ -423,7 +423,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
 
             {/* Lapsed (>90 days) */}
             {rfmData && rfmData.lapsed.length > 0 && (
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="w-3.5 h-3.5 text-amber-500/70" />
                   <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">Lapsed · 90+ Days</h3>
@@ -444,7 +444,7 @@ export const DashboardView = ({ products, isLoading }: { products: Product[], is
 
             {/* New this month */}
             {rfmData && rfmData.new_this_month.length > 0 && (
-              <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+              <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <UserPlus className="w-3.5 h-3.5 text-emerald-500/70" />
                   <h3 className="text-xs font-sans text-tea-text-sec uppercase tracking-wider">New This Month</h3>

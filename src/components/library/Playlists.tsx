@@ -39,7 +39,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
             rel="noopener noreferrer"
             className="flex items-start gap-4 py-4 px-1 group hover:bg-tea-elevated/50 transition-colors"
           >
-            <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0 mt-0.5 bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
+            <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
               <Icons.Music className="w-4 h-4" />
             </div>
 
@@ -48,7 +48,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
                 <h3 className="font-serif text-sm text-tea-text truncate">
                   {item.title}
                 </h3>
-                <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${PLATFORM_COLORS[item.platform] || ''}`}>
+                <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 hidden sm:inline ${PLATFORM_COLORS[item.platform] || ''}`}>
                   {item.platform.replace('-', ' ')}
                 </span>
               </div>

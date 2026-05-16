@@ -57,7 +57,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 mb-2">
-                        <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${DIFFICULTY_COLORS[collection.difficulty]}`}>
+                        <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${DIFFICULTY_COLORS[collection.difficulty]}`}>
                           {collection.difficulty}
                         </span>
                         <span className="text-ui-11 text-tea-text/40">
@@ -103,7 +103,7 @@ export const JourneysView: React.FC<JourneysViewProps> = ({ onBack }) => {
                   {collection.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-5 pt-4" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
                       {collection.tags.map(tag => (
-                        <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                        <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-text/5 text-tea-text/50">
                           {tag}
                         </span>
                       ))}

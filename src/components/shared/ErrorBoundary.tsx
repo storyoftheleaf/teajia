@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex items-center justify-center min-h-screen bg-tea-bg p-6">
-          <div className="max-w-md w-full bg-tea-surface border border-tea-border rounded-sm p-6 text-center">
+          <div className="max-w-md w-full bg-tea-surface border border-tea-border rounded-md p-6 text-center">
             <div className="w-12 h-12 bg-red-100 rounded-full mx-auto mb-4 flex items-center justify-center">
               <span className="text-2xl">⚠️</span>
             </div>
@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={this.handleReset}
-              className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-sm uppercase tracking-[0.15em] rounded-sm transition-colors"
+              className="px-4 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg text-sm uppercase tracking-[0.15em] rounded-md transition-colors"
             >
               Try Again
             </button>

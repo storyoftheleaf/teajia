@@ -233,7 +233,7 @@ export const CollectionEditView: React.FC = () => {
           <section className="flex flex-col gap-2">
             <label className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Hero image</label>
             {detail.collection.hero_image_url ? (
-              <div className="relative group rounded-lg overflow-hidden bg-tea-elevated">
+              <div className="relative group rounded-xl overflow-hidden bg-tea-elevated">
                 <img
                   src={detail.collection.hero_image_url}
                   alt=""
@@ -248,7 +248,7 @@ export const CollectionEditView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <label className="cursor-pointer flex items-center gap-2 px-3 py-3 border border-dashed border-tea-border rounded-lg text-xs text-tea-text-sec hover:text-tea-text hover:border-tea-gold transition-colors w-fit">
+              <label className="cursor-pointer flex items-center gap-2 px-3 py-3 border border-dashed border-tea-border rounded-xl text-xs text-tea-text-sec hover:text-tea-text hover:border-tea-gold transition-colors w-fit">
                 {uploadingHero ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
                 {uploadingHero ? 'Uploading…' : 'Upload hero (optional)'}
                 <input
@@ -275,7 +275,7 @@ export const CollectionEditView: React.FC = () => {
               </button>
             </div>
             {detail.items.length === 0 ? (
-              <p className="text-xs text-tea-text-dim py-6 text-center border border-dashed border-tea-border rounded-lg">
+              <p className="text-xs text-tea-text-dim py-6 text-center border border-dashed border-tea-border rounded-xl">
                 No products yet. Add some to make this collection shareable.
               </p>
             ) : (
@@ -364,7 +364,7 @@ export const CollectionEditView: React.FC = () => {
               <button
                 onClick={() => canPublish && setPublishOpen(true)}
                 disabled={!canPublish}
-                className="group flex items-center justify-center gap-2 py-6 rounded-lg border border-dashed border-tea-border hover:border-tea-gold/40 hover:bg-tea-gold/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-tea-border disabled:hover:bg-transparent"
+                className="group flex items-center justify-center gap-2 py-6 rounded-xl border border-dashed border-tea-border hover:border-tea-gold/40 hover:bg-tea-gold/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-tea-border disabled:hover:bg-transparent"
                 title={!canPublish ? 'Add at least one product first' : undefined}
               >
                 <UserPlus size={14} className="text-tea-text-sec group-hover:text-tea-gold group-disabled:text-tea-text-dim transition-colors" />
@@ -377,7 +377,7 @@ export const CollectionEditView: React.FC = () => {
                 <button
                   onClick={() => setPublishOpen(true)}
                   disabled={!canPublish}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/10 hover:bg-tea-gold/15 text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tea-gold/10 hover:bg-tea-gold/15 text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   title={!canPublish ? 'Add at least one product first' : 'Share with new people, by tag, or with a store'}
                 >
                   <UserPlus size={13} />
@@ -447,7 +447,7 @@ const StatusPill: React.FC<{ status: CollectionStatus; onSet: (s: CollectionStat
             className="fixed inset-0 z-dropdown"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 top-[calc(100%+6px)] z-dropdown bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[130px]">
+          <div className="absolute right-0 top-[calc(100%+6px)] z-dropdown bg-tea-elevated border border-tea-border rounded-xl shadow-lg py-1 min-w-[130px]">
             {(['draft', 'active', 'archived'] as CollectionStatus[]).map(s => (
               <button
                 key={s}
@@ -626,10 +626,10 @@ const AddProductsSheet: React.FC<{
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
               <Plus size={14} className="text-tea-gold" />
             </div>
             <div className="min-w-0">
@@ -651,7 +651,7 @@ const AddProductsSheet: React.FC<{
               onChange={e => setQuery(e.target.value)}
               placeholder="Filter by name…"
               autoFocus
-              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
           </div>
 
@@ -713,7 +713,7 @@ const AddProductsSheet: React.FC<{
                         isSelected ? 'bg-tea-gold-lt' : 'hover:bg-tea-bg'
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded-sm flex-shrink-0 flex items-center justify-center transition-colors ${
+                      <div className={`w-4 h-4 rounded-md flex-shrink-0 flex items-center justify-center transition-colors ${
                         isSelected ? 'bg-tea-gold' : 'bg-tea-surface border border-tea-border'
                       }`}>
                         {isSelected && <Check size={9} className="text-tea-bg" strokeWidth={3} />}
@@ -737,7 +737,7 @@ const AddProductsSheet: React.FC<{
           <button
             onClick={submit}
             disabled={selected.size === 0 || submitting}
-            className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting ? <><Loader2 size={12} className="animate-spin" /> Adding…</> : <>Add {selected.size || ''}</>}
           </button>
@@ -842,10 +842,10 @@ const AddPublicationSheet: React.FC<{
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
       <button aria-label="Close" className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={submitting ? undefined : onClose} />
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
               <UserPlus size={14} className="text-tea-gold" />
             </div>
             <div className="min-w-0">
@@ -859,7 +859,7 @@ const AddPublicationSheet: React.FC<{
         </header>
 
         <div className="px-5 pb-3 flex-shrink-0">
-          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
+          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-xl">
             <button
               type="button"
               role="tab"
@@ -917,7 +917,7 @@ const AddPublicationSheet: React.FC<{
                   onChange={e => setTagFilter(e.target.value)}
                   placeholder="Filter tags…"
                   autoFocus
-                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
                 />
               </div>
               {filteredTags.length === 0 ? (
@@ -933,7 +933,7 @@ const AddPublicationSheet: React.FC<{
                         <button
                           type="button"
                           onClick={() => setSelectedTag(t.tag)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                             isSel ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                           }`}
                         >
@@ -966,7 +966,7 @@ const AddPublicationSheet: React.FC<{
                   onChange={e => setStoreQuery(e.target.value)}
                   placeholder="Search stores…"
                   autoFocus
-                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
                 />
               </div>
               {filteredStores.length === 0 ? (
@@ -983,7 +983,7 @@ const AddPublicationSheet: React.FC<{
                         <button
                           type="button"
                           onClick={() => setSelectedStoreId(s.id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                             isSel ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                           }`}
                         >
@@ -1012,7 +1012,7 @@ const AddPublicationSheet: React.FC<{
           <button
             onClick={submit}
             disabled={!canSubmit || submitting || disabled}
-            className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-lg text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-xl text-xs font-semibold tracking-wide hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting
               ? <><Loader2 size={12} className="animate-spin" /> {mode === 'person' ? 'Publishing…' : mode === 'tag' ? 'Publishing…' : 'Sharing…'}</>

@@ -199,7 +199,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
   };
 
   return (
-    <div className="group relative bg-tea-elevated/40 border border-tea-border rounded-lg p-3 space-y-2">
+    <div className="group relative bg-tea-elevated/40 border border-tea-border rounded-xl p-3 space-y-2">
       {/* Block header row */}
       <div className="flex items-center justify-between">
         <span className="text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim font-medium">
@@ -510,7 +510,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 space-y-3">
 
             {blocks.length === 0 && (
-              <div className="py-12 text-center text-tea-text-dim text-sm border border-dashed border-tea-border rounded-lg">
+              <div className="py-12 text-center text-tea-text-dim text-sm border border-dashed border-tea-border rounded-xl">
                 No blocks yet. Add one below or paste from Claude.
               </div>
             )}
@@ -553,7 +553,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
-                    className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg z-10 overflow-hidden"
+                    className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-xl shadow-lg z-10 overflow-hidden"
                   >
                     {ADD_BLOCK_OPTIONS.map(opt => (
                       <button

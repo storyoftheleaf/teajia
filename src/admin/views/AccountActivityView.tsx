@@ -92,7 +92,7 @@ export const AccountActivityView: React.FC = () => {
                 const details = (typeof e.details === 'object' && e.details) || {};
                 const detailKeys = Object.keys(details).slice(0, 4);
                 return (
-                  <li key={e.id} className="bg-tea-surface rounded-lg border border-tea-border px-3 py-2.5">
+                  <li key={e.id} className="bg-tea-surface rounded-xl border border-tea-border px-3 py-2.5">
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-sm text-tea-text">{label}</span>
                       <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim shrink-0">

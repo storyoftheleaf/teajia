@@ -138,7 +138,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
               placeholder="°C"
               value={value.brewingTemp ?? ''}
               onChange={(e) => onChange({ ...value, brewingTemp: e.target.value ? Number(e.target.value) : undefined })}
-              className="w-14 bg-tea-elevated text-tea-text text-ui-12 px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-14 bg-tea-elevated text-tea-text text-ui-12 px-2 py-1.5 rounded-xl border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
           <div className="flex flex-col gap-0.5">
@@ -153,7 +153,7 @@ const AppearanceZoneInner: React.FC<AppearanceZoneProps> = ({ flow, value, onCha
               placeholder="30s"
               value={value.brewingTime ?? ''}
               onChange={(e) => onChange({ ...value, brewingTime: e.target.value || undefined })}
-              className="w-16 bg-tea-elevated text-tea-text text-ui-12 px-2 py-1.5 rounded-lg border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
+              className="w-16 bg-tea-elevated text-tea-text text-ui-12 px-2 py-1.5 rounded-xl border border-tea-border outline-none focus:border-tea-gold/40 placeholder:text-tea-text-dim"
             />
           </div>
         </div>

@@ -537,7 +537,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             aria-expanded={screenSheetOpen}
             className={isPlaybookSurface
               ? 'font-display self-center inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-tea-border bg-tea-bg px-2.5 text-ui-13 font-normal leading-none tracking-[0.02em] text-tea-text transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub active:bg-tea-accent-sub'
-              : 'self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-ui-13 font-semibold text-tea-text border border-tea-border bg-tea-elevated/60 hover:bg-tea-gold/[0.08] hover:border-tea-gold/40 active:bg-tea-gold/[0.14] transition-colors shrink-0'
+              : 'self-center ml-1 inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-ui-13 font-semibold text-tea-text border border-tea-border bg-tea-elevated/60 hover:bg-tea-gold/[0.08] hover:border-tea-gold/40 active:bg-tea-gold/[0.14] transition-colors shrink-0'
             }
             style={isPlaybookSurface ? undefined : { fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
           >
@@ -577,10 +577,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         active
                           ? isPlaybookSurface
                             ? 'font-display rounded-md bg-tea-accent-sub text-ui-12 font-normal leading-none tracking-[0.02em] text-tea-text border border-tea-gold/30'
-                            : 'rounded-lg bg-tea-gold/[0.12] text-tea-gold border border-tea-gold/40 font-semibold'
+                            : 'rounded-xl bg-tea-gold/[0.12] text-tea-gold border border-tea-gold/40 font-semibold'
                           : isPlaybookSurface
                             ? 'font-display rounded-md text-ui-12 font-normal leading-none tracking-[0.02em] text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub border border-transparent'
-                            : 'rounded-lg text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.04] border border-transparent font-semibold'
+                            : 'rounded-xl text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/[0.04] border border-transparent font-semibold'
                       }`}
                       style={isPlaybookSurface ? undefined : { fontFamily: 'var(--font-display)', letterSpacing: '0.01em' }}
                     >
@@ -676,7 +676,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       ? 'Search by name, region, vendor…'
                       : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-xl pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -834,7 +834,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             exit={{ opacity: 0, height: 0 }}
                             className="overflow-hidden mb-3"
                           >
-                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
+                            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-xs font-medium">
                               <Check size={14} strokeWidth={2.5} />
                               <span className="flex-1 truncate">{justCommitted.name} saved</span>
                               <button
@@ -913,7 +913,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         return (
                           <div
                             key={share.id}
-                            className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
+                            className="rounded-xl bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
                           >
                             {/* Card header — always visible */}
                             <div className="flex items-start justify-between gap-2">
@@ -1027,7 +1027,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
                   {/* Co-tasting session quick-start */}
                   {hasToken() && (
-                    <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
+                    <div className="mb-4 rounded-xl bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-ui-11 text-tea-text-sec font-medium">Co-Tasting</p>
                         <p className="text-ui-11 text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
@@ -1134,7 +1134,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     : mode === 'library' ? 'Search by name, region, vendor…'
                     : 'Search transactions…'
                   }
-                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
+                  className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-xl pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
                 />
                 {tabSearchQuery && (
                   <button
@@ -1214,7 +1214,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           exit={{ opacity: 0, height: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-tea-gold/10 text-tea-gold text-xs font-medium">
+                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-xs font-medium">
                             <Check size={14} strokeWidth={2.5} />
                             <span className="flex-1 truncate">{justCommitted.name} saved</span>
                             <button
@@ -1296,7 +1296,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           return (
                             <div
                               key={share.id}
-                              className="rounded-lg bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
+                              className="rounded-xl bg-tea-surface border border-tea-border px-3 py-2.5 space-y-2"
                             >
                               {/* Card header — always visible */}
                               <div className="flex items-start justify-between gap-2">
@@ -1409,7 +1409,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
                     {/* Co-tasting strip */}
                     {hasToken() && (
-                      <div className="mb-4 rounded-lg bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
+                      <div className="mb-4 rounded-xl bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-ui-11 text-tea-text-sec font-medium">Co-Tasting</p>
                           <p className="text-ui-11 text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
@@ -1470,7 +1470,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <button
                   type="button"
                   onClick={() => handleNewCapture()}
-                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-ui-12 font-semibold tracking-[0.06em] transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-tea-gold/40 text-tea-gold bg-tea-gold/5 hover:bg-tea-gold/10 text-ui-12 font-semibold tracking-[0.06em] transition-colors"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   <Plus size={13} strokeWidth={2} />

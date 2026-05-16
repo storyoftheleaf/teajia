@@ -120,7 +120,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="Filter tags…"
-            className="w-full pl-9 pr-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40"
           />
         </div>
 

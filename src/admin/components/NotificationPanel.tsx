@@ -121,7 +121,7 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
         </button>
 
         {showPreview && (
-          <div className="mb-4 p-4 bg-tea-surface border border-tea-border rounded-sm">
+          <div className="mb-4 p-4 bg-tea-surface border border-tea-border rounded-md">
             <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">
               Message template (sent to each attendee)
             </p>
@@ -138,14 +138,14 @@ const SendConfirmModal: React.FC<SendConfirmModalProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-elevated transition-colors"
+            className="flex-1 py-2.5 bg-tea-surface border border-tea-border text-tea-text text-xs uppercase tracking-[0.15em] rounded-md hover:bg-tea-elevated transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isSending}
-            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-sm hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] rounded-md hover:bg-tea-gold-lt disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
           >
             {isSending ? (
               <Loader2 size={12} className="animate-spin" />
@@ -221,7 +221,7 @@ const InviteStatusBlock: React.FC<InviteStatusBlockProps> = ({
           <button
             onClick={onSend}
             disabled={approvedCount === 0}
-            className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-sm hover:bg-tea-gold-lt disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 text-xs bg-tea-gold text-tea-bg px-3 py-1.5 rounded-md hover:bg-tea-gold-lt disabled:opacity-40 transition-colors"
           >
             <Send size={11} />
             Send Invites

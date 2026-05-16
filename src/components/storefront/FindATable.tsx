@@ -125,7 +125,7 @@ export const FindATable: React.FC = () => {
                 value={searchName}
                 onChange={e => setSearchName(e.target.value)}
                 placeholder="Search by name…"
-                className="w-full bg-tea-surface border border-tea-border rounded-lg pl-9 pr-4 py-2.5 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40 placeholder-tea-text-dim"
+                className="w-full bg-tea-surface border border-tea-border rounded-xl pl-9 pr-4 py-2.5 text-sm text-tea-text outline-none focus:ring-2 focus:ring-tea-gold/40 placeholder-tea-text-dim"
               />
               {searchName && (
                 <button

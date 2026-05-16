@@ -113,7 +113,7 @@ const MemberSettingsModal: React.FC<MemberSettingsModalProps> = ({
       aria-modal="true"
       aria-label="Member settings"
     >
-      <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
+      <div className="w-full max-w-md bg-tea-surface rounded-xl border border-tea-border shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
           <div>
             <h2 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
@@ -397,7 +397,7 @@ export const TeamView: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-tea-surface rounded-lg overflow-hidden border border-tea-border">
+      <div className="bg-tea-surface rounded-xl overflow-hidden border border-tea-border">
         {loading ? (
           <div className="flex items-center justify-center py-16 text-tea-text-dim">
             <Loader2 className="animate-spin" size={18} />
@@ -513,7 +513,7 @@ export const TeamView: React.FC = () => {
           aria-modal="true"
           aria-label="Invite team member"
         >
-          <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border shadow-2xl">
+          <div className="w-full max-w-md bg-tea-surface rounded-xl border border-tea-border shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
               <h2 className="text-lg text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
                 Invite Member

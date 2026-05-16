@@ -297,7 +297,7 @@ export const Shop: React.FC<ShopProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-tea-gold hover:bg-tea-gold-lt text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-3 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isAddingToCart[set.id] && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
@@ -360,7 +360,7 @@ export const Shop: React.FC<ShopProps> = ({
               <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
             </button>
             {storePickerOpen && (
-              <div role="listbox" className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[180px] z-50 animate-[fadeIn_0.15s_ease-out]">
+              <div role="listbox" className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-lg py-1 min-w-[180px] z-50 animate-[fadeIn_0.15s_ease-out]">
                 {networkStores.map(store => {
                   const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
                   return (
@@ -432,7 +432,7 @@ export const Shop: React.FC<ShopProps> = ({
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+                className="bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.15em] font-medium py-2.5 px-6 rounded-xl hover:bg-tea-gold-lt transition-all active:scale-95"
               >
                 Try Again
               </button>
@@ -492,9 +492,9 @@ export const Shop: React.FC<ShopProps> = ({
                       key={item.id}
                       onClick={() => onAddToCart(item, qty, unitPrice * qty)}
                       aria-label={`Add ${item.name} to cart`}
-                      className="text-left flex-shrink-0 snap-start w-28 group focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded-lg"
+                      className="text-left flex-shrink-0 snap-start w-28 group focus:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded-xl"
                     >
-                      <div className="w-28 h-28 bg-tea-surface rounded-lg overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
+                      <div className="w-28 h-28 bg-tea-surface rounded-xl overflow-hidden mb-2 group-hover:opacity-90 transition-opacity">
                         {item.image ? (
                           <img src={item.image} alt="" className="w-full h-full object-cover sepia-[0.2]" loading="lazy" />
                         ) : (

@@ -335,7 +335,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
             <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim animate-spin" />
           )}
           {open && (matches.length > 0 || queryIsNewName) && (
-            <ul className="absolute top-full left-0 right-0 mt-1 z-30 max-h-64 overflow-y-auto rounded-lg bg-tea-surface border border-tea-border shadow-xl py-1">
+            <ul className="absolute top-full left-0 right-0 mt-1 z-30 max-h-64 overflow-y-auto rounded-xl bg-tea-surface border border-tea-border shadow-xl py-1">
               {matches.map(c => (
                 <li key={c.id}>
                   <button
@@ -429,7 +429,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                 {tagsExpanded && (
                   <div
                     ref={tagPopoverRef}
-                    className="absolute z-40 top-full mt-1 left-16 w-[280px] max-w-[calc(100%-4rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl"
+                    className="absolute z-40 top-full mt-1 left-16 w-[280px] max-w-[calc(100%-4rem)] rounded-xl bg-tea-surface border border-tea-border shadow-xl"
                   >
                     <div className="relative border-b border-tea-border">
                       <Search size={11} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
@@ -567,7 +567,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
                     {editing && (
                       <div
                         ref={tagEditorRef}
-                        className="absolute z-30 top-full right-0 mt-1 w-[280px] max-w-[calc(100vw-2rem)] rounded-lg bg-tea-surface border border-tea-border shadow-xl p-3"
+                        className="absolute z-30 top-full right-0 mt-1 w-[280px] max-w-[calc(100vw-2rem)] rounded-xl bg-tea-surface border border-tea-border shadow-xl p-3"
                       >
                         <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim mb-2 truncate">
                           Tags for {r.name}

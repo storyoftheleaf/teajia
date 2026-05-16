@@ -52,7 +52,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
             {item.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-accent-sub text-tea-text-sec border border-tea-border"
+                className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-accent-sub text-tea-text-sec border border-tea-border"
               >
                 {tag}
               </span>
@@ -136,7 +136,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                           <X className="w-3.5 h-3.5" />
                         </button>
                         {item.image && (
-                          <div className="w-full aspect-square rounded-sm overflow-hidden mb-3 bg-tea-accent-sub">
+                          <div className="w-full aspect-square rounded-md overflow-hidden mb-3 bg-tea-accent-sub">
                             <img
                               src={item.image}
                               alt={item.name}
@@ -185,7 +185,7 @@ export const CompareView: React.FC<CompareViewProps> = ({ items, onClose }) => {
                 {/* Card header */}
                 <div className="p-4 flex items-start gap-3 border-b border-tea-border">
                   {item.image && (
-                    <div className="w-16 h-16 rounded-sm overflow-hidden shrink-0 bg-tea-accent-sub">
+                    <div className="w-16 h-16 rounded-md overflow-hidden shrink-0 bg-tea-accent-sub">
                       <img
                         src={item.image}
                         alt={item.name}

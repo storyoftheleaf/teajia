@@ -699,7 +699,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-2xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto overscroll-contain"
+            className="fixed bottom-0 left-0 right-0 z-priority bg-tea-elevated border-t border-tea-border rounded-t-xl p-6 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] max-h-[60vh] overflow-y-auto overscroll-contain"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-tea-border rounded-full mx-auto mb-6" />
@@ -714,7 +714,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
                 <button
                   key={i}
                   onClick={() => { goToPage(ch.pageIndex); setShowChapterDrawer(false); }}
-                  className="w-full text-left px-4 py-3 rounded-lg hover:bg-tea-accent-sub transition-colors"
+                  className="w-full text-left px-4 py-3 rounded-xl hover:bg-tea-accent-sub transition-colors"
                 >
                   <span className="text-tea-text-dim text-ui-10 uppercase tracking-[0.15em] mr-3">{String(i + 1).padStart(2, '0')}</span>
                   <span className="text-tea-text text-sm">{ch.title}</span>
@@ -958,7 +958,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
               <button
                 onClick={prev}
                 disabled={currentPageIndex === 0}
-                className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
+                className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-xl"
                 aria-label="Previous page"
               >
                 <Icons.Back className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />
@@ -966,7 +966,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
               <button
                 onClick={next}
                 disabled={currentPageIndex >= pages.length - 1}
-                className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
+                className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-xl"
                 aria-label="Next page"
               >
                 <Icons.Next className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />

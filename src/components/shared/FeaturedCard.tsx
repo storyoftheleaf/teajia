@@ -33,7 +33,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
       <div className="flex flex-col md:flex-row">
         {/* Text content */}
         <div className="flex-1 p-6 md:p-8">
-          <span className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-sm">
+          <span className="inline-block text-ui-10 uppercase tracking-[0.2em] text-tea-gold font-sans mb-4 px-2 py-1 bg-tea-gold/10 rounded-md">
             {badge}
           </span>
           <h2 className="font-serif text-[clamp(24px,3.5vw,32px)] text-tea-text leading-[1.2] tracking-[0.01em] mb-4">
@@ -44,7 +44,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({
           </p>
           <button
             onClick={onCtaClick}
-            className="text-tea-gold text-ui-13 font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm pb-0.5"
+            className="text-tea-gold text-ui-13 font-sans flex items-center gap-1.5 group hover:text-tea-gold/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-md pb-0.5"
             style={{ boxShadow: '0 1px 0 var(--tea-border)' }}
           >
             {ctaLabel}

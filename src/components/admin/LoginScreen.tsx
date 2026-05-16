@@ -24,7 +24,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
       </button>
 
       <div className="w-full max-w-xs text-center">
-        <div className="w-12 h-12 bg-tea-gold rounded-lg mx-auto mb-8 flex items-center justify-center text-tea-bg font-serif font-bold text-xl">
+        <div className="w-12 h-12 bg-tea-gold rounded-xl mx-auto mb-8 flex items-center justify-center text-tea-bg font-serif font-bold text-xl">
           T
         </div>
         <h2 className="text-tea-text font-serif text-xl mb-6">Editor Access</h2>
@@ -35,13 +35,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onClose }) =>
           onChange={e => setPwd(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && checkLogin()}
           placeholder="Passkey"
-          className="w-full bg-tea-surface border border-tea-border p-3 text-center text-tea-text tracking-[0.2em] outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-sm mb-4 placeholder:text-tea-text/30"
+          className="w-full bg-tea-surface border border-tea-border p-3 text-center text-tea-text tracking-[0.2em] outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-md mb-4 placeholder:text-tea-text/30"
           aria-label="Enter passkey"
         />
 
         <button
           onClick={checkLogin}
-          className="w-full bg-tea-gold text-tea-bg py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-tea-gold-lt transition-colors rounded-sm"
+          className="w-full bg-tea-gold text-tea-bg py-3 uppercase tracking-[0.15em] text-xs font-bold hover:bg-tea-gold-lt transition-colors rounded-md"
         >
           Enter
         </button>

@@ -265,7 +265,7 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
         placeholder="Type or pick a source..."
       />
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {isNew && query.trim() && (
             <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => handleSelectVendor(query.trim())}
               className="w-full text-left px-3 py-2 text-xs text-tea-gold hover:bg-tea-bg transition-colors border-b border-tea-accent-sub">
@@ -294,7 +294,7 @@ export const CollapsibleSection = ({ title, defaultOpen = true, mobileDefault, c
     return defaultOpen;
   });
   return (
-    <div className={`mx-3 mb-2 rounded-lg transition-colors ${open ? 'bg-tea-surface/70' : 'bg-tea-surface/40 hover:bg-tea-surface/60'}`}>
+    <div className={`mx-3 mb-2 rounded-xl transition-colors ${open ? 'bg-tea-surface/70' : 'bg-tea-surface/40 hover:bg-tea-surface/60'}`}>
       <button onClick={() => setOpen(!open)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-3 group">
         <span className={`text-xs font-serif italic transition-colors ${open ? 'text-tea-text-sec' : 'text-tea-text-dim group-hover:text-tea-text-sec'}`}>{title}</span>
         <ChevronRight size={12} aria-hidden="true" className={`text-tea-text-dim/70 transition-transform duration-200 group-hover:text-tea-text-sec ${open ? 'rotate-90' : ''}`} />
@@ -914,7 +914,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               onClick={onClose}
               aria-label="Close product panel"
               title="Close (Esc)"
-              className="p-2 -ml-0.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface"
+              className="p-2 -ml-0.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl active:bg-tea-surface"
             >
               <XIcon size={17} aria-hidden="true" />
             </button>
@@ -933,14 +933,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 onClick={() => prevProduct && onNavigate?.(prevProduct)}
                 aria-label="Previous product"
                 title="Previous (←)"
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
+                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl active:bg-tea-surface disabled:opacity-30"
                 disabled={!prevProduct || !onNavigate}
               ><ChevronLeft size={17} aria-hidden="true" /></button>
               <button
                 onClick={() => nextProduct && onNavigate?.(nextProduct)}
                 aria-label="Next product"
                 title="Next (→)"
-                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg active:bg-tea-surface disabled:opacity-30"
+                className="p-2 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl active:bg-tea-surface disabled:opacity-30"
                 disabled={!nextProduct || !onNavigate}
               ><ChevronRight size={17} aria-hidden="true" /></button>
             </div>
@@ -994,7 +994,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             {/* 1. QUICK ENTRY. Required fields, single dense block, no header chrome.
                   Identity, origin, vendor, pricing, stock, status all live here so a
                   product can be entered top-to-bottom without expanding sections. */}
-            <div className="mx-3 mb-4 rounded-lg bg-tea-surface/60 px-4 pt-3.5 pb-4">
+            <div className="mx-3 mb-4 rounded-xl bg-tea-surface/60 px-4 pt-3.5 pb-4">
               {/* Name (full row, autocomplete + autofill) */}
               <FieldRowFull label="Name">
                 <GhostAutocompleteInput
@@ -1216,7 +1216,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <button
               onClick={() => setTastingEditorProduct(product)}
               aria-label={flattenedTastingCount > 0 ? `Edit tasting profile (${flattenedTastingCount} notes)` : 'Add tasting profile'}
-              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-lg bg-tea-surface/60 hover:bg-tea-surface/90 transition-colors group"
+              className="w-[calc(100%-1.5rem)] mx-3 mb-4 px-4 py-3.5 flex items-baseline justify-between gap-3 rounded-xl bg-tea-surface/60 hover:bg-tea-surface/90 transition-colors group"
             >
               <span className="text-sm font-serif italic text-tea-text-sec group-hover:text-tea-text-sec transition-colors">Tasting Profile</span>
               <span className="flex items-baseline gap-2.5 shrink-0">
@@ -1451,7 +1451,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               ) : (
                 <>
                   {productTastingAgg && productTastingAgg.totalNotes > 0 && (
-                    <div className="mb-4 rounded-lg bg-tea-surface border border-tea-accent-sub overflow-hidden">
+                    <div className="mb-4 rounded-xl bg-tea-surface border border-tea-accent-sub overflow-hidden">
                       <div className="flex items-center gap-4 px-4 py-3 border-b border-tea-accent-sub">
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl font-serif text-tea-gold leading-none">{productTastingAgg.avgRating.toFixed(1)}</span>

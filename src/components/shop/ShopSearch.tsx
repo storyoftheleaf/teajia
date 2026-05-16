@@ -112,7 +112,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
 
         {/* Inline preview dropdown */}
         {showPreview && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-lg shadow-xl z-30 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-xl z-30 overflow-hidden">
             {previewResults.map((item, idx) => (
               <button
                 key={item.id}
@@ -148,7 +148,7 @@ export const ShopSearch: React.FC<ShopSearchProps> = ({
           <button
             key={type}
             onClick={() => onTypeChange(type)}
-            className={`px-3 py-1 text-xs uppercase tracking-wider rounded-sm transition-colors ${
+            className={`px-3 py-1 text-xs uppercase tracking-wider rounded-md transition-colors ${
               activeType === type
                 ? 'bg-tea-elevated text-tea-text font-medium'
                 : 'border border-tea-border text-tea-text/60 hover:border-tea-border hover:text-tea-text'

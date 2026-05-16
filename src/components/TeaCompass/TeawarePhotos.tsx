@@ -61,7 +61,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
               <img
                 src={url}
                 alt={`Photo ${i + 1}`}
-                className="w-20 h-20 rounded-lg object-cover cursor-pointer"
+                className="w-20 h-20 rounded-xl object-cover cursor-pointer"
                 onClick={() => setViewingIndex(viewingIndex === i ? null : i)}
               />
               <button
@@ -80,7 +80,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
             type="button"
             onClick={handleCapture}
             disabled={uploading}
-            className={`pill w-20 h-20 flex flex-col items-center justify-center shrink-0 rounded-lg ${
+            className={`pill w-20 h-20 flex flex-col items-center justify-center shrink-0 rounded-xl ${
               uploading ? 'animate-pulse' : ''
             }`}
           >
@@ -95,7 +95,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
           type="button"
           onClick={handleCapture}
           disabled={uploading}
-          className={`pill w-full py-8 flex flex-col items-center justify-center rounded-lg ${
+          className={`pill w-full py-8 flex flex-col items-center justify-center rounded-xl ${
             uploading ? 'animate-pulse' : ''
           }`}
         >
@@ -109,13 +109,13 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
       {/* Expanded preview */}
       {viewingIndex !== null && photos[viewingIndex] && (
         <div
-          className="w-full rounded-lg overflow-hidden cursor-pointer"
+          className="w-full rounded-xl overflow-hidden cursor-pointer"
           onClick={() => setViewingIndex(null)}
         >
           <img
             src={photos[viewingIndex]}
             alt={`Preview ${viewingIndex + 1}`}
-            className="w-full h-auto max-h-64 object-contain bg-tea-bg rounded-lg"
+            className="w-full h-auto max-h-64 object-contain bg-tea-bg rounded-xl"
           />
         </div>
       )}

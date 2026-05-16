@@ -61,7 +61,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
         {sorted.map((item, idx) => (
           <div
             key={item.id}
-            className="p-4 bg-tea-surface border border-tea-border rounded-sm"
+            className="p-4 bg-tea-surface border border-tea-border rounded-md"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
@@ -85,7 +85,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
               {item.productId && (
                 <a
                   href={`/shop?product=${encodeURIComponent(item.productId)}`}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-sm text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-tea-surface border border-tea-border rounded-md text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
                   aria-label={`Buy ${item.customName || item.productName}`}
                 >
                   <ShoppingBag className="w-3 h-3 group-hover:text-tea-gold transition-colors" />
@@ -110,7 +110,7 @@ const HostNotesSection: React.FC<HostNotesSectionProps> = ({ notes }) => (
       <BookOpen className="w-4 h-4 text-tea-gold" />
       <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h2>
     </div>
-    <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
+    <div className="bg-tea-surface border border-tea-border rounded-md p-5">
       <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{notes}</p>
     </div>
   </div>
@@ -126,7 +126,7 @@ const SharedNotesSection: React.FC<SharedNotesSectionProps> = ({ notes }) => (
       <MessageCircle className="w-4 h-4 text-tea-gold" />
       <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Guests Said</h2>
     </div>
-    <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
+    <div className="bg-tea-surface border border-tea-border rounded-md p-5">
       <div className="space-y-3">
         {notes.map((note, idx) => (
           <p key={idx} className="text-sm text-tea-text-sec italic leading-relaxed">
@@ -149,7 +149,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
       <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Session Playlist</h2>
     </div>
     {playlistUrl.includes('spotify.com') ? (
-      <div className="rounded-sm overflow-hidden border border-tea-border">
+      <div className="rounded-md overflow-hidden border border-tea-border">
         <iframe
           src={playlistUrl.replace('/playlist/', '/embed/playlist/')}
           width="100%"
@@ -161,7 +161,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
         />
       </div>
     ) : playlistUrl.includes('youtube.com') || playlistUrl.includes('youtu.be') ? (
-      <div className="rounded-sm overflow-hidden border border-tea-border aspect-video">
+      <div className="rounded-md overflow-hidden border border-tea-border aspect-video">
         <iframe
           src={playlistUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
           width="100%"
@@ -178,7 +178,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
         href={playlistUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+        className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
       >
         <Music className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
         <span className="text-sm">Listen to the session playlist</span>
@@ -206,7 +206,7 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
           <button
             key={idx}
             onClick={() => setLightboxImage(url)}
-            className="aspect-square overflow-hidden rounded-sm border border-tea-border hover:border-tea-gold/30 transition-all duration-300 group"
+            className="aspect-square overflow-hidden rounded-md border border-tea-border hover:border-tea-gold/30 transition-all duration-300 group"
             aria-label={`View photo ${idx + 1}`}
           >
             <img
@@ -262,7 +262,7 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
         <span className="text-ui-10 uppercase tracking-[0.3em] text-tea-gold">✦</span>
         <h2 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">What stayed with you?</h2>
       </div>
-      <div className="bg-tea-surface border border-tea-border rounded-sm p-5">
+      <div className="bg-tea-surface border border-tea-border rounded-md p-5">
         <textarea
           value={note}
           onChange={(e) => { setNote(e.target.value); setSaved(false); }}
@@ -313,7 +313,7 @@ const EventRecapPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );

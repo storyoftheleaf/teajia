@@ -65,7 +65,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="bg-tea-surface border border-tea-border rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
+        className="bg-tea-surface border border-tea-border rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -73,7 +73,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <h2 id="confirm-dialog-title" className="text-xl font-serif text-tea-text">{title}</h2>
           <button
             onClick={handleCancel}
-            className="p-2 hover:bg-tea-text/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-tea-text/10 rounded-xl transition-colors"
             aria-label="Close dialog"
           >
             <Icons.Close className="w-5 h-5 text-tea-text-sec" />
@@ -83,7 +83,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         {/* Content */}
         <div className="px-6 py-4 space-y-4">
           {preview && (
-            <div className="bg-tea-text/5 rounded-lg p-4" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}>
+            <div className="bg-tea-text/5 rounded-xl p-4" style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}>
               {preview}
             </div>
           )}
@@ -101,7 +101,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 value={typedText}
                 onChange={(e) => setTypedText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && isTypingValid && handleConfirm()}
-                className="w-full bg-tea-surface p-3 text-tea-text text-sm outline-none focus:ring-1 focus:ring-tea-gold/20 rounded-lg"
+                className="w-full bg-tea-surface p-3 text-tea-text text-sm outline-none focus:ring-1 focus:ring-tea-gold/20 rounded-xl"
                 style={{ boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 0 var(--tea-accent-sub)' }}
                 placeholder={typeToConfirm}
                 autoFocus
@@ -121,7 +121,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={!isTypingValid}
-            className={`px-6 py-2 ${confirmButtonClass} text-tea-bg text-sm uppercase tracking-wider font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-6 py-2 ${confirmButtonClass} text-tea-bg text-sm uppercase tracking-wider font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {confirmText}
           </button>

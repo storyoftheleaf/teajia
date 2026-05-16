@@ -78,7 +78,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-14 h-14';
   const btnCls = isLg
     ? 'w-11 h-11 rounded-xl'  // 44×44 — meets WCAG 2.5.5 floor without tap-target padding
-    : 'w-7 h-7 rounded-lg';
+    : 'w-7 h-7 rounded-xl';
   const btnIcon = isLg ? 18 : 12;
   const btnGap = isLg ? 'gap-2' : 'gap-1';
   const stripGap = isLg ? 'gap-2' : 'gap-1.5';
@@ -350,7 +350,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={closeScanner}
-              className="mt-2 px-4 py-2 rounded-lg border border-tea-border/20 text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
+              className="mt-2 px-4 py-2 rounded-xl border border-tea-border/20 text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -366,7 +366,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="shrink-0 bg-tea-surface rounded-t-2xl px-4 pt-4 pb-6"
+            className="shrink-0 bg-tea-surface rounded-t-xl px-4 pt-4 pb-6"
           >
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-4" />
             <div className="space-y-1 mb-4">
@@ -419,7 +419,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="shrink-0 bg-tea-surface rounded-t-2xl px-4 pt-4 pb-6 text-center space-y-3"
+            className="shrink-0 bg-tea-surface rounded-t-xl px-4 pt-4 pb-6 text-center space-y-3"
           >
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-2" />
             <p className="text-ui-13 text-tea-text-sec">Couldn't read the label.</p>

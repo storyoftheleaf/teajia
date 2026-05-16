@@ -218,7 +218,7 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
               <button
                 type="button"
                 onClick={() => handleItemTap(item)}
-                className="bg-tea-surface rounded-lg p-2.5 text-left transition-colors hover:bg-tea-elevated w-full"
+                className="bg-tea-surface rounded-xl p-2.5 text-left transition-colors hover:bg-tea-elevated w-full"
                 style={typeColor ? { borderTop: `2px solid ${typeColor}35` } : undefined}
               >
                 {/* Name */}
@@ -248,7 +248,7 @@ export const VendorHistory: React.FC<VendorHistoryProps> = ({
 
               {/* Expanded detail / buy again */}
               {isExpanded && (
-                <div className="bg-tea-surface rounded-b-lg px-2.5 pb-2.5 -mt-1 pt-1.5 space-y-1.5">
+                <div className="bg-tea-surface rounded-b-xl px-2.5 pb-2.5 -mt-1 pt-1.5 space-y-1.5">
                   {item.priceAmount != null && (
                     <p className="text-ui-10 text-tea-text-sec num">
                       {item.priceCurrency === 'USD' ? '$' : item.priceCurrency + ' '}

@@ -111,7 +111,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       href={resource.content || '#'}
       target={resource.content ? '_blank' : undefined}
       rel={resource.content ? 'noopener noreferrer' : undefined}
-      className="group relative bg-tea-bg rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-tea-bg rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
     >
       {/* Image */}
       {resource.image && (
@@ -175,7 +175,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                 placeholder="Search by location, name, or interest..."
                 value={communitySearchLocation}
                 onChange={(e) => setCommunitySearchLocation(e.target.value)}
-                className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-lg text-tea-text placeholder-tea-text-sec focus:outline-none focus:ring-2 focus:ring-tea-gold"
+                className="w-full px-4 py-3 bg-tea-bg border border-tea-border rounded-xl text-tea-text placeholder-tea-text-sec focus:outline-none focus:ring-2 focus:ring-tea-gold"
               />
               <Icons.Search className="absolute right-3 top-3.5 w-5 h-5 text-tea-text/40" />
             </div>
@@ -214,7 +214,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
 
                     {/* Expertise Badge */}
                     <div className="flex justify-center mb-4">
-                      <span className={`text-ui-10 uppercase tracking-wider px-3 py-1 rounded-sm ${
+                      <span className={`text-ui-10 uppercase tracking-wider px-3 py-1 rounded-md ${
                         member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-border' :
                         member.expertise === 'Intermediate' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40' :
                         'bg-tea-green/20 text-tea-green border border-tea-green/40'

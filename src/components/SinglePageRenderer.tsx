@@ -272,23 +272,23 @@ const FormatToolbar = ({ position, onFormat }: { position: { top: number; left: 
 
   return createPortal(
     <div 
-      className="fixed z-sticky flex items-center bg-tea-bg border border-tea-border rounded-sm shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
+      className="fixed z-sticky flex items-center bg-tea-bg border border-tea-border rounded-md shadow-2xl p-2 gap-2 animate-[scaleIn_0.1s_ease-out]"
       style={{ top: safeTop, left: safeLeft }}
       onMouseDown={(e) => e.preventDefault()}
     >
         <div className="flex gap-1 border-r border-tea-border pr-2 mr-1">
-            <button onClick={() => onFormat('font', 'font-body')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text" title="Serif"><span className="font-body text-sm">S</span></button>
-            <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text" title="Sans"><span className="font-sans text-sm">S</span></button>
-            <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text" title="Mono"><span className="font-mono text-sm">M</span></button>
+            <button onClick={() => onFormat('font', 'font-body')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text" title="Serif"><span className="font-body text-sm">S</span></button>
+            <button onClick={() => onFormat('font', 'font-sans')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text" title="Sans"><span className="font-sans text-sm">S</span></button>
+            <button onClick={() => onFormat('font', 'font-mono')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text" title="Mono"><span className="font-mono text-sm">M</span></button>
         </div>
         <div className="flex gap-1 border-r border-tea-border pr-2 mr-1">
-            <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text font-bold text-sm">B</button>
-            <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text italic font-body text-sm">I</button>
+            <button onClick={() => onFormat('weight', 'font-bold')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text font-bold text-sm">B</button>
+            <button onClick={() => onFormat('style', 'italic')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text italic font-body text-sm">I</button>
         </div>
         <div className="flex gap-1">
-             <button onClick={() => onFormat('size', 'text-2xl')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text text-xs">S</button>
-             <button onClick={() => onFormat('size', 'text-4xl')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text text-sm">M</button>
-             <button onClick={() => onFormat('size', 'text-6xl')} className="p-2 hover:bg-tea-gold/10 rounded-sm text-tea-text/70 hover:text-tea-text text-base">L</button>
+             <button onClick={() => onFormat('size', 'text-2xl')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text text-xs">S</button>
+             <button onClick={() => onFormat('size', 'text-4xl')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text text-sm">M</button>
+             <button onClick={() => onFormat('size', 'text-6xl')} className="p-2 hover:bg-tea-gold/10 rounded-md text-tea-text/70 hover:text-tea-text text-base">L</button>
         </div>
     </div>,
     document.body
@@ -1232,7 +1232,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     href={link.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`block p-6 border ${theme.border} rounded-sm hover:bg-current/5 transition-all duration-300 group cursor-pointer`}
+                                    className={`block p-6 border ${theme.border} rounded-md hover:bg-current/5 transition-all duration-300 group cursor-pointer`}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div className="flex items-start justify-between gap-4 mb-3">
@@ -1290,14 +1290,14 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {hasVideo ? (
                             <div className={`w-full flex justify-center ${isVertical ? 'my-3' : 'my-4'}`}>
                                 {instagramId ? (
-                                    <VideoEmbed videoId={videoId} instagramId={instagramId} isVertical={isVertical} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                    <VideoEmbed videoId={videoId} instagramId={instagramId} isVertical={isVertical} className={isVertical ? 'w-[55%] rounded-md shadow-lg' : 'w-full rounded-md shadow-lg'} />
                                 ) : (
-                                    <VideoPosterFrame videoId={videoId} caption={videoCaption} className={isVertical ? 'w-[55%] rounded-sm shadow-lg' : 'w-full rounded-sm shadow-lg'} />
+                                    <VideoPosterFrame videoId={videoId} caption={videoCaption} className={isVertical ? 'w-[55%] rounded-md shadow-lg' : 'w-full rounded-md shadow-lg'} />
                                 )}
                             </div>
                         ) : (
                             <div className="w-full flex justify-center my-4">
-                                <div className={`${isVertical ? 'w-[60%] aspect-[9/16]' : 'w-full aspect-video'} bg-tea-text/10 rounded-sm flex items-center justify-center border-2 border-dashed border-current/20`}>
+                                <div className={`${isVertical ? 'w-[60%] aspect-[9/16]' : 'w-full aspect-video'} bg-tea-text/10 rounded-md flex items-center justify-center border-2 border-dashed border-current/20`}>
                                     <div className="text-center opacity-40"><Icons.Play className="w-12 h-12 mx-auto mb-2" /><span className={CAPTION_CLASS}>Video ID required</span></div>
                                 </div>
                             </div>
@@ -1727,7 +1727,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="space-y-6">
                             {tocEntries.map((entry, i) => (
                                 <div key={i} className="flex items-center gap-4">
-                                    <div className="w-16 h-16 shrink-0 bg-current/5 rounded-sm overflow-hidden"><SafeImage index={i} className="w-full h-full object-cover" /></div>
+                                    <div className="w-16 h-16 shrink-0 bg-current/5 rounded-md overflow-hidden"><SafeImage index={i} className="w-full h-full object-cover" /></div>
                                     <span className={`font-body ${TYPE.body} flex-1 opacity-90`}>{entry}</span>
                                     <span className="flex-1 border-b border-dotted border-current/15 mx-2"></span>
                                     <span className={`font-caption ${TYPE.caption} opacity-30`}>{(i+1).toString().padStart(2,'0')}</span>
@@ -1998,7 +1998,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
             case LayoutVariant.BACK_COVER:
                 return (
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col items-center justify-center text-center`}>
-                        <div className="w-16 h-16 bg-current opacity-8 rounded-sm flex items-center justify-center mb-8">
+                        <div className="w-16 h-16 bg-current opacity-8 rounded-md flex items-center justify-center mb-8">
                             <span className="text-[40px] font-display font-light opacity-30">T</span>
                         </div>
                         <span className={`${TYPE.caption} font-caption mb-2`}>Teajia Journal — Issue 03</span>

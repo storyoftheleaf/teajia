@@ -192,7 +192,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
       <div
         ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-2xl md:rounded-2xl shadow-2xl h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:h-auto md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
+        className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-lg bg-tea-bg border-t border-tea-border md:border rounded-t-xl md:rounded-xl shadow-2xl h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:h-auto md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -254,7 +254,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   queryClient.invalidateQueries({ queryKey: ['event-public', slug] });
                   onClose();
                 }}
-                className="w-full max-w-xs py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all duration-300"
+                className="w-full max-w-xs py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 transition-all duration-300"
               >
                 Done
               </button>
@@ -264,14 +264,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Member banner / sign-in prompt */}
               {isAuthenticated && user ? (
-                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-gold/8 border border-tea-gold/20 rounded-sm">
+                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-tea-gold/8 border border-tea-gold/20 rounded-md">
                   <div className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
                   <p className="text-xs text-tea-text-sec">
                     Signed in as <span className="text-tea-text">{user.name}</span>
                   </p>
                 </div>
               ) : showLoginForm ? (
-                <div className="border border-tea-border rounded-sm p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+                <div className="border border-tea-border rounded-md p-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
                   <p className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec">Sign in to your account</p>
                   <input
                     type="text"
@@ -279,7 +279,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     placeholder="Email or username"
                     autoComplete="username"
-                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                   />
                   <input
                     type="password"
@@ -287,7 +287,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="Password"
                     autoComplete="current-password"
-                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                    className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus:border-tea-gold/50 transition-colors"
                   />
                   {loginError && (
                     <p className="text-xs text-red-400">{loginError}</p>
@@ -297,7 +297,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       type="button"
                       onClick={handleInlineLogin}
                       disabled={loginPending || !loginIdentifier || !loginPassword}
-                      className="flex-1 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-sm disabled:opacity-50 transition-colors hover:bg-tea-gold/90"
+                      className="flex-1 py-2 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] rounded-md disabled:opacity-50 transition-colors hover:bg-tea-gold/90"
                     >
                       {loginPending ? 'Signing in…' : 'Sign in'}
                     </button>
@@ -337,13 +337,13 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   placeholder="Your full name"
                   autoComplete="name"
                   required
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                 />
               </div>
 
               {/* Contact Method — hidden if signed-in user already has contact saved */}
               {isAuthenticated && (user?.phone || user?.email) && !overrideContact ? (
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-sm">
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md">
                   <span className="text-xs text-tea-text-sec truncate">
                     {user?.phone
                       ? <>We'll reach you on <span className="text-tea-text">WhatsApp</span> at <span className="text-tea-text">{user.phone}</span></>
@@ -367,7 +367,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     <button
                       type="button"
                       onClick={() => setContactMethod('whatsapp')}
-                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                      className={`flex-1 py-2.5 rounded-md text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
                         formData.contactMethod === 'whatsapp'
                           ? 'bg-tea-gold text-tea-bg'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
@@ -378,7 +378,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     <button
                       type="button"
                       onClick={() => setContactMethod('email')}
-                      className={`flex-1 py-2.5 rounded-sm text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
+                      className={`flex-1 py-2.5 rounded-md text-xs uppercase tracking-[0.15em] transition-all duration-200 ${
                         formData.contactMethod === 'email'
                           ? 'bg-tea-gold text-tea-bg'
                           : 'bg-tea-surface text-tea-text-sec border border-tea-border hover:border-tea-gold/30'
@@ -390,7 +390,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
                   {formData.contactMethod === 'whatsapp' ? (
                     <div>
-                      <div className="flex gap-0 border border-tea-border rounded-sm overflow-hidden focus-within:border-tea-gold/50 transition-colors">
+                      <div className="flex gap-0 border border-tea-border rounded-md overflow-hidden focus-within:border-tea-gold/50 transition-colors">
                         <input
                           type="tel"
                           value={countryCode}
@@ -433,7 +433,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       placeholder="your@email.com"
                       autoComplete="email"
                       required
-                      className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+                      className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
                     />
                   )}
                 </div>
@@ -448,7 +448,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   {(formData.guests ?? []).map((guest, idx) => (
                     <div
                       key={idx}
-                      className="border border-tea-border rounded-sm p-3 space-y-2 animate-[fadeIn_0.25s_ease-out]"
+                      className="border border-tea-border rounded-md p-3 space-y-2 animate-[fadeIn_0.25s_ease-out]"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec shrink-0">
@@ -459,7 +459,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           value={guest.nameHint}
                           onChange={(e) => updateGuest(idx, { nameHint: e.target.value })}
                           placeholder="e.g. my partner"
-                          className="flex-1 px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                          className="flex-1 px-3 py-2 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
                         />
                         <button
                           type="button"
@@ -476,7 +476,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           value={guest.contact ?? ''}
                           onChange={(e) => updateGuest(idx, { contact: e.target.value })}
                           placeholder="Their WhatsApp or email (we'll reach out, or message you if we can't)"
-                          className="w-full px-3 py-2 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
+                          className="w-full px-3 py-2 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors"
                         />
                       </div>
                     </div>
@@ -512,7 +512,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   onChange={(e) => updateField('notes', e.target.value)}
                   placeholder="Dietary restrictions, questions, anything…"
                   rows={3}
-                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
+                  className="w-full px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-sec/40 focus:outline-none focus:border-tea-gold/50 transition-colors resize-none"
                 />
               </div>
 
@@ -522,7 +522,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   type="checkbox"
                   checked={!!formData.show_in_guest_list}
                   onChange={(e) => updateField('show_in_guest_list', e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                  className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
                 />
                 <span className="text-xs text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                   Show my first name to other confirmed guests
@@ -532,7 +532,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Error */}
               {submitMutation.isError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-sm">
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md">
                   <p className="text-sm text-red-400">
                     {submitMutation.error?.message || 'Something went wrong. Please try again.'}
                   </p>
@@ -543,7 +543,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               <button
                 type="submit"
                 disabled={!isValid || submitMutation.isPending}
-                className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
               >
                 {submitMutation.isPending ? (
                   <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />
