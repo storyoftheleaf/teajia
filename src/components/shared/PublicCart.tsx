@@ -515,29 +515,37 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {/* Persistent success message — editorial confirmation, no green */}
               {successMessage?.show && (
-                <div className="cart-fade-in border border-tea-border rounded-md px-4 py-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <Icons.Check className="w-4 h-4 text-tea-text-sec shrink-0" />
-                    <span className="text-xs text-tea-text">
-                      {successMessage.type === 'whatsapp' && 'WhatsApp opened. Tap Send to complete.'}
-                      {successMessage.type === 'email' && 'Email client opened. Review and send.'}
-                      {successMessage.type === 'copy' && 'Copied to clipboard.'}
-                    </span>
+                <div className="cart-fade-in border border-tea-border rounded-md px-4 py-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3">
+                      <Icons.Check className="w-4 h-4 text-tea-text-sec shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        {successMessage.type === 'whatsapp' && (
+                          <>
+                            <p className="text-xs text-tea-text">WhatsApp opened. Tap Send to complete your order.</p>
+                            <p className="text-xs text-tea-text-sec">We'll reply on WhatsApp to confirm and arrange delivery.</p>
+                          </>
+                        )}
+                        {successMessage.type === 'email' && (
+                          <p className="text-xs text-tea-text">Email client opened. Review and send to place your order.</p>
+                        )}
+                        {successMessage.type === 'copy' && (
+                          <p className="text-xs text-tea-text">Order details copied to clipboard.</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSuccessMessage(null)}
+                      className="text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+                      aria-label="Dismiss"
+                    >
+                      <Icons.Close className="w-3 h-3" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSuccessMessage(null)}
-                    className="text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="Dismiss"
-                  >
-                    <Icons.Close className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-
-              {successMessage?.show && (
-                <div className="text-center">
-                  <p className="text-xs text-tea-text-sec mb-1">Track your order</p>
-                  <a href={`/order/${orderRef}`} className="text-sm text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors font-mono">{orderRef}</a>
+                  <div className="pl-7 flex items-center justify-between gap-4">
+                    <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Order ref</span>
+                    <a href={`/order/${orderRef}`} className="font-mono text-xs text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors">{orderRef}</a>
+                  </div>
                 </div>
               )}
 
