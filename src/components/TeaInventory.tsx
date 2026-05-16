@@ -803,6 +803,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             </div>
          ) : null}
 
+         {/* Result count above grid */}
+         {filteredInventory.length > 0 && (
+            <div className="py-2.5 px-1 border-b border-tea-border">
+              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">
+                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
+              </span>
+            </div>
+         )}
+
          {/* LIST VIEW — tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (
             <div className="flex flex-col px-0 animate-[fadeIn_0.5s_ease-out]">
