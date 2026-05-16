@@ -145,7 +145,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showMobileGroupBy, setShowMobileGroupBy] = useState(false);
   const [showGroupByDropdown, setShowGroupByDropdown] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
-  const [viewTabsExpanded, setViewTabsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
 
   // Reset glossary mode when switching categories
@@ -1349,8 +1348,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
       <div className={`md:hidden sticky top-0 z-30 bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         <div className="flex flex-col border-b border-tea-border">
-        <div className={`flex items-center px-2 pt-1.5 pb-0 gap-0.5 ${viewTabsExpanded ? 'flex-wrap' : ''}`}>
-          {/* View tabs — top 3 visible, expand to show all */}
+        <div className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar">
+          {/* View tabs — all visible, horizontally scrollable */}
           {(() => {
             const defaultOrder = activeDefaultViews.map(v => v.id);
             const unsorted = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
@@ -1359,65 +1358,45 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const bi = defaultOrder.indexOf(b.id);
               return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
             });
-            const VISIBLE_COUNT = 3;
-            const visibleViews = viewTabsExpanded ? views : views.slice(0, VISIBLE_COUNT);
-            const hasMore = views.length > VISIBLE_COUNT;
-            // Check if active view is in the hidden set
-            const activeInHidden = !viewTabsExpanded && views.findIndex(v => v.id === activeViewId) >= VISIBLE_COUNT;
-            return (
-              <>
-                {visibleViews.map(view => {
-                  const isIconOnly = view.icon && !view.name;
-                  const filterLabel = VIEW_FILTER_LABELS[view.filterType] || view.filterType;
-                  return (
-                    <button
-                      key={view.id}
-                      onClick={() => {
-                        setGlossaryMode(false);
-                        setActiveView(view.id);
-                        setInventoryColumns(view.columns);
-                        setInventorySortConfig(view.sortConfig);
-                        setFilterType(view.filterType);
-                        setInventoryGroupBy(view.groupBy);
-                      }}
-                      className={`tap-target relative flex items-center gap-1 shrink-0 ${isIconOnly && !viewTabsExpanded ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-ui-11 uppercase tracking-[0.08em]'} rounded-md transition-colors ${
-                        activeViewId === view.id
-                          ? 'bg-tea-gold/15 text-tea-gold'
-                          : view.filterType === 'Archived'
-                          ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
-                          : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                      title={filterLabel}
-                      aria-label={`Show ${filterLabel} view`}
-                      aria-pressed={activeViewId === view.id}
+            return views.map(view => {
+              const isIconOnly = view.icon && !view.name;
+              const filterLabel = VIEW_FILTER_LABELS[view.filterType] || view.filterType;
+              return (
+                <button
+                  key={view.id}
+                  onClick={() => {
+                    setGlossaryMode(false);
+                    setActiveView(view.id);
+                    setInventoryColumns(view.columns);
+                    setInventorySortConfig(view.sortConfig);
+                    setFilterType(view.filterType);
+                    setInventoryGroupBy(view.groupBy);
+                  }}
+                  className={`tap-target relative flex items-center gap-1 shrink-0 ${isIconOnly ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-ui-11 uppercase tracking-[0.08em]'} rounded-md transition-colors ${
+                    activeViewId === view.id
+                      ? 'bg-tea-gold/15 text-tea-gold'
+                      : view.filterType === 'Archived'
+                      ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
+                      : 'text-tea-text-dim hover:text-tea-text-sec'
+                  }`}
+                  title={filterLabel}
+                  aria-label={`Show ${filterLabel} view`}
+                  aria-pressed={activeViewId === view.id}
+                >
+                  {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
+                  {view.name || null}
+                  {!view.id.startsWith('default-') && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
+                      className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
                     >
-                      {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
-                      {viewTabsExpanded && isIconOnly ? <span className="text-ui-11 uppercase tracking-[0.08em]">{filterLabel}</span> : (view.name || null)}
-                      {!view.id.startsWith('default-') && (
-                        <span
-                          onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                          className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
-                        >
-                          <XIcon size={9} />
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-                {hasMore && (
-                  <button
-                    onClick={() => setViewTabsExpanded(!viewTabsExpanded)}
-                    className={`tap-target w-7 h-7 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                    title={viewTabsExpanded ? 'Show fewer views' : 'Show all views'}
-                    aria-label={viewTabsExpanded ? 'Show fewer inventory views' : 'Show all inventory views'}
-                  >
-                    {viewTabsExpanded ? <XIcon size={13} /> : <Plus size={13} />}
-                  </button>
-                )}
-              </>
-            );
+                      <XIcon size={9} />
+                    </span>
+                  )}
+                </button>
+              );
+            });
           })()}
-
         </div>
 
         {/* Row 2: controls — price toggle + group + sort */}
@@ -1878,20 +1857,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
                         <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-50 py-1 flex flex-col" role="menu">
-                            <button
-                                role="menuitem"
-                                onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}
-                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                            >
-                                <AlertTriangle size={14} /> Low Stock Alerts
-                            </button>
-                            <button
-                                role="menuitem"
-                                onClick={() => { setFilterType(filterType === 'Unverified' ? 'All' : 'Unverified'); setShowOptions(false); }}
-                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                            >
-                                <CheckSquare size={14} /> Stock Verification
-                            </button>
                             <button
                                 role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
