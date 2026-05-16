@@ -214,7 +214,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const handleEmail = () => {
-    const subject = `Tea Order Inquiry - ${details.name}`;
+    const subject = `Tea Order - ${details.name}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(orderMessage)}`);
     showSuccess('email');
     persistInquiry('email');
@@ -343,7 +343,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {step === 'INQUIRY' && (
             <div className="space-y-6 relative z-[1]">
               <p className="font-serif text-sm text-tea-text-sec italic mb-4">
-                Fill in your details below. Your order inquiry will be generated automatically.
+                Fill in your details below. Your order request will be generated automatically.
               </p>
               <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-md border border-tea-border" id="inquiry-form">
                 <div>
@@ -459,7 +459,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {step === 'CONFIRM' && (
             <div className="space-y-6 relative z-[1]">
               <div className="text-center mb-2">
-                <h3 className="font-serif text-lg text-tea-text mb-1">Review your inquiry</h3>
+                <h3 className="font-serif text-lg text-tea-text mb-1">Review your order</h3>
                 <p className="text-xs text-tea-text-sec">Please review before sending.</p>
               </div>
 
@@ -632,7 +632,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               fullWidth
               className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
             >
-              Send inquiry
+              Request order
             </Button>
           </div>
         )}
