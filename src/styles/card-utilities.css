@@ -615,6 +615,43 @@ input[type="number"]::-webkit-outer-spin-button {
   background-color: rgb(var(--tea-gold-rgb) / 0.03);
 }
 
+/* --- Canonical Form Field — input-field + label-field + focus ring --- */
+/* Single source of truth for all new form inputs and labels.
+   Focus: 2px offset gap (var(--tea-bg)) + 2px ring at tea-gold/50.
+   Equivalent to Tailwind: focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2. */
+
+.input-field {
+  display: block;
+  width: 100%;
+  background: rgb(var(--tea-gold-rgb) / 0.06);
+  border: 1px solid rgb(var(--tea-gold-rgb) / 0.15);
+  border-radius: 0.375rem; /* rounded-md */
+  color: var(--tea-text);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input-field::placeholder {
+  color: var(--tea-text-dim);
+}
+
+.input-field:focus-visible {
+  border-color: rgb(var(--tea-gold-rgb) / 0.4);
+  box-shadow: 0 0 0 2px var(--tea-bg), 0 0 0 4px rgb(var(--tea-gold-rgb) / 0.5);
+  animation: none; /* suppress global focusRingPulse — border + ring already signal focus */
+}
+
+/* Canonical form label — uppercase meta label above every field */
+.label-field {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tea-text-dim);
+  margin-bottom: 0.375rem;
+}
+
 /* --- Toggle Pill (on/off switches) --- */
 /* Use on: sidebar toggle buttons, filter chips, boolean flags */
 .pill {
