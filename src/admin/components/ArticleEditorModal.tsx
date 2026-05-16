@@ -18,18 +18,27 @@ interface ArticleEditorModalProps {
 
 // ─── Paste parser ────────────────────────────────────────────────────────────
 
+const KNOWN_KEYWORDS = ['TITLE', 'SUBTITLE', 'AUTHOR', 'INTRO', 'SECTION', 'QUOTE', 'IMAGE', 'DIVIDER'];
+
 function parsePasteFormat(raw: string): {
   blocks: ArticleBlock[];
   title?: string;
   subtitle?: string;
   author?: string;
+  warnings: string[];
 } {
   const blocks: ArticleBlock[] = [];
+  const warnings: string[] = [];
   let title: string | undefined;
   let subtitle: string | undefined;
   let author: string | undefined;
 
   const sections = raw.split(/^---$/m).map(s => s.trim()).filter(Boolean);
+
+  if (sections.length === 0 && raw.trim()) {
+    warnings.push('No sections found. Separate sections with --- on its own line.');
+    return { blocks, title, subtitle, author, warnings };
+  }
 
   for (const section of sections) {
     if (section.startsWith('TITLE:')) {
@@ -65,10 +74,21 @@ function parsePasteFormat(raw: string): {
     } else if (section === 'DIVIDER') {
       blocks.push({ type: 'divider' });
     } else if (section.trim()) {
+      // Detect mistyped keywords (e.g. "INTRO:" instead of "INTRO\n") and warn
+      const firstToken = section.split(/[\n: ]/)[0].toUpperCase();
+      if (KNOWN_KEYWORDS.includes(firstToken)) {
+        const preview = section.slice(0, 50);
+        warnings.push(`Unrecognized format: "${preview}${section.length > 50 ? '…' : ''}" — check keyword spelling and spacing.`);
+      }
       blocks.push({ type: 'paragraph', text: section.trim() });
     }
   }
-  return { blocks, title, subtitle, author };
+
+  if (blocks.length === 0 && !title && !subtitle && !author && raw.trim()) {
+    warnings.push('Nothing was parsed. Sections must be separated by --- on its own line.');
+  }
+
+  return { blocks, title, subtitle, author, warnings };
 }
 
 // ─── Shared input styles ─────────────────────────────────────────────────────
@@ -254,6 +274,99 @@ function makeEmptyBlock(type: ArticleBlock['type']): ArticleBlock {
   }
 }
 
+// ─── Article preview ─────────────────────────────────────────────────────────
+
+const PreviewPane: React.FC<{
+  title: string;
+  subtitle: string;
+  author: string;
+  blocks: ArticleBlock[];
+}> = ({ title, subtitle, author, blocks }) => {
+  const hasContent = title || subtitle || author || blocks.length > 0;
+
+  if (!hasContent) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-ui-12 text-tea-text-dim">Nothing to preview yet. Add blocks in the editor.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-8 space-y-6">
+      {(title || subtitle || author) && (
+        <header className="space-y-1.5 pb-5 border-b border-tea-border">
+          {title && <h1 className="text-xl font-semibold text-tea-text leading-snug">{title}</h1>}
+          {subtitle && <p className="text-ui-15 text-tea-text-sec leading-relaxed">{subtitle}</p>}
+          {author && <p className="text-ui-11 text-tea-text-dim uppercase tracking-[0.15em] pt-1">{author}</p>}
+        </header>
+      )}
+
+      <div className="space-y-5">
+        {blocks.map((block, i) => {
+          switch (block.type) {
+            case 'intro':
+              return (
+                <p key={i} className="text-ui-16 leading-relaxed italic text-tea-text">
+                  {block.text}
+                </p>
+              );
+            case 'paragraph':
+              return (
+                <p key={i} className="text-ui-14 leading-relaxed text-tea-text">
+                  {block.text}
+                </p>
+              );
+            case 'section_heading':
+              return (
+                <h2 key={i} className="text-base font-semibold text-tea-text pt-2">
+                  {block.text}
+                </h2>
+              );
+            case 'quote':
+              return (
+                <blockquote key={i} className="border-l-2 border-tea-gold/40 pl-4 py-0.5 space-y-1">
+                  <p className="text-ui-14 italic text-tea-text leading-relaxed">"{block.text}"</p>
+                  {block.attribution && (
+                    <p className="text-ui-11 text-tea-text-sec">— {block.attribution}</p>
+                  )}
+                </blockquote>
+              );
+            case 'image':
+              return (
+                <figure key={i} className="space-y-2">
+                  {block.url ? (
+                    <img
+                      src={block.url}
+                      alt={block.description}
+                      className="w-full rounded-xl object-cover max-h-48 border border-tea-border"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-24 rounded-xl bg-tea-elevated border border-dashed border-tea-border flex items-center justify-center">
+                      <span className="text-ui-11 text-tea-text-dim">{block.description || 'Image'}</span>
+                    </div>
+                  )}
+                  {block.caption && (
+                    <figcaption className="text-ui-11 text-tea-text-dim text-center">{block.caption}</figcaption>
+                  )}
+                </figure>
+              );
+            case 'divider':
+              return <hr key={i} className="border-t border-tea-border" />;
+            default:
+              return (
+                <div key={i} className="rounded-xl border border-tea-border bg-tea-surface/40 p-3">
+                  <span className="text-ui-10 text-tea-text-dim uppercase tracking-widest">{block.type}</span>
+                </div>
+              );
+          }
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
@@ -285,6 +398,10 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Paste panel
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
+  const [pasteWarnings, setPasteWarnings] = useState<string[]>([]);
+
+  // Right panel tab
+  const [rightTab, setRightTab] = useState<'metadata' | 'preview'>('metadata');
 
   // Add block dropdown
   const [addBlockOpen, setAddBlockOpen] = useState(false);
@@ -415,13 +532,20 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Smart paste
   const handleParse = () => {
     if (!pasteText.trim()) return;
-    const { blocks: newBlocks, title: t, subtitle: s, author: a } = parsePasteFormat(pasteText);
+    const { blocks: newBlocks, title: t, subtitle: s, author: a, warnings } = parsePasteFormat(pasteText);
+    setPasteWarnings(warnings);
+
+    if (newBlocks.length === 0 && !t && !s && !a) {
+      // Nothing usable parsed — keep paste panel open so operator can fix the input
+      return;
+    }
+
     setBlocks(newBlocks);
     if (t) setTitle(t);
     if (s) setSubtitle(s);
     if (a) setAuthor(a);
     setPasteText('');
-    setPasteOpen(false);
+    if (warnings.length === 0) setPasteOpen(false);
     showToast(`${newBlocks.length} block${newBlocks.length !== 1 ? 's' : ''} created from paste.`, 'success');
     scheduleAutoSave();
   };
@@ -571,153 +695,198 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           </div>
         </div>
 
-        {/* Right panel — Metadata + Smart Paste (45%) */}
-        <div className="hidden lg:flex flex-col w-[45%] max-w-sm border-l border-tea-border overflow-y-auto">
-          <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+        {/* Right panel — Metadata / Preview tabs (45%) */}
+        <div className="hidden lg:flex flex-col w-[45%] max-w-sm border-l border-tea-border overflow-hidden">
 
-            {/* ── Metadata ── */}
-            <section>
-              <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
-              <div className="space-y-4">
-                <Field label="Subtitle">
-                  <input
-                    type="text"
-                    value={subtitle}
-                    onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }}
-                    placeholder="Short subtitle…"
-                    className={inputClass}
-                  />
-                </Field>
-
-                <Field label="Author">
-                  <input
-                    type="text"
-                    value={author}
-                    onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }}
-                    placeholder="Author name or ID…"
-                    className={inputClass}
-                  />
-                </Field>
-
-                <Field label="Category">
-                  <div className="relative">
-                    <select
-                      value={category}
-                      onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }}
-                      className={selectClass}
-                    >
-                      {CATEGORIES.map(c => (
-                        <option key={c} value={c} className="bg-tea-surface text-tea-text">
-                          {c || '— Select category —'}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-                  </div>
-                </Field>
-
-                <Field label="Tags (comma-separated)">
-                  <input
-                    type="text"
-                    value={tagsInput}
-                    onChange={e => { setTagsInput(e.target.value); scheduleAutoSave(); }}
-                    placeholder="oolong, taiwan, high mountain"
-                    className={inputClass}
-                  />
-                  {tagsInput.trim() && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {tagsInput.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
-                        <span key={tag} className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-elevated text-tea-text-sec">{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                </Field>
-
-                <Field label="Cover image URL">
-                  <input
-                    type="url"
-                    value={coverImageUrl}
-                    onChange={e => { setCoverImageUrl(e.target.value); scheduleAutoSave(); }}
-                    placeholder="https://…"
-                    className={inputClass}
-                  />
-                  {coverImageUrl && (
-                    <img
-                      src={coverImageUrl}
-                      alt="Cover preview"
-                      className="mt-2 w-full h-28 object-cover rounded-md border border-tea-border"
-                      onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  )}
-                </Field>
-
-                <Field label="Layout template">
-                  <div className="relative">
-                    <select
-                      value={layoutTemplate}
-                      onChange={e => { setLayoutTemplate(e.target.value); scheduleAutoSave(); }}
-                      className={selectClass}
-                    >
-                      {LAYOUT_TEMPLATES.map(t => (
-                        <option key={t.value} value={t.value} className="bg-tea-surface text-tea-text">{t.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-                  </div>
-                </Field>
-              </div>
-            </section>
-
-            {/* ── Smart Paste ── */}
-            <section>
-              <button
-                onClick={() => setPasteOpen(v => !v)}
-                className="flex items-center gap-2 w-full text-left"
-              >
-                <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
-                {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
-              </button>
-
-              <AnimatePresence initial={false}>
-                {pasteOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-3 space-y-3">
-                      <p className="text-ui-10 text-tea-text-dim leading-relaxed">
-                        Structure with AI first, then paste here. Use the block format:
-                        <code className="ml-1 px-1 bg-tea-elevated rounded text-tea-text-sec">INTRO</code>,{' '}
-                        <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">SECTION:</code>,{' '}
-                        <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">QUOTE:</code> separated by{' '}
-                        <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">---</code>
-                      </p>
-                      <textarea
-                        value={pasteText}
-                        onChange={e => setPasteText(e.target.value)}
-                        placeholder={`TITLE: My Article\n---\nINTRO\nAn opening paragraph…\n---\nSECTION: First heading\nBody text here.\n---\nQUOTE: A memorable line\n---`}
-                        className={`${textareaClass} min-h-[160px] text-xs font-mono`}
-                        rows={10}
-                      />
-                      <button
-                        onClick={handleParse}
-                        disabled={!pasteText.trim()}
-                        className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-                      >
-                        Parse into blocks
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </section>
-
+          {/* Tab bar */}
+          <div className="flex border-b border-tea-border shrink-0">
+            <button
+              onClick={() => setRightTab('metadata')}
+              className={`px-4 py-2.5 text-ui-11 uppercase tracking-[0.15em] font-medium transition-colors ${
+                rightTab === 'metadata'
+                  ? 'text-tea-text border-b-2 border-tea-gold -mb-px'
+                  : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              Metadata
+            </button>
+            <button
+              onClick={() => setRightTab('preview')}
+              className={`px-4 py-2.5 text-ui-11 uppercase tracking-[0.15em] font-medium transition-colors ${
+                rightTab === 'preview'
+                  ? 'text-tea-text border-b-2 border-tea-gold -mb-px'
+                  : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              Preview
+            </button>
           </div>
 
-          {/* Mobile right panel — shown below left panel on mobile via media query isn't needed here since we hide lg:flex,
-              but the metadata is accessible via scroll on the mobile layout below */}
+          {/* Metadata tab */}
+          {rightTab === 'metadata' && (
+            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+
+              {/* ── Metadata ── */}
+              <section>
+                <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium mb-3">Metadata</h3>
+                <div className="space-y-4">
+                  <Field label="Subtitle">
+                    <input
+                      type="text"
+                      value={subtitle}
+                      onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }}
+                      placeholder="Short subtitle…"
+                      className={inputClass}
+                    />
+                  </Field>
+
+                  <Field label="Author">
+                    <input
+                      type="text"
+                      value={author}
+                      onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }}
+                      placeholder="Author name or ID…"
+                      className={inputClass}
+                    />
+                  </Field>
+
+                  <Field label="Category">
+                    <div className="relative">
+                      <select
+                        value={category}
+                        onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }}
+                        className={selectClass}
+                      >
+                        {CATEGORIES.map(c => (
+                          <option key={c} value={c} className="bg-tea-surface text-tea-text">
+                            {c || '— Select category —'}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                    </div>
+                  </Field>
+
+                  <Field label="Tags (comma-separated)">
+                    <input
+                      type="text"
+                      value={tagsInput}
+                      onChange={e => { setTagsInput(e.target.value); scheduleAutoSave(); }}
+                      placeholder="oolong, taiwan, high mountain"
+                      className={inputClass}
+                    />
+                    {tagsInput.trim() && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {tagsInput.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
+                          <span key={tag} className="text-ui-10 px-2 py-0.5 rounded-full bg-tea-elevated text-tea-text-sec">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </Field>
+
+                  <Field label="Cover image URL">
+                    <input
+                      type="url"
+                      value={coverImageUrl}
+                      onChange={e => { setCoverImageUrl(e.target.value); scheduleAutoSave(); }}
+                      placeholder="https://…"
+                      className={inputClass}
+                    />
+                    {coverImageUrl && (
+                      <img
+                        src={coverImageUrl}
+                        alt="Cover preview"
+                        className="mt-2 w-full h-28 object-cover rounded-md border border-tea-border"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                  </Field>
+
+                  <Field label="Layout template">
+                    <div className="relative">
+                      <select
+                        value={layoutTemplate}
+                        onChange={e => { setLayoutTemplate(e.target.value); scheduleAutoSave(); }}
+                        className={selectClass}
+                      >
+                        {LAYOUT_TEMPLATES.map(t => (
+                          <option key={t.value} value={t.value} className="bg-tea-surface text-tea-text">{t.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+                    </div>
+                  </Field>
+                </div>
+              </section>
+
+              {/* ── Smart Paste ── */}
+              <section>
+                <button
+                  onClick={() => setPasteOpen(v => !v)}
+                  className="flex items-center gap-2 w-full text-left"
+                >
+                  <h3 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-medium flex-1">Paste from Claude</h3>
+                  {pasteOpen ? <ChevronUp size={13} className="text-tea-text-dim" /> : <ChevronDown size={13} className="text-tea-text-dim" />}
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {pasteOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-3 space-y-3">
+                        <p className="text-ui-10 text-tea-text-dim leading-relaxed">
+                          Structure with AI first, then paste here. Use the block format:
+                          <code className="ml-1 px-1 bg-tea-elevated rounded text-tea-text-sec">INTRO</code>,{' '}
+                          <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">SECTION:</code>,{' '}
+                          <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">QUOTE:</code> separated by{' '}
+                          <code className="px-1 bg-tea-elevated rounded text-tea-text-sec">---</code>
+                        </p>
+                        <textarea
+                          value={pasteText}
+                          onChange={e => { setPasteText(e.target.value); setPasteWarnings([]); }}
+                          placeholder={`TITLE: My Article\n---\nINTRO\nAn opening paragraph…\n---\nSECTION: First heading\nBody text here.\n---\nQUOTE: A memorable line\n---`}
+                          className={`${textareaClass} min-h-[160px] text-xs font-mono`}
+                          rows={10}
+                        />
+                        {pasteWarnings.length > 0 && (
+                          <div className="rounded-md border border-tea-gold/30 bg-tea-gold/8 p-3 space-y-1.5">
+                            {pasteWarnings.map((w, i) => (
+                              <p key={i} className="text-ui-11 text-tea-text leading-relaxed">{w}</p>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          onClick={handleParse}
+                          disabled={!pasteText.trim()}
+                          className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                        >
+                          Parse into blocks
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </section>
+
+            </div>
+          )}
+
+          {/* Preview tab */}
+          {rightTab === 'preview' && (
+            <div className="flex-1 overflow-y-auto">
+              <PreviewPane
+                title={title}
+                subtitle={subtitle}
+                author={author}
+                blocks={blocks}
+              />
+            </div>
+          )}
+
         </div>
 
       </div>
@@ -758,10 +927,32 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>
           <div className="pb-4 space-y-3">
-            <textarea value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder="Paste structured content here…" className={`${textareaClass} min-h-[120px] text-xs font-mono`} rows={6} />
+            <textarea
+              value={pasteText}
+              onChange={e => { setPasteText(e.target.value); setPasteWarnings([]); }}
+              placeholder="Paste structured content here…"
+              className={`${textareaClass} min-h-[120px] text-xs font-mono`}
+              rows={6}
+            />
+            {pasteWarnings.length > 0 && (
+              <div className="rounded-md border border-tea-gold/30 bg-tea-gold/8 p-3 space-y-1.5">
+                {pasteWarnings.map((w, i) => (
+                  <p key={i} className="text-ui-11 text-tea-text leading-relaxed">{w}</p>
+                ))}
+              </div>
+            )}
             <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40">
               Parse into blocks
             </button>
+          </div>
+        </details>
+        <details className="px-4 border-t border-tea-border">
+          <summary className="py-3 text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec font-medium cursor-pointer list-none flex items-center justify-between">
+            Preview
+            <ChevronDown size={13} className="text-tea-text-dim" />
+          </summary>
+          <div className="pb-4">
+            <PreviewPane title={title} subtitle={subtitle} author={author} blocks={blocks} />
           </div>
         </details>
       </div>
