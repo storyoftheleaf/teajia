@@ -40,7 +40,7 @@ const ShareCardPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );
@@ -123,7 +123,7 @@ const ShareCardPage: React.FC = () => {
         </div>
 
         {/* Card */}
-        <div className="bg-tea-surface rounded-lg overflow-hidden border border-tea-border mb-6">
+        <div className="bg-tea-surface rounded-xl overflow-hidden border border-tea-border mb-6">
           {photo && (
             <img
               src={photo}
@@ -160,7 +160,7 @@ const ShareCardPage: React.FC = () => {
               type="button"
               disabled={claimMutation.isPending}
               onClick={() => claimMutation.mutate()}
-              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
               {claimMutation.isPending ? (
                 <span className="inline-block w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
@@ -181,7 +181,7 @@ const ShareCardPage: React.FC = () => {
             </p>
             <Link
               to={`/signin?returnTo=${returnPath}`}
-              className="block w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-sm hover:bg-tea-gold/90 transition-all"
+              className="block w-full py-4 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold rounded-md hover:bg-tea-gold/90 transition-all"
             >
               Sign in to save
             </Link>

@@ -311,8 +311,6 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               onTaste={onTaste}
               onEditProductTasting={onEditProductTasting}
               isAdmin={isAdmin}
-              items={items}
-              onItemSelect={onItemChange}
             />
             {/* Close button — top-left of the card per CLAUDE.md panel header rule */}
             <button

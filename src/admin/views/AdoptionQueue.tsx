@@ -251,7 +251,7 @@ const AdoptionRow: React.FC<AdoptionRowProps> = ({ entry, onChange }) => {
             onChange={e => setDeclineNote(e.target.value.slice(0, 1000))}
             placeholder={`Optional note for ${entry.originator_account_name}`}
             rows={2}
-            className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-sm text-ui-14 text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
+            className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-md text-ui-14 text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
             maxLength={1000}
           />
           <div className="flex items-center gap-5 text-ui-13">

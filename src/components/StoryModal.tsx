@@ -24,7 +24,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
 
       {/* Modal Content */}
       <div 
-        className="relative w-full max-w-5xl bg-tea-bg overflow-hidden shadow-2xl rounded-sm flex flex-col md:flex-row max-h-[90vh]"
+        className="relative w-full max-w-5xl bg-tea-bg overflow-hidden shadow-2xl rounded-md flex flex-col md:flex-row max-h-[90vh]"
         onClick={handleContentClick}
       >
         {/* Close Button */}

@@ -120,7 +120,7 @@ const ReadingStreak: React.FC<ReadingStreakProps> = ({ storyId }) => {
           <div
             key={day.date}
             title={`${day.date}: ${day.pages} pages`}
-            className={`w-3 h-3 rounded-sm bg-tea-gold ${getIntensity(day.pages)}`}
+            className={`w-3 h-3 rounded-md bg-tea-gold ${getIntensity(day.pages)}`}
           />
         ))}
       </div>

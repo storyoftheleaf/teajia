@@ -88,7 +88,7 @@ const StateZoneInner: React.FC<StateZoneProps> = ({ flow, value, onChange }) => 
                       else if (lastSelectedFeeling === term.id) setLastSelectedFeeling(null);
                     }}
                     aria-pressed={isSelected}
-                    className={`flex items-center gap-2 w-full text-left px-2.5 py-2 min-h-[40px] rounded-lg transition-all duration-150 ${
+                    className={`flex items-center gap-2 w-full text-left px-2.5 py-2 min-h-[40px] rounded-xl transition-all duration-150 ${
                       isSelected
                         ? 'bg-tea-gold/12 text-tea-gold'
                         : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'

@@ -146,7 +146,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
               href={playlistUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-sm text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+              className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
             >
               <Music className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
               <span className="text-sm">Listen to the session playlist</span>

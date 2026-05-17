@@ -113,7 +113,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleWant}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
+          className={`flex-1 text-sm font-semibold rounded-xl text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             status === 'want'
               ? 'bg-tea-gold/20 text-tea-gold'
               : 'bg-tea-surface/80 text-tea-text-sec active:bg-tea-elevated hover:bg-tea-surface'
@@ -125,7 +125,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
         <button
           type="button"
           onClick={handleBuyClick}
-          className={`flex-1 text-sm font-semibold rounded-lg text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
+          className={`flex-1 text-sm font-semibold rounded-xl text-center py-3.5 flex items-center justify-center gap-1.5 transition-all ${
             isInLedger
               ? 'bg-tea-gold/20 text-tea-gold'
               : status === 'in_stock'
@@ -267,14 +267,14 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowQtyPicker(false)}
-                  className="flex-1 py-2.5 rounded-lg bg-tea-surface text-xs font-semibold uppercase tracking-[0.08em] text-tea-text-sec active:text-tea-text transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-tea-surface text-xs font-semibold uppercase tracking-[0.08em] text-tea-text-sec active:text-tea-text transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleConfirmAdd}
-                  className="flex-1 py-2 rounded-lg bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="flex-1 py-2 rounded-xl bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>
@@ -288,7 +288,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-lg bg-tea-gold/15 text-tea-gold text-sm font-medium"
+            className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tea-gold/15 text-tea-gold text-sm font-medium"
           >
             <Check size={16} />
             Added to Ledger

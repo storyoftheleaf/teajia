@@ -92,7 +92,7 @@ const TimelineVisual: React.FC<TimelineVisualProps> = ({ events, title }) => {
               </div>
 
               {/* Event card */}
-              <div className="mt-3 mr-4 bg-tea-surface rounded-lg overflow-hidden flex-1">
+              <div className="mt-3 mr-4 bg-tea-surface rounded-xl overflow-hidden flex-1">
                 {event.imageUrl && (
                   <img
                     src={event.imageUrl}

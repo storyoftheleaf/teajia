@@ -10,6 +10,7 @@ import { Customer, CustomerTag, ContactType, ContactChannel, ContactEntry, Conta
 import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
+import { ConfirmModal } from './ConfirmModal';
 
 /** Canonical status pill — see DesignSystemShowcase §8 */
 const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
@@ -286,7 +287,7 @@ const CustomerModal = ({
         value={form[name] as string}
         onChange={e => setForm(prev => ({ ...prev, [name]: e.target.value }))}
         placeholder={placeholder}
-        className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+        className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
       />
     </div>
   );
@@ -304,7 +305,7 @@ const CustomerModal = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Type toggle */}
-          <div className="flex rounded-lg overflow-hidden border border-tea-border">
+          <div className="flex rounded-xl overflow-hidden border border-tea-border">
             {(['customer', 'supplier'] as ContactType[]).map(t => (
               <button
                 key={t}
@@ -351,7 +352,7 @@ const CustomerModal = ({
               {form.contacts.map((c, i) => {
                 const { label, Icon } = CHANNEL_CONFIG[c.channel] ?? CHANNEL_CONFIG.other;
                 return (
-                  <div key={i} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-lg px-3 py-2">
+                  <div key={i} className="flex items-center gap-2 bg-tea-surface border border-tea-border rounded-xl px-3 py-2">
                     <Icon size={13} className="text-tea-text-sec shrink-0" />
                     <span className="text-ui-10 uppercase tracking-wider text-tea-text-dim w-16 shrink-0">{label}</span>
                     <span className="text-sm text-tea-text flex-1 min-w-0 truncate">{c.handle}</span>
@@ -373,7 +374,7 @@ const CustomerModal = ({
             <select
               value={newChannel}
               onChange={e => setNewChannel(e.target.value as ContactChannel)}
-              className="bg-tea-bg border border-tea-border rounded-lg px-2 py-2 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors shrink-0"
+              className="bg-tea-bg border border-tea-border rounded-xl px-2 py-2 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors shrink-0"
             >
               {(Object.keys(CHANNEL_CONFIG) as ContactChannel[]).map(ch => (
                 <option key={ch} value={ch}>{CHANNEL_CONFIG[ch].label}</option>
@@ -392,7 +393,7 @@ const CustomerModal = ({
                 }
               }}
               placeholder="Handle or number…"
-              className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+              className="flex-1 bg-tea-bg border border-tea-border rounded-xl px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
             />
             <button
               type="button"
@@ -402,7 +403,7 @@ const CustomerModal = ({
                 setForm(prev => ({ ...prev, contacts: [...prev.contacts, { channel: newChannel, handle: newHandle.trim() }] }));
                 setNewHandle('');
               }}
-              className="px-3 py-2 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40 shrink-0"
+              className="px-3 py-2 text-xs bg-tea-elevated text-tea-text-sec rounded-xl hover:text-tea-text transition-colors disabled:opacity-40 shrink-0"
             >
               Add
             </button>
@@ -478,13 +479,13 @@ const CustomerModal = ({
                       onChange={e => setCustomTagInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); } }}
                       placeholder="Add custom tag…"
-                      className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors placeholder-tea-text-dim"
+                      className="flex-1 bg-tea-bg border border-tea-border rounded-xl px-3 py-1.5 text-xs text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors placeholder-tea-text-dim"
                     />
                     <button
                       type="button"
                       onClick={addCustomTag}
                       disabled={!customTagInput.trim()}
-                      className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40"
+                      className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-xl hover:text-tea-text transition-colors disabled:opacity-40"
                     >
                       Add
                     </button>
@@ -496,7 +497,7 @@ const CustomerModal = ({
                   <select
                     value={form.preferred_currency}
                     onChange={e => setForm(prev => ({ ...prev, preferred_currency: e.target.value }))}
-                    className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+                    className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
                   >
                     {['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD'].map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -511,7 +512,7 @@ const CustomerModal = ({
                     onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="Private notes about this customer..."
                     rows={3}
-                    className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors resize-none"
+                    className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2 text-base md:text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors resize-none"
                   />
                 </div>
               </div>
@@ -764,15 +765,15 @@ export const CustomerDetail = ({
                         const avgCostPerGram = costsPerGram.length > 0 ? costsPerGram.reduce((a, b) => a + b, 0) / costsPerGram.length : null;
                         return (
                           <div className="grid grid-cols-3 gap-3 mb-4">
-                            <div className="bg-tea-bg rounded-lg p-3 text-center">
+                            <div className="bg-tea-bg rounded-xl p-3 text-center">
                               <div className="text-lg font-serif text-tea-gold">{suppliedProducts.length}</div>
                               <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Products</div>
                             </div>
-                            <div className="bg-tea-bg rounded-lg p-3 text-center">
+                            <div className="bg-tea-bg rounded-xl p-3 text-center">
                               <div className="text-sm font-serif text-tea-gold">{formatUSD(totalValue)}</div>
                               <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Total Value</div>
                             </div>
-                            <div className="bg-tea-bg rounded-lg p-3 text-center">
+                            <div className="bg-tea-bg rounded-xl p-3 text-center">
                               <div className="text-sm font-serif text-tea-text">{avgCostPerGram != null ? `$${avgCostPerGram.toFixed(3)}/g` : '—'}</div>
                               <div className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-sec mt-0.5">Avg Cost/g</div>
                             </div>
@@ -785,9 +786,9 @@ export const CustomerDetail = ({
                           {suppliedProducts.map((p) => (
                             <div key={p.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                               {p.image_url ? (
-                                <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" loading="lazy" />
+                                <img src={p.image_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" loading="lazy" />
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-tea-bg flex items-center justify-center flex-shrink-0">
                                   <Leaf size={14} className="text-tea-text-sec" />
                                 </div>
                               )}
@@ -845,7 +846,7 @@ export const CustomerDetail = ({
                                 placeholder="Search teas..."
                                 value={linkSearch}
                                 onChange={e => setLinkSearch(e.target.value)}
-                                className="w-full input-warm rounded-lg px-3 py-1.5 text-base md:text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                                className="w-full input-warm rounded-xl px-3 py-1.5 text-base md:text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
                                 autoFocus
                               />
                             </div>
@@ -1122,9 +1123,9 @@ export const CustomerDetail = ({
                         {teas.map((tea) => (
                           <div key={tea.id} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
                             {tea.image_url ? (
-                              <img src={tea.image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" loading="lazy" />
+                              <img src={tea.image_url} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" loading="lazy" />
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-tea-bg flex items-center justify-center flex-shrink-0">
+                              <div className="w-10 h-10 rounded-xl bg-tea-bg flex items-center justify-center flex-shrink-0">
                                 <Leaf size={14} className="text-tea-text-sec" />
                               </div>
                             )}
@@ -1156,7 +1157,7 @@ export const CustomerDetail = ({
                         <p className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim mt-2">Tasted at Events</p>
                         {events.filter((e) => e.attended === 1).map((evt) => (
                           <div key={evt.id + '-tasting'} className="flex items-center gap-3 py-2 border-b border-tea-border last:border-0">
-                            <div className="w-10 h-10 rounded-lg bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-xl bg-tea-gold-lt flex items-center justify-center flex-shrink-0">
                               <Calendar size={14} className="text-tea-gold" />
                             </div>
                             <button
@@ -1318,7 +1319,7 @@ export const CustomerDetail = ({
                   value={linkAccountInput}
                   onChange={e => setLinkAccountInput(e.target.value)}
                   placeholder="User ID or email…"
-                  className="flex-1 bg-tea-bg border border-tea-border rounded-lg px-3 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
+                  className="flex-1 bg-tea-bg border border-tea-border rounded-xl px-3 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec transition-colors"
                   onKeyDown={async e => {
                     if (e.key === 'Enter' && linkAccountInput.trim()) {
                       setLinkingAccount(true);
@@ -1351,7 +1352,7 @@ export const CustomerDetail = ({
                       onClose();
                     } finally { setLinkingAccount(false); }
                   }}
-                  className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-lg hover:text-tea-text transition-colors disabled:opacity-40"
+                  className="px-3 py-1.5 text-xs bg-tea-elevated text-tea-text-sec rounded-xl hover:text-tea-text transition-colors disabled:opacity-40"
                 >
                   {linkingAccount ? <Loader2 size={12} className="animate-spin" /> : 'Save'}
                 </button>
@@ -1392,6 +1393,8 @@ export const CustomersView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [pendingDeleteCustomer, setPendingDeleteCustomer] = useState<Customer | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Auto-open a specific customer when navigated from another view (e.g. event attendee)
   useEffect(() => {
@@ -1462,20 +1465,27 @@ export const CustomersView = () => {
       setEditingCustomer(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not save contact: ' + err.message, 'error');
     }
   };
 
-  const handleDelete = async (customer: Customer) => {
-    const label = customer.type === 'supplier' ? 'supplier' : 'customer';
-    if (!confirm(`Delete ${label} "${customer.name}"?\n\nTheir invoices will be preserved but unlinked.`)) return;
+  const handleDelete = (customer: Customer) => {
+    setPendingDeleteCustomer(customer);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteCustomer) return;
+    setDeleteLoading(true);
     try {
-      await api.customers.delete(customer.id);
+      await api.customers.delete(pendingDeleteCustomer.id);
       showToast('Contact deleted', 'success');
       setViewingCustomer(null);
+      setPendingDeleteCustomer(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not delete contact: ' + err.message, 'error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1857,7 +1867,7 @@ export const CustomersView = () => {
             <div className="relative hidden md:block">
               <button
                 onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                 title="Show/Hide Columns"
               >
                 <Columns size={14} />
@@ -1892,7 +1902,7 @@ export const CustomersView = () => {
             <div className="relative hidden md:block">
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -2073,6 +2083,17 @@ export const CustomersView = () => {
           filterAttendedEvents={filterAttendedEvents}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!pendingDeleteCustomer}
+        onClose={() => setPendingDeleteCustomer(null)}
+        onConfirm={handleConfirmDelete}
+        title={`Delete ${pendingDeleteCustomer?.type === 'supplier' ? 'supplier' : 'customer'}?`}
+        description={`"${pendingDeleteCustomer?.name}" will be removed. Their invoices will be preserved but unlinked.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteLoading}
+      />
     </div>
   );
 };

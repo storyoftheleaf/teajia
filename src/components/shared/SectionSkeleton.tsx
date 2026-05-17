@@ -61,7 +61,7 @@ export const SectionSkeleton: React.FC<SectionSkeletonProps> = ({ variant = 'gri
         exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.98 }}
         transition={{ duration: 0.25 }}
       >
-        <ShimmerBar className="w-full aspect-[4/3] md:aspect-video mb-8 rounded-lg" />
+        <ShimmerBar className="w-full aspect-[4/3] md:aspect-video mb-8 rounded-xl" />
         <ShimmerBar className="h-8 w-64 mb-4" />
         <ShimmerBar className="h-4 w-48 mb-8" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -85,7 +85,7 @@ export const SectionSkeleton: React.FC<SectionSkeletonProps> = ({ variant = 'gri
         <ShimmerBar className="h-10 w-full mb-4" />
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 py-3 border-b border-tea-border">
-            <ShimmerBar className="w-12 h-12 rounded-sm flex-shrink-0" />
+            <ShimmerBar className="w-12 h-12 rounded-md flex-shrink-0" />
             <div className="flex-1 flex flex-col gap-1.5">
               <ShimmerBar className="h-4 w-3/5" />
               <ShimmerBar className="h-3 w-2/5" />

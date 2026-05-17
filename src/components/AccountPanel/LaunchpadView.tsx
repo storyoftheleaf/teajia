@@ -67,7 +67,7 @@ function formatEventDay(iso: string): string {
 const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClick }) => (
   <button
     onClick={onClick}
-    className={`group relative w-full aspect-[5/4] rounded-2xl flex flex-col justify-between text-left p-5 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 ${
+    className={`group relative w-full aspect-[5/4] rounded-xl flex flex-col justify-between text-left p-5 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 ${
       accent
         ? 'bg-tea-surface border border-tea-gold/40 hover:border-tea-gold/60'
         : 'bg-tea-surface border border-tea-border hover:border-tea-gold/30'

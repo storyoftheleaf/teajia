@@ -39,7 +39,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
     <div className="group relative pt-5 pb-5 first:pt-0 border-b border-tea-border last:border-0">
       <div className="flex gap-4">
         {/* Thumbnail — 48px, monogram fallback (varies per item) */}
-        <div className="w-12 h-12 bg-tea-elevated flex items-center justify-center overflow-hidden rounded-sm shrink-0">
+        <div className="w-12 h-12 bg-tea-elevated flex items-center justify-center overflow-hidden rounded-md shrink-0">
           {item.image ? (
             <img src={item.image} className="w-full h-full object-cover" alt={item.name} loading="eager" />
           ) : (
@@ -65,7 +65,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
           <div className={`flex items-center ${showVariant ? 'mt-3' : 'mt-2'}`}>
             <button
               onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantityGrams - step))}
-              className="tap-target -ml-2 rounded-sm text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
+              className="tap-target -ml-2 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
               aria-label="Decrease quantity"
             >−</button>
             <div className="flex items-baseline">
@@ -90,7 +90,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
             </div>
             <button
               onClick={() => onUpdateQuantity(item.id, Math.min(9999, item.quantityGrams + step))}
-              className="tap-target rounded-sm text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
+              className="tap-target rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-base leading-none"
               aria-label="Increase quantity"
             >+</button>
 
@@ -117,7 +117,7 @@ export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQ
       {/* Remove — ghost icon, top-right, fades in on hover/focus only; always visible on touch */}
       <button
         onClick={() => onRemove(item.id)}
-        className="absolute top-4 right-0 w-8 h-8 flex items-center justify-center rounded-sm text-tea-text-sec hover:text-tea-error transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100"
+        className="absolute top-4 right-0 w-8 h-8 flex items-center justify-center rounded-md text-tea-text-sec hover:text-tea-error transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100"
         aria-label={`Remove ${item.name} from cart`}
       >
         <Icons.Close className="w-3.5 h-3.5" />

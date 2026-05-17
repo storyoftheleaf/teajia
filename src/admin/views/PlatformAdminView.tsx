@@ -669,7 +669,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
+        <div className="px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-2">
           <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
           <p className="text-ui-12 text-red-300 flex-1">{error}</p>
           <button type="button" onClick={() => setError(null)} className="text-red-300 hover:text-red-200"><X size={12} /></button>
@@ -719,7 +719,7 @@ const NewAccountPanel: React.FC<{ onCreated: () => void }> = ({ onCreated }) => 
       </label>
 
       <button type="submit" disabled={busy || !form.name || !form.slug || !form.invoice_prefix}
-        className="w-full py-3 bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-lg disabled:opacity-40 flex items-center justify-center gap-2 hover:bg-tea-gold-lt transition-colors">
+        className="w-full py-3 bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] rounded-xl disabled:opacity-40 flex items-center justify-center gap-2 hover:bg-tea-gold-lt transition-colors">
         {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
         Create Account
       </button>

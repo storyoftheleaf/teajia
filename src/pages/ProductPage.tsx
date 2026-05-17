@@ -341,7 +341,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {item.additionalImages && item.additionalImages.length > 0 && (
             <div className="flex gap-2 mt-3">
               {item.additionalImages.slice(0, 4).map((img, i) => (
-                <div key={i} className="w-16 h-16 rounded-sm overflow-hidden bg-tea-surface border border-tea-border flex-shrink-0">
+                <div key={i} className="w-16 h-16 rounded-md overflow-hidden bg-tea-surface border border-tea-border flex-shrink-0">
                   <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
                 </div>
               ))}
@@ -369,16 +369,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
 
           {/* Tea type · origin · year — filterable metadata pills */}
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+            <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-md">
               {item.type}
             </span>
             {item.origin && (
-              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-md">
                 {item.origin}
               </span>
             )}
             {item.year && (
-              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-sm">
+              <span className="font-sans text-ui-10 uppercase tracking-widest text-tea-text-sec bg-tea-accent-sub px-2.5 py-1 rounded-md">
                 {item.year}
               </span>
             )}
@@ -417,7 +417,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                 {(item.mood.includes(',') ? item.mood.split(',').map(t => t.trim()).filter(Boolean) : [item.mood]).map((tag, i) => (
                   <span
                     key={i}
-                    className="font-serif text-xs italic px-2.5 py-1 rounded-sm bg-tea-accent-sub text-tea-text-sec tracking-wide"
+                    className="font-serif text-xs italic px-2.5 py-1 rounded-md bg-tea-accent-sub text-tea-text-sec tracking-wide"
                   >
                     {toTitleCase(tag)}
                   </span>
@@ -530,7 +530,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   key={p}
                   onClick={() => setGrams(p)}
                   aria-pressed={grams === p}
-                  className={`flex-1 py-1.5 text-xs font-mono rounded-sm border transition-all duration-150 ${
+                  className={`flex-1 py-1.5 text-xs font-mono rounded-md border transition-all duration-150 ${
                     grams === p
                       ? 'bg-tea-accent-sub text-tea-gold border-tea-gold'
                       : 'bg-transparent text-tea-text-sec border-tea-border hover:border-tea-gold/30'
@@ -568,7 +568,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           <div className="flex gap-3">
             <button
               onClick={() => toggleFavoriteTea(item.id)}
-              className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-sm transition-all ${
+              className={`flex items-center justify-center gap-2 px-4 py-3 border rounded-md transition-all ${
                 isFavorited
                   ? 'border-tea-gold text-tea-gold'
                   : 'border-tea-border text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text-sec'
@@ -583,7 +583,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             <button
               onClick={handleAdd}
               disabled={isSoldOut}
-              className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-sm text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] ${
+              className={`flex-1 flex items-center justify-center gap-3 py-3 rounded-md text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] ${
                 isSoldOut
                   ? 'bg-tea-accent-sub text-tea-text-sec border border-tea-border cursor-not-allowed opacity-60'
                   : added
@@ -620,7 +620,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   });
                   window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
                 }}
-                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 border border-tea-border bg-transparent text-tea-text-sec font-sans text-sm tracking-wide rounded-sm hover:border-tea-gold/40 hover:text-tea-text transition-colors duration-150 active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2.5 py-3 px-4 border border-tea-border bg-transparent text-tea-text-sec font-sans text-sm tracking-wide rounded-md hover:border-tea-gold/40 hover:text-tea-text transition-colors duration-150 active:scale-[0.98]"
               >
                 <MessageCircle className="w-4 h-4" strokeWidth={1.5} />
                 Order via WhatsApp
@@ -719,14 +719,14 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
             transform: stickyVisible ? 'translateY(0)' : 'translateY(calc(100% + 16px))',
           }}
         >
-          <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-lg p-3 flex items-center gap-3 shadow-lg">
+          <div className="pointer-events-auto bg-tea-bg/95 backdrop-blur-sm border border-tea-border rounded-xl p-3 flex items-center gap-3 shadow-lg">
             <div className="flex-1 min-w-0">
               <p className="font-serif text-sm text-tea-text truncate">{item.name}</p>
               <p className="font-mono text-xs text-tea-text-sec">{grams}g · {fmtShopPrice(total)}</p>
             </div>
             <button
               onClick={handleAdd}
-              className={`px-5 py-2.5 rounded-sm text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
+              className={`px-5 py-2.5 rounded-md text-xs uppercase tracking-[0.1em] font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
                 added
                   ? 'bg-tea-green text-tea-bg'
                   : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'

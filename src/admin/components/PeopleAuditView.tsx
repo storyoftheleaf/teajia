@@ -124,7 +124,7 @@ const PeopleAuditView: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => auditQuery.refetch()}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text text-sm transition-colors"
             >
               <RefreshCw size={14} />
               Refresh
@@ -132,7 +132,7 @@ const PeopleAuditView: React.FC = () => {
             <button
               onClick={() => applyMutation.mutate()}
               disabled={suggestions.length === 0 || applyMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-tea-gold text-tea-bg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-tea-gold text-tea-bg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {applyMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
               Apply suggestions
@@ -141,15 +141,15 @@ const PeopleAuditView: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
             <p className="text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec">Missing meaning</p>
             <p className="text-3xl font-serif text-tea-text mt-2">{relationshipSuggestions.length}</p>
           </div>
-          <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
             <p className="text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec">Contributor links</p>
             <p className="text-3xl font-serif text-tea-text mt-2">{contributorLinkSuggestions.length}</p>
           </div>
-          <div className="bg-tea-surface border border-tea-border rounded-lg p-4">
+          <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
             <p className="text-ui-10 uppercase tracking-[0.14em] text-tea-text-sec">Contributors</p>
             <p className="text-3xl font-serif text-tea-text mt-2">{contributors.length}</p>
           </div>
@@ -218,7 +218,7 @@ const PeopleAuditView: React.FC = () => {
                       value={contributor.contact_customer_id ?? ''}
                       onChange={e => handleContributorContactChange(contributor.id, e.target.value)}
                       disabled={savingContributorId === contributor.id}
-                      className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50"
+                      className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50"
                     >
                       <option value="">No linked contact</option>
                       {customerOptions.map(customer => (

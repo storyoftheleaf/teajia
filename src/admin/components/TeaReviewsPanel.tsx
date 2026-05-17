@@ -164,7 +164,7 @@ export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
               type="button"
               onClick={handleSynthesize}
               disabled={synthesizing}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-tea-gold/10 text-tea-gold hover:bg-tea-gold/20 transition-colors disabled:opacity-50"
             >
               <Sparkles size={12} />
               {synthesizing ? 'Generating…' : 'Synthesize'}
@@ -173,7 +173,7 @@ export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
           <button
             type="button"
             onClick={() => setTastingOpen(true)}
-            className="text-xs px-3 py-1 rounded-lg bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
+            className="text-xs px-3 py-1 rounded-xl bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
           >
             + Add review
           </button>

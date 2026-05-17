@@ -240,7 +240,7 @@ const EventLanding: React.FC = () => {
         <div className="text-center max-w-xs">
           <div className="animate-pulse">
             <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-            <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+            <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
           </div>
           {loadingTooLong && (
             <p className="text-ui-12 text-tea-text-dim mt-8 leading-relaxed">

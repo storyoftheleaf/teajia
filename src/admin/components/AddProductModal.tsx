@@ -14,6 +14,7 @@ import { useCustomers } from '../hooks/useAdminData';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { TeaReviewsPanel } from './TeaReviewsPanel';
 import { StockLedgerPanel } from './StockLedgerPanel';
+import { ConfirmModal } from './ConfirmModal';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -61,6 +62,9 @@ const VendorPicker = ({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingVendor, setPendingVendor] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Get unique vendor names from customers tagged as vendor
   const vendors = useMemo(() => {
@@ -98,23 +102,22 @@ const VendorPicker = ({
 
   const isNew = query.trim() && !vendors.some(v => v.toLowerCase() === query.trim().toLowerCase());
 
-  // Auto-create vendor customer if new, or add vendor tag if existing
-  const handleSelectVendor = async (name: string) => {
-    onChange(name);
-    setOpen(false);
-    if (!name) return;
+  const createVendor = async (name: string) => {
+    try {
+      setIsCreating(true);
+      await api.customers.create({ name, tags: ['vendor'] });
+      refetchCustomers();
+      onChange(name);
+    } catch (err) {
+      console.error('Failed to create vendor customer:', err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
-    const existing = customers.find(
-      c => c.name.toLowerCase() === name.toLowerCase()
-    );
-    if (!existing) {
-      try {
-        await api.customers.create({ name, tags: ['vendor'] });
-        refetchCustomers();
-      } catch (err) {
-        console.error('Failed to create vendor customer:', err);
-      }
-    } else if (!existing.tags?.includes('vendor')) {
+  const addVendorTag = async (name: string) => {
+    const existing = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (existing && !existing.tags?.includes('vendor')) {
       try {
         await api.customers.update(existing.id, {
           tags: [...(existing.tags || []), 'vendor'],
@@ -123,6 +126,28 @@ const VendorPicker = ({
       } catch (err) {
         console.error('Failed to add vendor tag:', err);
       }
+    }
+  };
+
+  const handleSelectVendor = (name: string) => {
+    setOpen(false);
+    if (!name) return;
+
+    const existing = customers.find(c => c.name.toLowerCase() === name.toLowerCase());
+    if (!existing) {
+      setPendingVendor(name);
+      setConfirmOpen(true);
+    } else {
+      onChange(name);
+      addVendorTag(name);
+    }
+  };
+
+  const handleConfirmCreate = async () => {
+    if (pendingVendor) {
+      await createVendor(pendingVendor);
+      setConfirmOpen(false);
+      setPendingVendor(null);
     }
   };
 
@@ -151,7 +176,7 @@ const VendorPicker = ({
       />
 
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-popover top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-md shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-xl shadow-lg max-h-[min(192px,40vh)] overflow-y-auto">
           {isNew && query.trim() && (
             <button
               type="button"
@@ -180,9 +205,56 @@ const VendorPicker = ({
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => {
+          setConfirmOpen(false);
+          setPendingVendor(null);
+        }}
+        onConfirm={handleConfirmCreate}
+        title={`Create new vendor "${pendingVendor}"?`}
+        description="This will add a new vendor contact to your directory."
+        confirmLabel="Create vendor"
+        cancelLabel="Cancel"
+        isLoading={isCreating}
+      />
     </div>
   );
 };
+
+// ── Collapsible section used by the add-tea reorg (O-P0-1) ──
+const ExpanderSection: React.FC<{
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  hasContent: boolean;
+  children: React.ReactNode;
+}> = ({ title, open, onToggle, hasContent, children }) => (
+  <section className="border-t border-tea-border pt-4">
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex items-center gap-2 w-full text-left group"
+    >
+      <ChevronDown
+        size={14}
+        className={`text-tea-gold/70 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+      />
+      <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-gold transition-colors">
+        {title}
+      </span>
+      {!open && hasContent && (
+        <span
+          aria-label="has content"
+          className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-tea-gold/70"
+        />
+      )}
+    </button>
+    {open && <div className="mt-4 space-y-4">{children}</div>}
+  </section>
+);
 
 export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onSuccess, initialData, rates = [] }) => {
   const { showToast } = useToast();
@@ -192,11 +264,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const setDraftProduct = useAppStore(s => s.setDraftProduct);
-  const clearDraftProduct = useAppStore(s => s.clearDraftProduct);
+  const { setDraftProduct, memberships, activeAccountId } = useAppStore();
   const draftProduct = useAppStore(selectActiveDraftProduct);
-  const memberships = useAppStore(s => s.memberships);
-  const activeAccountId = useAppStore(s => s.activeAccountId);
   const isPlatformAccount = memberships.find(m => m.account_id === activeAccountId)?.is_platform_account ?? false;
 
   const [tastingData, setTastingData] = useState<TastingData>({});
@@ -291,7 +360,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   // #42 — Wrap onClose to clear draft on deliberate close
   const handleClose = () => {
-    if (!isEditMode) clearDraftProduct();
+    if (!isEditMode) setDraftProduct(null);
     onClose();
   };
 
@@ -351,6 +420,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       });
       setTastingData(initialData.tasting || {});
       setWisdomOpen(!!(initialData.lore || initialData.mood || initialData.experience || initialData.terroir || initialData.processingNotes || initialData.tasting));
+      setNamingOpen(!!(initialData.givenName || initialData.chineseName || initialData.form || initialData.year || initialData.originRegion || initialData.vendor || initialData.description));
+      setStockDetailsOpen(!!(initialData.lowStockThreshold || initialData.sessionReserveGrams || initialData.inTransit || initialData.recheckStock));
+      setLegacyNotesOpen(!!(initialData.tastingNotes && initialData.tastingNotes.length));
     } else if (isOpen && !initialData) {
       setFormData({
         type: 'Dark',
@@ -397,6 +469,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       });
       setTastingData({});
       setWisdomOpen(false);
+      setNamingOpen(false);
+      setStockDetailsOpen(false);
+      setLegacyNotesOpen(false);
     }
     if (!isOpen) {
       setNameError(false);
@@ -459,6 +534,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   };
 
   const [wisdomOpen, setWisdomOpen] = useState(false);
+  // O-P0-1: collapsible sections beneath the essentials block
+  const [namingOpen, setNamingOpen] = useState(false);
+  const [stockDetailsOpen, setStockDetailsOpen] = useState(false);
+  const [legacyNotesOpen, setLegacyNotesOpen] = useState(false);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const [nameError, setNameError] = useState(false);
   const [autoFillSource, setAutoFillSource] = useState<string | null>(null);
@@ -598,7 +677,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             }
         }
 
-        clearDraftProduct();
+        setDraftProduct(null);
         onSuccess();
         onClose();
     } catch (error: any) {
@@ -612,10 +691,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   // Reusable input styles — warm tones only, zero grey
-  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors placeholder-tea-text-sec";
-  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors cursor-pointer font-sans";
-  const labelStyle = "block label-caps text-tea-text-sec mb-1.5 flex items-center gap-1";
-  const wisdomInputStyle = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 placeholder:text-tea-text-dim transition-colors font-sans";
+  const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec";
+  const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
+  const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
+  const wisdomInputStyle = "w-full bg-transparent border border-tea-border rounded-xl px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold placeholder-tea-text-sec transition-colors font-sans";
 
   return (
     <div
@@ -623,33 +702,34 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         role="dialog"
         aria-modal="true"
         aria-label={initialData ? 'Edit product' : 'Add new product'}
-        className="fixed inset-0 sidebar-inset z-modal flex items-stretch animate-in fade-in duration-200"
+        className="fixed inset-0 sidebar-inset z-priority flex items-stretch bg-tea-bg/90 backdrop-blur-md animate-in fade-in duration-200"
         onClick={handleClose}
     >
-      <button type="button" aria-hidden onClick={handleClose} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
       <div
-        className="relative bg-tea-surface border-x border-tea-border w-full flex flex-col overflow-hidden"
+        className="bg-tea-surface border-x border-tea-border w-full flex flex-col overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
       >
 
         {/* Header */}
         <div className="px-6 py-3.5 border-b border-tea-border flex justify-between items-center bg-tea-bg/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3">
-            <button onClick={handleClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target">
-              <X size={16} aria-hidden="true" />
-            </button>
-            <div className="flex items-center gap-2">
-              <Edit className="text-tea-gold" size={14} />
-              <h3 className="h3 text-tea-text">{isEditMode ? 'Edit item' : 'New item'}</h3>
+            <div className="p-2 bg-tea-surface border border-tea-border rounded-full">
+              <Edit className="text-tea-gold" size={16} />
+            </div>
+            <div>
+              <h2 className="text-lg font-serif text-tea-text">{isEditMode ? 'Edit item' : 'New item'}</h2>
             </div>
           </div>
+          <button onClick={handleClose} aria-label="Close" className="text-tea-text-sec hover:text-tea-text transition-colors p-1.5 hover:bg-tea-bg rounded-full">
+            <X size={20} aria-hidden="true" />
+          </button>
         </div>
 
         {/* Auto-fill from existing record banner */}
         {autoFillSource && !isEditMode && (
           <div className="px-6 py-2.5 bg-tea-accent-sub/30 border-b border-tea-border flex items-center justify-between gap-4 shrink-0">
             <span className="text-xs text-tea-text-sec">
-              Filled from existing record: <span className="text-tea-text">{autoFillSource}</span>
+              Filled from existing record: <span className="text-tea-text font-bold">{autoFillSource}</span>
             </span>
             <div className="flex items-center gap-3">
               <button
@@ -661,7 +741,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   }
                   setAutoFillSource(null);
                 }}
-                className="text-xs text-tea-gold hover:text-tea-gold/90 transition-colors"
+                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
               >
                 Undo
               </button>
@@ -669,7 +749,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 type="button"
                 onClick={() => { setAutoFillSource(null); autoFillSnapshotRef.current = null; }}
                 aria-label="Dismiss"
-                className="text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
               >
                 Keep
               </button>
@@ -690,17 +770,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   }
                   setShowDraftBanner(false);
                 }}
-                className="text-xs text-tea-gold hover:text-tea-gold/90 transition-colors"
+                className="text-xs font-bold text-tea-gold hover:text-tea-gold/80 uppercase tracking-wider transition-colors"
               >
                 Restore
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  clearDraftProduct();
+                  setDraftProduct(null);
                   setShowDraftBanner(false);
                 }}
-                className="text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                className="text-xs text-tea-text-sec hover:text-tea-text uppercase tracking-wider transition-colors"
               >
                 Discard
               </button>
@@ -708,136 +788,119 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        {/* Content — Redesigned: compact data LEFT, content-rich RIGHT */}
-        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain grid grid-cols-1 lg:grid-cols-12 custom-scrollbar">
+        {/* Content — O-P0-1: essentials block + 3 collapsed expanders */}
+        <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar">
+          <div className="max-w-3xl mx-auto p-5 lg:p-8 space-y-6">
 
-          {/* --- LEFT COLUMN: IDENTITY + COST (5/12) — compact fields --- */}
-          <div className="lg:col-span-5 p-5 lg:p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-tea-border">
+          {/* ── ESSENTIALS — six fields that make a usable, sellable tea ── */}
+          <section aria-label="Essentials" className="space-y-5">
 
-            {/* TOGGLE CHIPS */}
-            <div className="flex flex-wrap gap-1.5">
-                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPersonal ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="sr-only" />
-                    <UserCheck size={12} aria-hidden="true" /> Personal
-                </label>
-                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.canReorder ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="sr-only" />
-                    <RefreshCw size={12} aria-hidden="true" /> Restockable
-                </label>
-                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPublic ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="sr-only" />
-                    <Globe size={12} aria-hidden="true" /> Public
-                </label>
-                <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isCurated ? 'pill-active' : ''}`}>
-                    <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="sr-only" />
-                    <Star size={12} aria-hidden="true" /> Curated
-                </label>
-                {isPlatformAccount && (
-                  <label className={`pill cursor-pointer select-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.catalogVisible ? 'pill-active' : ''}`}>
-                    <input type="checkbox" checked={formData.catalogVisible} onChange={e => setFormData(prev => ({ ...prev, catalogVisible: e.target.checked }))} className="sr-only" />
-                    In Catalog
+            {/* 1. Photo */}
+            <div>
+              <label className={labelStyle}><ImageIcon size={9} /> Photo</label>
+              {!formData.imageUrl ? (
+                <div className="relative mt-1">
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
+                  <label
+                    htmlFor="img-upload"
+                    className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-xl p-3 cursor-pointer hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                  >
+                    {uploading ? <Loader2 className="animate-spin text-tea-gold" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
+                    <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
                   </label>
-                )}
-            </div>
-
-            {/* CLASSIFICATION ROW */}
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className={labelStyle}><Layers size={9} /> Type *</label>
-                  <select
-                    name="type" value={formData.type} onChange={handleChange}
-                    className={selectStyle}
-                  >
-                    {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
-                  </select>
-               </div>
-               <div>
-                  <label className={labelStyle}>Form</label>
-                  <select
-                    name="form" value={formData.form} onChange={handleChange}
-                    className={selectStyle}
-                  >
-                    <option value="" className="bg-tea-surface text-tea-text">— unset —</option>
-                    {['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
-                      <option key={f} value={f} className="bg-tea-surface text-tea-text">{f}</option>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-xl hover:bg-tea-gold/5 transition-colors mt-1">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0 cursor-pointer">
+                      <ImageThumbnail src={formData.imageUrl} type={formData.type} />
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-xs text-tea-text-sec font-mono truncate">{formData.imageUrl}</p>
+                    </div>
+                    <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-sec hover:text-tea-gold hover:bg-tea-bg rounded transition-colors" title="Remove Image">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="mt-2 flex gap-2 flex-wrap">
+                    {formData.additionalImages.map((url, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border border-tea-border group">
+                        <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            additionalImages: prev.additionalImages.filter((_, i) => i !== idx),
+                          }))}
+                          className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          aria-label="Remove image"
+                        >
+                          <Trash2 size={12} className="text-tea-text" />
+                        </button>
+                      </div>
                     ))}
-                  </select>
-               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className={labelStyle}>Year</label>
-                  <input name="year" type="number" inputMode="numeric" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
-               </div>
-               <div>
-                  <label className={labelStyle}>Status</label>
-                  <select
-                    name="status" value={formData.status} onChange={handleChange}
-                    className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm font-semibold bg-transparent cursor-pointer font-sans ${
-                        formData.status === 'Draft' ? 'text-tea-text-sec border-tea-border' :
-                        formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-border' :
-                        'text-tea-gold border-tea-border'
-                    }`}
-                  >
-                    <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
-                    <option value="Draft" className="bg-tea-surface text-tea-text">Draft</option>
-                    <option value="Sold Out" className="bg-tea-surface text-tea-text">Sold Out</option>
-                  </select>
-               </div>
-            </div>
-
-            {/* NOMENCLATURE */}
-            <div className="space-y-3">
-                <div>
-                    <label className={labelStyle} htmlFor="product-name-input"><Tag size={9} aria-hidden="true" /> Product Name / Cultivar *</label>
-                    <input
-                      id="product-name-input"
-                      name="productName"
-                      required
-                      aria-required="true"
-                      aria-invalid={nameError || undefined}
-                      aria-describedby={nameError ? 'product-name-error' : undefined}
-                      value={formData.productName}
-                      onChange={(e) => { handleChange(e); if (nameError && e.target.value.trim()) setNameError(false); }}
-                      onBlur={handleProductNameBlur}
-                      autoComplete="off"
-                      onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
-                      className={inputStyle}
-                      placeholder="e.g. Alishan High Mountain"
-                    />
-                    {nameError && (
-                      <p id="product-name-error" className="text-ui-11 text-tea-gold mt-1">Product name is required to save.</p>
-                    )}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className={labelStyle}>Given Name</label>
-                        <input name="givenName" value={formData.givenName} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Mist Walker" />
-                    </div>
-                    <div>
-                        <label className={labelStyle}>Chinese Name</label>
-                        <input name="chineseName" value={formData.chineseName} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. 阿里山" />
-                    </div>
-                </div>
+                    <label className="w-16 h-16 rounded border border-dashed border-tea-border flex items-center justify-center cursor-pointer hover:bg-tea-gold/5 transition-colors" title="Add another photo">
+                      <Upload size={14} className="text-tea-text-sec" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const url = await api.uploadImage(file);
+                            setFormData(prev => ({
+                              ...prev,
+                              additionalImages: [...prev.additionalImages, url],
+                            }));
+                          } catch (err: any) {
+                            showToast(`Upload failed: ${err.message}`, 'error');
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* PROVENANCE */}
-            <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <label className={labelStyle}><Globe size={9} /> Origin Region</label>
-                    <input name="originRegion" value={formData.originRegion} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Nantou, Taiwan" />
-                 </div>
-                 <div>
-                    <label className={labelStyle}>Source</label>
-                    <VendorPicker
-                      value={formData.vendor}
-                      onChange={(name) => setFormData(prev => ({ ...prev, vendor: name }))}
-                      className={inputStyle}
-                    />
-                 </div>
+            {/* 2. Product Name */}
+            <div>
+              <label className={labelStyle} htmlFor="product-name-input"><Tag size={9} aria-hidden="true" /> Product Name *</label>
+              <input
+                id="product-name-input"
+                name="productName"
+                required
+                aria-required="true"
+                aria-invalid={nameError || undefined}
+                aria-describedby={nameError ? 'product-name-error' : undefined}
+                value={formData.productName}
+                onChange={(e) => { handleChange(e); if (nameError && e.target.value.trim()) setNameError(false); }}
+                onBlur={handleProductNameBlur}
+                autoComplete="off"
+                onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
+                className={inputStyle}
+                placeholder="e.g. Alishan High Mountain"
+              />
+              {nameError && (
+                <p id="product-name-error" className="text-ui-11 text-tea-gold mt-1">Product name is required to save.</p>
+              )}
             </div>
 
-            {/* COST */}
+            {/* 3. Type */}
+            <div>
+              <label className={labelStyle}><Layers size={9} /> Type *</label>
+              <select
+                name="type" value={formData.type} onChange={handleChange}
+                className={selectStyle}
+              >
+                {['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware', 'Misc'].map(t => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
+              </select>
+            </div>
+
+            {/* 4. Cost — currency + amount + weight + shipping → True Cost */}
             <section aria-labelledby="cost-heading" className="pt-4 border-t border-tea-border">
               <div className="flex items-baseline justify-between mb-4">
                 <h3 id="cost-heading" className="text-base font-serif italic text-tea-text">Cost</h3>
@@ -851,7 +914,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     <select
                       name="costCurrency" value={formData.costCurrency} onChange={handleChange}
                       aria-label="Cost currency"
-                      className="bg-transparent appearance-none text-ui-11 text-tea-gold font-semibold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase tracking-[0.15em] shrink-0"
+                      className="bg-transparent appearance-none text-ui-11 text-tea-gold font-bold outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg cursor-pointer uppercase tracking-[0.15em] shrink-0"
                     >
                       <option value="USD" className="bg-tea-surface text-tea-text">USD</option>
                       <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
@@ -880,7 +943,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   />
                 </div>
                 <div>
-                  <label className={labelStyle}>Ship USD/kg</label>
+                  <label className={labelStyle}>Shipping (USD per kg)</label>
                   <input
                     name="shippingRateUSD" type="number" step="0.01" value={formData.shippingRateUSD} onChange={handleChange}
                     className={`${inputStyle} tabular-nums text-right`}
@@ -891,7 +954,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 </div>
               </div>
 
-              {/* The headline — true cost, large and confident */}
+              {/* True cost — large and confident */}
               <div className="mt-5 flex items-end justify-between gap-4">
                 <div>
                   <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">True cost</div>
@@ -931,7 +994,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }}
                     className={`flex-1 min-w-0 bg-transparent py-1.5 text-sm tabular-nums text-right outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg placeholder-tea-text-sec ${
                       formData.fixedRetailPriceUSD && parseFloat(formData.fixedRetailPriceUSD) < calc.trueCostUSD
-                        ? 'text-tea-gold font-semibold' : 'text-tea-text'
+                        ? 'text-tea-gold font-bold' : 'text-tea-text'
                     }`}
                     placeholder={calc.suggestedRetailUSD > 0 ? calc.suggestedRetailUSD.toFixed(2) : '0.00'}
                   />
@@ -958,372 +1021,404 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               )}
             </section>
 
-            {/* STOCK */}
-            <section aria-labelledby="stock-heading" className="pt-4 border-t border-tea-border">
-              <div className="flex items-baseline justify-between mb-4">
-                <h3 id="stock-heading" className="text-base font-serif italic text-tea-text">Stock</h3>
-                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">In grams</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelStyle}>Current</label>
-                  <input
-                    name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
-                    className={`${inputStyle} tabular-nums text-right`}
-                    placeholder="0"
-                    inputMode="numeric"
-                  />
-                </div>
-                <div>
-                  <label className={labelStyle}>Alert below</label>
-                  <input
-                    name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
-                    className={`${inputStyle} tabular-nums text-right`}
-                    placeholder="0"
-                    inputMode="numeric"
-                  />
-                </div>
-                {formData.type !== 'Teaware' && (
-                  <div>
-                    <label className={labelStyle} title="Stock below this amount shows a low-availability warning on the shop.">Session reserve</label>
-                    <input
-                      name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
-                      className={`${inputStyle} tabular-nums text-right`}
-                      placeholder="0"
-                      inputMode="numeric"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <div className="relative">
-                    <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
-                    <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
-                      {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </div>
-                  </div>
-                  <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <div className="relative">
-                    <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
-                    <div className={`w-3.5 h-3.5 rounded-sm border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
-                      {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </div>
-                  </div>
-                  <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>
-                </label>
-
-                {formData.inTransit && (
-                  <div className="mt-2 pl-5 grid grid-cols-2 gap-4 border-l border-tea-border">
-                    <div>
-                      <label className={labelStyle}>Qty in transit (g)</label>
-                      <input
-                        name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
-                        className={`${inputStyle} tabular-nums text-right`}
-                        placeholder="0" inputMode="numeric"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelStyle}>Expected arrival</label>
-                      <input
-                        name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
-                        className={inputStyle}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
-
-          {/* --- RIGHT COLUMN: CONTENT & WISDOM (7/12) — spacious for reading/editing --- */}
-          <div className="lg:col-span-7 p-5 lg:p-6 space-y-5">
-
-            {/* PHOTO UPLOAD */}
+            {/* 5. Stock (current grams) */}
             <div>
-                <label className={labelStyle}><ImageIcon size={9} /> Photo (Cloudflare R2)</label>
-                {!formData.imageUrl ? (
-                    <div className="relative mt-1">
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" id="img-upload" />
-                        <label
-                            htmlFor="img-upload"
-                            className={`flex items-center justify-center gap-2 w-full border border-dashed border-tea-border rounded-lg p-3 cursor-pointer hover:bg-tea-gold/5 transition-all text-sm ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-                        >
-                            {uploading ? <Loader2 className="animate-spin text-tea-gold" size={16} /> : <Upload className="text-tea-text-sec" size={16} />}
-                            <span className="text-xs text-tea-text-sec font-mono">{uploading ? 'Uploading...' : 'Click to Upload Image'}</span>
-                        </label>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-3 p-2 bg-tea-bg/50 border border-tea-border rounded-lg hover:bg-tea-gold/5 transition-colors mt-1">
-                        <div className="w-20 h-20 md:w-24 md:h-24 rounded overflow-hidden bg-tea-bg border border-tea-border shrink-0 cursor-pointer">
-                            <ImageThumbnail src={formData.imageUrl} type={formData.type} />
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                            <p className="text-xs text-tea-text-sec font-mono truncate">{formData.imageUrl}</p>
-                        </div>
-                        <button type="button" onClick={handleRemoveImage} className="p-1.5 text-tea-text-sec hover:text-tea-gold hover:bg-tea-bg rounded transition-colors" title="Remove Image">
-                            <Trash2 size={14} />
-                        </button>
-                    </div>
-                )}
+              <label className={labelStyle}>Stock (grams)</label>
+              <input
+                name="stockGrams" type="number" value={formData.stockGrams} onChange={handleChange}
+                className={`${inputStyle} tabular-nums text-right`}
+                placeholder="0"
+                inputMode="numeric"
+              />
             </div>
 
-            {/* ADDITIONAL PHOTOS — carousel preview */}
-            {formData.imageUrl && (
+          </section>
+
+          {/* ── EXPANDER 1: Naming & origin ── */}
+          <ExpanderSection
+            title="Naming & origin"
+            open={namingOpen}
+            onToggle={() => setNamingOpen(!namingOpen)}
+            hasContent={!!(formData.givenName || formData.chineseName || formData.form || formData.year || formData.originRegion || formData.vendor || formData.description)}
+          >
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className={labelStyle}><ImageIcon size={9} /> Additional Photos ({formData.additionalImages.length})</label>
-                <div className="flex gap-2 flex-wrap mt-1">
-                  {formData.additionalImages.map((url, idx) => (
-                    <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border border-tea-border group">
-                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({
-                          ...prev,
-                          additionalImages: prev.additionalImages.filter((_, i) => i !== idx),
-                        }))}
-                        className="absolute inset-0 bg-tea-bg/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                        aria-label="Remove image"
-                      >
-                        <Trash2 size={12} className="text-tea-text" />
-                      </button>
-                    </div>
+                <label className={labelStyle}>Given Name</label>
+                <input name="givenName" value={formData.givenName} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Mist Walker" />
+              </div>
+              <div>
+                <label className={labelStyle}>Chinese Name</label>
+                <input name="chineseName" value={formData.chineseName} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. 阿里山" />
+              </div>
+              <div>
+                <label className={labelStyle}>Form</label>
+                <select
+                  name="form" value={formData.form} onChange={handleChange}
+                  className={selectStyle}
+                >
+                  <option value="" className="bg-tea-surface text-tea-text">— unset —</option>
+                  {['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
+                    <option key={f} value={f} className="bg-tea-surface text-tea-text">{f}</option>
                   ))}
-                  <label className="w-16 h-16 rounded border border-dashed border-tea-border flex items-center justify-center cursor-pointer hover:bg-tea-gold/5 transition-colors">
-                    <Upload size={14} className="text-tea-text-sec" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        try {
-                          const url = await api.uploadImage(file);
-                          setFormData(prev => ({
-                            ...prev,
-                            additionalImages: [...prev.additionalImages, url],
-                          }));
-                        } catch (err: any) {
-                          showToast(`Upload failed: ${err.message}`, 'error');
-                        }
-                        e.target.value = '';
-                      }}
-                    />
+                </select>
+              </div>
+              <div>
+                <label className={labelStyle}>Year</label>
+                <input name="year" type="number" inputMode="numeric" value={formData.year} onChange={handleChange} className={inputStyle} placeholder="YYYY" />
+              </div>
+              <div>
+                <label className={labelStyle}><Globe size={9} /> Origin Region</label>
+                <input name="originRegion" value={formData.originRegion} onChange={handleChange} autoComplete="off" onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300); }} className={inputStyle} placeholder="e.g. Nantou, Taiwan" />
+              </div>
+              <div>
+                <label className={labelStyle}>Source</label>
+                <VendorPicker
+                  value={formData.vendor}
+                  onChange={(name) => setFormData(prev => ({ ...prev, vendor: name }))}
+                  className={inputStyle}
+                />
+              </div>
+            </div>
+            <div>
+              <label className={labelStyle}><FileText size={9} /> Private Admin Notes</label>
+              <textarea
+                name="description" value={formData.description} onChange={handleChange} rows={3}
+                className={`${wisdomInputStyle} resize-vertical max-h-[200px] md:max-h-none overflow-y-auto`}
+                placeholder="Private notes (e.g. Bought from Mr. Chen's son, needs 6 months rest)..."
+              />
+            </div>
+          </ExpanderSection>
+
+          {/* ── EXPANDER 2: Story & lore (existing wisdom block) ── */}
+          <section className="border-t border-tea-border pt-4">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                type="button"
+                onClick={() => setWisdomOpen(!wisdomOpen)}
+                aria-expanded={wisdomOpen}
+                className="flex items-center gap-2 group"
+              >
+                <ChevronDown size={14} className={`text-tea-gold/70 transition-transform duration-200 ${wisdomOpen ? '' : '-rotate-90'}`} />
+                <Star size={12} className="text-tea-gold" />
+                <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-gold transition-colors">Story & lore</span>
+                {!wisdomOpen && (formData.lore || formData.terroir || formData.mood || formData.experience || formData.processingNotes || formData.tastingNotes || formData.teaKey || flattenTastingNotes(tastingData).length > 0) && (
+                  <span aria-label="has content" className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-tea-gold/70" />
+                )}
+              </button>
+              {wisdomOpen && (
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer group/toggle">
+                    <div className="relative">
+                      <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="peer sr-only" />
+                      <div className={`block w-7 h-3.5 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
+                      <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-gold' : ''}`}></div>
+                    </div>
+                    <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
                   </label>
+                </div>
+              )}
+            </div>
+
+            {wisdomOpen && (
+              <div className="space-y-4">
+                {/* Lore */}
+                <div>
+                  <div className="mb-1.5">
+                    <label className={labelStyle}>Lore (History & Terroir)</label>
+                  </div>
+                  <textarea
+                    name="lore" value={formData.lore}
+                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                    rows={8}
+                    className={`${wisdomInputStyle} resize-y min-h-[120px] max-h-[400px] font-serif leading-relaxed`}
+                    placeholder="Legend says these bushes were draped in imperial red robes..."
+                  />
+                  {formData.lore && (
+                    <div className="text-ui-9 text-tea-text-dim text-right mt-0.5">{formData.lore.length} chars</div>
+                  )}
+                </div>
+
+                {/* Tasting Taxonomy Picker */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className={`${labelStyle} mb-0`}>Tasting Notes</label>
+                    {(() => {
+                      const hasTerms = flattenTastingNotes(tastingData).length > 0;
+                      const isOwner = initialData?.tastingSource === 'owner';
+                      if (!hasTerms) return null;
+                      return isOwner ? (
+                        <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold" style={{ fontFamily: 'var(--font-display)' }}>
+                          Tasted
+                        </span>
+                      ) : (
+                        <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim italic" style={{ fontFamily: 'var(--font-display)' }}>
+                          Draft — not yet confirmed
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTastingOpen(true)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-xl text-sm text-tea-text hover:bg-tea-elevated transition-colors"
+                  >
+                    <span style={{ fontFamily: 'var(--font-body)' }}>
+                      {flattenTastingNotes(tastingData).length > 0
+                        ? `${flattenTastingNotes(tastingData).length} notes selected`
+                        : 'Open tasting session'}
+                    </span>
+                    <Edit size={14} className="text-tea-text-dim" />
+                  </button>
+                  {flattenTastingNotes(tastingData).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {flattenTastingNotes(tastingData).slice(0, 6).map(termId => {
+                        const Icon = resolveTermIcon(termId);
+                        return (
+                          <span key={termId} className="inline-flex items-center gap-1 text-ui-11 px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold">
+                            <Icon size={10} />
+                            {resolveTermLabel(termId)}
+                          </span>
+                        );
+                      })}
+                      {flattenTastingNotes(tastingData).length > 6 && (
+                        <span className="text-ui-11 px-1.5 py-0.5 text-tea-text-dim">
+                          +{flattenTastingNotes(tastingData).length - 6} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {tastingOpen && (
+                    <TastingSession
+                      item={{
+                        id: initialData?.id ?? 'new',
+                        name: formData.givenName || formData.productName || 'New Tea',
+                        type: formData.type,
+                        image: formData.imageUrl || undefined,
+                      }}
+                      adminMode
+                      initialData={tastingData}
+                      onClose={() => setTastingOpen(false)}
+                      onSave={(data) => { setTastingData(data); setTastingOpen(false); }}
+                    />
+                  )}
+                </div>
+
+                {/* Terroir */}
+                <div>
+                  <label className={labelStyle}>Terroir</label>
+                  <textarea
+                    name="terroir" value={formData.terroir}
+                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                    rows={3}
+                    className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
+                    placeholder="High-altitude granite soils..."
+                  />
+                </div>
+
+                {/* Mood Tags */}
+                <div>
+                  <label className={labelStyle}>Mood Tags <span className="text-tea-text-dim text-xs font-normal">(comma-separated)</span></label>
+                  <input
+                    type="text"
+                    name="mood" value={formData.mood}
+                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                    className={wisdomInputStyle}
+                    placeholder="calm, meditative, grounding"
+                  />
+                </div>
+
+                {/* Experience */}
+                <div>
+                  <label className={labelStyle}>Experience Description</label>
+                  <textarea
+                    name="experience" value={formData.experience}
+                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                    rows={5}
+                    className={`${wisdomInputStyle} resize-y min-h-[80px] max-h-[300px] font-serif leading-relaxed`}
+                    placeholder="A deeply centering tea. The heavy roast anchors the body..."
+                  />
+                </div>
+
+                {/* Processing Notes */}
+                <div>
+                  <label className={labelStyle}>Processing / Craft Notes</label>
+                  <textarea
+                    name="processingNotes" value={formData.processingNotes}
+                    onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                    rows={3}
+                    className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
+                    placeholder="Heavy charcoal roast over pine wood."
+                  />
+                </div>
+
+                {/* Advanced sub-toggle: Legacy tasting notes */}
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setLegacyNotesOpen(!legacyNotesOpen)}
+                    aria-expanded={legacyNotesOpen}
+                    className="flex items-center gap-2 text-ui-11 uppercase tracking-wider text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    <ChevronDown size={12} className={`transition-transform duration-200 ${legacyNotesOpen ? '' : '-rotate-90'}`} />
+                    <span>Advanced — legacy tasting notes</span>
+                    {!legacyNotesOpen && formData.tastingNotes && (
+                      <span aria-label="has content" className="inline-block w-1.5 h-1.5 rounded-full bg-tea-gold/70" />
+                    )}
+                  </button>
+                  {legacyNotesOpen && (
+                    <div className="mt-2">
+                      <label className={labelStyle}>Legacy tasting notes (old format)</label>
+                      <textarea
+                        name="tastingNotes" value={formData.tastingNotes}
+                        onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
+                        rows={2}
+                        className={`${wisdomInputStyle} resize-y min-h-[40px] max-h-[150px]`}
+                        placeholder="Pine resin, dried longan, campfire"
+                      />
+                      <p className="text-tea-text-dim text-xs mt-1">Comma-separated. Use the Tasting Notes button above for new entries.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tea Key — cross-account review anchor */}
+                <div className="pt-2 border-t border-tea-border">
+                  <label className={labelStyle}>
+                    Network Tea Key
+                    <span className="text-tea-text-dim text-xs font-normal ml-2">for shared reviews across stores</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="teaKey"
+                    value={formData.teaKey}
+                    onChange={handleChange}
+                    className={wisdomInputStyle}
+                    placeholder="silver-needle-fuding-2024"
+                  />
+                  <p className="text-tea-text-dim text-xs mt-1">
+                    When partner stores tag their product with the same key, team members at both stores can share tasting notes on this tea.
+                  </p>
                 </div>
               </div>
             )}
+          </section>
 
-            {/* DESCRIPTION */}
+          {/* ── EXPANDER 3: Stock details & flags ── */}
+          <ExpanderSection
+            title="Stock details & flags"
+            open={stockDetailsOpen}
+            onToggle={() => setStockDetailsOpen(!stockDetailsOpen)}
+            hasContent={!!(formData.lowStockThreshold || formData.sessionReserveGrams || formData.recheckStock || formData.inTransit || formData.isPersonal || formData.canReorder || formData.isCurated || !formData.isPublic || (isPlatformAccount && formData.catalogVisible) || formData.status !== 'Active')}
+          >
             <div>
-                <label className={labelStyle}><FileText size={9} /> Private Admin Notes</label>
-                <textarea
-                    name="description" value={formData.description} onChange={handleChange} rows={3}
-                    className={`${wisdomInputStyle} resize-vertical max-h-[200px] md:max-h-none overflow-y-auto`}
-                    placeholder="Private notes (e.g. Bought from Mr. Chen's son, needs 6 months rest)..."
+              <label className={labelStyle}>Status</label>
+              <select
+                name="status" value={formData.status} onChange={handleChange}
+                className={`w-full border-b appearance-none rounded-none px-0 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg text-sm font-bold bg-transparent cursor-pointer font-sans ${
+                    formData.status === 'Draft' ? 'text-tea-text-sec border-tea-text-sec/30' :
+                    formData.status === 'Sold Out' ? 'text-tea-text-sec border-tea-text-sec/30' :
+                    'text-tea-gold border-tea-accent-sub'
+                }`}
+              >
+                <option value="Active" className="bg-tea-surface text-tea-text">Active</option>
+                <option value="Draft" className="bg-tea-surface text-tea-text">Draft</option>
+                <option value="Sold Out" className="bg-tea-surface text-tea-text">Sold Out</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelStyle}>Alert below</label>
+                <input
+                  name="lowStockThreshold" type="number" value={formData.lowStockThreshold} onChange={handleChange}
+                  className={`${inputStyle} tabular-nums text-right`}
+                  placeholder="0"
+                  inputMode="numeric"
                 />
-            </div>
-
-            {/* WISDOM & LORE — Always visible, full width for comfortable editing */}
-            <div className="border-t border-tea-border pt-4">
-                <div className="flex items-center justify-between mb-4">
-                    <button
-                        type="button"
-                        onClick={() => setWisdomOpen(!wisdomOpen)}
-                        className="flex items-center gap-2 group"
-                    >
-                        <ChevronDown size={14} className={`text-tea-gold/70 transition-transform duration-200 ${wisdomOpen ? '' : '-rotate-90'}`} />
-                        <Star size={12} className="text-tea-gold" />
-                        <span className="text-sm font-serif italic text-tea-text group-hover:text-tea-gold transition-colors">Wisdom & Lore</span>
-                        {!wisdomOpen && formData.lore && (
-                            <span className="text-ui-9 text-tea-gold/70 uppercase tracking-wider ml-2">has content</span>
-                        )}
-                    </button>
-                    {wisdomOpen && (
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer group/toggle">
-                                <div className="relative">
-                                    <input type="checkbox" name="showWisdom" checked={formData.showWisdom} onChange={handleChange} className="peer sr-only" />
-                                    <div className={`block w-7 h-3.5 rounded-full transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.showWisdom ? 'bg-tea-gold/30' : 'bg-tea-border'}`}></div>
-                                    <div className={`absolute left-0.5 top-0.5 bg-tea-text w-2.5 h-2.5 rounded-full transition-transform ${formData.showWisdom ? 'translate-x-3.5 bg-tea-gold' : ''}`}></div>
-                                </div>
-                                <span className="text-ui-10 uppercase tracking-wider text-tea-text-sec group-hover/toggle:text-tea-text transition-colors">Show Publicly</span>
-                            </label>
-                        </div>
-                    )}
+              </div>
+              {formData.type !== 'Teaware' && (
+                <div>
+                  <label className={labelStyle} title="Stock below this amount shows a low-availability warning on the shop.">Session reserve</label>
+                  <input
+                    name="sessionReserveGrams" type="number" value={formData.sessionReserveGrams} onChange={handleChange}
+                    className={`${inputStyle} tabular-nums text-right`}
+                    placeholder="0"
+                    inputMode="numeric"
+                  />
                 </div>
-
-                {wisdomOpen && (
-                    <div className="space-y-4">
-                        {/* Lore — generous textarea */}
-                        <div>
-                            <div className="mb-1.5">
-                                <label className={labelStyle}>Lore (History & Terroir)</label>
-                            </div>
-                            <textarea
-                                name="lore" value={formData.lore}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={8}
-                                className={`${wisdomInputStyle} resize-y min-h-[120px] max-h-[400px] font-serif leading-relaxed`}
-                                placeholder="Legend says these bushes were draped in imperial red robes..."
-                            />
-                            {formData.lore && (
-                                <div className="text-ui-9 text-tea-text-dim text-right mt-0.5">{formData.lore.length} chars</div>
-                            )}
-                        </div>
-
-                        {/* Tasting Taxonomy Picker */}
-                        <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <label className={`${labelStyle} mb-0`}>Tasting Notes</label>
-                                {(() => {
-                                    const hasTerms = flattenTastingNotes(tastingData).length > 0;
-                                    const isOwner = initialData?.tastingSource === 'owner';
-                                    if (!hasTerms) return null;
-                                    return isOwner ? (
-                                        <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-gold" style={{ fontFamily: 'var(--font-display)' }}>
-                                            Tasted
-                                        </span>
-                                    ) : (
-                                        <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim italic" style={{ fontFamily: 'var(--font-display)' }}>
-                                            Draft — not yet confirmed
-                                        </span>
-                                    );
-                                })()}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setTastingOpen(true)}
-                                className="w-full flex items-center justify-between px-4 py-3 bg-tea-surface rounded-xl text-sm text-tea-text hover:bg-tea-elevated transition-colors"
-                            >
-                                <span style={{ fontFamily: 'var(--font-body)' }}>
-                                    {flattenTastingNotes(tastingData).length > 0
-                                        ? `${flattenTastingNotes(tastingData).length} notes selected`
-                                        : 'Open tasting session'}
-                                </span>
-                                <Edit size={14} className="text-tea-text-dim" />
-                            </button>
-                            {flattenTastingNotes(tastingData).length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                    {flattenTastingNotes(tastingData).slice(0, 6).map(termId => {
-                                        const Icon = resolveTermIcon(termId);
-                                        return (
-                                            <span key={termId} className="inline-flex items-center gap-1 text-ui-11 px-1.5 py-0.5 rounded-full bg-tea-gold/10 text-tea-gold">
-                                                <Icon size={10} />
-                                                {resolveTermLabel(termId)}
-                                            </span>
-                                        );
-                                    })}
-                                    {flattenTastingNotes(tastingData).length > 6 && (
-                                        <span className="text-ui-11 px-1.5 py-0.5 text-tea-text-dim">
-                                            +{flattenTastingNotes(tastingData).length - 6} more
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                            {tastingOpen && (
-                                <TastingSession
-                                    item={{
-                                        id: initialData?.id ?? 'new',
-                                        name: formData.givenName || formData.productName || 'New Tea',
-                                        type: formData.type,
-                                        image: formData.imageUrl || undefined,
-                                    }}
-                                    adminMode
-                                    initialData={tastingData}
-                                    onClose={() => setTastingOpen(false)}
-                                    onSave={(data) => { setTastingData(data); setTastingOpen(false); }}
-                                />
-                            )}
-                        </div>
-
-                        {/* Terroir */}
-                        <div>
-                            <label className={labelStyle}>Terroir</label>
-                            <textarea
-                                name="terroir" value={formData.terroir}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={3}
-                                className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
-                                placeholder="High-altitude granite soils..."
-                            />
-                        </div>
-
-                        {/* Mood Tags */}
-                        <div>
-                            <label className={labelStyle}>Mood Tags <span className="text-tea-text-dim text-xs font-normal">(comma-separated)</span></label>
-                            <input
-                                type="text"
-                                name="mood" value={formData.mood}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                className={wisdomInputStyle}
-                                placeholder="calm, meditative, grounding"
-                            />
-                        </div>
-
-                        {/* Experience */}
-                        <div>
-                            <label className={labelStyle}>Experience Description</label>
-                            <textarea
-                                name="experience" value={formData.experience}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={5}
-                                className={`${wisdomInputStyle} resize-y min-h-[80px] max-h-[300px] font-serif leading-relaxed`}
-                                placeholder="A deeply centering tea. The heavy roast anchors the body..."
-                            />
-                        </div>
-
-                        {/* Processing Notes */}
-                        <div>
-                            <label className={labelStyle}>Processing / Craft Notes</label>
-                            <textarea
-                                name="processingNotes" value={formData.processingNotes}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={3}
-                                className={`${wisdomInputStyle} resize-y min-h-[60px] max-h-[200px] leading-relaxed`}
-                                placeholder="Heavy charcoal roast over pine wood."
-                            />
-                        </div>
-
-                        {/* Legacy Tasting Notes (comma-separated, kept for backward compat) */}
-                        <div>
-                            <label className={labelStyle}>Legacy Tasting Notes (Comma separated)</label>
-                            <textarea
-                                name="tastingNotes" value={formData.tastingNotes}
-                                onChange={(e) => { handleChange(e); setFormData(prev => ({ ...prev, isCustomWisdom: true })); }}
-                                rows={2}
-                                className={`${wisdomInputStyle} resize-y min-h-[40px] max-h-[150px]`}
-                                placeholder="Pine resin, dried longan, campfire"
-                            />
-                        </div>
-
-                        {/* Tea Key — cross-account review anchor */}
-                        <div className="pt-2 border-t border-tea-border">
-                            <label className={labelStyle}>
-                                Network Tea Key
-                                <span className="text-tea-text-dim text-xs font-normal ml-2">for shared reviews across stores</span>
-                            </label>
-                            <input
-                                type="text"
-                                name="teaKey"
-                                value={formData.teaKey}
-                                onChange={handleChange}
-                                className={wisdomInputStyle}
-                                placeholder="silver-needle-fuding-2024"
-                            />
-                            <p className="text-tea-text-dim text-xs mt-1">
-                                When partner stores tag their product with the same key, team members at both stores can share tasting notes on this tea.
-                            </p>
-                        </div>
-                    </div>
-                )}
+              )}
             </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative">
+                  <input type="checkbox" name="recheckStock" checked={formData.recheckStock} onChange={handleChange} className="peer sr-only" />
+                  <div className={`w-3.5 h-3.5 rounded-md border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.recheckStock ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                    {formData.recheckStock && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                </div>
+                <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">Flag for stock recheck</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative">
+                  <input type="checkbox" name="inTransit" checked={formData.inTransit} onChange={handleChange} className="peer sr-only" />
+                  <div className={`w-3.5 h-3.5 rounded-md border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-tea-gold/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-tea-bg ${formData.inTransit ? 'bg-tea-gold border-tea-gold' : 'border-tea-border group-hover:border-tea-gold/40'}`}>
+                    {formData.inTransit && <svg className="w-3.5 h-3.5 text-tea-bg" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                </div>
+                <span className="text-xs text-tea-text-sec group-hover:text-tea-text transition-colors">In transit</span>
+              </label>
+
+              {formData.inTransit && (
+                <div className="mt-2 pl-5 grid grid-cols-2 gap-4 border-l border-tea-border">
+                  <div>
+                    <label className={labelStyle}>Qty in transit (g)</label>
+                    <input
+                      name="inTransitGrams" type="number" value={formData.inTransitGrams} onChange={handleChange}
+                      className={`${inputStyle} tabular-nums text-right`}
+                      placeholder="0" inputMode="numeric"
+                    />
+                  </div>
+                  <div>
+                    <label className={labelStyle}>Expected arrival</label>
+                    <input
+                      name="inTransitEta" type="date" value={formData.inTransitEta} onChange={handleChange}
+                      className={inputStyle}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <div className={labelStyle}>Flags</div>
+              <div className="flex flex-wrap gap-1.5">
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPersonal ? 'pill-active' : ''}`}>
+                  <input type="checkbox" name="isPersonal" checked={formData.isPersonal} onChange={handleChange} className="sr-only" />
+                  <UserCheck size={12} aria-hidden="true" /> Personal
+                </label>
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.canReorder ? 'pill-active' : ''}`}>
+                  <input type="checkbox" name="canReorder" checked={formData.canReorder} onChange={handleChange} className="sr-only" />
+                  <RefreshCw size={12} aria-hidden="true" /> Restockable
+                </label>
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isPublic ? 'pill-active' : ''}`}>
+                  <input type="checkbox" name="isPublic" checked={formData.isPublic} onChange={handleChange} className="sr-only" />
+                  <Globe size={12} aria-hidden="true" /> Public
+                </label>
+                <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.isCurated ? 'pill-active' : ''}`}>
+                  <input type="checkbox" name="isCurated" checked={formData.isCurated} onChange={handleChange} className="sr-only" />
+                  <Star size={12} aria-hidden="true" /> Curated
+                </label>
+                {isPlatformAccount && (
+                  <label className={`pill cursor-pointer select-none font-bold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-tea-gold/50 has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-tea-bg ${formData.catalogVisible ? 'pill-active' : ''}`}>
+                    <input type="checkbox" checked={formData.catalogVisible} onChange={e => setFormData(prev => ({ ...prev, catalogVisible: e.target.checked }))} className="sr-only" />
+                    In Catalog
+                  </label>
+                )}
+              </div>
+            </div>
+          </ExpanderSection>
+
           </div>
         </form>
 
@@ -1332,7 +1427,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           <div className="px-6 py-4 border-t border-tea-border">
             <div className="flex items-center gap-2 mb-3">
               <Compass size={13} className="text-tea-gold shrink-0" />
-              <h3 className="label-caps text-tea-text-sec">Field Origin</h3>
+              <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold">Field Origin</h3>
             </div>
             {compassSourceLoading ? (
               <div className="flex items-center gap-2 text-tea-text-dim text-xs">
@@ -1340,7 +1435,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 <span>Loading sourcing data…</span>
               </div>
             ) : compassSource ? (
-              <div className="bg-tea-bg/50 border border-tea-border rounded-lg p-3 space-y-2 text-ui-12">
+              <div className="bg-tea-bg/50 border border-tea-border rounded-xl p-3 space-y-2 text-ui-12">
                 {compassSource.vendorName && (
                   <div className="flex gap-2">
                     <span className="text-tea-text-dim w-20 shrink-0">Vendor</span>
@@ -1402,7 +1497,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         {/* Network Reviews — edit mode only when tea_key is set */}
         {isEditMode && formData.teaKey && (
           <div className="px-6 py-4 border-t border-tea-border">
-            <h3 className="label-caps text-tea-text-sec mb-3">
+            <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold mb-3">
               Network Reviews
             </h3>
             <TeaReviewsPanel
@@ -1415,8 +1510,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         )}
 
         {/* STICKY FOOTER */}
-        <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border bg-tea-bg/50 backdrop-blur-sm shrink-0">
-            <button type="button" onClick={handleClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">
+        <div className="px-6 py-3.5 border-t border-tea-border flex justify-between gap-3 bg-tea-bg/50 backdrop-blur-sm shrink-0">
+            <button type="button" onClick={handleClose} className="px-4 py-2.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                 Cancel
             </button>
             <button
@@ -1432,9 +1527,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     if (form) form.requestSubmit();
                 }}
                 disabled={loading || uploading}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
+                className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl"
             >
-                {loading || uploading ? <Loader2 className="animate-spin" size={13} aria-hidden="true" /> : <Save size={13} aria-hidden="true" />}
+                {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
                 <span>Save item</span>
             </button>
         </div>

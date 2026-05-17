@@ -37,10 +37,6 @@ interface AlcoveCardProps {
   onTaste?: (item: InventoryItem) => void;
   /** Admin-only: called to open the product tasting editor (writes to the product's own tasting field). */
   onEditProductTasting?: (item: InventoryItem) => void;
-  /** All available items for "You might also like" recommendations */
-  items?: InventoryItem[];
-  /** Called when a recommended item is selected */
-  onItemSelect?: (item: InventoryItem) => void;
 }
 
 /** Converts a string to Title Case */
@@ -59,7 +55,7 @@ function getStockStatus(stockG: number, status?: string) {
   return { label: 'In Stock', color: 'var(--tea-leaf)', level: 'ok' as const };
 }
 
-export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting, items, onItemSelect }) => {
+export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClose, isAdmin, onEdit, formatPrice, onTermClick, onTaste, onEditProductTasting }) => {
   const navigate = useNavigate();
   const { favoriteTeas, toggleFavoriteTea, activeAccountId } = useAppStore();
 
@@ -148,7 +144,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   );
 
   const sliderMin = 5;
-  const sliderMax = Math.max(25, Math.floor(item.stock_g || 500));
+  const sliderMax = Math.max(sliderMin, Math.floor(item.stock_g || 0));
   const sliderStep = 5;
   const snapPoints = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500].filter(p => p <= sliderMax);
   const total = formatPrice ? formatPrice(pricePerGram, grams) : fmtNum(Math.ceil(pricePerGram * grams), 0);
@@ -575,48 +571,6 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         relatedArticles={relatedArticles}
         item={item}
       />
-
-      {/* === YOU MIGHT ALSO LIKE === */}
-      {(() => {
-        if (!items || items.length <= 1) return null;
-        const related = items
-          .filter(i => i.id !== item.id && i.type === item.type)
-          .slice(0, 4);
-        if (related.length === 0) return null;
-        return (
-          <div style={{
-            marginTop: "28px",
-            padding: "0 20px 16px",
-          }}>
-            <h3 style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "10px", fontWeight: 400,
-              textTransform: "uppercase", letterSpacing: "0.12em",
-              color: "var(--tea-text-dim)",
-              margin: "0 0 10px 0",
-            }}>
-              You might also like
-            </h3>
-            <div style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "6px 12px",
-            }}>
-              {related.map(rec => (
-                <button
-                  key={rec.id}
-                  type="button"
-                  className="alcove-rec-btn"
-                  onClick={() => onItemSelect?.(rec)}
-                  disabled={!onItemSelect}
-                >
-                  {rec.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
 
     </AlcoveShell>
   );

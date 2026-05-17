@@ -166,7 +166,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
             value={filter}
             onChange={e => setFilter(e.target.value)}
             placeholder="Filter tags…"
-            className="w-full pl-9 pr-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40"
           />
         </div>
 
@@ -271,7 +271,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
       {/* Merge Picker Modal */}
       {showMergePicker && mergeSource && (
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
+          <div className="bg-tea-bg border border-tea-border rounded-xl w-full max-w-md p-6 shadow-2xl">
             <h3 className="text-lg font-serif text-tea-text mb-4">
               Merge "{mergeSource}" into…
             </h3>
@@ -285,9 +285,9 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                 placeholder="Search or type tag name…"
                 value={mergeTarget}
                 onChange={e => setMergeTarget(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40 mb-3"
+                className="w-full px-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40 mb-3"
               />
-              <div className="max-h-48 overflow-y-auto space-y-1 border border-tea-border rounded-lg p-2 bg-tea-surface">
+              <div className="max-h-48 overflow-y-auto space-y-1 border border-tea-border rounded-xl p-2 bg-tea-surface">
                 {tags
                   .filter(t => t.tag !== mergeSource && t.tag.toLowerCase().includes(mergeTarget.toLowerCase()))
                   .map(t => (
@@ -319,7 +319,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                   setMergeSource(null);
                 }}
                 disabled={busy}
-                className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
               >
                 Cancel
               </button>
@@ -327,7 +327,7 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                 type="button"
                 onClick={confirmMerge}
                 disabled={busy || !mergeTarget.trim() || mergeTarget.trim().toLowerCase() === mergeSource}
-                className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-xl hover:bg-tea-gold/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Merge
               </button>

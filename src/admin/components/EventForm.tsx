@@ -356,7 +356,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                                   <p className="text-ui-11 text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
                                 )}
                               </div>
-                              <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                              <div className={`w-4 h-4 rounded-md border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                                 active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                               }`}>
                                 {active && <span className="text-tea-bg text-ui-10 font-semibold leading-none">✓</span>}
@@ -552,7 +552,7 @@ const CreateWizard: React.FC<CreateWizardProps> = ({ onClose, onSuccess }) => {
                       type="checkbox"
                       checked={requiresApproval}
                       onChange={(e) => setRequiresApproval(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                      className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
                     />
                     <span className="space-y-0.5">
                       <span className="block text-sm text-tea-text">Requires approval before confirmed</span>
@@ -1184,7 +1184,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                     type="checkbox"
                     checked={editRequiresApproval}
                     onChange={(e) => setEditRequiresApproval(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
+                    className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-surface accent-tea-gold cursor-pointer"
                   />
                   <span className="space-y-0.5">
                     <span className="block text-sm text-tea-text group-hover:text-tea-text transition-colors">Requires approval before confirmed</span>
@@ -1331,7 +1331,7 @@ const EditForm: React.FC<EditFormProps> = ({ initialData, onClose, onSuccess }) 
                                   <p className="text-ui-11 text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
                                 )}
                               </div>
-                              <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                              <div className={`w-4 h-4 rounded-md border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                                 active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                               }`}>
                                 {active && <span className="text-tea-bg text-ui-10 font-semibold leading-none">✓</span>}

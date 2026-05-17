@@ -16,6 +16,7 @@ import { api } from '../../lib/api';
 import { Customer, CustomerTag, Product } from '../types';
 import { useAppStore } from '../store';
 import { TeaTable } from './TeaTable';
+import { ConfirmModal } from './ConfirmModal';
 import { resolveTermLabel, flattenTastingNotes, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { useLedgerStore, type LedgerTransaction, type LedgerLineItem } from '../../lib/ledgerStore';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -134,7 +135,7 @@ const SourceModal = ({
         </div>
         <div className="flex justify-between gap-3 p-6 border-t border-tea-border">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-lg hover:bg-tea-gold/90 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50">
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add Source'}
           </button>
         </div>
@@ -324,6 +325,9 @@ export const SourcesView = () => {
   const [editingSource, setEditingSource] = useState<Customer | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
+  const [pendingDeleteSource, setPendingDeleteSource] = useState<Customer | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Side Panel
   const [panelSource, setPanelSource] = useState<SourceRow | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
@@ -464,19 +468,27 @@ export const SourcesView = () => {
       setEditingSource(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not save source: ' + err.message, 'error');
     }
   };
 
-  const handleDelete = async (source: Customer) => {
-    if (!confirm(`Delete source "${source.name}"?\n\nProducts will keep the vendor name but the link will be removed.`)) return;
+  const handleDelete = (source: Customer) => {
+    setPendingDeleteSource(source);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteSource) return;
+    setDeleteLoading(true);
     try {
-      await api.customers.delete(source.id);
+      await api.customers.delete(pendingDeleteSource.id);
       showToast('Source deleted', 'success');
       setPanelSource(null);
+      setPendingDeleteSource(null);
       refetch();
     } catch (err: any) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Could not delete source: ' + err.message, 'error');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -493,7 +505,7 @@ export const SourcesView = () => {
     try {
       await api.customers.update(id, payload);
     } catch (err: any) {
-      showToast(`Update failed: ${err.message}`, 'error');
+      showToast(`Could not update source field: ${err.message}`, 'error');
       refetch();
     }
   };
@@ -1481,7 +1493,7 @@ export const SourcesView = () => {
                 ) : (
                   <>
                     {panelSupplied.length > 0 && (
-                      <div className="bg-tea-bg rounded-lg border border-tea-border overflow-hidden mb-3">
+                      <div className="bg-tea-bg rounded-xl border border-tea-border overflow-hidden mb-3">
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="border-b border-tea-border text-tea-text-sec">
@@ -1542,7 +1554,7 @@ export const SourcesView = () => {
                           <Plus size={12} /> Link a tea
                         </button>
                       ) : (
-                        <div className="bg-tea-bg border border-tea-border rounded-lg shadow-lg overflow-hidden max-w-sm">
+                        <div className="bg-tea-bg border border-tea-border rounded-xl shadow-lg overflow-hidden max-w-sm">
                           <div className="p-2 border-b border-tea-border flex items-center gap-2">
                             <Search size={12} className="text-tea-text-sec" />
                             <input
@@ -1634,7 +1646,7 @@ export const SourcesView = () => {
                           {vendorTxs.slice(0, 10).map((tx) => {
                             const txTotal = tx.items.reduce((s, i) => s + lineTotal(i), 0);
                             return (
-                              <div key={tx.id} className="bg-tea-bg rounded-lg border border-tea-border p-3">
+                              <div key={tx.id} className="bg-tea-bg rounded-xl border border-tea-border p-3">
                                 <div className="flex items-center justify-between mb-1.5">
                                   <div className="flex items-center gap-2">
                                     {tx.direction === 'purchase' ? (
@@ -1726,13 +1738,13 @@ export const SourcesView = () => {
                             {vendorDetails.storefrontUrl && (
                               <div className="flex-1">
                                 <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
-                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
+                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                             {vendorDetails.businessCardUrl && (
                               <div className="flex-1">
                                 <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
-                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-lg object-cover border border-tea-border" loading="lazy" />
+                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                           </div>
@@ -2207,6 +2219,17 @@ export const SourcesView = () => {
           email: editingSource.email || '',
         } : undefined}
         isEditing={!!editingSource}
+      />
+
+      <ConfirmModal
+        isOpen={!!pendingDeleteSource}
+        onClose={() => setPendingDeleteSource(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete source?"
+        description={`"${pendingDeleteSource?.name}" will be removed. Products will keep the vendor name but the link will be removed.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteLoading}
       />
     </div>
   );

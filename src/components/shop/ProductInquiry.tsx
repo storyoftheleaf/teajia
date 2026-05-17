@@ -15,7 +15,7 @@ interface ProductInquiryProps {
 
 type InquiryChannel = 'choose' | 'whatsapp' | 'email';
 
-const INPUT_CLASS = 'w-full bg-tea-surface border border-tea-border p-3 text-tea-text text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-sm';
+const INPUT_CLASS = 'w-full bg-tea-surface border border-tea-border p-3 text-tea-text text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-md';
 
 export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone = DEFAULT_PHONE }) => {
   useScrollLock(isOpen);
@@ -71,7 +71,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
       />
 
       {/* Modal */}
-      <div className="fixed z-modal inset-x-4 bottom-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-tea-bg rounded-lg shadow-2xl overflow-hidden">
+      <div className="fixed z-modal inset-x-4 bottom-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md bg-tea-bg rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-2">
           <h3 className="font-serif text-xl text-tea-text">
@@ -103,7 +103,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
               {/* WhatsApp — primary */}
               <button
                 onClick={handleWhatsApp}
-                className="w-full flex items-center gap-4 p-4 rounded-sm border border-tea-border hover:border-tea-gold/50 hover:bg-tea-gold/5 transition-all duration-200 group min-h-[56px]"
+                className="w-full flex items-center gap-4 p-4 rounded-md border border-tea-border hover:border-tea-gold/50 hover:bg-tea-gold/5 transition-all duration-200 group min-h-[56px]"
               >
                 <Icons.Message className="w-5 h-5 text-tea-green shrink-0" />
                 <div className="text-left flex-1">
@@ -116,7 +116,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
               {/* Email form — secondary */}
               <button
                 onClick={() => setChannel('email')}
-                className="w-full flex items-center gap-4 p-4 rounded-sm border border-tea-border hover:border-tea-gold/50 hover:bg-tea-gold/5 transition-all duration-200 group min-h-[56px]"
+                className="w-full flex items-center gap-4 p-4 rounded-md border border-tea-border hover:border-tea-gold/50 hover:bg-tea-gold/5 transition-all duration-200 group min-h-[56px]"
               >
                 <Icons.Mail className="w-5 h-5 text-tea-gold shrink-0" />
                 <div className="text-left flex-1">

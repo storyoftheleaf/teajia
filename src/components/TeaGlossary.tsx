@@ -142,7 +142,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
           <div className="flex gap-0.5 pb-1">
             <button
               onClick={() => setActiveLetter(null)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-sans transition-all
+              className={`w-8 h-8 flex items-center justify-center rounded-xl text-xs font-sans transition-all
                 ${!activeLetter
                   ? 'bg-tea-gold/15 text-tea-gold'
                   : 'text-tea-text-sec hover:text-tea-text-sec'
@@ -154,7 +154,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
               <button
                 key={letter}
                 onClick={() => setActiveLetter(activeLetter === letter ? null : letter)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-mono transition-all
+                className={`w-8 h-8 flex items-center justify-center rounded-xl text-xs font-mono transition-all
                   ${activeLetter === letter
                     ? 'bg-tea-gold/15 text-tea-gold'
                     : 'text-tea-text-sec hover:text-tea-text-sec'
@@ -284,7 +284,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                                       setActiveCategory('all');
                                       setActiveLetter(null);
                                     }}
-                                    className="px-2 py-1 text-tea-gold/80 text-ui-11 font-sans bg-tea-gold/[0.06] rounded-lg cursor-pointer hover:bg-tea-gold/[0.12] transition-colors"
+                                    className="px-2 py-1 text-tea-gold/80 text-ui-11 font-sans bg-tea-gold/[0.06] rounded-xl cursor-pointer hover:bg-tea-gold/[0.12] transition-colors"
                                   >
                                     {related.term}
                                     {related.chineseCharacters && (
@@ -336,7 +336,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
         <div className="mt-10 text-center">
           <button
             onClick={onExpandClick}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-tea-text/[0.04] text-tea-text-sec rounded-lg hover:bg-tea-gold/10 hover:text-tea-gold transition-colors text-xs uppercase tracking-[0.12em] font-sans"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-tea-text/[0.04] text-tea-text-sec rounded-xl hover:bg-tea-gold/10 hover:text-tea-gold transition-colors text-xs uppercase tracking-[0.12em] font-sans"
           >
             View Full Glossary
             <Icons.ChevronRight className="w-3.5 h-3.5" />

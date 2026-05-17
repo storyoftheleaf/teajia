@@ -137,7 +137,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
                 zIndex: 9999,
                 pointerEvents: 'none',
               }}
-              className="max-w-[200px] px-3 py-2 rounded-lg bg-tea-surface text-tea-text text-xs leading-relaxed shadow-lg"
+              className="max-w-[200px] px-3 py-2 rounded-xl bg-tea-surface text-tea-text text-xs leading-relaxed shadow-lg"
             >
               {content}
               <div

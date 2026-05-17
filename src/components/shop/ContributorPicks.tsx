@@ -56,7 +56,7 @@ export const ContributorPicks: React.FC<ContributorPicksProps> = ({
             onClick={() => onItemSelect?.(item)}
             className="shrink-0 w-32 text-left group"
           >
-            <div className="w-32 h-32 rounded-lg overflow-hidden bg-tea-surface border border-tea-border mb-2">
+            <div className="w-32 h-32 rounded-xl overflow-hidden bg-tea-surface border border-tea-border mb-2">
               {item.image ? (
                 <img
                   src={item.image}

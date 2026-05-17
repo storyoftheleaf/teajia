@@ -31,7 +31,7 @@ const Threshold = ({ children }: { children: string }) => (
 const ServiceCTA = ({ label, onClick, variant = 'primary' }: { label: string; onClick: () => void; variant?: 'primary' | 'secondary' }) => (
   <button onClick={onClick}
     className={`text-ui-11 uppercase tracking-[0.1em] transition-colors duration-300 min-h-[44px]
-               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-md
                ${variant === 'primary'
                  ? 'text-tea-gold hover:text-tea-gold/70 font-medium'
                  : 'text-tea-text-dim hover:text-tea-gold font-normal'

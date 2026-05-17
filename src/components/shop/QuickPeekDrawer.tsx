@@ -100,7 +100,7 @@ export const QuickPeekDrawer: React.FC<QuickPeekDrawerProps> = ({ item, onClose,
         {/* Content */}
         <div className="p-6 space-y-5">
           {/* Image */}
-          <div className="aspect-square rounded-lg overflow-hidden bg-tea-text/5">
+          <div className="aspect-square rounded-xl overflow-hidden bg-tea-text/5">
             {item.image ? (
               <img
                 src={item.image}

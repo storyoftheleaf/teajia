@@ -73,7 +73,7 @@ export function TastingEventsList() {
                 <button
                   type="button"
                   onClick={() => navigate(`/admin/tasting-events/${s.id}`)}
-                  className="w-full flex items-center gap-4 py-4 text-left hover:bg-tea-elevated px-3 -mx-3 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-4 py-4 text-left hover:bg-tea-elevated px-3 -mx-3 rounded-xl transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

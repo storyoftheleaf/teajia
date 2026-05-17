@@ -90,7 +90,7 @@ export const TeaReviewsComparison: React.FC<TeaReviewsComparisonProps> = ({ teaK
                     {flavors.map((f) => (
                       <span
                         key={f}
-                        className="text-ui-10 text-tea-text-sec bg-tea-elevated px-1.5 py-0.5 rounded-sm"
+                        className="text-ui-10 text-tea-text-sec bg-tea-elevated px-1.5 py-0.5 rounded-md"
                         style={{ fontFamily: 'var(--font-body)' }}
                       >
                         {f}

@@ -18,7 +18,7 @@ const CardContainerComponent: React.FC<CardContainerProps> = ({
   style,
 }) => {
   return (
-    <div className={`rounded-lg overflow-hidden transition-all duration-300 bg-tea-surface ${className}`} style={style}>
+    <div className={`rounded-xl overflow-hidden transition-all duration-300 bg-tea-surface ${className}`} style={style}>
       {children}
     </div>
   );

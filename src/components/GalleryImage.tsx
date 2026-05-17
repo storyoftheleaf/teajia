@@ -57,7 +57,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
   return (
     <>
       <div
-        className="relative group overflow-hidden rounded-sm cursor-pointer bg-tea-gold/10"
+        className="relative group overflow-hidden rounded-md cursor-pointer bg-tea-gold/10"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -119,7 +119,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
 
         {/* Attribution */}
         {image.attribution && isHovered && (
-          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-sm text-tea-text text-xs">
+          <div className="absolute bottom-16 left-4 right-4 bg-black/80 backdrop-blur-sm p-3 rounded-md text-tea-text text-xs">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-tea-text/80 uppercase tracking-[0.15em] text-ui-10 mb-1">

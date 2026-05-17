@@ -48,7 +48,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
               key={item.id}
               className="flex items-center gap-4 py-3.5 px-1 group text-left hover:bg-tea-elevated/50 transition-colors min-h-[44px]"
             >
-              <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0 bg-tea-green/10 dark:bg-green-500/20 text-tea-green dark:text-green-400">
+              <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-tea-green/10 dark:bg-green-500/20 text-tea-green dark:text-green-400">
                 <Icons.Download className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
@@ -60,7 +60,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm hidden sm:inline ${TYPE_COLORS.guide}`}>
+                <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md hidden sm:inline ${TYPE_COLORS.guide}`}>
                   PDF
                 </span>
                 <Icons.Next className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
@@ -81,7 +81,7 @@ export const VisualGuides: React.FC<VisualGuidesProps> = ({ onBack }) => {
               key={item.id}
               className="group rounded-[1px] p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors text-left min-h-[44px]"
             >
-              <div className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
+              <div className="w-10 h-10 rounded-md flex items-center justify-center mb-3 bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
                 {(item.iconKey && ICON_MAP[item.iconKey]) || <Icons.Book className="w-6 h-6" />}
               </div>
               <h3 className="font-serif text-sm font-medium text-tea-text mb-1">

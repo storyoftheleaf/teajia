@@ -386,7 +386,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
               type="button"
               onClick={() => window.print()}
               disabled={!hasSelection}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors ${
                 hasSelection
                   ? 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90'
                   : 'bg-tea-surface text-tea-text-dim cursor-not-allowed'
@@ -436,7 +436,7 @@ export const SampleLabelSheet: React.FC<SampleLabelSheetProps> = ({
                 onChange={() => toggleOne(s.id)}
               />
               <span
-                className={`flex-shrink-0 w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
+                className={`flex-shrink-0 w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-colors ${
                   selectedIds.has(s.id)
                     ? 'bg-tea-gold border-tea-gold'
                     : 'border-tea-border bg-transparent'

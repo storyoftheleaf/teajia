@@ -118,7 +118,7 @@ import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
 
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
-const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSurfaceVariant }> = ({ onBack, surfaceVariant = 'classic' }) => {
+const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSurfaceVariant }> = ({ onBack, surfaceVariant = 'playbook' }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
   const entryId = params.get('entry');
@@ -420,7 +420,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   if (!isConfigured) {
     return (
       <div className="flex min-h-[100dvh] bg-tea-bg text-tea-text items-center justify-center p-6">
-        <div className="bg-tea-surface border border-tea-border p-8 rounded-lg max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+        <div className="bg-tea-surface border border-tea-border p-8 rounded-xl max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-tea-gold to-tea-gold/50"></div>
             <div className="mb-6 flex justify-center">
               <div className="p-4 bg-tea-gold/10 rounded-full border border-tea-accent-sub">
@@ -565,7 +565,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                  )}
                  {/* Source/vendor suggestions dropdown */}
                  {showSourceSuggestions && matchingVendors.length > 0 && (
-                   <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-lg shadow-lg overflow-hidden z-priority">
+                   <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-xl shadow-lg overflow-hidden z-priority">
                      <div className="px-3 py-1.5 text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border">
                        Sources
                      </div>
@@ -589,7 +589,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                </div>
              </>
            ) : (
-             <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-lg px-3 py-1 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
+             <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-xl px-3 py-1 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
                 <Search size={13} />
                 <span className="truncate">Search...</span>
              </button>
@@ -653,7 +653,14 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="compass-playbook" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate(-1)} surfaceVariant="playbook" />
+                    <CompassWithMode onBack={() => navigate(-1)} />
+                  </PageTransition>
+                </ProtectedRoute>
+              } />
+              <Route path="compass-current" element={
+                <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
+                  <PageTransition>
+                    <CompassWithMode onBack={() => navigate(-1)} surfaceVariant="classic" />
                   </PageTransition>
                 </ProtectedRoute>
               } />

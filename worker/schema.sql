@@ -186,17 +186,26 @@ CREATE TABLE IF NOT EXISTS invoices (
     deleted_at TEXT,                          -- Soft-delete timestamp
     notes TEXT,                              -- Free-text notes on the invoice
     source_event_id TEXT,                    -- FK to events table (sale attributed to an event)
+    payment_status TEXT DEFAULT 'unpaid',    -- unpaid | partial | paid
+    payment_date TEXT,
+    payment_method TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
 -- 4. Invoice Line Items Table
 CREATE TABLE IF NOT EXISTS invoice_line_items (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    account_id TEXT,
     invoice_id TEXT REFERENCES invoices(id),
     product_id TEXT REFERENCES products(id),
+    custom_name TEXT,
     quantity INTEGER NOT NULL,
     price_at_sale REAL NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_account_invoice_number_active
+  ON invoices(account_id, invoice_number)
+  WHERE deleted_at IS NULL;
 
 -- 5. Users Table
 CREATE TABLE IF NOT EXISTS users (
@@ -211,6 +220,19 @@ CREATE TABLE IF NOT EXISTS users (
     admin_requested_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS mcp_confirmation_tickets (
+  token_hash TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  consumed_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mcp_confirmation_tickets_account_active
+  ON mcp_confirmation_tickets(account_id, consumed_at, expires_at);
 
 -- Platform-level audit log (cross-account admin actions)
 CREATE TABLE IF NOT EXISTS platform_audit_log (
@@ -489,7 +511,8 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
     scopes TEXT NOT NULL DEFAULT '["inventory:read","stock:write","customers:read","sales:write"]',
     created_at TEXT DEFAULT (datetime('now')),
     last_used_at TEXT,
-    revoked_at TEXT
+    revoked_at TEXT,
+    creator_tier TEXT NOT NULL DEFAULT 'account_owner'
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_tokens_hash ON mcp_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_mcp_tokens_account ON mcp_tokens(account_id, revoked_at);

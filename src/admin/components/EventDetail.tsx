@@ -880,7 +880,7 @@ export const EventDetail: React.FC = () => {
                                 <p className="text-ui-11 text-tea-text-dim mt-1 line-clamp-1">{space.description}</p>
                               )}
                             </div>
-                            <div className={`w-4 h-4 rounded-sm border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                            <div className={`w-4 h-4 rounded-md border flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
                               active ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'
                             }`}>
                               {active && <span className="text-tea-bg text-ui-10 font-semibold leading-none">✓</span>}

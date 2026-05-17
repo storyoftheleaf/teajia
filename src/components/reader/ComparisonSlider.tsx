@@ -88,7 +88,7 @@ const ComparisonSlider: React.FC<ComparisonSliderProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-lg select-none"
+      className="relative w-full overflow-hidden rounded-xl select-none"
       style={{ cursor: dragging ? 'col-resize' : 'default' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

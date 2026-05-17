@@ -526,7 +526,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   type="checkbox"
                   checked={!!formData.show_in_guest_list}
                   onChange={(e) => updateField('show_in_guest_list', e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded-sm border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
+                  className="mt-0.5 w-4 h-4 rounded-md border border-tea-border bg-tea-bg accent-tea-gold cursor-pointer"
                 />
                 <span className="text-ui-12 text-tea-text-sec leading-relaxed group-hover:text-tea-text transition-colors">
                   Show my first name to other confirmed guests

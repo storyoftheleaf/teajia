@@ -19,7 +19,7 @@ export const TopRightUtilities: React.FC<TopRightUtilitiesProps> = ({
       {/* Cart Button - Min 44x44px touch target */}
       <button
         onClick={onCartClick}
-        className="p-3 md:p-2 rounded-lg transition-all duration-300 hover:bg-tea-text/10 group relative min-w-[44px] min-h-[44px] flex items-center justify-center"
+        className="p-3 md:p-2 rounded-xl transition-all duration-300 hover:bg-tea-text/10 group relative min-w-[44px] min-h-[44px] flex items-center justify-center"
         title="Shopping cart"
         aria-label="Open shopping cart"
       >
@@ -36,7 +36,7 @@ export const TopRightUtilities: React.FC<TopRightUtilitiesProps> = ({
         )}
 
         {/* Tooltip */}
-        <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-tea-elevated text-tea-text text-xs rounded-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+        <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-tea-elevated text-tea-text text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
           Cart {cartItemCount > 0 && `(${cartItemCount})`}
         </span>
       </button>
@@ -44,14 +44,14 @@ export const TopRightUtilities: React.FC<TopRightUtilitiesProps> = ({
       {/* Account Button - Min 44x44px touch target */}
       <button
         onClick={onAccountClick}
-        className="p-3 md:p-2 rounded-lg transition-all duration-300 hover:bg-tea-text/10 group relative min-w-[44px] min-h-[44px] flex items-center justify-center"
+        className="p-3 md:p-2 rounded-xl transition-all duration-300 hover:bg-tea-text/10 group relative min-w-[44px] min-h-[44px] flex items-center justify-center"
         title="Account settings"
         aria-label="Open account settings"
       >
         <Icons.User className="w-5 h-5 text-tea-text/70 group-hover:text-tea-text dark:group-hover:text-tea-text transition-colors" />
 
         {/* Tooltip */}
-        <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-tea-elevated text-tea-text text-xs rounded-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+        <span className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-tea-elevated text-tea-text text-xs rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
           Account
         </span>
       </button>

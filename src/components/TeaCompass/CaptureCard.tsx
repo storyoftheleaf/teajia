@@ -699,10 +699,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   const shellClass = isPlaybookSurface
     ? 'bg-tea-surface border border-tea-border rounded-md p-5 md:p-6 space-y-5'
-    : 'bg-tea-surface border border-tea-border rounded-2xl px-4 py-4 space-y-4';
+    : 'bg-tea-surface border border-tea-border rounded-xl px-4 py-4 space-y-4';
   const sourceShellClass = isPlaybookSurface
     ? 'rounded-md border border-tea-border bg-tea-bg px-3 py-3'
-    : 'rounded-2xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5';
+    : 'rounded-xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5';
   const fieldClass = isPlaybookSurface
     ? 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim'
     : 'bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70';
@@ -747,7 +747,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       (v) => Array.isArray(v) ? v.length > 0 : v != null
     );
     return (
-      <div className={isPlaybookSurface ? 'bg-tea-surface border border-tea-border rounded-md px-4 py-3 space-y-2' : 'bg-tea-surface rounded-2xl px-4 py-2.5 space-y-2'}>
+      <div className={isPlaybookSurface ? 'bg-tea-surface border border-tea-border rounded-md px-4 py-3 space-y-2' : 'bg-tea-surface rounded-xl px-4 py-2.5 space-y-2'}>
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -758,7 +758,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
           {entry.type && chipStyle && (
             <span
-              className="shrink-0 text-ui-11 font-medium px-2.5 py-1 rounded-lg"
+              className="shrink-0 text-ui-11 font-medium px-2.5 py-1 rounded-xl"
               style={{ backgroundColor: chipStyle.bg, color: chipStyle.text }}
             >
               {entry.type}
@@ -1234,13 +1234,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
                     }}
                     placeholder="e.g. Song Dynasty"
-                    className="flex-1 min-w-0 bg-tea-bg text-tea-text text-base rounded-lg px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
+                    className="flex-1 min-w-0 bg-tea-bg text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
                   />
                   <button
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-lg bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                    className="shrink-0 px-3 py-2 rounded-xl bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
                   >
                     Add
                   </button>
@@ -1304,7 +1304,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={() => handleClayPick(clay.name)}
                     aria-pressed={sel}
-                    className={`group relative flex flex-col items-start gap-2 p-3 rounded-2xl border transition-all duration-200 text-left ${
+                    className={`group relative flex flex-col items-start gap-2 p-3 rounded-xl border transition-all duration-200 text-left ${
                       sel
                         ? 'border-tea-gold/60 bg-tea-gold/[0.10]'
                         : 'border-tea-border bg-tea-elevated/40 hover:border-tea-gold/40 hover:bg-tea-gold/[0.05]'
@@ -1871,7 +1871,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="rounded-lg bg-tea-gold/[0.07] px-3 py-2.5 space-y-2">
+              <div className="rounded-xl bg-tea-gold/[0.07] px-3 py-2.5 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
@@ -1945,7 +1945,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2 py-2 rounded-lg bg-tea-gold/15 text-tea-gold text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-gold/15 text-tea-gold text-sm font-medium"
             >
               <Check size={16} />
               Added to Ledger

@@ -268,7 +268,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                 {categoryOfferings.map((offering) => (
                   <div
                     key={offering.id}
-                    className="group bg-tea-bg rounded-lg p-8 border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg md:hover:-translate-y-1 animate-[fadeIn_0.6s_ease-out]"
+                    className="group bg-tea-bg rounded-xl p-8 border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg md:hover:-translate-y-1 animate-[fadeIn_0.6s_ease-out]"
                   >
                     {/* Category Label */}
                     <div className="mb-4">
@@ -278,7 +278,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                     </div>
 
                     {/* Icon */}
-                    <div className="w-14 h-14 bg-tea-gold/8 rounded-lg flex items-center justify-center mb-6 group-hover:bg-tea-gold/15 dark:group-hover:bg-tea-gold/25 transition-colors text-tea-gold">
+                    <div className="w-14 h-14 bg-tea-gold/8 rounded-xl flex items-center justify-center mb-6 group-hover:bg-tea-gold/15 dark:group-hover:bg-tea-gold/25 transition-colors text-tea-gold">
                       {offering.icon}
                     </div>
 
@@ -307,7 +307,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
                       {offering.price && (
                         <p className="text-sm text-tea-gold font-medium">{offering.price}</p>
                       )}
-                      <button onClick={() => handleLearnMore(offering)} className="w-full py-3 px-4 bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/15 dark:hover:bg-tea-gold/25 rounded-lg font-medium transition-all duration-300 group-hover:bg-tea-gold group-hover:text-tea-bg">
+                      <button onClick={() => handleLearnMore(offering)} className="w-full py-3 px-4 bg-tea-gold/8 text-tea-gold hover:bg-tea-gold/15 dark:hover:bg-tea-gold/25 rounded-xl font-medium transition-all duration-300 group-hover:bg-tea-gold group-hover:text-tea-bg">
                         Learn More
                       </button>
                     </div>
@@ -333,7 +333,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
           {TEA_SPACES.map(space => (
             <CardContainer key={space.id} className="hover:-translate-y-0.5 transition-all">
               <div className="p-5">
-                <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">
+                <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-gold/8 text-tea-gold border border-tea-border">
                   {SPACE_TYPE_LABELS[space.spaceType]}
                 </span>
                 <h3 className="font-serif text-lg text-tea-text mt-3 mb-2">
@@ -357,7 +357,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
 
         <button
           onClick={openDesignInquiry}
-          className="flex items-center justify-between w-full py-4 px-5 rounded-lg bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
+          className="flex items-center justify-between w-full py-4 px-5 rounded-xl bg-tea-gold/5 hover:bg-tea-gold/10 transition-colors group"
         >
           <div className="flex items-center gap-3">
             <Icons.Sparkles className="w-5 h-5 text-tea-gold" />
@@ -389,7 +389,7 @@ export const OfferingsPage: React.FC<OfferingsPageProps> = ({ onLearnMoreClick, 
         </p>
         <button
           onClick={() => setInquiryModalOpen(true)}
-          className="px-8 lg:px-12 py-3 lg:py-4 bg-tea-gold text-tea-bg font-medium rounded-lg hover:bg-tea-gold/90 transition-colors"
+          className="px-8 lg:px-12 py-3 lg:py-4 bg-tea-gold text-tea-bg font-medium rounded-xl hover:bg-tea-gold/90 transition-colors"
         >
           Contact Us
         </button>

@@ -30,7 +30,7 @@ export const TermPreviewList: React.FC<TermPreviewListProps> = ({
               <h4 className="font-serif text-base text-tea-text leading-snug font-medium">
                 {term.term}
               </h4>
-              <span className="flex-shrink-0 text-ui-10 tracking-wider text-tea-gold-dark/70 font-sans border border-tea-border px-2 py-0.5 rounded-sm">
+              <span className="flex-shrink-0 text-ui-10 tracking-wider text-tea-gold-dark/70 font-sans border border-tea-border px-2 py-0.5 rounded-md">
                 {term.categoryLabel}
               </span>
             </div>
@@ -42,7 +42,7 @@ export const TermPreviewList: React.FC<TermPreviewListProps> = ({
       </div>
       <button
         onClick={onViewAll}
-        className="mt-4 text-tea-gold-dark text-sm font-sans flex items-center gap-1 hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+        className="mt-4 text-tea-gold-dark text-sm font-sans flex items-center gap-1 hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-md"
       >
         {viewAllLabel}
         <Icons.ChevronRight className="w-3.5 h-3.5" />

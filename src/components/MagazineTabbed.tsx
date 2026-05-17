@@ -341,7 +341,7 @@ function EditorialSplit({ stories, onCardClick, onAuthorClick }: { stories: Feed
         >
           {/* Image with mark stamp */}
           <div className="relative">
-            <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-sm" />
+            <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-md" />
             <div
               className="absolute pointer-events-none"
               style={{ bottom: 8, right: 8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 42, color: 'var(--tea-gold)', opacity: 0.18, lineHeight: 0.8 }}
@@ -381,7 +381,7 @@ function HeroCards({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[
         <button
           key={story.id}
           onClick={() => onCardClick(story)}
-          className="w-full text-left relative overflow-hidden rounded-sm border border-tea-border active:opacity-90 transition-opacity"
+          className="w-full text-left relative overflow-hidden rounded-md border border-tea-border active:opacity-90 transition-opacity"
           style={{ animation: `revealUp 0.5s ease-out ${i * 0.08}s both` }}
         >
           <StoryImage src={story.thumbnailUrl} aspectRatio="4/5" />
@@ -424,7 +424,7 @@ function MixedGrid({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[
       {hero && (
         <button
           onClick={() => onCardClick(hero)}
-          className="w-full text-left relative overflow-hidden rounded-sm border border-tea-border mb-4 active:opacity-90 transition-opacity"
+          className="w-full text-left relative overflow-hidden rounded-md border border-tea-border mb-4 active:opacity-90 transition-opacity"
           style={{ animation: 'revealUp 0.5s ease-out both' }}
         >
           <StoryImage src={hero.thumbnailUrl} aspectRatio="3/4" />
@@ -451,7 +451,7 @@ function MixedGrid({ stories, onCardClick, onAuthorClick }: { stories: FeedItem[
           <button
             key={story.id}
             onClick={() => onCardClick(story)}
-            className="flex flex-col text-left rounded-sm overflow-hidden border border-tea-border active:opacity-90 transition-opacity"
+            className="flex flex-col text-left rounded-md overflow-hidden border border-tea-border active:opacity-90 transition-opacity"
             style={{ animation: `revealUp 0.45s ease-out ${(i + 1) * 0.06}s both` }}
           >
             <StoryImage src={story.thumbnailUrl} aspectRatio="1/1" />
@@ -555,7 +555,7 @@ function OffsetInset({ stories, onCardClick, onAuthorClick }: { stories: FeedIte
         >
           {/* Floated image inset */}
           <div style={{ float: 'right', width: 100, height: 130, marginLeft: 18, marginBottom: 8, position: 'relative' }}>
-            <div className="w-full h-full relative overflow-hidden rounded-sm" style={{ background: PH_GRADIENT }}>
+            <div className="w-full h-full relative overflow-hidden rounded-md" style={{ background: PH_GRADIENT }}>
               {story.thumbnailUrl && !isStockImage(story.thumbnailUrl) && (
                 <img src={story.thumbnailUrl} alt="" loading="lazy" className="w-full h-full object-cover" />
               )}
@@ -610,7 +610,7 @@ function AlternatingMargin({ stories, onCardClick, onAuthorClick }: { stories: F
           >
             {imgLeft && (
               <div className="relative">
-                <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-sm" />
+                <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-md" />
                 <div
                   className="absolute pointer-events-none"
                   style={{ bottom: 8, right: 8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 48, color: 'var(--tea-gold)', opacity: 0.16, lineHeight: 0.8 }}
@@ -636,7 +636,7 @@ function AlternatingMargin({ stories, onCardClick, onAuthorClick }: { stories: F
             </div>
             {!imgLeft && (
               <div className="relative">
-                <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-sm" />
+                <StoryImage src={story.thumbnailUrl} aspectRatio="3/4" className="rounded-md" />
                 <div
                   className="absolute pointer-events-none"
                   style={{ bottom: 8, right: 8, fontFamily: "'Ma Shan Zheng','Noto Serif SC',cursive", fontSize: 48, color: 'var(--tea-gold)', opacity: 0.16, lineHeight: 0.8 }}
@@ -729,12 +729,12 @@ function LoadingSkeleton() {
           className="grid items-center py-5 border-b border-tea-border animate-pulse"
           style={{ gridTemplateColumns: '38% 1fr', gap: 18 }}
         >
-          <div className="rounded-sm bg-tea-surface" style={{ aspectRatio: '3/4' }} />
+          <div className="rounded-md bg-tea-surface" style={{ aspectRatio: '3/4' }} />
           <div className="flex flex-col gap-2">
-            <div className="h-2 w-14 bg-tea-surface rounded-sm" />
-            <div className="h-5 w-4/5 bg-tea-surface rounded-sm" />
-            <div className="h-3 w-full bg-tea-elevated rounded-sm" />
-            <div className="h-3 w-3/4 bg-tea-elevated rounded-sm" />
+            <div className="h-2 w-14 bg-tea-surface rounded-md" />
+            <div className="h-5 w-4/5 bg-tea-surface rounded-md" />
+            <div className="h-3 w-full bg-tea-elevated rounded-md" />
+            <div className="h-3 w-3/4 bg-tea-elevated rounded-md" />
           </div>
         </div>
       ))}

@@ -21,7 +21,7 @@ const TeawareCard: React.FC<{
       hidden: { opacity: 0, y: 20 },
       visible: { opacity: 1, y: 0 }
     }}
-    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-sec/50 transition-all duration-500 flex flex-col rounded-lg shadow-2xl"
+    className="group relative border border-tea-border bg-tea-surface overflow-hidden hover:border-tea-text-sec/50 transition-all duration-500 flex flex-col rounded-xl shadow-2xl"
   >
     <div className="aspect-[4/3] overflow-hidden relative bg-tea-bg/50 flex items-center justify-center">
       {product.imageUrl ? (

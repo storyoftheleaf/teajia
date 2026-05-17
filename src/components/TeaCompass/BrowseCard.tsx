@@ -193,7 +193,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   return (
     <>
       <div
-        className={`relative bg-tea-surface border border-tea-border rounded-lg overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
+        className={`relative bg-tea-surface border border-tea-border rounded-xl overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
         style={{
           ...(isCompareSelected ? { outline: '2px solid var(--tea-gold)', outlineOffset: '-2px' } : {}),
         }}

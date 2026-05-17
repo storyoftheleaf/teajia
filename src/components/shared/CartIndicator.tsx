@@ -27,7 +27,7 @@ export const CartIndicator: React.FC<CartIndicatorProps> = ({ itemCount, onOpen 
           transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
           aria-label={`View cart, ${itemCount} item${itemCount !== 1 ? 's' : ''}`}
         >
-          <div className="flex items-center gap-2 pl-3 pr-3.5 py-2.5 bg-tea-surface/95 backdrop-blur-md border border-tea-border shadow-lg rounded-sm">
+          <div className="flex items-center gap-2 pl-3 pr-3.5 py-2.5 bg-tea-surface/95 backdrop-blur-md border border-tea-border shadow-lg rounded-md">
             <Icons.Bag className="w-4 h-4 text-tea-text-sec" strokeWidth={1.8} />
             <span className="text-xs font-serif text-tea-text tracking-wide">{itemCount}</span>
           </div>

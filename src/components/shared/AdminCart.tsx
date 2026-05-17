@@ -444,7 +444,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             <p className="text-sm text-gray-500 uppercase tracking-widest mb-8">Fine Tea Inventory & Sales</p>
             <div className="border-b border-tea-border mb-8" />
           </div>
-          <div className="bg-tea-surface border border-tea-border p-8 rounded-2xl shadow-2xl text-center w-full print:border-none print:shadow-none print:bg-white print:p-0 print:text-left">
+          <div className="bg-tea-surface border border-tea-border p-8 rounded-xl shadow-2xl text-center w-full print:border-none print:shadow-none print:bg-white print:p-0 print:text-left">
             <div className="mx-auto bg-tea-gold/10 text-tea-gold w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-tea-border print:hidden">
               <Clock size={32} />
             </div>
@@ -466,7 +466,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               <p className="text-sm text-gray-500 uppercase">{isPurchase ? 'Vendor' : 'Customer'}</p>
               <p className="text-lg font-bold text-black">{lastInvoice.customer_name}</p>
             </div>
-            <div className="bg-tea-bg p-4 rounded-lg border border-tea-border mb-6 text-left print:bg-white print:border-none">
+            <div className="bg-tea-bg p-4 rounded-xl border border-tea-border mb-6 text-left print:bg-white print:border-none">
               <div className="space-y-4 mb-4 print:space-y-2">
                 {cart.map(item => (
                   <div key={item.productId} className="flex justify-between items-start text-sm border-b border-tea-border pb-2 mb-2 print:border-tea-border">
@@ -504,43 +504,43 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               {isPurchase && lastInvoice._purchaseMessage && (
                 <button
                   onClick={() => { navigator.clipboard.writeText(lastInvoice._purchaseMessage); showToast('Copied.', 'success'); }}
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors"
+                  className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors"
                 >
                   <Share2 size={16} /> Copy Order Text
                 </button>
               )}
               {isPurchase && lastInvoice._vendorPhone && lastInvoice._vendorPhone.length >= 7 ? (
                 <a href={buildWhatsAppUrl(lastInvoice._vendorPhone, lastInvoice._purchaseMessage || '')} target="_blank" rel="noreferrer"
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
+                  className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
                   <Share2 size={16} /> Send to Vendor via WhatsApp
                 </a>
               ) : !isPurchase && customerPhone ? (
                 <a href={generateWhatsAppLink()} target="_blank" rel="noreferrer"
-                  className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
+                  className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm bg-tea-gold/10 hover:bg-tea-gold/20 text-tea-gold border border-tea-border transition-colors">
                   <Share2 size={16} /> Share on WhatsApp
                 </a>
               ) : !isPurchase ? (
-                <div className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-bg text-tea-text-sec border border-tea-border cursor-not-allowed">
+                <div className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm bg-tea-bg text-tea-text-sec border border-tea-border cursor-not-allowed">
                   <Share2 size={16} /> Share on WhatsApp
                 </div>
               ) : null}
               <button
                 onClick={handleDownloadPdf}
                 disabled={pdfLoading}
-                className="flex w-full py-3 rounded-lg font-medium items-center justify-center gap-2 text-sm bg-tea-surface hover:bg-tea-elevated/50 text-tea-text border border-tea-border transition-colors"
+                className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm bg-tea-surface hover:bg-tea-elevated/50 text-tea-text border border-tea-border transition-colors"
               >
                 {pdfLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
                 {pdfLoading ? 'Generating...' : isPurchase ? 'Download PO as PDF' : 'Download Invoice PDF'}
               </button>
               <div className="h-px bg-tea-border my-4" />
               <button onClick={() => { handleStartNewSale(); if (isPurchase) setCartDirection('sale'); }}
-                className="w-full bg-tea-gold text-tea-bg py-3 rounded-lg font-medium hover:bg-tea-gold/90 transition-colors flex items-center justify-center gap-2 text-sm">
+                className="w-full bg-tea-gold text-tea-bg py-3 rounded-xl font-medium hover:bg-tea-gold/90 transition-colors flex items-center justify-center gap-2 text-sm">
                 <RefreshCcw size={16} /> {isPurchase ? 'Done' : 'Start New Sale'}
               </button>
               {!isPurchase && (
                 <button
                   onClick={() => { onClose(); navigate(`/admin/orders?search=${encodeURIComponent(lastInvoice.invoice_number)}`); }}
-                  className="w-full bg-transparent border border-tea-border text-tea-text-sec py-2.5 rounded-lg font-medium hover:text-tea-text hover:bg-tea-surface transition-colors flex items-center justify-center gap-2 text-xs mt-2"
+                  className="w-full bg-transparent border border-tea-border text-tea-text-sec py-2.5 rounded-xl font-medium hover:text-tea-text hover:bg-tea-surface transition-colors flex items-center justify-center gap-2 text-xs mt-2"
                 >
                   <ExternalLink size={14} /> View in Orders
                 </button>
@@ -612,7 +612,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               onChange={(e) => handleCustomerSearch(e.target.value)}
               onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              className={`w-full bg-tea-bg border rounded-lg px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
+              className={`w-full bg-tea-bg border rounded-xl px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
                 validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
               }`}
               placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
@@ -649,7 +649,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             )}
           </div>
           {dedupSuggestion && (
-            <div className="flex items-center justify-between bg-tea-gold/10 rounded-lg px-3 py-2 text-xs">
+            <div className="flex items-center justify-between bg-tea-gold/10 rounded-xl px-3 py-2 text-xs">
               <span className="text-tea-gold font-serif italic">
                 Did you mean "{dedupSuggestion.name}"?
               </span>
@@ -668,7 +668,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             type="text"
             value={customerPhone}
             onChange={(e) => setCustomerPhone(e.target.value)}
-            className="w-full bg-tea-bg border border-tea-border rounded-lg px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec placeholder-tea-text-sec/50"
+            className="w-full bg-tea-bg border border-tea-border rounded-xl px-3 py-2 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-text-sec placeholder-tea-text-sec/50"
             placeholder={isPurchase ? 'Vendor Contact (Optional)' : 'WhatsApp (Optional)'}
           />
         </div>
@@ -676,7 +676,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         {/* Undo toast */}
         {undoState && (
           <div className="mb-4 animate-[slideUp_0.3s_ease-out]">
-            <div className="flex items-center justify-between bg-tea-surface text-tea-text border border-tea-border px-4 py-3 rounded-lg">
+            <div className="flex items-center justify-between bg-tea-surface text-tea-text border border-tea-border px-4 py-3 rounded-xl">
               <span className="text-xs font-sans">{undoState.label} removed</span>
               <button
                 onClick={() => {
@@ -704,7 +704,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
               <button
                 onClick={() => { onClose(); navigate('/admin/inventory'); }}
-                className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-lg hover:bg-tea-surface border border-tea-border"
+                className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-xl hover:bg-tea-surface border border-tea-border"
               >
                 <Package size={12} /> Browse Inventory
               </button>
@@ -714,7 +714,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           <div className="space-y-4">
             {cart.map((item, idx) => (
               <div key={item.productId} className="group bg-tea-surface border border-tea-border rounded-xl p-3 hover:border-tea-text-sec/50 transition-colors flex gap-3">
-                <div className="w-12 h-12 bg-tea-bg rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-tea-border">
+                <div className="w-12 h-12 bg-tea-bg rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-tea-border">
                   {item.product.imageUrl ? (
                     <img src={item.product.imageUrl} className="w-full h-full object-cover opacity-70" alt="" loading="lazy" />
                   ) : (
@@ -732,7 +732,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                   </div>
                   <p className="text-ui-10 text-tea-text-sec truncate mb-2 font-serif italic">{item.product.productName}</p>
                   <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2 bg-tea-bg rounded-lg border border-tea-border px-1.5 py-0.5">
+                    <div className="flex items-center gap-2 bg-tea-bg rounded-xl border border-tea-border px-1.5 py-0.5">
                       <input
                         type="number"
                         value={item.quantity}
@@ -768,7 +768,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         <div className="flex gap-4">
           <div className="flex-1">
             <label className="text-ui-9 text-tea-text-sec uppercase block mb-1">Currency</label>
-            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+            <div className="relative bg-tea-bg border border-tea-border rounded-xl px-2">
               <select
                 value={displayCurrency}
                 onChange={(e) => setDisplayCurrency(e.target.value as Currency)}
@@ -780,7 +780,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           </div>
           <div className="flex-1">
             <label className="text-ui-9 text-tea-text-sec uppercase block mb-1">Shipping (USD)</label>
-            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+            <div className="relative bg-tea-bg border border-tea-border rounded-xl px-2">
               <input
                 type="number"
                 min={0}
@@ -795,7 +795,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         {!isPurchase && allEvents.length > 0 && (
           <div>
             <label className="text-ui-9 text-tea-text-sec uppercase block mb-1">Source Event (Optional)</label>
-            <div className="relative bg-tea-bg border border-tea-border rounded-lg px-2">
+            <div className="relative bg-tea-bg border border-tea-border rounded-xl px-2">
               <select
                 value={sourceEventId || ''}
                 onChange={(e) => setSourceEventId(e.target.value || null)}
@@ -825,7 +825,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
           <button
             onClick={handleCompleteSale}
             disabled={isProcessing || isEmpty}
-            className={`w-full py-4 text-xs font-semibold rounded-lg flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-4 text-xs font-semibold rounded-md flex items-center justify-center gap-2 transition-all ${
               isEmpty
                 ? 'bg-tea-bg text-tea-text-sec cursor-not-allowed border border-tea-border'
                 : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'

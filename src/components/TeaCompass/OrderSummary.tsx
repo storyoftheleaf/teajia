@@ -450,7 +450,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center justify-center gap-2 py-4 rounded-lg bg-tea-gold/15 text-tea-gold"
+                  className="flex items-center justify-center gap-2 py-4 rounded-xl bg-tea-gold/15 text-tea-gold"
                 >
                   <Check size={20} />
                   <span className="text-base font-medium uppercase tracking-wider">Purchase confirmed</span>
@@ -462,7 +462,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ open, onClose }) => 
                   onClick={handleConfirm}
                   disabled={buyingEntries.length === 0}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 rounded-lg bg-tea-gold text-tea-bg text-base font-medium
+                  className="w-full py-4 rounded-xl bg-tea-gold text-tea-bg text-base font-medium
                              uppercase tracking-wider shadow-lg transition-opacity disabled:opacity-40"
                 >
                   Confirm Purchase

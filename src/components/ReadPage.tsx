@@ -90,7 +90,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
           <section className="px-4 md:px-6 mb-10 md:mb-14">
             <button
               onClick={() => onCardClick(featuredArticle)}
-              className="w-full group relative overflow-hidden bg-tea-elevated rounded-sm"
+              className="w-full group relative overflow-hidden bg-tea-elevated rounded-md"
               style={{ aspectRatio: '3/2' }}
             >
               {featuredArticle.thumbnailUrl && (

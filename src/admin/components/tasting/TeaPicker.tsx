@@ -62,7 +62,7 @@ export function TeaPicker({ picked, onChange }: TeaPickerProps) {
             {picked.map((p, i) => (
               <li
                 key={p.id}
-                className="flex items-center gap-2 rounded-lg bg-tea-elevated px-3 py-2"
+                className="flex items-center gap-2 rounded-xl bg-tea-elevated px-3 py-2"
               >
                 <span className="font-display text-ui-13 text-tea-gold-lt w-7 text-center">
                   {romanShort(i)}
@@ -111,12 +111,12 @@ export function TeaPicker({ picked, onChange }: TeaPickerProps) {
             placeholder="Search teas"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-tea-elevated rounded-lg pl-9 pr-3 py-2 text-ui-13 text-tea-text placeholder-tea-text-sec focus:outline-none focus:ring-1 focus:ring-tea-gold"
+            className="w-full bg-tea-elevated rounded-xl pl-9 pr-3 py-2 text-ui-13 text-tea-text placeholder-tea-text-sec focus:outline-none focus:ring-1 focus:ring-tea-gold"
           />
         </div>
       </label>
 
-      <div className="max-h-72 overflow-auto rounded-lg border border-tea-border divide-y divide-tea-border">
+      <div className="max-h-72 overflow-auto rounded-xl border border-tea-border divide-y divide-tea-border">
         {isLoading && <p className="px-3 py-2 text-ui-12 text-tea-text-sec">Loading…</p>}
         {!isLoading && filtered.length === 0 && (
           <p className="px-3 py-2 text-ui-12 text-tea-text-sec">No matches.</p>

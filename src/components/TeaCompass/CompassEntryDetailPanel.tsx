@@ -147,7 +147,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
                   key={i}
                   src={url}
                   alt={`Photo ${i + 1}`}
-                  className="w-full aspect-[4/3] object-cover rounded-lg"
+                  className="w-full aspect-[4/3] object-cover rounded-xl"
                   loading="lazy"
                 />
               ))}
@@ -213,7 +213,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         <button
           type="button"
           onClick={() => onEdit(entryId)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
         >
           Edit Entry
           <ArrowRight size={13} />
@@ -240,7 +240,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
               status: isWishlisted ? 'noted' : 'want',
             })
           }
-          className="p-2 rounded-lg hover:bg-tea-surface transition-colors"
+          className="p-2 rounded-xl hover:bg-tea-surface transition-colors"
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >

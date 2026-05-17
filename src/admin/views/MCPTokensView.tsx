@@ -173,9 +173,9 @@ export const MCPTokensView: React.FC = () => {
           </div>
 
           <div className="mt-12 pt-6 border-t border-tea-border">
-            <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-3`}>How to connect Claude desktop</h2>
+            <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-3`}>How to connect an MCP client</h2>
             <ol className="text-tea-text-sec text-ui-14 leading-[1.7] list-decimal pl-5 space-y-2">
-              <li>Open Claude desktop &rarr; Settings &rarr; Developer &rarr; Edit MCP config.</li>
+              <li>Open your MCP client settings. In Claude desktop this is Settings &rarr; Developer &rarr; Edit MCP config.</li>
               <li>
                 Add a server entry pointing at this worker&apos;s <code className="text-tea-text">/mcp</code> endpoint
                 with the bearer token from above. Example:
@@ -253,7 +253,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
           {scopeList.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {scopeList.map(s => (
-                <span key={s} className="text-ui-11 text-tea-text-sec bg-tea-bg border border-tea-border px-1.5 py-0.5 rounded-sm font-mono">
+                <span key={s} className="text-ui-11 text-tea-text-sec bg-tea-bg border border-tea-border px-1.5 py-0.5 rounded-md font-mono">
                   {s}
                 </span>
               ))}

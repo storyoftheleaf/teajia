@@ -99,7 +99,7 @@ export function ShareScreen({ sessionId }: ShareScreenProps) {
 
       {/* QR */}
       <div className="flex flex-col items-center">
-        <div className="rounded-2xl bg-tea-elevated p-6">
+        <div className="rounded-xl bg-tea-elevated p-6">
           {joinUrl && (
             <QRCodeSVG
               value={joinUrl}

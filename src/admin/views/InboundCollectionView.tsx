@@ -147,7 +147,7 @@ export const InboundCollectionView: React.FC = () => {
           </section>
 
           {pub.hero_image_url && (
-            <div className="rounded-lg overflow-hidden bg-tea-elevated">
+            <div className="rounded-xl overflow-hidden bg-tea-elevated">
               <img src={pub.hero_image_url} alt="" className="w-full h-[200px] object-cover" />
             </div>
           )}
@@ -169,7 +169,7 @@ export const InboundCollectionView: React.FC = () => {
             </div>
 
             {items.length === 0 ? (
-              <p className="text-xs text-tea-text-dim py-6 text-center border border-dashed border-tea-border rounded-lg">
+              <p className="text-xs text-tea-text-dim py-6 text-center border border-dashed border-tea-border rounded-xl">
                 No products in this collection.
               </p>
             ) : (

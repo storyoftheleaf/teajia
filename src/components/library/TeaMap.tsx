@@ -20,7 +20,7 @@ export const TeaMap: React.FC<TeaMapProps> = ({ onBack }) => {
       <div className="mb-4 -mx-2 md:mx-0">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-lg bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors"
+          className="flex items-center gap-2 w-full px-3 py-3 rounded-none md:rounded-xl bg-tea-text/[0.03]  hover:bg-tea-text/[0.06] transition-colors"
         >
           <div className="w-8 h-8 rounded-full bg-tea-gold/10 flex items-center justify-center shrink-0">
             <Icons.Back className="w-4 h-4 text-tea-gold" />
@@ -57,7 +57,7 @@ export const TeaMap: React.FC<TeaMapProps> = ({ onBack }) => {
                     <h3 className="font-serif text-base text-tea-text font-medium">
                       {pin.name}
                     </h3>
-                    <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${style.color}`}>
+                    <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${style.color}`}>
                       {style.label}
                     </span>
                   </div>

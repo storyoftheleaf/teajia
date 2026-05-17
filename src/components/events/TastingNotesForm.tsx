@@ -245,7 +245,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
             value={currentNote.impression}
             onChange={(e) => updateNote(currentItem.id, 'impression', e.target.value)}
             placeholder="One-line impression..."
-            className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-sm text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+            className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
@@ -271,7 +271,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           <button
             type="button"
             onClick={() => setCurrentStep(s => s - 1)}
-            className="flex items-center gap-1.5 px-4 py-3 border border-tea-border rounded-sm text-sm text-tea-text-sec hover:text-tea-text transition-colors"
+            className="flex items-center gap-1.5 px-4 py-3 border border-tea-border rounded-md text-sm text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <ChevronLeft size={16} />
             Back
@@ -282,7 +282,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           <button
             type="button"
             onClick={() => setCurrentStep(s => s + 1)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-tea-surface border border-tea-border rounded-sm text-sm text-tea-text hover:bg-tea-elevated transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-tea-surface border border-tea-border rounded-md text-sm text-tea-text hover:bg-tea-elevated transition-colors"
           >
             Next tea
             <ChevronRight size={16} />
@@ -291,7 +291,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           <button
             onClick={handleSubmit}
             disabled={!hasAnyRating || submitMutation.isPending}
-            className="flex-1 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-sm hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
           >
             {submitMutation.isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

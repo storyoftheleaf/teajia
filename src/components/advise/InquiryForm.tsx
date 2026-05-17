@@ -194,7 +194,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
         onTouchMove={handleSheetTouchMove}
         onTouchEnd={handleSheetTouchEnd}
         className={`
-          w-full md:max-w-[520px] md:rounded-2xl rounded-t-2xl
+          w-full md:max-w-[520px] md:rounded-xl rounded-t-xl
           max-h-[90vh] md:max-h-[85vh] overflow-y-auto overscroll-contain
           bg-tea-bg
           transition-all ${reducedMotion ? '' : 'duration-250 ease-out'}

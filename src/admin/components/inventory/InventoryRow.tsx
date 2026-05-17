@@ -216,7 +216,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               className="tap-target group/verified"
             >
               <span className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text group-hover/verified:bg-tea-elevated group-hover/verified:text-tea-text-sec' : 'bg-tea-surface text-tea-border group-hover/verified:text-tea-text-sec group-hover/verified:bg-tea-bg'}`}>
-                {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-sm border border-current" />}
+                {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-md border border-current" />}
               </span>
             </button>
           </td>
@@ -320,7 +320,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                     <MoreHorizontal size={14} aria-hidden="true" />
                   </button>
                   {isDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-lg shadow-lg py-1 min-w-[160px] border border-tea-border" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
+                    <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-md shadow-lg py-1 min-w-[160px] border border-tea-border" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
                       <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
                       <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
                     </div>

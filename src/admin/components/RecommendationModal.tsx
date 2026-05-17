@@ -93,7 +93,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4">
-      <div className="bg-tea-bg border border-tea-border rounded-t-2xl sm:rounded-2xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl">
+      <div className="bg-tea-bg border border-tea-border rounded-t-xl sm:rounded-xl w-full sm:max-w-3xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border flex-shrink-0">
           <div>
@@ -118,7 +118,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search teas…"
-                  className="w-full bg-tea-surface border border-tea-border rounded-lg pl-8 pr-3 py-1.5 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
+                  className="w-full bg-tea-surface border border-tea-border rounded-xl pl-8 pr-3 py-1.5 text-sm text-tea-text focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
                 />
               </div>
             </div>
@@ -138,9 +138,9 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                     }`}
                   >
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                      <img src={p.imageUrl} alt="" className="w-9 h-9 rounded-xl object-cover shrink-0" />
                     ) : (
-                      <div className="w-9 h-9 rounded-lg bg-tea-elevated shrink-0" />
+                      <div className="w-9 h-9 rounded-xl bg-tea-elevated shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -173,7 +173,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                 onChange={e => setNote(e.target.value)}
                 placeholder="Add a personal note…"
                 rows={3}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg p-2.5 text-sm text-tea-text resize-none focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
+                className="w-full bg-tea-surface border border-tea-border rounded-xl p-2.5 text-sm text-tea-text resize-none focus:outline-none focus:border-tea-gold/50 placeholder:text-tea-text-dim"
               />
             </div>
             <div className="flex-1 flex flex-col min-h-0">
@@ -181,7 +181,7 @@ export const RecommendationModal: React.FC<RecommendationModalProps> = ({
                 Message preview
                 {selected.length > 0 && <span className="ml-2 normal-case text-tea-text-dim">{selected.length} tea{selected.length !== 1 ? 's' : ''}</span>}
               </p>
-              <pre className="flex-1 text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-2.5 overflow-y-auto font-sans min-h-[100px]">
+              <pre className="flex-1 text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-xl p-2.5 overflow-y-auto font-sans min-h-[100px]">
                 {selected.length === 0
                   ? <span className="text-tea-text-dim">Select teas above to build the message</span>
                   : message}

@@ -39,7 +39,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-2xl sm:rounded-2xl animate-[slideUp_0.3s_ease-out]">
+      <div className="relative w-full max-w-md bg-tea-surface border border-tea-border shadow-2xl flex flex-col max-h-[85vh] overflow-hidden rounded-t-xl sm:rounded-xl animate-[slideUp_0.3s_ease-out]">
         {/* Header */}
         <div className="flex items-start gap-4 p-6 border-b border-tea-border">
           <div className="w-14 h-14 rounded-full overflow-hidden border border-tea-border shrink-0 bg-tea-elevated flex items-center justify-center">

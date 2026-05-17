@@ -387,7 +387,7 @@ const ThumbnailStrip: React.FC<{ urls: string[] }> = ({ urls }) => {
       {urls.slice(0, 3).map((u, i) => (
         <div
           key={i}
-          className="flex-1 rounded-sm bg-tea-elevated overflow-hidden"
+          className="flex-1 rounded-md bg-tea-elevated overflow-hidden"
         >
           <img src={u} alt="" className="w-full h-full object-cover" loading="lazy" />
         </div>
