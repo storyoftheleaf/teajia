@@ -22,6 +22,8 @@ import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
+import { StaffView } from './StaffView';
+import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildFirstDoorReadiness } from './workflows';
 
 interface AccountPanelProps {
@@ -952,6 +954,18 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
         {/* Content */}
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain relative pb-nav-gap surface-warm">
+          {/* Account-switcher chip — only when user has multiple memberships
+              and we're on the main panel view (any role: Operator/Member/Reader/Staff). */}
+          {panelView === 'main' && memberships.length > 1 && (
+            <div className="px-4 pt-3 pb-1 relative z-20">
+              <AccountSwitcherChip
+                memberships={memberships}
+                activeAccountId={activeAccountId}
+                switchingTo={switchingTo}
+                onSwitch={handleSwitchLocation}
+              />
+            </div>
+          )}
           <AnimatePresence mode="wait">
           <motion.div
             key={panelView}
@@ -1001,7 +1015,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       <button
                         type="button"
                         onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                        className="tap-target absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors"
                         tabIndex={-1}
                       >
                         {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
@@ -1056,7 +1070,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                         className={inputClass + ' pr-11'}
                         style={inputStyle}
                       />
-                      <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors" tabIndex={-1}>
+                      <button type="button" onClick={() => setShowPassword(v => !v)} className="tap-target absolute right-3 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors" tabIndex={-1}>
                         {showPassword ? <Icons.EyeSlash className="w-4 h-4" /> : <Icons.Eye className="w-4 h-4" />}
                       </button>
                     </div>

@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Pencil, Search, Tag as TagIcon, Trash2 } from 'luci
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { api } from '../../lib/api';
 import { useToast } from '../components/Toast';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 // Admin tool to clean up the freeform tag dictionary. Rename catches drift
 // (loves: puer vs loves: pu'er); merge collapses two near-duplicates; delete
@@ -27,6 +28,11 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mergeSource, setMergeSource] = useState<string | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<string>('');
+  const [showMergePicker, setShowMergePicker] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -76,13 +82,51 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
     }
   };
 
-  const deleteTag = async (tag: string) => {
-    if (busy) return;
-    if (!confirm(`Remove "${tag}" from every contact? Existing collection links won't change.`)) return;
+  const startMerge = (tag: string) => {
+    setMergeSource(tag);
+    setMergeTarget('');
+    setShowMergePicker(true);
+  };
+
+  const confirmMerge = async () => {
+    if (!mergeSource || !mergeTarget.trim() || busy) return;
+    if (mergeTarget.trim().toLowerCase() === mergeSource) {
+      setShowMergePicker(false);
+      setMergeSource(null);
+      return;
+    }
     setBusy(true);
     try {
-      await api.customerTags.rename(tag, '');
-      showToast(`Deleted "${tag}".`, 'info');
+      await api.customerTags.rename(mergeSource, mergeTarget.trim().toLowerCase());
+      const sourceCount = tags.find(t => t.tag === mergeSource)?.count || 0;
+      const targetCount = tags.find(t => t.tag === mergeTarget.trim().toLowerCase())?.count || 0;
+      showToast(
+        `Merged "${mergeSource}" (${sourceCount} customers) into "${mergeTarget.trim()}" (${targetCount} customers).`,
+        'success'
+      );
+      setShowMergePicker(false);
+      setMergeSource(null);
+      load();
+    } catch {
+      showToast('Could not merge tags.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startDelete = (tag: string) => {
+    setDeleteTarget(tag);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || busy) return;
+    setBusy(true);
+    try {
+      await api.customerTags.rename(deleteTarget, '');
+      showToast(`Deleted "${deleteTarget}".`, 'info');
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
       load();
     } catch {
       showToast('Could not delete tag.', 'error');
@@ -192,20 +236,28 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
                       <button
                         type="button"
                         onClick={() => startEdit(t.tag)}
-                        className="text-tea-text-sec hover:text-tea-text transition-colors p-1"
+                        className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
                         aria-label={`Rename ${t.tag}`}
-                        title="Rename or merge"
+                        title="Rename"
                       >
-                        <Pencil size={13} />
+                        <Pencil size={14} />
                       </button>
                       <button
                         type="button"
-                        onClick={() => deleteTag(t.tag)}
-                        className="text-tea-text-sec hover:text-tea-error transition-colors p-1"
+                        onClick={() => startMerge(t.tag)}
+                        className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors px-2 py-1 rounded-md hover:bg-tea-surface"
+                        title="Merge into another tag"
+                      >
+                        Merge
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => startDelete(t.tag)}
+                        className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
                         aria-label={`Delete ${t.tag}`}
                         title="Delete everywhere"
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </>
                   )}
@@ -215,6 +267,93 @@ export const ContactTagsView: React.FC<ContactTagsViewProps> = ({ embedded = fal
           </ul>
         )}
       </div>
+
+      {/* Merge Picker Modal */}
+      {showMergePicker && mergeSource && (
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-tea-bg border border-tea-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-lg font-serif text-tea-text mb-4">
+              Merge "{mergeSource}" into…
+            </h3>
+            <p className="text-sm text-tea-text-sec mb-4">
+              {mergeSource} has {tags.find(t => t.tag === mergeSource)?.count} customers. Select a destination tag.
+            </p>
+
+            <div className="space-y-2 mb-6">
+              <input
+                type="text"
+                placeholder="Search or type tag name…"
+                value={mergeTarget}
+                onChange={e => setMergeTarget(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-tea-surface border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold/40 mb-3"
+              />
+              <div className="max-h-48 overflow-y-auto space-y-1 border border-tea-border rounded-lg p-2 bg-tea-surface">
+                {tags
+                  .filter(t => t.tag !== mergeSource && t.tag.toLowerCase().includes(mergeTarget.toLowerCase()))
+                  .map(t => (
+                    <button
+                      key={t.tag}
+                      type="button"
+                      onClick={() => setMergeTarget(t.tag)}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
+                        mergeTarget.toLowerCase() === t.tag.toLowerCase()
+                          ? 'bg-tea-gold/10 border border-tea-gold/40 text-tea-text'
+                          : 'hover:bg-tea-elevated text-tea-text'
+                      }`}
+                    >
+                      <span>{t.tag}</span>
+                      <span className="text-tea-text-dim text-ui-11 ml-2">({t.count})</span>
+                    </button>
+                  ))}
+                {tags.filter(t => t.tag !== mergeSource && t.tag.toLowerCase().includes(mergeTarget.toLowerCase())).length === 0 && mergeTarget.trim() && (
+                  <p className="text-sm text-tea-text-dim px-3 py-2">No matching tags.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between gap-3 pt-4 border-t border-tea-border">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMergePicker(false);
+                  setMergeSource(null);
+                }}
+                disabled={busy}
+                className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmMerge}
+                disabled={busy || !mergeTarget.trim() || mergeTarget.trim().toLowerCase() === mergeSource}
+                className="px-5 py-2 text-sm font-medium bg-tea-gold text-tea-bg rounded-lg hover:bg-tea-gold/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Merge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeleteTarget(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete tag?"
+        description={
+          deleteTarget
+            ? `Remove "${deleteTarget}" from ${tags.find(t => t.tag === deleteTarget)?.count || 0} customers. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={busy}
+      />
     </div>
   );
 };

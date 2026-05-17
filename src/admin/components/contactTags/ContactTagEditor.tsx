@@ -123,7 +123,7 @@ export const ContactTagEditor: React.FC<ContactTagEditorProps> = ({
   };
 
   const sizeChip = compact ? 'text-ui-11' : 'text-ui-12';
-  const sizeInput = compact ? 'text-ui-11 w-36' : 'text-ui-12 w-44';
+  const sizeInput = compact ? 'text-ui-11 w-32 sm:w-36' : 'text-ui-12 w-32 sm:w-44';
 
   return (
     <div>
