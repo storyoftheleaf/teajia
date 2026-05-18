@@ -29,6 +29,9 @@ const config: Config = {
         'tea-green': '#5A6E5A',
         'tea-moss': '#2A3430',
         'tea-shadow': 'rgba(0,0,0,0.15)',
+        // Modal/overlay scrim. Fixed value, not alpha-aware — use bare
+        // `bg-tea-overlay`, never with a /N modifier.
+        'tea-overlay': 'rgba(12,9,6,0.78)',
         // Admin neutral palette — see card-utilities.css for the full
         // rationale. Intentionally NOT alpha-channel-aware so /N modifiers
         // don't accidentally produce off-system colors.
