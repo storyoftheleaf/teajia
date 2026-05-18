@@ -68,7 +68,7 @@ const SmallTile: React.FC<{ tile: TileData; onClick: () => void; badge?: number 
         <div className="text-ui-11 text-tea-text-dim mt-0.5 leading-tight truncate">{tile.sub}</div>
       </div>
       {badge != null && badge > 0 && (
-        <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 flex items-center justify-center text-ui-9 font-semibold bg-amber-400/20 text-amber-600 dark:text-amber-400 rounded-full num">
+        <span className="absolute top-2 right-2 min-w-[16px] h-4 px-1 flex items-center justify-center text-ui-9 font-semibold bg-tea-gold/20 text-tea-gold dark:text-tea-gold rounded-full num">
           {badge}
         </span>
       )}

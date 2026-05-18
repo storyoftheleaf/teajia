@@ -205,7 +205,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string }> = ({ title, 
 // Editorial brand story — shown on /journey before verification
 // ----------------------------------------------------------------
 const JourneyEditorial: React.FC<{ onVerify: () => void }> = ({ onVerify }) => (
-  <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24">
+  <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
 
     {/* Eyebrow */}
     <p className="label-caps text-tea-text-dim mb-4">
@@ -399,7 +399,7 @@ const JourneyPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.4s_ease-out]">
-      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
 
         {/* Header */}
         <div className="mb-12">

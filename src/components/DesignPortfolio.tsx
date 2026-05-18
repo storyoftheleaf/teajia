@@ -49,20 +49,20 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
           <button
             key={project.id}
             onClick={() => handleProjectClick(project)}
-            className="group text-left bg-tea-bg rounded-xl overflow-hidden border border-tea-border hover:border-tea-gold/30 transition-all duration-300 hover:shadow-lg"
+            className="group text-left bg-tea-bg rounded-xl overflow-hidden border border-tea-border hover:border-tea-gold/30 transition-all duration-300"
           >
             {/* Image */}
             <div className="aspect-[4/3] relative overflow-hidden">
               <img
                 src={project.imageUrl}
                 alt={project.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="w-full h-full object-cover transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
               {/* Status Badge */}
               {project.status === 'in-progress' && (
-                <span className="absolute top-3 left-3 px-2 py-1 bg-amber-500/90 text-tea-bg text-ui-10 uppercase tracking-wider rounded">
+                <span className="absolute top-3 left-3 px-2 py-1 bg-tea-gold/90 text-tea-bg text-ui-10 uppercase tracking-wider rounded">
                   In Progress
                 </span>
               )}
@@ -123,7 +123,7 @@ export const DesignPortfolio: React.FC<DesignPortfolioProps> = ({
           onClick={closeModal}
         >
           <div
-            className="bg-tea-bg  max-w-4xl w-full max-h-[90vh] overflow-y-auto overscroll-contain rounded-xl shadow-2xl animate-[scaleIn_0.3s_ease-out]"
+            className="bg-tea-bg max-w-4xl w-full max-h-[90vh] overflow-y-auto overscroll-contain rounded-xl shadow-2xl animate-[scaleIn_0.3s_ease-out]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}

@@ -518,7 +518,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
 
           {/* Instagram placeholder background */}
           {isInstagram && (
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400" />
+            <div className="absolute inset-0 bg-gradient-to-br from-tea-readgold via-tea-readgold to-tea-gold" />
           )}
 
           {/* Gradient overlay */}
@@ -529,7 +529,7 @@ const VideoEmbed: React.FC<VideoEmbedProps> = ({ videoId, instagramId, isVertica
             onClick={handlePlay}
             className="absolute inset-0 flex items-center justify-center group cursor-pointer"
           >
-            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-border shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:bg-tea-surface group-active:scale-95">
+            <div className="w-20 h-20 bg-tea-bg/90 backdrop-blur-sm rounded-full flex items-center justify-center border border-tea-border shadow-lg transition-all duration-300 group-hover:bg-tea-surface group-active:scale-95">
               <Icons.Play className="w-8 h-8 text-tea-text ml-1" />
             </div>
           </button>
@@ -584,7 +584,7 @@ const VideoPosterFrame: React.FC<{
             className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-tea-text/10 flex items-center justify-center hover:bg-tea-text/20 transition-colors"
             onClick={() => setShowPlayer(false)}
           >
-            <svg className="w-5 h-5 text-tea-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg className="w-5 h-5 text-tea-text" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
@@ -1106,7 +1106,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                  return (
                                      <div key={i} className="absolute z-10 flex items-start gap-2" style={{ top: pos.top, left: pos.left }}>
                                          <div className="flex flex-col items-center">
-                                             <div className="w-3 h-3 rounded-full bg-tea-gold/60 border-2 border-tea-surface shadow-sm"></div>
+                                             <div className="w-3 h-3 rounded-full bg-tea-gold/60 border-2 border-tea-surface"></div>
                                              <div className="w-[1px] h-4 bg-tea-gold/30"></div>
                                          </div>
                                          <div className="-mt-1">
@@ -1398,7 +1398,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.spacious} flex flex-col pt-16 bg-tea-surface`} data-page-type="text" style={OPENTYPE}>
                         <div className="flex justify-between mb-8">
                             <span className={`${FOLIO_CLASS}`}>{storyTitle || 'Field Notes'}</span>
-                            <span className={`${TYPE.micro} font-caption text-red-800/40`}>Rev. 03</span>
+                            <span className={`${TYPE.micro} font-caption text-tea-error/40`}>Rev. 03</span>
                         </div>
                         <div className="max-w-[600px] mx-auto w-full">
                             {isEditable ? (
@@ -1558,7 +1558,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             const rotations = ['-rotate-[3deg]', 'rotate-[2deg]', '-rotate-[1deg]'];
                             const positions = ['top-[15%] left-[10%]', 'top-[25%] right-[8%]', 'bottom-[15%] left-[25%]'];
                             return (
-                                <div key={i} className={`absolute ${positions[i]} ${rotations[i]} w-[40%] bg-tea-surface p-3 pb-12 shadow-xl`}>
+                                <div key={i} className={`absolute ${positions[i]} ${rotations[i]} w-[40%] bg-tea-surface p-3 pb-12 shadow-2xl`}>
                                     <div className="aspect-square overflow-hidden"><SafeImage index={i} className="w-full h-full object-cover" /></div>
                                 </div>
                             );
@@ -1827,7 +1827,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     return (
                                         <div key={i} className="relative flex items-start gap-6">
                                             {/* Gold dot on the line */}
-                                            <div className="absolute -left-[2.15rem] top-2 w-3 h-3 rounded-full bg-tea-gold border-[3px] border-tea-bg shadow-sm"></div>
+                                            <div className="absolute -left-[2.15rem] top-2 w-3 h-3 rounded-full bg-tea-gold border-[3px] border-tea-bg"></div>
                                             <div className="ml-2">
                                                 {descParts.length > 0 && <span className={`${TYPE.caption} font-caption opacity-40 block mb-1`}>{date}</span>}
                                                 <span className={`${TYPE.bodyDense} font-body opacity-90`}>{descParts.length > 0 ? desc : date}</span>
@@ -1929,7 +1929,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         {/* Faint horizontal ruled lines */}
                         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(transparent, transparent 38px, rgba(0,0,0,0.06) 38px, rgba(0,0,0,0.06) 39px)', backgroundPosition: '0 28px' }}></div>
                         {/* Red margin line */}
-                        <div className="absolute top-0 bottom-0 left-[15%] w-[1px] bg-red-300/30 pointer-events-none"></div>
+                        <div className="absolute top-0 bottom-0 left-[15%] w-[1px] bg-tea-text-dim/30 pointer-events-none"></div>
                         <div className="p-10 pl-[18%] pt-16">
                             {isEditable ? (
                                 <EditableText value={content} onChange={updateContent} className={`${TYPE.body} font-[Ma_Shan_Zheng] italic leading-[39px] opacity-70 whitespace-pre-wrap`} placeholder="Notes here..." tag="p" readOnly={readOnly} />
@@ -2163,7 +2163,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     const isLast = i === tlEvents.length - 1;
                                     return (
                                         <div key={i} className="relative flex items-start gap-4">
-                                            <div className={`absolute -left-[1.8rem] top-1.5 w-4 h-4 rounded-full ${isLast ? 'bg-tea-gold' : 'bg-tea-gold/50 border-2 border-tea-bg'} shadow-sm`}></div>
+                                            <div className={`absolute -left-[1.8rem] top-1.5 w-4 h-4 rounded-full ${isLast ? 'bg-tea-gold' : 'bg-tea-gold/50 border-2 border-tea-bg'} `}></div>
                                             <div>
                                                 {descParts.length > 0 && <span className={`${TYPE.caption} ${LH.tight} font-mono opacity-40 block mb-1`}>{date}</span>}
                                                 <span className={`${TYPE.body} ${LH.relaxed} font-body opacity-90`}>{descParts.length > 0 ? desc : date}</span>

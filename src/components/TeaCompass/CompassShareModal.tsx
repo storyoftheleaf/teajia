@@ -128,7 +128,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             type="button"
             onClick={() => setTab('direct')}
             className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
-              tab === 'direct' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+              tab === 'direct' ? 'bg-tea-surface text-tea-text ' : 'text-tea-text-dim'
             }`}
           >
             Account
@@ -137,7 +137,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             type="button"
             onClick={() => setTab('link')}
             className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
-              tab === 'link' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+              tab === 'link' ? 'bg-tea-surface text-tea-text ' : 'text-tea-text-dim'
             }`}
           >
             Link
@@ -146,7 +146,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
             type="button"
             onClick={() => setTab('table')}
             className={`flex-1 py-1.5 rounded-[5px] text-ui-11 font-medium transition-colors ${
-              tab === 'table' ? 'bg-tea-surface text-tea-text shadow-sm' : 'text-tea-text-dim'
+              tab === 'table' ? 'bg-tea-surface text-tea-text ' : 'text-tea-text-dim'
             }`}
           >
             Follow-up
@@ -207,7 +207,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                     </button>
                   </div>
                   {directMutation.isError && (
-                    <p className="text-xs text-red-400">
+                    <p className="text-xs text-tea-error">
                       {(directMutation.error as Error)?.message || 'Could not send. Check the slug and try again.'}
                     </p>
                   )}
@@ -269,7 +269,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
                         transition={{ duration: 0.2 }}
                         className="flex justify-center pt-1"
                       >
-                        <div className="p-3 bg-tea-text rounded-xl shadow-sm">
+                        <div className="p-3 bg-tea-text rounded-xl">
                           <QRCodeSVG value={inviteLink} size={180} bgColor="transparent" fgColor="var(--tea-bg)" />
                         </div>
                       </motion.div>
@@ -293,7 +293,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               )}
 
               {linkMutation.isError && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-tea-error">
                   {(linkMutation.error as Error)?.message || 'Could not generate link. Try again.'}
                 </p>
               )}
@@ -313,7 +313,7 @@ export const CompassShareModal: React.FC<CompassShareModalProps> = ({
               {tableUrl ? (
                 <div className="space-y-3">
                   <div className="flex justify-center">
-                    <div className="p-3 bg-tea-text rounded-xl shadow-sm">
+                    <div className="p-3 bg-tea-text rounded-xl">
                       <QRCodeSVG value={tableUrl} size={180} bgColor="transparent" fgColor="var(--tea-bg)" />
                     </div>
                   </div>

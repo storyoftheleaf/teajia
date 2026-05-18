@@ -150,7 +150,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         {onClose && (
           <button
             onClick={onClose}
-            className="px-8 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.2em] font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
             Done
           </button>
@@ -222,7 +222,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                 key={level}
                 type="button"
                 onClick={() => updateNote(currentItem.id, 'rating', currentNote.rating === level ? 0 : level)}
-                className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200 hover:scale-110"
+                className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200"
                 aria-label={`Rate ${level} out of 5`}
               >
                 <Leaf
@@ -256,7 +256,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           onClick={() => updateNote(currentItem.id, 'isFavorite', !currentNote.isFavorite)}
           className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${
             currentNote.isFavorite
-              ? 'bg-tea-gold/15 text-tea-gold'
+              ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
               : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
           }`}
         >
@@ -306,7 +306,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
       </div>
 
       {submitMutation.isError && (
-        <p className="text-sm text-red-400 text-center mt-3">
+        <p className="text-sm text-tea-error text-center mt-3">
           {submitMutation.error?.message || 'Failed to submit. Please try again.'}
         </p>
       )}

@@ -613,12 +613,12 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               onFocus={() => { if (customerName.trim() && customerSuggestions.length > 0) setShowSuggestions(true); }}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               className={`w-full bg-tea-bg border rounded-xl px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder-tea-text-sec/50 ${
-                validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-green-500/50' : 'border-tea-border focus:border-tea-text-sec'
+                validationError ? 'border-tea-gold' : selectedCustomerId ? 'border-tea-leaf/50' : 'border-tea-border focus:border-tea-text-sec'
               }`}
               placeholder={isPurchase ? 'Vendor Name *' : 'Client Name *'}
             />
             {selectedCustomerId && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ui-9 text-green-400 uppercase tracking-wider">Linked</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ui-9 text-tea-leaf uppercase tracking-wider">Linked</span>
             )}
 
             {showSuggestions && (
@@ -695,9 +695,9 @@ export const AdminCart: React.FC<AdminCartProps> = ({
         {isEmpty ? (
           <div className="h-full flex flex-col items-center justify-center text-tea-text-sec space-y-4 min-h-[300px]">
             {isPurchase ? (
-              <ArrowDownLeft size={40} strokeWidth={1} className="opacity-50" />
+              <ArrowDownLeft size={40} className="opacity-50" />
             ) : (
-              <Package size={40} strokeWidth={1} className="opacity-50" />
+              <Package size={40} className="opacity-50" />
             )}
             <div className="text-center">
               <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>

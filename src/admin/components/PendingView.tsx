@@ -66,7 +66,7 @@ export const PendingView: React.FC = () => {
             <ClipboardList size={14} className="text-tea-text-sec" />
             <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Pending Orders</span>
             {orders.length > 0 && (
-              <span className="text-ui-10 bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
+              <span className="text-ui-10 bg-tea-gold/15 text-tea-gold dark:text-tea-gold px-1.5 py-0.5 rounded-full num">
                 {orders.length}
               </span>
             )}
@@ -98,7 +98,7 @@ export const PendingView: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     {age >= 7 && (
-                      <span className="text-ui-10 text-amber-600 dark:text-amber-400 num">{age}d</span>
+                      <span className="text-ui-10 text-tea-gold dark:text-tea-gold num">{age}d</span>
                     )}
                     {total > 0 && (
                       <span className="text-ui-12 text-tea-text num">
@@ -120,7 +120,7 @@ export const PendingView: React.FC = () => {
           <CalendarDays size={14} className="text-tea-text-sec" />
           <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Pending Event RSVPs</span>
           {pendingAttendees.length > 0 && (
-            <span className="text-ui-10 bg-amber-400/15 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full num">
+            <span className="text-ui-10 bg-tea-gold/15 text-tea-gold dark:text-tea-gold px-1.5 py-0.5 rounded-full num">
               {pendingAttendees.length}
             </span>
           )}

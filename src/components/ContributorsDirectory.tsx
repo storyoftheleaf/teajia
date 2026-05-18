@@ -27,7 +27,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
           {contributors.map((contributor) => (
             <CardContainer
               key={contributor.id}
-              className="cursor-pointer transition-all duration-300 hover:shadow-lg"
+              className="cursor-pointer transition-all duration-300"
               onClick={() => onContributorClick(contributor)}
             >
               <div className="p-6 flex flex-col gap-4 h-full">
@@ -37,7 +37,7 @@ export const ContributorsDirectory: React.FC<ContributorsDirectoryProps> = ({
                     <img
                       src={contributor.avatarUrl}
                       alt={contributor.name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-300"
                     />
                   </div>
                 )}

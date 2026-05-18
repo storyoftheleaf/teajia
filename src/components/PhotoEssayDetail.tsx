@@ -32,7 +32,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-tea-surface overflow-y-auto animate-[fadeIn_0.6s_ease-out]">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-tea-surface border-b border-tea-text/10 ">
+      <div className="sticky top-0 z-10 bg-tea-surface border-b border-tea-text/10">
         <div className="flex items-center justify-between px-4 py-4">
           <button
             onClick={onBack}
@@ -93,7 +93,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
             onClick={() => onPersonClick(story.author!)}
             className="mb-12 w-full max-w-sm group"
           >
-            <div className="bg-tea-surface rounded-md p-6 hover:shadow-md transition-all duration-300">
+            <div className="bg-tea-surface rounded-md p-6 transition-all duration-300">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-tea-text/10 flex-shrink-0">
                   {story.author.avatarUrl ? (
@@ -144,7 +144,7 @@ export const PhotoEssayDetail: React.FC<PhotoEssayDetailProps> = ({
                   <img
                     src={image.url}
                     alt={image.caption || `Photo ${index + 1}`}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover transition-transform duration-300"
                     onLoad={() => handleImageLoad(`${index}`)}
                     onError={() => handleImageError(`${index}`)}
                   />

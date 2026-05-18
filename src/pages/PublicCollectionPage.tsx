@@ -106,7 +106,7 @@ const PublicCollectionPage: React.FC = () => {
   if (status === 'error' || !data) {
     return (
       <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
-        <p className="text-sm text-red-400">Something went wrong loading this page.</p>
+        <p className="text-sm text-tea-error">Something went wrong loading this page.</p>
       </main>
     );
   }
@@ -169,7 +169,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
   }
 
   return (
-    <main className="min-h-screen bg-tea-bg text-tea-text">
+    <main className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap-lg">
       {/* Masthead — editorial; small label, big title, italic note */}
       <header className="border-b border-tea-border">
         <div className="max-w-[720px] mx-auto px-5 sm:px-8 pt-12 pb-10 md:pt-20 md:pb-14">

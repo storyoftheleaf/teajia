@@ -134,7 +134,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={(e) => { e.stopPropagation(); remove(note.id); }}
                       aria-label="Delete note"
-                      className="p-1.5 text-tea-text-dim hover:text-red-400 transition-colors"
+                      className="p-1.5 text-tea-text-dim hover:text-tea-error transition-colors"
                     >
                       <Trash2 size={12} strokeWidth={1.5} />
                     </button>
@@ -218,7 +218,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ notes, onChange }) => {
         </div>
 
         {error && (
-          <p className="px-3 pb-2 text-ui-11 text-red-400" style={{ fontFamily: 'var(--font-body)' }}>
+          <p className="px-3 pb-2 text-ui-11 text-tea-error" style={{ fontFamily: 'var(--font-body)' }}>
             {error}
           </p>
         )}

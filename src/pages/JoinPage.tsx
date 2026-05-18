@@ -137,7 +137,7 @@ export default function JoinPage() {
   // Confirmation state
   if (confirmed && sessionId) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24 animate-[fadeIn_0.4s_ease-out]">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap animate-[fadeIn_0.4s_ease-out]">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-5">
             <Check size={28} className="text-tea-gold" />
@@ -158,7 +158,7 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-12 pb-24 w-full">
+    <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap w-full">
       <p className="text-center label-caps text-tea-text-dim mb-8">
         Step {currentStepNumber} of {TOTAL_STEPS} · Tasting
       </p>

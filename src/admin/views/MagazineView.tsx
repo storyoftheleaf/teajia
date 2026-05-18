@@ -71,9 +71,8 @@ export const MagazineView: React.FC = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-tea-border bg-tea-bg flex-shrink-0">
-        <BookOpen size={17} className="text-tea-text-sec shrink-0" />
-        <h1 className="text-sm font-semibold text-tea-text tracking-wide flex-1">Magazine</h1>
+      <div className="px-4 md:px-6 lg:px-10 pt-6 pb-3 flex-shrink-0 flex items-center gap-3">
+        <h1 className="h2 flex-1">Magazine</h1>
 
         <button
           onClick={() => refetch()}
@@ -86,23 +85,23 @@ export const MagazineView: React.FC = () => {
 
         <button
           onClick={handleNewArticle}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shrink-0"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shrink-0"
         >
           <Plus size={13} />
           New Article
         </button>
       </div>
 
-      {/* Tab strip */}
-      <div className="flex items-center gap-0.5 px-4 md:px-6 py-2 border-b border-tea-border bg-tea-bg flex-shrink-0">
+      {/* Tab strip — bottom-border underline per §6 */}
+      <div className="flex items-center gap-6 px-4 md:px-6 lg:px-10 border-b border-tea-border flex-shrink-0">
         {TABS.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
+            className={`py-2.5 text-ui-12 uppercase tracking-[0.15em] border-b transition-colors whitespace-nowrap ${
               tab === t.id
-                ? 'text-tea-gold font-medium'
-                : 'text-tea-text-sec hover:text-tea-text'
+                ? 'text-tea-text border-tea-gold'
+                : 'text-tea-text-sec hover:text-tea-text border-transparent'
             }`}
           >
             {t.label}

@@ -651,7 +651,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               <button
                 type="button"
                 onClick={() => { setSuggestDismissed(true); setSuggestedCustomer(null); }}
-                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0"
+                className="text-tea-text-sec hover:text-tea-text-sec transition-colors shrink-0"
                 aria-label="Dismiss"
               >
                 <X size={10} />

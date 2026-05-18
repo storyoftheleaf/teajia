@@ -102,7 +102,7 @@ export const EmailCapture: React.FC<EmailCaptureProps> = ({
         </div>
       ) : error ? (
         <div className="animate-[fadeIn_0.3s_ease-out]">
-          <p className="text-red-400 font-sans text-sm mb-3">{error}</p>
+          <p className="text-tea-error font-sans text-sm mb-3">{error}</p>
           <Button type="button" variant="primary" size="md" onClick={handleRetry}>
             Try Again
           </Button>

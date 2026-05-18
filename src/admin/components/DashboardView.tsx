@@ -163,7 +163,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
       <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 text-tea-gold">
-             <DollarSign size={60} strokeWidth={1} className="md:w-20 md:h-20" />
+             <DollarSign size={60} className="md:w-20 md:h-20" />
           </div>
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Total Asset Cost</p>
           <h3 className="font-display font-light text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalCostUSD)}</h3>
@@ -172,7 +172,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
 
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 text-tea-gold">
-             <PieIcon size={60} strokeWidth={1} className="md:w-20 md:h-20" />
+             <PieIcon size={60} className="md:w-20 md:h-20" />
           </div>
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Retail Valuation</p>
           <h3 className="font-display font-light text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalRetailUSD)}</h3>
@@ -337,7 +337,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                   formatter={(v: number) => [`$${v.toFixed(0)}`, 'Revenue']}
                   labelFormatter={(w: string) => `Week ${w.split('-W')[1]}`}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#C8A97E" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#C8A97E' }} />
+                <Line type="monotone" dataKey="revenue" stroke="#C8A97E" dot={false} activeDot={{ r: 4, fill: '#C8A97E' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

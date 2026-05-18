@@ -308,7 +308,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
 
   const typeBadgeColor = (type: string) => {
     switch (type) {
-      case 'product': return 'bg-tea-gold/15 text-tea-gold';
+      case 'product': return 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40';
       case 'event': return 'bg-tea-gold/10 text-tea-text-sec';
       default: return 'bg-tea-accent-sub text-tea-text-sec';
     }

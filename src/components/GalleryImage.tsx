@@ -94,7 +94,7 @@ export const GalleryImage: React.FC<GalleryImageProps> = ({ image }) => {
                   onClick={() => setSelectedInsight(insight)}
                   className={`px-2 py-1 rounded-full ${
                     INSIGHT_COLORS[insight.type]
-                  } text-tea-text text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:shadow-lg transition-all duration-300 hover:scale-105`}
+                  } text-tea-text text-xs font-medium uppercase tracking-wider flex items-center gap-1  transition-all duration-300 `}
                 >
                   {INSIGHT_ICONS[insight.type]}
                   {insight.type}

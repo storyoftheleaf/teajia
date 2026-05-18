@@ -100,7 +100,7 @@ const LoadingState: React.FC = () => (
 );
 
 const ErrorState: React.FC<{ message: string }> = ({ message }) => (
-  <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+  <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
     <div className="text-center mb-8">
       <p className="label-caps text-tea-text-dim mb-4">Tea Passport</p>
       <h1 className="h2">Passport not found</h1>

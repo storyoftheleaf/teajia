@@ -114,7 +114,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             <div className="absolute inset-0 flex items-center justify-center">
                 <button
                     onClick={() => setIsPlaying(true)}
-                    className="w-20 h-20 bg-tea-gold/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group"
+                    className="w-20 h-20 bg-tea-gold/10 backdrop-blur-sm rounded-full flex items-center justify-center transition-transform cursor-pointer group"
                     aria-label="Play"
                 >
                     <Icons.Play className="w-8 h-8 text-tea-text ml-1 group-hover:text-tea-text" />
@@ -128,7 +128,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
     return (
       <div className="fixed inset-0 sidebar-inset bg-black z-modal">
         {/* Video Background */}
-        <div className="absolute inset-0 bg-zinc-900">
+        <div className="absolute inset-0 bg-tea-bg">
            {renderPlayer()}
         </div>
         
@@ -252,7 +252,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                     className="w-24 h-24 border border-tea-border rounded-full flex items-center justify-center hover:bg-tea-gold/5 transition-all cursor-pointer group"
                     aria-label="Play"
                 >
-                    <Icons.Play className="w-10 h-10 text-tea-text ml-1 group-hover:scale-110 transition-transform" />
+                    <Icons.Play className="w-10 h-10 text-tea-text ml-1 transition-transform" />
                 </button>
             </div>
         </>
@@ -455,7 +455,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-8">
                       <button className="text-tea-text/50 hover:text-tea-text transition-colors" aria-label="Previous"><Icons.Back className="w-6 h-6 rotate-180" /></button>
-                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:scale-105 hover:bg-tea-surface transition-all shadow-[0_0_20px_var(--tea-accent-sub)]" aria-label="Play">
+                      <button className="w-16 h-16 bg-tea-bg rounded-full flex items-center justify-center hover:bg-tea-surface transition-all shadow-[0_0_20px_var(--tea-accent-sub)]" aria-label="Play">
                          <Icons.Play className="w-6 h-6 text-tea-text ml-1 fill-current" />
                       </button>
                       <button className="text-tea-text/50 hover:text-tea-text transition-colors" aria-label="Next"><Icons.Next className="w-6 h-6" /></button>

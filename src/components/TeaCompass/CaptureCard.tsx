@@ -1068,7 +1068,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             className={selectClass(!!entry.teawareCategory)}
           >
             <span>{entry.teawareCategory || 'Category'}</span>
-            <ChevronDown size={14} strokeWidth={2} />
+            <ChevronDown size={14} />
           </button>
         </div>
 
@@ -1101,7 +1101,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 }
               >
                 <span>{materialChipLabel}</span>
-                <ChevronDown size={13} strokeWidth={2} />
+                <ChevronDown size={13} />
               </button>
             </div>
 
@@ -1167,7 +1167,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               }
             >
               <span>{entry.era || 'Era'}</span>
-              <ChevronDown size={13} strokeWidth={2} />
+              <ChevronDown size={13} />
             </button>
           </div>
 
@@ -1251,7 +1251,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   onClick={() => setEraInputOpen(true)}
                   className="flex items-center gap-2 px-3 py-3 rounded-xl text-base font-medium text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
                 >
-                  <Plus size={16} strokeWidth={2} />
+                  <Plus size={16} />
                   Add new era
                 </button>
               )}
@@ -1340,7 +1340,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         />
                       )}
                       {sel && (
-                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-tea-gold flex items-center justify-center shadow-md">
+                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-tea-gold flex items-center justify-center">
                           <Check size={12} strokeWidth={3} className="text-tea-bg" />
                         </span>
                       )}
@@ -1596,7 +1596,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             } : undefined}
           >
             <span>{entry.type || 'Type'}</span>
-            <ChevronDown size={14} strokeWidth={2} />
+            <ChevronDown size={14} />
           </button>
         </div>
 

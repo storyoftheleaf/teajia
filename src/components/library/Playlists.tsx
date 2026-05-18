@@ -39,7 +39,7 @@ export const Playlists: React.FC<PlaylistsProps> = ({ onBack }) => {
             rel="noopener noreferrer"
             className="flex items-start gap-4 py-4 px-1 group hover:bg-tea-elevated/50 transition-colors"
           >
-            <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
+            <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold">
               <Icons.Music className="w-4 h-4" />
             </div>
 

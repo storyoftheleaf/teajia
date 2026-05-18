@@ -191,7 +191,7 @@ const SamplePage: React.FC = () => {
 
   if (error || !sample) {
     return (
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
         <div className="flex flex-col items-center text-center py-20 px-6">
           <Leaf size={28} strokeWidth={1.25} className="text-tea-text-dim" />
           <h1 className="font-display text-ui-17 text-tea-text mt-4">Sample not found</h1>
@@ -217,7 +217,7 @@ const SamplePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-tea-bg text-tea-text">
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-24">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-6 pb-nav-gap">
         {/* Back + admin edit toggle */}
         <div className="flex items-center justify-between mb-8">
           <button

@@ -288,7 +288,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                         <col className="w-[10%]" />
                         <col className="w-[5%]" />
                     </colgroup>
-                    <thead className="sticky top-0 z-20 bg-tea-bg shadow-sm">
+                    <thead className="sticky top-0 z-20 bg-tea-bg">
                         <tr>
                             <SortHeader colKey="productName" label="Product" />
                             <SortHeader colKey="type" label="Cat." />

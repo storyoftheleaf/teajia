@@ -439,7 +439,7 @@ const GuestManagement: React.FC = () => {
   const StatusBanner = transitionBanner ? (
     <div className={`sticky top-0 z-10 px-4 py-3 text-center text-xs font-medium animate-[fadeIn_0.4s_ease-out] border-b border-tea-border ${
       transitionBanner === 'confirmed'
-        ? 'bg-tea-gold/15 text-tea-gold'
+        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
         : 'bg-tea-elevated text-tea-text-sec'
     }`}>
       {transitionBanner === 'confirmed'

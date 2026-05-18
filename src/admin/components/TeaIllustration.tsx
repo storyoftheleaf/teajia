@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProductType } from '../types';
+import { getTeaVividColor } from '../../designTokens';
 
 interface TeaIllustrationProps {
   type: ProductType;
@@ -7,23 +8,7 @@ interface TeaIllustrationProps {
 }
 
 export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, className = "w-full h-full" }) => {
-  const getColor = (t: ProductType) => {
-    switch (t) {
-      case 'Green': return '#86efac'; // green-300
-      case 'Yellow': return '#fde047'; // yellow-300
-      case 'White': return '#e5e5e5'; // neutral-200
-      case 'Oolong': return '#6ee7b7'; // emerald-300
-      case 'Red': return '#fda4af'; // rose-300
-      case 'Dark': return '#a8a29e'; // stone-400
-      case 'Shou': return '#78716c'; // stone-500
-      case 'Sheng': return '#bef264'; // lime-300
-      case 'Herbal': return '#f9a8d4'; // pink-300
-      case 'Teaware': return '#fdba74'; // orange-300
-      default: return '#d4d4d8';
-    }
-  };
-
-  const color = getColor(type);
+  const color = getTeaVividColor(type);
 
   const renderPath = () => {
     switch (type) {
@@ -31,7 +16,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
       case 'Shou':
       case 'Dark':
         return (
-          <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">
+          <g stroke={color} fill="none" opacity="0.9">
              {/* Tea Cake (Bing) */}
              <circle cx="100" cy="100" r="60" />
              <circle cx="100" cy="100" r="8" opacity="0.6" />
@@ -46,7 +31,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
         );
       case 'Oolong':
         return (
-           <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">
+           <g stroke={color} fill="none" opacity="0.9">
               {/* Rolled Tea Shape */}
               <path d="M90 70 C 130 60, 160 100, 130 140 C 100 170, 50 150, 40 110 C 35 80, 60 75, 90 70 Z" />
               <path d="M90 70 C 80 100, 100 130, 130 140" opacity="0.5"/>
@@ -60,7 +45,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
       case 'Herbal':
       case 'Misc':
         return (
-            <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">
+            <g stroke={color} fill="none" opacity="0.9">
                 {/* Elegant Leaf */}
                 <path d="M100 170 Q 100 100 50 50 Q 100 60 150 50 Q 120 100 100 170" />
                 <path d="M100 170 Q 100 110 100 60" />
@@ -71,7 +56,7 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
         );
        case 'Teaware':
          return (
-             <g stroke={color} strokeWidth="1" fill="none" opacity="0.9">
+             <g stroke={color} fill="none" opacity="0.9">
                 {/* Clay Teapot */}
                 <path d="M60 80 Q 50 150 100 150 Q 150 150 140 80 Z" />
                 <path d="M65 80 Q 100 55 135 80" /> {/* Lid */}
@@ -95,8 +80,8 @@ export const TeaIllustration: React.FC<TeaIllustrationProps> = ({ type, classNam
        
        {/* Traditional Seal (Chop) Effect */}
        <g opacity="0.3" transform="translate(145, 145)">
-          <rect width="24" height="24" stroke={color} strokeWidth="1" fill="none" />
-          <path d="M6 6 L 18 18 M18 6 L 6 18" stroke={color} strokeWidth="1" />
+          <rect width="24" height="24" stroke={color} fill="none" />
+          <path d="M6 6 L 18 18 M18 6 L 6 18" stroke={color} />
        </g>
     </svg>
   );

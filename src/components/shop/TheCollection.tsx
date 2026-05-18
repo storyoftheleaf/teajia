@@ -71,7 +71,7 @@ const CollectionCard: React.FC<{
           <img
             src={item.image}
             alt={item.name}
-            className="w-full h-full object-cover hover:scale-[1.02] transition-transform duration-500"
+            className="w-full h-full object-cover transition-transform duration-500"
           />
         </div>
 

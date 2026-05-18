@@ -123,7 +123,7 @@ export const TeaInspireGallery: React.FC = () => {
             <img
               src={featuredMoment.imageUrl}
               alt={featuredMoment.caption}
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700"
+              className="w-full h-full object-cover transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/80 via-tea-bg/20 to-transparent" />
 
@@ -162,13 +162,13 @@ export const TeaInspireGallery: React.FC = () => {
               <button
                 key={image.id}
                 onClick={() => handleImageClick(image)}
-                className="group relative w-full aspect-[4/3] rounded-[1px] overflow-hidden bg-tea-text/5 hover:shadow-xl transition-all duration-300 cursor-pointer text-left"
+                className="group relative w-full aspect-[4/3] rounded-[1px] overflow-hidden bg-tea-text/5 transition-all duration-300 cursor-pointer text-left"
               >
                 {/* Image */}
                 <img
                   src={image.imageUrl}
                   alt={image.caption}
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                  className="w-full h-full object-cover transition-transform duration-500"
                 />
 
                 {/* Gradient Overlay */}
