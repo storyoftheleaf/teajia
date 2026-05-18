@@ -20,7 +20,7 @@ export const SAMPLE_PRODUCTS: PublicProduct[] = [
     description:
       'Harvested from 300-year-old trees deep in the Yiwu mountains, this raw pu-erh opens with a honeyed floral fragrance and evolves into layers of apricot, camphor, and wet stone. The mouthfeel is thick and oily with a lingering huigan that coats the throat for minutes. A tea that rewards patience — each steeping reveals new depth.',
     tastingNotes: ['Honey', 'Apricot', 'Camphor', 'Wet Stone', 'Floral'],
-    imageUrl: 'https://images.unsplash.com/photo-1563822249366-3efb23b8e0c9?w=600&q=80',
+    imageUrl: '',
     status: 'Active',
     isPersonal: false,
     canReorder: true,
@@ -46,7 +46,7 @@ export const SAMPLE_PRODUCTS: PublicProduct[] = [
     description:
       'Despite its irreverent name — coined by farmers to ward off thieves — this single-bush Dan Cong is one of the most elegant oolongs in production. Intensely aromatic with gardenia, almond milk, and a buttery sweetness that clings to the palate. Medium oxidation preserves bright acidity while roasting adds depth.',
     tastingNotes: ['Gardenia', 'Almond Milk', 'Butter', 'Stone Fruit', 'Bright Acidity'],
-    imageUrl: 'https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?w=600&q=80',
+    imageUrl: '',
     status: 'Active',
     isPersonal: false,
     canReorder: true,
@@ -72,7 +72,7 @@ export const SAMPLE_PRODUCTS: PublicProduct[] = [
     description:
       'Picked at night under moonlight and dried indoors to avoid direct sun, Moonlight White has a distinctive two-toned leaf — dark on one side, silvery-white on the other. The liquor is delicate and sweet with notes of hay, dried rose, and brown sugar. Exceptionally smooth with almost no astringency, it drinks like a whisper.',
     tastingNotes: ['Hay', 'Dried Rose', 'Brown Sugar', 'Vanilla', 'Smooth'],
-    imageUrl: 'https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=600&q=80',
+    imageUrl: '',
     status: 'Active',
     isPersonal: false,
     canReorder: true,
