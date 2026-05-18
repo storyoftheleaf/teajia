@@ -285,7 +285,9 @@ type PendingMutation =
   | { kind: 'set_archive_status'; accountId: string; userEmail: string; productId: string; archived: boolean; reason: string | null }
   | { kind: 'fulfill_invoice'; accountId: string; userEmail: string; invoiceId: string }
   | { kind: 'update_account_settings'; accountId: string; userEmail: string; fields: Record<string, string | null> }
-  | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number };
+  | { kind: 'update_exchange_rate'; accountId: string; userEmail: string; currency: string; rateVsUsd: number; previousRate: number }
+  | { kind: 'create_tea'; accountId: string; userEmail: string; product: NewTeaInput }
+  | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean };
 
 type PendingEntry = { mutation: PendingMutation; expiresAt: number };
 const PENDING = new Map<string, PendingEntry>();
@@ -377,6 +379,202 @@ function productSummary(p: ProductRow, score?: number) {
     fixed_retail_price_usd: p.fixed_retail_price_usd,
     status: p.status,
     ...(typeof score === 'number' ? { match_score: Math.round(score * 100) / 100 } : {}),
+  };
+}
+
+// Input shape for create_tea. Mirrors the fields the admin product-create
+// endpoint accepts, normalized to camelCase for the confirmation payload.
+type NewTeaInput = {
+  productName: string;
+  givenName: string | null;
+  chineseName: string | null;
+  type: string;
+  form: string | null;
+  year: string | null;
+  originCountry: string | null;
+  originRegion: string | null;
+  vendor: string | null;
+  stockGrams: number;
+  costAmount: number;
+  costCurrency: string;
+  fixedRetailPriceUsd: number | null;
+  lowStockThreshold: number;
+  notes: string | null;
+  status: string;
+};
+
+// ── tool: create_tea (preview / confirm) ──
+//
+// Creates a new tea product. To stay consistent with main's product-creation
+// path (the admin POST /api/products endpoint), this writes the legacy
+// `products` row AND mirrors a `tea_profiles` + `product_listings` pair, so the
+// new tea is immediately visible in listing-based shop/inventory views and the
+// `list_<id>` row that add_stock / record_sale mirror into actually exists.
+async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const pending = consumeConfirmationToken(confirm);
+    if (!pending || pending.kind !== 'create_tea') {
+      return { error: 'invalid_or_expired_confirmation_token' };
+    }
+    return commitCreateTea(env, pending);
+  }
+
+  const productName = String(args?.product_name ?? args?.name ?? '').trim();
+  if (!productName) throw new Error('product_name is required');
+  const stockGrams = Math.max(0, Math.round(Number(args?.stock_grams ?? args?.grams ?? 0) || 0));
+  const costAmount = Math.max(0, Number(args?.cost_amount ?? 0) || 0);
+  const fixedRetailPriceUsd = args?.fixed_retail_price_usd == null
+    ? null
+    : Math.max(0, Number(args.fixed_retail_price_usd) || 0);
+  const lowStockThreshold = Math.max(0, Math.round(Number(args?.low_stock_threshold ?? 100) || 0));
+
+  const product: NewTeaInput = {
+    productName,
+    givenName: args?.given_name ? String(args.given_name).trim() : productName,
+    chineseName: args?.chinese_name ? String(args.chinese_name).trim() : null,
+    type: args?.type ? String(args.type).trim() : 'Tea',
+    form: args?.form ? String(args.form).trim() : null,
+    year: args?.year != null ? String(args.year).trim() : null,
+    originCountry: args?.origin_country ? String(args.origin_country).trim() : null,
+    originRegion: args?.origin_region ? String(args.origin_region).trim() : null,
+    vendor: args?.vendor ? String(args.vendor).trim() : null,
+    stockGrams,
+    costAmount,
+    costCurrency: args?.cost_currency ? String(args.cost_currency).trim().toUpperCase() : 'USD',
+    fixedRetailPriceUsd,
+    lowStockThreshold,
+    notes: args?.notes ? String(args.notes).slice(0, 1000) : null,
+    status: args?.status ? String(args.status).trim() : 'Active',
+  };
+
+  const token = issueConfirmationToken({
+    kind: 'create_tea', accountId: auth.accountId, userEmail: auth.userEmail, product,
+  });
+  return {
+    preview: { action: 'create_tea', product },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+// Build the tea_profiles + product_listings mirror inserts for a newly created
+// tea. Ported inline from index.ts's buildProductMirrorInserts (mcp.ts
+// deliberately does not import index.ts) — kept narrow to the fields create_tea
+// supplies. Teaware is never created through this tool, so no teaware branch.
+function buildCreateTeaMirrorInserts(env: Env, productId: string, m: Extract<PendingMutation, { kind: 'create_tea' }>): D1PreparedStatement[] {
+  const p = m.product;
+  const baseSlug = String(p.productName + (p.year ? `-${p.year}` : '') || productId)
+    .toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const slug = `${baseSlug}-${productId.slice(0, 6)}`.replace(/-+/g, '-');
+
+  const profileStatus = p.status === 'Archived' ? 'archived'
+    : p.status === 'Draft' ? 'draft'
+    : 'published';
+  const listingStatus = p.status === 'Archived' ? 'archived' : 'active';
+
+  return [
+    env.DB.prepare(`
+      INSERT INTO tea_profiles (
+        id, slug, originated_by_account_id, curated_by_account_id,
+        name, chinese_name, type, form,
+        origin_country, origin_region, harvest_year,
+        description, tasting_notes, canonical_photos,
+        network_visible, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      `prof_${productId}`, slug, m.accountId, m.accountId,
+      p.productName, p.chineseName, p.type, p.form,
+      p.originCountry, p.originRegion, p.year,
+      p.notes, '[]', '[]',
+      1, profileStatus,
+    ),
+    env.DB.prepare(`
+      INSERT INTO product_listings (
+        id, account_id, profile_id,
+        stock_grams, low_stock_threshold,
+        fixed_retail_price_usd, markup_multiplier,
+        vendor, cost_amount, cost_currency,
+        quantity_purchased,
+        is_public, status,
+        tasting, legacy_product_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      `list_${productId}`, m.accountId, `prof_${productId}`,
+      p.stockGrams, p.lowStockThreshold,
+      p.fixedRetailPriceUsd, 2.5,
+      p.vendor, p.costAmount, p.costCurrency,
+      p.stockGrams,
+      1, listingStatus,
+      '{}', productId,
+    ),
+  ];
+}
+
+async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'create_tea' }>) {
+  const id = crypto.randomUUID();
+  const cols: Record<string, any> = {
+    id,
+    account_id: m.accountId,
+    type: m.product.type,
+    form: m.product.form,
+    given_name: m.product.givenName,
+    chinese_name: m.product.chineseName,
+    product_name: m.product.productName,
+    year: m.product.year,
+    origin_country: m.product.originCountry,
+    origin_region: m.product.originRegion,
+    description: m.product.notes,
+    status: m.product.status,
+    vendor: m.product.vendor,
+    stock_grams: m.product.stockGrams,
+    cost_amount: m.product.costAmount,
+    cost_currency: m.product.costCurrency,
+    quantity_purchased: m.product.stockGrams,
+    low_stock_threshold: m.product.lowStockThreshold,
+    fixed_retail_price_usd: m.product.fixedRetailPriceUsd,
+  };
+  const names = Object.keys(cols);
+
+  const stmts: D1PreparedStatement[] = [
+    env.DB.prepare(
+      `INSERT INTO products (${names.join(', ')}) VALUES (${names.map(() => '?').join(', ')})`
+    ).bind(...names.map(name => cols[name])),
+    ...buildCreateTeaMirrorInserts(env, id, m),
+  ];
+
+  if (m.product.stockGrams > 0) {
+    stmts.push(env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, account_id)
+       VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(), id, m.product.stockGrams, m.product.stockGrams,
+      m.userEmail, 'MCP create_tea opening stock', m.accountId,
+    ));
+  }
+
+  stmts.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     VALUES (?, 'PRODUCT_CREATED_MCP', ?, ?, 'product', ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    `Product ${m.product.productName} created via MCP`,
+    m.userEmail, id, m.accountId,
+  ));
+
+  await env.DB.batch(stmts);
+
+  const row = await env.DB.prepare(
+    `SELECT id, given_name, product_name, chinese_name, type, form, year,
+            origin_country, origin_region, vendor, stock_grams, quantity_units,
+            low_stock_threshold, fixed_retail_price_usd, status
+       FROM products WHERE id = ? AND account_id = ?`
+  ).bind(id, m.accountId).first() as ProductRow | null;
+
+  return {
+    committed: true,
+    action: 'create_tea',
+    product: row ? productSummary(row) : { id, product_name: m.product.productName },
   };
 }
 
@@ -2003,6 +2201,150 @@ async function commitFulfillInvoice(
   };
 }
 
+// ── tool: mark_invoice_paid (preview / confirm) ──
+//
+// Marks an invoice paid. Optionally also fulfills stock (fulfill_stock=true) by
+// delegating to commitFulfillInvoice — for the "they paid and took it" case.
+async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
+  const confirm = args?.confirm ? String(args.confirm) : null;
+  if (confirm) {
+    const pending = consumeConfirmationToken(confirm);
+    if (!pending || pending.kind !== 'mark_invoice_paid') {
+      return { error: 'invalid_or_expired_confirmation_token' };
+    }
+    return commitMarkInvoicePaid(env, pending);
+  }
+
+  const invoiceId = args?.invoice_id ? String(args.invoice_id).trim() : '';
+  const invoiceNumber = args?.invoice_number ? String(args.invoice_number).trim() : '';
+  const paymentMethod = args?.payment_method ? String(args.payment_method).slice(0, 80) : 'mcp';
+  const fulfillStock = Boolean(args?.fulfill_stock);
+
+  const row = await findInvoiceForPayment(env, auth.accountId, invoiceId, invoiceNumber);
+  if (row?.__duplicate_invoice_number) {
+    return { error: 'duplicate_invoice_number', invoice_number: invoiceNumber, matches: row.matches };
+  }
+  if (!row) {
+    return { error: 'invoice_not_found', invoice_id: invoiceId || null, invoice_number: invoiceNumber || null };
+  }
+
+  const token = issueConfirmationToken({
+    kind: 'mark_invoice_paid', accountId: auth.accountId, userEmail: auth.userEmail,
+    invoiceId: row.id, invoiceNumber: row.invoice_number,
+    paymentMethod, fulfillStock,
+  });
+  return {
+    preview: {
+      action: 'mark_invoice_paid',
+      invoice: row,
+      payment_method: paymentMethod,
+      stock_effect: fulfillStock
+        ? 'also deduct invoice line items and mark invoice Filled'
+        : 'payment only; stock is unchanged',
+    },
+    confirmation_token: token,
+    expires_in_seconds: PENDING_TTL_MS / 1000,
+  };
+}
+
+// Resolve the invoice for a payment: by id, by invoice number (flagging
+// duplicates), or fall back to the most recent unpaid invoice on the account.
+async function findInvoiceForPayment(
+  env: Env,
+  accountId: string,
+  invoiceId: string,
+  invoiceNumber: string,
+): Promise<any | null> {
+  if (invoiceId) {
+    return env.DB.prepare(
+      `SELECT id, invoice_number, customer_name, status, payment_status, payment_date
+         FROM invoices WHERE id = ? AND account_id = ?`
+    ).bind(invoiceId, accountId).first() as Promise<any | null>;
+  }
+  if (invoiceNumber) {
+    const rows = await env.DB.prepare(
+      `SELECT id, invoice_number, customer_name, status, payment_status, payment_date
+         FROM invoices WHERE invoice_number = ? AND account_id = ?`
+    ).bind(invoiceNumber, accountId).all();
+    const matches = (rows.results ?? []) as any[];
+    if (matches.length > 1) return { __duplicate_invoice_number: true, matches: matches.slice(0, 5) };
+    return matches[0] ?? null;
+  }
+  return env.DB.prepare(
+    `SELECT id, invoice_number, customer_name, status, payment_status, payment_date
+       FROM invoices
+      WHERE account_id = ? AND COALESCE(payment_status, 'unpaid') != 'paid'
+      ORDER BY created_at DESC
+      LIMIT 1`
+  ).bind(accountId).first() as Promise<any | null>;
+}
+
+async function commitMarkInvoicePaid(env: Env, m: Extract<PendingMutation, { kind: 'mark_invoice_paid' }>) {
+  const now = new Date().toISOString();
+  const paymentResult = await env.DB.prepare(
+    `UPDATE invoices
+        SET payment_status = 'paid',
+            payment_date = ?,
+            payment_method = ?
+      WHERE id = ? AND account_id = ? AND COALESCE(payment_status, 'unpaid') != 'paid'`
+  ).bind(now, m.paymentMethod, m.invoiceId, m.accountId).run();
+  const alreadyPaid = (paymentResult.meta?.changes ?? 0) === 0;
+
+  if (!alreadyPaid) {
+    await env.DB.prepare(
+      `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+       VALUES (?, 'INVOICE_MARKED_PAID_MCP', ?, ?, 'invoice', ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      `Invoice ${m.invoiceNumber} marked paid via MCP`,
+      m.userEmail, m.invoiceId, m.accountId,
+    ).run();
+  }
+
+  // Optional stock fulfillment. main's commitFulfillInvoice needs the invoice
+  // row + line items, and refuses if inventory is already deducted, so fetch
+  // both here and skip cleanly when fulfillment is not applicable.
+  let fulfillment: unknown = null;
+  if (m.fulfillStock) {
+    const invoice = await env.DB.prepare(
+      'SELECT id, invoice_number, customer_name, status, inventory_deducted FROM invoices WHERE id = ? AND account_id = ?'
+    ).bind(m.invoiceId, m.accountId).first() as Record<string, any> | null;
+
+    if (!invoice) {
+      fulfillment = { error: 'invoice_not_found' };
+    } else if (invoice.status === 'Void') {
+      fulfillment = { error: 'void_invoice_cannot_be_fulfilled' };
+    } else if (invoice.inventory_deducted) {
+      fulfillment = { skipped: true, reason: 'inventory_already_deducted' };
+    } else {
+      const { results: lineItems } = await env.DB.prepare(
+        `SELECT ili.product_id, ili.quantity, p.given_name, p.product_name, p.stock_grams
+           FROM invoice_line_items ili
+           LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+          WHERE ili.invoice_id = ? AND ili.account_id = ?`
+      ).bind(m.accountId, m.invoiceId, m.accountId).all();
+      fulfillment = await commitFulfillInvoice(
+        env,
+        { kind: 'fulfill_invoice', accountId: m.accountId, userEmail: m.userEmail, invoiceId: m.invoiceId },
+        invoice,
+        lineItems as any[],
+      );
+    }
+  }
+
+  return {
+    committed: true,
+    action: 'mark_invoice_paid',
+    invoice_id: m.invoiceId,
+    invoice_number: m.invoiceNumber,
+    payment_status: 'paid',
+    payment_date: now,
+    payment_method: m.paymentMethod,
+    already_paid: alreadyPaid,
+    fulfillment,
+  };
+}
+
 // ── tool: update_account_settings (preview / confirm) ──
 // Wraps PUT /api/accounts/:id for the active account. Owner-tier only.
 const ACCOUNT_SETTINGS_FIELDS = ['account_name', 'default_currency', 'contact_email', 'contact_phone'] as const;
@@ -2233,6 +2575,34 @@ const TOOL_DEFS = [
       type: 'object',
       properties: { query: { type: 'string' } },
       required: ['query'],
+    },
+  },
+  {
+    name: 'create_tea',
+    scope: 'stock:write',
+    description: 'Create a new tea/product row in Teajia inventory. Two-step preview/confirm. Use this when the tea does not already exist yet; use add_stock for later restocks of an existing tea.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        product_name: { type: 'string', description: 'Required display/product name.' },
+        given_name: { type: 'string', description: 'Optional shorter name shown in the UI. Defaults to product_name.' },
+        chinese_name: { type: 'string' },
+        type: { type: 'string', description: 'Tea type (e.g. "Pu-erh", "Oolong").', default: 'Tea' },
+        form: { type: 'string', description: 'Physical form (e.g. "Cake", "Loose").' },
+        year: { type: 'string', description: 'Harvest/production year.' },
+        origin_country: { type: 'string' },
+        origin_region: { type: 'string' },
+        vendor: { type: 'string' },
+        stock_grams: { type: 'number', description: 'Opening stock in grams. Writes a PURCHASE_RECEIPT ledger entry when > 0.' },
+        cost_amount: { type: 'number', description: 'Cost per the chosen currency.' },
+        cost_currency: { type: 'string', default: 'USD' },
+        fixed_retail_price_usd: { type: 'number', description: 'Optional fixed retail price; omit to use markup-based pricing.' },
+        low_stock_threshold: { type: 'number', default: 100 },
+        notes: { type: 'string', description: 'Optional description/notes.' },
+        status: { type: 'string', description: 'Product status (Active, Draft, Archived).', default: 'Active' },
+        confirm: { type: 'string', description: 'Confirmation token from the preview response. Omit on first call.' },
+      },
+      required: ['product_name'],
     },
   },
   {
@@ -2479,6 +2849,22 @@ const TOOL_DEFS = [
     },
   },
   {
+    name: 'mark_invoice_paid',
+    scope: 'sales:write',
+    description: 'Mark an invoice paid by id, by invoice number, or — if neither is given — the most recent unpaid invoice on the account. Set fulfill_stock=true when the same message also says the stock has left, to deduct line items and mark the invoice Filled in one step. Two-step preview/confirm.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string', description: 'Invoice id. Preferred when known.' },
+        invoice_number: { type: 'string', description: 'Invoice number. Used if invoice_id is omitted.' },
+        payment_method: { type: 'string', description: 'How payment was received (e.g. "cash", "bank transfer").', default: 'mcp' },
+        fulfill_stock: { type: 'boolean', description: 'Also deduct stock and mark the invoice Filled. Skips cleanly if inventory was already deducted.', default: false },
+        confirm: { type: 'string', description: 'Confirmation token from preview response.' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'update_account_settings',
     scope: 'admin:write',
     description: 'Update basic account settings (name, default currency, contact email/phone). Two-step preview/confirm. Owner-tier only. Defaults to the active account if account_id is not specified.',
@@ -2545,6 +2931,8 @@ const AUDITED_TOOLS = new Set([
   // Wave 3
   'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
   'set_archive_status', 'fulfill_invoice', 'update_account_settings', 'update_exchange_rate',
+  // Ported tools
+  'create_tea', 'mark_invoice_paid',
 ]);
 
 async function logMcpToolCall(env: Env, auth: McpAuth, toolName: string, args: any, result: unknown) {
@@ -2597,6 +2985,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'get_tea': result = mcpContent(await toolGetTea(env, auth.accountId, args)); break;
     case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
     case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
+    case 'create_tea': result = mcpContent(await toolCreateTea(env, auth, args)); break;
     case 'add_stock': result = mcpContent(await toolAddStock(env, auth, args)); break;
     case 'remove_stock': result = mcpContent(await toolRemoveStock(env, auth, args)); break;
     case 'record_sale': result = mcpContent(await toolRecordSale(env, auth, args)); break;
@@ -2613,6 +3002,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'unlink_vendor': result = mcpContent(await toolUnlinkVendor(env, auth, args)); break;
     case 'set_archive_status': result = mcpContent(await toolSetArchiveStatus(env, auth, args)); break;
     case 'fulfill_invoice': result = mcpContent(await toolFulfillInvoice(env, auth, args)); break;
+    case 'mark_invoice_paid': result = mcpContent(await toolMarkInvoicePaid(env, auth, args)); break;
     case 'update_account_settings': result = mcpContent(await toolUpdateAccountSettings(env, auth, args)); break;
     case 'update_exchange_rate': result = mcpContent(await toolUpdateExchangeRate(env, auth, args)); break;
     default: throw new Error(`Unknown tool: ${name}`);
@@ -2624,7 +3014,7 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 const SERVER_INFO = {
   name: 'teajia-inventory',
   version: '0.3.0',
-  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, stock adjustments, customer lookup, creating/voiding/fulfilling invoices, customer tags, vendor linking, catalog archive control, and (with owner-tier tokens) account settings and exchange rates.',
+  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, creating teas, stock adjustments, customer lookup, creating/voiding/fulfilling invoices, marking invoices paid, customer tags, vendor linking, catalog archive control, and (with owner-tier tokens) account settings and exchange rates.',
 };
 
 const PROTOCOL_VERSION = '2024-11-05';
