@@ -76,12 +76,12 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
                   </span>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className="h-2 w-16 bg-tea-text-sec/10 rounded-sm" />
+                      <div className="h-2 w-16 bg-tea-text-sec/10 rounded-md" />
                     </div>
                     <p className="font-serif text-sm text-tea-text-sec italic">
                       A special tea awaits...
                     </p>
-                    <div className="h-2 w-32 bg-tea-text-sec/5 rounded-sm mt-2" />
+                    <div className="h-2 w-32 bg-tea-text-sec/5 rounded-md mt-2" />
                   </div>
                 </div>
               )}

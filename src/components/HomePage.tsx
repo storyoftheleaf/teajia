@@ -251,11 +251,11 @@ const CharacterRevealCapture: React.FC = () => {
               <EmailCapture />
             </div>
             <p className="mt-5 text-ui-12 text-tea-text-dim" style={{ fontFamily: 'var(--font-body)' }}>
-              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
+              <Link to="/signup" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
                 Create an account
               </Link>
               {' · '}
-              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
+              <Link to="/signin" className="text-tea-gold/80 hover:text-tea-gold transition-colors duration-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg">
                 Sign in
               </Link>
             </p>
@@ -406,7 +406,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={item.section}
                 onClick={() => onNavigateToSection(item.section)}
-                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-ui-15 md:text-ui-16 lg:text-ui-17 leading-[1.8] tracking-[0.005em] flex items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-ui-15 md:text-ui-16 lg:text-ui-17 leading-[1.8] tracking-[0.005em] flex items-center gap-1.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
                 <span className="font-semibold text-tea-gold">{item.accent}</span>

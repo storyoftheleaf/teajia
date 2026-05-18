@@ -132,7 +132,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
           {attendee.guestRequests.map((gr, i) => (
             <span
               key={i}
-              className="text-ui-11 text-tea-text-dim bg-tea-elevated/40 px-2 py-0.5 rounded-sm"
+              className="text-ui-11 text-tea-text-dim bg-tea-elevated/40 px-2 py-0.5 rounded-md"
             >
               "{gr.nameHint}"
             </span>

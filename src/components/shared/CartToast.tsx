@@ -42,7 +42,7 @@ export const CartToast: React.FC<CartToastProps> = ({
           transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
         >
           <div
-            className="pointer-events-auto bg-tea-surface border border-tea-border shadow-2xl rounded-sm px-5 py-3.5 flex items-center gap-4 min-w-[280px] max-w-[90vw] md:max-w-md cursor-pointer select-none"
+            className="pointer-events-auto bg-tea-surface border border-tea-border shadow-2xl rounded-md px-5 py-3.5 flex items-center gap-4 min-w-[280px] max-w-[90vw] md:max-w-md cursor-pointer select-none"
             onClick={onViewCart}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') onViewCart();

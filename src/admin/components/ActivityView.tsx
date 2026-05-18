@@ -187,7 +187,7 @@ function InquiriesView() {
 
       <div className="space-y-3">
         {inquiries.map((inq: any) => (
-          <div key={inq.id} className="bg-tea-surface border border-tea-border rounded-lg p-4 space-y-3">
+          <div key={inq.id} className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-tea-text font-medium text-sm">{inq.name}</p>

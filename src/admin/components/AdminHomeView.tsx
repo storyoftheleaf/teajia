@@ -156,7 +156,7 @@ export const AdminHomeView: React.FC<{
         {isAdmin && (
           <button
             onClick={() => navigate('/admin/inventory')}
-            className="relative flex items-center gap-4 px-5 py-4 rounded-2xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 active:bg-tea-elevated/70 active:scale-[0.985]"
+            className="relative flex items-center gap-4 px-5 py-4 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 active:bg-tea-elevated/70 active:scale-[0.985]"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <Package size={20} strokeWidth={1.6} className="text-tea-gold shrink-0" />
@@ -172,12 +172,12 @@ export const AdminHomeView: React.FC<{
         {isAdmin && attentionItems.length > 0 && (
           <div className="relative">
             <SectionLabel>Needs attention</SectionLabel>
-            <ul className="flex flex-col gap-1 bg-tea-surface border border-tea-border rounded-2xl p-2">
+            <ul className="flex flex-col gap-1 bg-tea-surface border border-tea-border rounded-xl p-2">
               {attentionItems.slice(0, 5).map(item => (
                 <li key={item.item_id}>
                   <button
                     onClick={() => navigate(`/admin/collections/${item.collection_id}?item=${item.item_id}`)}
-                    className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-tea-elevated transition-colors"
+                    className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-left hover:bg-tea-elevated transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-ui-13 text-tea-text truncate">

@@ -154,7 +154,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                             <span className="text-sm text-tea-text group-hover:text-tea-gold transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                               {result.title}
                             </span>
-                            <span className="text-ui-10 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/40">
+                            <span className="text-ui-10 uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-tea-text/5 text-tea-text/40">
                               {RESULT_SECTION_LABELS[result.section] || result.sectionLabel}
                             </span>
                           </div>
@@ -179,7 +179,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                   >
                     <CardContainer className="hover:-translate-y-0.5 hover:shadow-lg transition-all h-full">
                       <div className="p-5 flex flex-col items-center text-center gap-3">
-                        <div className={`w-12 h-12 rounded-lg ${card.accentBg} flex items-center justify-center`}>
+                        <div className={`w-12 h-12 rounded-xl ${card.accentBg} flex items-center justify-center`}>
                           <span className={card.accentText}>{card.icon}</span>
                         </div>
                         <div>

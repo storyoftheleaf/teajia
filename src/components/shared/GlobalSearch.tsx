@@ -331,7 +331,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
 
       {/* Modal */}
       <motion.div
-        className="relative w-full max-w-lg bg-tea-elevated border border-tea-border rounded-lg shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg bg-tea-elevated border border-tea-border rounded-xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
         initial={{ opacity: 0, y: -24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

@@ -16,7 +16,7 @@ export const NoMembershipGate: React.FC<Props> = ({ onLogout }) => {
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center p-6 bg-tea-bg text-tea-text">
-      <div className="w-full max-w-md bg-tea-surface rounded-lg border border-tea-border p-8 text-center">
+      <div className="w-full max-w-md bg-tea-surface rounded-xl border border-tea-border p-8 text-center">
         <div className="mb-5 flex justify-center">
           <div className="w-14 h-14 rounded-full bg-tea-accent-sub flex items-center justify-center border border-tea-border">
             <Store className="text-tea-gold" size={22} />

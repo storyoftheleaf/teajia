@@ -198,7 +198,7 @@ export default function SessionPage() {
                 <button
                   type="button"
                   onClick={() => setActiveTeaId(tea.id)}
-                  className="w-full flex items-center gap-4 rounded-2xl bg-tea-elevated px-4 py-3 text-left hover:bg-tea-surface transition-colors"
+                  className="w-full flex items-center gap-4 rounded-xl bg-tea-elevated px-4 py-3 text-left hover:bg-tea-surface transition-colors"
                 >
                   <div className="w-14 h-14 rounded-xl bg-tea-surface overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {teaPhoto(tea) ? (

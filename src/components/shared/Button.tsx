@@ -29,9 +29,9 @@ export const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary: 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt active:bg-tea-gold/80 rounded-xl min-w-[44px] min-h-[44px]',
-    secondary: 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated rounded-lg min-w-[44px] min-h-[44px]',
-    ghost: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-lg min-w-[44px] min-h-[44px]',
-    icon: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-lg min-w-[44px] min-h-[44px]',
+    secondary: 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated rounded-xl min-w-[44px] min-h-[44px]',
+    ghost: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-xl min-w-[44px] min-h-[44px]',
+    icon: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-xl min-w-[44px] min-h-[44px]',
     danger: 'bg-red-600 text-tea-bg hover:bg-red-700 active:bg-red-800 rounded-xl min-w-[44px] min-h-[44px]',
   };
 

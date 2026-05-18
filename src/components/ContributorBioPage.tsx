@@ -17,13 +17,13 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-[fadeIn_0.3s_ease-out] overflow-y-auto">
-      <div className="bg-tea-surface  rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto overscroll-contain my-8 animate-[slideUp_0.4s_ease-out]">
+      <div className="bg-tea-surface  rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto overscroll-contain my-8 animate-[slideUp_0.4s_ease-out]">
         {/* Header with Close Button */}
         <div className="sticky top-0 bg-tea-surface  border-b border-tea-border p-6 flex items-start justify-between">
           <h2 className="text-2xl font-serif text-tea-text pr-4">{contributor.name}</h2>
           <button
             onClick={onClose}
-            className="flex-shrink-0 p-2 hover:bg-tea-text/10 rounded-lg transition-colors"
+            className="flex-shrink-0 p-2 hover:bg-tea-text/10 rounded-xl transition-colors"
             aria-label="Close profile"
           >
             <Icons.Close className="w-5 h-5 text-tea-text-sec" />
@@ -52,7 +52,7 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
               {/* This can be extended with social links from the PEOPLE_DIRECTORY data */}
               <div className="flex items-center gap-4">
                 <span className="text-sm text-tea-text/60">Share</span>
-                <button className="p-2 hover:bg-tea-text/10 rounded-lg transition-colors" title="Share on X">
+                <button className="p-2 hover:bg-tea-text/10 rounded-xl transition-colors" title="Share on X">
                   <Icons.Share className="w-4 h-4 text-tea-text/60" />
                 </button>
               </div>
@@ -93,12 +93,12 @@ export const ContributorBioPage: React.FC<ContributorBioPageProps> = ({
                 {offerings.map((offering: any) => (
                   <div
                     key={offering.id}
-                    className="p-4 border border-tea-border bg-tea-gold/10 rounded-lg hover:bg-tea-gold/20 cursor-pointer transition-colors"
+                    className="p-4 border border-tea-border bg-tea-gold/10 rounded-xl hover:bg-tea-gold/20 cursor-pointer transition-colors"
                   >
                     <h4 className="font-serif text-tea-text mb-1">{offering.title}</h4>
                     <p className="text-sm text-tea-text/70 mb-2">{offering.description}</p>
                     {offering.category && (
-                      <span className="text-ui-8 uppercase tracking-wider px-2 py-1 rounded-sm bg-tea-gold/30 text-tea-gold border border-tea-border">
+                      <span className="text-ui-8 uppercase tracking-wider px-2 py-1 rounded-md bg-tea-gold/30 text-tea-gold border border-tea-border">
                         {offering.category}
                       </span>
                     )}

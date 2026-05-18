@@ -64,7 +64,7 @@ const CollectionCard: React.FC<{
   onInquire: (item: CollectionItem) => void;
 }> = ({ item, onInquire }) => {
   return (
-    <div className="bg-tea-bg/80 backdrop-blur-md border border-tea-border rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300">
+    <div className="bg-tea-bg/80 backdrop-blur-md border border-tea-border rounded-md overflow-hidden hover:border-tea-gold/15 transition-colors duration-300">
       <div className="flex flex-col md:flex-row">
         {/* Image */}
         <div className="w-full md:w-2/5 aspect-[3/4] md:aspect-auto overflow-hidden">

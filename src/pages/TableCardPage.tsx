@@ -109,7 +109,7 @@ const TableCardPage: React.FC = () => {
       <div className="min-h-screen bg-tea-bg flex items-center justify-center">
         <div className="text-center animate-pulse">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
-          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-sm mx-auto" />
+          <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
         </div>
       </div>
     );
@@ -207,7 +207,7 @@ const TableCardPage: React.FC = () => {
                     disabled={submitting}
                     onClick={() => handleVerdictClick(value)}
                     className={[
-                      'relative py-5 px-6 rounded-sm text-left transition-all duration-200 disabled:opacity-60',
+                      'relative py-5 px-6 rounded-md text-left transition-all duration-200 disabled:opacity-60',
                       isSelected
                         ? 'bg-tea-gold/10 border border-tea-gold'
                         : isOther
@@ -246,7 +246,7 @@ const TableCardPage: React.FC = () => {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="What did you notice? Aroma, body, finish..."
                 rows={3}
-                className="w-full bg-tea-surface border border-tea-border rounded-sm px-4 py-3 text-sm text-tea-text placeholder:text-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/60 transition-colors"
+                className="w-full bg-tea-surface border border-tea-border rounded-md px-4 py-3 text-sm text-tea-text placeholder:text-tea-text-dim resize-none focus:outline-none focus:border-tea-gold/60 transition-colors"
               />
               <button
                 type="button"

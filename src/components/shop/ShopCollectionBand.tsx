@@ -11,7 +11,7 @@ const BandItemCard: React.FC<{ item: ShopCollectionItem }> = ({ item }) => {
   return (
     <article className="flex-shrink-0 w-[148px] sm:w-[164px] flex flex-col gap-2">
       {/* Image */}
-      <div className="w-full aspect-square rounded-sm overflow-hidden bg-tea-elevated">
+      <div className="w-full aspect-square rounded-md overflow-hidden bg-tea-elevated">
         {item.image_url ? (
           <img
             src={item.image_url}

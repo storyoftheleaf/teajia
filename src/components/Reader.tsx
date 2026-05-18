@@ -671,7 +671,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
                 onClick={() => { onNavigate(s); setShowNav(false); }}
                 className="group w-full text-left flex gap-5 py-4 px-2 -mx-2 rounded-md hover:bg-tea-accent-sub/40 transition-colors"
               >
-                <div className="w-16 h-20 bg-tea-surface shrink-0 relative overflow-hidden rounded-sm">
+                <div className="w-16 h-20 bg-tea-surface shrink-0 relative overflow-hidden rounded-md">
                   <img src={s.thumbnailUrl} className="w-full h-full object-cover sepia-[0.3] group-hover:sepia-0 transition-all duration-500" alt="" loading="lazy" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -976,7 +976,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
               <button
                 onClick={prev}
                 disabled={currentPageIndex === 0}
-                className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
+                className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-xl"
                 aria-label="Previous page"
               >
                 <Icons.Back className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />
@@ -984,7 +984,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
               <button
                 onClick={next}
                 disabled={currentPageIndex >= pages.length - 1}
-                className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-lg"
+                className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-32 items-center justify-center transition-all disabled:opacity-0 rounded-xl"
                 aria-label="Next page"
               >
                 <Icons.Next className="w-6 h-6 text-tea-text-dim/30 hover:text-tea-text-dim/60 transition-colors" />

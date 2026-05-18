@@ -575,7 +575,7 @@ function PageChromeSection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Demo label="Wide working surface · sticky" caption="px-4 md:px-6 lg:px-10 · h-16 · max-w-7xl">
-          <div className="rounded-lg border border-tea-border overflow-hidden bg-tea-bg">
+          <div className="rounded-xl border border-tea-border overflow-hidden bg-tea-bg">
             <div className="h-16 px-5 bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex items-center justify-between">
               <div>
                 <div className="h3">Inventory</div>
@@ -592,7 +592,7 @@ function PageChromeSection() {
         </Demo>
 
         <Demo label="Narrow form · non-sticky" caption="px-4 md:px-6 · max-w-3xl">
-          <div className="rounded-lg border border-tea-border overflow-hidden bg-tea-bg">
+          <div className="rounded-xl border border-tea-border overflow-hidden bg-tea-bg">
             <div className="px-5 pt-5 pb-3">
               <div className="h3">Settings</div>
               <div className="label-caps text-tea-text-dim mt-0.5">ACCOUNT · WORKSPACE</div>
@@ -662,7 +662,7 @@ function TabStripSection() {
         </div>
 
         <Demo banned label="The segmented pill" caption="OS-control aesthetic — fights editorial type">
-          <div className="inline-flex bg-tea-elevated rounded-lg border border-tea-border p-0.5">
+          <div className="inline-flex bg-tea-elevated rounded-xl border border-tea-border p-0.5">
             {['All', 'Drafts', 'Published'].map((t, i) => (
               <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 1 ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec'}`}>
                 {t}
@@ -820,7 +820,7 @@ function SurfacesSection() {
 
       <div className="mt-6">
         <Demo label="Data table · sticky thead · font-serif caps headers">
-          <div className="overflow-x-auto bg-tea-bg rounded-lg border border-tea-border">
+          <div className="overflow-x-auto bg-tea-bg rounded-xl border border-tea-border">
             <table className="w-full">
               <thead className="bg-tea-bg">
                 <tr>
@@ -1723,7 +1723,7 @@ function AntiPatternsSection() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Demo banned label="Segmented pill tabs" caption="OS-control aesthetic, fights serif type">
-          <div className="inline-flex bg-tea-elevated rounded-lg border border-tea-border p-0.5">
+          <div className="inline-flex bg-tea-elevated rounded-xl border border-tea-border p-0.5">
             {['All', 'Drafts', 'Live'].map((t, i) => (
               <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 0 ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec'}`}>{t}</span>
             ))}

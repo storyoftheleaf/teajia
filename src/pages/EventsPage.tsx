@@ -91,13 +91,13 @@ const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
 const EventRowSkeleton: React.FC = () => (
   <div className="flex items-center gap-4 py-5 animate-pulse">
     <div className="shrink-0 w-14 flex flex-col items-center gap-1.5">
-      <div className="h-2 w-8 bg-tea-elevated rounded-sm" />
-      <div className="h-6 w-8 bg-tea-elevated rounded-sm" />
-      <div className="h-2 w-10 bg-tea-elevated rounded-sm" />
+      <div className="h-2 w-8 bg-tea-elevated rounded-md" />
+      <div className="h-6 w-8 bg-tea-elevated rounded-md" />
+      <div className="h-2 w-10 bg-tea-elevated rounded-md" />
     </div>
     <div className="flex-1 space-y-2">
-      <div className="h-4 w-2/3 bg-tea-elevated rounded-sm" />
-      <div className="h-3 w-1/2 bg-tea-elevated rounded-sm" />
+      <div className="h-4 w-2/3 bg-tea-elevated rounded-md" />
+      <div className="h-3 w-1/2 bg-tea-elevated rounded-md" />
     </div>
     <div className="h-5 w-16 bg-tea-elevated rounded-full hidden sm:block" />
   </div>

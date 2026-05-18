@@ -460,9 +460,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                           {hasErrors ? (
                             <AlertTriangle size={14} className="text-tea-gold" aria-label={row.errors.join(', ')} />
                           ) : row.status === 'Draft' ? (
-                            <span className="text-ui-9 font-mono text-tea-text-sec bg-tea-text-sec/10 px-1.5 py-0.5 rounded-sm">DRAFT</span>
+                            <span className="text-ui-9 font-mono text-tea-text-sec bg-tea-text-sec/10 px-1.5 py-0.5 rounded-md">DRAFT</span>
                           ) : (
-                            <span className="text-ui-9 font-mono text-tea-text bg-tea-text/10 px-1.5 py-0.5 rounded-sm">ACTIVE</span>
+                            <span className="text-ui-9 font-mono text-tea-text bg-tea-text/10 px-1.5 py-0.5 rounded-md">ACTIVE</span>
                           )}
                         </span>
 
@@ -495,7 +495,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                       {isExpanded && (
                         <div className="bg-tea-surface/40 border-t border-tea-border px-4 py-3">
                           {hasErrors && (
-                            <div className="mb-3 px-3 py-2 bg-tea-gold/10 rounded-lg text-xs text-tea-gold">
+                            <div className="mb-3 px-3 py-2 bg-tea-gold/10 rounded-xl text-xs text-tea-gold">
                               {row.errors.join(' · ')}
                             </div>
                           )}
@@ -589,9 +589,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                                     <AlertTriangle size={14} className="text-tea-gold" />
                                 </div>
                             ) : row.status === 'Draft' ? (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text-sec/10 text-tea-text-sec border border-tea-text-sec/20 text-ui-10 font-mono">DRAFT</span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-tea-text-sec/10 text-tea-text-sec border border-tea-text-sec/20 text-ui-10 font-mono">DRAFT</span>
                             ) : (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-tea-text/10 text-tea-text border border-tea-text/20 text-ui-10 font-mono">ACTIVE</span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-tea-text/10 text-tea-text border border-tea-text/20 text-ui-10 font-mono">ACTIVE</span>
                             )}
                         </td>
                         <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-gold/10' : ''}`}>{row.type}</td>

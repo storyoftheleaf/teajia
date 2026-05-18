@@ -35,7 +35,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
     <div className="flex flex-col gap-4 w-full">
       {/* Image with markers */}
       <div className="relative w-full">
-        <img src={src} alt={alt} className="w-full block rounded-lg" loading="lazy" />
+        <img src={src} alt={alt} className="w-full block rounded-xl" loading="lazy" />
 
         {annotations.map((ann) => {
           const isActive = activeId === ann.id;
@@ -72,7 +72,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.85, y: 4 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text text-xs rounded-lg px-3 py-2 shadow-xl whitespace-nowrap max-w-40 text-center"
+                    className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text text-xs rounded-xl px-3 py-2 shadow-xl whitespace-nowrap max-w-40 text-center"
                     style={{
                       backdropFilter: 'blur(8px)',
                       WebkitBackdropFilter: 'blur(8px)',

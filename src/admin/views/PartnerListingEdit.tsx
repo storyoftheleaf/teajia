@@ -741,7 +741,7 @@ const SuggestForm: React.FC<SuggestFormProps> = ({ note, setNote, busy, error, o
       onChange={e => setNote(e.target.value.slice(0, 1000))}
       placeholder="Why does this tea belong in the network? (Optional)"
       rows={3}
-      className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-sm text-ui-14 text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
+      className="w-full px-3 py-2 bg-tea-bg border border-tea-border rounded-md text-ui-14 text-tea-text font-body placeholder:text-tea-text-dim placeholder:italic focus:outline-none focus:border-tea-gold/40"
       maxLength={1000}
     />
     <div className="flex items-center gap-4 text-ui-13">

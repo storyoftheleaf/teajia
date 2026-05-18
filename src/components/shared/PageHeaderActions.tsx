@@ -29,10 +29,10 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
   return (
     <div className="flex items-center gap-4 md:gap-6">
       {/* View Mode Toggle */}
-      <div className="flex items-center bg-tea-text/[0.06] rounded-lg p-0.5">
+      <div className="flex items-center bg-tea-text/[0.06] rounded-xl p-0.5">
         <button
           onClick={() => onViewModeChange('LIST')}
-          className={`p-1.5 rounded-lg transition-all ${
+          className={`p-1.5 rounded-xl transition-all ${
             viewMode === 'LIST'
               ? 'bg-tea-elevated text-tea-text shadow-sm'
               : 'text-tea-text/40 hover:text-tea-text'
@@ -43,7 +43,7 @@ export const PageHeaderActions: React.FC<PageHeaderActionsProps> = ({
         </button>
         <button
           onClick={() => onViewModeChange('GRID')}
-          className={`p-1.5 rounded-lg transition-all ${
+          className={`p-1.5 rounded-xl transition-all ${
             viewMode === 'GRID'
               ? 'bg-tea-elevated text-tea-text shadow-sm'
               : 'text-tea-text/40 hover:text-tea-text'

@@ -51,7 +51,7 @@ export function InventoryConfirmations({
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="presentation">
           <div className="bg-tea-bg border border-tea-border rounded-xl max-w-sm w-full p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="enrich-confirm-title">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg border border-tea-border text-tea-gold bg-tea-accent-sub">
+              <div className="p-2 rounded-xl border border-tea-border text-tea-gold bg-tea-accent-sub">
                 <Sparkles size={18} />
               </div>
               <div>
@@ -66,7 +66,7 @@ export function InventoryConfirmations({
               <button
                 onClick={onConfirmEnrich}
                 disabled={isEnriching}
-                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
+                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-40 transition-colors"
               >
                 {isEnriching ? 'Generating...' : 'Generate'}
               </button>
@@ -79,7 +79,7 @@ export function InventoryConfirmations({
         <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="presentation">
           <div className="bg-tea-bg border border-tea-border rounded-xl max-w-sm w-full p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="verification-reset-title">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg border border-tea-border text-tea-gold bg-tea-accent-sub">
+              <div className="p-2 rounded-xl border border-tea-border text-tea-gold bg-tea-accent-sub">
                 <RefreshCw size={18} />
               </div>
               <div>
@@ -93,7 +93,7 @@ export function InventoryConfirmations({
               <button onClick={onCloseVerificationResetConfirm} className="px-1 py-2 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]">Cancel</button>
               <button
                 onClick={onConfirmVerificationReset}
-                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors"
+                className="px-4 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors"
               >
                 Reset
               </button>
@@ -116,7 +116,7 @@ export function InventoryConfirmations({
               <div className="w-full pt-4">
                 <input
                   type="text"
-                  className="w-full input-warm rounded-lg p-3 text-center text-tea-gold num text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors"
+                  className="w-full input-warm rounded-xl p-3 text-center text-tea-gold num text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors"
                   value={resetInput}
                   onChange={(e) => onResetInputChange(e.target.value)}
                   placeholder='Type "delete" to confirm'
@@ -129,7 +129,7 @@ export function InventoryConfirmations({
                 <button
                   onClick={onConfirmDatabaseReset}
                   disabled={resetInput !== 'delete' || isResetting}
-                  className="flex-1 py-3 bg-tea-gold/20 border border-tea-accent-sub text-tea-gold text-xs font-semibold rounded-lg hover:bg-tea-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 py-3 bg-tea-gold/20 border border-tea-accent-sub text-tea-gold text-xs font-semibold rounded-md hover:bg-tea-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   {isResetting ? 'Deleting...' : 'Confirm Wipe'}
                 </button>
@@ -144,7 +144,7 @@ export function InventoryConfirmations({
           <div className="bg-tea-bg border border-tea-border w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" role="dialog" aria-modal="true" aria-labelledby="inventory-maintenance-title">
             <div className="p-6 border-b border-tea-border flex justify-between items-center bg-tea-surface">
               <div className="flex items-center gap-3">
-                <div className="p-2 border border-tea-accent-sub text-tea-gold rounded-lg bg-tea-gold/10">
+                <div className="p-2 border border-tea-accent-sub text-tea-gold rounded-xl bg-tea-gold/10">
                   <AlertTriangle size={16} />
                 </div>
                 <h3 id="inventory-maintenance-title" className="text-lg font-serif text-tea-text">Inventory Maintenance</h3>
@@ -172,7 +172,7 @@ export function InventoryConfirmations({
             <div className="p-4 border-t border-tea-border flex justify-end bg-tea-surface">
               <button
                 onClick={onCloseMaintenanceModal}
-                className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors"
+                className="px-6 py-2 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors"
               >
                 Close
               </button>

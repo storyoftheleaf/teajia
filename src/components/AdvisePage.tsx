@@ -160,7 +160,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
               alt=""
               width={600}
               height={750}
-              className="w-full aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-surface rounded-lg"
+              className="w-full aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-surface rounded-xl"
               loading="lazy"
             />
           </div>
@@ -322,7 +322,7 @@ const Services: React.FC = () => (
             <div className="mt-8 pt-4">
               {svc.offerings.map((o, j) => (
                 <div key={o.name}
-                     className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-sm">
+                     className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-md">
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-ui-15 font-light text-tea-text"
                           style={{ fontFamily: 'var(--font-display)' }}>
@@ -383,7 +383,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
             key={project.id}
             onClick={() => onSelectProject(project.id)}
             className="w-full text-left group py-3 flex items-baseline justify-between gap-6
-                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-md"
             style={{ borderBottom: i < projects.length - 1 ? '1px solid var(--tea-border)' : undefined }}
           >
             <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors duration-300"
@@ -402,7 +402,7 @@ const ProjectsPreview: React.FC<ProjectsPreviewProps> = ({ onSelectProject, onVi
         onClick={onViewAll}
         className="text-ui-11 uppercase tracking-[0.1em] text-tea-gold/60 hover:text-tea-gold
                    transition-colors duration-300 min-h-[44px] mt-3
-                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-sm"
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded-md"
         style={{ fontFamily: 'var(--font-sans)' }}
       >
         View all <span className="ml-1">&rarr;</span>

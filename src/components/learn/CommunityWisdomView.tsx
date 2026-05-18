@@ -79,13 +79,13 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
             <button
               key={entry.id}
               onClick={() => toggleWisdomCard(entry.id)}
-              className={`text-left w-full transition-all duration-300 rounded-lg ${getWisdomCardStyle(entry)}`}
+              className={`text-left w-full transition-all duration-300 rounded-xl ${getWisdomCardStyle(entry)}`}
             >
               <CardContainer className="transition-all h-full">
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
+                      <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${WISDOM_TYPE_COLORS[entry.type] || ''}`}>
                         {WISDOM_TYPE_LABELS[entry.type]}
                       </span>
                       {entry.teaReferenced && (
@@ -109,7 +109,7 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
                   </p>
                   <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
                     {entry.teaReferenced && (
-                      <div className="flex items-center gap-2 py-2.5 px-3 rounded-lg bg-tea-gold/5 mb-3">
+                      <div className="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-tea-gold/5 mb-3">
                         <Icons.Leaf className="w-3.5 h-3.5 text-tea-gold" />
                         <span className="text-xs text-tea-text/70">
                           Tea: <span className="font-medium text-tea-text">{entry.teaReferenced}</span>
@@ -119,7 +119,7 @@ export const CommunityWisdomView: React.FC<CommunityWisdomViewProps> = ({ onBack
                     {entry.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {entry.tags.map(tag => (
-                          <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-text/5 text-tea-text/50">
+                          <span key={tag} className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-text/5 text-tea-text/50">
                             {tag}
                           </span>
                         ))}

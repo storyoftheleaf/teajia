@@ -12,6 +12,7 @@ import { useToast } from '../components/Toast';
 import { useProducts } from '../hooks/useAdminData';
 import { RecipientTypeahead } from '../components/collections/RecipientTypeahead';
 import { STATUS_PILL_VARIANTS, STATUS_PILL_BASE, type StatusPillVariant } from '../constants';
+import { ConfirmModal } from '../components/ConfirmModal';
 import type {
   CollectionDetail, CollectionItem, CollectionPublication,
   CollectionRecipient, CollectionStatus,
@@ -68,6 +69,7 @@ export const CollectionEditView: React.FC = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [working, setWorking] = useState(false);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const focusRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
@@ -93,7 +95,7 @@ export const CollectionEditView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Save failed', 'error');
+      showToast(err?.message || 'Could not save collection details. Try again.', 'error');
     } finally {
       setSavingMeta(false);
     }
@@ -130,7 +132,7 @@ export const CollectionEditView: React.FC = () => {
       await api.collections.reorderItem(id, itemId, direction);
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Reorder failed', 'error');
+      showToast(err?.message || 'Could not reorder collection items. Try again.', 'error');
     } finally {
       setWorking(false);
     }
@@ -143,7 +145,7 @@ export const CollectionEditView: React.FC = () => {
       await api.collections.removeItem(id, itemId);
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Remove failed', 'error');
+      showToast(err?.message || 'Could not remove item from collection. Try again.', 'error');
     } finally {
       setWorking(false);
     }
@@ -155,7 +157,7 @@ export const CollectionEditView: React.FC = () => {
       await api.collections.unpublish(id, pubId);
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Unpublish failed', 'error');
+      showToast(err?.message || 'Could not unpublish this collection. Try again.', 'error');
     }
   };
 
@@ -166,7 +168,7 @@ export const CollectionEditView: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
       invalidate();
     } catch (err: any) {
-      showToast(err?.message || 'Failed to update status', 'error');
+      showToast(err?.message || 'Could not update collection status. Try again.', 'error');
     }
   };
 
@@ -352,7 +354,7 @@ export const CollectionEditView: React.FC = () => {
                           <ChevronDown size={13} />
                         </button>
                         <button
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => setPendingRemoveId(item.id)}
                           disabled={working}
                           className="tap-target p-1.5 text-tea-text-sec hover:text-tea-error transition-colors"
                           aria-label="Remove"
@@ -443,6 +445,22 @@ export const CollectionEditView: React.FC = () => {
           disabled={!canPublish}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!pendingRemoveId}
+        onClose={() => setPendingRemoveId(null)}
+        onConfirm={async () => {
+          if (pendingRemoveId) {
+            await removeItem(pendingRemoveId);
+            setPendingRemoveId(null);
+          }
+        }}
+        title="Remove from collection?"
+        description="This tea will be removed from the collection. The product itself is not deleted."
+        confirmLabel="Remove"
+        variant="destructive"
+        isLoading={working}
+      />
     </div>
   );
 };
@@ -468,7 +486,7 @@ const StatusPill: React.FC<{ status: CollectionStatus; onSet: (s: CollectionStat
             className="fixed inset-0 z-dropdown"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 top-[calc(100%+6px)] z-dropdown bg-tea-elevated border border-tea-border rounded-lg shadow-lg py-1 min-w-[130px]">
+          <div className="absolute right-0 top-[calc(100%+6px)] z-dropdown bg-tea-elevated border border-tea-border rounded-xl shadow-lg py-1 min-w-[130px]">
             {(['draft', 'active', 'archived'] as CollectionStatus[]).map(s => (
               <button
                 key={s}
@@ -624,7 +642,7 @@ const AddProductsSheet: React.FC<{
       showToast(`Added ${selected.size} product${selected.size !== 1 ? 's' : ''}`, 'success');
       onAdded();
     } catch (err: any) {
-      showToast(err?.message || 'Add failed', 'error');
+      showToast(err?.message || 'Could not add items to collection. Try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -650,7 +668,7 @@ const AddProductsSheet: React.FC<{
       <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
               <Plus size={14} className="text-tea-gold" />
             </div>
             <div className="min-w-0">
@@ -672,7 +690,7 @@ const AddProductsSheet: React.FC<{
               onChange={e => setQuery(e.target.value)}
               placeholder="Filter by name…"
               autoFocus
-              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
           </div>
 
@@ -734,7 +752,7 @@ const AddProductsSheet: React.FC<{
                         isSelected ? 'bg-tea-gold-lt' : 'hover:bg-tea-bg'
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded-sm flex-shrink-0 flex items-center justify-center transition-colors ${
+                      <div className={`w-4 h-4 rounded-md flex-shrink-0 flex items-center justify-center transition-colors ${
                         isSelected ? 'bg-tea-gold' : 'bg-tea-surface border border-tea-border'
                       }`}>
                         {isSelected && <Check size={9} className="text-tea-bg" strokeWidth={3} />}
@@ -866,7 +884,7 @@ const AddPublicationSheet: React.FC<{
       <div className="relative w-full max-w-md bg-tea-surface border border-tea-border rounded-xl shadow-2xl flex flex-col max-h-[85vh]">
         <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
               <UserPlus size={14} className="text-tea-gold" />
             </div>
             <div className="min-w-0">
@@ -880,7 +898,7 @@ const AddPublicationSheet: React.FC<{
         </header>
 
         <div className="px-5 pb-3 flex-shrink-0">
-          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-lg">
+          <div role="tablist" className="grid grid-cols-3 gap-1 p-1 bg-tea-bg border border-tea-border rounded-xl">
             <button
               type="button"
               role="tab"
@@ -938,7 +956,7 @@ const AddPublicationSheet: React.FC<{
                   onChange={e => setTagFilter(e.target.value)}
                   placeholder="Filter tags…"
                   autoFocus
-                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
                 />
               </div>
               {filteredTags.length === 0 ? (
@@ -954,7 +972,7 @@ const AddPublicationSheet: React.FC<{
                         <button
                           type="button"
                           onClick={() => setSelectedTag(t.tag)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                             isSel ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                           }`}
                         >
@@ -987,7 +1005,7 @@ const AddPublicationSheet: React.FC<{
                   onChange={e => setStoreQuery(e.target.value)}
                   placeholder="Search stores…"
                   autoFocus
-                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-lg outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-tea-bg border border-tea-border rounded-xl outline-none text-tea-text placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
                 />
               </div>
               {filteredStores.length === 0 ? (
@@ -1004,7 +1022,7 @@ const AddPublicationSheet: React.FC<{
                         <button
                           type="button"
                           onClick={() => setSelectedStoreId(s.id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
                             isSel ? 'bg-tea-gold-lt' : 'bg-tea-bg hover:bg-tea-elevated'
                           }`}
                         >

@@ -137,7 +137,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 right-0 bottom-full mb-2 bg-tea-surface rounded-lg shadow-2xl overflow-hidden z-priority border border-tea-border"
+          className="absolute left-0 right-0 bottom-full mb-2 bg-tea-surface rounded-xl shadow-2xl overflow-hidden z-priority border border-tea-border"
         >
           <div className="px-3 py-2 text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim border-b border-tea-border">
             Your Tea Houses

@@ -232,7 +232,7 @@ export const TeaInspireGallery: React.FC = () => {
           <p className="text-tea-text/70 mb-8 max-w-xl mx-auto text-base md:text-lg leading-relaxed">
             We celebrate the beautiful, everyday moments of tea practice. Share your space, your setup, your ritual with our community.
           </p>
-          <button className="px-8 py-3 border-2 border-tea-gold text-tea-gold hover:bg-tea-gold hover:text-tea-bg rounded-lg font-medium transition-all duration-300 text-sm uppercase tracking-wider">
+          <button className="px-8 py-3 border-2 border-tea-gold text-tea-gold hover:bg-tea-gold hover:text-tea-bg rounded-xl font-medium transition-all duration-300 text-sm uppercase tracking-wider">
             Submit Your Photo
           </button>
         </div>
@@ -250,7 +250,7 @@ export const TeaInspireGallery: React.FC = () => {
               <img
                 src={selectedImage.imageUrl}
                 alt={selectedImage.caption}
-                className="max-w-full max-h-[60vh] md:max-h-[85vh] object-contain rounded-lg"
+                className="max-w-full max-h-[60vh] md:max-h-[85vh] object-contain rounded-xl"
               />
 
               {/* Navigation Arrows */}

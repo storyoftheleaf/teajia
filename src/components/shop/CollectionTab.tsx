@@ -35,7 +35,7 @@ const ItemCard: React.FC<{
   return (
     <div
       onClick={() => onView(item)}
-      className="group cursor-pointer bg-tea-bg/90 backdrop-blur-md border border-tea-border rounded-sm overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
+      className="group cursor-pointer bg-tea-bg/90 backdrop-blur-md border border-tea-border rounded-md overflow-hidden hover:border-tea-gold/15 transition-colors duration-300"
     >
       <div className="flex flex-col md:flex-row">
         {/* Image */}
@@ -95,7 +95,7 @@ const ItemCard: React.FC<{
               {item.mood && (
                 <div className="flex items-center gap-2.5">
                   <div
-                    className="w-[18px] h-[2px] rounded-lg shrink-0"
+                    className="w-[18px] h-[2px] rounded-xl shrink-0"
                     style={{ background: accent, opacity: 0.7 }}
                   />
                   <span className="font-serif italic text-xs text-tea-text/70">
@@ -106,7 +106,7 @@ const ItemCard: React.FC<{
               {notes.slice(0, 3).map((note, i) => (
                 <div key={note} className="flex items-center gap-2.5">
                   <div
-                    className="h-[2px] rounded-lg shrink-0"
+                    className="h-[2px] rounded-xl shrink-0"
                     style={{
                       width: `${16 - i * 2}px`,
                       background: accent,
@@ -165,7 +165,7 @@ const ItemCard: React.FC<{
                   }
                 }}
                 disabled={isSoldOut}
-                className={`text-ui-10 uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-sm transition-all min-h-[44px] ${
+                className={`text-ui-10 uppercase tracking-[0.12em] font-medium py-2 px-4 rounded-md transition-all min-h-[44px] ${
                   isSoldOut
                     ? 'bg-tea-accent-sub text-tea-text-sec cursor-not-allowed opacity-60'
                     : 'bg-tea-gold hover:bg-tea-gold-lt text-tea-bg active:scale-95'
@@ -190,8 +190,16 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
   const toggleFavoriteTea = useAppStore(state => state.toggleFavoriteTea);
 
   const handleTaste = useCallback((item: InventoryItem) => {
+    // Clear Alcove URL state so useProductUrl does not re-open the modal
+    // behind the tasting session.
     if (window.location.pathname.startsWith('/shop/product/')) {
       window.history.replaceState(null, '', '/shop');
+    } else {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('product')) {
+        url.searchParams.delete('product');
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
     }
     setViewItem(null);
     setTastingItem(item);

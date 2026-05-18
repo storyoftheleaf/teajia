@@ -55,7 +55,7 @@ export const LearnReadingLists: React.FC = () => {
                 className="flex items-start gap-4 py-3.5 px-1 group hover:bg-tea-elevated/50 transition-colors"
               >
                 {/* Format icon */}
-                <div className={`w-9 h-9 rounded-sm flex items-center justify-center shrink-0 mt-0.5 ${
+                <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
                   item.format === 'book' ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' :
                   item.format === 'podcast' ? 'bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400' :
                   item.format === 'playlist' ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400' :
@@ -72,7 +72,7 @@ export const LearnReadingLists: React.FC = () => {
                     <h4 className="font-serif text-sm text-tea-text truncate">
                       {item.title}
                     </h4>
-                    <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0 hidden sm:inline ${FORMAT_COLORS[item.format]}`}>
+                    <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 hidden sm:inline ${FORMAT_COLORS[item.format]}`}>
                       {item.format}
                     </span>
                   </div>

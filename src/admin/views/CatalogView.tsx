@@ -179,7 +179,7 @@ export const CatalogView: React.FC = () => {
                         href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-full mt-3 py-2 text-xs text-center border border-tea-border rounded-lg text-tea-text-sec hover:border-tea-gold hover:text-tea-gold transition-colors"
+                        className="block w-full mt-3 py-2 text-xs text-center border border-tea-border rounded-xl text-tea-text-sec hover:border-tea-gold hover:text-tea-gold transition-colors"
                       >
                         Request to Stock
                       </a>

@@ -330,7 +330,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
 
               {/* Decision summary — shown when all samples tasted */}
               {allTasted && verdictCounts && (
-                <div className="mt-2 rounded-lg bg-tea-surface/60 border border-tea-border px-3 py-2.5 space-y-2">
+                <div className="mt-2 rounded-xl bg-tea-surface/60 border border-tea-border px-3 py-2.5 space-y-2">
                   <div className="flex items-center gap-3">
                     <span className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-serif">Set verdict</span>
                     <div className="flex items-center gap-2.5">
@@ -441,7 +441,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </p>
         <button
           onClick={onNewCapture}
-          className="px-8 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-sm"
+          className="px-8 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.25em] hover:bg-tea-gold/90 transition-colors rounded-md"
         >
           Begin
         </button>
@@ -462,7 +462,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             value={internalSearchQuery}
             onChange={(e) => setInternalSearchQuery(e.target.value)}
             placeholder="Search by name, region, vendor…"
-            className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2
+            className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-xl pl-8 pr-8 py-2
                        outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40"
           />
           {internalSearchQuery && (
@@ -490,7 +490,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                     ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                     : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                 }`
-              : `px-2.5 py-1.5 rounded-lg text-ui-11 font-medium transition-colors whitespace-nowrap shrink-0 ${
+              : `px-2.5 py-1.5 rounded-xl text-ui-11 font-medium transition-colors whitespace-nowrap shrink-0 ${
                   browseFilter === opt.value
                     ? 'bg-tea-gold/15 text-tea-gold font-semibold'
                     : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
@@ -542,7 +542,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface border border-tea-gold/20 text-ui-12">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tea-surface border border-tea-gold/20 text-ui-12">
               <SplitSquareHorizontal size={11} className="text-tea-gold shrink-0" />
               <span className="flex-1 text-tea-text-sec">{compareIds.size} selected</span>
               {compareIds.size >= 2 && (
@@ -577,7 +577,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tea-surface text-ui-12">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tea-surface text-ui-12">
               <Trash2 size={12} className="text-tea-text-dim shrink-0" />
               <span className="flex-1 text-tea-text-sec">
                 {emptyEntries.length} entries have no name, notes, or tasting data

@@ -209,7 +209,7 @@ const LinkCustomerModal: React.FC<LinkCustomerModalProps> = ({ attendee, onClose
       <div className="absolute inset-0 bg-tea-bg/80 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal panel */}
-      <div className="relative z-10 bg-tea-surface border border-tea-border rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh]">
+      <div className="relative z-10 bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-tea-border shrink-0">
           <div>
@@ -223,7 +223,7 @@ const LinkCustomerModal: React.FC<LinkCustomerModalProps> = ({ attendee, onClose
 
         {/* Search */}
         <div className="px-4 py-3 shrink-0">
-          <div className="flex items-center gap-2 bg-tea-elevated rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 bg-tea-elevated rounded-xl px-3 py-2">
             <Search size={13} className="text-tea-text-sec shrink-0" />
             <input
               ref={inputRef}
@@ -255,7 +255,7 @@ const LinkCustomerModal: React.FC<LinkCustomerModalProps> = ({ attendee, onClose
                   <button
                     onClick={() => handleLink(customer)}
                     disabled={linking}
-                    className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-tea-elevated transition-colors disabled:opacity-50 group"
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-tea-elevated transition-colors disabled:opacity-50 group"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm text-tea-text font-medium group-hover:text-tea-gold transition-colors">{customer.name}</span>
@@ -621,7 +621,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                           {attendee.guestRequests && attendee.guestRequests.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {attendee.guestRequests.map((gr, i) => (
-                                <span key={i} className={`text-ui-9 px-1.5 py-0.5 rounded-sm ${
+                                <span key={i} className={`text-ui-9 px-1.5 py-0.5 rounded-md ${
                                   gr.approved === true ? 'bg-green-500/10 text-green-400'
                                   : gr.approved === false ? 'bg-tea-text-sec/10 text-tea-text-dim'
                                   : 'bg-amber-500/10 text-amber-400'

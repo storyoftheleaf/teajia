@@ -290,7 +290,7 @@ export const VendorPicker = ({ value, onChange, productId, className }: {
         placeholder="Type or pick a source..."
       />
       {open && (filtered.length > 0 || (query.trim() && isNew)) && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-lg shadow-lg max-h-48 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-accent-sub rounded-xl shadow-lg max-h-48 overflow-y-auto">
           {isNew && query.trim() && (
             <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => handleSelectVendor(query.trim())}
               className="w-full text-left px-3 py-2 text-xs text-tea-gold hover:bg-tea-bg transition-colors border-b border-tea-accent-sub">

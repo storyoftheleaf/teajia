@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Plus, Trash2, Search, FileDown, Loader2, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
+import { X, Plus, Trash2, Search, FileDown, Loader2, RotateCcw, Phone, Mail, MessageCircle, AtSign, Send, Lock, Hash, MessagesSquare } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { api } from '../../lib/api';
 import { Currency, InvoiceDisplayItem, Product, ContactChannel, ContactEntry } from '../types';
@@ -29,6 +29,10 @@ const CONTACT_LABELS: Record<ContactChannel, string> = {
 
 interface QuickInvoiceModalPrefill {
   vendorName?: string;
+  customerName?: string;
+  currency?: Currency;
+  shipping?: number;
+  notes?: string;
   items?: Array<{ name: string; quantity?: number; unit?: 'g' | 'pcs'; productId?: string; price?: number }>;
 }
 
@@ -72,7 +76,9 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
 
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [productQuery, setProductQuery] = useState('');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [saving, setSaving] = useState(false);
+  const [loadingRepeat, setLoadingRepeat] = useState(false);
 
   const nameInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const latestAddedItemId = useRef<string | null>(null);
@@ -103,7 +109,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     if (!isOpen) return;
     // Apply prefill if provided, otherwise reset to defaults
     if (prefill) {
-      if (prefill.vendorName) setCustomerQuery(prefill.vendorName);
+      if (prefill.customerName || prefill.vendorName) setCustomerQuery(prefill.customerName || prefill.vendorName || '');
       if (prefill.items && prefill.items.length > 0) {
         setLineItems(prefill.items.map((item) => {
           const product = item.productId ? products.find(p => p.id === item.productId) : undefined;
@@ -120,15 +126,18 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       } else {
         setLineItems([newItem()]);
       }
+      setCurrency(prefill.currency ?? 'USD');
+      setShipping(prefill.shipping ?? 0);
+      setNotes(prefill.notes ?? '');
     } else {
       setLineItems([newItem()]);
       setCustomerQuery('');
+      setCurrency('USD');
+      setShipping(0);
+      setNotes('');
     }
     setCustomerId(undefined);
     setCustomerInfo(null);
-    setCurrency('USD');
-    setShipping(0);
-    setNotes('');
     setActiveItemId(null);
     api.customers.list('customer').then(setCustomers).catch(() => {});
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -185,6 +194,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
     });
     setActiveItemId(null);
     setProductQuery('');
+    setHighlightedIndex(-1);
   };
 
   const pickCustomer = (customer: any) => {
@@ -200,6 +210,45 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       setCurrency(customer.preferredCurrency as Currency);
     }
     setCustomerPickerOpen(false);
+  };
+
+  const handleRepeatLastOrder = async () => {
+    if (!customerId) return;
+    setLoadingRepeat(true);
+    try {
+      const invoices = await api.invoices.list(50) as any[];
+      const lastInvoice = invoices.find(inv => inv.customer_id === customerId && !inv.deleted_at);
+      if (!lastInvoice) {
+        showToast('No previous orders found for this customer', 'error');
+        return;
+      }
+      const items = await api.invoices.getItems(lastInvoice.id) as any[];
+      if (!items.length) {
+        showToast('Previous order has no items', 'error');
+        return;
+      }
+      const mapped: QuickLineItem[] = items.map((item: any) => {
+        const product = item.product_id ? products.find(p => p.id === item.product_id) : undefined;
+        const name = item.product_id
+          ? (item.given_name || item.product_name || item.custom_name || '')
+          : (item.custom_name || '');
+        const unit: 'g' | 'pcs' = product ? (product.type === 'Teaware' ? 'pcs' : 'g') : 'g';
+        return {
+          localId: crypto.randomUUID(),
+          name,
+          productId: item.product_id ?? undefined,
+          quantity: item.quantity,
+          unit,
+          price: item.price_at_sale,
+        };
+      });
+      setLineItems(mapped);
+      showToast(`Copied ${mapped.length} item${mapped.length !== 1 ? 's' : ''} from previous order`, 'success');
+    } catch {
+      showToast('Could not load previous order', 'error');
+    } finally {
+      setLoadingRepeat(false);
+    }
   };
 
   const buildPayload = () => ({
@@ -249,7 +298,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      showToast('Failed: ' + err.message, 'error');
+      showToast(`Invoice creation failed: ${err.message}`, 'error');
     }
     setSaving(false);
   };
@@ -285,7 +334,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
       className="fixed inset-0 z-modal flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-tea-bg w-full max-w-xl shadow-2xl relative flex flex-col max-h-[96vh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 duration-300">
+      <div className="bg-tea-bg w-full max-w-xl shadow-2xl relative flex flex-col max-h-[96vh] sm:max-h-[88vh] rounded-t-3xl sm:rounded-xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 duration-300">
 
         {/* Header */}
         <div className="px-6 pt-5 pb-0 shrink-0">
@@ -376,6 +425,21 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 </div>
               )}
 
+              {customerId && (
+                <button
+                  onClick={handleRepeatLastOrder}
+                  disabled={loadingRepeat}
+                  className="mt-2.5 flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors disabled:opacity-40"
+                >
+                  {loadingRepeat ? (
+                    <Loader2 size={11} className="animate-spin" />
+                  ) : (
+                    <RotateCcw size={11} />
+                  )}
+                  Repeat last order
+                </button>
+              )}
+
               {customerPickerOpen && customerSuggestions.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-xl z-20 max-h-44 overflow-y-auto custom-scrollbar">
                   {customerSuggestions.map(c => (
@@ -460,9 +524,30 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                               updateItem(item.localId, { name: e.target.value, productId: undefined });
                               setProductQuery(e.target.value);
                               setActiveItemId(item.localId);
+                              setHighlightedIndex(-1);
                             }}
-                            onFocus={() => { setActiveItemId(item.localId); setProductQuery(item.name); }}
-                            onBlur={() => setTimeout(() => setActiveItemId(null), 200)}
+                            onFocus={() => {
+                              setActiveItemId(item.localId);
+                              setProductQuery(item.name);
+                              setHighlightedIndex(-1);
+                            }}
+                            onBlur={() => setTimeout(() => { setActiveItemId(null); setHighlightedIndex(-1); }, 200)}
+                            onKeyDown={e => {
+                              if (activeItemId !== item.localId || productSuggestions.length === 0) return;
+                              if (e.key === 'ArrowDown') {
+                                e.preventDefault();
+                                setHighlightedIndex(i => Math.min(i + 1, productSuggestions.length - 1));
+                              } else if (e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                setHighlightedIndex(i => Math.max(i - 1, -1));
+                              } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+                                e.preventDefault();
+                                pickProduct(item, productSuggestions[highlightedIndex]);
+                              } else if (e.key === 'Escape') {
+                                setActiveItemId(null);
+                                setHighlightedIndex(-1);
+                              }
+                            }}
                             placeholder="Name this item…"
                             className={`w-full bg-transparent border-0 border-b pb-1 text-sm font-serif text-tea-text outline-none transition-colors placeholder:italic placeholder:text-tea-text-dim/50 ${
                               item.productId
@@ -481,15 +566,17 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                           {/* Product suggestions */}
                           {activeItemId === item.localId && productSuggestions.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-xl z-20 overflow-hidden">
-                              {productSuggestions.map(p => (
+                              {productSuggestions.map((p, idx) => (
                                 <button
                                   key={p.id}
                                   onMouseDown={() => pickProduct(item, p)}
-                                  className="w-full text-left px-3 py-2 text-xs hover:bg-tea-surface transition-colors flex justify-between items-center gap-2"
+                                  className={`w-full text-left px-3 py-2 text-xs transition-colors flex justify-between items-center gap-2 ${
+                                    idx === highlightedIndex ? 'bg-tea-surface' : 'hover:bg-tea-surface'
+                                  }`}
                                 >
                                   <span className="text-tea-text font-serif truncate">{p.givenName || p.productName}</span>
                                   <span className="text-tea-text-dim shrink-0 tabular-nums">
-                                    {p.stockGrams}g · ${p.pricePerGramUSD}/g
+                                    {p.stockGrams != null ? `${p.stockGrams}g` : '—'} · {p.pricePerGramUSD != null ? `$${p.pricePerGramUSD}/g` : '—'}
                                   </span>
                                 </button>
                               ))}
@@ -503,12 +590,12 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                             type="number" min={0} step={1}
                             value={item.quantity}
                             onChange={e => updateItem(item.localId, { quantity: Number(e.target.value) || 0 })}
-                            className="w-14 bg-tea-surface border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-center"
+                            className="w-14 bg-tea-surface border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-center"
                           />
                           <select
                             value={item.unit}
                             onChange={e => updateItem(item.localId, { unit: e.target.value as 'g' | 'pcs' })}
-                            className="bg-tea-surface border border-tea-border rounded-lg px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
+                            className="bg-tea-surface border border-tea-border rounded-xl px-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors"
                           >
                             <option value="g">g</option>
                             <option value="pcs">pcs</option>
@@ -520,7 +607,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                               type="number" min={0} step={0.01}
                               value={item.price}
                               onChange={e => updateItem(item.localId, { price: Number(e.target.value) || 0 })}
-                              className="w-full bg-tea-surface border border-tea-border rounded-lg pl-5 pr-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
+                              className="w-full bg-tea-surface border border-tea-border rounded-xl pl-5 pr-2 py-1 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num"
                               placeholder="0.00"
                             />
                           </div>
@@ -578,7 +665,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
                 type="number" min={0} step={0.01}
                 value={shipping}
                 onChange={e => setShipping(Number(e.target.value) || 0)}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg pl-6 pr-2 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-right"
+                className="w-full bg-tea-surface border border-tea-border rounded-xl pl-6 pr-2 py-1.5 text-xs text-tea-text outline-none focus:border-tea-gold/50 transition-colors num text-right"
               />
             </div>
           </div>

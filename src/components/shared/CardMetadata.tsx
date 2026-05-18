@@ -39,7 +39,7 @@ export const CardMetadata: React.FC<CardMetadataProps> = ({
           {tags.map((tag, idx) => (
             <span
               key={idx}
-              className="text-ui-9 uppercase tracking-wider text-tea-text/40 px-1.5 py-0.5 bg-tea-text-sec/[0.04] rounded-lg"
+              className="text-ui-9 uppercase tracking-wider text-tea-text/40 px-1.5 py-0.5 bg-tea-text-sec/[0.04] rounded-xl"
             >
               {tag}
             </span>

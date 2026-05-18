@@ -201,7 +201,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search teas, notes…"
-              className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-lg pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
+              className="w-full bg-tea-surface/60 text-tea-text text-ui-13 rounded-xl pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-dim focus:ring-1 focus:ring-tea-gold/40"
             />
             {searchQuery && (
               <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text-sec transition-colors">
@@ -317,13 +317,13 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                           {/* Thumbnail: product image → type color swatch → liquor color swatch → BookOpen fallback */}
                           {(() => {
                             const swatch = entry.productImage ? (
-                              <img src={entry.productImage} alt="" className="w-11 h-11 rounded-lg object-cover" loading="lazy" />
+                              <img src={entry.productImage} alt="" className="w-11 h-11 rounded-xl object-cover" loading="lazy" />
                             ) : typeVividColor ? (
-                              <div className="w-11 h-11 rounded-lg" style={{ backgroundColor: typeVividColor, opacity: 0.75 }} />
+                              <div className="w-11 h-11 rounded-xl" style={{ backgroundColor: typeVividColor, opacity: 0.75 }} />
                             ) : firstColorHex ? (
-                              <div className="w-11 h-11 rounded-lg shadow-inner" style={{ backgroundColor: firstColorHex }} />
+                              <div className="w-11 h-11 rounded-xl shadow-inner" style={{ backgroundColor: firstColorHex }} />
                             ) : (
-                              <div className="w-11 h-11 rounded-lg bg-tea-surface flex items-center justify-center">
+                              <div className="w-11 h-11 rounded-xl bg-tea-surface flex items-center justify-center">
                                 <BookOpen size={16} className="text-tea-text-dim" />
                               </div>
                             );
@@ -332,7 +332,7 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                               <button
                                 onClick={(e) => { e.stopPropagation(); onOrderTea!(entry.productId); }}
                                 aria-label={`Open ${entry.productName}`}
-                                className="shrink-0 rounded-lg ring-1 ring-transparent hover:ring-tea-gold/30 transition-[box-shadow,transform] duration-150 active:scale-[0.98]"
+                                className="shrink-0 rounded-xl ring-1 ring-transparent hover:ring-tea-gold/30 transition-[box-shadow,transform] duration-150 active:scale-[0.98]"
                               >
                                 {swatch}
                               </button>

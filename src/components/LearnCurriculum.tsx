@@ -318,7 +318,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                          <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-border rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
                                              <div className="flex items-center gap-4">
                                                  {/* Type Icon Box */}
-                                                 <div className="w-11 h-11 bg-tea-text/10 rounded-lg flex items-center justify-center text-tea-text/70 shrink-0">
+                                                 <div className="w-11 h-11 bg-tea-text/10 rounded-xl flex items-center justify-center text-tea-text/70 shrink-0">
                                                      {getIconForType(lesson.type)}
                                                  </div>
 
@@ -335,11 +335,11 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                                      </div>
                                                      {/* Tertiary: Badges */}
                                                      <div className="flex items-center gap-1.5 mt-0.5">
-                                                         <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm ${getDifficultyColor(getDifficultyLevel(lessonIndex))}`}>
+                                                         <span className={`text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md ${getDifficultyColor(getDifficultyLevel(lessonIndex))}`}>
                                                            {getDifficultyLevel(lessonIndex)}
                                                          </span>
                                                          {isWatched && (
-                                                           <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-sm bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm">
+                                                           <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm">
                                                              ✓ Completed
                                                            </span>
                                                          )}

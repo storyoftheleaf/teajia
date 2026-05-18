@@ -39,7 +39,7 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
               <CardContainer className={`transition-all h-full ${expandedSpace === space.id ? 'shadow-md' : 'hover:-translate-y-0.5'}`}>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-tea-gold/8 text-tea-gold border border-tea-border">
+                    <span className="text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-tea-gold/8 text-tea-gold border border-tea-border">
                       {SPACE_TYPE_LABELS[space.spaceType]}
                     </span>
                     <div
@@ -85,7 +85,7 @@ export const TeaSpacesView: React.FC<TeaSpacesViewProps> = ({ onBack, onNavigate
       {onNavigateToAdvise && (
         <button
           onClick={onNavigateToAdvise}
-          className="flex items-center justify-between w-full py-3 px-4 rounded-lg bg-tea-gold/5/8 hover:bg-tea-gold/8 dark:hover:bg-tea-gold/12 transition-colors group"
+          className="flex items-center justify-between w-full py-3 px-4 rounded-xl bg-tea-gold/5/8 hover:bg-tea-gold/8 dark:hover:bg-tea-gold/12 transition-colors group"
         >
           <div className="flex items-center gap-3">
             <Icons.Sparkles className="w-4 h-4 text-tea-gold" />

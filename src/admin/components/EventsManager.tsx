@@ -194,8 +194,8 @@ export const EventsManager: React.FC = () => {
           {Array.from({ length: 4 }).map((_, i) => (
             <li key={i} className="px-5 py-4 animate-pulse flex items-center justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-2">
-                <div className="h-4 w-2/3 bg-tea-elevated rounded-sm" />
-                <div className="h-3 w-1/2 bg-tea-elevated/70 rounded-sm" />
+                <div className="h-4 w-2/3 bg-tea-elevated rounded-md" />
+                <div className="h-3 w-1/2 bg-tea-elevated/70 rounded-md" />
               </div>
               <div className="h-4 w-16 bg-tea-elevated/70 rounded-full shrink-0" />
             </li>

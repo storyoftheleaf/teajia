@@ -82,6 +82,7 @@ const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
 const StoreLaunchPlaybookPage = lazy(() => import('./pages/StoreLaunchPlaybookPage'));
+const McpPage = lazy(() => import('./pages/McpPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
@@ -770,6 +771,7 @@ const AppContent = () => {
                   </ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
+                <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass — public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
                 <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
@@ -974,7 +976,7 @@ const AppContent = () => {
         onDismiss={dismissCartToast}
       />
 
-      <div role="status" aria-live="polite" className={`fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-sm shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
+      <div role="status" aria-live="polite" className={`fixed bottom-[calc(52px+env(safe-area-inset-bottom,0px)+1rem)] lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-md shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
           <span className="text-xs uppercase tracking-widest font-medium">{toast.message}</span>
       </div>

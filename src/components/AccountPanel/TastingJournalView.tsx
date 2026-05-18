@@ -59,7 +59,7 @@ function DescriptorPills({ entry, max = 6 }: { entry: CustomerTasting; max?: num
       {descriptors.map((tag) => (
         <span
           key={tag}
-          className="inline-block px-2 py-0.5 text-ui-11 tracking-caps bg-tea-elevated text-tea-text-sec rounded-sm"
+          className="inline-block px-2 py-0.5 text-ui-11 tracking-caps bg-tea-elevated text-tea-text-sec rounded-md"
         >
           {tag}
         </span>

@@ -670,7 +670,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               }}
             >
               <div
-                className="bg-tea-elevated border-y border-l border-tea-border rounded-l-lg overflow-hidden py-1"
+                className="bg-tea-elevated border-y border-l border-tea-border rounded-l-xl overflow-hidden py-1"
                 style={{ boxShadow: '-12px 14px 36px rgba(24,19,14,0.42), inset 1px 0 0 rgba(212,166,82,0.12)' }}
               >
                 {/* Header — selection summary + select-all toggle */}
@@ -1420,8 +1420,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
       <div className={`md:hidden sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         <div className="flex flex-col border-b border-tea-border">
-        <div className={`flex items-center px-2 pt-1.5 pb-0 gap-0.5 ${viewTabsExpanded ? 'flex-wrap' : ''}`}>
-          {/* View tabs — top 3 visible, expand to show all */}
+        <div className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar">
+          {/* View tabs — all visible, horizontally scrollable */}
           {(() => {
             const defaultOrder = activeDefaultViews.map(v => v.id);
             const unsorted = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
@@ -1488,7 +1488,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </>
             );
           })()}
-
         </div>
 
         {/* Row 2: controls — price toggle + group + sort */}
@@ -1590,7 +1589,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         }
                         setShowMobileSort(false);
                       }}
-                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-lg text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
                     >
                       <span>{opt.label}</span>
                       {isActive && (
@@ -1773,7 +1772,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="flex flex-col items-start gap-0.5">
                       <button
                           onClick={() => setIsEditMode(!isEditMode)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-colors ${
                               isEditMode
                               ? 'bg-tea-gold text-tea-bg font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80'
                               : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
@@ -1791,7 +1790,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <div className="w-px h-4 bg-tea-border mx-1"></div>
 
-                    <button onClick={onAddClick} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors">
+                    <button onClick={onAddClick} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors">
                         <Plus size={13} />
                         <span>New</span>
                     </button>
@@ -1811,7 +1810,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg transition-colors text-xs ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl transition-colors text-xs ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Show/Hide Columns"
                         aria-label="Show or hide columns"
                         aria-expanded={showColumnsPopover}
@@ -1863,7 +1862,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowGroupByDropdown(!showGroupByDropdown)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${inventoryGroupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${inventoryGroupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Group By"
                         aria-label="Group inventory"
                         aria-expanded={showGroupByDropdown}
@@ -1897,7 +1896,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <div className="relative">
                       <button
                         onClick={() => setShowVendorDropdown(!showVendorDropdown)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs transition-colors ${vendorFilter ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${vendorFilter ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
                         title="Filter by vendor"
                         aria-label="Filter by vendor"
                         aria-expanded={showVendorDropdown}
@@ -1934,7 +1933,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <button
                         onClick={() => setShowOptions(!showOptions)}
-                        className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-lg hover:bg-tea-surface"
+                        className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
                         aria-label="Open inventory actions"
                         aria-expanded={showOptions}
                         aria-haspopup="menu"
@@ -1947,20 +1946,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
                         <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col" role="menu">
-                            <button
-                                role="menuitem"
-                                onClick={() => { setFilterType(filterType === 'Alerts' ? 'All' : 'Alerts'); setShowOptions(false); }}
-                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Alerts' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                            >
-                                <AlertTriangle size={14} /> Low Stock Alerts
-                            </button>
-                            <button
-                                role="menuitem"
-                                onClick={() => { setFilterType(filterType === 'Unverified' ? 'All' : 'Unverified'); setShowOptions(false); }}
-                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Unverified' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                            >
-                                <CheckSquare size={14} /> Stock Verification
-                            </button>
                             <button
                                 role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
@@ -2083,7 +2068,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleApproveAll}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-semibold rounded-lg hover:bg-tea-gold/90 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-tea-gold text-tea-bg text-ui-10 font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-tea-gold/90 transition-colors"
                 >
                   <Check size={11} /> Approve All
                 </button>
@@ -2121,7 +2106,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <div className="p-5 space-y-4">
                     {/* Story preview */}
                     {storyPreview && (
-                      <div className="bg-tea-bg/60 border border-tea-border rounded-lg p-4">
+                      <div className="bg-tea-bg/60 border border-tea-border rounded-xl p-4">
                         <div className="text-ui-10 text-tea-text-sec/60 uppercase tracking-[0.2em] mb-2">Story Preview</div>
                         <p className="text-tea-text/70 text-xs font-serif italic leading-relaxed">{storyPreview}</p>
                       </div>
@@ -2195,7 +2180,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <button
                         onClick={() => handleApproveOne(product)}
                         disabled={isApproving}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {isApproving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                         Approve
@@ -2386,14 +2371,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <div className="flex items-center gap-0 pr-2 flex-shrink-0">
                                 <button
                                     onClick={() => setDetailsProduct(product)}
-                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-lg"
+                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-xl"
                                     aria-label="View details"
                                 >
                                     <FileText size={16} />
                                 </button>
                                 <button
                                     onClick={() => setPanelProduct(product)}
-                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors rounded-lg"
+                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors rounded-xl"
                                     aria-label="Edit product"
                                 >
                                     <Pencil size={16} />
@@ -2419,7 +2404,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     handleProductUpdate(product.id, 'stockVerifiedAt', null);
                                   }
                                 }}
-                                className={`tap-target flex-shrink-0 w-10 h-10 mr-2 rounded-lg flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-tea-surface text-tea-text' : 'bg-tea-surface text-tea-text-dim'}`}
+                                className={`tap-target flex-shrink-0 w-10 h-10 mr-2 rounded-xl flex items-center justify-center transition-colors ${product.stockVerifiedAt ? 'bg-tea-surface text-tea-text' : 'bg-tea-surface text-tea-text-dim'}`}
                                 aria-label={product.stockVerifiedAt ? `Clear verification for ${product.productName}` : `Mark ${product.productName} as verified`}
                               >
                                 {product.stockVerifiedAt ? <Check size={18} strokeWidth={3} /> : <Square size={18} />}
@@ -2614,7 +2599,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   ) : (
                                     <button
                                       onClick={() => setTastingEditorProduct(product)}
-                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/5 transition-colors active:scale-[0.98]"
+                                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/5 transition-colors active:scale-[0.98]"
                                     >
                                       <Sparkles size={14} />
                                       <span>Add tasting notes</span>
@@ -2627,7 +2612,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <div className="flex flex-col items-center gap-0.5">
                                       <button
                                           onClick={() => handleProductUpdate(product.id, 'isFeatured', !product.isFeatured)}
-                                          className={`tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                          className={`tap-target w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${product.isFeatured ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
                                           aria-label={product.isFeatured ? 'Unfeature' : 'Feature'}
                                       >
                                           <Star size={16} className={product.isFeatured ? "fill-tea-gold" : ""} />
@@ -2636,7 +2621,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     </div>
                                     <button
                                         onClick={() => handleProductUpdate(product.id, 'isPublic', !product.isPublic)}
-                                        className={`tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.isPublic ? 'text-tea-text-sec bg-tea-surface/30' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        className={`tap-target w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${product.isPublic ? 'text-tea-text-sec bg-tea-surface/30' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
                                         aria-label={product.isPublic ? 'Make private' : 'Make public'}
                                     >
                                         {product.isPublic ? <Eye size={16} /> : <EyeOff size={16} />}
@@ -2646,14 +2631,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                           const newStatus = product.status === 'Archived' ? 'Active' : 'Archived';
                                           handleProductUpdate(product.id, 'status', newStatus);
                                         }}
-                                        className={`tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${product.status === 'Archived' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
+                                        className={`tap-target w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${product.status === 'Archived' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/50'}`}
                                         aria-label={product.status === 'Archived' ? 'Unarchive' : 'Archive'}
                                     >
                                         <Archive size={16} />
                                     </button>
                                     <button
                                         onClick={() => handleRestock(product)}
-                                        className="tap-target w-10 h-10 flex items-center justify-center rounded-lg transition-colors text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/10"
+                                        className="tap-target w-10 h-10 flex items-center justify-center rounded-xl transition-colors text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/10"
                                         aria-label="Restock via Compass"
                                     >
                                         <Globe size={16} />

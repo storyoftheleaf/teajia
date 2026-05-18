@@ -118,7 +118,14 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const validateField = (field: string, value: string): string => {
     if (field === 'name' && !value.trim()) return 'Name is required';
     if (field === 'contact' && !value.trim()) return 'Email or phone is required';
-    if (field === 'location' && !value.trim()) return 'Location is required';
+    if (field === 'location') {
+      const trimmed = value.trim();
+      if (!trimmed) return 'Location is required';
+      if (trimmed.length < 4) return 'Please enter your city and country';
+      if (!trimmed.includes(',')) return 'Include your country — e.g. Bangkok, Thailand';
+      const country = trimmed.split(',')[1]?.trim() ?? '';
+      if (country.length < 2) return 'Include your country — e.g. Bangkok, Thailand';
+    }
     return '';
   };
 
@@ -164,7 +171,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     const item = cart.find(c => c.id === id);
     if (!item) return;
     if (undoItem) clearTimeout(undoItem.timeout);
-    const timeout = setTimeout(() => setUndoItem(null), 8000);
+    const timeout = setTimeout(() => setUndoItem(null), 10000);
     setUndoItem({ item, timeout });
     onRemoveItem(id);
   };
@@ -214,7 +221,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   };
 
   const handleEmail = () => {
-    const subject = `Tea Order Inquiry - ${details.name}`;
+    const subject = `Tea Order - ${details.name}`;
     window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(orderMessage)}`);
     showSuccess('email');
     persistInquiry('email');
@@ -250,43 +257,55 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   return (
     <>
       {/* Step indicator + currency selector — hairline rules, single bronze for active step */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border bg-tea-surface flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {STEPS.map((s, i) => {
-            const isActive = step === s.key;
-            const isPast = currentStepIndex > i;
-            const canJump = isPast;
-            return (
-              <React.Fragment key={s.key}>
-                <button
-                  type="button"
-                  onClick={() => canJump && setStep(s.key)}
-                  disabled={!canJump}
-                  className={`text-ui-11 uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap min-h-[44px] py-3 ${
-                    isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-sec/70 cursor-default'
-                  }`}
-                  aria-current={isActive ? 'step' : undefined}
-                >
-                  {s.label}
-                </button>
-                {i < STEPS.length - 1 && (
-                  <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
-                )}
-              </React.Fragment>
-            );
-          })}
+      <div className="flex-shrink-0 bg-tea-surface border-b border-tea-border">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-tea-border">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {STEPS.map((s, i) => {
+              const isActive = step === s.key;
+              const isPast = currentStepIndex > i;
+              const canJump = isPast;
+              return (
+                <React.Fragment key={s.key}>
+                  <button
+                    type="button"
+                    onClick={() => canJump && setStep(s.key)}
+                    disabled={!canJump}
+                    className={`text-ui-11 uppercase tracking-[0.15em] transition-colors duration-300 whitespace-nowrap min-h-[44px] py-3 ${
+                      isActive ? 'text-tea-gold' : isPast ? 'text-tea-text-sec hover:text-tea-text cursor-pointer' : 'text-tea-text-sec/70 cursor-default'
+                    }`}
+                    aria-current={isActive ? 'step' : undefined}
+                  >
+                    {s.label}
+                  </button>
+                  {i < STEPS.length - 1 && (
+                    <span className="block w-4 h-px bg-tea-border" aria-hidden="true" />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+          {rates.length > 0 && (
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as any)}
+              className="bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
+              aria-label="Currency"
+            >
+              {rates.map(r => (
+                <option key={r.currency} value={r.currency}>{r.currency}</option>
+              ))}
+            </select>
+          )}
         </div>
-        {rates.length > 0 && (
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value as any)}
-            className="bg-transparent border-none text-ui-11 text-tea-text-sec outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 cursor-pointer hover:text-tea-text transition-colors shrink-0"
-            aria-label="Currency"
-          >
-            {rates.map(r => (
-              <option key={r.currency} value={r.currency}>{r.currency}</option>
-            ))}
-          </select>
+        {/* Exchange rate info — shown when non-USD currency is selected */}
+        {rates.length > 0 && currency !== 'USD' && (
+          <div className="px-4 py-2 text-right text-ui-10 text-tea-text-sec">
+            <div className="flex items-center justify-end gap-2">
+              <span>1 USD = {rates.find(r => r.currency === currency)?.rateToUSD.toFixed(2)} {currency}</span>
+              <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />
+              <span className="num font-serif">Total: {displayPrice(subtotal)}</span>
+            </div>
+          </div>
         )}
       </div>
 
@@ -297,7 +316,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {/* Undo toast */}
           {undoItem && (
             <div className="relative z-20 mb-4 cart-slide-up">
-              <div className="flex items-center justify-between bg-tea-bg border border-tea-border text-tea-text px-4 py-3 rounded-sm">
+              <div className="flex items-center justify-between bg-tea-bg border border-tea-border text-tea-text px-4 py-3 rounded-md">
                 <span className="text-xs">{undoItem.item.name} removed</span>
                 <button
                   onClick={handleUndo}
@@ -343,9 +362,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {step === 'INQUIRY' && (
             <div className="space-y-6 relative z-[1]">
               <p className="font-serif text-sm text-tea-text-sec italic mb-4">
-                Fill in your details below. Your order inquiry will be generated automatically.
+                Fill in your details below. Your order request will be generated automatically.
               </p>
-              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-sm border border-tea-border" id="inquiry-form">
+              <form onSubmit={handleFormSubmit} className="space-y-4 p-4 bg-tea-surface rounded-md border border-tea-border" id="inquiry-form">
                 <div>
                   <label htmlFor="inquiry-name" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
                     Name *
@@ -404,9 +423,10 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                 </div>
 
                 <div>
-                  <label htmlFor="inquiry-location" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-1">
+                  <label htmlFor="inquiry-location" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">
                     Shipping Location *
                   </label>
+                  <p className="text-ui-11 text-tea-text-dim mb-1">City, Country — e.g. Tokyo, Japan</p>
                   <div className="relative">
                     <input
                       id="inquiry-location"
@@ -459,7 +479,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
           {step === 'CONFIRM' && (
             <div className="space-y-6 relative z-[1]">
               <div className="text-center mb-2">
-                <h3 className="font-serif text-lg text-tea-text mb-1">Review your inquiry</h3>
+                <h3 className="font-serif text-lg text-tea-text mb-1">Review your order</h3>
                 <p className="text-xs text-tea-text-sec">Please review before sending.</p>
               </div>
 
@@ -515,35 +535,43 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {/* Persistent success message — editorial confirmation, no green */}
               {successMessage?.show && (
-                <div className="cart-fade-in border border-tea-border rounded-sm px-4 py-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <Icons.Check className="w-4 h-4 text-tea-text-sec shrink-0" />
-                    <span className="text-xs text-tea-text">
-                      {successMessage.type === 'whatsapp' && 'WhatsApp opened. Tap Send to complete.'}
-                      {successMessage.type === 'email' && 'Email client opened. Review and send.'}
-                      {successMessage.type === 'copy' && 'Copied to clipboard.'}
-                    </span>
+                <div className="cart-fade-in border border-tea-border rounded-md px-4 py-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3">
+                      <Icons.Check className="w-4 h-4 text-tea-text-sec shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        {successMessage.type === 'whatsapp' && (
+                          <>
+                            <p className="text-xs text-tea-text">WhatsApp opened. Tap Send to complete your order.</p>
+                            <p className="text-xs text-tea-text-sec">We'll reply on WhatsApp to confirm and arrange delivery.</p>
+                          </>
+                        )}
+                        {successMessage.type === 'email' && (
+                          <p className="text-xs text-tea-text">Email client opened. Review and send to place your order.</p>
+                        )}
+                        {successMessage.type === 'copy' && (
+                          <p className="text-xs text-tea-text">Order details copied to clipboard.</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSuccessMessage(null)}
+                      className="text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center shrink-0"
+                      aria-label="Dismiss"
+                    >
+                      <Icons.Close className="w-3 h-3" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSuccessMessage(null)}
-                    className="text-tea-text-sec hover:text-tea-text min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="Dismiss"
-                  >
-                    <Icons.Close className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-
-              {successMessage?.show && (
-                <div className="text-center">
-                  <p className="text-xs text-tea-text-sec mb-1">Track your order</p>
-                  <a href={`/order/${orderRef}`} className="text-sm text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors font-mono">{orderRef}</a>
+                  <div className="pl-7 flex items-center justify-between gap-4">
+                    <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Order ref</span>
+                    <a href={`/order/${orderRef}`} className="font-mono text-xs text-tea-text underline underline-offset-4 decoration-tea-border hover:decoration-tea-gold transition-colors">{orderRef}</a>
+                  </div>
                 </div>
               )}
 
               {checkoutError && (
                 <div
-                  className="cart-fade-in border border-tea-border rounded-sm px-4 py-3 flex items-start justify-between gap-2 bg-tea-elevated"
+                  className="cart-fade-in border border-tea-border rounded-md px-4 py-3 flex items-start justify-between gap-2 bg-tea-elevated"
                   role="alert"
                 >
                   <div className="flex items-start gap-3">
@@ -624,7 +652,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
               fullWidth
               className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
             >
-              Send inquiry
+              Request order
             </Button>
           </div>
         )}

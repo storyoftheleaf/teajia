@@ -244,9 +244,16 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     setAdminTastingItem(item);
   }, []);
   const handleTaste = useCallback((item: TeaItem) => {
-    // If we're on a product path, return to /shop so useProductUrl doesn't re-open the modal
+    // Clear Alcove URL state so useProductUrl does not re-open the modal
+    // behind the tasting session.
     if (window.location.pathname.startsWith('/shop/product/')) {
       window.history.replaceState(null, '', '/shop');
+    } else {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('product')) {
+        url.searchParams.delete('product');
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+      }
     }
     // Admins editing their own shop almost always want to update the product's
     // tasting profile, not file a personal journal entry. Route them into the
@@ -518,7 +525,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
              <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price per</span>
-               <div className="flex items-center gap-0.5 border border-tea-border rounded-sm overflow-hidden">
+               <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
                  {([25, 50, 100] as const).map(g => (
                    <button
                      key={g}
@@ -539,29 +546,35 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
 
          {/* Filter bar — two dropdown buttons */}
          <div ref={filterRef} className="mb-3 relative z-drawer">
-            <div className="flex items-center justify-between">
-               {/* Type button */}
-               <button
-                  onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors ${
-                     activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-               >
-                  <span>{activeType === 'All' ? 'Type' : activeType}</span>
-                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} />
-               </button>
+            <div className="flex flex-col gap-3">
+               {/* Type filter group */}
+               <div className="flex flex-col gap-0.5">
+                  <button
+                     onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
+                     className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors w-fit ${
+                        activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                     }`}
+                  >
+                     <span>{activeType === 'All' ? 'Type' : activeType}</span>
+                     <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} />
+                  </button>
+                  <span className="text-ui-10 text-tea-text-dim">Classification like green, oolong, or black</span>
+               </div>
 
-               {/* Feeling button */}
+               {/* Feeling filter group */}
                {availableFeelings.length > 0 && (
-               <button
-                  onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                  className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors ${
-                     activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                  }`}
-               >
-                  <span>{activeFeeling ? (FEELING_TERMS.find(f => f.id === activeFeeling)?.label || activeFeeling) : 'Feeling'}</span>
-                  <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'feeling' ? 'rotate-180' : ''}`} />
-               </button>
+               <div className="flex flex-col gap-0.5">
+                  <button
+                     onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
+                     className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors w-fit ${
+                        activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                     }`}
+                  >
+                     <span>{activeFeeling ? (FEELING_TERMS.find(f => f.id === activeFeeling)?.label || activeFeeling) : 'Feeling'}</span>
+                     <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'feeling' ? 'rotate-180' : ''}`} />
+                  </button>
+                  <span className="text-ui-10 text-tea-text-dim">Sensory characteristics you&apos;ve tasted</span>
+               </div>
                )}
             </div>
 
@@ -569,7 +582,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
             {openFilter && (
                <>
                   <div className="fixed inset-0 z-overlay" onClick={() => setOpenFilter(null)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-lg shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-xl shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
                      {openFilter === 'type' && (
                         <div className="flex flex-wrap gap-1.5">
                            <button
@@ -635,24 +648,27 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
          {/* Mood and flavor tag filter — collapsible, editorial chip rows */}
          {(availableMoodTagTerms.length > 0 || availableFlavorTagTerms.length > 0) && (
            <div className="mb-4 border-b border-tea-border pb-3">
-             <button
-               type="button"
-               onClick={() => setMoodFlavorOpen(p => !p)}
-               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors ${
-                 (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
-                   ? 'text-tea-gold'
-                   : moodFlavorOpen
-                     ? 'text-tea-text'
-                     : 'text-tea-text-sec hover:text-tea-text'
-               }`}
-             >
-               <span>
-                 {(activeMoodTags.length > 0 || activeFlavorTags.length > 0)
-                   ? `Mood and flavor (${activeMoodTags.length + activeFlavorTags.length})`
-                   : 'Shop by mood and flavor'}
-               </span>
-               <Icons.ChevronDown className={`w-3 h-3 transition-transform ${moodFlavorOpen ? 'rotate-180' : ''}`} />
-             </button>
+             <div className="flex flex-col gap-0.5">
+               <button
+                 type="button"
+                 onClick={() => setMoodFlavorOpen(p => !p)}
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 transition-colors w-fit ${
+                   (activeMoodTags.length > 0 || activeFlavorTags.length > 0)
+                     ? 'text-tea-gold'
+                     : moodFlavorOpen
+                       ? 'text-tea-text'
+                       : 'text-tea-text-sec hover:text-tea-text'
+                 }`}
+               >
+                 <span>
+                   {(activeMoodTags.length > 0 || activeFlavorTags.length > 0)
+                     ? `Mood and flavor (${activeMoodTags.length + activeFlavorTags.length})`
+                     : 'Shop by mood and flavor'}
+                 </span>
+                 <Icons.ChevronDown className={`w-3 h-3 transition-transform ${moodFlavorOpen ? 'rotate-180' : ''}`} />
+               </button>
+               <span className="text-ui-10 text-tea-text-dim">Find teas by the feeling or taste you&apos;re looking for</span>
+             </div>
 
              {moodFlavorOpen && (
                <div className="mt-3 space-y-4 animate-[fadeIn_0.15s_ease-out]">
@@ -676,7 +692,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                              }}
                              className={[
                                'flex items-center gap-1 text-ui-11 transition-colors py-0.5',
-                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-md',
                                isActive
                                  ? 'text-tea-text border-b border-tea-gold/60'
                                  : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',
@@ -718,7 +734,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                              }}
                              className={[
                                'flex items-center gap-1 text-ui-11 transition-colors py-0.5',
-                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-sm',
+                               'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded-md',
                                isActive
                                  ? 'text-tea-text border-b border-tea-gold/60'
                                  : 'text-tea-text-dim hover:text-tea-text-sec border-b border-transparent',
@@ -795,6 +811,15 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </button>
             </div>
          ) : null}
+
+         {/* Result count above grid */}
+         {filteredInventory.length > 0 && (
+            <div className="py-2.5 px-1 border-b border-tea-border">
+              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">
+                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
+              </span>
+            </div>
+         )}
 
          {/* LIST VIEW — tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (
@@ -879,7 +904,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                                             )}
                                             {/* Stock badge */}
                                             {stockBadge && (
-                                                <span className={`shrink-0 text-ui-10 uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${stockBadge.cls}`}>
+                                                <span className={`shrink-0 text-ui-10 uppercase tracking-widest px-1.5 py-0.5 rounded-md ${stockBadge.cls}`}>
                                                     {stockBadge.label}
                                                 </span>
                                             )}
@@ -953,7 +978,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                 className="flex flex-col items-center shrink-0 group"
                 style={{ width: '72px' }}
               >
-                <div className="w-14 h-14 rounded-sm overflow-hidden bg-tea-elevated mb-1.5 group-hover:ring-1 group-hover:ring-tea-gold/30 transition-all">
+                <div className="w-14 h-14 rounded-md overflow-hidden bg-tea-elevated mb-1.5 group-hover:ring-1 group-hover:ring-tea-gold/30 transition-all">
                   {item.image ? (
                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
@@ -974,7 +999,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-sm shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1" />

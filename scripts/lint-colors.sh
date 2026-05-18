@@ -141,6 +141,17 @@ if [ -n "$TEXT_PX_VIOLATIONS" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
+# 8. Off-scale corner radius — BLOCKING.
+#    Canonical scale is rounded-md (control) / rounded-xl (container) / rounded-full (pill).
+#    See UI_CONSISTENCY.md. rounded-sm / rounded-lg / rounded-2xl are retired.
+check_pattern_ere 'rounded(-(t|b|l|r))?-(sm|lg|2xl)([[:space:]"'"'"'`]|$)' \
+  "Off-scale corner radius — use rounded-md / rounded-xl / rounded-full. See UI_CONSISTENCY.md."
+
+# 9. .pill-primary / .pill-destructive used outside a toggle context — NOTICE.
+#    Action buttons must use <Button>. .pill-* is for toggle chips/filters only.
+check_pattern_notice 'pill-(primary|destructive)' \
+  "pill-* action class — use the <Button> component for actions. See UI_CONSISTENCY.md. (non-blocking until migration completes)"
+
 if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "=== $ERRORS color rule violation(s) found ==="

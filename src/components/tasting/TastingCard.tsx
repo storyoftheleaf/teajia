@@ -319,7 +319,7 @@ export const TastingCardModal: React.FC<TastingCardModalProps> = ({ entry, onClo
         animate={{ y: 0 }}
         exit={{ y: 40 }}
         transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-        className="w-full bg-tea-bg border-t border-tea-border rounded-t-2xl"
+        className="w-full bg-tea-bg border-t border-tea-border rounded-t-xl"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 20px)' }}
       >
         {/* Header */}

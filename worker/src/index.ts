@@ -2576,7 +2576,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
   ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
   const seq = seqRow?.invoice_seq ?? 1;
   const pfx = seqRow?.invoice_prefix || '';
-  const invoiceNumber = pfx ? `${pfx}-${String(seq).padStart(5, '0')}` : String(seq).padStart(5, '0');
+  const invoiceNumber = pfx ? `${pfx}-${seq}` : String(seq);
   const paymentStatus = body.invoice.payment_status || 'unpaid';
 
   const invoiceStmt = env.DB.prepare(
@@ -3011,7 +3011,7 @@ const handleSplitInvoice: Handler = async (request, env) => {
   ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
   const splitSeq = splitSeqRow?.invoice_seq ?? 1;
   const splitPfx = splitSeqRow?.invoice_prefix || '';
-  const newNumber = splitPfx ? `${splitPfx}-${String(splitSeq).padStart(5, '0')}` : String(splitSeq).padStart(5, '0');
+  const newNumber = splitPfx ? `${splitPfx}-${splitSeq}` : String(splitSeq);
 
   const stmts: D1PreparedStatement[] = [];
 
@@ -6932,15 +6932,20 @@ const handleCreateInquiry: Handler = async (request, env) => {
     if (!accountId) return json({ error: 'Store not found' }, 404);
   }
   const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  const refNumber = (typeof body.ref_number === 'string' && body.ref_number.trim()) ? body.ref_number.trim() : null;
 
-  // `source` column added in migration 045_inquiry_source. Fall back without it
-  // so deployments where the migration hasn't run yet still accept inquiries.
+  // `source` added in migration 045; `ref_number` added in migration 076. Fall
+  // back through older schemas so deployments that haven't migrated yet still work.
   try {
     await env.DB.prepare(
-      'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source).run();
+      'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source, ref_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source, refNumber).run();
   } catch (err: any) {
-    if (typeof err?.message === 'string' && err.message.includes('source')) {
+    if (typeof err?.message === 'string' && err.message.includes('ref_number')) {
+      await env.DB.prepare(
+        'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message, source).run();
+    } else if (typeof err?.message === 'string' && err.message.includes('source')) {
       await env.DB.prepare(
         'INSERT INTO inquiries (id, account_id, name, email, phone, items, total_usd, currency, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
       ).bind(id, accountId, name, contact, phone, itemsStr, totalUsd, body.currency || 'USD', message).run();
@@ -6948,7 +6953,7 @@ const handleCreateInquiry: Handler = async (request, env) => {
       throw err;
     }
   }
-  return json({ id, ref_number: body.ref_number, source, success: true }, 201);
+  return json({ id, ref_number: refNumber, source, success: true }, 201);
 };
 
 const handleGetInquiries: Handler = async (request, env) => {
@@ -6967,6 +6972,24 @@ const handleGetInquiries: Handler = async (request, env) => {
   const { results } = await stmt.all();
   const parsed = (results || []).map((r: any) => ({ ...r, items: JSON.parse(r.items || '[]') }));
   return json({ inquiries: parsed });
+};
+
+const handleGetInquiryByRef: Handler = async (_request, env, params) => {
+  const ref = params.ref;
+  if (!ref) return json({ error: 'Ref is required' }, 400);
+  const row = await env.DB.prepare(
+    'SELECT * FROM inquiries WHERE ref_number = ? LIMIT 1'
+  ).bind(ref).first() as any;
+  if (!row) return json({ error: 'Not found' }, 404);
+  return json({
+    customer_name: row.name,
+    customer_contact: row.email,
+    customer_location: row.phone,
+    items_json: row.items,
+    status: row.status,
+    total_estimate_usd: row.total_usd,
+    created_at: row.created_at,
+  });
 };
 
 const handleUpdateInquiryStatus: Handler = async (request, env, params) => {
@@ -16545,6 +16568,7 @@ const routes: [string, string, Handler][] = [
 
   // Cart Inquiries
   ['POST', '/api/inquiries', handleCreateInquiry],
+  ['GET', '/api/inquiries/:ref', handleGetInquiryByRef],
   ['GET', '/api/admin/inquiries', handleGetInquiries],
   ['PATCH', '/api/admin/inquiries/:id/status', handleUpdateInquiryStatus],
 

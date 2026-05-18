@@ -177,7 +177,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               {/* Footer Brand */}
               <div className="absolute bottom-12 left-0 w-full text-center z-10">
                   <div className="flex items-center justify-center gap-2 mb-2 opacity-80">
-                     <div className="w-6 h-6 bg-tea-bg rounded-lg flex items-center justify-center">
+                     <div className="w-6 h-6 bg-tea-bg rounded-xl flex items-center justify-center">
                         <span className="text-tea-text font-serif font-bold text-xs mt-0.5">T</span>
                      </div>
                      <span className="text-tea-text text-xs tracking-[0.3em] font-serif">TEAJIA</span>
@@ -193,7 +193,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-label={`Share "${story.title}"`}
-        className="relative w-full max-w-sm bg-tea-bg rounded-sm shadow-2xl overflow-hidden flex flex-col animate-[slideUp_0.3s_ease-out]"
+        className="relative w-full max-w-sm bg-tea-bg rounded-md shadow-2xl overflow-hidden flex flex-col animate-[slideUp_0.3s_ease-out]"
       >
         {/* Header with Logo */}
         <div className="h-12 bg-tea-elevated border-b border-tea-border flex items-center px-4 justify-between">
@@ -214,7 +214,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
            {/* Featured Article Preview */}
            <div className="w-full mb-4">
-             <div className="bg-tea-surface rounded-sm shadow-md overflow-hidden border border-tea-border">
+             <div className="bg-tea-surface rounded-md shadow-md overflow-hidden border border-tea-border">
                {/* Image Section */}
                <div className="w-full h-32 bg-tea-bg overflow-hidden relative">
                  {story.thumbnailUrl ? (
@@ -275,7 +275,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               {/* Copy Link Button */}
               <button
                 onClick={handleCopy}
-                className={`flex flex-col items-center justify-center p-2 border-2 rounded-sm transition-all duration-300 gap-2 h-20 group ${
+                className={`flex flex-col items-center justify-center p-2 border-2 rounded-md transition-all duration-300 gap-2 h-20 group ${
                   copied
                     ? 'bg-tea-green/10 border-tea-green text-tea-green'
                     : 'border-tea-text/20 hover:border-tea-text/40 hover:bg-tea-text/5'
@@ -291,7 +291,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={openIntent(twitterHref)}
-                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm text-tea-text-sec hover:text-tea-text"
+                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-md text-tea-text-sec hover:text-tea-text"
                 aria-label="Share on Twitter"
               >
                 <Icons.Twitter className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -304,7 +304,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={openIntent(facebookHref)}
-                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm text-tea-text-sec hover:text-tea-text"
+                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-md text-tea-text-sec hover:text-tea-text"
                 aria-label="Share on Facebook"
               >
                 <span className="font-serif text-lg leading-none group-hover:scale-110 transition-transform">f</span>
@@ -314,7 +314,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
               {/* WhatsApp Button */}
               <button
                 onClick={handleWhatsApp}
-                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-sm"
+                className="flex flex-col items-center justify-center p-2 border-2 border-tea-text/20 hover:border-tea-text/40 bg-tea-text/5 hover:bg-tea-text/10 transition-all duration-300 gap-2 h-20 group rounded-md"
               >
                 <Icons.Message className="w-5 h-5 text-tea-text-sec group-hover:scale-110 transition-transform" />
                 <span className="text-ui-9 uppercase tracking-wider font-semibold text-tea-text-sec">Chat</span>

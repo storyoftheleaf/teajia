@@ -186,7 +186,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
 
   // Hide purchase controls entirely when onAddToCart is not provided
   const purchaseControls = onAddToCart && showQuantityControls && (
-    <div className="rounded-lg p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgba(0,0,0,0.2)' }}>
+    <div className="rounded-xl p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgba(0,0,0,0.2)' }}>
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
@@ -204,7 +204,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -215,7 +215,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         <>
           <div className="flex items-center gap-4 px-1 mb-4">
             <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text/60">Quantity</span>
-            <div className="flex items-center rounded-lg bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
+            <div className="flex items-center rounded-xl bg-tea-text/25 ml-auto" style={{ boxShadow: 'inset 0 1px 0 var(--tea-accent-sub)' }}>
               <button
                 onClick={() => setSelectedQuantities(prev => ({ ...prev, [item.id]: Math.max(1, (prev[item.id] || defaultQuantity) - 1) }))}
                 disabled={currentQuantity <= 1}
@@ -231,7 +231,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           </div>
           <button
             onClick={() => { onAddToCart(item, currentQuantity, totalPrice); onClose(); }}
-            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-lg transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+            className="add-to-cart-btn w-full bg-tea-gold hover:bg-tea-gold/90 text-tea-text text-xs uppercase tracking-[0.2em] font-medium py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-3 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
@@ -258,7 +258,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
       <div className="hidden md:flex w-full h-full flex-col items-center justify-center p-8 cursor-zoom-out">
         <div className="relative w-full max-w-4xl flex flex-col items-center">
           <div
-            className="relative max-h-[65vh] w-auto shadow-2xl rounded-lg overflow-hidden transition-transform duration-100"
+            className="relative max-h-[65vh] w-auto shadow-2xl rounded-xl overflow-hidden transition-transform duration-100"
             style={{ transform: `translateX(${swipeOffset * 0.5}px)` }}
           >
             {item.image ? (
@@ -290,7 +290,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
             {purchaseControls}
           </div>
         </div>
-        <button className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-lg" onClick={onClose} aria-label="Close">
+        <button className="absolute top-6 right-6 text-tea-text-sec hover:text-tea-text transition-colors focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none rounded-xl" onClick={onClose} aria-label="Close">
           <Icons.Close className="w-8 h-8" />
         </button>
       </div>
@@ -318,7 +318,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
         </div>
 
         {/* Sheet content */}
-        <div className="bg-tea-bg rounded-t-lg relative -mt-4 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-tea-bg rounded-t-xl relative -mt-4 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-[env(safe-area-inset-bottom)]">
           {/* Drag handle */}
           <div className="sheet-drag-handle flex justify-center pt-3 pb-4 cursor-grab active:cursor-grabbing">
             <div className="w-10 h-1 bg-tea-gold/15 rounded-full" />

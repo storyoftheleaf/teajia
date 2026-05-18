@@ -155,7 +155,7 @@ const OwnerPrivateNote: React.FC<{
         onChange={e => setBody(e.target.value)}
         rows={4}
         placeholder="Context that belongs with the relationship, not in public or staff-facing notes…"
-        className="w-full bg-tea-bg border border-tea-border rounded-lg p-3 text-ui-13 text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold placeholder:text-tea-text-sec"
+        className="w-full bg-tea-bg border border-tea-border rounded-md p-3 text-ui-13 text-tea-text resize-y min-h-[112px] focus:outline-none focus:border-tea-gold placeholder:text-tea-text-sec"
       />
     </section>
   );
@@ -226,7 +226,7 @@ const SampleOfferModal: React.FC<{
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Pick a tea to sample…"
-              className="w-full bg-tea-surface border border-tea-border rounded-lg pl-8 pr-3 py-1.5 text-ui-13 text-tea-text focus:outline-none focus:border-tea-gold placeholder:text-tea-text-dim"
+              className="w-full bg-tea-surface border border-tea-border rounded-md pl-8 pr-3 py-1.5 text-ui-13 text-tea-text focus:outline-none focus:border-tea-gold placeholder:text-tea-text-dim"
             />
           </div>
           <div className="space-y-1.5 max-h-44 overflow-y-auto">
@@ -234,7 +234,7 @@ const SampleOfferModal: React.FC<{
               <button
                 key={p.id}
                 onClick={() => setSelectedId(p.id === selectedId ? null : p.id)}
-                className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left ${
+                className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
                   selectedId === p.id
                     ? 'bg-tea-gold/8 border-tea-gold'
                     : 'bg-tea-surface border-tea-border hover:bg-tea-elevated'
@@ -266,9 +266,9 @@ const SampleOfferModal: React.FC<{
                 onChange={e => setNote(e.target.value)}
                 placeholder="Add a personal note…"
                 rows={2}
-                className="w-full bg-tea-surface border border-tea-border rounded-lg p-2.5 text-ui-13 text-tea-text resize-none focus:outline-none focus:border-tea-gold placeholder:text-tea-text-dim"
+                className="w-full bg-tea-surface border border-tea-border rounded-md p-2.5 text-ui-13 text-tea-text resize-none focus:outline-none focus:border-tea-gold placeholder:text-tea-text-dim"
               />
-              <pre className="text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-lg p-3 font-sans">
+              <pre className="text-ui-11 text-tea-text-sec leading-relaxed whitespace-pre-wrap bg-tea-surface rounded-xl p-3 font-sans">
                 {message}
               </pre>
               <div className="flex gap-2">
@@ -589,7 +589,7 @@ export const CustomerProfilePage: React.FC = () => {
               <p className="label-caps text-tea-text-dim mb-4">How we know them</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {orderedRelationshipKinds.map(kind => (
-                  <div key={kind} className="bg-tea-bg border border-tea-border rounded-lg p-3">
+                  <div key={kind} className="bg-tea-bg border border-tea-border rounded-xl p-3">
                     <div className="h3 mb-1">{CONTACT_RELATIONSHIP_TAXONOMY[kind].label}</div>
                     <div className="text-ui-12 text-tea-text-sec leading-relaxed">
                       {CONTACT_RELATIONSHIP_TAXONOMY[kind].description}
@@ -658,7 +658,7 @@ export const CustomerProfilePage: React.FC = () => {
                 {teas.map(tea => (
                   <div
                     key={tea.id}
-                    className="flex items-center gap-3 bg-tea-bg border border-tea-border rounded-lg p-3"
+                    className="flex items-center gap-3 bg-tea-bg border border-tea-border rounded-xl p-3"
                   >
                     {tea.image_url ? (
                       <img src={tea.image_url} alt="" className="w-9 h-9 rounded-md object-cover shrink-0" />

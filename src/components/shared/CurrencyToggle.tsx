@@ -25,7 +25,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-ui-10 uppercase tracking-[0.15em] font-mono text-tea-text/70 bg-tea-gold/5 border border-tea-border rounded-sm hover:bg-tea-gold/10 transition-colors overflow-hidden"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-ui-10 uppercase tracking-[0.15em] font-mono text-tea-text/70 bg-tea-gold/5 border border-tea-border rounded-md hover:bg-tea-gold/10 transition-colors overflow-hidden"
       >
         {/* Flip animation on currency/unit change */}
         <AnimatePresence mode="wait">
@@ -54,7 +54,7 @@ export const CurrencyToggle: React.FC<CurrencyToggleProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute top-full right-0 mt-1 z-modal bg-tea-elevated border border-tea-border rounded-sm shadow-2xl overflow-hidden origin-top-right min-w-[140px]"
+            className="absolute top-full right-0 mt-1 z-modal bg-tea-elevated border border-tea-border rounded-md shadow-2xl overflow-hidden origin-top-right min-w-[140px]"
           >
             {/* Currency options */}
             <div className="border-b border-tea-border px-3 py-2">
