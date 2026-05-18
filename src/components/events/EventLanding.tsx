@@ -5,6 +5,7 @@ import { MapPin, ChevronDown, Users, BookOpen, Edit3, UserCheck } from 'lucide-r
 import { api, hasToken } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { useParallax } from '../../hooks/useParallax';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { TeaEvent, TeaMenuItem } from '../../types/events';
 import AvailabilityBadge from './AvailabilityBadge';
 import EventCountdown from './EventCountdown';
@@ -158,6 +159,7 @@ const EventLanding: React.FC = () => {
 
   // Parallax for flyer image
   const { ref: heroRef, offset: parallaxOffset } = useParallax(0.3);
+  const reducedMotion = useReducedMotion();
 
   // OG meta tags for social sharing previews
   useEffect(() => {
@@ -236,8 +238,9 @@ const EventLanding: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
+      <div className="min-h-screen bg-tea-bg flex items-center justify-center px-6" role="status">
         <div className="text-center max-w-xs">
+          <span className="sr-only">Loading event</span>
           <div className="animate-pulse">
             <div className="w-12 h-12 rounded-full bg-tea-gold/10 mx-auto mb-4" />
             <div className="h-3 w-32 bg-tea-text-sec/10 rounded-md mx-auto" />
@@ -307,18 +310,21 @@ const EventLanding: React.FC = () => {
   const gradientColors = (slug && teaGradients[slug]) || ['#3d2817', '#1a0e08', '#5a3a20'];
 
   return (
-    <div className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
+    <div className={`min-h-screen bg-tea-bg ${reducedMotion ? '' : 'animate-[fadeIn_0.5s_ease-out]'}`}>
       {/* Hero — flyer image or gradient fallback */}
       <div ref={heroRef} className="relative w-full pb-6">
         {flyerImageUrl ? (
           <div className="w-full overflow-hidden" style={{ maxHeight: '70vh' }}>
-            <div style={{ transform: `translateY(${parallaxOffset}px)`, transition: 'transform 0.1s linear' }}>
-              <img
-                src={flyerImageUrl}
-                alt={event.title}
-                className="w-full h-auto object-cover"
-                style={{ minHeight: '50vh', maxHeight: '75vh', objectFit: 'cover' }}
-              />
+            <div style={{ transform: `translateY(${reducedMotion ? 0 : parallaxOffset}px)` }}>
+              <div style={{ minHeight: '50vh', maxHeight: '75vh' }}>
+                <img
+                  src={flyerImageUrl}
+                  alt={event.title}
+                  fetchPriority="high"
+                  className="w-full h-full object-cover"
+                  style={{ minHeight: '50vh', maxHeight: '75vh', objectFit: 'cover' }}
+                />
+              </div>
             </div>
             <div className="absolute inset-x-0 top-0 bottom-6 bg-gradient-to-t from-tea-bg via-tea-bg/20 to-transparent pointer-events-none" />
           </div>
@@ -336,7 +342,7 @@ const EventLanding: React.FC = () => {
             />
             <div
               className="absolute bottom-0 left-0 right-0"
-              style={{ height: '50%', background: `linear-gradient(to top, var(--color-tea-bg, #18130e), transparent)` }}
+              style={{ height: '50%', background: `linear-gradient(to top, var(--tea-bg), transparent)` }}
             />
           </div>
         )}
@@ -372,7 +378,7 @@ const EventLanding: React.FC = () => {
       </div>
 
       {/* Content — editorial reader chrome */}
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
         {/* Title block */}
         <div className="text-center mb-10">
           {isCancelled && (
@@ -494,7 +500,7 @@ const EventLanding: React.FC = () => {
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-5 space-y-3">
                     <p className="text-ui-15 text-tea-text text-center" style={{ fontFamily: 'var(--font-display)' }}>Cancel your spot?</p>
                     <p className="text-ui-12 text-tea-text-sec text-center">This can't be undone. We'll let the host know.</p>
-                    {cancelFeedback && <p className="text-ui-12 text-tea-error text-center">{cancelFeedback}</p>}
+                    {cancelFeedback && <p role="alert" className="text-ui-12 text-tea-error text-center">{cancelFeedback}</p>}
                     <div className="flex justify-between items-center gap-2 pt-1">
                       <button
                         onClick={() => { setShowCancelConfirm(false); setCancelFeedback(''); }}
@@ -637,6 +643,8 @@ const EventLanding: React.FC = () => {
             <button
               onClick={() => setGuidelinesExpanded(!guidelinesExpanded)}
               className="flex items-center justify-between w-full py-3 text-left group"
+              aria-expanded={guidelinesExpanded}
+              aria-controls="session-guidelines-panel"
             >
               <h3 className="h3 group-hover:text-tea-readgold transition-colors">
                 Session Guidelines
@@ -648,7 +656,7 @@ const EventLanding: React.FC = () => {
               />
             </button>
             {guidelinesExpanded && (
-              <div className="animate-[fadeIn_0.3s_ease-out] pt-2">
+              <div id="session-guidelines-panel" className={`pt-2 ${reducedMotion ? '' : 'animate-[fadeIn_0.3s_ease-out]'}`}>
                 <ul className="space-y-3">
                   {guidelinesText.split('\n').filter(Boolean).map((guideline, idx) => (
                     <li key={idx} className="flex items-start gap-3 body-light">

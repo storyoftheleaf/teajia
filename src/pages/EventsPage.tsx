@@ -24,7 +24,7 @@ interface EventRowProps {
   isPast: boolean;
 }
 
-const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
+const EventRow: React.FC<EventRowProps> = React.memo(({ event, isPast }) => {
   const navigate = useNavigate();
   const { num, month, time } = formatDate(event.eventDate);
   const seats = event.seatsRemaining ?? (event.totalCapacity - (event.confirmedCount ?? 0));
@@ -52,12 +52,12 @@ const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
 
       {/* Body column */}
       <div className="flex-1 min-w-0">
-        <h2
-          className="text-ui-17 text-tea-text leading-snug truncate"
+        <span
+          className="block text-ui-17 text-tea-text leading-snug truncate"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           {event.title}
-        </h2>
+        </span>
         {detail && (
           <p className="text-ui-13 text-tea-text-sec truncate mt-0.5">
             {detail}
@@ -66,7 +66,7 @@ const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
       </div>
 
       {/* Status pill */}
-      <div className="shrink-0 hidden sm:block">
+      <div className="shrink-0">
         {isPast ? (
           <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-elevated text-tea-text-dim">
             Past
@@ -76,7 +76,7 @@ const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
             Full
           </span>
         ) : (
-          <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/30">
+          <span className="inline-flex px-2 py-0.5 rounded-full text-ui-10 uppercase tracking-[0.15em] bg-tea-gold/10 text-tea-readgold">
             Upcoming
           </span>
         )}
@@ -85,7 +85,8 @@ const EventRow: React.FC<EventRowProps> = ({ event, isPast }) => {
       <ChevronRight className="shrink-0 w-4 h-4 text-tea-text-dim group-hover:text-tea-text-sec transition-colors" />
     </button>
   );
-};
+});
+EventRow.displayName = 'EventRow';
 
 // ── Skeleton row ─────────────────────────────────────────────────────────────
 const EventRowSkeleton: React.FC = () => (
@@ -99,7 +100,7 @@ const EventRowSkeleton: React.FC = () => (
       <div className="h-4 w-2/3 bg-tea-elevated rounded-md" />
       <div className="h-3 w-1/2 bg-tea-elevated rounded-md" />
     </div>
-    <div className="h-5 w-16 bg-tea-elevated rounded-full hidden sm:block" />
+    <div className="h-5 w-16 bg-tea-elevated rounded-full" />
   </div>
 );
 
@@ -126,7 +127,7 @@ const FilterTabs: React.FC<FilterTabsProps> = ({ active, onChange, counts }) => 
             key={t.id}
             type="button"
             onClick={() => onChange(t.id)}
-            className={`relative -mb-px pb-3 pt-1 transition-colors ${
+            className={`tap-target relative -mb-px pb-3 pt-1 transition-colors ${
               isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >

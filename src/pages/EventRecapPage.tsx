@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Music, Image, MessageCircle, BookOpen, ShoppingBag, ExternalLink } from 'lucide-react';
 import { api } from '../lib/api';
 import { TeaLeafIcon } from '../components/Icons';
+import { Modal } from '../components/shared/Modal';
 import type { TeaMenuItem } from '../types/events';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
   return (
     <section className="mb-12">
       <div className="flex items-center gap-2 mb-5">
-        <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
+        <TeaLeafIcon className="w-4 h-4 text-tea-gold" aria-hidden="true" />
         <h2 className="h2">Teas served</h2>
       </div>
       <div className="space-y-3">
@@ -90,7 +91,7 @@ const TeaLedgerSection: React.FC<TeaLedgerSectionProps> = ({ items }) => {
               {item.productId && (
                 <a
                   href={`/shop?product=${encodeURIComponent(item.productId)}`}
-                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-xs font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
                   aria-label={`Buy ${item.customName || item.productName}`}
                 >
                   <ShoppingBag className="w-3.5 h-3.5 group-hover:text-tea-gold transition-colors" />
@@ -112,7 +113,7 @@ interface HostNotesSectionProps {
 const HostNotesSection: React.FC<HostNotesSectionProps> = ({ notes }) => (
   <section className="mb-12">
     <div className="flex items-center gap-2 mb-5">
-      <BookOpen className="w-4 h-4 text-tea-gold" />
+      <BookOpen className="w-4 h-4 text-tea-gold" aria-hidden="true" />
       <h2 className="h2">From the host</h2>
     </div>
     <p className="body-prose whitespace-pre-line">{notes}</p>
@@ -126,16 +127,19 @@ interface SharedNotesSectionProps {
 const SharedNotesSection: React.FC<SharedNotesSectionProps> = ({ notes }) => (
   <section className="mb-12">
     <div className="flex items-center gap-2 mb-5">
-      <MessageCircle className="w-4 h-4 text-tea-gold" />
+      <MessageCircle className="w-4 h-4 text-tea-gold" aria-hidden="true" />
       <h2 className="h2">Guests said</h2>
     </div>
     <div className="space-y-5">
       {notes.map((note, idx) => (
         <blockquote
           key={idx}
-          className="subtitle border-l-2 border-tea-gold/30 pl-4"
+          className="subtitle italic relative pl-7"
         >
-          "{note}"
+          <span aria-hidden="true" className="absolute left-0 top-0 text-tea-gold/40 font-display text-ui-28 leading-none">
+            &ldquo;
+          </span>
+          {note}
         </blockquote>
       ))}
     </div>
@@ -149,8 +153,8 @@ interface PlaylistSectionProps {
 const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
   <section className="mb-12">
     <div className="flex items-center gap-2 mb-5">
-      <Music className="w-4 h-4 text-tea-gold" />
-      <h2 className="h3">Session playlist</h2>
+      <Music className="w-4 h-4 text-tea-gold" aria-hidden="true" />
+      <h2 className="h2">Session playlist</h2>
     </div>
     {playlistUrl.includes('spotify.com') ? (
       <div className="rounded-xl overflow-hidden border border-tea-border">
@@ -182,7 +186,7 @@ const PlaylistSection: React.FC<PlaylistSectionProps> = ({ playlistUrl }) => (
         href={playlistUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-3 px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-xs font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
+        className="inline-flex items-center gap-3 px-4 py-3 bg-tea-surface border border-tea-border rounded-md text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text transition-colors group"
       >
         <Music className="w-3.5 h-3.5 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
         <span>Listen to the session playlist</span>
@@ -202,7 +206,7 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
   return (
     <section className="mb-12">
       <div className="flex items-center gap-2 mb-5">
-        <Image className="w-4 h-4 text-tea-gold" />
+        <Image className="w-4 h-4 text-tea-gold" aria-hidden="true" />
         <h2 className="h2">Gallery</h2>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -223,18 +227,22 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
         ))}
       </div>
 
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-toast bg-black/85 flex items-center justify-center p-4 cursor-pointer animate-[fadeIn_0.2s_ease-out]"
-          onClick={() => setLightboxImage(null)}
-        >
+      <Modal
+        isOpen={!!lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        ariaLabel="Photo viewer"
+        variant="center"
+        hideClose
+        className="!max-w-none !w-auto !bg-transparent !border-0 !shadow-none !overflow-visible"
+      >
+        {lightboxImage && (
           <img
             src={lightboxImage}
-            alt="Full size"
-            className="max-w-full max-h-full object-contain animate-[scaleIn_0.3s_ease-out]"
+            alt="Full size session photo"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
           />
-        </div>
-      )}
+        )}
+      </Modal>
     </section>
   );
 };
@@ -263,8 +271,8 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
   return (
     <section className="mb-12">
       <div className="flex items-center gap-2 mb-5">
-        <span className="text-ui-10 text-tea-gold">✦</span>
-        <h2 className="h3">What stayed with you?</h2>
+        <span className="text-ui-10 text-tea-gold" aria-hidden="true">✦</span>
+        <h2 className="h2">What stayed with you?</h2>
       </div>
       <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
         <textarea
@@ -280,7 +288,7 @@ const PersonalNoteSection: React.FC<PersonalNoteProps> = ({ eventSlug }) => {
           <button
             onClick={handleSave}
             disabled={!note.trim()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-xs font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border border-tea-border text-ui-12 font-semibold text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {saved ? 'Saved' : 'Keep this'}
           </button>
@@ -358,10 +366,11 @@ const EventRecapPage: React.FC = () => {
     >
       {/* Hero strip */}
       {event.flyer_image_url && (
-        <div className="relative w-full overflow-hidden" style={{ maxHeight: '45vh' }}>
+        <div className="relative w-full overflow-hidden bg-tea-surface" style={{ minHeight: '30vh', maxHeight: '45vh' }}>
           <img
             src={event.flyer_image_url}
             alt={event.title}
+            fetchPriority="high"
             className="w-full h-auto object-cover"
             style={{ minHeight: '30vh', maxHeight: '45vh', objectFit: 'cover', filter: 'brightness(0.7)' }}
           />
@@ -376,7 +385,7 @@ const EventRecapPage: React.FC = () => {
           className={
             event.flyer_image_url
               ? 'tap-target flex items-center justify-center w-9 h-9 rounded-full bg-tea-bg/60 text-tea-text-sec hover:text-tea-text transition-colors backdrop-blur-md'
-              : 'inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-14'
+              : 'tap-target inline-flex items-center gap-2 text-tea-text-sec hover:text-tea-text transition-colors text-ui-14'
           }
           aria-label="Back to event"
         >
@@ -445,13 +454,6 @@ const EventRecapPage: React.FC = () => {
           </button>
         </div>
       </div>
-
-      <style>{`
-        @keyframes scaleIn {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 };
