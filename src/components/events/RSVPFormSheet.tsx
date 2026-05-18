@@ -3,6 +3,7 @@ import { X, Plus, Trash2, LogIn } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import type { RSVPFormData, ContactMethod, RSVPResponse } from '../../types/events';
 
@@ -68,6 +69,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Focus trap on the dialog/sheet container. Merged with sheetRef via callback ref.
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
+  const setSheetRef = useCallback((node: HTMLDivElement | null) => {
+    sheetRef.current = node;
+    (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [focusTrapRef]);
 
   // Inline sign-in state
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -123,7 +132,14 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid) {
+      // Focus the first invalid required field so the failure is discoverable.
+      const invalid = formRef.current?.querySelector<HTMLElement>(
+        'input[aria-required="true"][aria-invalid="true"]'
+      );
+      invalid?.focus();
+      return;
+    }
     submitMutation.mutate(formData);
   };
 
@@ -158,7 +174,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
     updateField('guests', guests);
   };
 
-  const handleInlineLogin = async (e: React.FormEvent) => {
+  const handleInlineLogin = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setLoginError('');
     setLoginPending(true);
@@ -195,7 +211,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        ref={sheetRef}
+        ref={setSheetRef}
         className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-lg bg-tea-surface border-t border-tea-border md:border md:border-tea-border rounded-t-xl md:rounded-xl shadow-2xl h-[calc(100dvh-44px-env(safe-area-inset-bottom,0px))] md:h-auto md:max-h-[85vh] overflow-hidden animate-[slideUp_0.3s_ease-out] flex flex-col"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
@@ -269,7 +285,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
 
               {/* Member banner / sign-in prompt */}
               {isAuthenticated && user ? (
@@ -294,6 +310,16 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        // Prevent the outer RSVP form from submitting; run the
+                        // inline login instead.
+                        e.preventDefault();
+                        if (loginIdentifier && loginPassword && !loginPending) {
+                          handleInlineLogin(e);
+                        }
+                      }
+                    }}
                     placeholder="Password"
                     autoComplete="current-password"
                     className={inputClass}
@@ -334,6 +360,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
               <div>
                 <label htmlFor="rsvp-name" className="label-caps block mb-2">
                   Your name
+                  <span aria-hidden="true" className="text-tea-gold"> *</span>
+                  <span className="sr-only"> (required)</span>
                 </label>
                 <input
                   id="rsvp-name"
@@ -343,6 +371,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                   placeholder="Your full name"
                   autoComplete="name"
                   required
+                  aria-required="true"
+                  aria-invalid={formData.fullName.trim().length === 0}
                   className={inputClass}
                 />
               </div>
@@ -368,6 +398,8 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                 <div>
                   <label className="label-caps block mb-2">
                     How should we reach you?
+                    <span aria-hidden="true" className="text-tea-gold"> *</span>
+                    <span className="sr-only"> (required)</span>
                   </label>
                   {/* Method toggle — underline tabs */}
                   <div className="flex gap-6 border-b border-tea-border mb-3">
@@ -419,6 +451,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           placeholder="912 345 678"
                           autoComplete="tel-national"
                           required
+                          aria-required="true"
+                          aria-invalid={contactValue.trim().length === 0}
+                          aria-label="WhatsApp number"
                           className="flex-1 min-w-0 px-3 py-2.5 bg-tea-bg text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none"
                         />
                       </div>
@@ -440,6 +475,9 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                       placeholder="your@email.com"
                       autoComplete="email"
                       required
+                      aria-required="true"
+                      aria-invalid={contactValue.trim().length === 0}
+                      aria-label="Email address"
                       className={inputClass}
                     />
                   )}
@@ -466,6 +504,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           value={guest.nameHint}
                           onChange={(e) => updateGuest(idx, { nameHint: e.target.value })}
                           placeholder="e.g. my partner"
+                          aria-label={`Guest ${idx + 1} name`}
                           className={inputClass + ' flex-1'}
                         />
                         <button
@@ -483,6 +522,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
                           value={guest.contact ?? ''}
                           onChange={(e) => updateGuest(idx, { contact: e.target.value })}
                           placeholder="Their WhatsApp or email (we'll reach out, or message you if we can't)"
+                          aria-label={`Guest ${idx + 1} contact`}
                           className={inputClass}
                         />
                       </div>
@@ -536,7 +576,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
 
               {/* Error */}
               {submitMutation.isError && (
-                <div className="p-3 bg-tea-error/10 border border-tea-error/20 rounded-md">
+                <div role="alert" className="p-3 bg-tea-error/10 border border-tea-error/20 rounded-md">
                   <p className="text-ui-12 text-tea-error">
                     {submitMutation.error?.message || 'Something went wrong. Please try again.'}
                   </p>

@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 
 interface FindRSVPSheetProps {
@@ -23,6 +24,9 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
+
+  // Focus trap on the sheet container.
+  const sheetRef = useFocusTrap<HTMLDivElement>(true);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -92,6 +96,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
+        ref={sheetRef}
         className="absolute bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto md:w-full md:max-w-md bg-tea-surface border-t border-tea-border md:border md:border-tea-border rounded-t-xl md:rounded-xl shadow-2xl animate-[slideUp_0.3s_ease-out]"
         style={{ transform: `translateY(${dragY}px)` }}
         onClick={(e) => e.stopPropagation()}
@@ -102,6 +107,7 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
           onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
           onTouchEnd={() => handleDragEnd()}
+          aria-hidden="true"
         >
           <div className="w-10 h-1 bg-tea-border rounded-full" />
         </div>
@@ -173,9 +179,9 @@ const FindRSVPSheet: React.FC<FindRSVPSheetProps> = ({ slug, onClose }) => {
               const isNotFound = /not found|404/i.test(raw);
               const friendly = isNotFound
                 ? "We couldn't find your reservation. Try searching by your other contact method, or message the host directly."
-                : raw || 'Something went wrong. Try again in a moment.';
+                : 'Something went wrong. Please try again.';
               return (
-                <div className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-md">
+                <div role="alert" className="p-3 bg-tea-gold/8 border border-tea-gold/20 rounded-md">
                   <p className="text-ui-12 text-tea-text-sec leading-relaxed">{friendly}</p>
                 </div>
               );

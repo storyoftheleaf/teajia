@@ -8,16 +8,42 @@ interface CalendarDownloadProps {
 }
 
 function generateICS(event: TeaEvent): string {
-  const formatDate = (dateStr: string) =>
+  const tz = event.timezone;
+
+  // UTC form: YYYYMMDDTHHMMSSZ
+  const formatUTC = (dateStr: string) =>
     new Date(dateStr)
       .toISOString()
       .replace(/[-:]/g, '')
       .replace('.000', '');
 
-  const start = formatDate(event.eventDate);
+  // Local-time form for a named timezone: YYYYMMDDTHHMMSS (no Z)
+  const formatLocal = (dateStr: string, timeZone: string) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(dateStr));
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+    // Intl can emit '24' for midnight with hour12:false — normalize to '00'.
+    const hour = get('hour') === '24' ? '00' : get('hour');
+    return `${get('year')}${get('month')}${get('day')}T${hour}${get('minute')}${get('second')}`;
+  };
+
+  const start = tz ? formatLocal(event.eventDate, tz) : formatUTC(event.eventDate);
   const end = event.eventEndDate
-    ? formatDate(event.eventEndDate)
+    ? tz
+      ? formatLocal(event.eventEndDate, tz)
+      : formatUTC(event.eventEndDate)
     : start;
+
+  const dtStart = tz ? `DTSTART;TZID=${tz}:${start}` : `DTSTART:${start}`;
+  const dtEnd = tz ? `DTEND;TZID=${tz}:${end}` : `DTEND:${end}`;
 
   // Escape special characters for ICS format
   const escapeICS = (str: string) =>
@@ -30,8 +56,8 @@ function generateICS(event: TeaEvent): string {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `DTSTART:${start}`,
-    `DTEND:${end}`,
+    dtStart,
+    dtEnd,
     `SUMMARY:${escapeICS(event.title)}`,
     event.locationName ? `LOCATION:${escapeICS(event.locationName)}` : null,
     event.description ? `DESCRIPTION:${escapeICS(event.description)}` : null,
@@ -63,7 +89,7 @@ const CalendarDownload: React.FC<CalendarDownloadProps> = ({ event, className = 
       className={`inline-flex items-center gap-3 px-6 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group ${className}`}
     >
       <Calendar className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors duration-300" />
-      <span className="text-xs uppercase tracking-[0.2em] font-medium">
+      <span className="text-ui-12 uppercase tracking-[0.2em] font-medium">
         Add to Calendar
       </span>
     </button>

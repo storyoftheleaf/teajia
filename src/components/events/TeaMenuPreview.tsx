@@ -29,8 +29,8 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
 
   return (
     <div className={`${className}`}>
-      <h3 className="font-serif text-xl text-tea-text mb-2">Tea Menu</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6">
+      <h3 className="font-display text-ui-20 text-tea-text mb-2">Tea Menu</h3>
+      <p className="text-ui-12 text-tea-text-sec uppercase tracking-[0.2em] mb-6">
         {sortedMenu.length} {sortedMenu.length === 1 ? 'selection' : 'selections'} curated for this session
       </p>
 
@@ -41,10 +41,7 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
           return (
             <div
               key={item.id}
-              className={`relative p-4 bg-tea-surface border border-tea-border rounded-md transition-all duration-500 ${
-                revealed ? 'opacity-100' : 'opacity-70'
-              }`}
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="relative p-4 bg-tea-surface border border-tea-border rounded-md transition-all duration-500"
             >
               {revealed ? (
                 <>
@@ -55,30 +52,30 @@ const TeaMenuPreview: React.FC<TeaMenuPreviewProps> = ({ teaMenu, eventDate, cla
                           {item.productType || `Tea ${index + 1}`}
                         </span>
                       </div>
-                      <h4 className="font-serif text-base text-tea-text">
+                      <h4 className="font-display text-ui-16 text-tea-text">
                         {item.customName || item.productName}
                       </h4>
                     </div>
-                    <span className="text-tea-gold/30 font-serif text-2xl leading-none shrink-0">
+                    <span className="text-tea-gold/30 font-display text-2xl leading-none shrink-0">
                       {index + 1}
                     </span>
                   </div>
                   {item.customDescription && (
-                    <p className="text-sm text-tea-text-sec leading-relaxed mt-3 border-t border-tea-border pt-3">
+                    <p className="text-ui-14 text-tea-text-sec leading-relaxed mt-3 border-t border-tea-border pt-3">
                       {item.customDescription}
                     </p>
                   )}
                 </>
               ) : (
                 <div className="flex items-center gap-3">
-                  <span className="text-tea-gold/30 font-serif text-2xl leading-none shrink-0">
+                  <span className="text-tea-gold/30 font-display text-2xl leading-none shrink-0">
                     {index + 1}
                   </span>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="h-2 w-16 bg-tea-text-sec/10 rounded-md" />
                     </div>
-                    <p className="font-serif text-sm text-tea-text-sec italic">
+                    <p className="font-display text-ui-14 text-tea-text-sec italic">
                       A special tea awaits...
                     </p>
                     <div className="h-2 w-32 bg-tea-text-sec/5 rounded-md mt-2" />

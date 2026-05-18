@@ -15,11 +15,11 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
     );
   }
 
-  const base = `inline-flex items-center px-4 py-2 text-ui-10 uppercase tracking-[0.25em] rounded-full border ${className}`;
+  const base = `inline-flex items-center px-4 py-2 text-ui-12 uppercase tracking-[0.25em] rounded-full ${className}`;
 
   if (data.isFull) {
     return (
-      <span className={`${base} bg-tea-bg border-tea-border text-tea-text-sec`}>
+      <span role="status" aria-live="polite" className={`${base} bg-tea-bg text-tea-text-sec`}>
         Registration closed
       </span>
     );
@@ -27,7 +27,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
 
   if (data.seatsRemaining <= 0) {
     return (
-      <span className={`${base} bg-tea-bg border-tea-gold/40 text-tea-gold`}>
+      <span role="status" aria-live="polite" className={`${base} bg-tea-elevated text-tea-gold`}>
         Waitlist open
       </span>
     );
@@ -36,7 +36,7 @@ const AvailabilityBadge: React.FC<AvailabilityBadgeProps> = ({ slug, className =
   const total = data.totalCapacity > 0 ? ` of ${data.totalCapacity}` : '';
 
   return (
-    <span className={`${base} bg-tea-bg border-tea-gold/40 text-tea-gold`}>
+    <span role="status" aria-live="polite" className={`${base} bg-tea-elevated text-tea-gold`}>
       {data.seatsRemaining}{total} seats open
     </span>
   );

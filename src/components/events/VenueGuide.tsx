@@ -36,7 +36,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
 
   return (
     <div className={`${className}`}>
-      <h3 className="font-serif text-xl text-tea-text mb-6">Getting There</h3>
+      <h3 className="font-display text-ui-20 text-tea-text mb-6">Getting There</h3>
 
       {/* Step-by-step directions */}
       {hasSteps && (
@@ -51,7 +51,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
               <div className="relative aspect-[16/9] overflow-hidden">
                 <img
                   src={steps[activeStep].image_url}
-                  alt={`Step ${activeStep + 1}`}
+                  alt={steps[activeStep].description || ''}
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
@@ -60,12 +60,12 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             )}
 
             {/* Step content */}
-            <div className="p-5">
+            <div className="p-5" aria-live="polite">
               <div className="flex items-center gap-3 mb-3">
-                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-tea-gold text-tea-bg text-xs font-semibold shrink-0">
+                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-tea-gold text-tea-bg text-ui-12 font-semibold shrink-0">
                   {activeStep + 1}
                 </span>
-                <p className="text-sm text-tea-text-sec leading-relaxed">
+                <p className="text-ui-14 text-tea-text-sec leading-relaxed">
                   {steps[activeStep].description}
                 </p>
               </div>
@@ -76,7 +76,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                   href={steps[activeStep].video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-3 ml-10 text-xs text-tea-gold uppercase tracking-[0.15em] hover:text-tea-gold/80 transition-colors"
+                  className="inline-flex items-center gap-2 mt-3 ml-10 text-ui-12 text-tea-gold uppercase tracking-[0.15em] hover:text-tea-gold/80 transition-colors"
                 >
                   Watch walkthrough
                 </a>
@@ -89,7 +89,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                 <button
                   onClick={goPrev}
                   disabled={activeStep === 0}
-                  className="p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
+                  className="tap-target p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
                   aria-label="Previous step"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -101,12 +101,13 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                     <button
                       key={idx}
                       onClick={() => setActiveStep(idx)}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      className={`tap-target w-2 h-2 rounded-full transition-all duration-300 ${
                         idx === activeStep
                           ? 'bg-tea-gold w-5'
                           : 'bg-tea-text-sec/30 hover:bg-tea-text-sec/50'
                       }`}
                       aria-label={`Go to step ${idx + 1}`}
+                      aria-current={idx === activeStep ? 'true' : undefined}
                     />
                   ))}
                 </div>
@@ -114,7 +115,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
                 <button
                   onClick={goNext}
                   disabled={activeStep === steps.length - 1}
-                  className="p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
+                  className="tap-target p-2 text-tea-text-sec hover:text-tea-gold disabled:opacity-30 disabled:hover:text-tea-text-sec transition-colors"
                   aria-label="Next step"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -167,7 +168,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
           className="inline-flex items-center gap-3 mt-6 px-6 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
         >
           <Navigation className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors duration-300" />
-          <span className="text-xs uppercase tracking-[0.2em] font-medium">
+          <span className="text-ui-12 uppercase tracking-[0.2em] font-medium">
             Open in Maps
           </span>
         </a>

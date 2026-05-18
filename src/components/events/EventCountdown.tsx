@@ -31,7 +31,7 @@ function getTimeRemaining(targetDate: string): TimeRemaining {
 
 const CountdownUnit: React.FC<{ value: number; label: string }> = ({ value, label }) => (
   <div className="flex flex-col items-center min-w-[4rem]">
-    <span className="font-serif text-3xl md:text-4xl text-tea-text tabular-nums leading-none">
+    <span className="font-display text-3xl md:text-4xl text-tea-text tabular-nums leading-none">
       {String(value).padStart(2, '0')}
     </span>
     <span className="text-ui-10 uppercase tracking-[0.25em] text-tea-text-sec mt-2">
@@ -41,7 +41,10 @@ const CountdownUnit: React.FC<{ value: number; label: string }> = ({ value, labe
 );
 
 const Separator: React.FC = () => (
-  <span className="font-serif text-2xl md:text-3xl text-tea-text-sec/40 self-start mt-0.5 mx-1">
+  <span
+    aria-hidden="true"
+    className="font-display text-2xl md:text-3xl text-tea-text-sec/40 self-start mt-0.5 mx-1"
+  >
     :
   </span>
 );
@@ -63,7 +66,7 @@ const EventCountdown: React.FC<EventCountdownProps> = ({ eventDate, className = 
   if (time.isPast) {
     return (
       <div className={`text-center ${className}`}>
-        <p className="text-sm uppercase tracking-[0.2em] text-tea-text-sec">
+        <p className="text-ui-14 uppercase tracking-[0.2em] text-tea-text-sec">
           Session has begun
         </p>
       </div>
@@ -72,12 +75,17 @@ const EventCountdown: React.FC<EventCountdownProps> = ({ eventDate, className = 
 
   const isDayOf = time.days === 0;
 
+  const announcement = isDayOf
+    ? `Begins in ${time.hours} hours, ${time.minutes} minutes`
+    : `Begins in ${time.days} days, ${time.hours} hours, ${time.minutes} minutes`;
+
   return (
-    <div className={`${className}`}>
+    <div className={`${className}`} role="timer">
       <p className="text-ui-10 uppercase tracking-[0.3em] text-tea-text-sec text-center mb-4">
         {isDayOf ? 'Starting in' : 'Begins in'}
       </p>
-      <div className="flex items-center justify-center gap-1">
+      <span className="sr-only">{announcement}</span>
+      <div className="flex items-center justify-center gap-1" aria-hidden="true">
         {!isDayOf && (
           <>
             <CountdownUnit value={time.days} label={time.days === 1 ? 'Day' : 'Days'} />
