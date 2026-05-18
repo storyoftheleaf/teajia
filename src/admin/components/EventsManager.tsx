@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar, Copy, Bell, Search, X, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { useToast } from './Toast';
 import { api } from '../../lib/api';
 import { useAppStore } from '../store';
 import { EventForm } from './EventForm';
+import { Modal } from '../../components/shared/Modal';
 import { TeaEvent, EventStatus } from '../../types/events';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 
@@ -52,31 +53,38 @@ export const EventsManager: React.FC = () => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchRaw]);
 
-  const now = new Date();
-  const upcomingCount = events.filter(ev => ev.status !== 'draft' && new Date(ev.eventDate) >= now).length;
-  const pastCount = events.filter(ev => new Date(ev.eventDate) < now).length;
-  const draftCount = events.filter(ev => ev.status === 'draft').length;
+  const { upcomingCount, pastCount, draftCount, filteredByTab } = useMemo(() => {
+    const now = new Date();
+    let upcoming = 0, past = 0, drafts = 0;
+    for (const ev of events) {
+      const isPast = new Date(ev.eventDate) < now;
+      if (ev.status === 'draft') drafts++;
+      if (isPast) past++;
+      if (ev.status !== 'draft' && !isPast) upcoming++;
+    }
+    const byTab = events.filter(ev => {
+      const isPast = new Date(ev.eventDate) < now;
+      if (filter === 'drafts') return ev.status === 'draft';
+      if (filter === 'past') return isPast;
+      return ev.status !== 'draft' && !isPast;
+    });
+    return { upcomingCount: upcoming, pastCount: past, draftCount: drafts, filteredByTab: byTab };
+  }, [events, filter]);
 
-  const filteredByTab = events.filter(ev => {
-    const isPast = new Date(ev.eventDate) < now;
-    if (filter === 'drafts') return ev.status === 'draft';
-    if (filter === 'past') return isPast;
-    return ev.status !== 'draft' && !isPast;
-  });
-
-  const filteredEvents = searchQuery
-    ? filteredByTab.filter(ev => {
-        const dateStr = formatEventDate(ev.eventDate).toLowerCase();
-        return (
-          ev.title.toLowerCase().includes(searchQuery) ||
-          (ev.subtitle || '').toLowerCase().includes(searchQuery) ||
-          dateStr.includes(searchQuery) ||
-          (ev.locationName || '').toLowerCase().includes(searchQuery) ||
-          (ev.areaHint || '').toLowerCase().includes(searchQuery) ||
-          ev.status.toLowerCase().includes(searchQuery)
-        );
-      })
-    : filteredByTab;
+  const filteredEvents = useMemo(() => {
+    if (!searchQuery) return filteredByTab;
+    return filteredByTab.filter(ev => {
+      const dateStr = formatEventDate(ev.eventDate).toLowerCase();
+      return (
+        ev.title.toLowerCase().includes(searchQuery) ||
+        (ev.subtitle || '').toLowerCase().includes(searchQuery) ||
+        dateStr.includes(searchQuery) ||
+        (ev.locationName || '').toLowerCase().includes(searchQuery) ||
+        (ev.areaHint || '').toLowerCase().includes(searchQuery) ||
+        ev.status.toLowerCase().includes(searchQuery)
+      );
+    });
+  }, [filteredByTab, searchQuery]);
 
   const handleDuplicate = async (e: React.MouseEvent, event: TeaEvent) => {
     e.stopPropagation();
@@ -121,14 +129,14 @@ export const EventsManager: React.FC = () => {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => navigate('/admin/venues')}
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+            className="tap-target hidden md:inline-flex items-center gap-1.5 px-2.5 rounded-md text-xs text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <MapPin size={13} />
             Venues
           </button>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
           >
             <Plus size={13} />
             <span>New Event</span>
@@ -148,7 +156,8 @@ export const EventsManager: React.FC = () => {
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
-              className={`shrink-0 py-3 text-xs font-semibold border-b transition-colors -mb-px ${
+              aria-pressed={active}
+              className={`tap-target shrink-0 text-xs font-semibold border-b transition-colors -mb-px focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 ${
                 active
                   ? 'text-tea-text border-tea-gold'
                   : 'text-tea-text-sec border-transparent hover:text-tea-text'
@@ -174,6 +183,7 @@ export const EventsManager: React.FC = () => {
             onChange={e => setSearchRaw(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') setSearchRaw(''); }}
             placeholder="Search by title, date, location, or status…"
+            aria-label="Search events"
             className="w-full bg-transparent border-0 border-b border-tea-border rounded-none pl-6 pr-7 py-2 text-ui-14 font-serif text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors"
           />
           {searchRaw && (
@@ -207,7 +217,7 @@ export const EventsManager: React.FC = () => {
           <p className="font-serif italic text-sm text-tea-text-sec mb-6">No gatherings yet.</p>
           <button
             onClick={() => setIsFormOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
           >
             <Plus size={13} />
             Create First Event
@@ -240,75 +250,66 @@ export const EventsManager: React.FC = () => {
                 key={event.id}
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.04 }}
+                transition={{ delay: Math.min(index, 12) * 0.04 }}
+                className="relative group flex items-center"
               >
-                <div
-                  role="button"
-                  tabIndex={0}
+                {/* Row body — single real button for navigation. The pending/
+                    interest links live in the action cluster as siblings, never
+                    nested inside this button. */}
+                <button
+                  type="button"
                   onClick={() => navigate(`/admin/events/${event.id}`)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/admin/events/${event.id}`); }}
                   aria-label={`${event.title}, ${event.status}, ${formatEventDate(event.eventDate)}`}
-                  className={`w-full px-5 py-4 hover:bg-tea-accent-sub transition-colors flex items-center justify-between gap-4 group cursor-pointer ${isPast ? 'opacity-60' : ''}`}
+                  className={`min-w-0 flex-1 text-left px-5 py-4 hover:bg-tea-accent-sub transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-tea-gold/50 ${isPast ? 'opacity-60' : ''}`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-ui-15 text-tea-text truncate">{event.title}</div>
-                    <div className="text-ui-12 text-tea-text-dim mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span>{dateLabel} · {timeStr}</span>
-                      {location && (
-                        <>
-                          <span className="w-[3px] h-[3px] rounded-full bg-tea-text-dim shrink-0" />
-                          <span className="truncate">{location}</span>
-                        </>
-                      )}
-                      <span className={`tabular-nums ${isFull ? 'text-tea-error' : 'text-tea-text-sec'}`}>
-                        · {isFull ? 'Full' : `${seatsRemaining}/${event.totalCapacity} seats`}
-                        {waitlist > 0 && <span className="text-tea-text-dim ml-1">+{waitlist}</span>}
-                      </span>
-                      {requested > 0 && (
-                        <span
-                          role="link"
-                          tabIndex={0}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=requests`); } }}
-                          className="flex items-center gap-1 text-tea-gold"
-                          title={`${requested} pending requests`}
-                        >
-                          <Bell size={9} className="shrink-0" />
-                          {requested} pending
-                        </span>
-                      )}
-                      {interest > 0 && (
-                        <span
-                          role="link"
-                          tabIndex={0}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); }}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); navigate(`/admin/events/${event.id}?tab=interest`); } }}
-                          className="text-tea-text-sec"
-                          title="Interest signups"
-                        >
-                          · {interest} interested
-                        </span>
-                      )}
-                    </div>
-                    {event.subtitle && (
-                      <p className="font-body italic text-ui-12 text-tea-text-sec leading-snug mt-1 truncate">{event.subtitle}</p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
-                      {event.status}
+                  <span className="block font-display text-ui-15 text-tea-text truncate">{event.title}</span>
+                  <span className="block text-ui-12 text-tea-text-dim mt-1">
+                    {dateLabel} · {timeStr}
+                    {location && <span className="truncate"> · {location}</span>}
+                    <span className={`tabular-nums ${isFull ? 'text-tea-error' : 'text-tea-text-sec'}`}>
+                      {' · '}{isFull ? 'Full' : `${seatsRemaining}/${event.totalCapacity} seats`}
+                      {waitlist > 0 && <span className="text-tea-text-dim ml-1">+{waitlist}</span>}
                     </span>
+                  </span>
+                  {event.subtitle && (
+                    <span className="block font-body italic text-ui-12 text-tea-text-sec leading-snug mt-1 truncate">{event.subtitle}</span>
+                  )}
+                </button>
+
+                <div className="flex items-center gap-2 shrink-0 pr-3">
+                  {requested > 0 && (
                     <button
                       type="button"
-                      onClick={(e) => handleDuplicate(e, event)}
-                      className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 tap-target"
-                      title="Duplicate event"
-                      aria-label="Duplicate event"
+                      onClick={() => navigate(`/admin/events/${event.id}?tab=requests`)}
+                      className="tap-target flex items-center gap-1 text-ui-11 text-tea-gold hover:text-tea-gold-lt transition-colors"
+                      title={`${requested} pending requests`}
                     >
-                      <Copy size={13} />
+                      <Bell size={11} className="shrink-0" aria-hidden="true" />
+                      {requested} pending
                     </button>
-                  </div>
+                  )}
+                  {interest > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/events/${event.id}?tab=interest`)}
+                      className="tap-target text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+                      title="Interest signups"
+                    >
+                      {interest} interested
+                    </button>
+                  )}
+                  <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[variant]}`}>
+                    {event.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDuplicate(e, event)}
+                    className="p-2 text-tea-text-dim hover:text-tea-text-sec transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 tap-target"
+                    title="Duplicate event"
+                    aria-label={`Duplicate ${event.title}`}
+                  >
+                    <Copy size={13} />
+                  </button>
                 </div>
               </motion.li>
             );
@@ -324,20 +325,16 @@ export const EventsManager: React.FC = () => {
       />
 
       {/* Duplicate Slug Dialog */}
-      {duplicateDialog && (
-        <div className="fixed inset-0 z-modal flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Duplicate event">
-          <button type="button" aria-hidden onClick={() => setDuplicateDialog(null)} className="absolute inset-0 bg-tea-bg/70 backdrop-blur-[2px]" />
-          <div className="relative bg-tea-surface border border-tea-border rounded-xl shadow-2xl w-full max-w-md">
-            <button
-              onClick={() => setDuplicateDialog(null)}
-              aria-label="Close"
-              className="absolute top-4 right-4 text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
-            >
-              <X size={16} />
-            </button>
-            <div className="px-6 pt-6 pb-3">
-              <h3 className="h3 text-tea-text">Duplicate Event</h3>
-              <p className="text-ui-12 text-tea-text-dim mt-1">Choose a unique slug for the duplicate.</p>
+      <Modal
+        isOpen={!!duplicateDialog}
+        onClose={() => setDuplicateDialog(null)}
+        title="Duplicate Event"
+        variant="center"
+      >
+        {duplicateDialog && (
+          <>
+            <div className="px-6 pt-4 pb-3">
+              <p className="text-ui-12 text-tea-text-dim">Choose a unique slug for the duplicate.</p>
             </div>
             <div className="px-6 pb-4">
               <input
@@ -346,17 +343,18 @@ export const EventsManager: React.FC = () => {
                 onChange={e => setDuplicateDialog(prev => prev ? { ...prev, slug: e.target.value } : null)}
                 className="w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text font-mono placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors"
                 placeholder="event-slug"
+                aria-label="Duplicate event slug"
                 autoFocus
-                onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); if (e.key === 'Escape') setDuplicateDialog(null); }}
+                onKeyDown={e => { if (e.key === 'Enter') handleConfirmDuplicate(); }}
               />
             </div>
             <div className="flex justify-between gap-2 px-6 py-4 border-t border-tea-border">
-              <button onClick={() => setDuplicateDialog(null)} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
+              <button type="button" onClick={() => setDuplicateDialog(null)} className="tap-target px-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+              <button type="button" onClick={handleConfirmDuplicate} disabled={!duplicateDialog.slug.trim()} className="tap-target inline-flex items-center gap-1.5 px-3 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Duplicate</button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
     </>
   );

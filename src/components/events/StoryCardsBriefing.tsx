@@ -40,6 +40,11 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
   // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onComplete();
+        return;
+      }
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         advance();
@@ -51,7 +56,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [advance, currentIndex]);
+  }, [advance, currentIndex, onComplete]);
 
   // Touch / swipe support
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -77,14 +82,33 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-priority bg-black"
-      onClick={advance}
+      className="fixed inset-0 z-priority bg-tea-bg"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       role="dialog"
       aria-modal="true"
       aria-label="Event briefing"
     >
+      {/* Tap zone — advancing happens here, not on the root, so the Skip
+          control, dots, and CTA are naturally exempt without stopPropagation. */}
+      <button
+        type="button"
+        onClick={advance}
+        aria-label={isLast ? 'Finish briefing' : 'Next card'}
+        className="absolute inset-0 z-0 cursor-pointer focus-visible:outline-none"
+      />
+
+      {/* Persistent skip — always available, no need to reach the last card */}
+      {!isLast && (
+        <button
+          type="button"
+          onClick={onComplete}
+          className="tap-target absolute top-4 right-4 z-20 text-ui-12 uppercase tracking-[0.2em] text-tea-text-sec hover:text-tea-text transition-colors"
+        >
+          Skip
+        </button>
+      )}
+
       <AnimatePresence mode="wait" custom={direction}>
         <motion.div
           key={currentIndex}
@@ -98,7 +122,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
           animate="center"
           exit="exit"
           transition={{ duration: 0.32, ease: 'easeInOut' }}
-          className="absolute inset-0"
+          className="absolute inset-0 z-10 pointer-events-none"
         >
           {/* Background */}
           {card.imageUrl ? (
@@ -109,7 +133,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute inset-0 bg-tea-overlay" />
             </>
           ) : (
             <div className="absolute inset-0 bg-tea-surface" />
@@ -117,22 +141,19 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
 
           {/* Text content */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full px-8 text-center">
-            <p
-              className={`font-serif leading-snug max-w-xs mx-auto ${
-                card.imageUrl
-                  ? 'text-tea-text text-xl md:text-2xl'
-                  : 'text-tea-text text-xl md:text-2xl'
-              }`}
+            <h2
+              className="font-display leading-snug max-w-xs mx-auto text-tea-text"
               style={{ fontSize: 'clamp(18px, 4.5vw, 24px)' }}
             >
               {card.text}
-            </p>
+            </h2>
 
             {/* Last card CTA */}
             {card.isOutro && (
               <button
-                onClick={(e) => { e.stopPropagation(); onComplete(); }}
-                className="mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-xs uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-tea-bg transition-all duration-300"
+                type="button"
+                onClick={onComplete}
+                className="tap-target pointer-events-auto mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-ui-12 uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-tea-bg transition-colors duration-300"
               >
                 View Your Ticket
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -143,21 +164,22 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
       </AnimatePresence>
 
       {/* Progress dots */}
-      <div
-        className="absolute bottom-10 left-0 right-0 flex justify-center gap-2 z-20"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-2 z-20">
         {allCards.map((_, idx) => (
           <button
             key={idx}
-            onClick={(e) => { e.stopPropagation(); setDirection(idx > currentIndex ? 1 : -1); setCurrentIndex(idx); }}
+            type="button"
+            onClick={() => { setDirection(idx > currentIndex ? 1 : -1); setCurrentIndex(idx); }}
             aria-label={`Go to card ${idx + 1}`}
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              idx === currentIndex
-                ? 'bg-tea-gold w-5'
-                : 'bg-tea-text-dim/40'
-            }`}
-          />
+            aria-current={idx === currentIndex ? 'step' : undefined}
+            className="tap-target flex items-center justify-center"
+          >
+            <span
+              className={`block h-1.5 rounded-full transition-all duration-300 ${
+                idx === currentIndex ? 'bg-tea-gold w-5' : 'bg-tea-text-dim/40 w-1.5'
+              }`}
+            />
+          </button>
         ))}
       </div>
     </div>

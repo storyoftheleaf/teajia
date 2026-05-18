@@ -6,15 +6,17 @@ const TEA_STYLE_OPTIONS = [
   'Charcoal Fire', 'Aged Puerh', 'Raw Puerh', 'Roasted Oolong',
   'Light Oolong', 'White Tea', 'Green Tea', 'Cold Brew',
 ];
+import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 import { useToast } from './Toast';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { Venue, VenueSpace } from '../../types/events';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
-const inputClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-sec/50';
-const textareaClass = 'w-full border border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text p-2 rounded-md placeholder:text-tea-text-sec/50 resize-y min-h-[72px]';
+const inputClass = 'w-full border-b border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text py-2 placeholder:text-tea-text-dim';
+const textareaClass = 'w-full border border-tea-border bg-transparent focus:border-tea-gold outline-none text-sm text-tea-text p-2 rounded-md placeholder:text-tea-text-dim resize-y min-h-[72px]';
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
@@ -44,11 +46,12 @@ const PhotoStrip: React.FC<PhotoStripProps> = ({ photos, onAdd, onRemove, upload
     <div className="flex gap-2 flex-wrap">
       {photos.map((url) => (
         <div key={url} className="relative w-24 h-24 rounded-md overflow-hidden border border-tea-border flex-shrink-0">
-          <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <img src={url} alt="Venue photo" className="w-full h-full object-cover" loading="lazy" />
           <button
             type="button"
             onClick={() => onRemove(url)}
-            className="absolute top-1 right-1 bg-tea-bg/80 text-tea-text rounded-full p-0.5 hover:bg-tea-bg transition-colors"
+            aria-label="Remove photo"
+            className="tap-target absolute top-1 right-1 bg-tea-bg/80 text-tea-text rounded-full p-0.5 hover:bg-tea-bg transition-colors"
           >
             <X size={10} />
           </button>
@@ -122,7 +125,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
 
   return (
     <div className="bg-tea-bg/50 border border-tea-border rounded-md p-4 space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Space Name *">
           <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Charcoal Table" autoFocus />
         </Field>
@@ -137,16 +140,17 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
         <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={url => setPhotos(p => p.filter(u => u !== url))} uploading={uploading} />
       </Field>
       <Field label="Tea Styles">
-        <div className="flex flex-wrap gap-1.5 mt-1">
+        <div role="group" aria-label="Tea styles" className="flex flex-wrap gap-1.5 mt-1">
           {TEA_STYLE_OPTIONS.map(style => {
             const active = teaStyles.includes(style);
             return (
               <button
                 key={style}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setTeaStyles(prev => active ? prev.filter(s => s !== style) : [...prev, style])}
                 className={`px-2.5 py-1 rounded-full text-ui-11 transition-colors ${
-                  active ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
+                  active ? 'bg-tea-gold/10 text-tea-text' : 'bg-tea-elevated text-tea-text-sec hover:text-tea-text'
                 }`}
               >
                 {style}
@@ -159,7 +163,7 @@ const SpaceForm: React.FC<SpaceFormProps> = ({ venueId, space, onSaved, onCancel
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+        <button type="button" onClick={handleSave} disabled={saving || uploading} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           {space ? 'Update' : 'Add Space'}
         </button>
@@ -185,6 +189,8 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
   const [deleting, setDeleting] = useState(false);
   const [venueEvents, setVenueEvents] = useState<any[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [confirmDeleteVenue, setConfirmDeleteVenue] = useState(false);
+  const [spacePendingDelete, setSpacePendingDelete] = useState<VenueSpace | null>(null);
   const eventsLoadedRef = useRef(false);
 
   const handleToggleExpand = async () => {
@@ -261,7 +267,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete "${venue.name}"? This will also remove all its spaces.`)) return;
+    setConfirmDeleteVenue(false);
     setDeleting(true);
     try {
       await api.venues.delete(venue.id);
@@ -275,7 +281,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
   };
 
   const handleDeleteSpace = async (space: VenueSpace) => {
-    if (!window.confirm(`Remove "${space.name}"?`)) return;
+    setSpacePendingDelete(null);
     try {
       await api.venues.deleteSpace(venue.id, space.id);
       showToast('Space removed', 'success');
@@ -324,10 +330,15 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => { setEditing(e => !e); if (!expanded) handleToggleExpand(); }} className="text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
+              <button onClick={() => { setEditing(e => !e); if (!expanded) handleToggleExpand(); }} className="tap-target text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-1 transition-colors">
                 Edit
               </button>
-              <button onClick={handleToggleExpand} className="text-tea-text-sec hover:text-tea-text p-1 transition-colors">
+              <button
+                onClick={handleToggleExpand}
+                aria-label={expanded ? 'Collapse venue' : 'Expand venue'}
+                aria-expanded={expanded}
+                className="tap-target text-tea-text-sec hover:text-tea-text p-1 transition-colors"
+              >
                 {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               </button>
             </div>
@@ -341,7 +352,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
           {/* Edit venue fields */}
           {editing && (
             <div className="p-4 space-y-4 border-b border-tea-border bg-tea-bg/30">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Venue Name *">
                   <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} />
                 </Field>
@@ -358,7 +369,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
               <Field label="Arrival Notes">
                 <textarea value={arrivalNotes} onChange={e => setArrivalNotes(e.target.value)} className={textareaClass} placeholder="Ring the bell on the left, take the stairs to floor 3…" rows={2} />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Website / Profile Link">
                   <input type="url" value={website} onChange={e => setWebsite(e.target.value)} className={inputClass} placeholder="https://instagram.com/teajia" />
                 </Field>
@@ -372,7 +383,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                 <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={handleRemovePhoto} uploading={uploading} />
               </div>
               <div className="flex items-center justify-between pt-1">
-                <button type="button" onClick={handleDelete} disabled={deleting} className="flex items-center gap-1.5 text-xs text-tea-error hover:text-tea-error transition-colors disabled:opacity-50">
+                <button type="button" onClick={() => setConfirmDeleteVenue(true)} disabled={deleting} className="flex items-center gap-1.5 text-xs text-tea-error hover:text-tea-error transition-colors disabled:opacity-50">
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   Delete venue
                 </button>
@@ -380,7 +391,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                   <button type="button" onClick={() => setEditing(false)} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
                     Cancel
                   </button>
-                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+                  <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                     Save
                   </button>
@@ -413,7 +424,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                       <div className="flex gap-1.5 flex-shrink-0">
                         {space.photos.slice(0, 3).map(url => (
                           <div key={url} className="w-14 h-14 rounded overflow-hidden border border-tea-border">
-                            <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            <img src={url} alt={`${space.name} photo`} className="w-full h-full object-cover" loading="lazy" />
                           </div>
                         ))}
                       </div>
@@ -442,10 +453,10 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                           )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button onClick={() => setEditingSpaceId(space.id)} className="text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-0.5 transition-colors">
+                          <button onClick={() => setEditingSpaceId(space.id)} className="tap-target text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-0.5 transition-colors">
                             Edit
                           </button>
-                          <button onClick={() => handleDeleteSpace(space)} className="text-tea-text-dim hover:text-tea-error p-0.5 transition-colors">
+                          <button onClick={() => setSpacePendingDelete(space)} aria-label={`Remove ${space.name}`} className="tap-target text-tea-text-dim hover:text-tea-error p-0.5 transition-colors">
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -489,9 +500,9 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
             ) : (
               <div className="space-y-1.5">
                 {venueEvents.map((ev: any) => (
-                  <a
+                  <Link
                     key={ev.id}
-                    href={`/admin/events/${ev.id}`}
+                    to={`/admin/events/${ev.id}`}
                     className="flex items-center justify-between gap-3 py-1.5 group"
                   >
                     <div className="min-w-0">
@@ -502,13 +513,34 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                       </p>
                     </div>
                     <ExternalLink size={11} className="text-tea-text-dim group-hover:text-tea-gold transition-colors flex-shrink-0" />
-                  </a>
+                  </Link>
                 ))}
               </div>
             )}
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDeleteVenue}
+        title="Delete venue"
+        message={`Delete "${venue.name}"? This will also remove all its spaces.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDeleteVenue(false)}
+      />
+      <ConfirmDialog
+        isOpen={spacePendingDelete !== null}
+        title="Remove space"
+        message={spacePendingDelete ? `Remove "${spacePendingDelete.name}"?` : ''}
+        confirmText="Remove"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={() => { if (spacePendingDelete) handleDeleteSpace(spacePendingDelete); }}
+        onCancel={() => setSpacePendingDelete(null)}
+      />
     </div>
   );
 };
@@ -551,9 +583,9 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
   };
 
   return (
-    <div className="border border-tea-gold/30 rounded-md p-4 space-y-4">
+    <div className="border border-tea-border rounded-md p-4 space-y-4">
       <p className="label-caps text-tea-text-sec">New Venue</p>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Venue Name *">
           <input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} placeholder="Adrian's Flat" autoFocus />
         </Field>
@@ -571,7 +603,7 @@ const NewVenueForm: React.FC<NewVenueFormProps> = ({ onSaved, onCancel }) => {
         <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-tea-text-sec hover:text-tea-text transition-colors">
           Cancel
         </button>
-        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+        <button type="button" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
           Create Venue
         </button>
@@ -601,7 +633,7 @@ export const VenueManager: React.FC = () => {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-8 pb-nav-gap space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-serif text-tea-text">Venues</h1>
