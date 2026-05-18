@@ -232,7 +232,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         {/* Avatar — large, central, the "portrait at the door" */}
         <button
           onClick={onAvatarClick}
-          className="relative w-20 h-20 rounded-full bg-tea-surface border border-tea-gold/30 flex items-center justify-center overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+          className="relative w-20 h-20 rounded-full bg-tea-surface border border-tea-gold/30 flex items-center justify-center overflow-hidden transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
           aria-label="Edit avatar"
         >
           {avatarDataUrl ? (

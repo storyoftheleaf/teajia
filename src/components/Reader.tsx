@@ -754,8 +754,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="reader-keyboard-hint"
-          style={{ zIndex: 200 }}
+          className="reader-keyboard-hint z-panel-modal"
         >
           <div className="reader-keyboard-hint-card">
             <div className="label-caps text-tea-text-dim mb-4">Keyboard Shortcuts</div>
@@ -785,7 +784,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed bottom-48 left-1/2 -translate-x-1/2 z-priority bg-tea-elevated border border-tea-border rounded-xl shadow-xl px-5 py-4 flex items-center gap-4"
+          className="fixed bottom-48 left-1/2 -translate-x-1/2 z-priority bg-tea-elevated border border-tea-border rounded-xl shadow-2xl px-5 py-4 flex items-center gap-4"
         >
           <span className="text-tea-text text-sm">Return to start?</span>
           <button

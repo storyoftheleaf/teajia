@@ -441,7 +441,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
               )}
 
               {customerPickerOpen && customerSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-xl z-20 max-h-44 overflow-y-auto custom-scrollbar">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-tea-elevated border border-tea-border rounded-xl shadow-2xl z-20 max-h-44 overflow-y-auto custom-scrollbar">
                   {customerSuggestions.map(c => (
                     <button
                       key={c.id}

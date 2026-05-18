@@ -115,9 +115,9 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
 
   const getDifficultyColor = (level: string): string => {
     switch(level) {
-      case 'Beginner': return 'bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm';
-      case 'Intermediate': return 'bg-blue-500/20 text-blue-200 border border-blue-400/40 shadow-sm';
-      case 'Advanced': return 'bg-tea-gold/20 text-tea-gold border border-tea-border shadow-sm';
+      case 'Beginner': return 'bg-tea-green/20 text-tea-leaf border border-tea-green/40 ';
+      case 'Intermediate': return 'bg-tea-elevated/20 text-tea-text-sec border border-tea-border/40 ';
+      case 'Advanced': return 'bg-tea-gold/20 text-tea-gold border border-tea-border ';
       default: return 'bg-tea-gold/10 text-tea-text/50';
     }
   };
@@ -198,7 +198,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
             {LEARN_PATHS.map(path => (
               <CardContainer
                 key={path.id}
-                className="cursor-pointer transition-all duration-300 hover:shadow-lg"
+                className="cursor-pointer transition-all duration-300"
                 onClick={() => setSelectedPath(path.id)}
               >
                 <div className="p-6 flex flex-col items-center text-center gap-3">
@@ -315,7 +315,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                          <div className={`w-3 h-3 rounded-full border z-10 shrink-0 transition-all duration-300 ${isWatched ? 'bg-tea-gold border-tea-gold' : 'border-tea-text/40 bg-tea-surface group-hover/lesson:border-tea-border'}`}></div>
 
                                          {/* Lesson Card */}
-                                         <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-border rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 group-hover/lesson:-translate-y-0.5 group-hover/lesson:shadow-md ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
+                                         <div className={`flex-1 bg-tea-text/5 hover:bg-tea-text/10 border border-tea-border rounded-[1px] p-4 flex items-center justify-between transition-all duration-300 ${!isLast ? 'border-b border-b-tea-border' : ''}`}>
                                              <div className="flex items-center gap-4">
                                                  {/* Type Icon Box */}
                                                  <div className="w-11 h-11 bg-tea-text/10 rounded-xl flex items-center justify-center text-tea-text/70 shrink-0">
@@ -339,7 +339,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
                                                            {getDifficultyLevel(lessonIndex)}
                                                          </span>
                                                          {isWatched && (
-                                                           <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-green/20 text-emerald-300 border border-tea-green/40 shadow-sm">
+                                                           <span className="text-ui-10 uppercase tracking-wider px-2 py-0.5 rounded-md bg-tea-green/20 text-tea-leaf border border-tea-green/40">
                                                              ✓ Completed
                                                            </span>
                                                          )}

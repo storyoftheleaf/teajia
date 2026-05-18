@@ -466,9 +466,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [filterType, localProducts]);
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
-  // Canonical row sizing — px-4 py-3 + name (17px) + optional 11px subtitle.
-  const ROW_HEIGHT = 44;
-  const SPLIT_ROW_HEIGHT = 40;
+  // Canonical row sizing — tightened to match People/TeaTable (36px) so the
+  // two surfaces feel like one design language. Split view stays slightly
+  // more compressed.
+  const ROW_HEIGHT = 36;
+  const SPLIT_ROW_HEIGHT = 32;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
@@ -1821,7 +1823,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showColumnsPopover && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2" role="menu">
+                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2" role="menu">
                             <div className="px-3 pb-1 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Price View</div>
                             <div className="flex items-center gap-1 px-3 pb-2">
                               <button
@@ -1873,7 +1875,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showGroupByDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowGroupByDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1" role="menu">
+                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
                             {GROUPBY_OPTIONS.map(opt => (
                               <button
                                 key={opt.value}
@@ -1908,7 +1910,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       {showVendorDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowVendorDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 max-h-60 overflow-y-auto" role="menu">
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 max-h-60 overflow-y-auto" role="menu">
                             <button
                               role="menuitem"
                               onClick={() => { setSearchParams({}); setShowVendorDropdown(false); }}
@@ -1945,7 +1947,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {showOptions && (
                         <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col" role="menu">
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col" role="menu">
                             <button
                                 role="menuitem"
                                 onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
@@ -2219,11 +2221,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <button
                     key={product.id}
                     onClick={() => setDetailsProduct(product)}
-                    className="group text-left bg-tea-surface/50 hover:bg-tea-surface rounded-xl overflow-hidden transition-all duration-200 hover:shadow-lg"
+                    className="group text-left bg-tea-surface/50 hover:bg-tea-surface rounded-xl overflow-hidden transition-all duration-200"
                   >
                     {product.imageUrl ? (
                       <div className="aspect-square overflow-hidden">
-                        <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                        <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
                       </div>
                     ) : (
                       <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: `${dotColor}15` }}>

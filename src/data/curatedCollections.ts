@@ -21,9 +21,9 @@ export interface CuratedCollection {
 }
 
 export const DIFFICULTY_COLORS: Record<CollectionDifficulty, string> = {
-  beginner: 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border border-green-400/30',
-  intermediate: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30',
-  explorer: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-400/30',
+  beginner: 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf border border-tea-leaf/30',
+  intermediate: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border/30',
+  explorer: 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold border border-tea-readgold/30',
 };
 
 export const CURATED_COLLECTIONS: CuratedCollection[] = [

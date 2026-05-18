@@ -664,13 +664,13 @@ function TabStripSection() {
         <Demo banned label="The segmented pill" caption="OS-control aesthetic — fights editorial type">
           <div className="inline-flex bg-tea-elevated rounded-xl border border-tea-border p-0.5">
             {['All', 'Drafts', 'Published'].map((t, i) => (
-              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 1 ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec'}`}>
+              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 1 ? 'bg-tea-bg text-tea-text ' : 'text-tea-text-sec'}`}>
                 {t}
               </span>
             ))}
           </div>
           <p className="text-ui-11 text-tea-error mt-3">
-            Banned: <code className="font-mono">bg-tea-bg shadow-sm</code> on the active tab — see §22.
+            Banned: <code className="font-mono">bg-tea-bg </code> on the active tab — see §22.
           </p>
         </Demo>
       </div>
@@ -860,7 +860,7 @@ function SurfacesSection() {
 function ZIndexSection() {
   return (
     <section id="sec-zindex" className="mb-20 scroll-mt-24">
-      <SectionHeader num="9" eyebrow="Stacking · Layers" title="Z-index scale" lede="One scale, no exceptions. No raw z-50, z-[100], or inline zIndex." />
+      <SectionHeader num="9" eyebrow="Stacking · Layers" title="Z-index scale" lede="One scale, no exceptions. No raw z-50, z-panel-modal, or inline zIndex." />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
@@ -1725,7 +1725,7 @@ function AntiPatternsSection() {
         <Demo banned label="Segmented pill tabs" caption="OS-control aesthetic, fights serif type">
           <div className="inline-flex bg-tea-elevated rounded-xl border border-tea-border p-0.5">
             {['All', 'Drafts', 'Live'].map((t, i) => (
-              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 0 ? 'bg-tea-bg text-tea-text shadow-sm' : 'text-tea-text-sec'}`}>{t}</span>
+              <span key={t} className={`px-3 py-1.5 text-ui-12 rounded-md ${i === 0 ? 'bg-tea-bg text-tea-text ' : 'text-tea-text-sec'}`}>{t}</span>
             ))}
           </div>
         </Demo>
@@ -1752,7 +1752,7 @@ function AntiPatternsSection() {
 
         <Demo banned label="Inline arbitrary pixels" caption="Use the token scale">
           <code className="block font-mono text-ui-12 text-tea-text-sec bg-tea-bg rounded-md p-3 break-all">
-            {'text-[12px] · gap-[14px] · z-[60] · style={{ marginTop: 12 }}'}
+            {'text-[12px] · gap-[14px] · z-priority · style={{ marginTop: 12 }}'}
           </code>
           <p className="text-ui-11 text-tea-text-dim mt-2">Use text-ui-12, gap-4, z-popover, mt-3.</p>
         </Demo>
@@ -1772,9 +1772,9 @@ function AntiPatternsSection() {
           </div>
         </Demo>
 
-        <Demo banned label="Raw z-50 / z-[100]" caption="Use the z- token scale">
+        <Demo banned label="Raw z-50 / z-panel-modal" caption="Use the z- token scale">
           <code className="block font-mono text-ui-12 text-tea-text-sec bg-tea-bg rounded-md p-3 break-all">
-            {'<div className="fixed inset-0 z-[100]" />'}
+            {'<div className="fixed inset-0 z-panel-modal" />'}
           </code>
           <p className="text-ui-11 text-tea-text-dim mt-2">→ z-modal, z-popover, z-drawer.</p>
         </Demo>

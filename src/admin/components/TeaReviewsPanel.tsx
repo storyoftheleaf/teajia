@@ -35,8 +35,8 @@ interface TeaReviewsPanelProps {
 }
 
 const VERDICT_COLORS: Record<string, string> = {
-  love: 'text-rose-400',
-  like: 'text-emerald-400',
+  love: 'text-tea-readgold',
+  like: 'text-tea-leaf',
   neutral: 'text-tea-text-sec',
   pass: 'text-tea-text-dim',
 };
@@ -279,7 +279,7 @@ const ReviewCard: React.FC<{ review: TeaReview; onDelete: () => void }> = ({ rev
           <button
             type="button"
             onClick={onDelete}
-            className="text-ui-10 text-tea-text-dim hover:text-red-400 transition-colors"
+            className="text-ui-10 text-tea-text-dim hover:text-tea-error transition-colors"
             title="Delete review"
           >
             ✕

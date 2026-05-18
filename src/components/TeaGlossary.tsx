@@ -144,7 +144,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
               onClick={() => setActiveLetter(null)}
               className={`w-8 h-8 flex items-center justify-center rounded-xl text-xs font-sans transition-all
                 ${!activeLetter
-                  ? 'bg-tea-gold/15 text-tea-gold'
+                  ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
                   : 'text-tea-text-sec hover:text-tea-text-sec'
                 }`}
             >
@@ -156,7 +156,7 @@ export const TeaGlossary: React.FC<TeaGlossaryProps> = ({
                 onClick={() => setActiveLetter(activeLetter === letter ? null : letter)}
                 className={`w-8 h-8 flex items-center justify-center rounded-xl text-xs font-mono transition-all
                   ${activeLetter === letter
-                    ? 'bg-tea-gold/15 text-tea-gold'
+                    ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
                     : 'text-tea-text-sec hover:text-tea-text-sec'
                   }`}
               >

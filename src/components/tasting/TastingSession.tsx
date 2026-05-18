@@ -447,7 +447,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           aria-label="Close"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -870,7 +870,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {/* Save / Cancel */}
               <div className="px-3 pb-3 pt-1.5">
                 {saveState === 'error' && (
-                  <p className="text-ui-11 text-red-400 text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
+                  <p className="text-ui-11 text-tea-error text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
                     Save failed — check your connection and try again
                   </p>
                 )}

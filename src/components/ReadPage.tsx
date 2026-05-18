@@ -97,7 +97,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
                 <img
                   src={featuredArticle.thumbnailUrl}
                   alt={featuredArticle.title}
-                  className="absolute inset-0 w-full h-full object-cover sepia-[0.08] brightness-[0.5] group-hover:brightness-[0.6] group-hover:scale-[1.03] transition-all duration-1000 ease-out"
+                  className="absolute inset-0 w-full h-full object-cover sepia-[0.08] brightness-[0.5] group-hover:brightness-[0.6] transition-all duration-1000 ease-out"
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/90 via-tea-bg/20 to-transparent" />

@@ -132,7 +132,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
   return (
     <div className="fixed inset-0 z-modal flex items-end md:items-center justify-center bg-tea-bg/80 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg bg-tea-surface border border-tea-border rounded-t-xl md:rounded-xl shadow-xl flex flex-col"
+        className="w-full max-w-lg bg-tea-surface border border-tea-border rounded-t-xl md:rounded-xl shadow-2xl flex flex-col"
         style={{ maxHeight: '85dvh' }}
         onClick={e => e.stopPropagation()}
       >
@@ -210,7 +210,7 @@ export const ContentLinksEditor: React.FC<ContentLinksEditorProps> = ({ products
                       <button
                         onClick={() => handleUnlink(p.id)}
                         disabled={!!busy}
-                        className="shrink-0 text-tea-text-dim hover:text-red-400 transition-colors disabled:opacity-40 p-1"
+                        className="shrink-0 text-tea-text-dim hover:text-tea-error transition-colors disabled:opacity-40 p-1"
                         title="Remove link"
                       >
                         {busy === p.id ? (

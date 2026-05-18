@@ -350,7 +350,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={closeScanner}
-              className="mt-2 px-4 py-2 rounded-xl border border-tea-border/20 text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
+              className="mt-2 px-4 py-2 rounded-xl border border-tea-border text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -442,7 +442,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={handleCapture}
-            className="w-16 h-16 rounded-full border-4 border-tea-border/80 bg-tea-text/20 hover:bg-tea-text/30 active:scale-95 transition-all flex items-center justify-center"
+            className="w-16 h-16 rounded-full border-4 border-tea-border bg-tea-text/20 hover:bg-tea-text/30 active:scale-95 transition-all flex items-center justify-center"
             aria-label="Capture"
           >
             <div className="w-10 h-10 rounded-full bg-tea-text/90" />
@@ -585,7 +585,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <SheetOption
                 label="Delete"
                 hint="Remove this photo from the entry"
-                leading={<Trash2 size={18} strokeWidth={1.75} className="text-red-400" />}
+                leading={<Trash2 size={18} strokeWidth={1.75} className="text-tea-error" />}
                 onSelect={() => {
                   if (menuPhotoIndex !== null) {
                     const targetUrl = validPhotos[menuPhotoIndex];
@@ -609,14 +609,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             />
             {preview.uploading && (
               <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20">
-                <div className="w-4 h-4 border border-tea-border/60 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             {preview.failed && (
               <button
                 type="button"
                 onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
-                className="absolute inset-0 flex items-center justify-center rounded-xl bg-red-500/20 text-red-400"
+                className="absolute inset-0 flex items-center justify-center rounded-xl bg-tea-error/20 text-tea-error"
                 aria-label="Upload failed"
               >
                 <X size={10} />
@@ -645,7 +645,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             aria-label="Scan label"
             title="Scan label"
           >
-            {justExtracted ? <Check size={btnIcon} strokeWidth={2} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
+            {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
           </button>
 
           {/* Camera icon = plain gallery picker. Quieter visual weight so

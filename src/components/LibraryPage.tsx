@@ -34,8 +34,8 @@ const SECTION_CARDS: {
     title: 'Glossary',
     description: 'Terms, characters, meanings',
     icon: <Icons.Book className="w-7 h-7" />,
-    accentBg: 'bg-teal-500/10 dark:bg-teal-500/20',
-    accentText: 'text-teal-600 dark:text-teal-400',
+    accentBg: 'bg-tea-leaf/10 dark:bg-tea-leaf/20',
+    accentText: 'text-tea-leaf dark:text-tea-leaf',
   },
   {
     id: 'tea-map',
@@ -50,32 +50,32 @@ const SECTION_CARDS: {
     title: 'Playlists',
     description: 'Music for tea moments',
     icon: <Icons.Music className="w-7 h-7" />,
-    accentBg: 'bg-purple-500/10 dark:bg-purple-500/20',
-    accentText: 'text-purple-600 dark:text-purple-400',
+    accentBg: 'bg-tea-readgold/10 dark:bg-tea-readgold/20',
+    accentText: 'text-tea-readgold dark:text-tea-readgold',
   },
   {
     id: 'videos',
     title: 'Videos',
     description: 'Curated watching',
     icon: <Icons.Play className="w-7 h-7" />,
-    accentBg: 'bg-red-500/10 dark:bg-red-500/20',
-    accentText: 'text-red-600',
+    accentBg: 'bg-tea-error/10 dark:bg-tea-error/20',
+    accentText: 'text-tea-error',
   },
   {
     id: 'visual-guides',
     title: 'Visual Guides',
     description: 'Infographics and printables',
     icon: <Icons.Image className="w-7 h-7" />,
-    accentBg: 'bg-orange-500/10 dark:bg-orange-500/20',
-    accentText: 'text-orange-600 dark:text-orange-400',
+    accentBg: 'bg-tea-gold/10 dark:bg-tea-gold/20',
+    accentText: 'text-tea-gold dark:text-tea-gold',
   },
   {
     id: 'reading',
     title: 'Reading',
     description: 'Articles from around the web',
     icon: <Icons.BookOpen className="w-7 h-7" />,
-    accentBg: 'bg-blue-500/10 dark:bg-blue-500/20',
-    accentText: 'text-blue-600 dark:text-blue-400',
+    accentBg: 'bg-tea-elevated/10 dark:bg-tea-elevated/20',
+    accentText: 'text-tea-text-sec dark:text-tea-text-sec',
   },
 ];
 
@@ -177,7 +177,7 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
                     onClick={() => navigateTo(card.id)}
                     className="text-left"
                   >
-                    <CardContainer className="hover:-translate-y-0.5 hover:shadow-lg transition-all h-full">
+                    <CardContainer className="transition-all h-full">
                       <div className="p-5 flex flex-col items-center text-center gap-3">
                         <div className={`w-12 h-12 rounded-xl ${card.accentBg} flex items-center justify-center`}>
                           <span className={card.accentText}>{card.icon}</span>

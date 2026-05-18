@@ -227,7 +227,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         item.sessionReserveGrams > 0 &&
         item.stock_g <= item.sessionReserveGrams &&
         !isSoldOut && (
-          <div style={{ marginBottom: 4 }}>
+          <div className="mb-1">
             <span className="text-tea-gold text-xs">
               Last ~{item.stock_g}g available. We'll confirm quantity before dispatching.
             </span>

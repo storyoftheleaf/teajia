@@ -93,7 +93,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
               <button
                 type="button"
                 onClick={() => onDiscardEntry(entry.id)}
-                className="p-2 text-tea-text-dim hover:text-red-400 transition-colors shrink-0"
+                className="p-2 text-tea-text-dim hover:text-tea-error transition-colors shrink-0"
                 title="Discard"
               >
                 <X size={11} />

@@ -216,7 +216,7 @@ const GallerySection: React.FC<GallerySectionProps> = ({ images }) => {
             <img
               src={url}
               alt={`Session photo ${idx + 1}`}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-cover transition-transform duration-500"
               loading="lazy"
             />
           </button>
@@ -381,7 +381,7 @@ const EventRecapPage: React.FC = () => {
           aria-label="Back to event"
         >
           {event.flyer_image_url ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M19 12H5m7-7l-7 7 7 7" />
             </svg>
           ) : (
@@ -394,7 +394,7 @@ const EventRecapPage: React.FC = () => {
       </div>
 
       {/* Main content — editorial reader chrome */}
-      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-24">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 pt-12 pb-nav-gap">
         {/* Header */}
         <div className="text-center mb-10">
           <p className="label-caps text-tea-readgold mb-3">Session Recap</p>

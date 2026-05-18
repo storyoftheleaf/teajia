@@ -56,12 +56,12 @@ export const LearnReadingLists: React.FC = () => {
               >
                 {/* Format icon */}
                 <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                  item.format === 'book' ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                  item.format === 'podcast' ? 'bg-violet-500/10 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400' :
-                  item.format === 'playlist' ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400' :
-                  item.format === 'documentary' ? 'bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400' :
-                  item.format === 'article' ? 'bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400' :
-                  'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                  item.format === 'book' ? 'bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold' :
+                  item.format === 'podcast' ? 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold' :
+                  item.format === 'playlist' ? 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold' :
+                  item.format === 'documentary' ? 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf' :
+                  item.format === 'article' ? 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold' :
+                  'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec'
                 }`}>
                   {getFormatIcon(item.format)}
                 </div>

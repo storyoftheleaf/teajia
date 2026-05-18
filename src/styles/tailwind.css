@@ -204,6 +204,10 @@ input[type="number"] { -moz-appearance: textfield; }
    Base Typography — Plus Jakarta Sans for UI, Lora for reading
    ============================================ */
 
+html, body {
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-sans);
   font-weight: 300;

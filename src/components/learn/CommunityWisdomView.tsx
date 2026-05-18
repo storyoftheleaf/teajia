@@ -6,10 +6,10 @@ import { COMMUNITY_WISDOM, WISDOM_TYPE_LABELS, type WisdomType, type CommunityWi
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const WISDOM_TYPE_COLORS: Record<string, string> = {
-  reflection: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30',
-  tip: 'bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border border-green-400/30',
-  ritual: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-400/30',
-  photo: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-400/30',
+  reflection: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border/30',
+  tip: 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf border border-tea-leaf/30',
+  ritual: 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold border border-tea-readgold/30',
+  photo: 'bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold border border-tea-gold/30',
 };
 
 interface CommunityWisdomViewProps {
@@ -18,9 +18,9 @@ interface CommunityWisdomViewProps {
 
 const getWisdomCardStyle = (entry: CommunityWisdomEntry) => {
   switch (entry.type) {
-    case 'tip': return 'border-l-2 border-l-green-400/40';
-    case 'ritual': return 'bg-purple-500/[0.02] dark:bg-purple-500/[0.04]';
-    case 'photo': return 'border-l-2 border-l-orange-400/40';
+    case 'tip': return 'border-l-2 border-l-tea-leaf/40';
+    case 'ritual': return 'bg-tea-readgold/[0.02] dark:bg-tea-readgold/[0.04]';
+    case 'photo': return 'border-l-2 border-l-tea-gold/40';
     default: return '';
   }
 };

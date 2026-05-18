@@ -511,7 +511,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       </div>
 
       {error && (
-        <p className="text-ui-11 text-red-400" style={{ fontFamily: 'var(--font-body)' }}>{error}</p>
+        <p className="text-ui-11 text-tea-error" style={{ fontFamily: 'var(--font-body)' }}>{error}</p>
       )}
     </div>
   );

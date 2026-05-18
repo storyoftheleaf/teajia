@@ -34,7 +34,7 @@ export const BackToTop: React.FC = () => {
             <path
               d="M7 12V2M7 2L2.5 6.5M7 2L11.5 6.5"
               stroke="currentColor"
-              strokeWidth="1"
+             
               strokeLinecap="round"
               strokeLinejoin="round"
             />

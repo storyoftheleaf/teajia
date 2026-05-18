@@ -158,7 +158,7 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
 
         {/* Flavor terms */}
         {flavorTerms.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
+          <div className="mb-5">
             <div style={{ fontSize: 9, color: muted, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10, fontFamily: 'Georgia, serif' }}>
               Flavor
             </div>
@@ -183,7 +183,7 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
 
         {/* Quality word */}
         {word && (
-          <div style={{ marginBottom: 20 }}>
+          <div className="mb-5">
             <div style={{ fontSize: 9, color: muted, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8, fontFamily: 'Georgia, serif' }}>
               Quality
             </div>
@@ -211,7 +211,7 @@ const TastingCardVisual: React.FC<TastingCardVisualProps> = ({ entry, cardRef })
 
         {/* Personal note */}
         {entry.note.personalNote && (
-          <div style={{ marginBottom: 20 }}>
+          <div className="mb-5">
             <p style={{
               fontSize: 12,
               color: muted,

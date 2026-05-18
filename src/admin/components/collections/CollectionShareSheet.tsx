@@ -678,7 +678,7 @@ const FormPhase: React.FC<FormPhaseProps> = ({
         </div>
       )}
 
-      {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-xs text-tea-error">{error}</p>}
     </div>
 
     <footer className="flex items-center justify-between gap-3 px-5 py-4 border-t border-tea-border flex-shrink-0">

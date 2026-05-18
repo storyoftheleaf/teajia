@@ -23,7 +23,7 @@ export const GridItem: React.FC<GridItemProps> = ({ image, index, onClick }) => 
     <button
       onClick={onClick}
       style={isLoaded ? { aspectRatio: aspectRatio.toString() } : { aspectRatio: '1' }}
-      className="group relative rounded-xl overflow-hidden bg-tea-text/5 hover:shadow-xl transition-all duration-300 cursor-pointer w-full"
+      className="group relative rounded-xl overflow-hidden bg-tea-text/5 transition-all duration-300 cursor-pointer w-full"
     >
       {/* Loading State */}
       {!isLoaded && !hasError && (
@@ -38,7 +38,7 @@ export const GridItem: React.FC<GridItemProps> = ({ image, index, onClick }) => 
           loading="lazy"
           onLoad={handleImageLoad}
           onError={() => setHasError(true)}
-          className={`w-full h-full object-cover group-hover:scale-102 transition-transform duration-500 ${
+          className={`w-full h-full object-cover  transition-transform duration-500 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />

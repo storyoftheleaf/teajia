@@ -121,7 +121,7 @@ const FloatingField: React.FC<FloatingFieldProps> = ({
           autoComplete={autoComplete}
         />
       )}
-      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
+      {error && <p className="text-tea-error text-xs mt-1">{error}</p>}
     </div>
   );
 };
@@ -432,7 +432,7 @@ export const ForYourSpacePage: React.FC = () => {
                   </select>
                   <Icons.ChevronDown className="absolute right-0 bottom-3 w-4 h-4 text-tea-text-sec pointer-events-none" />
                   {errors.inquiryType && (
-                    <p className="text-red-400 text-xs mt-1">{errors.inquiryType}</p>
+                    <p className="text-tea-error text-xs mt-1">{errors.inquiryType}</p>
                   )}
                 </div>
 

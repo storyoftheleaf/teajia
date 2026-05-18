@@ -45,16 +45,16 @@ export const CompassIcon: React.FC<CompassIconProps> = ({ className = '', filled
       <line x1="3" y1="12" x2="4.5" y2="12" strokeWidth={1.5} />
 
       {/* NE tick */}
-      <line x1="18.2" y1="5.8" x2="19.3" y2="4.7" strokeWidth={1} />
+      <line x1="18.2" y1="5.8" x2="19.3" y2="4.7" />
 
       {/* NW tick */}
-      <line x1="5.8" y1="5.8" x2="4.7" y2="4.7" strokeWidth={1} />
+      <line x1="5.8" y1="5.8" x2="4.7" y2="4.7" />
 
       {/* SE tick */}
-      <line x1="18.2" y1="18.2" x2="19.3" y2="19.3" strokeWidth={1} />
+      <line x1="18.2" y1="18.2" x2="19.3" y2="19.3" />
 
       {/* SW tick */}
-      <line x1="5.8" y1="18.2" x2="4.7" y2="19.3" strokeWidth={1} />
+      <line x1="5.8" y1="18.2" x2="4.7" y2="19.3" />
     </svg>
   );
 };

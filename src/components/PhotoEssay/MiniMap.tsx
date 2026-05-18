@@ -42,7 +42,7 @@ export const MiniMap: React.FC<MiniMapProps> = ({
               className={`relative flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden transition-all duration-300 ${
                 idx === currentIndex
                   ? 'ring-2 ring-tea-text-sec/50 scale-105 opacity-100'
-                  : 'opacity-40 hover:opacity-100 hover:scale-105'
+                  : 'opacity-40 hover:opacity-100 '
               }`}
             >
               <img

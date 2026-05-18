@@ -452,7 +452,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                       onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(entry.draftProductId!)}`)}
                       className="pill flex items-center gap-1"
                     >
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
                         <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
                         <line x1="12" y1="22.08" x2="12" y2="12"/>
@@ -583,7 +583,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={() => { removeEntry(entry.id); setConfirmDelete(false); }}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-ui-11 font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors ml-1"
+              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-ui-11 font-medium bg-tea-error/10 text-tea-error hover:bg-tea-error/20 transition-colors ml-1"
             >
               <AlertTriangle size={11} />
               Delete?
@@ -592,7 +592,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded-md text-tea-text-dim hover:text-red-400 hover:bg-tea-elevated transition-colors ml-1"
+              className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-error hover:bg-tea-elevated transition-colors ml-1"
               title="Delete"
             >
               <Trash2 size={12} />

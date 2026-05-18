@@ -112,7 +112,7 @@ export const PersonalCollectionView = ({ products, isLoading, onRefresh }: { pro
       <div className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6">
         {sortedProducts.length === 0 ? (
             <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
-                <UserCheck size={32} strokeWidth={1} className="text-tea-text-dim mb-3 opacity-60" />
+                <UserCheck size={32} className="text-tea-text-dim mb-3 opacity-60" />
                 <div className="font-display text-ui-17 text-tea-text">Your collection is empty</div>
                 <p className="font-serif italic text-ui-15 text-tea-text-sec leading-relaxed mt-2">
                     Mark items as "Personal Collection" in the product editor.

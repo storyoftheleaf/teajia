@@ -1637,10 +1637,10 @@ export const CustomersView = () => {
                 </span>
               ))}
               {legacyShown.map(tag => (
-                <span key={`l-${tag}`} className={`text-ui-9 px-1.5 py-0.5 rounded-full ${TAG_COLORS[tag as CustomerTag] || 'bg-tea-elevated text-tea-text-sec'}`}>{tag}</span>
+                <span key={`l-${tag}`} className="text-ui-9 text-tea-text-sec uppercase tracking-[0.08em] truncate max-w-[120px]">{tag}</span>
               ))}
               {contactShown.map(tag => (
-                <span key={`c-${tag}`} className="text-ui-9 px-1.5 py-0.5 rounded-md bg-tea-elevated text-tea-text-sec truncate max-w-[120px]">{tag}</span>
+                <span key={`c-${tag}`} className="text-ui-9 text-tea-text-sec uppercase tracking-[0.08em] truncate max-w-[120px]">{tag}</span>
               ))}
               {extra > 0 && <span className="text-ui-9 text-tea-text-dim">+{extra}</span>}
               {empty && <span className="text-xs text-tea-text-dim">—</span>}
@@ -1876,7 +1876,7 @@ export const CustomersView = () => {
               {showColumnsPopover && (
                 <>
                   <div className="fixed inset-0 z-modal" onClick={() => setShowColumnsPopover(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-2">
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2">
                     <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                     {CUSTOMER_COLUMN_DEFS.map(col => (
                       <label
@@ -1909,7 +1909,7 @@ export const CustomersView = () => {
               {showOptions && (
                 <>
                   <div className="fixed inset-0 z-modal" onClick={() => setShowOptions(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-xl rounded-xl z-popover py-1 flex flex-col">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col">
                     <button
                       onClick={() => { handleExport(); setShowOptions(false); }}
                       className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors"
@@ -1946,7 +1946,7 @@ export const CustomersView = () => {
         {/* Empty state */}
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
-            <Users size={32} strokeWidth={1} className="opacity-40" />
+            <Users size={32} className="opacity-40" />
             <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'Nothing matched — try different words.' : 'No customers yet.'}</span>
             {(search || filterTags.length > 0 || filterAttendedEvents) && (
               <button onClick={() => { setSearch(''); setFilterTags([]); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
@@ -1976,7 +1976,7 @@ export const CustomersView = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-tea-text text-sm font-serif truncate">{customer.name}</span>
                       {customer.tags.length > 0 && (
-                        <span className={`text-ui-9 px-1.5 py-0 rounded-full ${TAG_COLORS[customer.tags[0]]}`}>
+                        <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.08em]">
                           {customer.tags[0]}
                         </span>
                       )}
@@ -2031,7 +2031,7 @@ export const CustomersView = () => {
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                   <col className="w-[6%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg">
                   <tr>
                     {visibleCols.map(col => {
                       const SORTABLE = new Set<string>(['name', 'company', 'country', 'spent', 'orders', 'added']);

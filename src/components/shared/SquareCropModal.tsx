@@ -186,7 +186,7 @@ export const SquareCropModal: React.FC<SquareCropModalProps> = ({
           {(error || !imageSrc || !imageLoaded) && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-6 text-center">
               {error ? (
-                <span className="text-ui-12 text-red-400/90 max-w-[280px]">{error}</span>
+                <span className="text-ui-12 text-tea-error/90 max-w-[280px]">{error}</span>
               ) : (
                 <Loader2 className="animate-spin text-tea-text-sec" size={22} />
               )}

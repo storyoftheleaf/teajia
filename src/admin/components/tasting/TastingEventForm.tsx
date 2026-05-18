@@ -67,7 +67,7 @@ export function TastingEventForm() {
             <TeaPicker picked={picked} onChange={setPicked} />
           </div>
 
-          {error && <p className="text-ui-13 text-red-400">{error}</p>}
+          {error && <p className="text-ui-13 text-tea-error">{error}</p>}
         </div>
       </div>
 

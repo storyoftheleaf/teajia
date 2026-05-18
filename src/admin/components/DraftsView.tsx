@@ -63,7 +63,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col overflow-hidden relative">
       {/* ── Slim shelf: just the triage segments + Compass handoff ──────── */}
       <div className="flex items-center gap-3 px-4 md:px-6 h-9 bg-tea-bg flex-shrink-0 relative z-10">
         {draftProducts.length > 0 && (

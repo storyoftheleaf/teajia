@@ -57,7 +57,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                 aria-expanded={isActive}
                 animate={{ scale: isActive ? 1.25 : 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="w-6 h-6 rounded-full bg-tea-gold flex items-center justify-center shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                className="w-6 h-6 rounded-full bg-tea-gold flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
               >
                 <span className="text-tea-bg text-xs font-bold leading-none select-none">
                   {ann.id}

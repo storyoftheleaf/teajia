@@ -25,13 +25,13 @@ const TeawareCard: React.FC<{
   >
     <div className="aspect-[4/3] overflow-hidden relative bg-tea-bg/50 flex items-center justify-center">
       {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.givenName} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100" loading="lazy" />
+          <img src={product.imageUrl} alt={product.givenName} className="w-full h-full object-cover transition-transform duration-700 opacity-80 group-hover:opacity-100" loading="lazy" />
       ) : (
-          <div className="w-1/2 h-1/2 opacity-30 group-hover:opacity-50 group-hover:scale-110 transition-all duration-700">
+          <div className="w-1/2 h-1/2 opacity-30 group-hover:opacity-50 transition-all duration-700">
               <TeaIllustration type={product.type} />
           </div>
       )}
-      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 bg-tea-gold text-tea-bg p-3 rounded-full shadow-2xl opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-110" title="Add to Invoice">
+      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 bg-tea-gold text-tea-bg p-3 rounded-full shadow-lg opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300" title="Add to Invoice">
         <Plus size={20} />
       </button>
     </div>
@@ -260,7 +260,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
                   <col className="w-[10%]" />
                   <col className="w-[7%]" />
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-bg shadow-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-bg">
                   <tr>
                     <SortHeader colKey="productName" label="Product" />
                     <SortHeader colKey="teawareCategory" label="Category" />

@@ -47,7 +47,7 @@ const ResetPasswordPage: React.FC = () => {
 
   if (!token) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-full bg-tea-error/10 flex items-center justify-center mx-auto mb-5">
             <Icons.AlertCircle className="w-6 h-6 text-tea-error" />
@@ -69,7 +69,7 @@ const ResetPasswordPage: React.FC = () => {
 
   if (success) {
     return (
-      <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-5">
             <Icons.Check className="w-7 h-7 text-tea-gold" />
@@ -90,7 +90,7 @@ const ResetPasswordPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 pt-12 pb-24">
+    <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap">
       <div className="text-center mb-8">
         <h1 className="h2">Reset password</h1>
         <p className="subtitle mt-2">Choose a new password for your account.</p>

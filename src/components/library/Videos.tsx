@@ -5,8 +5,8 @@ import { VIDEOS } from '../../data/videos';
 const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md hover:bg-tea-text/5 px-2 -ml-2';
 
 const FORMAT_COLORS: Record<string, string> = {
-  documentary: 'bg-teal-500/10 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-400/30',
-  video: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30',
+  documentary: 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf border border-tea-leaf/30',
+  video: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border/30',
 };
 
 interface VideosProps {
@@ -38,7 +38,7 @@ export const Videos: React.FC<VideosProps> = ({ onBack }) => {
             className="group rounded-[1px] p-5 bg-tea-bg-dark/50 hover:bg-tea-bg-dark/80 transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-md flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec">
                 <Icons.Film className="w-4 h-4" />
               </div>
               <span className={`text-ui-9 uppercase tracking-wider px-1.5 py-0.5 rounded-md ${FORMAT_COLORS[item.format] || ''}`}>

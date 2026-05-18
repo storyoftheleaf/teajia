@@ -111,7 +111,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       href={resource.content || '#'}
       target={resource.content ? '_blank' : undefined}
       rel={resource.content ? 'noopener noreferrer' : undefined}
-      className="group relative bg-tea-bg rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full"
+      className="group relative bg-tea-bg rounded-xl overflow-hidden transition-all duration-300 flex flex-col h-full"
     >
       {/* Image */}
       {resource.image && (
@@ -119,7 +119,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
           <img
             src={resource.image}
             alt={resource.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover transition-transform duration-300"
           />
         </div>
       )}
@@ -191,7 +191,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
               {(filteredCommunity as any).map((member: any) => (
                 <CardContainer
                   key={member.id}
-                  className="flex flex-col h-full cursor-pointer hover:shadow-lg transition-all duration-300"
+                  className="flex flex-col h-full cursor-pointer transition-all duration-300"
                 >
                   <div className="p-6 flex flex-col h-full">
                     {/* Avatar */}
@@ -216,7 +216,7 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                     <div className="flex justify-center mb-4">
                       <span className={`text-ui-10 uppercase tracking-wider px-3 py-1 rounded-md ${
                         member.expertise === 'Advanced' ? 'bg-tea-gold/20 text-tea-gold border border-tea-border' :
-                        member.expertise === 'Intermediate' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/40' :
+                        member.expertise === 'Intermediate' ? 'bg-tea-elevated/20 text-tea-text-sec border border-tea-border/40' :
                         'bg-tea-green/20 text-tea-green border border-tea-green/40'
                       }`}>
                         {member.expertise}

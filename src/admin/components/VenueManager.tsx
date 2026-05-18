@@ -372,7 +372,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                 <PhotoStrip photos={photos} onAdd={handleUpload} onRemove={handleRemovePhoto} uploading={uploading} />
               </div>
               <div className="flex items-center justify-between pt-1">
-                <button type="button" onClick={handleDelete} disabled={deleting} className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50">
+                <button type="button" onClick={handleDelete} disabled={deleting} className="flex items-center gap-1.5 text-xs text-tea-error hover:text-tea-error transition-colors disabled:opacity-50">
                   {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                   Delete venue
                 </button>
@@ -445,7 +445,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onRefresh }) => {
                           <button onClick={() => setEditingSpaceId(space.id)} className="text-ui-11 text-tea-text-sec hover:text-tea-text px-2 py-0.5 transition-colors">
                             Edit
                           </button>
-                          <button onClick={() => handleDeleteSpace(space)} className="text-tea-text-dim hover:text-red-400 p-0.5 transition-colors">
+                          <button onClick={() => handleDeleteSpace(space)} className="text-tea-text-dim hover:text-tea-error p-0.5 transition-colors">
                             <Trash2 size={12} />
                           </button>
                         </div>
