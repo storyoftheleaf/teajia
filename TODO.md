@@ -1,5 +1,11 @@
 # Teajia Development TODO
 
+## MCP — Voice & Agent
+
+### Claude mobile OAuth — debug pending
+- [ ] Finish the OAuth connector flow for Claude mobile. Desktop works via manually-minted tokens; mobile gets to the consent page on `teajia.pages.dev` but reports query params missing. One screenshot of the URL bar (from the failing consent page on the phone) will identify which of three candidate causes applies.
+- Full briefing + resume protocol: [docs/MCP_MOBILE_OAUTH_TODO.md](docs/MCP_MOBILE_OAUTH_TODO.md)
+
 ## Infrastructure Follow-Ups
 
 ### Cloudflare CI Token — D1 Migration Permission
