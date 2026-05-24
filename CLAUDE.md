@@ -108,6 +108,8 @@ Worker secrets live in Infisical (project: Teajia, env: dev). The repo no longer
 
 **Never paste secret values into chat or scripts.** Source of truth is Infisical; if a value is needed, use `infisical secrets set KEY=...` in Terminal directly. See `~/.claude/projects/.../memory/feedback_secret_handling_strict.md`.
 
+**Full cross-project pattern docs:** [../i64os/docs/SECRETS.md](../i64os/docs/SECRETS.md) — covers all four projects, the two-Infisical-projects shape, prod boundary, and command cheat sheet.
+
 ## Testing
 ```bash
 npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)
