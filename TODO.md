@@ -1,120 +1,67 @@
 # Teajia Development TODO
 
-## MCP — Voice & Agent
+## Soon
 
-### Claude mobile OAuth — debug pending
-- [ ] Finish the OAuth connector flow for Claude mobile. Desktop works via manually-minted tokens; mobile gets to the consent page on `teajia.pages.dev` but reports query params missing. One screenshot of the URL bar (from the failing consent page on the phone) will identify which of three candidate causes applies.
+### MCP: Voice & Agent
+
+- [ ] **Claude mobile OAuth debug.** _(band: you-required)_ Finish the OAuth connector flow for Claude mobile. Desktop works via manually-minted tokens; mobile reaches the consent page on `teajia.pages.dev` but reports query params missing. One screenshot of the failing consent page's URL bar (from the phone) identifies which of three candidate causes applies.
 - Full briefing + resume protocol: [docs/MCP_MOBILE_OAUTH_TODO.md](docs/MCP_MOBILE_OAUTH_TODO.md)
 
-## Infrastructure Follow-Ups
+### Magazine / Journal Reader
 
-### Cloudflare CI Token — D1 Migration Permission
-- [ ] Update the GitHub Actions `CLOUDFLARE_API_TOKEN` so the Worker deploy workflow can apply D1 migrations automatically.
-- Current state: local Wrangler auth can apply D1 migrations, but the GitHub Actions token does not have D1 database permission.
-- Impact: Worker deploys can still go live, but production migrations may need to be applied manually from an authenticated local terminal.
-- When ready: create/update a Cloudflare API token with Workers deploy permission plus D1 write access, save it as the repo secret `CLOUDFLARE_API_TOKEN`, then remove `continue-on-error: true` from the `Apply D1 migrations` step in `.github/workflows/deploy-worker.yml`.
+- [ ] **Verify page overflow on short phones (iPhone SE / 667px).** _(band: you-required)_ The math fix landed (`MAX_CHARS_PER_PAGE` lowered 600 to 480, 438px needed vs 290px available on SE). Still needed: open a real article on the shortest phone you have and visually confirm the reading rhythm feels right.
 
-## Mood & Flavor Taxonomy System
+### Product Card Redesign (in progress)
 
-The goal: create a canonical, interconnected set of mood and flavor tags that every tea pulls from. Build the lists first, then map teas to them.
-
-### Phase 1: Define the Lists
-- [ ] Audit all existing mood values across the 139+ teas — extract every unique mood currently in the DB
-- [ ] Audit all existing tasting notes — extract every unique tag currently in the DB
-- [ ] Draft a canonical **mood vocabulary** (curated list of allowed mood keywords)
-- [ ] Draft a canonical **flavor vocabulary** (curated list of allowed tasting note keywords)
-- [ ] Review and finalize both lists (Adrian approves)
-
-### Phase 2: Define Connections
-- [ ] Map relationships between mood tags (e.g., "grounding" relates to "contemplative")
-- [ ] Map relationships between flavor tags (e.g., "camphor" relates to "sandalwood")
-- [ ] Map cross-connections between moods and flavors (e.g., "earthy sweetness" flavor links to "grounding" mood)
-- [ ] Decide on data structure for storing these relationships (graph, tags with categories, etc.)
-
-### Phase 3: Store the Taxonomy
-- [ ] Create a taxonomy data file or DB table for mood tags
-- [ ] Create a taxonomy data file or DB table for flavor tags
-- [ ] Store the interconnections/relationships
-- [ ] Add API endpoints to fetch the taxonomy lists
-
-### Phase 4: Connect to Products
-- [ ] Update AddProductModal to use dropdowns/autocomplete from the taxonomy (not freeform text)
-- [ ] Migrate existing freeform mood strings to canonical tags
-- [ ] Migrate existing freeform tasting notes to canonical tags
-- [ ] Update sync script to validate against taxonomy
-
-### Phase 5: Frontend Features
-- [ ] Allow browsing/filtering the shop by mood tags
-- [ ] Allow browsing/filtering the shop by flavor tags
-- [ ] "Related by mood" and "Related by flavor" connections on product pages
-- [ ] Mood/flavor exploration page (click a mood, see all teas that share it)
-
----
-
-## Product Card Redesign (In Progress)
 - [x] Always reserve subtitle (given name) line height on cards
 - [x] Add 1-3 image gallery with adaptive layout
 - [x] Add mood tags as keyword-style pills
-- [x] Reorder card: images → tasting notes → mood tags → description
+- [x] Reorder card: images then tasting notes then mood tags then description
 - [x] Image lightbox on tap
-- [ ] Split product names into title + subtitle (tea identity vs. tea type)
-- [ ] Decide on naming convention for all teas (title/subtitle/year)
+- [ ] **Split product names into title + subtitle.** _(band: you-required)_ Separate tea identity from tea type so cards render both lines cleanly.
+- [ ] **Decide naming convention for all teas.** _(band: you-required)_ Settle the title / subtitle / year pattern that every product follows.
 
----
+## Pre-launch
 
-## Pending from Development Sprint (April 2026)
+### Infrastructure Follow-Ups
 
-### #11 — Brewing Guide Profiles
-Need ~20 brewing profiles written and stored, covering the full catalog:
-- Water temp (°C), steep time (seconds), leaf-to-water ratio (g/ml), vessel type, infusion count
-- One profile per tea type/style: Gongfu Oolong, Grandpa-style Green, White tea, Raw Puerh, Ripe Puerh, Aged Puerh, Sheng, High-mountain Oolong, Roasted Oolong, Black tea (gongfu), Black tea (western), Yellow tea, Liu Bao, etc.
-- These will power the `/learn/brew/:teaType` pages AND the QR sticker cards already built
-- Adrian to provide or approve profiles — can be drafted in a conversation and then loaded
+- [ ] **Update the Cloudflare CI token for D1 migration permission.** _(band: you-required)_ The GitHub Actions `CLOUDFLARE_API_TOKEN` lacks D1 write access, so production migrations may need manual application from an authenticated local terminal. Worker deploys still go live. When ready: mint a token with Workers deploy + D1 write, save it as repo secret `CLOUDFLARE_API_TOKEN`, then remove `continue-on-error: true` from the `Apply D1 migrations` step.
+- Affected workflow: [.github/workflows/deploy-worker.yml](.github/workflows/deploy-worker.yml)
 
-### #21 — Magazine Template Reference
-Find a magazine or editorial site whose quality and visual standard is the target for Teajia's magazine templates.
-- Could be print (Kinfolk, Cereal, Monocle, Hole & Corner) or digital
-- Provide 1–3 references so template overhaul has a clear target
-- The 70-point template overhaul in PLAN.md is ready to execute once reference is confirmed
+### Magazine Editor (April 2026 Sprint)
 
-### #20 — Contributor Profile: Barry
-- Get Barry's full name, background/bio, photo, and any content ready to publish
-- First contributor profile template is already built (Phase 3, item 20 in DEVELOPMENT_PRIORITIES.md)
-- Barry's profile will be the first signal that the magazine is a serious editorial home
+- [ ] **Run the articles D1 migration before the magazine editor works.** _(band: you-required)_ Until this runs once after `wrangler login`, `/admin/magazine` fails silently. Command: `cd worker && npx wrangler login && npx wrangler d1 execute teajia-db --remote --file=migrations/031_articles.sql`.
+- Migration file: [worker/migrations/031_articles.sql](worker/migrations/031_articles.sql)
 
----
+- [ ] **Replace gift-set product ID placeholders in `src/constants.ts`.** _(band: you-required)_ Swap the placeholder IDs in the gift-sets section for real product IDs from the admin inventory panel: set-dark-tea-sampler, set-journey-of-flavor, set-tea-with-chi, set-starters-pack, set-entry-set. (Note: see TODO-STALENESS-REPORT.md, the `// GIFT SETS` section with these IDs no longer appears in `src/constants.ts`; confirm the section still exists before actioning.)
 
-## Magazine Editor (April 2026 Sprint)
+- [ ] **Replace hardcoded Spaces-page locations.** _(band: agent-runnable)_ `src/pages/SpacesPage.tsx` has 3 Bali locations hardcoded with TODO comments. Replace with real data or wire to DB when multi-account infrastructure ships.
 
-### D1 Migration — REQUIRED before magazine editor works
-Run this once after `wrangler login`:
-```bash
-cd worker
-npx wrangler login
-npx wrangler d1 execute teajia-db --remote --file=migrations/031_articles.sql
-```
-Until this runs, `/admin/magazine` will fail silently.
+### Brewing & QR Cards (#11 + QR card route)
 
-### Gift Set Product IDs — Replace Placeholders
-In `src/constants.ts`, find the `// GIFT SETS` section. Replace all placeholder IDs with real product IDs from the admin inventory panel:
-- set-dark-tea-sampler
-- set-journey-of-flavor
-- set-tea-with-chi
-- set-starters-pack
-- set-entry-set
+- [ ] **Write ~20 brewing guide profiles covering the full catalog.** _(band: you-required)_ One profile per tea type/style (Gongfu Oolong, Grandpa-style Green, White, Raw/Ripe/Aged Puerh, Sheng, High-mountain Oolong, Roasted Oolong, Black gongfu, Black western, Yellow, Liu Bao, etc.) with water temp °C, steep seconds, leaf-to-water ratio g/ml, vessel type, infusion count. These power `/learn/brew/:teaType` pages and the QR sticker cards already built. Adrian provides or approves; can be drafted in conversation then loaded.
 
-### Brewing Profiles for QR Cards
-The `BrewingQRCard` component links to `/learn/brew/:teaType` pages — these pages don't exist yet.
-Once brewing profiles are written (see #11 above), build the `/learn/brew/:teaType` route and page.
+- [ ] **Build the `/learn/brew/:teaType` route and page.** _(band: agent-runnable)_ The `BrewingQRCard` component links here but the pages don't exist yet. Build once brewing profiles are written (see item above).
 
-### Spaces Page — Replace Hardcoded Locations
-`src/pages/SpacesPage.tsx` has 3 Bali locations hardcoded with TODO comments.
-Replace with real data or wire to DB when multi-account infrastructure ships.
+## Future
 
----
+### Mood & Flavor Taxonomy System
 
-## Magazine / Journal Reader
+Goal: a canonical, interconnected set of mood and flavor tags every tea pulls from. Build the lists first, then map teas to them.
 
-### Verify page overflow on short phones (iPhone SE / 667px)
-- Fixed: `MAX_CHARS_PER_PAGE` lowered 600 → 480 (math confirmed 438px needed vs 290px available on SE).
-- **Still needed:** open a real article on the shortest phone you have and visually confirm pages feel right — the math fix is solid but the reading rhythm may want a tweak.
+- [ ] **Phase 1: define the lists.** _(band: agent-runnable)_ Audit all existing mood values and tasting notes across the 139+ teas (extract every unique value in the DB), then draft a canonical mood vocabulary and flavor vocabulary. Adrian approves the finalized lists.
+- [ ] **Phase 2: define connections.** _(band: agent-runnable)_ Map mood-to-mood relationships, flavor-to-flavor relationships, and mood-to-flavor cross-connections. Decide the storage structure (graph, categorized tags, etc.).
+- [ ] **Phase 3: store the taxonomy.** _(band: agent-runnable)_ Create taxonomy tables/files for mood and flavor tags, store the interconnections, add API endpoints to fetch the lists.
+- [ ] **Phase 4: connect to products.** _(band: agent-runnable)_ Update AddProductModal to use taxonomy dropdowns/autocomplete (not freeform), migrate existing freeform moods + tasting notes to canonical tags, update the sync script to validate against the taxonomy.
+- [ ] **Phase 5: frontend features.** _(band: agent-runnable)_ Browse/filter the shop by mood and flavor tags, "Related by mood" and "Related by flavor" on product pages, and a mood/flavor exploration page (click a mood, see all teas that share it).
+
+### Pending from Development Sprint (April 2026)
+
+- [ ] **#21: find a magazine template reference.** _(band: you-required)_ Provide 1-3 references (print: Kinfolk, Cereal, Monocle, Hole & Corner; or digital) whose quality is the target for Teajia's magazine templates. The 70-point template overhaul in PLAN.md is ready to execute once the reference is confirmed.
+- Reference plan: [PLAN.md](PLAN.md)
+
+- [ ] **#20: publish contributor profile: Barry.** _(band: you-required)_ Get Barry's full name, background/bio, photo, and content ready. The first contributor profile template is already built. Barry's profile is the first signal the magazine is a serious editorial home.
+
+## Operational notes (not TODOs: context for future-you)
+
+- The MCP voice/agent server is live at the worker `/mcp` endpoint; all seven Phase 1 tools ship and `record_sale` runs the full fulfillment path. PDFs + email delivery are Phase 2. See CLAUDE.md "Voice & agent control" for the tool list and implementation pointers.
