@@ -1,5 +1,7 @@
 # TODO — Teajia follow-ups
 
+> Open-item tracking consolidated into ../TODO.md on 2026-05-29. This file is kept as the detailed plan home for the Compass tasting-journal phases, the loose ends, and the mood/flavor seeding loop; the project-root TODO.md links here for the full detail.
+
 Living document for work that's planned, planned-but-unstarted, or
 still-an-idea. Organized by commitment level: **Ready to build** work has an
 agreed shape; **Ideas — for review** is where unfinalized thoughts park.

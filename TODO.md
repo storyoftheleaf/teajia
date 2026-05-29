@@ -4,12 +4,11 @@
 
 ### MCP: Voice & Agent
 
-- [ ] **Claude mobile OAuth debug.** _(band: you-required)_ Finish the OAuth connector flow for Claude mobile. Desktop works via manually-minted tokens; mobile reaches the consent page on `teajia.pages.dev` but reports query params missing. One screenshot of the failing consent page's URL bar (from the phone) identifies which of three candidate causes applies.
-- Full briefing + resume protocol: [docs/MCP_MOBILE_OAUTH_TODO.md](docs/MCP_MOBILE_OAUTH_TODO.md)
+- [ ] Get the voice assistant connecting from a phone (works on desktop, fails on mobile) _(band: you-required)_ _(effort: deep)_ → Plan: [mobile-oauth.md](todo/plans/mobile-oauth.md)
 
 ### Magazine / Journal Reader
 
-- [ ] **Verify page overflow on short phones (iPhone SE / 667px).** _(band: you-required)_ The math fix landed (`MAX_CHARS_PER_PAGE` lowered 600 to 480, 438px needed vs 290px available on SE). Still needed: open a real article on the shortest phone you have and visually confirm the reading rhythm feels right.
+- [ ] Check that articles read well on the shortest phones (iPhone SE) _(band: you-required)_ _(effort: moderate)_
 
 ### Product Card Redesign (in progress)
 
@@ -18,49 +17,67 @@
 - [x] Add mood tags as keyword-style pills
 - [x] Reorder card: images then tasting notes then mood tags then description
 - [x] Image lightbox on tap
-- [ ] **Split product names into title + subtitle.** _(band: you-required)_ Separate tea identity from tea type so cards render both lines cleanly.
-- [ ] **Decide naming convention for all teas.** _(band: you-required)_ Settle the title / subtitle / year pattern that every product follows.
+- [ ] Split product names into a title line and a subtitle line on cards _(band: you-required)_ _(effort: moderate)_
+- [ ] Settle on one naming pattern (title, subtitle, year) that every tea follows _(band: you-required)_ _(effort: moderate)_
 
 ## Pre-launch
 
 ### Infrastructure Follow-Ups
 
-- [ ] **Update the Cloudflare CI token for D1 migration permission.** _(band: you-required)_ The GitHub Actions `CLOUDFLARE_API_TOKEN` lacks D1 write access, so production migrations may need manual application from an authenticated local terminal. Worker deploys still go live. When ready: mint a token with Workers deploy + D1 write, save it as repo secret `CLOUDFLARE_API_TOKEN`, then remove `continue-on-error: true` from the `Apply D1 migrations` step.
-- Affected workflow: [.github/workflows/deploy-worker.yml](.github/workflows/deploy-worker.yml)
+- [ ] Let deploys apply database changes automatically _(band: you-required)_ _(effort: deep)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
 
 ### Magazine Editor (April 2026 Sprint)
 
-- [ ] **Run the articles D1 migration before the magazine editor works.** _(band: you-required)_ Until this runs once after `wrangler login`, `/admin/magazine` fails silently. Command: `cd worker && npx wrangler login && npx wrangler d1 execute teajia-db --remote --file=migrations/031_articles.sql`.
-- Migration file: [worker/migrations/031_articles.sql](worker/migrations/031_articles.sql)
+- [ ] Run the one-time articles database setup so the magazine editor works _(band: you-required)_ _(effort: deep)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
+- [ ] Replace the placeholder gift-set product IDs with real ones from the inventory panel _(band: you-required)_ _(effort: quick)_
+- [ ] Replace the three hardcoded Spaces-page locations with real data _(band: agent-runnable)_ _(effort: moderate)_
 
-- [ ] **Replace gift-set product ID placeholders in `src/constants.ts`.** _(band: you-required)_ Swap the placeholder IDs in the gift-sets section for real product IDs from the admin inventory panel: set-dark-tea-sampler, set-journey-of-flavor, set-tea-with-chi, set-starters-pack, set-entry-set. (Note: see TODO-STALENESS-REPORT.md, the `// GIFT SETS` section with these IDs no longer appears in `src/constants.ts`; confirm the section still exists before actioning.)
+### Brewing & QR Cards
 
-- [ ] **Replace hardcoded Spaces-page locations.** _(band: agent-runnable)_ `src/pages/SpacesPage.tsx` has 3 Bali locations hardcoded with TODO comments. Replace with real data or wire to DB when multi-account infrastructure ships.
+- [ ] Write the brewing guides and build the pages the QR cards link to _(band: you-required)_ _(effort: deep)_ → Plan: [brewing-guides.md](todo/plans/brewing-guides.md)
 
-### Brewing & QR Cards (#11 + QR card route)
+### Compass tasting journal (Phases 2-3)
 
-- [ ] **Write ~20 brewing guide profiles covering the full catalog.** _(band: you-required)_ One profile per tea type/style (Gongfu Oolong, Grandpa-style Green, White, Raw/Ripe/Aged Puerh, Sheng, High-mountain Oolong, Roasted Oolong, Black gongfu, Black western, Yellow, Liu Bao, etc.) with water temp °C, steep seconds, leaf-to-water ratio g/ml, vessel type, infusion count. These power `/learn/brew/:teaType` pages and the QR sticker cards already built. Adrian provides or approves; can be drafted in conversation then loaded.
+- [ ] Add per-section voice capture so notes tag which part of the tasting they came from _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] Let customers star their own journal notes as candidates for Adrian's review _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] Build the admin queue to promote customer-starred notes onto product tastings _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/TODO.md](docs/TODO.md)
 
-- [ ] **Build the `/learn/brew/:teaType` route and page.** _(band: agent-runnable)_ The `BrewingQRCard` component links here but the pages don't exist yet. Build once brewing profiles are written (see item above).
+### Loose ends from the development log
+
+- [ ] Add a static Google map preview on the event landing page (blocked on Adrian getting a Maps API key) _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] Decide what to do with the 3 Bali draft products stamped as common-data (promote to active or keep as personal) _(band: you-required)_ _(effort: quick)_
+- [ ] Split the admin "Untasted" filter into never-reviewed versus on-community-data _(band: agent-runnable)_ _(effort: quick)_
+- [ ] Drop and recreate the local development database so old migrations can re-run and the inquiries table exists _(band: you-required)_ _(effort: moderate)_
+- [ ] Add real hero and gallery images to the 10 Advise projects once photos are ready _(band: you-required)_ _(effort: quick)_
 
 ## Future
 
 ### Mood & Flavor Taxonomy System
 
-Goal: a canonical, interconnected set of mood and flavor tags every tea pulls from. Build the lists first, then map teas to them.
-
-- [ ] **Phase 1: define the lists.** _(band: agent-runnable)_ Audit all existing mood values and tasting notes across the 139+ teas (extract every unique value in the DB), then draft a canonical mood vocabulary and flavor vocabulary. Adrian approves the finalized lists.
-- [ ] **Phase 2: define connections.** _(band: agent-runnable)_ Map mood-to-mood relationships, flavor-to-flavor relationships, and mood-to-flavor cross-connections. Decide the storage structure (graph, categorized tags, etc.).
-- [ ] **Phase 3: store the taxonomy.** _(band: agent-runnable)_ Create taxonomy tables/files for mood and flavor tags, store the interconnections, add API endpoints to fetch the lists.
-- [ ] **Phase 4: connect to products.** _(band: agent-runnable)_ Update AddProductModal to use taxonomy dropdowns/autocomplete (not freeform), migrate existing freeform moods + tasting notes to canonical tags, update the sync script to validate against the taxonomy.
-- [ ] **Phase 5: frontend features.** _(band: agent-runnable)_ Browse/filter the shop by mood and flavor tags, "Related by mood" and "Related by flavor" on product pages, and a mood/flavor exploration page (click a mood, see all teas that share it).
+- [ ] Build a connected mood and flavor tagging system for every tea _(band: agent-runnable)_ _(effort: deep)_ → Plan: [mood-flavor-taxonomy.md](todo/plans/mood-flavor-taxonomy.md)
+- [ ] Seed mood and flavor tags on Adrian's teas and walk the filter loop end-to-end before tagging all 139 _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
 
 ### Pending from Development Sprint (April 2026)
 
-- [ ] **#21: find a magazine template reference.** _(band: you-required)_ Provide 1-3 references (print: Kinfolk, Cereal, Monocle, Hole & Corner; or digital) whose quality is the target for Teajia's magazine templates. The 70-point template overhaul in PLAN.md is ready to execute once the reference is confirmed.
-- Reference plan: [PLAN.md](PLAN.md)
+- [ ] Pick 1-3 magazine references whose quality is the target, then run the template overhaul _(band: you-required)_ _(effort: deep)_ → Plan: [PLAN.md](PLAN.md)
+- [ ] Publish the first contributor profile (Barry): full name, bio, photo, content _(band: you-required)_ _(effort: moderate)_
 
-- [ ] **#20: publish contributor profile: Barry.** _(band: you-required)_ Get Barry's full name, background/bio, photo, and content ready. The first contributor profile template is already built. Barry's profile is the first signal the magazine is a serious editorial home.
+### Your Table home for operators
+
+- [ ] Make Your Table the role-adaptive home with a readiness-based first-door for new operators _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/plan/your-table-completion-plan.md](docs/plan/your-table-completion-plan.md)
+
+### Platform coherence (post-audit Body B)
+
+- [ ] Add cross-section links so Magazine, Learn, Consult, and Glossary point at the teas they mention _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
+- [ ] Build the "My Tea Life" personal timeline that unifies tastings, favorites, orders, and reading history _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
+- [ ] Build the post-session editor that turns event records into Magazine photo essays _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
+
+### Multi-account platform (the business model)
+
+- [ ] Onboard the first trusted users: Compass access for tea friends and real guests at events _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] Build the multi-account data foundation (accounts table, account scoping, role expansion) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] Build the wholesale catalog and sourcing-to-shelf pipeline for network operators _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] Build operator onboarding, operator public pages, and the network directory _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ## Operational notes (not TODOs: context for future-you)
 
