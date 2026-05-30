@@ -78,7 +78,7 @@ export function LiveMatrix({ sessionId }: LiveMatrixProps) {
   if (members.length === 0) {
     return (
       <div className="px-6 py-12 text-center max-w-md mx-auto">
-        <p className="font-display font-light text-ui-17 text-tea-text mb-2">
+        <p className="font-display font-normal text-ui-17 text-tea-text mb-2">
           No guests yet
         </p>
         <p className="text-ui-12 text-tea-text-sec">

@@ -34,7 +34,7 @@ export function TastingEventsList() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <header className="px-6 py-4 border-b border-tea-border flex items-center justify-between">
-        <h1 className="font-display font-light text-ui-20 text-tea-text">Tasting events</h1>
+        <h1 className="font-display font-normal text-ui-20 text-tea-text">Tasting events</h1>
         <button
           type="button"
           onClick={() => navigate('/admin/tasting-events/new')}
@@ -49,7 +49,7 @@ export function TastingEventsList() {
         {isLoading && <p role="status" className="text-ui-13 text-tea-text-sec">Loading…</p>}
         {!isLoading && sessions.length === 0 && (
           <div className="max-w-md mx-auto text-center py-16">
-            <p className="font-display font-light text-ui-20 text-tea-text mb-2">
+            <p className="font-display font-normal text-ui-20 text-tea-text mb-2">
               No tasting events yet
             </p>
             <p className="text-ui-13 text-tea-text-sec">

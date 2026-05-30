@@ -41,7 +41,7 @@ export function TastingEventForm() {
           <ChevronLeft className="w-4 h-4" aria-hidden="true" />
           <span className="text-ui-13">Tasting events</span>
         </button>
-        <h1 className="font-display font-light text-ui-20 text-tea-text">New tasting event</h1>
+        <h1 className="font-display font-normal text-ui-20 text-tea-text">New tasting event</h1>
         <div />
       </header>
 

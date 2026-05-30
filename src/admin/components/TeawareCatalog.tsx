@@ -49,7 +49,7 @@ const TeawareCard: React.FC<{
         <p className="text-ui-10 text-tea-text-sec uppercase tracking-[0.2em] mt-2">{product.originRegion}</p>
       </div>
       <div className="mt-6 pt-6 border-t border-tea-border flex justify-between items-end">
-        <p className="text-sm text-tea-text-sec line-clamp-2 pr-4 font-light leading-relaxed">{product.description}</p>
+        <p className="text-sm text-tea-text-sec line-clamp-2 pr-4 font-normal leading-relaxed">{product.description}</p>
         <p className="font-mono text-lg text-tea-text whitespace-nowrap">{formatCurrency(product.pricePerGramUSD, currency, rates)}</p>
       </div>
     </div>
