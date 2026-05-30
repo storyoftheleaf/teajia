@@ -90,6 +90,7 @@ import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import type { Account } from './types';
 import { useAppStore } from './lib/store';
+import { setToken, hydrateAccountStateFromToken } from './lib/api';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
@@ -170,7 +171,7 @@ const AppContent = () => {
     setIsPublicCartOpen: setIsCartOpen,
     sidebarCollapsed,
   } = useAppStore();
-  const { isAdmin, isAuthenticated, isSessionReady } = useAuth();
+  const { isAdmin, isAuthenticated, isSessionReady, checkSession } = useAuth();
   const syncEnabled = isAuthenticated && isSessionReady;
   useFavoritesSync(syncEnabled);
   useOfflineSync(syncEnabled);
@@ -564,6 +565,58 @@ const AppContent = () => {
     };
     window.addEventListener('open-account-panel', handler);
     return () => window.removeEventListener('open-account-panel', handler);
+  }, []);
+
+  // Google OAuth return — the worker redirects customers back here to
+  // /?account=1 with the JWT in the URL hash (#oauth_token=...) on success, or
+  // ?oauth_error=... on failure. Pick it up on load, hydrate the session, and
+  // reopen the account panel so they see they're signed in.
+  useEffect(() => {
+    const hash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+
+    if (hash.includes('oauth_token=')) {
+      const oauthToken = new URLSearchParams(hash.slice(1)).get('oauth_token');
+      if (oauthToken) {
+        setToken(oauthToken);
+        hydrateAccountStateFromToken();
+        void checkSession();
+        setShowAccountModal(true);
+        // Strip the token from the URL so it isn't left in history/shareable.
+        params.delete('account');
+        const search = params.toString();
+        window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
+        return;
+      }
+    }
+
+    const oauthError = params.get('oauth_error');
+    if (oauthError) {
+      const messages: Record<string, string> = {
+        access_denied: 'Google sign-in was cancelled.',
+        invalid_state: 'Sign-in session expired. Please try again.',
+        token_exchange_failed: 'Could not complete Google sign-in. Please try again.',
+        userinfo_failed: 'Could not retrieve your Google profile.',
+        account_error: 'Could not create or link your account.',
+      };
+      showToast(messages[oauthError] || 'Google sign-in failed. Please try again.', 5000);
+      setShowAccountModal(true);
+      setAccountInitialView('signin');
+      params.delete('oauth_error');
+      params.delete('account');
+      const search = params.toString();
+      window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
+      return;
+    }
+
+    // Plain ?account=1 (no OAuth payload) — also a request to open the panel.
+    if (params.get('account') === '1') {
+      setShowAccountModal(true);
+      params.delete('account');
+      const search = params.toString();
+      window.history.replaceState(null, '', window.location.pathname + (search ? `?${search}` : ''));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCloseCart = () => {
@@ -990,8 +1043,8 @@ const AppContent = () => {
           aria-hidden="true"
           className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
           style={{
-            height: 'calc(env(safe-area-inset-bottom, 0px) + 112px)',
-            background: 'linear-gradient(to top, var(--tea-bg) 0%, var(--tea-bg) 60%, transparent 100%)',
+            height: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+            background: 'linear-gradient(to top, var(--tea-bg) 0%, var(--tea-bg) 55%, transparent 100%)',
             /* z-panel-modal */ zIndex: 70,
           }}
         />

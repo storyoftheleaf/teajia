@@ -473,7 +473,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto px-0 pt-4">
+      <div className="max-w-full mx-auto px-4 md:px-6 lg:px-10 pt-4">
 
          {/* Sticky shop toolbar */}
          <div className="sticky top-0 z-sticky -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-10 lg:px-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
