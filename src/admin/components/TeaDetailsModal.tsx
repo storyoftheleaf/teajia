@@ -70,7 +70,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label={product?.productName || 'Tea details'}
-      className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] lg:bottom-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 bottom-nav lg:bottom-0 z-modal flex items-center justify-center bg-tea-bg md:bg-tea-bg/90 md:backdrop-blur-md md:p-4 animate-in fade-in duration-300"
       onClick={onClose}
     >
       {/* Scrollbar + responsive card height styles */}

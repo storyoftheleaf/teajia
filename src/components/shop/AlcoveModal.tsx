@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AlcoveCard } from './AlcoveCard';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 
 interface AlcoveModalProps {
@@ -30,6 +31,15 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const isOpen = !!item;
   useScrollLock(isOpen);
+
+  // Hide the floating BottomTabBar while this full-screen card is open so it
+  // can't overlap the card's bottom action bar. Works regardless of whether
+  // the call site syncs the open product to the URL.
+  const setProductOverlayOpen = useAppStore(s => s.setProductOverlayOpen);
+  useEffect(() => {
+    setProductOverlayOpen(isOpen);
+    return () => setProductOverlayOpen(false);
+  }, [isOpen, setProductOverlayOpen]);
 
   // Swipe navigation state
   const [touchStart, setTouchStart] = useState<number | null>(null);

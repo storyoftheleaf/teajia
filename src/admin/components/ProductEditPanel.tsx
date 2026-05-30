@@ -1149,7 +1149,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-labelledby={titleId}
         aria-hidden={!product}
         style={{ backgroundColor: 'var(--admin-bg)', willChange: 'transform' }}
-        className={`fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 bottom-nav md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav. Sits on the panel bg with a single hairline border. */}
@@ -1726,7 +1726,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
       </div>
 
       {/* Mobile backdrop */}
-      {product && <div className="fixed inset-0 bottom-[calc(52px+env(safe-area-inset-bottom))] z-20 md:hidden" style={{ backgroundColor: 'rgba(14,14,16,0.7)' }} onClick={onClose} />}
+      {product && <div className="fixed inset-0 bottom-nav z-20 md:hidden" style={{ backgroundColor: 'rgba(14,14,16,0.7)' }} onClick={onClose} />}
 
       {/* Tasting editor modal */}
       {tastingEditorProduct && (

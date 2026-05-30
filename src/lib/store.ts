@@ -174,6 +174,14 @@ interface AppState {
     | { type: 'mic'; state: 'idle' | 'recording' | 'transcribing' | 'error'; onPress: () => void }
     | null;
   setBottomBarAction: (action: AppState['bottomBarAction']) => void;
+
+  // True while a full-screen product detail overlay (AlcoveModal /
+  // TeawareAlcoveModal) is open. The floating BottomTabBar hides itself so it
+  // can't overlap the card's bottom action bar. Set by the modals on
+  // open/close — this covers call sites (e.g. SharedCollection) that don't
+  // sync the open product to the URL, where the route-based check can't see it.
+  productOverlayOpen: boolean;
+  setProductOverlayOpen: (open: boolean) => void;
 }
 
 // ── Members & Access selectors ────────────────────────────────────────────────
@@ -595,6 +603,10 @@ export const useAppStore = create<AppState>()(
       // Bottom-bar action (transient — never persisted)
       bottomBarAction: null,
       setBottomBarAction: (action) => set({ bottomBarAction: action }),
+
+      // Product overlay flag (transient — never persisted)
+      productOverlayOpen: false,
+      setProductOverlayOpen: (open) => set({ productOverlayOpen: open }),
     }),
     {
       name: 'teajia-storage',
