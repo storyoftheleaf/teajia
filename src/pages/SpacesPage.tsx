@@ -141,7 +141,7 @@ export const SpacesPage: React.FC = () => {
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[2.2rem] md:text-[3rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em] mb-5"
+          className="text-[2.2rem] md:text-[3rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em] mb-5"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           Our Spaces
@@ -174,7 +174,7 @@ export const SpacesPage: React.FC = () => {
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                   <div className="flex flex-col gap-1.5">
                     <h2
-                      className="text-[1.25rem] md:text-[1.4rem] font-light text-tea-text leading-snug tracking-[-0.01em]"
+                      className="text-[1.25rem] md:text-[1.4rem] font-normal text-tea-text leading-snug tracking-[-0.01em]"
                       style={{ fontFamily: 'var(--font-display)' }}
                     >
                       {space.name}

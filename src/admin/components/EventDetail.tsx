@@ -4,7 +4,8 @@ import { ArrowLeft, Check, Lock, Edit3, Loader2, Users, Clock, MapPin, Share2, B
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { useEvent, useAttendees } from '../hooks/useEventData';
+import { useEvent, useAttendees, useTastingNotes } from '../hooks/useEventData';
+import { Modal } from '../../components/shared/Modal';
 import { useToast } from './Toast';
 import { EventForm } from './EventForm';
 import { AttendeeTable } from './AttendeeTable';
@@ -315,6 +316,8 @@ export const EventDetail: React.FC = () => {
   const setActiveTab = (key: TabKey) => { setSearchParams(params => { params.set('tab', key); return params; }, { replace: true }); setOverflowOpen(false); };
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const overflowMenuRef = useRef<HTMLDivElement>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [closingRsvp, setClosingRsvp] = useState(false);
@@ -330,11 +333,7 @@ export const EventDetail: React.FC = () => {
   const [isVenueManagerOpen, setIsVenueManagerOpen] = useState(false);
   const loadVenues = () => { api.venues.list().then(setVenues).catch(() => { showToast('Could not load venues', 'error'); }); };
 
-  const { data: tastingNotes = [] } = useQuery<TastingNote[]>({
-    queryKey: ['event-tasting-notes', id],
-    queryFn: () => api.events.getTastingNotes(id!),
-    enabled: !!id,
-  });
+  const { data: tastingNotes = [] } = useTastingNotes(id!);
 
   useEffect(() => {
     if (event && briefingCards === null) {
@@ -360,8 +359,18 @@ export const EventDetail: React.FC = () => {
         setOverflowOpen(false);
       }
     };
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOverflowOpen(false);
+    };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', keyHandler);
+    // Focus the first menu item on open
+    const firstItem = overflowMenuRef.current?.querySelector<HTMLButtonElement>('button');
+    firstItem?.focus();
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', keyHandler);
+    };
   }, [overflowOpen]);
 
   if (isLoading || !event) {
@@ -415,6 +424,19 @@ export const EventDetail: React.FC = () => {
     }
   };
 
+  const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
+    const last = PRIMARY_TABS.length - 1;
+    let next = -1;
+    if (e.key === 'ArrowRight') next = index === last ? 0 : index + 1;
+    else if (e.key === 'ArrowLeft') next = index === 0 ? last : index - 1;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = last;
+    if (next < 0) return;
+    e.preventDefault();
+    setActiveTab(PRIMARY_TABS[next].key);
+    tabRefs.current[next]?.focus();
+  };
+
   const PRIMARY_TABS: { key: TabKey; label: string; badge?: number }[] = [
     { key: 'requests', label: 'Requests', badge: requestedCount },
     { key: 'attendees', label: 'Attendees' },
@@ -438,7 +460,7 @@ export const EventDetail: React.FC = () => {
       {/* Back button */}
       <button
         onClick={() => navigate('/admin/events')}
-        className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors mb-4"
+        className="tap-target flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors mb-4"
       >
         <ArrowLeft size={14} /> <span>Events</span>
       </button>
@@ -483,19 +505,19 @@ export const EventDetail: React.FC = () => {
                 href={`/event/${event.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                className="tap-target flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <ExternalLink size={12} /> Preview
               </a>
               <button
                 onClick={() => setIsShareOpen(true)}
-                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                className="tap-target flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <Share2 size={12} /> Share
               </button>
               <button
                 onClick={() => setIsEditOpen(true)}
-                className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
+                className="tap-target flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
               >
                 <Edit3 size={12} /> Edit
               </button>
@@ -511,7 +533,11 @@ export const EventDetail: React.FC = () => {
           <div className="flex items-center gap-3">
             {/* Three-segment bar */}
             <div className="flex-1 max-w-[300px]">
-              <div className="h-2 bg-tea-bg rounded-full overflow-hidden flex">
+              <div
+                role="img"
+                aria-label={`${confirmedCount} of ${event.totalCapacity} confirmed, ${requestedCount} pending, ${waitlistCount} waitlisted`}
+                className="h-2 bg-tea-bg rounded-full overflow-hidden flex"
+              >
                 {/* Confirmed — solid gold */}
                 <div
                   className="h-full bg-tea-gold transition-all duration-500 flex-shrink-0"
@@ -549,18 +575,18 @@ export const EventDetail: React.FC = () => {
           {/* Legend */}
           <div className="flex items-center gap-4 text-ui-10 text-tea-text-dim font-mono">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-6 h-px bg-tea-gold" />
+              <span className="inline-block w-6 h-1.5 rounded-md bg-tea-gold" />
               Confirmed
             </span>
             <span className="flex items-center gap-1.5">
               <span
-                className="inline-block w-6 h-px"
+                className="inline-block w-6 h-1.5 rounded-md"
                 style={{ background: 'repeating-linear-gradient(90deg, var(--tea-gold) 0px, var(--tea-gold) 2px, transparent 2px, transparent 5px)', opacity: 0.7 }}
               />
               Pending
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-6 h-px bg-tea-text-sec/40" />
+              <span className="inline-block w-6 h-1.5 rounded-md bg-tea-text-sec/40" />
               Waitlist
             </span>
           </div>
@@ -572,7 +598,7 @@ export const EventDetail: React.FC = () => {
             <button
               onClick={() => setConfirmClose(true)}
               disabled={closingRsvp}
-              className="flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
             >
               {closingRsvp ? <Loader2 size={11} className="animate-spin" /> : <Lock size={11} />}
               Close RSVP
@@ -585,11 +611,22 @@ export const EventDetail: React.FC = () => {
       <div className="w-full h-px bg-tea-border mb-6" />
 
       {/* Tab Navigation */}
-      <div className="flex items-end gap-0.5 border-b border-tea-border mb-6">
-        {PRIMARY_TABS.map(tab => (
+      <div
+        role="tablist"
+        aria-label="Event sections"
+        className="flex items-end gap-0.5 border-b border-tea-border mb-6 overflow-x-auto hide-scrollbar"
+      >
+        {PRIMARY_TABS.map((tab, index) => (
           <button
             key={tab.key}
+            ref={el => { tabRefs.current[index] = el; }}
+            role="tab"
+            id={`event-tab-${tab.key}`}
+            aria-selected={activeTab === tab.key}
+            aria-controls="event-tabpanel"
+            tabIndex={activeTab === tab.key ? 0 : -1}
             onClick={() => setActiveTab(tab.key)}
+            onKeyDown={e => handleTabKeyDown(e, index)}
             className={`relative flex-shrink-0 flex items-center gap-1.5 px-3 md:px-4 py-2.5 text-xs md:text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
               activeTab === tab.key
                 ? 'border-tea-gold text-tea-gold'
@@ -599,7 +636,7 @@ export const EventDetail: React.FC = () => {
             {tab.label}
             {tab.badge !== undefined && tab.badge > 0 && (
               <span className={`text-ui-10 font-mono leading-none ${
-                activeTab === tab.key ? 'text-tea-gold' : 'text-tea-gold'
+                activeTab === tab.key ? 'text-tea-gold' : 'text-tea-text-sec'
               }`}>
                 {tab.badge}
               </span>
@@ -611,6 +648,8 @@ export const EventDetail: React.FC = () => {
         <div className="relative ml-auto" ref={overflowRef}>
           <button
             onClick={() => setOverflowOpen(o => !o)}
+            aria-haspopup="menu"
+            aria-expanded={overflowOpen}
             className={`flex-shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs transition-colors border-b-2 -mb-px whitespace-nowrap ${
               overflowActive
                 ? 'border-tea-gold text-tea-gold'
@@ -625,10 +664,15 @@ export const EventDetail: React.FC = () => {
             )}
           </button>
           {overflowOpen && (
-            <div className="absolute right-0 top-full mt-1 z-popover bg-tea-surface border border-tea-border rounded-md shadow-lg py-1 min-w-[140px]">
+            <div
+              ref={overflowMenuRef}
+              role="menu"
+              className="absolute right-0 top-full mt-1 z-popover bg-tea-surface border border-tea-border rounded-md shadow-lg py-1 min-w-[140px]"
+            >
               {OVERFLOW_TABS.map(tab => (
                 <button
                   key={tab.key}
+                  role="menuitem"
                   onClick={() => setActiveTab(tab.key)}
                   className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between gap-3 ${
                     activeTab === tab.key
@@ -652,6 +696,10 @@ export const EventDetail: React.FC = () => {
       {/* Tab Content */}
       <motion.div
         key={activeTab}
+        role="tabpanel"
+        id="event-tabpanel"
+        tabIndex={0}
+        aria-labelledby={`event-tab-${activeTab}`}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
@@ -969,25 +1017,17 @@ export const EventDetail: React.FC = () => {
               </button>
             </div>
 
-            {/* Inline Venue Manager overlay */}
-            {isVenueManagerOpen && (
-              <div className="absolute inset-0 bg-tea-bg z-toast flex flex-col" style={{ minHeight: '60vh' }}>
-                <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-tea-border">
-                  <button
-                    type="button"
-                    onClick={() => { setIsVenueManagerOpen(false); loadVenues(); }}
-                    aria-label="Close"
-                    className="text-tea-text-sec hover:text-tea-text transition-colors rounded-md p-1.5 tap-target"
-                  >
-                    <X size={16} />
-                  </button>
-                  <h3 className="h3 text-tea-text">Manage Venues</h3>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  <VenueManager />
-                </div>
+            {/* Venue Manager overlay */}
+            <Modal
+              isOpen={isVenueManagerOpen}
+              onClose={() => { setIsVenueManagerOpen(false); loadVenues(); }}
+              title="Manage Venues"
+              variant="panel"
+            >
+              <div className="flex-1 overflow-y-auto">
+                <VenueManager />
               </div>
-            )}
+            </Modal>
           </div>
         )}
       </motion.div>

@@ -157,9 +157,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   );
   const { activeAccount, upcomingEventsCount, bottomBarAction, productOverlayOpen } = useAppStore();
 
-  // Also hide when a product overlay (AlcoveModal / TeawareAlcoveModal) is open
-  // via the store flag — covers call sites that don't sync the product to the URL.
-  const shouldHide = hidden || hasProductOverlay || productOverlayOpen;
+  // Keep the global nav visible even when a product overlay is open — the alcove
+  // commerce footer and the global nav stack, per Adrian's request 2026-05-22.
+  // hasProductOverlay/productOverlayOpen intentionally not included.
+  const shouldHide = hidden;
   const auth = useAuth();
   const isAdmin = auth.isAdmin;
   const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';

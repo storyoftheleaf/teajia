@@ -143,7 +143,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
           className={`pt-14 md:pt-20 lg:pt-24 pb-10 md:pb-14 ${heroReveal.className}`}
           style={heroReveal.style}
         >
-          <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em]"
+          <h2 className="text-[2rem] md:text-[2.8rem] lg:text-[3.5rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em]"
               style={{ fontFamily: 'var(--font-display)' }}>
             Tea spaces, sourcing,<br /> guidance.
           </h2>
@@ -165,7 +165,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
             />
           </div>
           <div className="flex flex-col justify-center max-w-[460px]">
-            <p className="text-[1.05rem] md:text-[1.15rem] font-light text-tea-text leading-[1.4] tracking-[-0.005em] mb-6"
+            <p className="text-[1.05rem] md:text-[1.15rem] font-normal text-tea-text leading-[1.4] tracking-[-0.005em] mb-6"
                style={{ fontFamily: 'var(--font-display)' }}>
               Twenty years in tea culture.<br className="hidden md:block" />
               Taiwan, China, Japan, Bali, and beyond.
@@ -302,7 +302,7 @@ const Services: React.FC = () => (
             className={`${i > 0 ? 'pt-14 md:pt-16' : ''} ${i < SERVICES.length - 1 ? 'pb-14 md:pb-16' : 'pb-6'}`}
           >
             <div className="flex items-baseline justify-between gap-6 mb-3">
-            <h3 className={`font-light text-tea-text leading-tight tracking-[-0.01em]
+            <h3 className={`font-normal text-tea-text leading-tight tracking-[-0.01em]
                            ${isDesign ? 'text-[1.5rem] md:text-[1.75rem]' : 'text-[1.2rem] md:text-[1.35rem]'}`}
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.label}
@@ -324,7 +324,7 @@ const Services: React.FC = () => (
                 <div key={o.name}
                      className="flex flex-col py-4 hover:bg-tea-surface/50 transition-colors duration-200 -mx-2 px-2 rounded-md">
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-ui-15 font-light text-tea-text"
+                    <span className="text-ui-15 font-normal text-tea-text"
                           style={{ fontFamily: 'var(--font-display)' }}>
                       {o.name}
                     </span>
@@ -427,7 +427,7 @@ const Testimonial: React.FC = () => {
       transition={{ duration: 1 }}
       className="mt-28 md:mt-40 text-center"
     >
-      <p className="text-[1.5rem] md:text-[1.85rem] font-light text-tea-text leading-[1.35] max-w-[540px] mx-auto tracking-[-0.01em]"
+      <p className="text-[1.5rem] md:text-[1.85rem] font-normal text-tea-text leading-[1.35] max-w-[540px] mx-auto tracking-[-0.01em]"
          style={{ fontFamily: 'var(--font-display)' }}>
         "{testimonial.quote}"
       </p>
@@ -455,7 +455,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     className="mt-16 md:mt-24 pb-32 md:pb-40 text-center"
   >
-    <h3 className="text-[2rem] md:text-[2.75rem] lg:text-[3.25rem] font-light text-tea-text leading-[1.1] tracking-[-0.02em] mx-auto max-w-[580px]"
+    <h3 className="text-[2rem] md:text-[2.75rem] lg:text-[3.25rem] font-normal text-tea-text leading-[1.1] tracking-[-0.02em] mx-auto max-w-[580px]"
         style={{ fontFamily: 'var(--font-display)' }}>
       Every project begins with a conversation.
     </h3>

@@ -5,10 +5,11 @@ import { Link } from 'react-router-dom';
 import { LogoEmblem } from './Logos/LogoEmblem';
 import { LogoText } from './Logos/LogoText';
 import { api } from '../lib/api';
-import { useAppStore } from '../lib/store';
 
 // Track across mounts — animation plays once per session
 let hasAnimated = false;
+
+const HERO_SPACER_HEIGHT = '100dvh';
 
 interface HomePageProps {
   onNavigateToSection: (section: 'MAGAZINE' | 'LEARN' | 'SHOP' | 'OFFERINGS', magazineTab?: 'articles' | 'visual' | 'tea-inspire') => void;
@@ -52,7 +53,7 @@ const EmailCapture: React.FC = () => {
 
   if (submitted) {
     return (
-      <p className="text-base font-light text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
+      <p className="text-base font-normal text-tea-gold" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>
         you're on the list.
       </p>
     );
@@ -67,7 +68,7 @@ const EmailCapture: React.FC = () => {
           onChange={e => setEmail(e.target.value)}
           placeholder="your email"
           disabled={loading}
-          className="w-full bg-transparent text-base font-light text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50"
+          className="w-full bg-transparent text-base font-normal text-center text-tea-text outline-none pb-2.5 pl-7 pr-10 transition-colors placeholder:italic placeholder:text-tea-text-dim disabled:opacity-50"
           style={{
             fontFamily: 'var(--font-display)',
             border: 'none',
@@ -90,9 +91,7 @@ const EmailCapture: React.FC = () => {
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
             </svg>
           ) : (
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 8h10M10 4.5L13.5 8 10 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <span className="text-ui-12 italic" style={{ fontFamily: 'var(--font-display)' }}>join</span>
           )}
         </button>
       </form>
@@ -108,7 +107,6 @@ const CharacterRevealCapture: React.FC = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -123,7 +121,7 @@ const CharacterRevealCapture: React.FC = () => {
   // progress 1 = spacer bottom at viewport bottom.
   const { scrollYProgress } = useScroll({
     target: sectionRef,
-    offset: ['start start', 'end end'],
+    offset: ['start 20%', 'end end'],
   });
 
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
@@ -140,7 +138,7 @@ const CharacterRevealCapture: React.FC = () => {
   // 1. Logo drops from top (0% → 40%)
   const logoPosP = ease(Math.max(0, Math.min(1, progress / 0.40)));
   const logoOpacity = 0.15 + 0.85 * logoPosP;
-  const logoEntryScale = 1.6 - 0.6 * logoPosP;
+  const logoEntryScale = 1.08 - 0.08 * logoPosP;
   // 2. Teaser text fades in (42% → 50%)
   const teaserP = Math.max(0, Math.min(1, (progress - 0.42) / 0.08));
   // Logo grows slightly while characters come in (50% → 85%)
@@ -156,6 +154,7 @@ const CharacterRevealCapture: React.FC = () => {
   const spiritP = ease(Math.max(0, Math.min(1, (progress - 0.80) / 0.10)));
   // 7. Email + account links rise from below (90% → 100%)
   const emailP = ease(Math.max(0, Math.min(1, (progress - 0.90) / 0.10)));
+  const characterFrameP = Math.max(centerP, leftP, rightP);
 
   const isVisible = progress > 0;
 
@@ -169,14 +168,15 @@ const CharacterRevealCapture: React.FC = () => {
       {/* Fixed overlay — pointer-events-none so scroll passes through; interactive children opt back in */}
       {isVisible && (
         <div
-          className={`fixed inset-0 flex flex-col items-center justify-center px-6 z-overlay pointer-events-none pt-[env(safe-area-inset-top)] pb-nav-gap lg:pb-0 ${sidebarCollapsed ? 'lg:left-14' : 'lg:left-56'} transition-[left] duration-300`}
+          className="fixed inset-0 z-overlay flex flex-col items-center justify-center px-5 pt-[env(safe-area-inset-top)] pb-nav-gap pointer-events-none sm:px-6 lg:pb-24"
         >
+          <div className="flex w-full max-w-[880px] flex-col items-center">
           {/* Logo — drops from top */}
           <div
-            className="mb-8"
+            className="mb-7 md:mb-8"
             style={{
               opacity: logoOpacity,
-              transform: `translateY(${(1 - logoPosP) * -400}px) scale(${logoEntryScale * logoScale})`,
+              transform: `translateY(${(1 - logoPosP) * -64}px) scale(${logoEntryScale * logoScale})`,
             }}
           >
             <LogoText size="hero" color="var(--tea-text-sec)" />
@@ -199,22 +199,35 @@ const CharacterRevealCapture: React.FC = () => {
           </div>
 
           {/* Characters */}
-          <div className="flex items-end justify-center gap-5 md:gap-8">
-            <div className="flex flex-col items-center" style={{ opacity: leftP, transform: `translateX(${(1 - leftP) * -60}px)` }}>
+          <div
+            className="relative grid w-full max-w-[620px] grid-cols-3 border-y border-tea-border py-4 sm:py-5 md:py-6"
+            style={{ opacity: characterFrameP }}
+          >
+            <div
+              className="pointer-events-none absolute inset-y-0 left-1/3 w-px bg-tea-border"
+              style={{ opacity: 0.65 * characterFrameP }}
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute inset-y-0 left-2/3 w-px bg-tea-border"
+              style={{ opacity: 0.65 * characterFrameP }}
+              aria-hidden="true"
+            />
+            <div className="flex flex-col items-center px-2 sm:px-5" style={{ opacity: leftP, transform: `translateX(${(1 - leftP) * -42}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>佳</span>
-              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-normal mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>beauty</span><span>excellence</span>
               </p>
             </div>
-            <div className="flex flex-col items-center" style={{ opacity: centerP, transform: `scale(${centerP})` }}>
+            <div className="flex flex-col items-center px-2 sm:px-5" style={{ opacity: centerP, transform: `scale(${centerP})` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>家</span>
-              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-normal mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>home</span><span>devotion</span>
               </p>
             </div>
-            <div className="flex flex-col items-center" style={{ opacity: rightP, transform: `translateX(${(1 - rightP) * 60}px)` }}>
+            <div className="flex flex-col items-center px-2 sm:px-5" style={{ opacity: rightP, transform: `translateX(${(1 - rightP) * 42}px)` }}>
               <span className="text-[48px] sm:text-[69px] leading-none" style={{ fontFamily: "'Ma Shan Zheng', cursive", color: 'var(--tea-gold)' }}>嘉</span>
-              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-light mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
+              <p className="flex flex-col items-center text-ui-14 md:text-ui-15 tracking-[0.04em] font-normal mt-3 leading-[1.4] text-tea-text-sec" style={{ fontFamily: 'var(--font-display)' }}>
                 <span>praise</span><span>celebration</span>
               </p>
             </div>
@@ -222,11 +235,11 @@ const CharacterRevealCapture: React.FC = () => {
 
           {/* Spirit + philosophy — the business, in one breath */}
           <div
-            className="flex flex-col items-center mt-6 max-w-[340px] text-center"
+            className="mt-6 flex max-w-[420px] flex-col items-center text-center md:mt-7"
             style={{ opacity: spiritP, transform: `translateY(${(1 - spiritP) * 12}px)` }}
           >
             <p
-              className="text-ui-14 md:text-ui-15 leading-[1.7] text-tea-text-sec font-light"
+              className="text-ui-14 md:text-ui-15 leading-[1.7] text-tea-text-sec font-normal"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               A home for fine tea. A place to source it, study it, and share it
@@ -242,11 +255,11 @@ const CharacterRevealCapture: React.FC = () => {
 
           {/* Email capture + account links */}
           <div
-            className="flex flex-col items-center mt-6 sm:mt-8 pointer-events-auto w-full max-w-[280px]"
+            className="mt-5 flex w-full max-w-[300px] flex-col items-center border-t border-tea-border pt-5 pointer-events-auto sm:mt-6"
             style={{ opacity: emailP, transform: `translateY(${(1 - emailP) * 20}px)` }}
           >
-            <p className="text-base italic font-light text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>stay connected</p>
-            <p className="text-base italic font-light mt-1 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>it's nothing without you</p>
+            <p className="text-base italic font-normal text-tea-text-dim" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>stay connected</p>
+            <p className="text-base italic font-normal mt-1 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>it's nothing without you</p>
             <div className="mt-3 w-full">
               <EmailCapture />
             </div>
@@ -259,6 +272,7 @@ const CharacterRevealCapture: React.FC = () => {
                 Sign in
               </Link>
             </p>
+          </div>
           </div>
         </div>
       )}
@@ -296,24 +310,45 @@ export const HomePage: React.FC<HomePageProps> = ({
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const vh = window.innerHeight;
-      const fadeEnd = vh * 0.4;
-      setFadeOpacity(Math.max(0, 1 - scrollY / fadeEnd));
-      const glowEnd = vh * 0.6;
-      setGlowY(Math.max(0, 1 - scrollY / glowEnd));
+      const brandStory = document.getElementById('brand-story');
+      const brandTop = brandStory
+        ? brandStory.getBoundingClientRect().top + scrollY
+        : vh;
+      const smoothstep = (value: number) => value * value * (3 - 2 * value);
+      const clampProgress = (start: number, end: number) => {
+        if (end <= start) return 1;
+        return Math.max(0, Math.min(1, (scrollY - start) / (end - start)));
+      };
+      const fadeP = smoothstep(clampProgress(
+        Math.max(0, brandTop - vh * 0.35),
+        brandTop + vh * 0.16,
+      ));
+      const glowP = smoothstep(clampProgress(
+        Math.max(0, brandTop - vh * 0.5),
+        brandTop + vh * 0.1,
+      ));
+      setFadeOpacity(1 - fadeP);
+      setGlowY(1 - glowP);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToBrandStory = () => {
+  const getBrandStoryEnd = () => {
     const el = document.getElementById('brand-story');
-    if (!el) return;
-    // Scroll to the END of the spacer (progress=1), not the start (progress=0).
-    // The smooth scroll traverses the full spacer, playing the reveal along the way.
+    if (!el) return null;
     const rect = el.getBoundingClientRect();
-    const targetY = window.scrollY + rect.top + el.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: targetY, behavior: 'smooth' });
+    return Math.max(0, window.scrollY + rect.top + el.offsetHeight - window.innerHeight);
+  };
+
+  const scrollToBrandStory = () => {
+    const targetY = getBrandStoryEnd();
+    if (targetY === null) return;
+    window.scrollTo({
+      top: targetY,
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    });
   };
 
   return (
@@ -349,11 +384,16 @@ export const HomePage: React.FC<HomePageProps> = ({
       />
 
       {/* ── Act 1: Hero ── */}
-      <div
-        className="relative flex flex-col items-center justify-between px-8"
-        style={{ minHeight: 'calc(100dvh - 44px - env(safe-area-inset-bottom, 0px))', opacity: fadeOpacity }}
-      >
-        <div />
+      <div className="relative w-full" style={{ minHeight: HERO_SPACER_HEIGHT }}>
+        <div
+          className="fixed inset-x-0 top-0 z-dropdown flex flex-col items-center justify-between px-8 pt-[env(safe-area-inset-top)] pb-nav-gap lg:pb-24"
+          style={{
+            minHeight: HERO_SPACER_HEIGHT,
+            opacity: fadeOpacity,
+            pointerEvents: fadeOpacity > 0.08 ? 'auto' : 'none',
+          }}
+        >
+          <div />
 
         <div className="flex flex-col items-center">
           <motion.div
@@ -391,8 +431,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             Tea deepens with what you bring to the table and what you leave behind.
           </motion.h1>
 
-          <motion.div
-            className="flex flex-col items-center mt-6 sm:mt-12"
+          <motion.nav
+            aria-label="Homepage destinations"
+            className="mt-14 flex w-full flex-col items-center justify-center gap-0.5 sm:mt-16"
             initial={initial({ opacity: 0, y: 6 })}
             animate={{ opacity: 1, y: 0 }}
             transition={shouldAnimate ? { duration: 0.6, delay: 0.75 } : { duration: 0 }}
@@ -406,15 +447,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               <button
                 key={item.section}
                 onClick={() => onNavigateToSection(item.section)}
-                className="group text-tea-text-sec/90 hover:text-tea-text transition-colors duration-300 cursor-pointer bg-transparent border-none text-ui-15 md:text-ui-16 lg:text-ui-17 leading-[1.8] tracking-[0.005em] flex items-center gap-1.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+                className="group relative inline-flex items-baseline gap-1 whitespace-nowrap rounded-md border-none bg-transparent py-0.5 text-ui-20 leading-[1.16] tracking-[0.015em] text-tea-text-sec/90 transition-colors duration-300 hover:text-tea-text cursor-pointer before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-[calc(100%+20px)] before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
-                <span className="font-semibold text-tea-gold">{item.accent}</span>
-                <span className="underline decoration-tea-gold/0 group-hover:decoration-tea-gold/30 underline-offset-[3px] transition-all duration-300">{item.rest}</span>
-                <span className="opacity-20 group-hover:opacity-60 -translate-x-1 group-hover:translate-x-0 transition-all duration-300 text-tea-gold text-xs">→</span>
+                <span className="font-medium text-tea-gold/90">{item.accent}</span>
+                <span className="underline decoration-tea-gold/0 underline-offset-[4px] transition-all duration-300 group-hover:decoration-tea-gold/30">{item.rest}</span>
               </button>
             ))}
-          </motion.div>
+          </motion.nav>
 
           {/* Start here — scrolls to the brand story (Act 2) */}
           <motion.div
@@ -425,10 +465,10 @@ export const HomePage: React.FC<HomePageProps> = ({
           >
             <button
               onClick={scrollToBrandStory}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-tea-border text-ui-13 tracking-[0.06em] text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+              className="tap-target rounded-md bg-transparent text-ui-13 tracking-[0.06em] text-tea-text-sec underline decoration-tea-border underline-offset-[6px] hover:text-tea-text hover:decoration-tea-gold/30 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
               style={{ fontFamily: 'var(--font-body)' }}
             >
-              New here? Start here →
+              New here? Start here
             </button>
           </motion.div>
         </div>
@@ -441,14 +481,9 @@ export const HomePage: React.FC<HomePageProps> = ({
           animate={{ opacity: 1 }}
           transition={shouldAnimate ? { duration: 0.6, delay: 1.2 } : { duration: 0 }}
         >
-          <svg
-            width="16" height="10" viewBox="0 0 16 10" fill="none"
-            className="text-tea-gold/40"
-            aria-hidden="true"
-          >
-            <path d="M1 1l7 7 7-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <div className="h-7 w-px bg-tea-gold/25" aria-hidden="true" />
         </motion.div>
+        </div>
       </div>
 
       {/* ── Act 2: Character reveal + welcome ── */}

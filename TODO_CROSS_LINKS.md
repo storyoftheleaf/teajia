@@ -1,5 +1,7 @@
 # Cross-Link & Interconnection TODO
 
+> Consolidated into ../TODO.md on 2026-05-29. All items below are complete; kept as a record. Open work now lives in the project-root TODO.md.
+
 Remaining interconnection work that requires backend/API changes or deeper architectural work.
 
 ## Customer ↔ Events

@@ -80,7 +80,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; subtitle?: string }> =
       {children}
     </h3>
     {subtitle && (
-      <p className="mt-2 font-light italic text-tea-text-sec leading-[1.6]" style={{ fontSize: 'clamp(13px, 1vw + 8px, 15px)', fontFamily: 'var(--font-body)' }}>
+      <p className="mt-2 font-normal italic text-tea-text-sec leading-[1.6]" style={{ fontSize: 'clamp(13px, 1vw + 8px, 15px)', fontFamily: 'var(--font-body)' }}>
         {subtitle}
       </p>
     )}
@@ -182,7 +182,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
           {/* Quote overlaid at the bottom */}
           <div className="absolute inset-0 bg-gradient-to-t from-tea-bg/60 via-transparent to-transparent" />
           <div className="absolute bottom-0 left-0 right-0" style={{ padding: 'clamp(16px, 3vw, 32px)' }}>
-            <p className="font-light italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)', fontFamily: 'var(--font-body)' }}>
+            <p className="font-normal italic text-tea-gold leading-[1.4] max-w-md" style={{ fontSize: 'clamp(14px, 1.5vw + 6px, 18px)', fontFamily: 'var(--font-body)' }}>
               "Everything I wish someone had given me when I started. Take what you need."
             </p>
             <span className="block mt-2 text-ui-10 font-sans uppercase tracking-[0.15em] text-tea-text-sec">
@@ -345,7 +345,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                     <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-sans block mb-1.5">
                       Try this
                     </span>
-                    <p className="text-ui-15 text-tea-text-sec leading-[1.8] font-light italic" style={{ fontFamily: 'var(--font-body)' }}>
+                    <p className="text-ui-15 text-tea-text-sec leading-[1.8] font-normal italic" style={{ fontFamily: 'var(--font-body)' }}>
                       {spotlightTerm.deepDive.tryThis[0].description}
                     </p>
                   </div>
@@ -432,7 +432,7 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
                       'text-tea-text/30 group-hover:text-tea-gold/40'
                     }`} />
                   </div>
-                  <p className={`font-light italic leading-[1.8] ${
+                  <p className={`font-normal italic leading-[1.8] ${
                     isDone ? 'text-tea-text-sec/80' : 'text-tea-text-sec'
                   }`} style={{ fontSize: 'clamp(13px, 1vw + 7px, 15px)', fontFamily: 'var(--font-body)' }}>
                     {mod.description}

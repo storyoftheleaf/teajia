@@ -104,7 +104,7 @@ const ReadPage: React.FC<ReadPageProps> = ({
 
               <div className="absolute bottom-0 left-0 right-0 p-5 md:p-10 text-left">
                 <h2
-                  className="text-2xl md:text-5xl text-tea-text font-light leading-[1.1] mb-2 group-hover:text-tea-gold transition-colors duration-700"
+                  className="text-2xl md:text-5xl text-tea-text font-normal leading-[1.1] mb-2 group-hover:text-tea-gold transition-colors duration-700"
                   style={{ fontFamily: 'var(--font-display)' }}
                 >
                   {featuredArticle.title}

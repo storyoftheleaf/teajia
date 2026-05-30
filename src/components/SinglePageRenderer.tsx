@@ -51,7 +51,7 @@ const TYPE = {
   displaySm: 'text-[64px] font-display leading-[0.95] tracking-[-0.01em] font-light',
   // Headlines — Cormorant Garamond, medium weight
   headline: 'text-[40px] font-display leading-[1.15] font-normal',
-  subtitle: 'text-[30px] font-display leading-[1.25] font-light italic',
+  subtitle: 'text-[30px] font-display leading-[1.25] font-normal italic',
   headlineSm: 'text-ui-28 font-display leading-[1.3] font-normal',
   // Body — Lora, optimized for reading (sizes increased for ~47% mobile scale)
   subhead: 'text-ui-26 font-body leading-[1.4]',

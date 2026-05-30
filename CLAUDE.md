@@ -5,7 +5,7 @@ stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer 
 deploy: https://teajia.pages.dev
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-05-15
+last_reviewed: 2026-05-18
 ---
 
 # Teajia — flagship e-commerce + content platform
@@ -91,6 +91,25 @@ npm run preview      # preview production build
 # deploy via Cloudflare Pages CI on push to main
 ```
 
+## Secrets — Infisical is the source of truth (set up 2026-05-24)
+Worker secrets live in Infisical (project: Teajia, env: dev). The repo no longer carries a tracked `.env.local` or `worker/.dev.vars`; both are generated on demand or ignored.
+
+**Local dev flow:**
+- `cd worker && npm run dev` runs `infisical export ... > .dev.vars && wrangler dev`. Each boot regenerates `.dev.vars` from Infisical, so the on-disk file is a throwaway cache.
+- To change a secret: edit it in the Infisical web UI, then restart `npm run dev`. No file edits needed.
+- `.infisical.json` (committed) links this folder to the Teajia project. Safe — just an ID.
+- `.dev.vars` is gitignored. Original pre-Infisical copy archived at `~/.infisical-backups/teajia/dev.vars.backup-2026-05-24` (kept until prod side is also migrated).
+
+**Production (Cloudflare Worker):**
+- Still uses `wrangler secret put` — not yet wired to Infisical. When ready, the path is `infisical run --env=prod -- wrangler secret put X` or a Machine Identity in CI.
+
+**Frontend (`.env.local`):**
+- Was untracked from git in commit `6eb75fc` (was on disk + tracked despite `.gitignore` listing it). Not yet wired to Infisical because Teajia's frontend only reads `VITE_API_URL` (a public URL) and dev-only seed credentials. Migrate when adding real `VITE_*` secrets.
+
+**Never paste secret values into chat or scripts.** Source of truth is Infisical; if a value is needed, use `infisical secrets set KEY=...` in Terminal directly. See `~/.claude/projects/.../memory/feedback_secret_handling_strict.md`.
+
+**Full cross-project pattern docs:** [../i64os/docs/SECRETS.md](../i64os/docs/SECRETS.md) — covers all four projects, the two-Infisical-projects shape, prod boundary, and command cheat sheet.
+
 ## Testing
 ```bash
 npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)
@@ -171,3 +190,6 @@ These must be consistent across the entire app. Violations must be fixed immedia
 
 ## NEVER change without explicit confirmation
 - Navigation links, tab labels, or routing in `src/components/BottomTabBar.tsx` or any nav component — ask first, do not assume.
+
+## TODO format
+`TODO.md` items follow the workspace convention: `- [ ] **Bold lead.** _(band: agent-runnable | you-required | routine)_ One descriptive sentence.` with an optional link/detail line underneath pointing to the full plan doc, PR, or referenced files. Group items under `## Soon` / `## Pre-launch` / `## Future` / `## Operational notes`. The band hint tells the i64os Temple page which lane to render the item in.

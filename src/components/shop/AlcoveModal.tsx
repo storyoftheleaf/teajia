@@ -296,11 +296,19 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               width: '100%',
             }}
           >
-          {/* On desktop, constrain size */}
+          {/* On desktop, constrain size. On mobile (<lg), leave 52px clearance
+              at the bottom for the global BottomTabBar — the alcove commerce
+              footer stacks above it instead of overlapping it. */}
           <style>{`
             [data-alcove-card-wrapper] {
-              height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
-              max-height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
+              height: calc(100dvh - 44px - 52px - env(safe-area-inset-bottom, 0px));
+              max-height: calc(100dvh - 44px - 52px - env(safe-area-inset-bottom, 0px));
+            }
+            @media (min-width: 1024px) {
+              [data-alcove-card-wrapper] {
+                height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
+                max-height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
+              }
             }
             @media (min-width: 768px) {
               [data-alcove-card-wrapper] {

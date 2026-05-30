@@ -43,6 +43,15 @@ interface TeaInventoryProps {
 // Preferred display order for tea types — any types not listed here appear at the end
 const TYPE_ORDER = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Black', 'Dark', 'Sheng', 'Shou', 'Herbal'];
 
+// Sort options for the shop toolbar — rendered as inline pills matching Type/Feeling
+const SORT_OPTIONS: { id: 'featured' | 'price_asc' | 'price_desc' | 'recent' | 'tasted'; label: string }[] = [
+  { id: 'featured', label: 'Featured' },
+  { id: 'price_asc', label: 'Price ↑' },
+  { id: 'price_desc', label: 'Price ↓' },
+  { id: 'recent', label: 'Recently viewed' },
+  { id: 'tasted', label: 'Most tasted' },
+];
+
 // Extract feeling terms from the canonical tasting taxonomy
 const FEELING_TERMS = (() => {
   const cat = TASTING_TAXONOMY.categories.find(c => c.id === 'feeling');
@@ -85,7 +94,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
   const [activeType, setActiveType] = useState<string>('All');
   const [activeFeeling, setActiveFeeling] = useState<string | null>(null); // feeling term ID from taxonomy
   const [specialFilter, setSpecialFilter] = useState<'None' | 'Curated' | 'Sale' | 'Liked' | 'Tasted'>('None');
-  const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | null>(null);
+  const [openFilter, setOpenFilter] = useState<'type' | 'feeling' | 'sort' | null>(null);
   const [searchText, setSearchText] = useState<string>('');
   // Profile-level mood/flavor tag filters (URL params: ?mood=id,id2 and ?flavorTag=id,id2)
   const [activeMoodTags, setActiveMoodTags] = useState<string[]>([]);
@@ -225,9 +234,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     const fresh = inventory.find(i => i.id === viewItem.id);
     if (fresh && fresh !== viewItem) setViewItemRaw(fresh);
   }, [inventory, viewItem]);
-
-  // Filter area ref
-  const filterRef = useRef<HTMLDivElement>(null);
 
   // Recently viewed items resolved from inventory
   const recentlyViewedItems = useMemo(() => {
@@ -467,12 +473,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
       )}
 
       {/* --- Inline Filter Bar + Content (full width) --- */}
-      <div className="max-w-full mx-auto px-1 md:px-2 lg:px-4 pt-4">
+      <div className="max-w-full mx-auto px-4 md:px-6 lg:px-10 pt-4">
 
          {/* Sticky shop toolbar */}
-         <div className="sticky top-0 z-sticky -mx-1 md:-mx-2 lg:-mx-4 px-1 md:px-2 lg:px-4 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
-           {/* Row 1: search + result count */}
-           <div className="flex items-center gap-3 pt-2 pb-1.5">
+         <div className="sticky top-0 z-sticky -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-10 lg:px-10 bg-tea-bg/95 backdrop-blur-sm border-b border-tea-border">
+           {/* Row 1: search + price weight */}
+           <div className="flex items-center gap-4 pt-3 pb-2">
              <input
                type="search"
                value={searchText}
@@ -482,53 +488,13 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                className="flex-1 min-w-0 bg-transparent border-b border-tea-border text-tea-text text-sm placeholder:text-tea-text-dim py-1 pr-2 outline-none focus:border-tea-gold transition-colors"
                style={{ fontFamily: 'var(--font-body)' }}
              />
-             <span className="shrink-0 text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim num">
-               {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
-             </span>
-           </div>
-
-           {/* Row 2: actions — saved toggle · sort · weight */}
-           <div className="flex items-center gap-4 pb-2 overflow-x-auto hide-scrollbar">
-             <button
-               type="button"
-               onClick={() => setShopSavedOnly(!shopSavedOnly)}
-               aria-pressed={shopSavedOnly}
-               aria-label="Show only liked teas"
-               className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
-                 shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-               }`}
-             >
-               <Icons.Heart className="w-3 h-3" filled={shopSavedOnly} aria-hidden="true" />
-               <span>Liked</span>
-             </button>
-
-             <div className="w-px h-3.5 bg-tea-border shrink-0" />
-
-             <label className="flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec shrink-0">
-               <span>Sort</span>
-               <select
-                 value={shopSort}
-                 onChange={e => setShopSort(e.target.value as any)}
-                 aria-label="Sort teas by"
-                 className="bg-transparent text-tea-text text-ui-10 uppercase tracking-[0.15em] outline-none cursor-pointer border-none focus-visible:underline"
-                 style={{ fontFamily: 'var(--font-body)' }}
-               >
-                 <option value="featured">Featured</option>
-                 <option value="price_asc">Price ↑</option>
-                 <option value="price_desc">Price ↓</option>
-                 <option value="recent">Recently viewed</option>
-                 <option value="tasted">Most tasted</option>
-               </select>
-             </label>
-
-             <div className="w-px h-3.5 bg-tea-border shrink-0" />
-
-             <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price per</span>
+             <div className="flex items-center gap-1.5 shrink-0">
+               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Price</span>
                <div className="flex items-center gap-0.5 border border-tea-border rounded-md overflow-hidden">
-                 {([25, 50, 100] as const).map(g => (
+                 {([50, 100] as const).map(g => (
                    <button
                      key={g}
+                     type="button"
                      onClick={() => setShopPriceWeight(g)}
                      className={`px-2 py-0.5 text-ui-10 uppercase tracking-wider transition-colors num ${
                        shopPriceWeight === g
@@ -542,108 +508,134 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </div>
              </div>
            </div>
-         </div>
 
-         {/* Filter bar — two dropdown buttons */}
-         <div ref={filterRef} className="mb-3 relative z-drawer">
-            <div className="flex flex-col gap-3">
-               {/* Type filter group */}
-               <div className="flex flex-col gap-0.5">
-                  <button
-                     onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
-                     className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors w-fit ${
-                        activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                     }`}
-                  >
-                     <span>{activeType === 'All' ? 'Type' : activeType}</span>
-                     <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} />
-                  </button>
-                  <span className="text-ui-10 text-tea-text-dim">Classification like green, oolong, or black</span>
-               </div>
+           {/* Row 2: type · feeling · sort · liked */}
+           <div className="flex items-center gap-4 pb-3 overflow-x-auto hide-scrollbar">
 
-               {/* Feeling filter group */}
+             {/* Filter group */}
+             <div className="flex items-center gap-3 shrink-0">
+               <button
+                 type="button"
+                 onClick={() => setOpenFilter(prev => prev === 'type' ? null : 'type')}
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                   activeType !== 'All' ? 'text-tea-gold' : openFilter === 'type' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                 }`}
+               >
+                 <span>{activeType === 'All' ? 'Type' : activeType}</span>
+                 <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'type' ? 'rotate-180' : ''}`} aria-hidden="true" />
+               </button>
+
                {availableFeelings.length > 0 && (
-               <div className="flex flex-col gap-0.5">
-                  <button
-                     onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
-                     className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1.5 transition-colors w-fit ${
-                        activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                     }`}
-                  >
-                     <span>{activeFeeling ? (FEELING_TERMS.find(f => f.id === activeFeeling)?.label || activeFeeling) : 'Feeling'}</span>
-                     <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'feeling' ? 'rotate-180' : ''}`} />
-                  </button>
-                  <span className="text-ui-10 text-tea-text-dim">Sensory characteristics you&apos;ve tasted</span>
-               </div>
+                 <button
+                   type="button"
+                   onClick={() => setOpenFilter(prev => prev === 'feeling' ? null : 'feeling')}
+                   className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                     activeFeeling ? 'text-tea-gold' : openFilter === 'feeling' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                   }`}
+                 >
+                   <span>{activeFeeling ? (FEELING_TERMS.find(f => f.id === activeFeeling)?.label || activeFeeling) : 'Feeling'}</span>
+                   <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'feeling' ? 'rotate-180' : ''}`} aria-hidden="true" />
+                 </button>
                )}
-            </div>
 
-            {/* Full-width popover — shared backdrop, content depends on which is open */}
-            {openFilter && (
-               <>
-                  <div className="fixed inset-0 z-overlay" onClick={() => setOpenFilter(null)} />
-                  <div className="absolute left-0 right-0 top-full mt-1 z-drawer bg-tea-bg border border-tea-border rounded-xl shadow-xl p-3 animate-[fadeIn_0.15s_ease-out]">
-                     {openFilter === 'type' && (
-                        <div className="flex flex-wrap gap-1.5">
-                           <button
-                              onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType('All'); setOpenFilter(null); }}
-                              className={`pill ${activeType === 'All' ? 'pill-active' : ''}`}
-                           >
-                              All
-                           </button>
-                           {teaTypes.map(t => (
-                              <button
-                                 key={t}
-                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
-                                 className={`pill ${activeType === t ? 'pill-active' : ''}`}
-                              >
-                                 {t}
-                              </button>
-                           ))}
-                        </div>
-                     )}
-                     {openFilter === 'feeling' && (
-                        <div className="flex flex-wrap gap-1.5">
-                           {activeFeeling && (
-                              <button
-                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(null); setOpenFilter(null); }}
-                                 className="pill"
-                              >
-                                 Clear
-                              </button>
-                           )}
-                           {availableFeelings.map(f => (
-                              <button
-                                 key={f.id}
-                                 onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
-                                 className={`pill ${activeFeeling === f.id ? 'pill-active' : ''}`}
-                              >
-                                 {f.label}
-                              </button>
-                           ))}
-                        </div>
-                     )}
-                  </div>
-               </>
-            )}
+               <button
+                 type="button"
+                 onClick={() => setOpenFilter(prev => prev === 'sort' ? null : 'sort')}
+                 className={`flex items-center gap-1.5 text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                   shopSort !== 'featured' ? 'text-tea-gold' : openFilter === 'sort' ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+                 }`}
+               >
+                 <span>{SORT_OPTIONS.find(o => o.id === shopSort)?.label || 'Sort'}</span>
+                 <Icons.ChevronDown className={`w-3 h-3 transition-transform ${openFilter === 'sort' ? 'rotate-180' : ''}`} aria-hidden="true" />
+               </button>
+             </div>
 
-            {/* Active tasting filter chip (from AlcoveCard cross-reference) */}
-            {tastingFilter && (() => {
-               const Icon = resolveTermIcon(tastingFilter.termId);
-               return (
-                  <div className="flex items-center gap-2 mt-1">
-                     <button
-                        onClick={clearTastingFilter}
-                        className="tag cursor-pointer hover:opacity-80 transition-opacity"
-                     >
-                        <Icon size={11} />
-                        <span>{resolveTermLabel(tastingFilter.termId)}</span>
-                        <X size={11} />
-                     </button>
-                  </div>
-               );
-            })()}
+             {/* Actions group */}
+             <button
+               type="button"
+               onClick={() => setShopSavedOnly(!shopSavedOnly)}
+               aria-pressed={shopSavedOnly}
+               aria-label="Show only liked teas"
+               className={`ml-auto text-ui-10 uppercase tracking-[0.15em] py-1 shrink-0 transition-colors ${
+                 shopSavedOnly ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+               }`}
+             >
+               Liked
+             </button>
+           </div>
+
+           {/* Inline-expanding options — flush below the toolbar, pushes content down */}
+           {openFilter === 'type' && (
+              <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
+                 <button
+                    onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType('All'); setOpenFilter(null); }}
+                    className={`pill ${activeType === 'All' ? 'pill-active' : ''}`}
+                 >
+                    All
+                 </button>
+                 {teaTypes.map(t => (
+                    <button
+                       key={t}
+                       onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
+                       className={`pill ${activeType === t ? 'pill-active' : ''}`}
+                    >
+                       {t}
+                    </button>
+                 ))}
+              </div>
+           )}
+           {openFilter === 'feeling' && (
+              <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
+                 {activeFeeling && (
+                    <button
+                       onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(null); setOpenFilter(null); }}
+                       className="pill"
+                    >
+                       Clear
+                    </button>
+                 )}
+                 {availableFeelings.map(f => (
+                    <button
+                       key={f.id}
+                       onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
+                       className={`pill ${activeFeeling === f.id ? 'pill-active' : ''}`}
+                    >
+                       {f.label}
+                    </button>
+                 ))}
+              </div>
+           )}
+           {openFilter === 'sort' && (
+              <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
+                 {SORT_OPTIONS.map(o => (
+                    <button
+                       key={o.id}
+                       onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setShopSort(o.id); setOpenFilter(null); }}
+                       className={`pill ${shopSort === o.id ? 'pill-active' : ''}`}
+                    >
+                       {o.label}
+                    </button>
+                 ))}
+              </div>
+           )}
          </div>
+
+         {/* Active tasting filter chip (from AlcoveCard cross-reference) */}
+         {tastingFilter && (() => {
+            const Icon = resolveTermIcon(tastingFilter.termId);
+            return (
+               <div className="flex items-center gap-2 mb-3">
+                  <button
+                     onClick={clearTastingFilter}
+                     className="tag cursor-pointer hover:opacity-80 transition-opacity"
+                  >
+                     <Icon size={11} />
+                     <span>{resolveTermLabel(tastingFilter.termId)}</span>
+                     <X size={11} />
+                  </button>
+               </div>
+            );
+         })()}
 
          {/* Mood and flavor tag filter — collapsible, editorial chip rows */}
          {(availableMoodTagTerms.length > 0 || availableFlavorTagTerms.length > 0) && (
@@ -811,15 +803,6 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                </button>
             </div>
          ) : null}
-
-         {/* Result count above grid */}
-         {filteredInventory.length > 0 && (
-            <div className="py-2.5 px-1 border-b border-tea-border">
-              <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim">
-                {filteredInventory.length} {filteredInventory.length === 1 ? 'tea' : 'teas'}
-              </span>
-            </div>
-         )}
 
          {/* LIST VIEW — tap opens AlcoveCard */}
          {filteredInventory.length > 0 && (

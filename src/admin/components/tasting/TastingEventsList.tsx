@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Users, Coffee } from 'lucide-react';
 import { api } from '../../../lib/api';
+import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS } from '../../constants';
 
 interface SessionRow {
   id: string;
@@ -33,22 +34,22 @@ export function TastingEventsList() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <header className="px-6 py-4 border-b border-tea-border flex items-center justify-between">
-        <h1 className="font-display font-light text-ui-20 text-tea-text">Tasting events</h1>
+        <h1 className="font-display font-normal text-ui-20 text-tea-text">Tasting events</h1>
         <button
           type="button"
           onClick={() => navigate('/admin/tasting-events/new')}
-          className="rounded-full bg-tea-gold text-tea-bg px-4 py-2 text-ui-13 tracking-wide flex items-center gap-1.5"
+          className="tap-target rounded-full bg-tea-gold text-tea-bg px-4 py-2 text-ui-13 tracking-wide flex items-center gap-1.5"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus className="w-3.5 h-3.5" aria-hidden="true" />
           New
         </button>
       </header>
 
-      <div className="flex-1 overflow-auto px-6 py-6">
-        {isLoading && <p className="text-ui-13 text-tea-text-sec">Loading…</p>}
+      <main className="flex-1 overflow-auto px-6 py-6 pb-nav-gap">
+        {isLoading && <p role="status" className="text-ui-13 text-tea-text-sec">Loading…</p>}
         {!isLoading && sessions.length === 0 && (
           <div className="max-w-md mx-auto text-center py-16">
-            <p className="font-display font-light text-ui-20 text-tea-text mb-2">
+            <p className="font-display font-normal text-ui-20 text-tea-text mb-2">
               No tasting events yet
             </p>
             <p className="text-ui-13 text-tea-text-sec">
@@ -57,9 +58,9 @@ export function TastingEventsList() {
             <button
               type="button"
               onClick={() => navigate('/admin/tasting-events/new')}
-              className="mt-6 rounded-full bg-tea-gold text-tea-bg px-5 py-2 text-ui-13 tracking-wide inline-flex items-center gap-1.5"
+              className="tap-target mt-6 rounded-full bg-tea-gold text-tea-bg px-5 py-2 text-ui-13 tracking-wide inline-flex items-center gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
               New tasting event
             </button>
           </div>
@@ -80,22 +81,17 @@ export function TastingEventsList() {
                       <span className="text-ui-15 text-tea-text truncate">
                         {s.title || 'Tasting'}
                       </span>
-                      <span
-                        className={[
-                          'text-ui-10 uppercase tracking-[0.14em] px-2 py-0.5 rounded-full',
-                          isActive ? 'bg-tea-gold/10 text-tea-gold-lt' : 'text-tea-text-sec',
-                        ].join(' ')}
-                      >
+                      <span className={`${STATUS_PILL_BASE} ${STATUS_PILL_VARIANTS[isActive ? 'active' : 'archived']}`}>
                         {isActive ? 'Active' : 'Completed'}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 mt-1.5 text-ui-11 text-tea-text-sec tracking-wide">
                       <span className="flex items-center gap-1">
-                        <Coffee className="w-3 h-3" />
+                        <Coffee className="w-3 h-3" aria-hidden="true" />
                         {s.tea_count} tea{s.tea_count !== 1 ? 's' : ''}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" />
+                        <Users className="w-3 h-3" aria-hidden="true" />
                         {s.member_count} {s.member_count === 1 ? 'guest' : 'guests'}
                       </span>
                       <span>{formatWhen(s.created_at)}</span>
@@ -106,7 +102,7 @@ export function TastingEventsList() {
             );
           })}
         </ul>
-      </div>
+      </main>
     </div>
   );
 }

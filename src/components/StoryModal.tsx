@@ -101,7 +101,7 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
             <h2 className="text-4xl md:text-5xl font-serif text-tea-text leading-tight mb-2">
               {story.title}
             </h2>
-            <h3 className="text-xl font-serif text-tea-text-light italic font-light">
+            <h3 className="text-xl font-serif text-tea-text-light italic font-normal">
               {story.subtitle}
             </h3>
           </div>

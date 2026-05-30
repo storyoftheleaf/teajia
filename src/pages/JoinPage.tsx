@@ -73,7 +73,7 @@ function CodeCells({
           value={value[i] ?? ''}
           onChange={(e) => setDigit(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
-          className="w-10 h-12 text-center text-ui-28 bg-transparent border-b border-tea-border focus:border-tea-gold focus:outline-none text-tea-text font-display font-light tracking-[0.05em] caret-tea-gold disabled:opacity-50"
+          className="w-10 h-12 text-center text-ui-28 bg-transparent border-b border-tea-border focus:border-tea-gold focus:outline-none text-tea-text font-display font-normal tracking-[0.05em] caret-tea-gold disabled:opacity-50"
           aria-label={`Digit ${i + 1}`}
         />
       ))}

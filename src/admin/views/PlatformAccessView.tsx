@@ -137,7 +137,7 @@ export const PlatformAccessView: React.FC = () => {
 
 const CountLine: React.FC<{ value: number; label: string; emphasis?: boolean }> = ({ value, label, emphasis }) => (
   <span className={`${emphasis ? 'text-tea-gold' : ''}`}>
-    <span className="font-display text-[24px] font-light">{value}</span>{' '}
+    <span className="font-display text-[24px] font-normal">{value}</span>{' '}
     <span className="text-ui-13 tracking-[0.04em]">{label}</span>
   </span>
 );

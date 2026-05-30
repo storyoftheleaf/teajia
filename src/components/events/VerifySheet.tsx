@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import type { ContactMethod } from '../../types/events';
 
 interface VerifySheetProps {
@@ -26,7 +27,14 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef(0);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null);
+
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(true);
+  // Merge the focus-trap ref and the drag-logic ref onto one element.
+  const sheetRef = useCallback((node: HTMLDivElement | null) => {
+    dragRef.current = node;
+    (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [focusTrapRef]);
 
   // Escape key
   useEffect(() => {
@@ -76,6 +84,18 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     }
   };
 
+  const handleCodePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    e.preventDefault();
+    const next = ['', '', '', '', '', ''];
+    for (let i = 0; i < pasted.length; i++) next[i] = pasted[i];
+    setCodeDigits(next);
+    const lastFilled = Math.min(pasted.length, 6) - 1;
+    codeRefs.current[lastFilled]?.focus();
+    if (pasted.length === 6) confirmMutation.mutate();
+  };
+
   const handleCodeKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !codeDigits[idx] && idx > 0) {
       codeRefs.current[idx - 1]?.focus();
@@ -107,6 +127,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
       >
         {/* Drag handle */}
         <div
+          aria-hidden="true"
           className="flex justify-center pt-3 pb-2 cursor-grab md:hidden"
           onTouchStart={(e) => handleDragStart(e.touches[0].clientY)}
           onTouchMove={(e) => handleDragMove(e.touches[0].clientY)}
@@ -176,13 +197,14 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                   onChange={(e) => setContact(e.target.value)}
                   placeholder={method === 'email' ? 'your@email.com' : '0912-345-678'}
                   autoFocus
+                  aria-invalid={requestMutation.isError || undefined}
                   className={inputClass}
                   onKeyDown={(e) => { if (e.key === 'Enter' && isContactValid) requestMutation.mutate(); }}
                 />
               </div>
 
               {requestMutation.isError && (
-                <p className="text-ui-12 text-tea-error">
+                <p role="alert" className="text-ui-12 text-tea-error">
                   {(requestMutation.error as Error)?.message || 'Could not send code. Try again.'}
                 </p>
               )}
@@ -226,10 +248,10 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
               </p>
 
               {/* 6-digit code inputs */}
-              <div>
-                <label className="label-caps block mb-3">
+              <fieldset className="border-0 p-0 m-0">
+                <legend className="label-caps block mb-3">
                   Verification code
-                </label>
+                </legend>
                 <div className="flex gap-2 justify-center">
                   {codeDigits.map((digit, idx) => (
                     <input
@@ -241,6 +263,8 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                       value={digit}
                       onChange={(e) => handleCodeInput(idx, e.target.value)}
                       onKeyDown={(e) => handleCodeKeyDown(idx, e)}
+                      onPaste={handleCodePaste}
+                      aria-invalid={confirmMutation.isError || undefined}
                       className="w-11 h-14 text-center bg-tea-bg border border-tea-border rounded-md text-tea-text text-ui-20 focus:outline-none focus:border-tea-gold transition-colors"
                       style={{ fontFamily: 'var(--font-display)' }}
                       autoFocus={idx === 0}
@@ -248,10 +272,10 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                     />
                   ))}
                 </div>
-              </div>
+              </fieldset>
 
               {confirmMutation.isError && (
-                <p className="text-ui-12 text-tea-error text-center">
+                <p role="alert" className="text-ui-12 text-tea-error text-center">
                   {(confirmMutation.error as Error)?.message || 'Incorrect code. Please try again.'}
                 </p>
               )}
@@ -287,10 +311,6 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
       </div>
 
       <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
         @keyframes verifyStepIn {
           from { transform: translateX(24px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }

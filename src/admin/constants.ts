@@ -13,8 +13,8 @@ export const INITIAL_RATES: ExchangeRate[] = [
 // Keep visually identical across surfaces so status reads the same everywhere.
 export const STATUS_PILL_STYLES: Record<string, string> = {
   draft:     'bg-tea-elevated text-tea-text-sec',
-  active:    'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
-  published: 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
+  active:    'bg-tea-gold/12 text-tea-text',
+  published: 'bg-tea-gold/12 text-tea-text',
   archived:  'bg-tea-elevated text-tea-text-dim',
 };
 
@@ -24,10 +24,10 @@ export type StatusPillVariant = 'draft' | 'active' | 'archived' | 'success' | 'e
 
 export const STATUS_PILL_VARIANTS: Record<StatusPillVariant, string> = {
   draft:    'bg-tea-elevated text-tea-text-sec',
-  active:   'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40',
+  active:   'bg-tea-gold/12 text-tea-text',
   archived: 'bg-tea-elevated text-tea-text-dim',
-  success:  'bg-tea-green/10 text-tea-green ring-1 ring-inset ring-tea-green/40',
-  error:    'bg-tea-error/10 text-tea-error ring-1 ring-inset ring-tea-error/40',
+  success:  'bg-tea-green/15 text-tea-green',
+  error:    'bg-tea-error/15 text-tea-error',
 };
 
 export const STATUS_PILL_BASE =

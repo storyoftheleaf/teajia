@@ -143,7 +143,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mx-auto mb-4">
           <TeaLeafIcon className="w-7 h-7 text-tea-gold" filled />
         </div>
-        <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Thank You</h3>
+        <h3 className="text-xl text-tea-text mb-2 font-display">Thank You</h3>
         <p className="text-sm text-tea-text-sec max-w-xs mx-auto mb-8">
           Your impressions have been shared. They help us curate even better sessions.
         </p>
@@ -163,8 +163,8 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
 
   return (
     <div className={`${className}`}>
-      <h3 className="text-xl text-tea-text mb-2" style={{ fontFamily: 'var(--font-display)' }}>Share Your Impressions</h3>
-      <p className="text-xs text-tea-text-sec uppercase tracking-[0.2em] mb-6" style={{ fontFamily: 'var(--font-body)' }}>
+      <h3 className="text-xl text-tea-text mb-2 font-display">Share Your Impressions</h3>
+      <p className="text-ui-12 text-tea-text-sec uppercase tracking-[0.2em] mb-6" style={{ fontFamily: 'var(--font-body)' }}>
         Rate the teas you tasted today
       </p>
 
@@ -176,13 +176,14 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
               key={i}
               type="button"
               onClick={() => setCurrentStep(i)}
-              className={`transition-all duration-200 rounded-full ${
+              className={`tap-target transition-all duration-200 rounded-full ${
                 i === currentStep
                   ? 'w-5 h-2 bg-tea-gold'
                   : notes[sortedMenu[i].id]?.rating > 0
                     ? 'w-2 h-2 bg-tea-gold/40'
                     : 'w-2 h-2 bg-tea-border'
               }`}
+              aria-current={i === currentStep ? 'step' : undefined}
               aria-label={`Go to tea ${i + 1}`}
             />
           ))}
@@ -203,24 +204,26 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
               </span>
             )}
           </div>
-          <h4 className="text-base text-tea-text" style={{ fontFamily: 'var(--font-display)' }}>
+          <h4 className="text-ui-16 text-tea-text font-display">
             {currentItem.customName || currentItem.productName}
           </h4>
           {currentItem.customDescription && (
-            <p className="text-xs text-tea-text-sec mt-1 line-clamp-2">{currentItem.customDescription}</p>
+            <p className="text-ui-12 text-tea-text-sec mt-1 line-clamp-2">{currentItem.customDescription}</p>
           )}
         </div>
 
         {/* Rating: 5 tea leaves */}
         <div className="mb-4">
-          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2" style={{ fontFamily: 'var(--font-display)' }}>
+          <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2 font-display">
             Rating
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="radiogroup" aria-label="Rating">
             {[1, 2, 3, 4, 5].map((level) => (
               <button
                 key={level}
                 type="button"
+                role="radio"
+                aria-checked={currentNote.rating === level}
                 onClick={() => updateNote(currentItem.id, 'rating', currentNote.rating === level ? 0 : level)}
                 className="flex-1 min-h-[44px] flex items-center justify-center transition-all duration-200"
                 aria-label={`Rate ${level} out of 5`}
@@ -230,7 +233,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
                   className={`transition-colors duration-200 ${
                     level <= currentNote.rating
                       ? 'text-tea-gold fill-tea-gold'
-                      : 'text-tea-text-dim/20'
+                      : 'text-tea-text-dim'
                   }`}
                 />
               </button>
@@ -245,7 +248,8 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
             value={currentNote.impression}
             onChange={(e) => updateNote(currentItem.id, 'impression', e.target.value)}
             placeholder="One-line impression..."
-            className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
+            aria-label="Your impression"
+            className="w-full px-3 py-2.5 min-h-[44px] bg-tea-bg border border-tea-border rounded-md text-tea-text text-sm placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold/50 transition-colors"
             style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
@@ -253,10 +257,11 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
         {/* Favorite toggle */}
         <button
           type="button"
+          aria-pressed={currentNote.isFavorite}
           onClick={() => updateNote(currentItem.id, 'isFavorite', !currentNote.isFavorite)}
-          className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-xs transition-all duration-200 ${
+          className={`inline-flex items-center gap-2 min-h-[44px] px-3 py-1.5 rounded-full text-ui-12 transition-all duration-200 ${
             currentNote.isFavorite
-              ? 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-tea-gold/40'
+              ? 'bg-tea-gold/10 text-tea-text'
               : 'bg-tea-elevated/50 text-tea-text-sec hover:bg-tea-elevated'
           }`}
         >
@@ -291,7 +296,7 @@ const TastingNotesForm: React.FC<TastingNotesFormProps> = ({ teaMenu, token, cla
           <button
             onClick={handleSubmit}
             disabled={!hasAnyRating || submitMutation.isPending}
-            className="flex-1 py-3 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-tea-gold text-tea-bg text-ui-12 uppercase tracking-[0.25em] font-semibold rounded-md hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
           >
             {submitMutation.isPending ? (
               <span className="inline-block w-4 h-4 border-2 border-tea-border border-t-tea-gold rounded-full animate-spin" />

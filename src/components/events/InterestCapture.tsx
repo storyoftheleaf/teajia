@@ -29,9 +29,16 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
 
   const isValid = contact.trim().length > 0;
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValid || mutation.isPending) return;
+    mutation.mutate();
+  };
+
   if (submitted) {
     return (
       <div
+        role="status"
         className={`flex items-center gap-2.5 px-4 py-3 rounded-md bg-tea-gold/10 border border-tea-gold/20 animate-[fadeIn_0.4s_ease-out] ${className}`}
       >
         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-tea-gold/15 shrink-0">
@@ -43,7 +50,7 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
   }
 
   return (
-    <div className={`space-y-3 ${className}`}>
+    <form onSubmit={handleSubmit} className={`space-y-3 ${className}`}>
       {/* Method toggle — bottom-border underline style */}
       <div className="flex gap-6 border-b border-tea-border">
         {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
@@ -96,6 +103,8 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
           className="label-caps block mb-1.5"
         >
           {method === 'whatsapp' ? 'WhatsApp number' : 'Email address'}
+          <span aria-hidden="true" className="text-tea-gold"> *</span>
+          <span className="sr-only"> (required)</span>
         </label>
         <input
           id={`interest-contact-${slug}`}
@@ -103,14 +112,14 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
           value={contact}
           onChange={(e) => setContact(e.target.value)}
           placeholder={method === 'email' ? 'your@email.com' : '+1 555 123 4567'}
+          aria-required="true"
           className="w-full px-3 py-2.5 bg-tea-surface border border-tea-border rounded-md text-tea-text text-ui-14 placeholder:text-tea-text-dim focus:outline-none focus:border-tea-gold/50 transition-colors"
         />
       </div>
 
       <button
-        type="button"
+        type="submit"
         disabled={!isValid || mutation.isPending}
-        onClick={() => mutation.mutate()}
         className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {mutation.isPending ? (
@@ -121,11 +130,11 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
       </button>
 
       {mutation.isError && (
-        <p className="text-ui-12 text-tea-error">
+        <p role="alert" className="text-ui-12 text-tea-error">
           {(mutation.error as Error)?.message || 'Something went wrong. Please try again.'}
         </p>
       )}
-    </div>
+    </form>
   );
 };
 

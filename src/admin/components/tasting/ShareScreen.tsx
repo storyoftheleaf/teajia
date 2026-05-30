@@ -68,7 +68,7 @@ export function ShareScreen({ sessionId }: ShareScreenProps) {
         <button
           type="button"
           onClick={onCopyCode}
-          className="font-display font-light text-tea-text tracking-[0.08em] leading-none cursor-pointer"
+          className="font-display font-normal text-tea-text tracking-[0.08em] leading-none cursor-pointer"
           style={{ fontSize: '88px' }}
           aria-label="Copy code"
         >

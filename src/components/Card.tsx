@@ -107,7 +107,7 @@ export const Card: React.FC<CardProps> = ({ story, onClick, isSaved, isWatched, 
                              </p>
                              <div className="flex items-start gap-3 mt-2 w-full justify-center">
                                 <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>
-                                <p className="font-light italic text-[clamp(16px,1.5vw+8px,18px)] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]" style={{ fontFamily: 'var(--font-body)' }}>
+                                <p className="font-normal italic text-[clamp(16px,1.5vw+8px,18px)] text-tea-gold leading-[1.4] line-clamp-2 text-center max-w-[80%]" style={{ fontFamily: 'var(--font-body)' }}>
                                     {story.description}
                                 </p>
                                 <div className="w-6 h-[0.5px] bg-tea-gold/15 mt-2 shrink-0"></div>

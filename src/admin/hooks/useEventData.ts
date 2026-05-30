@@ -1,6 +1,6 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../../lib/api';
-import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData } from '../../types/events';
+import { TeaEvent, EventAttendee, EventNotification, TeaMenuItem, TastingNote, GuestInvite, JourneyData, Venue } from '../../types/events';
 
 export interface PendingAttendee extends EventAttendee {
   eventTitle: string;
@@ -8,6 +8,21 @@ export interface PendingAttendee extends EventAttendee {
 }
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
+
+/**
+ * Parse a value that may be a JSON string, an already-parsed object, or null.
+ * A malformed DB column must not throw inside a queryFn — that fails the whole
+ * query and blanks the page. Falls back instead.
+ */
+function safeParse<T>(value: unknown, fallback: T): T {
+  if (value == null) return fallback;
+  if (typeof value !== 'string') return value as T;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 const eventsListQueryFn = async () => {
   const data = await api.events.listAdmin();
@@ -44,20 +59,16 @@ function mapEvent(e: any): TeaEvent {
     addressText: e.address_text || undefined,
     mapLink: e.map_link || undefined,
     guidelinesText: e.guidelines_text || undefined,
-    venueGuide: e.venue_guide ? JSON.parse(e.venue_guide) : undefined,
+    venueGuide: e.venue_guide ? safeParse(e.venue_guide, undefined) : undefined,
     totalCapacity: Number(e.total_capacity) || 0,
     claimWindowMinutes: Number(e.claim_window_minutes) || 30,
     timezone: e.timezone || 'Asia/Taipei',
     status: e.status || 'draft',
-    sessionFlow: e.session_flow ? JSON.parse(e.session_flow) : undefined,
+    sessionFlow: e.session_flow ? safeParse(e.session_flow, undefined) : undefined,
     playlistUrl: e.playlist_url || undefined,
-    briefingCards: e.briefing_cards
-      ? (typeof e.briefing_cards === 'string' ? JSON.parse(e.briefing_cards) : e.briefing_cards)
-      : undefined,
+    briefingCards: e.briefing_cards ? safeParse(e.briefing_cards, undefined) : undefined,
     areaHint: e.area_hint || undefined,
-    moodHints: e.mood_hints
-      ? (typeof e.mood_hints === 'string' ? JSON.parse(e.mood_hints) : e.mood_hints)
-      : undefined,
+    moodHints: e.mood_hints ? safeParse(e.mood_hints, undefined) : undefined,
     createdAt: e.created_at,
     updatedAt: e.updated_at,
     confirmedCount: Number(e.confirmed_count) || 0,
@@ -101,9 +112,7 @@ export const useAttendees = (eventId: string) => {
         email: a.email || undefined,
         contactMethod: a.contact_method || 'whatsapp',
         // V2: guest requests (parse JSON; fall back to legacy plus_one)
-        guestRequests: a.guest_requests
-          ? (typeof a.guest_requests === 'string' ? JSON.parse(a.guest_requests) : a.guest_requests)
-          : undefined,
+        guestRequests: a.guest_requests ? safeParse(a.guest_requests, undefined) : undefined,
         // Legacy (kept for backwards compat)
         plusOne: !!a.plus_one,
         plusOneName: a.plus_one_name || undefined,
@@ -126,9 +135,7 @@ export const useAttendees = (eventId: string) => {
         // Computed from customer record
         sessionsAttended: a.sessions_attended != null ? Number(a.sessions_attended) : undefined,
         lastAttended: a.last_attended || undefined,
-        favoriteTypes: a.favorite_types
-          ? (typeof a.favorite_types === 'string' ? JSON.parse(a.favorite_types) : a.favorite_types)
-          : undefined,
+        favoriteTypes: a.favorite_types ? safeParse(a.favorite_types, undefined) : undefined,
         createdAt: a.created_at,
       })) as EventAttendee[];
     },
@@ -151,9 +158,7 @@ export const usePendingAttendees = () => {
         phoneNumber: a.phone_number,
         email: a.email || undefined,
         contactMethod: a.contact_method || 'whatsapp',
-        guestRequests: a.guest_requests
-          ? (typeof a.guest_requests === 'string' ? JSON.parse(a.guest_requests) : a.guest_requests)
-          : undefined,
+        guestRequests: a.guest_requests ? safeParse(a.guest_requests, undefined) : undefined,
         plusOne: !!a.plus_one,
         plusOneName: a.plus_one_name || undefined,
         accessTier: a.access_tier || 'standard',
@@ -164,9 +169,7 @@ export const usePendingAttendees = () => {
         teaPreference: a.tea_preference || undefined,
         sessionsAttended: a.sessions_attended != null ? Number(a.sessions_attended) : undefined,
         lastAttended: a.last_attended || undefined,
-        favoriteTypes: a.favorite_types
-          ? (typeof a.favorite_types === 'string' ? JSON.parse(a.favorite_types) : a.favorite_types)
-          : undefined,
+        favoriteTypes: a.favorite_types ? safeParse(a.favorite_types, undefined) : undefined,
         createdAt: a.created_at,
         eventTitle: a.event_title,
         eventDate: a.event_date,
@@ -269,6 +272,21 @@ export const useGuestInvites = (eventId: string) => {
   });
 };
 
+// Fetch all venues (admin). Single shared cache — EventForm, EventDetail and
+// VenueManager should all consume this rather than calling api.venues.list()
+// independently. Invalidate ['venues'] after a mutation to refresh.
+export const useVenues = () => {
+  return useQuery({
+    queryKey: ['venues'],
+    staleTime: STALE_TIME,
+    refetchOnWindowFocus: false,
+    queryFn: async (): Promise<Venue[]> => {
+      const data = await api.venues.list();
+      return (data || []) as Venue[];
+    },
+  });
+};
+
 // V2: Fetch admin view of a customer's journey summary
 export const useCustomerJourney = (customerId: string) => {
   return useQuery({
@@ -281,21 +299,11 @@ export const useCustomerJourney = (customerId: string) => {
       return {
         sessionsAttended: Number(data.sessions_attended) || 0,
         totalTeas: Number(data.total_teas) || 0,
-        teaTypeMap: data.tea_type_map
-          ? (typeof data.tea_type_map === 'string' ? JSON.parse(data.tea_type_map) : data.tea_type_map)
-          : {},
-        favorites: data.favorites
-          ? (typeof data.favorites === 'string' ? JSON.parse(data.favorites) : data.favorites)
-          : [],
-        impressions: data.impressions
-          ? (typeof data.impressions === 'string' ? JSON.parse(data.impressions) : data.impressions)
-          : [],
-        milestones: data.milestones
-          ? (typeof data.milestones === 'string' ? JSON.parse(data.milestones) : data.milestones)
-          : [],
-        seals: data.seals
-          ? (typeof data.seals === 'string' ? JSON.parse(data.seals) : data.seals)
-          : [],
+        teaTypeMap: safeParse(data.tea_type_map, {}),
+        favorites: safeParse(data.favorites, []),
+        impressions: safeParse(data.impressions, []),
+        milestones: safeParse(data.milestones, []),
+        seals: safeParse(data.seals, []),
         memberSince: data.member_since || undefined,
       } as JourneyData;
     },

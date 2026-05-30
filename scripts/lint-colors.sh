@@ -130,9 +130,12 @@ fi
 #    Any new occurrence of the old arbitrary form for these px values must
 #    use the named class (text-ui-N) instead. Long-tail values (e.g. text-[18px])
 #    are allowed since they don't have a scale stop.
+#    DesignSystemShowcase.tsx is excluded by path — it renders banned syntax
+#    inside <code> samples to document what NOT to do.
 TEXT_PX_VIOLATIONS=$(grep -rnE 'text-\[(8|9|10|11|12|13|14|15|16|17|20|26|28)px\]' \
   --include='*.tsx' --include='*.ts' "$SRC_DIR" 2>/dev/null \
   | grep -vE '^[[:space:]]*//' \
+  | grep -v 'src/pages/DesignSystemShowcase.tsx' \
   || true)
 if [ -n "$TEXT_PX_VIOLATIONS" ]; then
   echo ""

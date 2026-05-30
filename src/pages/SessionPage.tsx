@@ -163,7 +163,7 @@ export default function SessionPage() {
             <span className="text-ui-13">Leave</span>
           </button>
           <div className="flex-1 text-center min-w-0 px-2">
-            <p className="font-display font-light text-ui-17 text-tea-text truncate">
+            <p className="font-display font-normal text-ui-17 text-tea-text truncate">
               {session.title || 'Tasting'}
             </p>
             <p className="text-ui-11 text-tea-text-sec mt-0.5 tracking-wide">

@@ -157,7 +157,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
             </div>
             <h2 className="text-3xl font-serif mb-1 leading-tight text-shadow-md">{story.title}</h2>
             <p className="text-base font-serif italic opacity-90 mb-4 text-shadow-sm">{story.subtitle}</p>
-            <p className="text-sm opacity-90 line-clamp-3 leading-relaxed max-w-[80%] font-light">{story.description}</p>
+            <p className="text-sm opacity-90 line-clamp-3 leading-relaxed max-w-[80%] font-normal">{story.description}</p>
             </div>
         )}
       </div>
@@ -194,7 +194,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                 </div>
                 <h2 className="text-4xl font-serif mb-2 leading-tight">{story.title}</h2>
                 <p className="text-lg font-serif italic text-tea-text/70 mb-8">{story.subtitle}</p>
-                <p className="text-base leading-relaxed text-tea-text/90 font-light">{story.description}</p>
+                <p className="text-base leading-relaxed text-tea-text/90 font-normal">{story.description}</p>
             </div>
         </div>
       </main>
@@ -317,7 +317,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
                    </button>
                 </div>
              </div>
-             <p className="text-lg leading-loose font-light opacity-90 font-serif max-w-2xl">{story.description}</p>
+             <p className="text-lg leading-loose font-normal opacity-90 font-serif max-w-2xl">{story.description}</p>
           </div>
        </main>
     </div>
@@ -418,7 +418,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
                <div className="flex flex-col mb-10">
                     <span className="text-xs tracking-[0.3em] uppercase text-tea-text/50 mb-4 border-l-2 border-tea-gold pl-3">Now Playing</span>
                     <h2 className="text-5xl xl:text-6xl font-serif text-tea-text mb-4 leading-[1.1] tracking-tight">{story.title}</h2>
-                    <p className="text-2xl font-serif italic text-tea-text/60 font-light">{story.subtitle}</p>
+                    <p className="text-2xl font-serif italic text-tea-text/60 font-normal">{story.subtitle}</p>
                </div>
 
                {/* Visualizer - Make it subtler */}

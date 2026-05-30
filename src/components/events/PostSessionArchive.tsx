@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Music, Image, MessageCircle, ExternalLink, BookOpen } from 'lucide-react';
 import { TeaLeafIcon } from '../Icons';
+import { Modal } from '../shared/Modal';
 import type { TeaMenuItem } from '../../types/events';
 
 interface PostSessionArchiveProps {
@@ -44,33 +45,37 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
             <TeaLeafIcon className="w-4 h-4 text-tea-gold" />
             <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">Tea Ledger</h4>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {[...teaMenu!].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0)).map((item) => (
+          <div className="space-y-5">
+            {[...teaMenu!].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0)).map((item, idx) => (
               <div
                 key={item.id}
-                className="p-4 bg-tea-surface border border-tea-border rounded-md"
+                className="flex items-baseline gap-3 pb-5 border-b border-tea-border last:border-b-0 last:pb-0"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    {item.productType && (
-                      <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
-                        {item.productType}
-                      </span>
-                    )}
-                    {item.productId ? (
-                      <a href={`/shop?product=${encodeURIComponent(item.productId)}`} className="font-serif text-base text-tea-text hover:text-tea-gold mt-0.5 block transition-colors">
-                        {item.customName || item.productName}
-                      </a>
-                    ) : (
-                      <h5 className="font-serif text-base text-tea-text mt-0.5">{item.customName || item.productName}</h5>
-                    )}
-                  </div>
+                <span
+                  className="text-ui-20 text-tea-gold/30 leading-none shrink-0"
+                  style={{ fontFamily: 'var(--font-display)' }}
+                >
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  {item.productType && (
+                    <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-gold">
+                      {item.productType}
+                    </span>
+                  )}
+                  {item.productId ? (
+                    <a href={`/shop?product=${encodeURIComponent(item.productId)}`} className="font-serif text-base text-tea-text hover:text-tea-gold mt-0.5 block transition-colors">
+                      {item.customName || item.productName}
+                    </a>
+                  ) : (
+                    <h5 className="font-serif text-base text-tea-text mt-0.5">{item.customName || item.productName}</h5>
+                  )}
+                  {item.customDescription && (
+                    <p className="text-ui-14 text-tea-text-sec leading-relaxed mt-2">
+                      {item.customDescription}
+                    </p>
+                  )}
                 </div>
-                {item.customDescription && (
-                  <p className="text-sm text-tea-text-sec leading-relaxed mt-3 pt-3 border-t border-tea-border">
-                    {item.customDescription}
-                  </p>
-                )}
               </div>
             ))}
           </div>
@@ -87,7 +92,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
           <div className="bg-tea-surface border border-tea-border rounded-md p-5">
             <div className="space-y-3">
               {aggregatedNotes!.map((note, idx) => (
-                <p key={idx} className="text-sm text-tea-text-sec italic leading-relaxed">
+                <p key={idx} className="text-ui-14 text-tea-text-sec italic leading-relaxed">
                   "{note}"
                 </p>
               ))}
@@ -104,7 +109,7 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
             <h4 className="text-ui-11 uppercase tracking-[0.2em] text-tea-text-sec">From the Host</h4>
           </div>
           <div className="bg-tea-surface border border-tea-border rounded-md p-5">
-            <p className="text-sm text-tea-text leading-relaxed whitespace-pre-line">{sessionNotes}</p>
+            <p className="text-ui-14 text-tea-text leading-relaxed whitespace-pre-line">{sessionNotes}</p>
           </div>
         </div>
       )}
@@ -146,10 +151,10 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
               href={playlistUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-all duration-300 group"
+              className="inline-flex items-center gap-3 px-5 py-3 bg-tea-surface border border-tea-border rounded-md text-tea-text hover:border-tea-gold/40 hover:text-tea-gold transition-colors duration-300 group"
             >
               <Music className="w-4 h-4 text-tea-text-sec group-hover:text-tea-gold transition-colors" />
-              <span className="text-sm">Listen to the session playlist</span>
+              <span className="text-ui-14">Listen to the session playlist</span>
               <ExternalLink className="w-3 h-3 text-tea-text-sec ml-auto" />
             </a>
           )}
@@ -168,7 +173,8 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
               <button
                 key={idx}
                 onClick={() => setLightboxImage(url)}
-                className="aspect-square overflow-hidden rounded-md border border-tea-border hover:border-tea-gold/30 transition-all duration-300 group"
+                className="aspect-square overflow-hidden rounded-md border border-tea-border hover:border-tea-gold/30 transition-colors duration-300 group"
+                aria-label={`View photo ${idx + 1}`}
               >
                 <img
                   src={url}
@@ -183,25 +189,22 @@ const PostSessionArchive: React.FC<PostSessionArchiveProps> = ({
       )}
 
       {/* Lightbox */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-toast bg-black/85 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out] cursor-pointer"
-          onClick={() => setLightboxImage(null)}
-        >
+      <Modal
+        isOpen={!!lightboxImage}
+        onClose={() => setLightboxImage(null)}
+        ariaLabel="Photo viewer"
+        variant="center"
+        hideClose
+        className="!max-w-none !w-auto !bg-transparent !border-0 !shadow-none !overflow-visible"
+      >
+        {lightboxImage && (
           <img
             src={lightboxImage}
-            alt="Full size"
-            className="max-w-full max-h-full object-contain animate-[scaleIn_0.3s_ease-out]"
+            alt="Full size session photo"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-md"
           />
-        </div>
-      )}
-
-      <style>{`
-        @keyframes scaleIn {
-          from { transform: scale(0.9); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -166,7 +166,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
              <DollarSign size={60} className="md:w-20 md:h-20" />
           </div>
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Total Asset Cost</p>
-          <h3 className="font-display font-light text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalCostUSD)}</h3>
+          <h3 className="font-display font-normal text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalCostUSD)}</h3>
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Capital deployed</p>
         </div>
 
@@ -175,13 +175,13 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
              <PieIcon size={60} className="md:w-20 md:h-20" />
           </div>
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Retail Valuation</p>
-          <h3 className="font-display font-light text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalRetailUSD)}</h3>
+          <h3 className="font-display font-normal text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalRetailUSD)}</h3>
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">At current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Unrealized P&L</p>
-          <h3 className="font-display font-light text-tea-gold num text-ui-28 md:text-[44px] leading-tight">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <h3 className="font-display font-normal text-tea-gold num text-ui-28 md:text-[44px] leading-tight">+{fmtDollars(metrics.potentialProfit)}</h3>
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
@@ -381,19 +381,19 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="label-caps text-tea-text-dim">Total Customers</p>
-                <p className="font-display font-light text-tea-text mt-1 num text-ui-26">{customerMetrics.totalCustomers}</p>
+                <p className="font-display font-normal text-tea-text mt-1 num text-ui-26">{customerMetrics.totalCustomers}</p>
               </div>
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="label-caps text-tea-text-dim">Active Buyers</p>
-                <p className="font-display font-light text-tea-text mt-1 num text-ui-26">{customerMetrics.activeCustomers}</p>
+                <p className="font-display font-normal text-tea-text mt-1 num text-ui-26">{customerMetrics.activeCustomers}</p>
               </div>
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="label-caps text-tea-text-dim">Total Revenue</p>
-                <p className="font-display font-light text-tea-gold mt-1 num text-ui-26">${customerMetrics.totalRevenue.toFixed(0)}</p>
+                <p className="font-display font-normal text-tea-gold mt-1 num text-ui-26">${customerMetrics.totalRevenue.toFixed(0)}</p>
               </div>
               <div className="bg-tea-surface border border-tea-border rounded-xl p-4">
                 <p className="label-caps text-tea-text-dim">Avg Order Value</p>
-                <p className="font-display font-light text-tea-text mt-1 num text-ui-26">${customerMetrics.avgOrderValue.toFixed(0)}</p>
+                <p className="font-display font-normal text-tea-text mt-1 num text-ui-26">${customerMetrics.avgOrderValue.toFixed(0)}</p>
               </div>
             </div>
           )}
