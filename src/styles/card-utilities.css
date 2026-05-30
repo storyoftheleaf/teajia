@@ -2324,24 +2324,27 @@ input[type="number"]::-webkit-outer-spin-button {
    Use these classes instead of repeating the calc() inline.
    ============================================ */
 
-/* Padding clearance — flush against the bar's top edge (12px gap below bar) */
-.pb-nav        { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+/* Mobile nav clearance = 52px bar + 12px gap below + 16px breathing room
+   above so interactive elements never land under the bar or its shadow. */
+
+/* Padding clearance — clears the bar's top edge with 16px breathing room */
+.pb-nav        { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav { padding-bottom: 0; } }
 
-/* Padding clearance — with 1rem breathing room above bar */
-.pb-nav-gap    { padding-bottom: calc(1rem + 64px + env(safe-area-inset-bottom, 0px)); }
+/* Padding clearance — with 1rem extra breathing room above bar */
+.pb-nav-gap    { padding-bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap { padding-bottom: 1rem; } }
 
-/* Padding clearance — with 2rem breathing room above bar */
-.pb-nav-gap-lg { padding-bottom: calc(2rem + 64px + env(safe-area-inset-bottom, 0px)); }
+/* Padding clearance — with 2rem extra breathing room above bar */
+.pb-nav-gap-lg { padding-bottom: calc(2rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap-lg { padding-bottom: 2rem; } }
 
-/* bottom: offset — positions fixed elements flush above the bar */
-.bottom-nav    { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+/* bottom: offset — positions fixed elements clear above the bar */
+.bottom-nav    { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav { bottom: 0; } }
 
-/* bottom: offset — positions fixed elements 1rem above the bar */
-.bottom-nav-gap { bottom: calc(1rem + 64px + env(safe-area-inset-bottom, 0px)); }
+/* bottom: offset — positions fixed elements 1rem above that clearance */
+.bottom-nav-gap { bottom: calc(1rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav-gap { bottom: 1rem; } }
 
 /* ============================================

@@ -256,7 +256,7 @@ export default function TabStyleDemo() {
           Tab Style Exploration
         </p>
         <h1
-          className="text-2xl font-light"
+          className="text-2xl font-normal"
           style={{ fontFamily: 'var(--font-display)', color: 'var(--tea-text)' }}
         >
           Active Indicator

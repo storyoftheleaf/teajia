@@ -65,10 +65,10 @@ export const FONT_STACKS = {
  */
 
 export const TYPE_SCALE = {
-  /** Page titles, hero headings — Cormorant Garamond 300 (lighter = more elegant at large sizes) */
+  /** Page titles, hero headings — Cormorant Garamond 400 (300 hairline strokes broke up in sunlight) */
   display: {
     fontFamily: 'display',
-    fontWeight: 300,
+    fontWeight: 400,
     fontSize: 'clamp(32px, 4.8vw, 48px)',
     lineHeight: 1.12,
     letterSpacing: '0.01em',
@@ -109,10 +109,10 @@ export const TYPE_SCALE = {
     lineHeight: 1.7,
   },
 
-  /** Captions, secondary text — Lora 300 */
+  /** Captions, secondary text — Lora 400 (300 was too thin on non-retina / outdoors) */
   bodyLight: {
     fontFamily: 'body',
-    fontWeight: 300,
+    fontWeight: 400,
     fontSize: '15px',
     lineHeight: 1.65,
   },
@@ -155,12 +155,12 @@ export const TYPE_SCALE = {
 
 /** Tailwind class presets for common typography patterns */
 export const TYPOGRAPHY_CLASSES = {
-  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-light leading-[1.12] tracking-[0.01em]',
+  h1:        'font-display text-[clamp(32px,4.8vw,48px)] font-normal leading-[1.12] tracking-[0.01em]',
   h2:        'font-display text-[clamp(24px,3.5vw,32px)] font-medium leading-[1.2] tracking-[0.01em]',
   h3:        'font-display text-[19px] font-normal leading-[1.3] tracking-[0.01em]',
   subtitle:  'font-body text-ui-17 font-normal italic leading-[1.4]',
   body:      'font-body text-ui-17 font-normal leading-[1.7]',
-  bodyLight: 'font-body text-ui-15 font-light leading-[1.65]',
+  bodyLight: 'font-body text-ui-15 font-normal leading-[1.65]',
   label:     'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]',
   nav:       'font-sans text-ui-12 font-normal uppercase tracking-[1px] leading-[1.4]',
   link:      'font-sans text-ui-14 font-normal tracking-[0.2px]',

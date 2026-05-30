@@ -47,22 +47,22 @@ nav[aria-label="Admin navigation"] * {
 
 :root {
   color-scheme: dark;
-  /* Cooler espresso — reduced yellow/orange undertone (was #18130e / #28211a / #3a3126
-     which had warm bronze cast inherited from gold-rgb 168,135,77). */
-  --tea-bg: #1a1714;
-  --tea-bg-rgb: 26 23 20;
-  --tea-surface: #2a2622;
-  --tea-surface-rgb: 42 38 34;
-  --tea-elevated: #3a3530;
-  --tea-elevated-rgb: 58 53 48;
+  /* Outdoor-legibility tuned: background lifted off near-black so reflected
+     glare can't lift it past the text; muted tokens raised well above AA. */
+  --tea-bg: #22201c;
+  --tea-bg-rgb: 34 32 28;
+  --tea-surface: #322e29;
+  --tea-surface-rgb: 50 46 41;
+  --tea-elevated: #423d36;
+  --tea-elevated-rgb: 66 61 54;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
-  /* Raised floor for outdoor / low-light legibility (was #b5a892) */
-  --tea-text-sec: #cdc0a8;
-  --tea-text-sec-rgb: 205 192 168;
-  /* Spec value (production had drifted to #917a55) */
-  --tea-text-dim: #80735f;
-  --tea-text-dim-rgb: 128 115 95;
+  /* Raised floor for outdoor / low-light legibility */
+  --tea-text-sec: #ddd2bd;
+  --tea-text-sec-rgb: 221 210 189;
+  /* Raised well above WCAG AA for outdoor legibility */
+  --tea-text-dim: #b3a283;
+  --tea-text-dim-rgb: 179 162 131;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
@@ -71,8 +71,8 @@ nav[aria-label="Admin navigation"] * {
   --tea-readgold: #a8874d;
   --tea-readgold-rgb: 168 135 77;
   /* Derived from --tea-gold-rgb at canonical alpha — keeps border/glow in sync with accent */
-  --tea-border: rgb(var(--tea-gold-rgb) / 0.08);
-  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.10);
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
   --tea-leaf: #5A6E5A;
   /* Warmed from oxblood #8a3a32 to terracotta — reds now read on espresso */
   --tea-error: #c46a5a;
@@ -99,12 +99,12 @@ nav[aria-label="Admin navigation"] * {
   --tea-elevated-rgb: 213 200 180;
   --tea-text: #18130e;
   --tea-text-rgb: 24 19 14;
-  /* Raised floor (was #4a3f30) */
-  --tea-text-sec: #443a2c;
-  --tea-text-sec-rgb: 68 58 44;
-  /* Spec value (production had drifted to #857662) */
-  --tea-text-dim: #9a8c78;
-  --tea-text-dim-rgb: 154 140 120;
+  /* Raised floor for outdoor legibility */
+  --tea-text-sec: #332b20;
+  --tea-text-sec-rgb: 51 43 32;
+  /* Raised well above WCAG AA for outdoor legibility */
+  --tea-text-dim: #564a37;
+  --tea-text-dim-rgb: 86 74 55;
   /* Spec says #8e6d2e for light gold (was production-drift #6b4f28 — too dark on parchment) */
   --tea-gold: #8e6d2e;
   --tea-gold-rgb: 142 109 46;
@@ -113,8 +113,8 @@ nav[aria-label="Admin navigation"] * {
   --tea-readgold: #8e6d2e;
   --tea-readgold-rgb: 142 109 46;
   /* Derived from --tea-gold-rgb at canonical alpha (light mode uses slightly higher to read on parchment) */
-  --tea-border: rgb(var(--tea-gold-rgb) / 0.10);
-  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.07);
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.16);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.12);
   --tea-leaf: #4a5e4a;
   --tea-error: #732a23;
   --tea-error-rgb: 115 42 35;
@@ -123,26 +123,26 @@ nav[aria-label="Admin navigation"] * {
 /* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
 :root.light .dark, .light .dark {
   color-scheme: dark;
-  --tea-bg: #1a1714;
-  --tea-bg-rgb: 26 23 20;
-  --tea-surface: #2a2622;
-  --tea-surface-rgb: 42 38 34;
-  --tea-elevated: #3a3530;
-  --tea-elevated-rgb: 58 53 48;
+  --tea-bg: #22201c;
+  --tea-bg-rgb: 34 32 28;
+  --tea-surface: #322e29;
+  --tea-surface-rgb: 50 46 41;
+  --tea-elevated: #423d36;
+  --tea-elevated-rgb: 66 61 54;
   --tea-text: #ede4d4;
   --tea-text-rgb: 237 228 212;
-  --tea-text-sec: #cdc0a8;
-  --tea-text-sec-rgb: 205 192 168;
-  --tea-text-dim: #80735f;
-  --tea-text-dim-rgb: 128 115 95;
+  --tea-text-sec: #ddd2bd;
+  --tea-text-sec-rgb: 221 210 189;
+  --tea-text-dim: #b3a283;
+  --tea-text-dim-rgb: 179 162 131;
   --tea-gold: #a8874d;
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
   --tea-gold-lt-rgb: 191 160 106;
   --tea-readgold: #a8874d;
   --tea-readgold-rgb: 168 135 77;
-  --tea-border: rgb(var(--tea-gold-rgb) / 0.08);
-  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.10);
+  --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
+  --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
   --tea-leaf: #5A6E5A;
   --tea-error: #c46a5a;
   --tea-error-rgb: 196 106 90;
@@ -210,7 +210,7 @@ html, body {
 
 body {
   font-family: var(--font-sans);
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.5;
   letter-spacing: 0.01em;
   transition: background-color 500ms ease, color 500ms ease;
@@ -220,6 +220,12 @@ body {
 .theme-transitioning * {
   transition: background-color 500ms ease, color 500ms ease, border-color 500ms ease !important;
 }
+
+/* Outdoor-legibility weight floor — text runs one step heavier than the
+   bare utility weights so thin strokes survive bright light. */
+.font-light  { font-weight: 400 !important; }
+.font-normal { font-weight: 500 !important; }
+.font-medium { font-weight: 600 !important; }
 
 p {
   line-height: 1.7;

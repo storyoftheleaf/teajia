@@ -20,7 +20,7 @@ const WarmBand: React.FC<{ children: React.ReactNode; tone?: 'warm' | 'cool' }> 
 
 const Threshold = ({ children }: { children: string }) => (
   <div className="py-16 md:py-24 flex justify-center">
-    <p className="text-[1.4rem] md:text-[1.7rem] leading-[1.35] font-light text-tea-text text-center max-w-[440px] px-4"
+    <p className="text-[1.4rem] md:text-[1.7rem] leading-[1.35] font-normal text-tea-text text-center max-w-[440px] px-4"
        style={{ fontFamily: 'var(--font-display)' }}>
       {children}
     </p>
@@ -82,7 +82,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
            style={{ fontFamily: 'var(--font-sans)' }}>
           Space Design
         </p>
-        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
+        <h3 className="text-[1.75rem] md:text-[2.25rem] font-normal text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
             style={{ fontFamily: 'var(--font-display)' }}>
           Tea House Design<br className="sm:hidden" /> & Curation
         </h3>
@@ -101,7 +101,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
                     style={{ fontFamily: 'var(--font-display)' }}>
                 {step}
               </span>
-              <span className="text-ui-15 font-light text-tea-text"
+              <span className="text-ui-15 font-normal text-tea-text"
                     style={{ fontFamily: 'var(--font-display)' }}>
                 {title}
               </span>
@@ -110,7 +110,7 @@ export const DesignSection = forwardRef<HTMLElement, ServiceSectionProps>(
         </div>
 
         {/* Pricing — display font, set apart */}
-        <p className="text-[1.1rem] font-light text-tea-text mb-1"
+        <p className="text-[1.1rem] font-normal text-tea-text mb-1"
            style={{ fontFamily: 'var(--font-display)' }}>
           <span className="text-tea-gold">$5,000</span>
           <span className="text-tea-text-dim mx-2">–</span>
@@ -162,7 +162,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
            style={{ fontFamily: 'var(--font-sans)' }}>
           Sessions
         </p>
-        <h3 className="text-[1.75rem] md:text-[2.25rem] font-light text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
+        <h3 className="text-[1.75rem] md:text-[2.25rem] font-normal text-tea-text leading-[1.15] tracking-[-0.01em] mb-8"
             style={{ fontFamily: 'var(--font-display)' }}>
           Sessions & Guidance
         </h3>
@@ -178,7 +178,7 @@ export const SessionsSection = forwardRef<HTMLElement, ServiceSectionProps>(
             <div key={name} className="py-4"
                  style={{ borderBottom: i < OFFERINGS.length - 1 ? '1px solid var(--tea-border)' : undefined }}>
               <div className="flex items-baseline justify-between gap-4">
-                <h4 className="text-[1.05rem] font-light text-tea-text"
+                <h4 className="text-[1.05rem] font-normal text-tea-text"
                     style={{ fontFamily: 'var(--font-display)' }}>
                   {name}
                 </h4>
@@ -278,7 +278,7 @@ export const AlsoSection: React.FC<AlsoSectionProps> = ({
             className="py-7"
             style={{ borderBottom: i < ALSO_SERVICES.length - 1 ? '1px solid var(--tea-border)' : undefined }}
           >
-            <h4 className="text-[1.15rem] font-light text-tea-text mb-2"
+            <h4 className="text-[1.15rem] font-normal text-tea-text mb-2"
                 style={{ fontFamily: 'var(--font-display)' }}>
               {svc.heading}
             </h4>

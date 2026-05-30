@@ -10,15 +10,15 @@ These are the ONLY color tokens that should be used in new code. They all use CS
 
 | Token | Purpose | Dark Mode | Light Mode |
 |---|---|---|---|
-| `tea-bg` | Page background | `#18130e` espresso | `#f4ece0` parchment |
-| `tea-surface` | Card/panel background | `#28211a` warm dark | `#e6dbcc` warm light |
-| `tea-elevated` | Modal/popover background | `#3a3126` | `#d5c8b4` |
+| `tea-bg` | Page background | `#22201c` espresso | `#f4ece0` parchment |
+| `tea-surface` | Card/panel background | `#322e29` warm dark | `#e4ddd3` warm light |
+| `tea-elevated` | Modal/popover background | `#423d36` | `#d5c8b4` |
 | `tea-text` | Primary text | `#ede4d4` cream | `#18130e` espresso |
-| `tea-text-sec` | Secondary/muted text | `#b5a892` | `#5e5342` |
-| `tea-text-dim` | Captions, labels, hints | `#917a55` warm brown | `#9a8c78` |
-| `tea-gold` | Accent, links, active states | `#b8924e` | `#8e6d2e` |
-| `tea-gold-lt` | Hover/highlight gold | `#d4ac66` | `#a88340` |
-| `tea-border` | All borders and dividers | `rgba(181,168,146,0.14)` warm brown | `rgba(24,19,14,0.1)` |
+| `tea-text-sec` | Secondary/muted text | `#ddd2bd` | `#332b20` |
+| `tea-text-dim` | Captions, labels, hints | `#b3a283` warm brown (outdoor-tuned) | `#564a37` (outdoor-tuned) |
+| `tea-gold` | Accent, links, active states | `#a8874d` | `#8e6d2e` |
+| `tea-gold-lt` | Hover/highlight gold | `#bfa06a` | `#a88340` |
+| `tea-border` | All borders and dividers | `rgba(168,135,77,0.14)` warm gold | `rgba(142,109,46,0.16)` |
 | `tea-accent-sub` | Subtle accent backgrounds | `rgba(184,146,78,0.1)` | `rgba(142,109,46,0.07)` |
 
 ### Fixed-value tokens (non-adaptive, use sparingly)
