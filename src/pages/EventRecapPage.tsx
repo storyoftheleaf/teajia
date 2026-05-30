@@ -354,7 +354,7 @@ const EventRecapPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out] pb-[calc(52px+env(safe-area-inset-bottom,0px)+2rem)] lg:pb-12"
+      className="min-h-screen bg-tea-bg animate-[fadeIn_0.5s_ease-out] pb-nav-gap-lg lg:pb-12"
     >
       {/* Hero strip */}
       {event.flyer_image_url && (

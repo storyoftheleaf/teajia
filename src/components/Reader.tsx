@@ -814,7 +814,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
           exit={{ opacity: 0, y: 8 }}
           transition={{ duration: 0.2 }}
           className="absolute left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-tea-elevated/90 backdrop-blur-sm rounded-full px-5 py-3 shadow-lg"
-          style={{ bottom: 'calc(52px + env(safe-area-inset-bottom, 0px) + 48px)' }}
+          style={{ bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 48px)' }}
         >
           <button
             onClick={handleShare}

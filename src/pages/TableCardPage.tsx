@@ -145,7 +145,7 @@ const TableCardPage: React.FC = () => {
   ].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen bg-tea-bg pb-[calc(52px+env(safe-area-inset-bottom,0px))]">
+    <div className="min-h-screen bg-tea-bg pb-nav">
       <div className="max-w-md mx-auto">
 
         {/* Photo */}

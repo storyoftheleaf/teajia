@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Square, Loader2 } from 'lucide-react';
 import { LogoText } from './Logos';
@@ -133,9 +133,27 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // Derive admin route state from location — same value as the `isAdminRoute` prop,
   // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
+
+  // Track whether a product overlay is open. We check both React Router's
+  // location (updated on proper navigation) and window.location.search
+  // (updated when useProductUrl calls window.history.pushState directly).
+  // The custom 'teajia:producturlchange' event fires whenever useProductUrl
+  // mutates the URL via pushState/replaceState so we re-evaluate here.
+  const [rawSearch, setRawSearch] = useState(() => window.location.search);
+  useEffect(() => {
+    const sync = () => setRawSearch(window.location.search);
+    window.addEventListener('popstate', sync);
+    window.addEventListener('teajia:producturlchange', sync);
+    return () => {
+      window.removeEventListener('popstate', sync);
+      window.removeEventListener('teajia:producturlchange', sync);
+    };
+  }, []);
+
   const hasProductOverlay = !isOnAdmin && (
     location.pathname.startsWith('/shop/product/') ||
-    new URLSearchParams(location.search).has('product')
+    new URLSearchParams(location.search).has('product') ||
+    new URLSearchParams(rawSearch).has('product')
   );
   const shouldHide = hidden || hasProductOverlay;
 

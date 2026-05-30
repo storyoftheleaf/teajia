@@ -630,7 +630,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       <div className="flex-1 flex overflow-hidden">
 
         {/* Left panel — Block editor (55%) */}
-        <div className="flex-1 lg:w-[55%] overflow-y-auto pb-[calc(1rem+52px+env(safe-area-inset-bottom,0px))] lg:pb-4">
+        <div className="flex-1 lg:w-[55%] overflow-y-auto pb-nav-gap lg:pb-4">
           <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 space-y-3">
 
             {blocks.length === 0 && (
