@@ -155,9 +155,11 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     new URLSearchParams(location.search).has('product') ||
     new URLSearchParams(rawSearch).has('product')
   );
-  const shouldHide = hidden || hasProductOverlay;
+  const { activeAccount, upcomingEventsCount, bottomBarAction, productOverlayOpen } = useAppStore();
 
-  const { activeAccount, upcomingEventsCount, bottomBarAction } = useAppStore();
+  // Also hide when a product overlay (AlcoveModal / TeawareAlcoveModal) is open
+  // via the store flag — covers call sites that don't sync the product to the URL.
+  const shouldHide = hidden || hasProductOverlay || productOverlayOpen;
   const auth = useAuth();
   const isAdmin = auth.isAdmin;
   const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
