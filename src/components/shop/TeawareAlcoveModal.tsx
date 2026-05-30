@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TeawareAlcoveCard } from './TeawareAlcoveCard';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 
 interface TeawareAlcoveModalProps {
@@ -22,6 +23,15 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const isOpen = !!item;
   useScrollLock(isOpen);
+
+  // Hide the floating BottomTabBar while this full-screen card is open so it
+  // can't overlap the card's bottom action bar. Works regardless of whether
+  // the call site syncs the open product to the URL.
+  const setProductOverlayOpen = useAppStore(s => s.setProductOverlayOpen);
+  useEffect(() => {
+    setProductOverlayOpen(isOpen);
+    return () => setProductOverlayOpen(false);
+  }, [isOpen, setProductOverlayOpen]);
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchStartTime, setTouchStartTime] = useState<number | null>(null);

@@ -138,7 +138,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
         <MobileHeader title={story.title} onBack={onBack} transparent />
         
         {/* Mobile Side Actions - Hide during play if it's immersive */}
-        <div className={`absolute right-4 bottom-[calc(52px+env(safe-area-inset-bottom,0px)+128px)] flex flex-col space-y-6 items-center text-tea-text/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
+        <div className={`absolute right-4 bottom-[calc(64px+env(safe-area-inset-bottom,0px)+128px)] flex flex-col space-y-6 items-center text-tea-text/90 z-20 transition-opacity ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}>
             <button onClick={onToggleSave} className={`flex flex-col items-center space-y-1 ${isSaved ? 'text-tea-gold' : ''}`} aria-label="Save to collection">
                <Icons.Leaf filled={isSaved} className="w-7 h-7" />
             </button>
@@ -149,7 +149,7 @@ const ReelLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
 
         {/* Bottom Info - Hide during play */}
         {!isPlaying && (
-            <div className="absolute bottom-0 left-0 w-full p-6 pb-[calc(52px+env(safe-area-inset-bottom,0px)+10px)] text-tea-text pointer-events-none bg-gradient-to-t from-tea-bg/90 to-transparent">
+            <div className="absolute bottom-0 left-0 w-full p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+10px)] text-tea-text pointer-events-none bg-gradient-to-t from-tea-bg/90 to-transparent">
             <div className="flex items-center space-x-2 mb-3 opacity-90">
                 <span className="px-2 py-0.5 border border-tea-border text-ui-9 uppercase tracking-[0.15em] rounded-full">
                     {story.type}
@@ -270,7 +270,7 @@ const FilmLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => void
          </div>
 
          {/* Content */}
-         <div className="p-6 pb-[calc(52px+env(safe-area-inset-bottom,0px)+24px)] lg:pb-6 text-tea-text flex-1">
+         <div className="p-6 pb-[calc(64px+env(safe-area-inset-bottom,0px)+24px)] lg:pb-6 text-tea-text flex-1">
             <div className="flex justify-between items-start mb-2">
                 <span className="text-ui-10 tracking-[0.15em] uppercase opacity-70 block">{story.type} • {story.durationOrTime}</span>
                 <div className="flex gap-4">
@@ -347,7 +347,7 @@ const AudioLayout: React.FC<{ story: Story; isMobile: boolean; onBack: () => voi
          </div>
 
          {/* Controls */}
-         <div className="bg-gradient-to-t from-tea-bg via-tea-bg to-transparent pt-12 px-8 pb-[calc(52px+env(safe-area-inset-bottom,0px)+12px)] lg:pb-12 z-20">
+         <div className="bg-gradient-to-t from-tea-bg via-tea-bg to-transparent pt-12 px-8 pb-[calc(64px+env(safe-area-inset-bottom,0px)+12px)] lg:pb-12 z-20">
              <div className="flex justify-between items-end mb-8">
                 <div className="flex-1 pr-4">
                     <h2 className="text-3xl font-serif text-tea-text mb-2 leading-tight">{story.title}</h2>

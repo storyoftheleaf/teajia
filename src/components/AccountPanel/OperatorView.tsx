@@ -622,7 +622,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
             </button>
           </li>
         </ul>
-        <div className="px-6 pt-5 pb-[calc(52px+env(safe-area-inset-bottom,0px))] lg:pb-8">
+        <div className="px-6 pt-5 pb-nav lg:pb-8">
           <button
             onClick={onSignOut}
             className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"

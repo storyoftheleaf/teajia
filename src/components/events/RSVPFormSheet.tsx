@@ -240,7 +240,7 @@ const RSVPFormSheet: React.FC<RSVPFormSheetProps> = ({ slug, onClose, accountLoc
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(1.25rem+52px+env(safe-area-inset-bottom,0px)+env(keyboard-inset-height,0px))] lg:pb-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(1.25rem+64px+env(safe-area-inset-bottom,0px)+env(keyboard-inset-height,0px))] lg:pb-6">
           {submitted ? (
             <div className="flex flex-col items-center justify-center py-12 animate-[fadeIn_0.5s_ease-out]">
               <div className="w-14 h-14 rounded-full bg-tea-gold/10 flex items-center justify-center mb-6">

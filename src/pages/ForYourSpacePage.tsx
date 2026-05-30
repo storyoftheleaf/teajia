@@ -510,7 +510,7 @@ export const ForYourSpacePage: React.FC = () => {
       </div>
 
       {/* Mobile bottom nav clearance */}
-      <div className="h-[calc(1rem+52px+env(safe-area-inset-bottom,0px))] lg:h-8" />
+      <div className="h-[calc(1rem+64px+env(safe-area-inset-bottom,0px))] lg:h-8" />
     </div>
   );
 };
