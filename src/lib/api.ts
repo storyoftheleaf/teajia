@@ -65,7 +65,7 @@ export interface PurchaseOrderItem {
 
 import { useAppStore } from './store';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+export const API_URL = import.meta.env.VITE_API_URL || '';
 const REQUEST_TIMEOUT_MS = 30_000;
 
 // Once the token has less than this many seconds left, nudge a background

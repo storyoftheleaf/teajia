@@ -4,11 +4,10 @@
 			"path": "."
 		},
 		{
-			"path": "../dev tea"
-		},
-		{
 			"path": "../../../1 Projects/TeaJia/Spread Sheets"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"workbench.colorTheme": "Monokai Pro (Filter Ristretto)"
+	}
 }

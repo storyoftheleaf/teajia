@@ -297,32 +297,55 @@ async function maybeIssueRefreshedToken(
 }
 
 // ── Google OAuth state helpers ──
-// State = hex_timestamp.hmac_sig — verifiable without server-side storage
-async function signOAuthState(secret: string): Promise<string> {
-  const ts = Date.now().toString(16);
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(ts));
-  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return `${ts}.${sigHex}`;
+// State = hex_timestamp.hex_returnpath.hmac_sig — verifiable without
+// server-side storage. The return path lets a customer who started the flow
+// from the public account panel land back there instead of /admin. The path is
+// inside the signed payload so it can't be tampered with on the round-trip.
+function toHex(s: string): string {
+  return Array.from(new TextEncoder().encode(s)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function fromHex(hex: string): string {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return new TextDecoder().decode(bytes);
 }
 
-async function verifyOAuthState(state: string, secret: string): Promise<boolean> {
-  const dotIdx = state.lastIndexOf('.');
-  if (dotIdx < 0) return false;
-  const ts = state.slice(0, dotIdx);
-  const givenSig = state.slice(dotIdx + 1);
-  const tsNum = parseInt(ts, 16);
-  if (isNaN(tsNum) || Date.now() - tsNum > 10 * 60 * 1000) return false;
+async function signOAuthState(secret: string, returnPath = '/admin'): Promise<string> {
+  const ts = Date.now().toString(16);
+  const ret = toHex(returnPath);
+  const payload = `${ts}.${ret}`;
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(ts));
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${payload}.${sigHex}`;
+}
+
+// Returns the verified return path on success, or null if invalid/expired.
+async function verifyOAuthState(state: string, secret: string): Promise<string | null> {
+  const dotIdx = state.lastIndexOf('.');
+  if (dotIdx < 0) return null;
+  const payload = state.slice(0, dotIdx);
+  const givenSig = state.slice(dotIdx + 1);
+  const [ts, ret] = payload.split('.');
+  if (!ts || !ret) return null;
+  const tsNum = parseInt(ts, 16);
+  if (isNaN(tsNum) || Date.now() - tsNum > 10 * 60 * 1000) return null;
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
   const expectedSig = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return expectedSig === givenSig;
+  if (expectedSig !== givenSig) return null;
+  // Only allow same-origin relative paths; reject anything that could be an
+  // open redirect (must start with a single '/').
+  let path: string;
+  try { path = fromHex(ret); } catch { return null; }
+  if (!path.startsWith('/') || path.startsWith('//')) return '/admin';
+  return path;
 }
 
 // ── Multi-account helpers ──
@@ -1683,9 +1706,14 @@ const handleResetPassword: Handler = async (request, env) => {
 // ── Google OAuth ──
 const handleGoogleAuth: Handler = async (request, env) => {
   if (!env.GOOGLE_CLIENT_ID) return json({ error: 'Google OAuth not configured' }, 503);
-  const origin = new URL(request.url).origin;
+  const url = new URL(request.url);
+  const origin = url.origin;
+  // Where to land after sign-in. Defaults to /admin (staff login). The public
+  // account panel passes ?return=/ so customers come back to the site.
+  const rawReturn = url.searchParams.get('return') || '/admin';
+  const returnPath = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin';
   const redirectUri = `${origin}/api/auth/google/callback`;
-  const state = await signOAuthState(env.JWT_SECRET);
+  const state = await signOAuthState(env.JWT_SECRET, returnPath);
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
@@ -1707,7 +1735,12 @@ const handleGoogleCallback: Handler = async (request, env) => {
 
   if (errorParam) return Response.redirect(`${origin}/admin?oauth_error=${encodeURIComponent(errorParam)}`, 302);
   if (!code || !state) return Response.redirect(`${origin}/admin?oauth_error=missing_params`, 302);
-  if (!await verifyOAuthState(state, env.JWT_SECRET)) return Response.redirect(`${origin}/admin?oauth_error=invalid_state`, 302);
+  // verifyOAuthState returns the signed return path (or null when invalid).
+  // From here on, errors and success land the user back where they started.
+  const returnPath = await verifyOAuthState(state, env.JWT_SECRET);
+  if (!returnPath) return Response.redirect(`${origin}/admin?oauth_error=invalid_state`, 302);
+  const sep = returnPath.includes('?') ? '&' : '?';
+  const errRedirect = (e: string) => Response.redirect(`${origin}${returnPath}${sep}oauth_error=${e}`, 302);
 
   const redirectUri = `${origin}/api/auth/google/callback`;
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -1721,14 +1754,14 @@ const handleGoogleCallback: Handler = async (request, env) => {
       grant_type: 'authorization_code',
     }),
   });
-  if (!tokenRes.ok) return Response.redirect(`${origin}/admin?oauth_error=token_exchange_failed`, 302);
+  if (!tokenRes.ok) return errRedirect('token_exchange_failed');
 
   const { access_token } = await tokenRes.json() as { access_token: string };
 
   const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
     headers: { Authorization: `Bearer ${access_token}` },
   });
-  if (!userInfoRes.ok) return Response.redirect(`${origin}/admin?oauth_error=userinfo_failed`, 302);
+  if (!userInfoRes.ok) return errRedirect('userinfo_failed');
 
   const gUser = await userInfoRes.json() as { id: string; email: string; name: string };
 
@@ -1747,7 +1780,7 @@ const handleGoogleCallback: Handler = async (request, env) => {
     ).bind(id, gUser.email, null, gUser.name, '', 'user', gUser.id).run();
     user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first() as any;
   }
-  if (!user) return Response.redirect(`${origin}/admin?oauth_error=account_error`, 302);
+  if (!user) return errRedirect('account_error');
 
   const memberships = await loadMemberships(env, user.id as string);
   const activeAccountId = memberships[0]?.account_id || null;
@@ -1762,7 +1795,7 @@ const handleGoogleCallback: Handler = async (request, env) => {
     active_account_id: activeAccountId,
   });
 
-  return Response.redirect(`${origin}/admin#oauth_token=${token}`, 302);
+  return Response.redirect(`${origin}${returnPath}#oauth_token=${token}`, 302);
 };
 
 const handleGetProducts: Handler = async (request, env) => {
