@@ -72,6 +72,10 @@
 - [ ] Build the "My Tea Life" personal timeline that unifies tastings, favorites, orders, and reading history _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
 - [ ] Build the post-session editor that turns event records into Magazine photo essays _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
 
+### Collection recommendations (Phase 2)
+
+- [x] When someone changes the amount on a sent collection, update the price to match the per-gram/per-unit rate instead of keeping the fixed quote _(shipped: worker handleConfirmCollectionPicks + PublicCollectionPage.tsx — quoted price now scales by amount)_
+
 ### Multi-account platform (the business model)
 
 - [ ] Onboard the first trusted users: Compass access for tea friends and real guests at events _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)

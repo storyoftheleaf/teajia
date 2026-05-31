@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { InvoiceWithItems, Product } from '../types';
 import { openWhatsAppStatus, buildQuickInvoiceDraftParam } from '../../lib/whatsapp';
-import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2, StickyNote, Leaf } from 'lucide-react';
+import { Loader2, Search, XCircle, Trash2, Eye, X, PackageCheck, Users, Scissors, Pencil, Package, MoreHorizontal, MessageCircle, Plus, Link2, StickyNote, Leaf, Check } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useProducts } from '../hooks/useAdminData';
 import { useToast } from './Toast';
@@ -16,7 +16,7 @@ import { Button } from '../../components/shared/Button';
 
 const ROW_HEIGHT = 36;
 
-type StatusFilter = 'all' | 'Pending' | 'Filled' | 'Void';
+type StatusFilter = 'all' | 'Draft' | 'Pending' | 'Filled' | 'Void';
 type QuickInvoiceUrlPrefill = React.ComponentProps<typeof QuickInvoiceModal>['prefill'];
 
 const VALID_DRAFT_CURRENCIES = new Set(['USD', 'NT', 'Yuan', 'IDR', 'JPY', 'MYR', 'HKD', 'AUD']);
@@ -172,13 +172,14 @@ export const OrdersView = () => {
 
   // Pipeline summary
   const summary = useMemo(() => {
+    const draft = orders.filter((o) => o.status === 'Draft').length;
     const pending = orders.filter((o) => o.status === 'Pending').length;
     const filled = orders.filter((o) => o.status === 'Filled').length;
     const voided = orders.filter((o) => o.status === 'Void').length;
     const filledTotal = orders
       .filter((o) => o.status === 'Filled')
       .reduce((sum: number, o) => sum + (Number(o.computed_total) || 0) + (Number(o.shipping_cost_usd) || 0), 0);
-    return { pending, filled, voided, filledTotal };
+    return { draft, pending, filled, voided, filledTotal };
   }, [orders]);
 
   const handleView = async (invoice: DbOrder) => {
@@ -192,6 +193,19 @@ export const OrdersView = () => {
       } catch { setInvoiceTimeline([]); }
     } catch {
       showToast("Could not load invoice details.", 'error');
+    }
+  };
+
+  // Promote a Draft (e.g. created from a collection recipient's confirmed picks)
+  // into a normal Pending order, so it can be edited and fulfilled.
+  const acceptDraft = async (invoice: DbOrder) => {
+    try {
+      await api.invoices.update(invoice.id, { status: 'Pending' });
+      setViewingInvoice((prev) => prev ? { ...prev, status: 'Pending' } : null);
+      refetch();
+      showToast(`Order ${invoice.invoice_number} accepted — ready to review and fulfil.`, 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Could not accept this draft. Try again.', 'error');
     }
   };
 
@@ -300,11 +314,13 @@ export const OrdersView = () => {
           <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
             {([
               { id: 'all',     label: 'All',     dot: null },
+              { id: 'Draft',   label: 'Draft',   dot: 'bg-tea-gold-lt' },
               { id: 'Pending', label: 'Pending', dot: 'bg-amber-400' },
               { id: 'Filled',  label: 'Filled',  dot: 'bg-tea-gold' },
               { id: 'Void',    label: 'Void',    dot: 'bg-tea-text-dim' },
             ] as { id: StatusFilter; label: string; dot: string | null }[]).map(({ id, label, dot }) => {
               const count = id === 'all' ? orders.length
+                : id === 'Draft' ? summary.draft
                 : id === 'Pending' ? summary.pending
                 : id === 'Filled' ? summary.filled
                 : summary.voided;
@@ -804,6 +820,20 @@ export const OrdersView = () => {
                       ))}
                     </div>
                   </div>
+                )}
+
+                {viewingInvoice.status === 'Draft' && (
+                     <div className="mt-8 pt-6 border-t border-tea-border flex flex-col gap-2">
+                        <p className="text-ui-11 text-tea-text-sec leading-[1.5]">
+                          A recipient confirmed these picks from a collection. Review the items and prices, then accept to turn it into an order you can fulfil.
+                        </p>
+                        <button
+                            onClick={() => acceptDraft(viewingInvoice)}
+                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                        >
+                            <Check size={18} /> Accept &amp; Make Order
+                        </button>
+                     </div>
                 )}
 
                 {viewingInvoice.status === 'Pending' && (

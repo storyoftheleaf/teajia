@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { AlertCircle, Check, MessageCircle, Minus, Plus } from 'lucide-react';
+import { AlertCircle, Check, MessageCircle, Minus, Plus, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
@@ -37,6 +37,8 @@ interface BasketEntry {
   outOfStock: boolean;
   pickerMode: PickerMode;
   productName: string;
+  /** Curator's quoted total price for the recommended quantity, if set. */
+  recommendedPriceUsd?: number | null;
 }
 
 type BasketState = Record<string, BasketEntry>;
@@ -132,16 +134,27 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
   const { collection, items, account } = data;
   const storeName = account?.name ?? 'Teajia';
   const curatorName = collection.curator_display_name;
+  // First name (or store) for the inline "X suggests…" recommendation lines.
+  const curatorFirstName = (curatorName?.trim().split(/\s+/)[0]) || storeName;
 
   const visible = useMemo(
     () => items.filter(i => i.product_status === 'Active'),
     [items]
   );
 
+  const slug = data.publication.slug;
   const [basket, setBasket] = useState<BasketState>({});
+  const [confirmState, setConfirmState] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const selectedIds = Object.keys(basket);
   const selectedCount = selectedIds.length;
+
+  // Running total of the curator's quoted prices for the selected items (only the
+  // in-stock ones with a price set).
+  const quotedTotal = selectedIds.reduce((sum, id) => {
+    const e = basket[id];
+    return sum + (!e.outOfStock && e.recommendedPriceUsd != null ? Number(e.recommendedPriceUsd) : 0);
+  }, 0);
 
   function handleSendPicks() {
     const basketItems = selectedIds.map(id => {
@@ -155,6 +168,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
         quantityUnit: entry.pickerMode === 'loose-leaf' ? 'g' : unit,
         note: entry.note || undefined,
         outOfStock: entry.outOfStock,
+        priceUsd: entry.recommendedPriceUsd ?? null,
       };
     });
 
@@ -166,6 +180,25 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
     });
 
     window.open(buildWhatsAppUrl(account?.whatsapp_number ?? '', message), '_blank');
+  }
+
+  async function handleConfirm() {
+    if (confirmState === 'sending' || selectedCount === 0) return;
+    setConfirmState('sending');
+    try {
+      await api.collections.confirmPicks(slug, {
+        picks: selectedIds.map(id => ({
+          item_id: id,
+          quantity: Math.max(1, Math.round(Number(basket[id].quantity) || 1)),
+          note: basket[id].note || undefined,
+        })),
+      });
+      setConfirmState('sent');
+    } catch {
+      // Fall back to WhatsApp so the recipient is never stuck.
+      setConfirmState('idle');
+      handleSendPicks();
+    }
   }
 
   return (
@@ -220,6 +253,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
                 index={i + 1}
                 basket={basket}
                 setBasket={setBasket}
+                curatorFirstName={curatorFirstName}
               />
             ))}
           </ol>
@@ -233,19 +267,43 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       </footer>
 
       {/* Sticky basket footer — only visible when ≥1 item selected */}
-      {selectedCount > 0 && (
-        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
-          <p className="font-sans text-ui-12 text-tea-text-sec">
+      {selectedCount > 0 && confirmState !== 'sent' && (
+        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3 flex items-center justify-between gap-3">
+          <p className="font-sans text-ui-12 text-tea-text-sec min-w-0">
             <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
-            {selectedCount === 1 ? 'item' : 'items'} selected
+            {selectedCount === 1 ? 'item' : 'items'}
+            {quotedTotal > 0 && (
+              <span className="text-tea-text-dim"> · ${Math.round(quotedTotal * 100) / 100}</span>
+            )}
           </p>
-          <button
-            onClick={handleSendPicks}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
-          >
-            <MessageCircle size={13} />
-            Send my picks
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleSendPicks}
+              className="tap-target inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-ui-12 font-medium tracking-[0.3px] text-tea-text-sec hover:text-tea-text border border-tea-border transition-colors"
+              aria-label="Send my picks over WhatsApp instead"
+            >
+              <MessageCircle size={13} />
+              WhatsApp
+            </button>
+            <button
+              onClick={handleConfirm}
+              disabled={confirmState === 'sending'}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt disabled:opacity-60 transition-colors"
+            >
+              {confirmState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              {confirmState === 'sending' ? 'Sending…' : 'Confirm my picks'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sent confirmation — replaces the action bar once the picks are in. */}
+      {confirmState === 'sent' && (
+        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3.5 flex items-center justify-center gap-2.5 text-center">
+          <Check size={15} className="text-tea-gold shrink-0" />
+          <p className="font-body text-ui-13 leading-[1.5] text-tea-text">
+            Your picks are with {storeName}. They’ll be in touch to finish your order.
+          </p>
         </div>
       )}
     </main>
@@ -261,7 +319,8 @@ const CatalogEntry: React.FC<{
   index: number;
   basket: BasketState;
   setBasket: React.Dispatch<React.SetStateAction<BasketState>>;
-}> = ({ item, index, basket, setBasket }) => {
+  curatorFirstName: string;
+}> = ({ item, index, basket, setBasket, curatorFirstName }) => {
   const oos = item.out_of_stock;
   const tastingList = Array.isArray(item.tasting_notes) ? item.tasting_notes : [];
   const origin = [item.origin_region, item.origin_country].filter(Boolean).join(', ');
@@ -270,7 +329,32 @@ const CatalogEntry: React.FC<{
   const entry = basket[item.id];
   const isSelected = Boolean(entry);
 
+  // Curator's recommendation, if any.
+  const recQty = (() => {
+    const n = Number(item.recommended_quantity);
+    return item.recommended_quantity != null && Number.isFinite(n) && n > 0 ? n : null;
+  })();
+  const recPrice = item.recommended_price_usd != null ? Number(item.recommended_price_usd) : null;
+
+  // Price scales with the chosen amount, mirroring the worker: the quoted price is
+  // FOR the recommended amount, so derive a per-unit rate and multiply by the qty.
+  // No recommended amount to divide by → flat quote. No price → null (no estimate shown).
+  function priceForQty(q: number): number | null {
+    if (recPrice === null) return null;
+    if (recQty) return Math.round((recPrice / recQty) * q * 100) / 100;
+    return recPrice;
+  }
+
+  // Gram buttons for loose-leaf: standard options plus the curator's recommended
+  // amount injected (and sorted) so the recipient sees it as a selectable choice.
+  const gramOptions = useMemo(() => {
+    const opts = new Set(LOOSE_LEAF_GRAM_OPTIONS);
+    if (pickerMode === 'loose-leaf' && recQty) opts.add(recQty);
+    return Array.from(opts).sort((a, b) => a - b);
+  }, [pickerMode, recQty]);
+
   function defaultQuantity(): string | number {
+    if (recQty) return recQty;
     if (pickerMode === 'loose-leaf') return 50;
     return 1;
   }
@@ -282,14 +366,16 @@ const CatalogEntry: React.FC<{
         delete next[item.id];
         return next;
       }
+      const startQty = defaultQuantity();
       return {
         ...prev,
         [item.id]: {
-          quantity: defaultQuantity(),
+          quantity: startQty,
           note: '',
           outOfStock: oos,
           pickerMode,
           productName: item.product_name || 'Unknown tea',
+          recommendedPriceUsd: priceForQty(Number(startQty)),
         },
       };
     });
@@ -298,7 +384,14 @@ const CatalogEntry: React.FC<{
   function setQuantity(qty: string | number) {
     setBasket(prev => {
       if (!prev[item.id]) return prev;
-      return { ...prev, [item.id]: { ...prev[item.id], quantity: qty } };
+      return {
+        ...prev,
+        [item.id]: {
+          ...prev[item.id],
+          quantity: qty,
+          recommendedPriceUsd: priceForQty(Number(qty)),
+        },
+      };
     });
   }
 
@@ -373,6 +466,17 @@ const CatalogEntry: React.FC<{
           </p>
         )}
 
+        {/* Curator's recommendation — what and how much, at what price. */}
+        {(recQty || recPrice != null) && (
+          <p className="font-body text-ui-14 leading-[1.6] text-tea-gold italic mb-5">
+            {curatorFirstName} suggests
+            {recQty && ` ${recQty}${pickerMode === 'loose-leaf' ? 'g' : (recQty === 1 ? (pickerMode === 'cake-brick' ? ' cake' : ' unit') : (pickerMode === 'cake-brick' ? ' cakes' : ' units'))}`}
+            {recPrice != null && (
+              <span className="text-tea-text-sec not-italic">{recQty ? ' · ' : ' '}${Math.round(recPrice * 100) / 100}</span>
+            )}
+          </p>
+        )}
+
         {/* Want this toggle */}
         <button
           onClick={toggle}
@@ -401,7 +505,7 @@ const CatalogEntry: React.FC<{
               <>
                 {pickerMode === 'loose-leaf' && (
                   <div className="flex flex-wrap gap-2">
-                    {LOOSE_LEAF_GRAM_OPTIONS.map(g => (
+                    {gramOptions.map(g => (
                       <button
                         key={g}
                         onClick={() => setQuantity(g)}
@@ -444,6 +548,14 @@ const CatalogEntry: React.FC<{
                   </div>
                 )}
               </>
+            )}
+
+            {/* Live price for the chosen amount — updates as the picker changes. */}
+            {!oos && priceForQty(Number(qty)) != null && (
+              <p className="font-body text-ui-14 text-tea-text">
+                {qty}{pickerMode === 'loose-leaf' ? 'g' : (Number(qty) === 1 ? (pickerMode === 'cake-brick' ? ' cake' : ' unit') : (pickerMode === 'cake-brick' ? ' cakes' : ' units'))}
+                <span className="text-tea-gold"> · ${priceForQty(Number(qty))}</span>
+              </p>
             )}
 
             {/* Per-item note */}

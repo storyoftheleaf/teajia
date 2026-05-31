@@ -13335,10 +13335,12 @@ const handleGetCollection: Handler = async (request, env, params) => {
 
   const items = await env.DB.prepare(
     `SELECT ci.id, ci.collection_id, ci.product_id, ci.position, ci.item_note,
+            ci.recommended_quantity, ci.recommended_price_usd,
             p.type AS product_type,
             COALESCE(p.given_name, p.product_name) AS product_name,
             p.chinese_name, p.year, p.origin_country, p.origin_region,
             p.image_url, p.status AS product_status, p.stock_grams, p.quantity_units,
+            p.fixed_retail_price_usd,
             p.tasting_notes, p.description
        FROM collection_items ci
        JOIN products p ON p.id = ci.product_id
@@ -13539,10 +13541,39 @@ const handlePatchCollectionItem: Handler = async (request, env, params) => {
     return json({ ok: true });
   }
 
+  // Field updates: any subset of item_note / recommended_quantity / recommended_price_usd.
+  const sets: string[] = [];
+  const binds: any[] = [];
   if ('item_note' in body) {
+    sets.push('item_note = ?');
+    binds.push(body.item_note);
+  }
+  if ('recommended_quantity' in body) {
+    // Empty string clears the recommendation.
+    const raw = body.recommended_quantity;
+    const val = (raw === null || raw === undefined || String(raw).trim() === '')
+      ? null
+      : String(raw).trim();
+    sets.push('recommended_quantity = ?');
+    binds.push(val);
+  }
+  if ('recommended_price_usd' in body) {
+    const raw = body.recommended_price_usd;
+    const num = (raw === null || raw === undefined || raw === '') ? null : Number(raw);
+    if (num !== null && (!Number.isFinite(num) || num < 0)) {
+      return json({ error: 'recommended_price_usd must be a non-negative number' }, 400);
+    }
+    sets.push('recommended_price_usd = ?');
+    binds.push(num);
+  }
+
+  if (sets.length) {
     await env.DB.prepare(
-      `UPDATE collection_items SET item_note = ? WHERE id = ? AND collection_id = ?`
-    ).bind(body.item_note, params.itemId, params.id).run();
+      `UPDATE collection_items SET ${sets.join(', ')} WHERE id = ? AND collection_id = ?`
+    ).bind(...binds, params.itemId, params.id).run();
+    await env.DB.prepare(
+      `UPDATE collections SET updated_at = ? WHERE id = ?`
+    ).bind(new Date().toISOString(), params.id).run();
     return json({ ok: true });
   }
 
@@ -14317,6 +14348,7 @@ const handleGetPublicCollection: Handler = async (_request, env, params) => {
 
   const items = await env.DB.prepare(
     `SELECT ci.id, ci.position, ci.item_note,
+            ci.recommended_quantity, ci.recommended_price_usd,
             p.id AS product_id, p.type AS product_type,
             COALESCE(p.given_name, p.product_name) AS product_name,
             p.chinese_name, p.year, p.origin_country, p.origin_region,
@@ -14365,6 +14397,155 @@ const handlePublicCollectionView: Handler = async (_request, env, params) => {
     `UPDATE collection_publications SET view_count = view_count + 1 WHERE id = ?`
   ).bind(pub.id).run();
   return json({ ok: true });
+};
+
+// Public — recipient confirms their picks from a collection. No auth; link-gated
+// by slug. Creates a DRAFT invoice in the owning account, scoped via the
+// collection's account_id, so the operator reviews + sends it from Orders.
+// A draft is never a committed order: stock is NOT deducted here (inventory_deducted=0),
+// status='Draft'. The operator promotes/fulfils it in the admin UI.
+const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
+  const pub = await env.DB.prepare(
+    `SELECT id, collection_id, unpublished_at, recipients_json
+       FROM collection_publications WHERE slug = ?`
+  ).bind(params.slug).first() as
+    { id: string; collection_id: string; unpublished_at: string | null; recipients_json: string | null } | null;
+  if (!pub || pub.unpublished_at) return json({ error: 'No longer available' }, 410);
+
+  const coll = await env.DB.prepare(
+    `SELECT id, account_id, title, status FROM collections WHERE id = ?`
+  ).bind(pub.collection_id).first() as
+    { id: string; account_id: string; title: string; status: string } | null;
+  if (!coll || coll.status === 'archived') return json({ error: 'No longer available' }, 410);
+  const accountId = coll.account_id;
+
+  const body = await request.json() as {
+    picks?: Array<{ item_id?: string; quantity?: number | string; note?: string }>;
+    contact_name?: string;
+    contact_phone?: string;
+  };
+  const picks = Array.isArray(body.picks) ? body.picks : [];
+  if (picks.length === 0) return json({ error: 'No picks submitted' }, 400);
+
+  // Resolve the recipient. Person/tag publications snapshot recipients_json as
+  // [{customer_id?, name, phone?}]. A single-recipient personal send is the common
+  // case; use it to attach the customer + name. Fall back to anything the recipient
+  // typed on the page, else a generic label so the draft is never nameless.
+  const recipients = pub.recipients_json ? (JSON.parse(pub.recipients_json) as any[]) : [];
+  const firstRecipient = recipients.length === 1 ? recipients[0] : null;
+  const customerId: string | null = firstRecipient?.customer_id || null;
+  const customerName: string =
+    (typeof body.contact_name === 'string' && body.contact_name.trim()) ||
+    firstRecipient?.name ||
+    'Collection recipient';
+  const customerPhone: string | null =
+    (typeof body.contact_phone === 'string' && body.contact_phone.trim()) ||
+    firstRecipient?.phone || null;
+
+  // Validate picks against the collection's items. Only Active products. Pricing
+  // scales with the recipient's chosen amount: the curator's recommended_price_usd
+  // is the price FOR the recommended_quantity, so we derive a per-unit rate from it
+  // and multiply by the amount actually picked. If there's no recommended quantity
+  // to divide by, the quote is treated as a flat total (no basis to scale). With no
+  // curator price at all, fall back to the catalog rate (fixed_retail_price_usd) ×
+  // amount. If nothing is known, 0 — the operator sets it on review.
+  const itemRows = await env.DB.prepare(
+    `SELECT ci.id, ci.product_id, ci.recommended_quantity, ci.recommended_price_usd,
+            p.type AS product_type,
+            COALESCE(p.given_name, p.product_name) AS product_name,
+            p.status AS product_status, p.fixed_retail_price_usd
+       FROM collection_items ci
+       JOIN products p ON p.id = ci.product_id
+      WHERE ci.collection_id = ?`
+  ).bind(pub.collection_id).all();
+  const byItemId = new Map<string, any>();
+  for (const r of (itemRows.results ?? []) as any[]) byItemId.set(r.id, r);
+
+  const lineItems: Array<{ product_id: string; custom_name: null; quantity: number; price_at_sale: number; label: string }> = [];
+  for (const pick of picks) {
+    const row = pick.item_id ? byItemId.get(pick.item_id) : null;
+    if (!row || row.product_status !== 'Active') continue;
+    const isTeaware = row.product_type === 'Teaware';
+
+    // Quantity: recipient's value, else the curator's recommendation, else 1.
+    const rawQty = pick.quantity ?? row.recommended_quantity ?? (isTeaware ? 1 : 50);
+    const quantity = Math.max(1, Math.round(Number(rawQty) || 1));
+
+    // Price (line total), scaled to the picked amount.
+    const recPrice = row.recommended_price_usd !== null && row.recommended_price_usd !== undefined
+      ? Number(row.recommended_price_usd) : null;
+    const recQty = Number(row.recommended_quantity);
+    const hasRecQty = row.recommended_quantity != null && Number.isFinite(recQty) && recQty > 0;
+
+    let lineTotal: number;
+    if (recPrice !== null && hasRecQty) {
+      // Curator quoted recPrice for recQty → per-unit rate × the amount actually picked.
+      lineTotal = Math.round((recPrice / recQty) * quantity * 100) / 100;
+    } else if (recPrice !== null) {
+      // Quote with no recommended quantity to scale against: treat as a flat total.
+      lineTotal = recPrice;
+    } else if (row.fixed_retail_price_usd) {
+      // No curator price: catalog per-unit rate × amount.
+      lineTotal = Math.round(Number(row.fixed_retail_price_usd) * quantity * 100) / 100;
+    } else {
+      lineTotal = 0;
+    }
+
+    lineItems.push({
+      product_id: row.product_id,
+      custom_name: null,
+      quantity,
+      price_at_sale: lineTotal,
+      label: `${row.product_name} × ${quantity}${isTeaware ? '' : 'g'}`,
+    });
+  }
+
+  if (lineItems.length === 0) {
+    return json({ error: 'None of the selected teas are currently available' }, 400);
+  }
+
+  // Allocate an invoice number from the owning account's sequence.
+  const seqRow = await env.DB.prepare(
+    'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+  ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+  const seq = seqRow?.invoice_seq ?? 1;
+  const pfx = seqRow?.invoice_prefix || '';
+  const invoiceNumber = pfx ? `${pfx}-${seq}` : String(seq);
+
+  const invoiceId = crypto.randomUUID();
+  const recipientNotes = picks
+    .map(p => (p.note && String(p.note).trim()) ? `${byItemId.get(p.item_id || '')?.product_name || 'Item'}: ${String(p.note).trim()}` : null)
+    .filter(Boolean)
+    .join(' · ');
+  const notes = [
+    `From collection "${coll.title}" — recipient confirmed their picks. Review and send.`,
+    recipientNotes ? `Recipient notes: ${recipientNotes}` : null,
+  ].filter(Boolean).join('\n');
+
+  const invoiceStmt = env.DB.prepare(
+    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    invoiceId, accountId, invoiceNumber, customerName, customerPhone, customerId,
+    'USD', 0, 'Draft', 0, notes, 'unpaid'
+  );
+  const lineStmts = lineItems.map(li =>
+    env.DB.prepare(
+      'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).bind(crypto.randomUUID(), accountId, invoiceId, li.product_id, li.custom_name, li.quantity, li.price_at_sale)
+  );
+  const logStmt = buildActivityLog(
+    env, 'INVOICE_CREATED',
+    `Draft invoice ${invoiceNumber} created from collection "${coll.title}" — ${customerName} confirmed ${lineItems.length} item${lineItems.length === 1 ? '' : 's'}`,
+    'collection-recipient', 'invoice', invoiceId, accountId
+  );
+
+  await env.DB.batch([invoiceStmt, ...lineStmts, logStmt]);
+  if (customerId) {
+    await ensureContactRelationship(env, accountId, customerId, 'buyer', 'workflow', 'invoice', invoiceId);
+  }
+
+  return json({ ok: true, invoice_number: invoiceNumber, item_count: lineItems.length }, 201);
 };
 
 // PUT /api/accounts/:id/members/:userId/curator — promote/demote curator flag (owner only)
@@ -16469,6 +16650,7 @@ const routes: [string, string, Handler][] = [
   // Public collection pages — no auth, link-gated by slug.
   ['GET',  '/api/public/c/:slug', handleGetPublicCollection],
   ['POST', '/api/public/c/:slug/view', handlePublicCollectionView],
+  ['POST', '/api/public/c/:slug/confirm', handleConfirmCollectionPicks],
 
   // Invoices — edit items
   ['PUT', '/api/invoices/:id/items', handleUpdateInvoiceItems],

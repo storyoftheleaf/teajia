@@ -476,6 +476,8 @@ CREATE TABLE IF NOT EXISTS collection_items (
     product_id TEXT NOT NULL,
     position INTEGER NOT NULL,
     item_note TEXT,
+    recommended_quantity TEXT,   -- grams (loose-leaf) or unit count (cake/teaware), as a string; null = no suggestion
+    recommended_price_usd REAL,  -- total USD price for the recommended quantity; null = use catalog price
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (collection_id, product_id)
 );

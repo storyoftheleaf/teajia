@@ -1083,6 +1083,12 @@ export interface CollectionItem {
   product_id: string;
   position: number;
   item_note?: string | null;
+  /** Curator's suggested amount: grams (loose-leaf) or unit count (cake/teaware), as a string. */
+  recommended_quantity?: string | null;
+  /** Curator's quoted total price (USD) for the recommended quantity. Null = use catalog price. */
+  recommended_price_usd?: number | null;
+  /** Catalog per-gram (tea) / per-unit (teaware) retail price, for the editor's placeholder. */
+  fixed_retail_price_usd?: number | null;
   product_type?: string;
   product_name?: string;
   chinese_name?: string | null;
@@ -1119,6 +1125,10 @@ export interface PublicCollectionItem {
   id: string;
   position: number;
   item_note?: string | null;
+  /** Curator's suggested amount: grams (loose-leaf) or unit count (cake/teaware). */
+  recommended_quantity?: string | null;
+  /** Curator's quoted total price (USD) for the recommended quantity. */
+  recommended_price_usd?: number | null;
   product_id: string;
   product_type?: string;
   product_name?: string;

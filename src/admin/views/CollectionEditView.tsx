@@ -33,6 +33,173 @@ function productIsOOS(item: CollectionItem): boolean {
   return (item.stock_grams ?? 0) <= 0;
 }
 
+// One product row in the builder. Shows the product, reorder/remove controls, and
+// an inline "recommend" editor: how much of this tea the curator suggests and the
+// price they're quoting for that amount. Both save on blur.
+const CollectionItemRow: React.FC<{
+  collectionId: string;
+  item: CollectionItem;
+  idx: number;
+  total: number;
+  working: boolean;
+  focused: boolean;
+  focusRef: React.RefObject<HTMLLIElement>;
+  oos: boolean;
+  archived: boolean;
+  onReorder: (itemId: string, direction: 'up' | 'down') => void;
+  onRemove: (itemId: string) => void;
+  onSaved: () => void;
+  onError: (msg: string) => void;
+}> = ({ collectionId, item, idx, total, working, focused, focusRef, oos, archived, onReorder, onRemove, onSaved, onError }) => {
+  const isTeaware = item.product_type === 'Teaware';
+  const unitLabel = isTeaware ? 'units' : 'grams';
+  const [qty, setQty] = useState(item.recommended_quantity ?? '');
+  const [price, setPrice] = useState(
+    item.recommended_price_usd === null || item.recommended_price_usd === undefined ? '' : String(item.recommended_price_usd),
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setQty(item.recommended_quantity ?? '');
+    setPrice(item.recommended_price_usd === null || item.recommended_price_usd === undefined ? '' : String(item.recommended_price_usd));
+  }, [item.id, item.recommended_quantity, item.recommended_price_usd]);
+
+  const saveQty = async () => {
+    const current = item.recommended_quantity ?? '';
+    if (qty.trim() === current.trim()) return;
+    setSaving(true);
+    try {
+      await api.collections.patchItem(collectionId, item.id, { recommended_quantity: qty.trim() || null });
+      onSaved();
+    } catch (err: any) {
+      onError(err?.message || 'Could not save recommended amount.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePrice = async () => {
+    const current = item.recommended_price_usd === null || item.recommended_price_usd === undefined ? '' : String(item.recommended_price_usd);
+    if (price.trim() === current.trim()) return;
+    const num = price.trim() === '' ? null : Number(price);
+    if (num !== null && (!Number.isFinite(num) || num < 0)) {
+      onError('Price must be a number.');
+      setPrice(current);
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.collections.patchItem(collectionId, item.id, { recommended_price_usd: num });
+      onSaved();
+    } catch (err: any) {
+      onError(err?.message || 'Could not save price.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const catalogHint = item.fixed_retail_price_usd
+    ? `catalog $${item.fixed_retail_price_usd}/${isTeaware ? 'unit' : 'g'}`
+    : '';
+
+  return (
+    <li
+      ref={focused ? focusRef : undefined}
+      className={`flex flex-col gap-3 px-4 md:px-6 py-3 transition-colors ${
+        focused ? 'bg-tea-gold-lt' : 'hover:bg-tea-accent-sub'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="w-5 text-right text-ui-11 text-tea-text-dim font-mono tabular-nums">
+          {item.position}
+        </span>
+        <div className="w-10 h-10 flex-shrink-0 rounded bg-tea-elevated overflow-hidden">
+          {item.image_url && (
+            <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-ui-15 text-tea-text truncate">
+            {item.product_name || 'Untitled'}
+            {item.chinese_name && <span className="text-tea-text-dim ml-1.5 text-ui-12">{item.chinese_name}</span>}
+          </div>
+          <div className="text-ui-12 text-tea-text-dim mt-1 truncate flex items-center gap-1.5">
+            {[item.origin_region, item.origin_country].filter(Boolean).join(', ') || item.product_type}
+            {archived && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-dim text-ui-9 uppercase tracking-caps">
+                <Archive size={8} /> Archived
+              </span>
+            )}
+            {!archived && oos && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-sec text-ui-9 uppercase tracking-caps">
+                <AlertTriangle size={8} /> Out of stock
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={() => onReorder(item.id, 'up')}
+            disabled={idx === 0 || working}
+            className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+            aria-label="Move up"
+          >
+            <ChevronUp size={13} />
+          </button>
+          <button
+            onClick={() => onReorder(item.id, 'down')}
+            disabled={idx === total - 1 || working}
+            className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
+            aria-label="Move down"
+          >
+            <ChevronDown size={13} />
+          </button>
+          <button
+            onClick={() => onRemove(item.id)}
+            disabled={working}
+            className="tap-target p-1.5 text-tea-text-sec hover:text-tea-error transition-colors"
+            aria-label="Remove"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+
+      {/* Recommend: amount + price you're quoting for this tea. */}
+      <div className="flex flex-wrap items-end gap-3 pl-8">
+        <label className="flex flex-col gap-1">
+          <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim">Recommend ({unitLabel})</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={qty}
+            onChange={e => setQty(e.target.value)}
+            onBlur={saveQty}
+            placeholder={isTeaware ? '1' : '100'}
+            className="input-warm w-24 px-2.5 py-1.5 text-ui-13"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim">Price (USD)</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            onBlur={savePrice}
+            placeholder={item.fixed_retail_price_usd ? String(item.fixed_retail_price_usd) : '0.00'}
+            className="input-warm w-28 px-2.5 py-1.5 text-ui-13"
+          />
+        </label>
+        {catalogHint && (
+          <span className="text-ui-11 text-tea-text-dim pb-2">{catalogHint}</span>
+        )}
+        {saving && <Loader2 size={12} className="animate-spin text-tea-text-dim mb-2" />}
+      </div>
+    </li>
+  );
+};
+
 export const CollectionEditView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -299,70 +466,25 @@ export const CollectionEditView: React.FC = () => {
               <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
                 {detail.items.map((item, idx) => {
                   const oos = productIsOOS(item);
-                  const archived = item.product_status && item.product_status !== 'Active';
+                  const archived = Boolean(item.product_status && item.product_status !== 'Active');
                   const focused = item.id === focusItemId;
                   return (
-                    <li
+                    <CollectionItemRow
                       key={item.id}
-                      ref={focused ? focusRef : undefined}
-                      className={`flex items-center gap-3 px-4 md:px-6 py-3 transition-colors ${
-                        focused ? 'bg-tea-gold-lt' : 'hover:bg-tea-accent-sub'
-                      }`}
-                    >
-                      <span className="w-5 text-right text-ui-11 text-tea-text-dim font-mono tabular-nums">
-                        {item.position}
-                      </span>
-                      <div className="w-10 h-10 flex-shrink-0 rounded bg-tea-elevated overflow-hidden">
-                        {item.image_url && (
-                          <img src={item.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-display text-ui-15 text-tea-text truncate">
-                          {item.product_name || 'Untitled'}
-                          {item.chinese_name && <span className="text-tea-text-dim ml-1.5 text-ui-12">{item.chinese_name}</span>}
-                        </div>
-                        <div className="text-ui-12 text-tea-text-dim mt-1 truncate flex items-center gap-1.5">
-                          {[item.origin_region, item.origin_country].filter(Boolean).join(', ') || item.product_type}
-                          {archived && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-dim text-ui-9 uppercase tracking-caps">
-                              <Archive size={8} /> Archived
-                            </span>
-                          )}
-                          {!archived && oos && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-tea-elevated text-tea-text-sec text-ui-9 uppercase tracking-caps">
-                              <AlertTriangle size={8} /> Out of stock
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button
-                          onClick={() => reorder(item.id, 'up')}
-                          disabled={idx === 0 || working}
-                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
-                          aria-label="Move up"
-                        >
-                          <ChevronUp size={13} />
-                        </button>
-                        <button
-                          onClick={() => reorder(item.id, 'down')}
-                          disabled={idx === detail.items.length - 1 || working}
-                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text disabled:opacity-30 transition-colors"
-                          aria-label="Move down"
-                        >
-                          <ChevronDown size={13} />
-                        </button>
-                        <button
-                          onClick={() => setPendingRemoveId(item.id)}
-                          disabled={working}
-                          className="tap-target p-1.5 text-tea-text-sec hover:text-tea-error transition-colors"
-                          aria-label="Remove"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </li>
+                      collectionId={id!}
+                      item={item}
+                      idx={idx}
+                      total={detail.items.length}
+                      working={working}
+                      focused={focused}
+                      focusRef={focusRef}
+                      oos={oos}
+                      archived={archived}
+                      onReorder={reorder}
+                      onRemove={(itemId) => setPendingRemoveId(itemId)}
+                      onSaved={invalidate}
+                      onError={(msg) => showToast(msg, 'error')}
+                    />
                   );
                 })}
               </ul>

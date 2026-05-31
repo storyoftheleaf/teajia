@@ -139,6 +139,7 @@ export interface CollectionBasketItem {
   quantityUnit: string;   // 'g' for loose-leaf; 'cake', 'unit' otherwise
   note?: string;
   outOfStock?: boolean;
+  priceUsd?: number | null;   // total quoted price for this line, when the curator set one
 }
 
 export function buildCollectionBasketMessage(opts: {
@@ -154,13 +155,26 @@ export function buildCollectionBasketMessage(opts: {
     lines.push(`Curated by ${opts.curatorDisplayName}`);
     lines.push('');
   }
+  let total = 0;
+  let haveAnyPrice = false;
   for (const item of opts.items) {
     const noteStr = item.note ? ` (${item.note})` : '';
+    const priceStr = (item.priceUsd !== null && item.priceUsd !== undefined)
+      ? ` — $${item.priceUsd}`
+      : '';
+    if (item.priceUsd !== null && item.priceUsd !== undefined) {
+      total += Number(item.priceUsd);
+      haveAnyPrice = true;
+    }
     if (item.outOfStock) {
       lines.push(`• ${item.name}: asking about availability${noteStr}`);
     } else {
-      lines.push(`• ${item.name}: ${item.quantity}${item.quantityUnit}${noteStr}`);
+      lines.push(`• ${item.name}: ${item.quantity}${item.quantityUnit}${priceStr}${noteStr}`);
     }
+  }
+  if (haveAnyPrice) {
+    lines.push('');
+    lines.push(`Total: $${Math.round(total * 100) / 100}`);
   }
   lines.push('');
   lines.push(opts.collectionUrl);

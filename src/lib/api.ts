@@ -2190,6 +2190,17 @@ export const api = {
         body: JSON.stringify({ direction }),
       });
     },
+    /** Update a single item's curator note and/or recommendation (quantity, price). */
+    patchItem: async (
+      id: string,
+      itemId: string,
+      patch: Partial<{ item_note: string | null; recommended_quantity: string | null; recommended_price_usd: number | null }>,
+    ): Promise<{ ok: true }> => {
+      return authedFetch(`${API_URL}/api/collections/${id}/items/${itemId}`, {
+        method: 'PUT',
+        body: JSON.stringify(patch),
+      });
+    },
     publish: async (id: string, recipients: import('../types').CollectionRecipient[]): Promise<{ id: string; slug: string }> => {
       return authedFetch(`${API_URL}/api/collections/${id}/publications`, {
         method: 'POST',
@@ -2238,6 +2249,17 @@ export const api = {
     },
     trackPublicView: async (slug: string): Promise<void> => {
       await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/view`, { method: 'POST' });
+    },
+    /** Public — no auth. Recipient confirms their picks; creates a Draft invoice for the curator to review. */
+    confirmPicks: async (
+      slug: string,
+      payload: { picks: Array<{ item_id: string; quantity: number; note?: string }>; contact_name?: string; contact_phone?: string },
+    ): Promise<{ ok: true; invoice_number: string; item_count: number }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/public/c/${slug}/confirm`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return handleResponse(res);
     },
     /** Publish a collection to the shop audience. Idempotent. */
     publishToShop: async (collectionId: string): Promise<{ publication: import('../types').CollectionPublication; created: boolean }> => {
