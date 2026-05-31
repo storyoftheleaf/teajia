@@ -1118,12 +1118,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return (
         <th
           aria-sort={ariaSort}
-          className={`font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1.5 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
+          className={`font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
         >
           <button
             type="button"
             onClick={() => handleSort(colKey)}
-            className={`tap-target group inline-flex items-center gap-1 hover:text-tea-text transition-colors select-none ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
+            className={`group inline-flex items-center gap-1 hover:text-tea-text transition-colors select-none min-h-[24px] ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
             aria-label={`Sort by ${label}${sortEntry ? `, currently ${sortEntry.direction === 'asc' ? 'ascending' : 'descending'}` : ''}`}
           >
              {label}
@@ -2332,12 +2332,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                                 <span className="truncate">{product.originRegion}</span>
                                             </>
                                         )}
-                                        {product.year && (
-                                            <>
-                                                <span>·</span>
-                                                <span className="font-serif tabular-nums">{product.year}</span>
-                                            </>
-                                        )}
                                     </div>
                                 </div>
 
@@ -2491,6 +2485,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     </>
                                   ) : (
                                     <>
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-ui-11 text-tea-text-sec uppercase tracking-[0.06em] shrink-0">Year</span>
+                                        <div className="flex items-center gap-1">
+                                          <GhostInput
+                                            value={product.year || ''}
+                                            onSave={(val) => handleProductUpdate(product.id, 'year', val)}
+                                            type="number"
+                                            align="right"
+                                            placeholder="YYYY"
+                                            className="num text-ui-13 text-tea-text-sec"
+                                          />
+                                          <SavedPill isVisible={recentlySavedCells.has(`${product.id}-year`)} />
+                                        </div>
+                                      </div>
                                       {priceMode === 'cost' ? (
                                       <>
                                       <div className="flex items-center justify-between gap-2">

@@ -71,12 +71,12 @@ function InventoryRowBase(props: InventoryRowProps) {
             ? product.form
             : ' ';
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 align-middle overflow-hidden ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 align-middle overflow-hidden ${fr}`}>
             <div className="flex flex-col justify-center">
               {isEditMode ? (
-                <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-17 leading-tight truncate ${nameTone}`} ariaLabel="Product name" />
+                <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-15 leading-tight truncate font-medium ${nameTone}`} ariaLabel="Product name" />
               ) : (
-                <span className={`font-display text-ui-17 leading-tight truncate ${nameTone}`}>{product.productName}</span>
+                <span className={`font-display text-ui-15 leading-tight truncate font-medium ${nameTone}`}>{product.productName}</span>
               )}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
@@ -88,7 +88,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'type': {
         const dotColor = getThemeColor(product.type);
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
             {isEditMode ? (
               <label className="inline-flex items-center gap-2 cursor-pointer">
                 <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: dotColor }} />
@@ -112,14 +112,14 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'year': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 align-middle num overflow-hidden ${fr} ${isSold ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 align-middle num overflow-hidden ${fr} ${isSold ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year || ''} onSave={(val) => onProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="num text-ui-15 text-tea-text-sec" />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Year" value={product.year || ''} onSave={(val) => onProductUpdate(product.id, 'year', val)} type="number" placeholder="YYYY" className="num text-ui-13 text-tea-text-sec" />
             : <span>{product.year || '—'}</span>}
         </td>
       );
       case 'originRegion': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
             ? <GhostInput id={ghostId(colIndex)} ariaLabel="Origin region" value={product.originRegion} onSave={(val) => onProductUpdate(product.id, 'originRegion', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.originRegion}</span>}
@@ -127,10 +127,10 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'stockGrams': {
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
             {isEditMode ? (
               <div className="inline-flex items-center gap-1 justify-end">
-                <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-15 ${numTone}`} />
+                <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
                 <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-readgold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-readgold'}`}><span aria-hidden="true">&#9888;</span></button>
               </div>
             ) : (
@@ -143,14 +143,14 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'costAmount': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className={`num text-ui-15 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
             : <span>{product.costAmount > 0 ? product.costAmount.toLocaleString() : '—'}</span>}
         </td>
       );
       case 'costPerGramUSD': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
           <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
         </td>
       );
@@ -158,45 +158,45 @@ function InventoryRowBase(props: InventoryRowProps) {
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
         const overrideTone = product.fixedRetailPriceUSD != null && !isLow && !isSold ? 'text-tea-readgold' : numTone;
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 text-right num align-middle overflow-hidden ${fr} ${overrideTone}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align="right" className={`num text-ui-15 ${overrideTone}`} />
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align="right" className={`num text-ui-13 ${overrideTone}`} />
               : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );
       }
       case 'material': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
             ? <GhostInput id={ghostId(colIndex)} ariaLabel="Material" value={product.material || ''} onSave={(val) => onProductUpdate(product.id, 'material', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="truncate block">{product.material || '—'}</span>}
         </td>
       );
       case 'teawareCategory': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
             ? <GhostInput id={ghostId(colIndex)} ariaLabel="Teaware category" value={product.teawareCategory || ''} onSave={(val) => onProductUpdate(product.id, 'teawareCategory', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
             : <span className="capitalize truncate block">{product.teawareCategory || '—'}</span>}
         </td>
       );
       case 'capacityMl': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align="right" className={`num text-ui-15 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
             : <span>{product.capacityMl ? `${product.capacityMl}ml` : '—'}</span>}
         </td>
       );
       case 'quantityUnits': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 text-ui-15 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className={`num text-ui-15 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
             : <span>{product.quantityUnits ?? '—'}</span>}
         </td>
       );
       case 'verified': {
         const isVerified = !!product.stockVerifiedAt;
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-2 align-middle text-center ${fr}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 align-middle text-center ${fr}`}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -223,13 +223,13 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'vendor': return (
-        <td key={colKey} className="px-3 py-2 text-ui-13 align-middle overflow-hidden">
+        <td key={colKey} className="px-3 py-1 text-ui-13 align-middle overflow-hidden">
           {product.vendor
             ? <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-tea-text-sec hover:text-tea-gold transition-colors truncate block text-left">{product.vendor}</button>
             : <span className="text-tea-text-dim">—</span>}
         </td>
       );
-      default: return <td key={colKey} className="px-3 py-2 align-middle text-ui-13 text-tea-text-sec">—</td>;
+      default: return <td key={colKey} className="px-3 py-1 align-middle text-ui-13 text-tea-text-sec">—</td>;
     }
   };
 
@@ -274,7 +274,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     >
       {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
       {/* Action cluster — canonical: star / eye / edit / more, each p-1.5 Lucide 14px */}
-      <td className="px-2 py-2 align-middle text-right whitespace-nowrap">
+      <td className="px-2 py-1 align-middle text-right whitespace-nowrap">
         <div className="inline-flex items-center gap-0 text-tea-text-dim" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && !isSelected && (
             <>
@@ -327,8 +327,8 @@ function InventoryRowBase(props: InventoryRowProps) {
                   </button>
                   {isDropdownOpen && (
                     <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-md shadow-lg py-1 min-w-[160px] border border-tea-border" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
-                      <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
-                      <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
+                      <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
+                      <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
                     </div>
                   )}
                 </div>
