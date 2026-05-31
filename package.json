@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "lsof -ti:7777 >/dev/null 2>&1 || vite",
+    "dev": "lsof -ti:7777 >/dev/null 2>&1 || (infisical export --env=dev --format=dotenv --path=/ > .env.local && vite)",
     "build": "vite build",
     "lint:colors": "bash scripts/lint-colors.sh",
     "preview": "vite preview",
