@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Square, Loader2 } from 'lucide-react';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { LogoText } from './Logos';
 import { Section } from '../types';
 
@@ -24,98 +23,6 @@ interface BottomTabBarProps {
   isAdminRoute?: boolean;
 }
 
-/**
- * MicCenterButton — a web3-flavoured circular button that sits inside the
- * bar with a layered gold halo and animated ripple rings during recording.
- * Replaces the centered teajiā logo on screens that register a
- * `bottomBarAction` of type `'mic'`.
- *
- * The button is sized to fit comfortably within the 52px bar (40×40 with
- * a 4px halo) so it never clips against the bar edges or the home
- * indicator on iOS — visual prominence comes from the layered glow and
- * gold ring rather than physically protruding above the bar plane.
- */
-const MicCenterButton: React.FC<{
-  state: 'idle' | 'recording' | 'transcribing' | 'error';
-  onPress: () => void;
-}> = ({ state, onPress }) => {
-  const recording = state === 'recording';
-  const transcribing = state === 'transcribing';
-  const errored = state === 'error';
-
-  return (
-    <motion.button
-      type="button"
-      onClick={onPress}
-      disabled={transcribing}
-      whileHover={{ scale: transcribing ? 1 : 1.06 }}
-      whileTap={{ scale: transcribing ? 1 : 0.92 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-      aria-label={recording ? 'Stop recording' : transcribing ? 'Transcribing' : 'Record voice note'}
-      title={recording ? 'Stop recording' : transcribing ? 'Transcribing…' : 'Tap to record'}
-      className="relative w-10 h-10 rounded-full flex items-center justify-center select-none disabled:cursor-wait"
-      style={{
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        touchAction: 'manipulation',
-        background: recording
-          ? 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.36), rgb(var(--tea-elevated-rgb)) 78%)'
-          : 'radial-gradient(circle at 50% 35%, rgb(var(--tea-gold-rgb) / 0.18), rgb(var(--tea-elevated-rgb)) 72%)',
-        border: `1.5px solid rgb(var(--tea-gold-rgb) / ${recording ? 0.7 : 0.5})`,
-        boxShadow: recording
-          ? '0 0 0 4px rgb(var(--tea-gold-rgb) / 0.12), 0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.45), 0 0 16px rgb(var(--tea-gold-rgb) / 0.4), inset 0 1px 0 rgb(255 255 255 / 0.08)'
-          : '0 0 0 4px rgb(var(--tea-gold-rgb) / 0.06), 0 4px 14px -4px rgb(var(--tea-gold-rgb) / 0.28), 0 0 18px rgb(var(--tea-gold-rgb) / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.05)',
-      }}
-    >
-      {/* Recording ripple rings — two concentric, staggered, expand outward */}
-      <AnimatePresence>
-        {recording && (
-          <>
-            <motion.span
-              key="ring-1"
-              initial={{ scale: 1, opacity: 0.55 }}
-              animate={{ scale: 1.55, opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-              className="absolute inset-0 rounded-full pointer-events-none"
-              style={{ border: '1px solid rgb(var(--tea-gold-rgb) / 0.55)' }}
-            />
-            <motion.span
-              key="ring-2"
-              initial={{ scale: 1, opacity: 0.4 }}
-              animate={{ scale: 1.85, opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
-              className="absolute inset-0 rounded-full pointer-events-none"
-              style={{ border: '1px solid rgb(var(--tea-gold-rgb) / 0.35)' }}
-            />
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Icon */}
-      <span
-        className="relative pointer-events-none"
-        style={{ color: errored ? '#fb7185' : 'var(--tea-gold)' }}
-      >
-        {recording ? (
-          <Square size={16} fill="currentColor" strokeWidth={0} />
-        ) : transcribing ? (
-          <motion.span
-            className="block"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
-          >
-            <Loader2 size={18} strokeWidth={1.75} />
-          </motion.span>
-        ) : (
-          <Mic size={18} strokeWidth={1.75} />
-        )}
-      </span>
-    </motion.button>
-  );
-};
-
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeSection,
   onNavigate,
@@ -134,41 +41,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   // using one authoritative source to avoid split-brain if prop is ever stale.
   const isOnAdmin = location.pathname.startsWith('/admin');
 
-  // Track whether a product overlay is open. We check both React Router's
-  // location (updated on proper navigation) and window.location.search
-  // (updated when useProductUrl calls window.history.pushState directly).
-  // The custom 'teajia:producturlchange' event fires whenever useProductUrl
-  // mutates the URL via pushState/replaceState so we re-evaluate here.
-  const [rawSearch, setRawSearch] = useState(() => window.location.search);
-  useEffect(() => {
-    const sync = () => setRawSearch(window.location.search);
-    window.addEventListener('popstate', sync);
-    window.addEventListener('teajia:producturlchange', sync);
-    return () => {
-      window.removeEventListener('popstate', sync);
-      window.removeEventListener('teajia:producturlchange', sync);
-    };
-  }, []);
-
-  const hasProductOverlay = !isOnAdmin && (
-    location.pathname.startsWith('/shop/product/') ||
-    new URLSearchParams(location.search).has('product') ||
-    new URLSearchParams(rawSearch).has('product')
-  );
-  const { activeAccount, upcomingEventsCount, bottomBarAction, productOverlayOpen } = useAppStore();
-
-  // Keep the global nav visible even when a product overlay is open — the alcove
-  // commerce footer and the global nav stack, per Adrian's request 2026-05-22.
-  // hasProductOverlay/productOverlayOpen intentionally not included.
+  // The global nav stays visible even when a product alcove is open — the
+  // alcove commerce footer (Add to Cart, etc.) is sized to clear the bar,
+  // and Adrian wants the bar reachable at all times. Only the explicit
+  // `hidden` prop (e.g. cart drawer) can hide the bar.
   const shouldHide = hidden;
+
+  const { activeAccount, upcomingEventsCount } = useAppStore();
   const auth = useAuth();
   const isAdmin = auth.isAdmin;
   const isStaff = auth.user?.role === 'staff' || auth.user?.role === 'admin' || auth.user?.role === 'owner';
   const locationAbbr = activeAccount?.location_country?.slice(0, 2).toUpperCase()
     ?? activeAccount?.location_city?.slice(0, 2).toUpperCase()
     ?? null;
-
-  const micActive = bottomBarAction?.type === 'mic';
 
   // Admin tab definitions (path-based routing)
   type AdminTab = { id: string; label: string; path: string };
@@ -367,41 +252,33 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 
-          {/* Center — HOME / ADMIN HOME, OR a contextual mic button when a
-              page registers `bottomBarAction = { type: 'mic' }`. */}
-          {micActive && bottomBarAction?.type === 'mic' ? (
-            <div
-              className="flex items-center justify-center"
-              style={{ flex: '1 1 0%' }}
-            >
-              <MicCenterButton state={bottomBarAction.state} onPress={bottomBarAction.onPress} />
-            </div>
-          ) : (
-            <motion.button
-              {...centerLongPress}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
-              className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 select-none"
-              style={{
-                WebkitTouchCallout: 'none',
-                WebkitUserSelect: 'none',
-                touchAction: 'manipulation',
-              }}
-              title={isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin'}
-              aria-label={isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad'}
-            >
-              <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
-                <LogoText
-                  size="sm"
-                  color={isAdminRoute
-                    ? 'var(--tea-text-sec)'
-                    : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
-                  className="transition-all duration-300 pointer-events-none"
-                />
-              </span>
-            </motion.button>
-          )}
+          {/* Center — HOME / ADMIN HOME. The logo is always the center
+              affordance; contextual actions (e.g. voice capture on the
+              Compass) live in-panel, not in the global nav. */}
+          <motion.button
+            {...centerLongPress}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: leftSections.length * 0.05, duration: 0.25, ease: 'easeOut' }}
+            className="flex-1 w-full h-full flex items-center justify-center relative transition-all duration-300 select-none"
+            style={{
+              WebkitTouchCallout: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'manipulation',
+            }}
+            title={isAdminRoute ? 'Admin Home · Long press to go to storefront' : 'Home · Long press for admin'}
+            aria-label={isAdminRoute ? 'Admin home, long press to go to storefront' : 'Return to home, long press to open launchpad'}
+          >
+            <span style={{ display: 'inline-block', transform: 'scale(0.89)', transformOrigin: 'center', lineHeight: 0 }}>
+              <LogoText
+                size="sm"
+                color={isAdminRoute
+                  ? 'var(--tea-text-sec)'
+                  : (activeSection === 'HOME' ? 'var(--tea-gold)' : 'var(--tea-text-sec)')}
+                className="transition-all duration-300 pointer-events-none"
+              />
+            </span>
+          </motion.button>
 
           <div className="w-px h-4 bg-tea-border self-center flex-shrink-0" />
 

@@ -167,19 +167,10 @@ interface AppState {
   setUpcomingEventsCount: (count: number) => void;
   cartLastAddedAt: number | null;
 
-  // Bottom-bar action — when set, BottomTabBar swaps the centered logo for
-  // a contextual action button (e.g. a web3-styled mic on the sourcing
-  // page). Pages register via the `useBottomBarMic` hook on mount.
-  bottomBarAction:
-    | { type: 'mic'; state: 'idle' | 'recording' | 'transcribing' | 'error'; onPress: () => void }
-    | null;
-  setBottomBarAction: (action: AppState['bottomBarAction']) => void;
-
   // True while a full-screen product detail overlay (AlcoveModal /
-  // TeawareAlcoveModal) is open. The floating BottomTabBar hides itself so it
-  // can't overlap the card's bottom action bar. Set by the modals on
-  // open/close — this covers call sites (e.g. SharedCollection) that don't
-  // sync the open product to the URL, where the route-based check can't see it.
+  // TeawareAlcoveModal) is open. The bar stays visible (it does not hide
+  // when an alcove opens), but other surfaces may want to know. Set by the
+  // modals on open/close.
   productOverlayOpen: boolean;
   setProductOverlayOpen: (open: boolean) => void;
 }
@@ -599,10 +590,6 @@ export const useAppStore = create<AppState>()(
       upcomingEventsCount: 0,
       setUpcomingEventsCount: (count) => set({ upcomingEventsCount: count }),
       cartLastAddedAt: null,
-
-      // Bottom-bar action (transient — never persisted)
-      bottomBarAction: null,
-      setBottomBarAction: (action) => set({ bottomBarAction: action }),
 
       // Product overlay flag (transient — never persisted)
       productOverlayOpen: false,

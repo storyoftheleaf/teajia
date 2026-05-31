@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useBottomBarMic } from '../../hooks/useBottomBarMic';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
@@ -482,14 +481,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   ];
   const currentTab = tabs.find((t) => t.id === mode);
 
-  // Bottom-bar mic — when sourcing on a privileged account, the centered
-  // teajiā logo in BottomTabBar swaps for a web3-styled mic. The logo
-  // itself is unused on this screen, so giving the slot to voice capture
-  // makes it a primary affordance instead of dead space.
-  const micSlot = mode === 'sourcing' && isPlatformPrivileged
-    ? { state: voiceState, onPress: handleVoicePress }
-    : null;
-  useBottomBarMic(micSlot);
+  // Inline mic — shown in the Compass header on the sourcing tab for
+  // privileged accounts. Previously hijacked the global nav's center
+  // logo slot via useBottomBarMic; that broke the home affordance, so
+  // voice capture lives contextually here in the panel instead.
+  const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
 
   return (
     <div className={isPlaybookSurface ? 'flex flex-col relative lg:h-full bg-tea-bg' : 'flex flex-col relative lg:h-full'}>
@@ -610,14 +606,44 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </button>
           )}
 
-          {/* Right-side action cluster — kept lean. Share moved next to
-              the Done CTA inside the form; SyncIndicator moved down to
-              the session/batch strip. The header is now purely
-              navigational: back · Source ▾ · sub-tabs. */}
-          <div className="flex items-center pr-2 self-center">
-            {/* Spacer reserved for any future header-only action; empty
-                today so the share+sync state lives where the user is
-                actually working. */}
+          {/* Right-side action cluster — voice capture button when on
+              the sourcing tab for privileged accounts. Lives in-panel
+              so the global nav's center can remain the home logo. */}
+          <div className="flex items-center pr-2 self-center gap-1">
+            {showInlineMic && (
+              <button
+                type="button"
+                onClick={handleVoicePress}
+                disabled={voiceState === 'transcribing'}
+                aria-label={
+                  voiceState === 'recording' ? 'Stop recording'
+                  : voiceState === 'transcribing' ? 'Transcribing'
+                  : 'Record voice note'
+                }
+                title={
+                  voiceState === 'recording' ? 'Stop recording'
+                  : voiceState === 'transcribing' ? 'Transcribing…'
+                  : 'Record voice note'
+                }
+                className={`tap-target relative inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                  voiceState === 'recording'
+                    ? 'border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
+                    : voiceState === 'error'
+                      ? 'border-tea-border bg-tea-surface text-tea-error'
+                      : voiceState === 'transcribing'
+                        ? 'border-tea-border bg-tea-surface text-tea-text-dim cursor-wait'
+                        : 'border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+                }`}
+              >
+                {voiceState === 'recording' ? (
+                  <Square size={12} fill="currentColor" strokeWidth={0} />
+                ) : voiceState === 'transcribing' ? (
+                  <Loader2 size={14} className="animate-spin" strokeWidth={1.75} />
+                ) : (
+                  <Mic size={14} strokeWidth={1.75} />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

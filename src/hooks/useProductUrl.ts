@@ -49,10 +49,6 @@ export function useProductUrl(
           window.history.pushState({ productModal: viewItem.id }, '', url.toString());
         }
         isModalNavRef.current = false;
-        // Notify BottomTabBar (and any other listener) that the URL changed via
-        // pushState/replaceState — React Router's useLocation() won't fire for
-        // direct history API calls, so we dispatch a lightweight custom event.
-        window.dispatchEvent(new CustomEvent('teajia:producturlchange'));
       }
     }
     // We intentionally only track viewItem here

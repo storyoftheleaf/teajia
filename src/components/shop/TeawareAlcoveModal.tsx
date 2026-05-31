@@ -210,7 +210,9 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
             ref={cardRef}
             className="relative w-full max-w-[480px] md:max-w-[560px]"
             style={{
-              height: 'min(90vh, 820px)',
+              // Mobile clears 52px for the floating bottom nav (which stays
+              // visible above the alcove). Desktop keeps the 90vh / 820px cap.
+              height: 'min(calc(100dvh - 52px - env(safe-area-inset-bottom, 0px)), 820px)',
               minHeight: '480px',
               width: 'min(480px, 85vw)',
             }}
