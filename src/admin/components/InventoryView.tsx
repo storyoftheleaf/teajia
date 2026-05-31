@@ -1118,7 +1118,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return (
         <th
           aria-sort={ariaSort}
-          className={`font-serif text-ui-11 uppercase tracking-caps text-tea-text-sec font-normal px-4 py-2 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
+          className={`font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1.5 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
         >
           <button
             type="button"
@@ -1655,7 +1655,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
-      <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:h-16 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md overflow-x-auto custom-scrollbar hide-scrollbar sticky top-0 z-dropdown">
+      <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:h-12 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md overflow-x-auto custom-scrollbar hide-scrollbar sticky top-0 z-dropdown">
         <h1 className="h2 text-tea-text shrink-0 mr-4">Inventory</h1>
         {(() => {
           const views = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
@@ -1755,11 +1755,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-sticky border-b border-tea-border py-2 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      <div className={`sticky top-0 z-sticky border-b border-tea-border py-1 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
 
         {/* Desktop toolbar — actions only. Count + stock-history link live INSIDE the table
             card top strip (see canonical §20 inventory table in /design/system). */}
-        <div className="flex px-6 max-w-7xl mx-auto items-center gap-4 py-3">
+        <div className="flex px-4 md:px-6 max-w-7xl mx-auto items-center gap-4 py-1.5">
             {isEditMode && (
               <span className="label-caps text-tea-text-dim shrink-0">
                 CLICK CELLS TO EDIT
@@ -2011,7 +2011,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6 pb-nav-gap"
+        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg pt-3 pb-nav-gap"
         onScroll={(e) => {
           if (filterType === 'Pending') return;
           const top = e.currentTarget.scrollTop;
@@ -2667,7 +2667,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
         {/* DESKTOP TABLE — canonical §20 inventory table from /design/system:
             bordered card containing top strip → headers → rows → bottom strip. */}
-        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-10">
+        {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-3 md:px-4 lg:px-6">
           <div className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
 
           {/* Floating bulk-action popover — anchored to the last-clicked row, positioned
@@ -2676,7 +2676,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
           {/* Top strip — canonical: stock-history link + active-view label (left) + item counter (right). */}
           {processedProducts.length > 0 && (
-            <div className="flex items-center justify-between gap-3 px-5 py-2.5 border-b border-tea-border">
+            <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   type="button"
@@ -2711,14 +2711,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                  <col className="w-[200px]" />
+                  <col className="w-[120px]" />
                 </colgroup>
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                     ))}
-                    <th className="px-3 py-3 border-b border-tea-border" aria-hidden="true"></th>
+                    <th className="px-2 py-1.5 border-b border-tea-border" aria-hidden="true"></th>
                   </tr>
                 </thead>
               </table>
@@ -2750,7 +2750,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ) : (
                             visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                           )}
-                          <col className={splitView ? 'w-[100px]' : 'w-[200px]'} />
+                          <col className={splitView ? 'w-[100px]' : 'w-[120px]'} />
                         </colgroup>
                         <tbody>
                           {items.map((product) => {
@@ -2799,7 +2799,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     ) : (
                       visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                     )}
-                    <col className={splitView ? 'w-[100px]' : 'w-[200px]'} />
+                    <col className={splitView ? 'w-[100px]' : 'w-[120px]'} />
                 </colgroup>
 
                 {/* Canonical header — auto-aligned: numerics right, others left. */}
@@ -2814,7 +2814,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         )}
-                        <th className="px-3 py-3 border-b border-tea-border" aria-hidden="true"></th>
+                        <th className="px-2 py-1.5 border-b border-tea-border" aria-hidden="true"></th>
                     </tr>
                 </thead>
 

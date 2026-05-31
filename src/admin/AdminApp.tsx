@@ -598,11 +598,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
            {/* Current account badge — so staff never forget which store they're acting on */}
            {activeMembership && (
              <div
-               className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-gold-lt shrink-0"
+               className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-elevated border border-tea-border shrink-0"
                title={`Active account: ${activeMembership?.account_name}`}
              >
-               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" />
-               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text font-semibold truncate max-w-[140px]">
+               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
+               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium truncate max-w-[140px]">
                  {activeMembership?.account_name}
                </span>
              </div>
