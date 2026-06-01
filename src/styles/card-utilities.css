@@ -2397,22 +2397,40 @@ input[type="number"]::-webkit-outer-spin-button {
    (red for empty stock, amber for low) are kept for state signals.
    ============================================ */
 
-:root, .light, .dark {
-  /* Tea-brown palette mapped onto the admin-card structural system.
-     The structural hierarchy (bg → surface → input, each lighter) is
-     preserved; the hues swap from neutral cool gray to warm brown. */
-  --admin-bg:           #18130E;  /* tea-bg dark — page background */
-  --admin-surface:      #282119;  /* tea-surface — card surface */
-  --admin-elevated:     #3A3126;  /* tea-elevated — hover / active */
-  --admin-input-bg:     #3F362A;  /* slightly lighter than elevated so inputs read raised */
-  --admin-border:       rgba(255, 230, 190, 0.13);  /* warm cream edge, sharp 1px */
-  --admin-border-hover: rgba(255, 230, 190, 0.22);
-  --admin-text:         #EDE4D4;  /* warm cream — primary */
-  --admin-text-sec:     #B5A892;  /* warm sand — body */
-  /* text-dim was #847868 which fell to ~3.5:1 against the card surface
-     — below WCAG AA. Bumped to ~5:1 while staying clearly secondary. */
-  --admin-text-dim:     #A19682;  /* muted warm — labels (AA contrast) */
-  --admin-text-faint:   #75695A;  /* very low priority */
+.dark {
+  /* HARMONIZED with the site-wide tea-* tokens (src/styles/tailwind.css).
+     The admin-card structural system (bg → surface → input each lighter,
+     gold as the sole accent, AA-contrast text floors) is preserved — only
+     the colour values now point at the exact tea palette so the admin
+     panels read as the same material as the rest of the site, not a
+     darker near-miss cousin. Update these in lockstep with the tea dark
+     values if those change. */
+  --admin-bg:           #22201c;  /* = --tea-bg */
+  --admin-surface:      #322e29;  /* = --tea-surface */
+  --admin-elevated:     #423d36;  /* = --tea-elevated (hover / active) */
+  --admin-input-bg:     #4d473e;  /* one notch above elevated so inputs read raised, same warm family */
+  --admin-border:       rgb(168 135 77 / 0.14);  /* = --tea-border (gold-tinted, not cream) */
+  --admin-border-hover: rgb(168 135 77 / 0.24);
+  --admin-text:         #ede4d4;  /* = --tea-text */
+  --admin-text-sec:     #ddd2bd;  /* = --tea-text-sec */
+  --admin-text-dim:     #b3a283;  /* = --tea-text-dim (raised above AA for outdoor legibility) */
+  --admin-text-faint:   #8a7c66;  /* very low priority, warm */
+}
+
+.light {
+  /* Light-mode admin palette — mirrors the tea light tokens. Previously
+     the admin-* block defined dark values under :root/.light/.dark, so the
+     panel stayed dark in light mode. These map onto --tea light values. */
+  --admin-bg:           #f4ece0;  /* = --tea-bg light */
+  --admin-surface:      #e4ddd3;  /* = --tea-surface light */
+  --admin-elevated:     #d5c8b4;  /* = --tea-elevated light */
+  --admin-input-bg:     #ede4d4;  /* raised input fill, lighter than surface */
+  --admin-border:       rgb(168 135 77 / 0.16);  /* = --tea-border light */
+  --admin-border-hover: rgb(168 135 77 / 0.28);
+  --admin-text:         #18130e;  /* = --tea-text light */
+  --admin-text-sec:     #332b20;  /* = --tea-text-sec light */
+  --admin-text-dim:     #5c5040;  /* muted warm — labels (AA on light surface) */
+  --admin-text-faint:   #8a7c66;
 }
 
 /* Card surface — three concurrent moves create the "milled object" feel:
