@@ -679,12 +679,15 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               )}
             </div>
 
-            {/* Bottom bar */}
+            {/* Bottom bar — a flat word taskbar. One crisp hairline separates it
+                from the content above; no upward shadow haze (that read as smudged
+                shading). Active state is a bronze word + a sliding underline rule,
+                not a filled box, so it speaks the same language as the global nav
+                capsule beneath it without touching that bar. */}
             <div
               className="shrink-0 border-t border-tea-border bg-tea-bg"
               style={{
                 paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                boxShadow: '0 -4px 16px rgba(24,19,14,0.25)',
               }}
             >
               {/* Section tabs + mic — NOTE tab supports tap-to-open and hold-to-record */}
@@ -697,52 +700,48 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       <button
                         key={section.id}
                         onClick={() => { setActiveSectionId(section.id); setShowNote(false); }}
-                        className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 ${
-                          isActive ? 'text-tea-gold font-semibold' : 'text-tea-text/40 hover:text-tea-text/70'
+                        className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 ${
+                          isActive ? 'text-tea-gold' : 'text-tea-text/45 hover:text-tea-text/75'
                         }`}
                         style={{
                           fontFamily: 'var(--font-display)',
-                          fontSize: '11px',
-                          letterSpacing: '0.15em',
+                          fontSize: '12px',
+                          fontWeight: isActive ? 800 : 300,
+                          letterSpacing: '0.18em',
                           textTransform: 'uppercase',
                         }}
                       >
-                        {isActive && (
-                          <motion.div
-                            layoutId="tasting-tab-bg"
-                            className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
-                            style={{ background: 'rgb(var(--tea-gold-rgb) / 0.08)' }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                          />
-                        )}
-                        {count > 0 && (
-                          <motion.span
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                            className={`absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full text-ui-10 font-bold ${
-                              isActive ? 'bg-tea-gold' : 'bg-tea-text/20'
-                            }`}
-                            style={{
-                              top: -8,
-                              left: '50%',
-                              x: '-50%',
-                              color: isActive ? 'var(--tea-bg)' : 'var(--tea-text)',
-                              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-                              lineHeight: '16px',
-                              letterSpacing: 0,
-                              textTransform: 'none',
-                            }}
-                          >
-                            {count}
-                          </motion.span>
-                        )}
-                        <span className="relative z-[1]">{section.label}</span>
+                        {/* Active = the word turns bronze + bold. No underline, no
+                            box — the color/weight shift alone marks it, matching how
+                            the global capsule below signals its active item. */}
+                        <span className="relative z-[1] inline-flex items-baseline gap-1">
+                          {section.label}
+                          {/* Count as a quiet bronze superscript after the word. */}
+                          {count > 0 && (
+                            <span
+                              className="tabular-nums"
+                              style={{
+                                fontSize: '9px',
+                                letterSpacing: 0,
+                                color: isActive ? 'var(--tea-gold)' : 'rgb(var(--tea-gold-rgb) / 0.5)',
+                                transform: 'translateY(-2px)',
+                              }}
+                            >
+                              {count}
+                            </span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}
 
-                  {/* Note — 5th tab cell. Tap to open panel; press-and-hold to silently capture voice. */}
+                  {/* Hairline divider — separates the four senses (rate) from
+                      Note (capture), so Note stops reading as a 5th sense. */}
+                  <div className="w-px my-3 bg-tea-border shrink-0" aria-hidden />
+
+                  {/* Note — capture cell. Word + inline mic, matching the sense
+                      tabs' weight. Tap to open panel; press-and-hold to silently
+                      capture voice. */}
                   <button
                     type="button"
                     aria-pressed={showNote}
@@ -799,54 +798,40 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                       }
                       // Keep recording if finger/cursor leaves — user may still be holding.
                     }}
-                    className={`relative flex-1 flex items-center justify-center py-3 transition-colors duration-200 select-none touch-none ${
+                    className={`relative flex-1 flex items-center justify-center py-3.5 transition-colors duration-200 select-none touch-none ${
                       silentVoice.state === 'recording'
                         ? 'text-tea-gold'
                         : showNote
                           ? 'text-tea-gold'
                           : (tastingData.notes?.length ?? 0) > 0
                             ? 'text-tea-gold/60'
-                            : 'text-tea-text/40 hover:text-tea-text/70'
+                            : 'text-tea-text/45 hover:text-tea-text/75'
                     }`}
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: '12px',
+                      fontWeight: showNote || silentVoice.state === 'recording' ? 800 : 300,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
+                    }}
                   >
-                    {showNote && (
-                      <motion.div
-                        layoutId="tasting-tab-bg"
-                        className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
-                        style={{ background: 'rgb(var(--tea-gold-rgb) / 0.08)' }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                      />
-                    )}
-                    {silentVoice.state === 'recording' && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: [0.4, 1, 0.4] }}
-                        transition={{ duration: 1.2, repeat: Infinity }}
-                        className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-md"
-                        style={{ background: 'rgb(var(--tea-gold-rgb) / 0.18)' }}
-                      />
-                    )}
-                    {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
-                      <motion.span
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                        className="absolute z-10 flex items-center justify-center w-[16px] h-[16px] rounded-full bg-tea-text/20 text-ui-10 font-bold"
-                        style={{ top: -8, left: '50%', x: '-50%', color: 'var(--tea-text)', fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif", lineHeight: '16px', letterSpacing: 0, textTransform: 'none' }}
-                      >
-                        {tastingData.notes!.length}
-                      </motion.span>
-                    )}
-                    <span className="relative z-[1] flex flex-col items-center gap-0.5">
+                    {/* Active/recording = bronze + bold word, no underline —
+                        same bronze-word language as the sense tabs. */}
+                    <span className="relative z-[1] inline-flex items-center gap-1.5">
                       {silentVoice.state === 'transcribing' ? (
                         <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                          <Loader2 size={13} />
+                          <Loader2 size={12} />
                         </motion.span>
                       ) : (
-                        <Mic size={13} />
+                        <Mic size={12} />
                       )}
-                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '9px', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                        {silentVoice.state === 'recording' ? 'Rec…' : 'Note'}
+                      <span className="inline-flex items-baseline gap-1">
+                        {silentVoice.state === 'recording' ? 'Rec' : 'Note'}
+                        {(tastingData.notes?.length ?? 0) > 0 && !showNote && silentVoice.state !== 'recording' && (
+                          <span className="tabular-nums" style={{ fontSize: '9px', letterSpacing: 0, color: 'rgb(var(--tea-gold-rgb) / 0.5)', transform: 'translateY(-2px)' }}>
+                            {tastingData.notes!.length}
+                          </span>
+                        )}
                       </span>
                     </span>
                   </button>
