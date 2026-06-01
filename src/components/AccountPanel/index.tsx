@@ -1011,7 +1011,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 SIGN IN VIEW (inline, no navigation away)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signin' && (
-              <div className="px-6 pt-6 pb-6 space-y-5">
+              <div className="px-6 pt-10 pb-6 space-y-5 w-full max-w-sm mx-auto">
                 <div>
                   <h2 className="h2">Welcome back.</h2>
                   <p className="text-ui-13 text-tea-text-sec mt-1.5">Sign in to your Teajia account.</p>
@@ -1071,7 +1071,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 SIGN UP VIEW (inline)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signup' && (
-              <div className="px-6 pt-6 pb-6 space-y-5">
+              <div className="px-6 pt-10 pb-6 space-y-5 w-full max-w-sm mx-auto">
                 <div>
                   <h2 className="h2">Join Teajia.</h2>
                   <p className="text-ui-13 text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
