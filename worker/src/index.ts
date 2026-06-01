@@ -19,6 +19,11 @@ interface Env {
   // Optional — set to enable Google OAuth sign-in
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  // Frontend base URL the OAuth callback redirects the user back to. The API
+  // runs on a separate *.workers.dev origin from the app, so user-facing
+  // redirects must target the app, not the worker. Defaults to the production
+  // site when unset. Override per-env via wrangler vars/secrets.
+  APP_URL?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
   ENABLE_DEV_ADMIN?: string;
   // Optional — wrapping key for BYOK secrets stored in D1 (e.g. accounts.openai_api_key_encrypted).
@@ -1729,18 +1734,23 @@ const handleGoogleAuth: Handler = async (request, env) => {
 const handleGoogleCallback: Handler = async (request, env) => {
   const url = new URL(request.url);
   const origin = url.origin;
+  // The API runs on a separate origin from the app (e.g. *.workers.dev vs
+  // teajia.com), so user-facing redirects must point at the app, not the
+  // worker — otherwise the worker 404s its own root. `origin` is still used
+  // for the Google redirect_uri, which must stay on the worker.
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
 
-  if (errorParam) return Response.redirect(`${origin}/admin?oauth_error=${encodeURIComponent(errorParam)}`, 302);
-  if (!code || !state) return Response.redirect(`${origin}/admin?oauth_error=missing_params`, 302);
+  if (errorParam) return Response.redirect(`${appOrigin}/admin?oauth_error=${encodeURIComponent(errorParam)}`, 302);
+  if (!code || !state) return Response.redirect(`${appOrigin}/admin?oauth_error=missing_params`, 302);
   // verifyOAuthState returns the signed return path (or null when invalid).
   // From here on, errors and success land the user back where they started.
   const returnPath = await verifyOAuthState(state, env.JWT_SECRET);
-  if (!returnPath) return Response.redirect(`${origin}/admin?oauth_error=invalid_state`, 302);
+  if (!returnPath) return Response.redirect(`${appOrigin}/admin?oauth_error=invalid_state`, 302);
   const sep = returnPath.includes('?') ? '&' : '?';
-  const errRedirect = (e: string) => Response.redirect(`${origin}${returnPath}${sep}oauth_error=${e}`, 302);
+  const errRedirect = (e: string) => Response.redirect(`${appOrigin}${returnPath}${sep}oauth_error=${e}`, 302);
 
   const redirectUri = `${origin}/api/auth/google/callback`;
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -1795,7 +1805,7 @@ const handleGoogleCallback: Handler = async (request, env) => {
     active_account_id: activeAccountId,
   });
 
-  return Response.redirect(`${origin}${returnPath}#oauth_token=${token}`, 302);
+  return Response.redirect(`${appOrigin}${returnPath}#oauth_token=${token}`, 302);
 };
 
 const handleGetProducts: Handler = async (request, env) => {
