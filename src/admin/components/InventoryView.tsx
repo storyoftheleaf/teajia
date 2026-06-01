@@ -1177,15 +1177,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   useEffect(() => {
     if (!panelProduct) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setPanelProduct(null); e.preventDefault(); }
-      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-        const idx = productIndexMap.get(panelProduct.id) ?? -1;
-        if (idx > 0) setPanelProduct(processedProducts[idx - 1]);
+      if (e.key === 'Escape') { setPanelProduct(null); e.preventDefault(); return; }
+      // Never steal arrow keys while the user is typing in a field — they need
+      // them to move the text cursor (e.g. editing a stock value in the panel).
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      if (typing) return;
+      const goTo = (next: Product | undefined) => {
+        if (!next) return;
+        setPanelProduct(next);
+        document.querySelector(`[data-product-id="${next.id}"]`)
+          ?.scrollIntoView({ block: 'nearest' });
         e.preventDefault();
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      };
+      if (e.key === 'ArrowUp') {
         const idx = productIndexMap.get(panelProduct.id) ?? -1;
-        if (idx < processedProducts.length - 1) setPanelProduct(processedProducts[idx + 1]);
-        e.preventDefault();
+        if (idx > 0) goTo(processedProducts[idx - 1]);
+      } else if (e.key === 'ArrowDown') {
+        const idx = productIndexMap.get(panelProduct.id) ?? -1;
+        if (idx < processedProducts.length - 1) goTo(processedProducts[idx + 1]);
       }
     };
     window.addEventListener('keydown', handler);
