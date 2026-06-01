@@ -1,12 +1,12 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { Archive, Check, Eye, EyeOff, Globe, MoreHorizontal, Pencil, Star } from 'lucide-react';
+import { Archive, Check, Eye, EyeOff, Globe, History, MoreHorizontal, Pencil, Star } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
 import { getThemeColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
-import { getRowBorderClass, isFeaturedButHidden } from './helpers';
+import { isFeaturedButHidden, stripMatchingYear } from './helpers';
 
 export interface InventoryRowProps {
   product: Product;
@@ -52,12 +52,19 @@ function InventoryRowBase(props: InventoryRowProps) {
   const cellId = (colIdx: number) => `cell-${globalIdx}-${colIdx}`;
   const ghostId = (colIdx: number) => `ghost-${globalIdx}-${colIdx}`;
 
-  // Tone tokens — canonical: low-stock → tea-readgold; sold-out name → text-sec, numerics → text-dim.
+  // Tone tokens — the PRODUCT NAME stays one calm color (text, or text-sec when
+  // sold/archived) so the Product column reads consistently. The low-stock signal
+  // lives on the numeric columns (Grams/Retail), not on the name.
   const isOut = (product.stockGrams ?? 0) <= 0;
   const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
   const isSold = product.status === 'Archived' || isOut;
-  const nameTone = isLow ? 'text-tea-readgold' : isSold ? 'text-tea-text-sec' : 'text-tea-text';
+  const nameTone = isSold ? 'text-tea-text-sec' : 'text-tea-text';
   const numTone = isLow ? 'text-tea-readgold' : isSold ? 'text-tea-text-dim' : 'text-tea-text';
+
+  // The Year column already shows the vintage, so a trailing year baked into the
+  // name ("Aged Liu Bao 1960") is redundant. Strip it for display ONLY when it
+  // matches product.year — never touch a trailing number that isn't the vintage.
+  const displayName = stripMatchingYear(product.productName, product.year);
 
   const renderCell = (colKey: string, colIndex: number) => {
     const fr = focusedCol === colIndex ? 'ring-1 ring-tea-gold/50 rounded' : '';
@@ -74,11 +81,11 @@ function InventoryRowBase(props: InventoryRowProps) {
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 align-middle overflow-hidden ${fr}`}>
             <div className="flex flex-col justify-center">
               {isEditMode ? (
-                <GhostInput value={product.productName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-15 leading-tight truncate font-medium ${nameTone}`} ariaLabel="Product name" />
+                <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-17 leading-snug truncate font-medium ${nameTone}`} ariaLabel="Product name" />
               ) : (
-                <span className={`font-display text-ui-15 leading-tight truncate font-medium ${nameTone}`}>{product.productName}</span>
+                <span className={`font-display text-ui-17 leading-snug truncate font-medium ${nameTone}`}>{displayName}</span>
               )}
-              <span className="font-sans text-ui-11 text-tea-text-dim mt-0.5 truncate block" style={{ letterSpacing: '0.02em' }}>
+              <span className="font-sans text-ui-11 text-tea-text-dim mt-px truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
               </span>
             </div>
@@ -128,17 +135,23 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'stockGrams': {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
-            {isEditMode ? (
-              <div className="inline-flex items-center gap-1 justify-end">
-                <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={product.stockGrams} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
-                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className={`text-ui-10 transition-colors ${product.recheckStock ? 'text-tea-readgold hover:text-tea-text-sec' : 'text-tea-border hover:text-tea-readgold'}`}><span aria-hidden="true">&#9888;</span></button>
-              </div>
-            ) : (
-              <button onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }} className={`tap-target inline-flex items-center gap-1 justify-end hover:text-tea-gold transition-colors ${numTone}`} title="View stock history" aria-label={`View stock history for ${product.productName}`}>
-                {product.recheckStock && <span title="Stock needs rechecking" aria-label="Stock needs rechecking" className="text-tea-readgold text-ui-10"><span aria-hidden="true">&#9888;</span></span>}
-                {isOut ? '0' : Math.round(product.stockGrams)}
+            {/* Stock is always editable inline — type a new gram value directly in
+                the cell. The clock icon (left) opens stock history; the number
+                itself no longer hijacks the click for history. */}
+            <div className="inline-flex items-center gap-1.5 justify-end" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }}
+                className="tap-target shrink-0 text-tea-text-dim hover:text-tea-gold transition-colors"
+                title="View stock history"
+                aria-label={`View stock history for ${product.productName}`}
+              >
+                <History size={12} aria-hidden="true" />
               </button>
-            )}
+              {product.recheckStock && (
+                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title="Stock needs rechecking — clear flag" onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className="text-ui-10 text-tea-readgold hover:text-tea-text-sec transition-colors shrink-0"><span aria-hidden="true">&#9888;</span></button>
+              )}
+              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-12 ${numTone}`} />
+            </div>
           </td>
         );
       }
@@ -233,16 +246,16 @@ function InventoryRowBase(props: InventoryRowProps) {
     }
   };
 
-  // Canonical active-row signature: gold-tinted bg + 1px gold outline (selection or panel open).
-  const borderCls = !isSelected && !isPanelOpen ? getRowBorderClass(product) : '';
-  const activeRow = isSelected || isPanelOpen;
+  // Canonical active-row signature: gold-tinted bg + gold outline (selection or panel open).
+  // Every non-active row reads as ONE flat color — no per-row background tints and no
+  // whole-row opacity fades (they made the table look like a patchwork of browns).
+  // Hidden-from-shop state is carried by the EyeOff icon, not by fading the row.
   const trCls = [
     'border-b border-tea-border last:border-b-0 group cursor-pointer select-none transition-colors',
-    borderCls,
-    activeRow
-      ? 'bg-tea-gold/8 outline outline-1 -outline-offset-1 outline-tea-gold/40'
-      : !product.isPublic
-        ? 'opacity-60 hover:opacity-100 hover:bg-tea-accent-sub'
+    isPanelOpen
+      ? 'bg-tea-gold/16 outline outline-2 -outline-offset-1 outline-tea-gold/70 shadow-[inset_3px_0_0_0_var(--tea-gold)]'
+      : isSelected
+        ? 'bg-tea-gold/8 outline outline-1 -outline-offset-1 outline-tea-gold/40'
         : 'hover:bg-tea-accent-sub',
   ].join(' ');
 
