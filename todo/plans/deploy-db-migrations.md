@@ -15,11 +15,10 @@ Done this session:
    migrations list --remote` now reports "No migrations to apply!".
 3. Removed `continue-on-error` from the workflow so future failures fail loudly.
 
-**The one remaining check (only you can do it):** the `CLOUDFLARE_API_TOKEN` repo
-secret must have **D1 write** permission, not just Workers deploy. If it's still
-read-only for D1, the now-loud migration step will FAIL the next deploy (safer than
-silent drift, but it blocks deploys until fixed). Confirm/upgrade the token, then the
-pipeline auto-applies migrations correctly from here on. Steps below.
+**✅ Token fixed and verified 2026-06-01.** `CLOUDFLARE_API_TOKEN` now has D1 write.
+Deploy run 26740632400 (07:13 UTC) succeeded with the migration step reporting
+"No migrations to apply!" — no more 7403. The pipeline now auto-applies migrations on
+every deploy and fails loudly if one errors. This whole effort is complete.
 
 ## Steps to fix (token)
 

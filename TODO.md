@@ -24,11 +24,12 @@
 
 ### Infrastructure Follow-Ups
 
-- [ ] Let deploys apply database changes automatically _(band: you-required)_ _(effort: deep)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
+- [x] Give the deploy's Cloudflare token D1 permission so migrations stop silently failing in CI _(done 2026-06-01: token has D1 write, verified via deploy run; tracker reconciled)_ → Plan: [archive/ci-cloudflare-token-d1.md](todo/plans/archive/ci-cloudflare-token-d1.md)
+- [x] Let deploys apply database changes automatically _(done 2026-06-01: continue-on-error removed, migrations now auto-apply on deploy and fail loudly on error)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
 
 ### Magazine Editor (April 2026 Sprint)
 
-- [ ] Run the one-time articles database setup so the magazine editor works _(band: you-required)_ _(effort: deep)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
+- [x] Run the one-time articles database setup so the magazine editor works _(done: articles table exists on prod, migration 031 tracked — verified 2026-06-01)_
 - [ ] Replace the placeholder gift-set product IDs with real ones from the inventory panel _(band: you-required)_ _(effort: quick)_
 - [ ] Replace the three hardcoded Spaces-page locations with real data _(band: agent-runnable)_ _(effort: moderate)_
 
