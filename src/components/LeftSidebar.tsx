@@ -196,7 +196,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       path: '/admin/dashboard',
     },
     {
-      id: 'inventory', label: 'Inventory',
+      id: 'inventory', label: 'Stock',
       icon: <Package size={18} weight={PHOSPHOR_WEIGHT} />,
       path: '/admin/inventory',
       children: [
@@ -205,7 +205,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         { id: 'sources',  path: '/admin/sources',  label: 'Sources',      icon: <Storefront size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck  size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera    size={14} weight={PHOSPHOR_WEIGHT} /> },
-        { id: 'compass',  path: '/admin/compass',  label: 'Compass',      icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
+        { id: 'compass',  path: '/admin/compass',  label: 'Curate',       icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
       ],
     },
     {

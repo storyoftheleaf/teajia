@@ -557,7 +557,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               option so it reads at a glance. */}
           {mode === 'sourcing' && (
             <div className="flex-1 flex items-center min-w-0">
-              <div className={isPlaybookSurface ? 'inline-flex max-w-full flex-wrap items-center gap-1 overflow-hidden' : 'inline-flex items-center gap-1 max-w-full overflow-x-auto scrollbar-hide'}>
+              <div className={isPlaybookSurface ? 'inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide' : 'inline-flex items-center gap-1 max-w-full overflow-x-auto scrollbar-hide'}>
                 {([
                   { id: 'tea', label: 'Tea' },
                   { id: 'teaware', label: 'Teaware' },

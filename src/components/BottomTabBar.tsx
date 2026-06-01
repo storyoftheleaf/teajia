@@ -59,19 +59,19 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   type AdminTab = { id: string; label: string; path: string };
   const [adminLeftTabs, adminRightTabs] = ((): [AdminTab[], AdminTab[]] => {
     if (isAdmin) return [
-      [{ id: 'compass',   label: 'compass',  path: '/admin/compass' },
-       { id: 'inventory', label: 'inventory', path: '/admin/inventory' }],
+      [{ id: 'compass',   label: 'curate',   path: '/admin/compass' },
+       { id: 'inventory', label: 'stock',    path: '/admin/inventory' }],
       [{ id: 'activity',  label: 'sales',    path: '/admin/activity' },
        { id: 'events',    label: 'events',   path: '/admin/events' }],
     ];
     if (isStaff) return [
-      [{ id: 'compass',  label: 'compass',  path: '/admin/compass' },
+      [{ id: 'compass',  label: 'curate',   path: '/admin/compass' },
        { id: 'activity', label: 'sales',    path: '/admin/activity' }],
       [{ id: 'events',   label: 'events',   path: '/admin/events' },
        { id: 'people',   label: 'people',   path: '/admin/people' }],
     ];
     return [
-      [{ id: 'compass', label: 'compass', path: '/admin/compass' },
+      [{ id: 'compass', label: 'curate',  path: '/admin/compass' },
        { id: 'samples', label: 'samples', path: '/admin/samples' }],
       [{ id: 'capture', label: 'capture', path: '/admin/capture' },
        { id: 'events',  label: 'events',  path: '/admin/events' }],

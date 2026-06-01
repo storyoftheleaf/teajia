@@ -31,7 +31,7 @@ type TileData = {
 
 // All tiles — filtered at render time based on role
 const memberTiles: TileData[] = [
-  { id: 'compass',  label: 'Tea Compass', sub: 'Browse & capture',   icon: Compass,     path: '/admin/compass' },
+  { id: 'compass',  label: 'Curate',      sub: 'Browse & capture',   icon: Compass,     path: '/admin/compass' },
   { id: 'capture',  label: 'Capture',     sub: 'Quick intake',       icon: Camera,      path: '/admin/capture' },
   { id: 'samples',  label: 'Samples',     sub: 'Sample sets',        icon: FlaskConical,path: '/admin/samples' },
   { id: 'events',   label: 'Events',      sub: 'Sessions & classes', icon: Calendar,    path: '/admin/events' },

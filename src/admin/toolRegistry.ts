@@ -33,10 +33,10 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'activity', label: 'Activity', group: 'sell', route: '/admin/activity', addedAt: '2025-10-01', bundle: 'sell' },
   { id: 'quick-invoice', label: 'Quick Invoice', group: 'sell', route: '/admin/activity?qi=1', addedAt: '2025-11-10', bundle: 'sell' },
   { id: 'people', label: 'Customers', group: 'sell', route: '/admin/people', addedAt: '2025-10-01', bundle: 'sell' },
-  { id: 'inventory', label: 'Inventory', group: 'sell', route: '/admin/inventory', addedAt: '2025-09-15', bundle: 'stock' },
+  { id: 'inventory', label: 'Stock', group: 'sell', route: '/admin/inventory', addedAt: '2025-09-15', bundle: 'stock' },
   { id: 'purchase-orders', label: 'Purchase Orders', group: 'sell', route: '/admin/purchase-orders', addedAt: '2026-02-20', requires: 'owner', bundle: 'stock', staffVisible: true },
 
-  { id: 'compass', label: 'Tea Compass', group: 'source', route: '/admin/compass', addedAt: '2025-09-01', bundle: 'catalog' },
+  { id: 'compass', label: 'Curate', group: 'source', route: '/admin/compass', addedAt: '2025-09-01', bundle: 'catalog' },
   { id: 'capture', label: 'Quick Capture', group: 'source', route: '/admin/capture', addedAt: '2026-01-12', bundle: 'catalog' },
   { id: 'vendors', label: 'Vendors', group: 'source', route: '/admin/compass?tab=sourcing', addedAt: '2025-11-05', bundle: 'catalog' },
 
