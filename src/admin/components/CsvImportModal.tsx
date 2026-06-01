@@ -4,6 +4,7 @@ import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, FileQ
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { BatchPicker } from './BatchPicker';
 
 interface StagingRow {
   id: string;
@@ -61,6 +62,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   const { showToast } = useToast();
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
   const [stage, setStage] = useState<'upload' | 'staging' | 'uploading'>('upload');
+  const [intakeBatchId, setIntakeBatchId] = useState<string | null>(null);
   const [stagingData, setStagingData] = useState<StagingRow[]>([]);
   const [validationSummary, setValidationSummary] = useState({ valid: 0, drafts: 0 });
   
@@ -366,7 +368,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     try {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            await api.products.bulkCreate(batch);
+            await api.products.bulkCreate(batch, intakeBatchId ?? undefined);
 
             processedCount += batch.length;
             setUploadProgress(processedCount);
@@ -638,14 +640,19 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         </div>
 
         {stage === 'staging' && (
-          <div className="flex justify-between gap-2 px-5 py-3 border-t border-tea-border bg-tea-bg/40 rounded-b-xl flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <button onClick={onClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-              <button onClick={() => setStage('upload')} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Back</button>
+          <div className="border-t border-tea-border bg-tea-bg/40 rounded-b-xl flex-shrink-0">
+            <div className="px-5 pt-3 pb-1 max-w-sm">
+              <BatchPicker value={intakeBatchId} onChange={setIntakeBatchId} label="Add this import to batch" />
             </div>
-            <button onClick={handleCommit} disabled={stagingData.length === 0} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
-                Import All ({stagingData.length})
-            </button>
+            <div className="flex justify-between gap-2 px-5 py-3">
+              <div className="flex items-center gap-3">
+                <button onClick={onClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
+                <button onClick={() => setStage('upload')} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Back</button>
+              </div>
+              <button onClick={handleCommit} disabled={stagingData.length === 0} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+                  Import All ({stagingData.length})
+              </button>
+            </div>
           </div>
         )}
       </div>

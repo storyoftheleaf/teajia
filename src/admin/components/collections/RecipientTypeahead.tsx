@@ -261,6 +261,14 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
     onChange(next);
   };
 
+  // Set/clear the phone on a freeform (non-contact) recipient so the owner can
+  // send to someone who isn't a saved contact and still get a WhatsApp link.
+  const setPhoneAt = (idx: number, phone: string) => {
+    const next = value.slice();
+    next[idx] = { ...next[idx], phone };
+    onChange(next);
+  };
+
   const addByTag = async (tag: string) => {
     setSkipNote(null);
     try {
@@ -523,21 +531,33 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
 
                     {/* Identity */}
                     <div className="flex-1 min-w-0 flex items-baseline gap-2">
-                      <span className="text-ui-13 text-tea-text truncate">
+                      <span className="text-ui-13 text-tea-text truncate shrink-0">
                         {r.name}
                       </span>
-                      {r.phone ? (
-                        <span className="text-ui-11 text-tea-text-dim num truncate">
-                          {r.phone}
-                        </span>
-                      ) : !r.customer_id ? (
-                        <span className="text-ui-10 text-tea-text-dim italic">
-                          new contact
-                        </span>
+                      {r.customer_id ? (
+                        r.phone ? (
+                          <span className="text-ui-11 text-tea-text-dim num truncate">
+                            {r.phone}
+                          </span>
+                        ) : (
+                          <span className="text-ui-10 text-tea-text-dim italic">
+                            no phone
+                          </span>
+                        )
                       ) : (
-                        <span className="text-ui-10 text-tea-text-dim italic">
-                          no phone
-                        </span>
+                        // Freeform recipient: let the owner add a phone so a
+                        // WhatsApp link works for someone not on the list.
+                        <input
+                          type="tel"
+                          inputMode="tel"
+                          value={r.phone ?? ''}
+                          onChange={e => setPhoneAt(i, e.target.value)}
+                          placeholder="Add phone for WhatsApp (optional)"
+                          autoComplete="off"
+                          data-1p-ignore
+                          data-lpignore="true"
+                          className="flex-1 min-w-0 bg-transparent border-0 border-b border-tea-border focus:border-tea-gold outline-none text-ui-11 text-tea-text-sec num py-0.5 placeholder:text-tea-text-dim placeholder:not-italic transition-colors"
+                        />
                       )}
                     </div>
 

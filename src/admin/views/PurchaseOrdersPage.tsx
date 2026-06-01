@@ -5,6 +5,7 @@ import { ShoppingBag, Plus, ChevronDown, Loader2, X, Trash2 } from 'lucide-react
 import { api, PurchaseOrder, PurchaseOrderItem } from '../../lib/api';
 import { useProducts, useCustomers } from '../hooks/useAdminData';
 import { useToast } from '../components/Toast';
+import { BatchPicker } from '../components/BatchPicker';
 
 const PO_STATUSES = ['pending', 'ordered', 'received', 'cancelled'] as const;
 type PoStatus = typeof PO_STATUSES[number];
@@ -205,7 +206,7 @@ const NewPoForm: React.FC<{ onClose: () => void; onSubmit: (data: Parameters<typ
 // ── Receive Stock Prompt ──
 const ReceiveStockPrompt: React.FC<{
   po: PurchaseOrder;
-  onConfirm: (productId: string, grams: number) => Promise<void>;
+  onConfirm: (productId: string, grams: number, batchId: string | null) => Promise<void>;
   onClose: () => void;
 }> = ({ po, onConfirm, onClose }) => {
   const items: PurchaseOrderItem[] = (() => {
@@ -213,6 +214,7 @@ const ReceiveStockPrompt: React.FC<{
   })();
 
   const [confirming, setConfirming] = useState(false);
+  const [batchId, setBatchId] = useState<string | null>(null);
 
   if (!items.length) {
     return (
@@ -271,6 +273,9 @@ const ReceiveStockPrompt: React.FC<{
               <span className="text-sm text-tea-gold tabular-nums font-medium">+{item.quantity_grams}g</span>
             </div>
           ))}
+          <div className="pt-3">
+            <BatchPicker value={batchId} onChange={setBatchId} label="Receive into batch" />
+          </div>
         </div>
         <div className="px-5 pb-5 flex justify-between items-center gap-3">
           <button onClick={onClose} className="px-2 py-2 text-xs text-tea-text-sec hover:text-tea-text transition-colors uppercase tracking-[0.15em]">Skip</button>
@@ -281,7 +286,7 @@ const ReceiveStockPrompt: React.FC<{
               try {
                 for (const item of items) {
                   if (item.product_id && item.quantity_grams > 0) {
-                    await onConfirm(item.product_id, item.quantity_grams);
+                    await onConfirm(item.product_id, item.quantity_grams, batchId);
                   }
                 }
                 onClose();
@@ -337,8 +342,8 @@ export const PurchaseOrdersPage: React.FC = () => {
   });
 
   const incrementMutation = useMutation({
-    mutationFn: ({ productId, amount }: { productId: string; amount: number }) =>
-      api.rpc.incrementStock(productId, amount),
+    mutationFn: ({ productId, amount, batchId }: { productId: string; amount: number; batchId: string | null }) =>
+      api.rpc.incrementStock(productId, amount, batchId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       showToast('Stock incremented', 'success');
@@ -446,8 +451,8 @@ export const PurchaseOrdersPage: React.FC = () => {
         {receivePo && (
           <ReceiveStockPrompt
             po={receivePo}
-            onConfirm={async (productId, grams) => {
-              await incrementMutation.mutateAsync({ productId, amount: grams });
+            onConfirm={async (productId, grams, batchId) => {
+              await incrementMutation.mutateAsync({ productId, amount: grams, batchId });
             }}
             onClose={() => setReceivePo(null)}
           />

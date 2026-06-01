@@ -148,6 +148,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // --- STATE ---
   const [searchParams, setSearchParams] = useSearchParams();
   const vendorFilter = searchParams.get('vendor') || '';
+  const batchFilter = searchParams.get('batch') || '';
   const panelParam = searchParams.get('panel') || '';
   const navigate = useNavigate();
   const compassEntries = useTeaCompassStore((s) => s.entries);
@@ -192,16 +193,42 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [isEditMode, setIsEditMode] = useState(false);
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
 
-  // Initialize/Sync Local Products for Optimistic Updates
-  // When a vendor filter is active, only show products from that vendor
+  // Intake batches: list (for the filter banner label) + the product-id set of
+  // the active batch (for "show everything in this shipment").
+  const [batches, setBatches] = useState<{ id: string; label: string; intake_date: string | null; item_count?: number }[]>([]);
+  const [batchProductIds, setBatchProductIds] = useState<Set<string> | null>(null);
+
   useEffect(() => {
+    let cancelled = false;
+    api.batches.list().then(r => { if (!cancelled) setBatches(r.batches || []); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!batchFilter) { setBatchProductIds(null); return; }
+    let cancelled = false;
+    setBatchProductIds(new Set()); // empty while loading → grid shows nothing rather than everything
+    api.batches.products(batchFilter)
+      .then(r => { if (!cancelled) setBatchProductIds(new Set(r.product_ids || [])); })
+      .catch(() => { if (!cancelled) setBatchProductIds(new Set()); });
+    return () => { cancelled = true; };
+  }, [batchFilter]);
+
+  const activeBatch = batches.find(b => b.id === batchFilter) || null;
+
+  // Initialize/Sync Local Products for Optimistic Updates
+  // Vendor filter narrows to one source; batch filter narrows to one shipment.
+  useEffect(() => {
+    let list = products;
     if (vendorFilter) {
       const vendorLower = vendorFilter.toLowerCase();
-      setLocalProducts(products.filter(p => p.vendor && p.vendor.toLowerCase() === vendorLower));
-    } else {
-      setLocalProducts(products);
+      list = list.filter(p => p.vendor && p.vendor.toLowerCase() === vendorLower);
     }
-  }, [products, vendorFilter]);
+    if (batchFilter && batchProductIds) {
+      list = list.filter(p => batchProductIds.has(p.id));
+    }
+    setLocalProducts(list);
+  }, [products, vendorFilter, batchFilter, batchProductIds]);
 
   // Feature 2: Column Show/Hide popover
   const [showColumnsPopover, setShowColumnsPopover] = useState(false);
@@ -1419,6 +1446,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
+      {batchFilter && (
+        <div className="flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Layers size={14} className="text-tea-gold flex-shrink-0" />
+            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Batch</span>
+            <span className="text-sm font-serif text-tea-text truncate">
+              {activeBatch?.label || 'Selected batch'}
+              {activeBatch?.intake_date ? ` — ${activeBatch.intake_date}` : ''}
+            </span>
+            <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em]">
+              — {processedProducts.length} tea{processedProducts.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <button
+            onClick={() => { searchParams.delete('batch'); setSearchParams(searchParams); }}
+            className="flex items-center gap-1 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em] transition-colors px-2 py-1 hover:bg-tea-bg rounded-md"
+          >
+            <XIcon size={12} /> Clear Filter
+          </button>
+        </div>
+      )}
+
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
       <div className={`md:hidden sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         <div className="flex flex-col border-b border-tea-border">
@@ -1977,6 +2026,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                                 Enrich Missing Wisdom
                             </button>
+                            {batches.filter(b => (b.item_count ?? 0) > 0 || b.label !== 'Unsorted').length > 0 && (
+                              <>
+                                <div className="h-px bg-tea-border my-1"></div>
+                                <div className="px-4 pt-1 pb-0.5 text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim flex items-center gap-2">
+                                  <Layers size={12} /> Filter by batch
+                                </div>
+                                <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                                  {batches.map(b => (
+                                    <button
+                                      key={b.id}
+                                      role="menuitem"
+                                      onClick={() => { searchParams.set('batch', b.id); setSearchParams(searchParams); setShowOptions(false); }}
+                                      className={`w-full px-4 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${batchFilter === b.id ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+                                    >
+                                      <span className="truncate">{b.label}</span>
+                                      {b.intake_date && <span className="text-tea-text-dim shrink-0">{b.intake_date}</span>}
+                                      {batchFilter === b.id && <Check size={12} className="ml-auto shrink-0" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
                             <div className="h-px bg-tea-border my-1"></div>
                             <button role="menuitem" onClick={() => { setShowMaintenanceModal(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <AlertTriangle size={14} /> Maintenance

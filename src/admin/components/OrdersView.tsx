@@ -462,34 +462,35 @@ export const OrdersView = () => {
                         )}
                       </td>
 	                      <td className="px-4 align-middle text-center">
-	                        <div className="flex flex-wrap items-center justify-center gap-1.5">
-	                          <span className={`badge-status ${
+	                        <div className="flex items-center justify-center gap-2 min-w-0">
+	                          <span className={`badge-status shrink-0 ${
 	                            isVoid ? 'badge-status-muted' :
 	                            isPending ? 'badge-status-gold' :
                             'badge-status-default'
 	                          }`}>
 	                            {order.status}
 	                          </span>
-	                          <span className={`badge-status ${
-	                            order.payment_status === 'paid' ? 'badge-status-default' :
-	                            order.payment_status === 'partial' ? 'badge-status-gold' :
-	                            'badge-status-muted'
-	                          }`}>
-	                            {paymentLabel(order)}
-	                          </span>
-	                          <span className={`badge-status ${order.inventory_deducted ? 'badge-status-default' : 'badge-status-gold'}`}>
-	                            {stockLabel(order)}
-	                          </span>
+	                          {!isVoid && (
+	                            <span className="text-ui-10 text-tea-text-sec truncate">
+	                              <span className={order.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold/90'}>
+	                                {order.payment_status === 'paid' ? 'paid' : order.payment_status === 'partial' ? 'partial' : 'unpaid'}
+	                              </span>
+	                              <span className="text-tea-text-dim mx-1">·</span>
+	                              <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
+	                                {order.inventory_deducted ? 'stock gone' : 'stock pending'}
+	                              </span>
+	                            </span>
+	                          )}
 	                          {isPending && daysAge >= 7 && (
-	                            <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
+	                            <span className="text-ui-9 text-tea-gold/80 num shrink-0">{daysAge}d</span>
 	                          )}
                           {order.notes && (
-                            <span className="text-tea-text-dim" title={order.notes}><StickyNote size={10} /></span>
+                            <span className="text-tea-text-dim shrink-0" title={order.notes}><StickyNote size={10} /></span>
                           )}
                           {order.source_event_title && (
                             <button
                               onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
-                              className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer"
+                              className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer shrink-0"
                               title={`Attributed to: ${order.source_event_title}`}
                             ><Leaf size={10} /></button>
                           )}
@@ -605,7 +606,18 @@ export const OrdersView = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
-                    <span className="text-xs text-tea-text num">${total.toFixed(2)} {order.display_currency}</span>
+                    <span className="text-xs text-tea-text num shrink-0">${total.toFixed(2)} {order.display_currency}</span>
+                    {!isVoid && (
+                      <span className="text-ui-10 text-tea-text-sec truncate">
+                        <span className={order.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold/90'}>
+                          {order.payment_status === 'paid' ? 'paid' : order.payment_status === 'partial' ? 'partial' : 'unpaid'}
+                        </span>
+                        <span className="text-tea-text-dim mx-1">·</span>
+                        <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
+                          {order.inventory_deducted ? 'stock gone' : 'stock pending'}
+                        </span>
+                      </span>
+                    )}
                     <div className="flex-1" />
                     {isPending && (
                       <Button

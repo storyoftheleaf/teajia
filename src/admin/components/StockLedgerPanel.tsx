@@ -14,8 +14,12 @@ const REASON_LABELS: Record<string, string> = {
   FULFILLMENT: 'Sale',
   VOID: 'Void Restore',
   MANUAL_ADJUST: 'Manual',
+  PURCHASE_RECEIPT: 'Received',
   IMPORT: 'Import',
   CREATION: 'Created',
+  WASTE: 'Waste',
+  SAMPLE: 'Sample',
+  PERSONAL: 'Personal',
 };
 
 export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
@@ -68,6 +72,11 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                   <span className="badge-status badge-status-default text-ui-11">
                     {REASON_LABELS[entry.reason] || entry.reason}
                   </span>
+                  {entry.batch_label && entry.batch_label !== 'Unsorted' && (
+                    <span className="text-ui-10 text-tea-gold-lt truncate max-w-[7rem]" title={entry.batch_label}>
+                      {entry.batch_label}
+                    </span>
+                  )}
                   {entry.source_invoice_number && (
                     <button
                       onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}

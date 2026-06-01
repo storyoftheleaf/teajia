@@ -293,7 +293,19 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     source_invoice_number TEXT,       -- Denormalized for easy display
     user_email TEXT,
     note TEXT,                        -- Human-readable description
+    batch_id TEXT,                    -- FK to batches: which intake shipment/session this arrival belonged to
     created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- 6c. Intake Batches (group stock arrivals into named shipments / sessions)
+CREATE TABLE IF NOT EXISTS batches (
+    id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    account_id  TEXT NOT NULL,
+    label       TEXT NOT NULL,
+    intake_date TEXT,                 -- real-world acquisition date the operator asserts (nullable)
+    vendor      TEXT,
+    note        TEXT,
+    created_at  TEXT DEFAULT (datetime('now'))
 );
 
 -- 7. Teaware Collection Table (personal collection, organised by category)

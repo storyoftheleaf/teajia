@@ -2027,11 +2027,14 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const { products } = await request.json() as { products: Record<string, any>[] };
+  const { products, batch_id } = await request.json() as { products: Record<string, any>[]; batch_id?: string };
 
   if (!Array.isArray(products) || products.length > 100) {
     return new Response(JSON.stringify({ error: 'Bulk create limited to 100 products per request' }), { status: 400 });
   }
+
+  // The whole import attaches to one intake batch (defaults to Unsorted).
+  const importBatchId = batch_id || await defaultBatchId(env, accountId);
 
   // Pre-resolve all vendor names to vendor_ids (batch for efficiency, scoped)
   const vendorCache: Record<string, string> = {};
@@ -2058,6 +2061,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   );
 
   const toInsert: any[] = [];
+  const ledgerInserts: any[] = [];
   const skipped: string[] = [];
 
   for (const raw of products) {
@@ -2103,10 +2107,24 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
         .bind(id, ...cols.map(c => body[c] ?? null))
     );
+    // Opening stock becomes a PURCHASE_RECEIPT intake event, stamped with the import's
+    // batch — so a bulk-imported order is batch-filterable and leaves an audit trace.
+    const openingStock = Number(body.stock_grams ?? body.quantity_units ?? 0);
+    if (openingStock > 0) {
+      ledgerInserts.push(
+        env.DB.prepare(
+          `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id)
+           VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, 'Imported', ?, ?)`
+        ).bind(crypto.randomUUID(), id, openingStock, openingStock, ctx.email ?? null, importBatchId, accountId)
+      );
+    }
   }
 
   for (let i = 0; i < toInsert.length; i += 100) {
     await env.DB.batch(toInsert.slice(i, i + 100));
+  }
+  for (let i = 0; i < ledgerInserts.length; i += 100) {
+    await env.DB.batch(ledgerInserts.slice(i, i + 100));
   }
 
   return json({ inserted: toInsert.length, skipped: skipped.length, skippedNames: skipped });
@@ -2879,16 +2897,90 @@ const handleFulfillInvoice: Handler = async (request, env) => {
 };
 
 // ── RPC: Increment Stock (legacy, kept for backwards compat) ──
+// Resolve the account's catch-all "Unsorted" batch, creating it if missing.
+// Stock added without an explicit batch falls here so a tea is never batch-less.
+async function defaultBatchId(env: Env, accountId: string): Promise<string> {
+  const existing = await env.DB.prepare(
+    `SELECT id FROM batches WHERE account_id = ? AND label = 'Unsorted' LIMIT 1`
+  ).bind(accountId).first<{ id: string }>();
+  if (existing) return existing.id;
+  const id = `unsorted_${accountId}`;
+  await env.DB.prepare(
+    `INSERT INTO batches (id, account_id, label, intake_date) VALUES (?, ?, 'Unsorted', NULL)`
+  ).bind(id, accountId).run();
+  return id;
+}
+
+// ── Intake batches: list / create ──
+const handleListBatches: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  // Newest intake first; undated batches (e.g. Unsorted) sort last.
+  const result = await env.DB.prepare(
+    `SELECT b.id, b.label, b.intake_date, b.vendor, b.note, b.created_at,
+            (SELECT COUNT(DISTINCT sl.product_id) FROM stock_ledger sl WHERE sl.batch_id = b.id) AS item_count
+     FROM batches b
+     WHERE b.account_id = ?
+     ORDER BY (b.intake_date IS NULL), b.intake_date DESC, b.created_at DESC`
+  ).bind(accountId).all();
+  return json({ batches: result.results });
+};
+
+// Product ids whose stock arrived (at least once) in a given batch. Drives the
+// inventory grid's "show everything in this shipment" filter.
+const handleBatchProducts: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const batchId = params?.id;
+  if (!batchId) return json({ error: 'batch id required' }, 400);
+  const result = await env.DB.prepare(
+    `SELECT DISTINCT product_id FROM stock_ledger WHERE batch_id = ? AND account_id = ?`
+  ).bind(batchId, accountId).all();
+  return json({ product_ids: (result.results as any[]).map(r => r.product_id) });
+};
+
+const handleCreateBatch: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'stock');
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const body = await request.json() as { label?: string; intake_date?: string | null; vendor?: string | null; note?: string | null };
+  const label = (body.label || '').trim();
+  if (!label) return json({ error: 'label is required' }, 400);
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO batches (id, account_id, label, intake_date, vendor, note) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(id, accountId, label, body.intake_date || null, body.vendor || null, body.note || null).run();
+  return json({ id, label, intake_date: body.intake_date || null, vendor: body.vendor || null, note: body.note || null, item_count: 0 });
+};
+
 const handleIncrementStock: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const { product_id, amount } = await request.json() as { product_id: string; amount: number };
+  const { product_id, amount, batch_id } = await request.json() as { product_id: string; amount: number; batch_id?: string };
+
+  // Read current balance so the ledger row records an accurate balance_after.
+  const product = await env.DB.prepare(
+    'SELECT stock_grams, given_name, product_name FROM products WHERE id = ? AND account_id = ?'
+  ).bind(product_id, accountId).first<{ stock_grams: number; given_name: string | null; product_name: string }>();
+  if (!product) return json({ error: 'not_found' }, 404);
+
+  const balanceAfter = Number(product.stock_grams || 0) + amount;
+  const batchId = batch_id || await defaultBatchId(env, accountId);
+
   await env.DB.batch([
     env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
       .bind(amount, product_id, accountId),
     buildListingStockDelta(env, product_id, amount),
+    // Write a PURCHASE_RECEIPT row so admin stock additions leave an audit trace
+    // (previously this route wrote none) and so the arrival is batch-filterable.
+    env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id)
+       VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), product_id, amount, balanceAfter, ctx.email ?? null, 'Stock added (admin)', batchId, accountId),
   ]);
   return json({ success: true });
 };
@@ -3217,9 +3309,10 @@ const handleGetStockLedger: Handler = async (request, env) => {
   if (productId) {
     const [result, countRow] = await Promise.all([
       env.DB.prepare(
-        `SELECT sl.*, p.given_name, p.product_name
+        `SELECT sl.*, p.given_name, p.product_name, b.label AS batch_label, b.intake_date AS batch_intake_date
          FROM stock_ledger sl
          LEFT JOIN products p ON sl.product_id = p.id
+         LEFT JOIN batches b ON sl.batch_id = b.id
          WHERE sl.product_id = ? AND sl.account_id = ?
          ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
       ).bind(productId, accountId, limit, offset).all(),
@@ -3232,9 +3325,10 @@ const handleGetStockLedger: Handler = async (request, env) => {
 
   const [result, countRow] = await Promise.all([
     env.DB.prepare(
-      `SELECT sl.*, p.given_name, p.product_name
+      `SELECT sl.*, p.given_name, p.product_name, b.label AS batch_label, b.intake_date AS batch_intake_date
        FROM stock_ledger sl
        LEFT JOIN products p ON sl.product_id = p.id
+       LEFT JOIN batches b ON sl.batch_id = b.id
        WHERE sl.account_id = ?
        ORDER BY sl.created_at DESC LIMIT ? OFFSET ?`
     ).bind(accountId, limit, offset).all(),
@@ -13406,12 +13500,16 @@ const handleCreateCollection: Handler = async (request, env) => {
 
   const productIds: string[] = Array.isArray(body.initial_product_ids) ? body.initial_product_ids : [];
   if (productIds.length) {
-    const stmts = productIds.map((pid: string, idx: number) =>
-      env.DB.prepare(
-        `INSERT INTO collection_items (id, collection_id, product_id, position)
-         VALUES (?, ?, ?, ?)`
-      ).bind(newId('ci'), id, pid, idx + 1)
-    );
+    // Seed default amount + price per product so rows arrive pre-filled.
+    // Matches handleAddCollectionItems.
+    const seeds = await seedDefaultsForProducts(env, productIds);
+    const stmts = productIds.map((pid: string, idx: number) => {
+      const seed = seeds.get(pid) ?? { qty: '50', price: null };
+      return env.DB.prepare(
+        `INSERT INTO collection_items (id, collection_id, product_id, position, recommended_quantity, recommended_price_usd)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(newId('ci'), id, pid, idx + 1, seed.qty, seed.price);
+    });
     await env.DB.batch(stmts);
   }
 
@@ -13452,6 +13550,32 @@ const handlePatchCollection: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
+// Seed each newly-added collection item with a sensible recommended amount and
+// price so rows arrive pre-filled and most need no typing: 50g for tea / 1 unit
+// for teaware, and the catalog price for that amount (per-unit catalog rate ×
+// amount, rounded to cents). The owner edits either freely. Products with no
+// catalog price get a null price (the worker falls back to catalog at draft time).
+async function seedDefaultsForProducts(
+  env: Env,
+  productIds: string[],
+): Promise<Map<string, { qty: string; price: number | null }>> {
+  const out = new Map<string, { qty: string; price: number | null }>();
+  if (!productIds.length) return out;
+  const rows = await env.DB.prepare(
+    `SELECT id, type, fixed_retail_price_usd FROM products WHERE id IN (${productIds.map(() => '?').join(',')})`
+  ).bind(...productIds).all();
+  for (const r of (rows.results ?? []) as any[]) {
+    const isTeaware = r.type === 'Teaware';
+    const qty = isTeaware ? '1' : '50';
+    const rate = r.fixed_retail_price_usd;
+    const price = rate != null && Number.isFinite(Number(rate))
+      ? Math.round(Number(rate) * Number(qty) * 100) / 100
+      : null;
+    out.set(r.id, { qty, price });
+  }
+  return out;
+}
+
 const handleAddCollectionItems: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
@@ -13475,12 +13599,14 @@ const handleAddCollectionItems: Handler = async (request, env, params) => {
   const toInsert = productIds.filter(pid => !have.has(pid));
 
   if (toInsert.length) {
+    const seeds = await seedDefaultsForProducts(env, toInsert);
     const stmts = toInsert.map(pid => {
       pos += 1;
+      const seed = seeds.get(pid) ?? { qty: '50', price: null };
       return env.DB.prepare(
-        `INSERT INTO collection_items (id, collection_id, product_id, position)
-         VALUES (?, ?, ?, ?)`
-      ).bind(newId('ci'), params.id, pid, pos);
+        `INSERT INTO collection_items (id, collection_id, product_id, position, recommended_quantity, recommended_price_usd)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(newId('ci'), params.id, pid, pos, seed.qty, seed.price);
     });
     await env.DB.batch(stmts);
   }
@@ -13516,6 +13642,31 @@ const handlePatchCollectionItem: Handler = async (request, env, params) => {
   if ('error' in found) return found.error;
 
   const body = await request.json() as any;
+
+  // Drag-and-drop reorder: client sends the full ordered list of item ids.
+  // Rewrite positions 1..N in that order, in one batch.
+  if (Array.isArray(body.item_ids)) {
+    const ids: string[] = body.item_ids.filter((x: any) => typeof x === 'string');
+    if (ids.length) {
+      const existing = await env.DB.prepare(
+        `SELECT id FROM collection_items WHERE collection_id = ?`
+      ).bind(params.id).all();
+      const valid = new Set((existing.results ?? []).map((r: any) => r.id));
+      // Only accept a full, exact permutation — guards against stale/partial lists.
+      if (ids.length !== valid.size || !ids.every(id => valid.has(id))) {
+        return json({ error: 'item_ids must list every item exactly once' }, 400);
+      }
+      await env.DB.batch(
+        ids.map((id, idx) =>
+          env.DB.prepare(`UPDATE collection_items SET position = ? WHERE id = ? AND collection_id = ?`)
+            .bind(idx + 1, id, params.id)
+        )
+      );
+      await env.DB.prepare(`UPDATE collections SET updated_at = ? WHERE id = ?`)
+        .bind(new Date().toISOString(), params.id).run();
+    }
+    return json({ ok: true });
+  }
 
   // Reorder: swap with neighbor.
   if (body.direction === 'up' || body.direction === 'down') {
@@ -13597,10 +13748,10 @@ const handlePublishCollection: Handler = async (request, env, params) => {
   let targetId: string | null = null;
 
   if (targetType === 'person') {
+    // Recipients are optional: an open link (zero recipients) is the common case
+    // — the owner copies the link and sends it however they like. Named
+    // recipients are just a convenience for the WhatsApp shortcut + records.
     recipients = Array.isArray(body.recipients) ? body.recipients : [];
-    if (recipients.length === 0) {
-      return json({ error: 'At least one recipient is required' }, 400);
-    }
   } else if (targetType === 'tag') {
     // Tag audience: snapshot matching customers into recipients_json so the
     // publication is stable even if tag membership later changes.
@@ -16683,6 +16834,11 @@ const routes: [string, string, Handler][] = [
   // Activity Logs & Stock Ledger
   ['GET', '/api/activity-logs', handleGetActivityLogs],
   ['GET', '/api/stock-ledger', handleGetStockLedger],
+
+  // Intake batches
+  ['GET', '/api/batches', handleListBatches],
+  ['POST', '/api/batches', handleCreateBatch],
+  ['GET', '/api/batches/:id/products', handleBatchProducts],
 
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],

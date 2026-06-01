@@ -2,6 +2,10 @@
 
 ## Soon
 
+### Inventory
+
+- [ ] Apply the intake-batches DB migration to production so the batch feature goes live _(band: you-required)_ _(effort: quick)_ → Plan: [intake-batches.md](todo/plans/intake-batches.md)
+
 ### MCP: Voice & Agent
 
 - [ ] Get the voice assistant connecting from a phone (works on desktop, fails on mobile) _(band: you-required)_ _(effort: deep)_ → Plan: [mobile-oauth.md](todo/plans/mobile-oauth.md)

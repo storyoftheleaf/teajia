@@ -4,7 +4,7 @@ import {
   Loader2, Search, X as XIcon, Check, BookOpen, Plus,
   Copy, MessageCircle, ArrowRight, CheckCircle2, Store,
 } from 'lucide-react';
-import { api } from '../../../lib/api';
+import { api, collectionShareUrl } from '../../../lib/api';
 import { buildWhatsAppUrl } from '../../../lib/whatsapp';
 import { useAppStore } from '../../../lib/store';
 import type { CollectionListRow, CollectionRecipient } from '../../../types';
@@ -738,7 +738,7 @@ const SuccessPhase: React.FC<{ success: SuccessState; onDone: () => void }> = ({
   const [copied, setCopied] = useState(false);
 
   const url = success.publicationSlug
-    ? `${window.location.origin}/c/${success.publicationSlug}`
+    ? collectionShareUrl(success.publicationSlug)
     : null;
 
   const copyUrl = async () => {

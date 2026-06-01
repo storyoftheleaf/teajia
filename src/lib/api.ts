@@ -68,6 +68,24 @@ import { useAppStore } from './store';
 export const API_URL = import.meta.env.VITE_API_URL || '';
 const REQUEST_TIMEOUT_MS = 30_000;
 
+// Public base URL for share links (collection links sent to recipients). These
+// must point at the deployed customer site, NOT wherever the admin happens to be
+// browsing — a `localhost` link is useless (and breaks over https in dev). In
+// production window.location.origin is already correct; in local dev we fall
+// back to the live site so a copied link actually works when sent.
+const PUBLIC_SITE_URL: string = (() => {
+  const configured = (import.meta.env.VITE_PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, '');
+  if (configured) return configured;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  if (/localhost|127\.0\.0\.1/.test(origin)) return 'https://teajia.com';
+  return origin;
+})();
+
+/** Build a public collection share link from a publication slug. */
+export function collectionShareUrl(slug: string): string {
+  return `${PUBLIC_SITE_URL}/c/${slug}`;
+}
+
 // Once the token has less than this many seconds left, nudge a background
 // refresh on the next authenticated call. Matches the server-side threshold
 // (14 days) so slide refreshes land while there's still plenty of headroom.
@@ -648,10 +666,10 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
-    bulkCreate: async (products: Record<string, any>[]) => {
+    bulkCreate: async (products: Record<string, any>[], batchId?: string) => {
       return authedFetch(`${API_URL}/api/products/bulk`, {
         method: 'POST',
-        body: JSON.stringify({ products }),
+        body: JSON.stringify({ products, batch_id: batchId }),
       });
     },
     update: async (id: string, data: Record<string, any>) => {
@@ -870,10 +888,10 @@ export const api = {
         body: JSON.stringify({ invoice_id: invoiceId, line_item_ids: lineItemIds }),
       });
     },
-    incrementStock: async (productId: string, amount: number) => {
+    incrementStock: async (productId: string, amount: number, batchId?: string) => {
       return authedFetch(`${API_URL}/api/rpc/increment-stock`, {
         method: 'POST',
-        body: JSON.stringify({ product_id: productId, amount }),
+        body: JSON.stringify({ product_id: productId, amount, batch_id: batchId }),
       });
     },
     truncateAll: async () => {
@@ -980,6 +998,17 @@ export const api = {
       if (productId) qp.set('product_id', productId);
       return authedFetch(`${API_URL}/api/stock-ledger?${qp}`)
     },
+  },
+
+  batches: {
+    list: async () => authedFetch(`${API_URL}/api/batches`),
+    create: async (batch: { label: string; intake_date?: string | null; vendor?: string | null; note?: string | null }) => {
+      return authedFetch(`${API_URL}/api/batches`, {
+        method: 'POST',
+        body: JSON.stringify(batch),
+      });
+    },
+    products: async (batchId: string) => authedFetch(`${API_URL}/api/batches/${batchId}/products`),
   },
 
   generateWisdom: async (prompt: string) => {
@@ -2188,6 +2217,14 @@ export const api = {
       return authedFetch(`${API_URL}/api/collections/${id}/items/${itemId}`, {
         method: 'PUT',
         body: JSON.stringify({ direction }),
+      });
+    },
+    /** Drag-and-drop reorder: commit a full ordered list of item ids in one call. */
+    reorderItems: async (id: string, itemIds: string[]): Promise<{ ok: true }> => {
+      // itemId in the path is unused by the array branch; send the first as a placeholder.
+      return authedFetch(`${API_URL}/api/collections/${id}/items/${itemIds[0] ?? 'none'}`, {
+        method: 'PUT',
+        body: JSON.stringify({ item_ids: itemIds }),
       });
     },
     /** Update a single item's curator note and/or recommendation (quantity, price). */
