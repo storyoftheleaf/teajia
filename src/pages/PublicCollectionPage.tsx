@@ -92,7 +92,7 @@ const PublicCollectionPage: React.FC = () => {
     return (
       <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6 text-center">
         <div className="max-w-sm">
-          <p className="font-display text-[clamp(24px,3.5vw,32px)] leading-[1.2] text-tea-text mb-3" style={{ fontWeight: 500 }}>
+          <p className="h2 text-tea-text mb-3">
             {status === 'gone' ? 'This collection has been put away.' : 'Not found.'}
           </p>
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic">
@@ -223,32 +223,29 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
     <main className="min-h-screen bg-tea-bg text-tea-text pb-nav-gap-lg">
       {/* Masthead — editorial; small label, big title, italic note */}
       <header className="border-b border-tea-border">
-        <div className="max-w-[720px] mx-auto px-5 sm:px-8 pt-12 pb-10 md:pt-20 md:pb-14">
-          <p className="font-sans text-ui-11 uppercase tracking-[1.5px] text-tea-text-dim mb-5">
+        <div className="max-w-3xl mx-auto px-4 md:px-6 lg:px-10 pt-12 pb-10 md:pt-20 md:pb-14">
+          <p className="label-caps text-tea-text-dim mb-5">
             A collection from <span className="text-tea-text-sec">{storeName}</span>
           </p>
-          <h1
-            className="font-display text-[clamp(32px,6vw,56px)] leading-[1.08] tracking-[-0.005em] text-tea-text mb-6"
-            style={{ fontWeight: 400 }}
-          >
+          <h1 className="h1 text-tea-text mb-6">
             {collection.title}
           </h1>
           {collection.note && (
-            <p className="font-body text-ui-17 leading-[1.7] text-tea-text-sec italic max-w-[55ch]">
+            <p className="body-prose text-tea-text-sec italic max-w-[55ch]">
               {collection.note}
             </p>
           )}
           {curatorName && (
-            <p className="font-body text-ui-14 leading-[1.65] text-tea-text-sec italic mt-4">
+            <p className="subtitle text-tea-text-sec mt-4">
               Curated by {curatorName}.
             </p>
           )}
           {collection.hero_image_url && (
-            <figure className="mt-10 -mx-5 sm:mx-0">
+            <figure className="mt-10 -mx-4 md:-mx-6 lg:mx-0">
               <img
                 src={collection.hero_image_url}
                 alt=""
-                className="w-full max-h-[50vh] object-cover sm:rounded-md"
+                className="w-full max-h-[50vh] object-cover lg:rounded-md"
                 loading="eager"
               />
             </figure>
@@ -257,7 +254,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       </header>
 
       {/* Catalog body */}
-      <section className={`max-w-[720px] mx-auto px-5 sm:px-8 py-10 md:py-16 ${selectedCount > 0 ? 'pb-nav-gap-lg' : 'pb-nav-gap'}`}>
+      <section className={`max-w-3xl mx-auto px-4 md:px-6 lg:px-10 py-10 md:py-16 ${selectedCount > 0 ? 'pb-40' : 'pb-16'}`}>
         {visible.length === 0 ? (
           <p className="font-body text-ui-15 leading-[1.65] text-tea-text-sec italic py-10 text-center">
             The teas in this collection are currently unavailable.
@@ -279,17 +276,19 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
       </section>
 
       <footer className="border-t border-tea-border py-10 text-center">
-        <p className="font-sans text-ui-10 uppercase tracking-[1.8px] text-tea-text-dim">
+        <p className="label-caps text-tea-text-dim">
           {storeName} · Curated for you
         </p>
       </footer>
 
-      {/* Sticky basket footer — only visible when ≥1 item selected */}
+      {/* Sticky basket footer — only visible when ≥1 item selected. This page is a
+          focused standalone route (no app bottom nav), so it sits flush at the
+          bottom with safe-area padding. */}
       {selectedCount > 0 && confirmState !== 'sent' && (
-        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3">
+        <div className="fixed left-0 right-0 bottom-0 bg-tea-surface border-t border-tea-border z-40 px-4 md:px-6 lg:px-10 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {/* Contact step: revealed after first "Confirm" click */}
           {confirmState === 'contact' || confirmState === 'sending' ? (
-            <div className="max-w-[720px] mx-auto flex flex-col gap-2.5">
+            <div className="max-w-3xl mx-auto flex flex-col gap-2.5">
               <p className="font-sans text-ui-11 text-tea-text-dim">
                 Your name lets {storeName} know who to reach out to.
               </p>
@@ -334,7 +333,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
             </div>
           ) : (
             /* Default step: item count + action buttons */
-            <div className="max-w-[720px] mx-auto flex items-center justify-between gap-3">
+            <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
               <p className="font-sans text-ui-12 text-tea-text-sec min-w-0">
                 <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
                 {selectedCount === 1 ? 'item' : 'items'}
@@ -366,7 +365,7 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
 
       {/* Sent confirmation — replaces the action bar once the picks are in. */}
       {confirmState === 'sent' && (
-        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3.5 flex items-center justify-center gap-2.5 text-center">
+        <div className="fixed left-0 right-0 bottom-0 bg-tea-surface border-t border-tea-border z-40 px-4 md:px-6 lg:px-10 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex items-center justify-center gap-2.5 text-center">
           <Check size={15} className="text-tea-gold shrink-0" />
           <p className="font-body text-ui-13 leading-[1.5] text-tea-text">
             Your picks are with {storeName}. They’ll be in touch to finish your order.
@@ -485,10 +484,7 @@ const CatalogEntry: React.FC<{
           {toRoman(index)}.
         </span>
         <div className="flex-1 min-w-0">
-          <h2
-            className="font-display text-[clamp(22px,3.2vw,28px)] leading-[1.2] tracking-[-0.005em] text-tea-text"
-            style={{ fontWeight: 400 }}
-          >
+          <h2 className="h2 text-tea-text">
             {item.product_name}
             {item.chinese_name && (
               <span className="block sm:inline font-body italic text-ui-15 sm:ml-3 text-tea-text-sec mt-1 sm:mt-0" style={{ fontWeight: 300 }}>
@@ -497,7 +493,7 @@ const CatalogEntry: React.FC<{
             )}
           </h2>
           {(origin || item.year) && (
-            <p className="font-sans text-ui-10 uppercase tracking-[1.5px] text-tea-text-dim mt-2">
+            <p className="label-caps text-tea-text-dim mt-2">
               {[origin, item.year].filter(Boolean).join(' · ')}
               {oos && (
                 <span className="ml-3 inline-flex items-center gap-1 text-tea-text-sec">
@@ -528,7 +524,7 @@ const CatalogEntry: React.FC<{
         )}
 
         {tastingList.length > 0 && (
-          <p className="font-sans text-ui-11 uppercase tracking-[1.3px] text-tea-text-sec mb-5">
+          <p className="label-caps text-tea-text-sec mb-5">
             {tastingList.slice(0, 6).join(' · ')}
           </p>
         )}

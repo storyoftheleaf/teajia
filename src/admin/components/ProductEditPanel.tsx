@@ -16,6 +16,7 @@ import { useToast } from './Toast';
 import { TastingEditorModal } from './TastingEditorModal';
 import { QrCodeModal } from './QrCodeModal';
 import { ProductCollectionsSection } from './collections/ProductCollectionsSection';
+import { CollectionPill } from './collections/CollectionPill';
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -1265,6 +1266,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`} title="Personal stock — not for sale">
                 <User size={10} /> Mine
               </button>
+              <CollectionPill productId={product.id} />
             </div>
 
             {/* 1. QUICK ENTRY. Required fields grouped on one bordered card.

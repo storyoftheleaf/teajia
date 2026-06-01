@@ -646,7 +646,10 @@ const AppContent = () => {
   };
 
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isFocusedShareRoute = location.pathname.startsWith('/share/');
+  // Focused, standalone pages with no app chrome (nav, footer, bottom bar) — link
+  // recipients who aren't logged in. Public collection links (/c/:slug) belong here
+  // too: a sent link should be a clean single-purpose page, not the full app shell.
+  const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
 
   // LeftSidebar only mounts on admin routes now, so its useEffect that sets
   // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so

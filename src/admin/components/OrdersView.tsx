@@ -404,11 +404,11 @@ export const OrdersView = () => {
             <thead className="sticky top-0 z-sticky bg-tea-bg">
               <tr>
                 <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Date</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice #</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Customer</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Total</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Status</th>
-                <th className="px-4 py-2 border-b border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-center">Actions</th>
+                <th className="px-4 py-2 border-b border-l border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Invoice #</th>
+                <th className="px-4 py-2 border-b border-l border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Customer</th>
+                <th className="px-4 py-2 border-b border-l border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-right">Total</th>
+                <th className="px-4 py-2 border-b border-l border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Status</th>
+                <th className="px-4 py-2 border-b border-l border-tea-border text-ui-10 uppercase tracking-wider font-serif text-tea-text-sec text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -437,10 +437,10 @@ export const OrdersView = () => {
                       <td className="px-4 align-middle overflow-hidden">
                         <span className="text-xs text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 align-middle overflow-hidden border-l border-tea-border">
                         <span className="num text-xs text-tea-text group-hover:text-tea-gold cursor-pointer transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden">
+                      <td className="px-4 align-middle overflow-hidden border-l border-tea-border">
                         <button
                           onClick={() => order.customer_id
                             ? navigate(`/admin/people/${order.customer_id}`)
@@ -452,7 +452,7 @@ export const OrdersView = () => {
                           <span className="truncate">{order.customer_name}</span>
                         </button>
                       </td>
-                      <td className="px-4 align-middle overflow-hidden text-right">
+                      <td className="px-4 align-middle overflow-hidden text-right border-l border-tea-border">
                         <div>
                           <span className="num text-xs text-tea-text">${total.toFixed(2)}</span>
                           <span className="text-ui-9 text-tea-text-sec ml-1">{order.display_currency}</span>
@@ -461,8 +461,8 @@ export const OrdersView = () => {
                           <div className="text-ui-9 text-tea-text-sec/60 num">+${Number(order.shipping_cost_usd).toFixed(0)} ship</div>
                         )}
                       </td>
-	                      <td className="px-4 align-middle text-center">
-	                        <div className="flex items-center justify-center gap-2 min-w-0">
+	                      <td className="px-4 align-middle text-left border-l border-tea-border">
+	                        <div className="flex items-center justify-start gap-2 min-w-0">
 	                          <span className={`badge-status shrink-0 ${
 	                            isVoid ? 'badge-status-muted' :
 	                            isPending ? 'badge-status-gold' :
@@ -496,8 +496,8 @@ export const OrdersView = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 align-middle">
-                        <div className="flex justify-center gap-1">
+                      <td className="px-4 align-middle border-l border-tea-border">
+                        <div className="flex justify-start gap-1">
                           {isPending && (
                             <>
                               <Button
@@ -561,89 +561,120 @@ export const OrdersView = () => {
         </div>
 
         {/* Mobile list */}
-        <div className="md:hidden pb-24">
+        <div className="md:hidden px-3 pt-3 pb-24 space-y-2.5">
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
               <Package size={32} strokeWidth={1} className="opacity-40" />
               <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
             </div>
           ) : (
-            filteredOrders.map((order, idx) => {
+            filteredOrders.map((order) => {
               const isPending = order.status === 'Pending';
               const isVoid = order.status === 'Void';
               const total = (Number(order.computed_total) || 0) + (Number(order.shipping_cost_usd) || 0);
               const daysAge = isPending ? getDaysAge(order.created_at) : 0;
+              // Left accent stripe colour reflects status at a glance.
+              const accent = isPending ? 'bg-tea-gold' : isVoid ? 'bg-tea-text-dim' : 'bg-tea-border';
 
               return (
                 <div
                   key={order.id}
-                  className={`px-4 py-2.5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'}`}
+                  className="relative flex bg-tea-surface border border-tea-border rounded-xl overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-ui-10 text-tea-text-sec">{new Date(order.created_at).toLocaleDateString()}</span>
-                    <span className="text-xs text-tea-text num cursor-pointer hover:text-tea-gold transition-colors" onClick={() => handleView(order)}>{order.invoice_number}</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-sm text-tea-text font-serif truncate">{order.customer_name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`badge-status ${
-                        isVoid ? 'badge-status-muted' :
-                        isPending ? 'badge-status-gold' :
-                        'badge-status-default'
-                      }`}>
-                        {order.status}
-                      </span>
-                      {isPending && daysAge >= 7 && (
-                        <span className="text-ui-9 text-tea-gold/80 num">{daysAge}d</span>
-                      )}
-                      {order.source_event_title && (
+                  {/* Status accent stripe */}
+                  <span className={`w-1 shrink-0 ${accent}`} aria-hidden />
+
+                  <div className="flex-1 min-w-0 p-4">
+                    {/* Headline row: customer name + status */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <button
-                          onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
-                          className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer"
-                          title={`Attributed to: ${order.source_event_title}`}
-                        ><Leaf size={10} /></button>
+                          onClick={() => order.customer_id
+                            ? navigate(`/admin/people/${order.customer_id}`)
+                            : navigate(`/admin/people?search=${encodeURIComponent(order.customer_name || '')}`)}
+                          className="block text-base font-serif text-tea-text hover:text-tea-gold transition-colors truncate text-left"
+                        >
+                          {order.customer_name}
+                        </button>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-ui-11 text-tea-text-sec">
+                          <span>{new Date(order.created_at).toLocaleDateString()}</span>
+                          <span className="text-tea-text-dim">·</span>
+                          <button
+                            onClick={() => handleView(order)}
+                            className="num hover:text-tea-text transition-colors"
+                          >{order.invoice_number}</button>
+                          {order.source_event_title && (
+                            <button
+                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
+                              className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                              title={`Attributed to: ${order.source_event_title}`}
+                            ><Leaf size={11} /></button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {isPending && daysAge >= 7 && (
+                          <span className="text-ui-10 text-tea-gold/80 num">{daysAge}d</span>
+                        )}
+                        <span className={`badge-status ${
+                          isVoid ? 'badge-status-muted' :
+                          isPending ? 'badge-status-gold' :
+                          'badge-status-default'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Money + state */}
+                    <div className="flex items-baseline gap-2 mt-3">
+                      <span className="text-base text-tea-text num font-medium">${total.toFixed(2)}</span>
+                      <span className="text-ui-11 text-tea-text-sec">{order.display_currency}</span>
+                      {Number(order.shipping_cost_usd) > 0 && (
+                        <span className="text-ui-10 text-tea-text-sec/60 num">+${Number(order.shipping_cost_usd).toFixed(0)} ship</span>
+                      )}
+                      {!isVoid && (
+                        <span className="text-ui-11 ml-auto truncate text-right">
+                          <span className={order.payment_status === 'paid' ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
+                            {order.payment_status === 'paid' ? 'paid' : order.payment_status === 'partial' ? 'partial' : 'unpaid'}
+                          </span>
+                          <span className="text-tea-text-dim mx-1">·</span>
+                          <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
+                            {order.inventory_deducted ? 'stock gone' : 'stock pending'}
+                          </span>
+                        </span>
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-tea-border">
-                    <span className="text-xs text-tea-text num shrink-0">${total.toFixed(2)} {order.display_currency}</span>
-                    {!isVoid && (
-                      <span className="text-ui-10 text-tea-text-sec truncate">
-                        <span className={order.payment_status === 'paid' ? 'text-tea-text' : 'text-tea-gold/90'}>
-                          {order.payment_status === 'paid' ? 'paid' : order.payment_status === 'partial' ? 'partial' : 'unpaid'}
-                        </span>
-                        <span className="text-tea-text-dim mx-1">·</span>
-                        <span className={order.inventory_deducted ? 'text-tea-text-sec' : 'text-tea-gold/90'}>
-                          {order.inventory_deducted ? 'stock gone' : 'stock pending'}
-                        </span>
-                      </span>
-                    )}
-                    <div className="flex-1" />
-                    {isPending && (
+
+                    {/* Action gutter */}
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-tea-border">
+                      {isPending && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openFulfillConfirm(order)}
+                          icon={<PackageCheck size={12} />}
+                        >
+                          FILL
+                        </Button>
+                      )}
+                      <div className="flex-1" />
                       <Button
-                        variant="secondary"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => openFulfillConfirm(order)}
-                        icon={<PackageCheck size={12} />}
-                      >
-                        FILL
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleView(order)}
-                      icon={<Eye size={14} />}
-                    />
-                    {/* Mobile overflow — show ... menu for secondary actions */}
-                    <MobileActions
-                      isPending={isPending}
-                      isVoid={isVoid}
-                      onEdit={() => setEditInvoice(order)}
-                      onSplit={() => setSplitInvoice(order)}
-                      onVoid={() => setConfirmState({ type: 'void', invoice: order })}
-                      onDelete={() => setConfirmState({ type: 'delete', invoice: order })}
-                    />
+                        className="tap-target"
+                        onClick={() => handleView(order)}
+                        icon={<Eye size={16} />}
+                      />
+                      <MobileActions
+                        isPending={isPending}
+                        isVoid={isVoid}
+                        onEdit={() => setEditInvoice(order)}
+                        onSplit={() => setSplitInvoice(order)}
+                        onVoid={() => setConfirmState({ type: 'void', invoice: order })}
+                        onDelete={() => setConfirmState({ type: 'delete', invoice: order })}
+                      />
+                    </div>
                   </div>
                 </div>
               );
@@ -1028,8 +1059,9 @@ const MobileActions: React.FC<{
       <Button
         variant="ghost"
         size="sm"
+        className="tap-target"
         onClick={() => setOpen(!open)}
-        icon={<MoreHorizontal size={14} />}
+        icon={<MoreHorizontal size={16} />}
       />
       {open && (
         <>

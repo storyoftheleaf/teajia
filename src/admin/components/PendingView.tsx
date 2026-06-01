@@ -86,28 +86,34 @@ export const PendingView: React.FC = () => {
         ) : orders.length === 0 ? (
           <p className="text-sm text-tea-text-dim py-4">No pending orders.</p>
         ) : (
-          <div className="flex flex-col divide-y divide-tea-border rounded-xl border border-tea-border overflow-hidden">
+          <div className="flex flex-col gap-2.5">
             {orders.map((order) => {
               const total = (Number(order.computed_total) || 0) + (Number(order.shipping_cost_usd) || 0);
               const age = getDaysAge(order.created_at);
               return (
-                <div key={order.id} className="flex items-center justify-between px-3 py-2.5 bg-tea-surface hover:bg-tea-elevated transition-colors">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm text-tea-text truncate">{order.customer_name || '—'}</span>
-                    <span className="text-ui-11 text-tea-text-sec num">{order.invoice_number}</span>
+                <button
+                  key={order.id}
+                  onClick={() => navigate(`/admin/activity?tab=orders&search=${encodeURIComponent(order.invoice_number || '')}`)}
+                  className="relative flex bg-tea-surface border border-tea-border rounded-xl overflow-hidden text-left hover:bg-tea-elevated transition-colors"
+                >
+                  {/* All rows here are pending — accent is always gold */}
+                  <span className="w-1 shrink-0 bg-tea-gold" aria-hidden />
+                  <div className="flex-1 min-w-0 flex items-center justify-between gap-3 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <span className="block text-base font-serif text-tea-text truncate">{order.customer_name || '—'}</span>
+                      <span className="block text-ui-11 text-tea-text-sec num mt-0.5">{order.invoice_number}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      {age >= 7 && (
+                        <span className="text-ui-10 text-tea-gold/80 num">{age}d</span>
+                      )}
+                      {total > 0 && (
+                        <span className="text-sm text-tea-text num font-medium">${total.toFixed(2)}</span>
+                      )}
+                      <span className="badge-status badge-status-gold">Pending</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    {age >= 7 && (
-                      <span className="text-ui-10 text-tea-gold dark:text-tea-gold num">{age}d</span>
-                    )}
-                    {total > 0 && (
-                      <span className="text-ui-12 text-tea-text num">
-                        ${total.toFixed(2)}
-                      </span>
-                    )}
-                    <span className="badge-status badge-status-gold">Pending</span>
-                  </div>
-                </div>
+                </button>
               );
             })}
           </div>

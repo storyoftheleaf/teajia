@@ -24,6 +24,18 @@ const ACTION_TYPES = [
   { value: 'PRODUCT_SOLD_OUT', label: 'Sold Out' },
 ];
 
+// Humanize a raw log action code (e.g. INVOICE_CREATED → "Created") for the
+// mobile log cards. Falls back to title-casing the raw code if unmapped.
+const ACTION_LABEL = (action: string): string => {
+  const match = ACTION_TYPES.find(a => a.value === action);
+  if (match) return match.label;
+  return action
+    .toLowerCase()
+    .split('_')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+};
+
 const REASON_LABELS: Record<string, string> = {
   FULFILLMENT: 'Sale',
   VOID: 'Void Restore',
@@ -467,7 +479,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
             {/* Logs — Mobile */}
             {!logsLoading && (
-              <div className="md:hidden pb-nav">
+              <div className="md:hidden px-3 pt-3 pb-nav space-y-2">
                 {logs.length === 0 ? (
                   <div className="text-center py-16 text-tea-text-sec font-serif italic text-ui-15">No activity recorded yet.</div>
                 ) : (
@@ -475,16 +487,18 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     {logs.map((log: any) => (
                       <div
                         key={log.id}
-                        className="px-4 py-2 border-b border-tea-border last:border-b-0 transition-colors active:bg-tea-accent-sub"
+                        className="bg-tea-surface border border-tea-border rounded-xl px-4 py-3 transition-colors active:bg-tea-accent-sub"
                       >
-                        <div className="flex items-center gap-2 font-serif text-ui-11 text-tea-text-dim tabular-nums">
-                          <span>{new Date(log.created_at).toLocaleString()}</span>
-                          <span className="opacity-40">·</span>
-                          <span className="font-sans">{log.user_email || 'System'}</span>
+                        {/* Lead: action label + what happened */}
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-sans text-ui-10 uppercase tracking-caps text-tea-text-sec shrink-0">{ACTION_LABEL(log.action)}</span>
+                          <span className="font-serif text-ui-15 text-tea-text leading-snug">{log.details}</span>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="badge-status badge-status-default text-ui-9">{log.action}</span>
-                          <span className="font-serif text-ui-13 text-tea-text-sec truncate">{log.details}</span>
+                        {/* Caption: who + when, demoted */}
+                        <div className="font-sans text-ui-11 text-tea-text-dim tabular-nums mt-1.5">
+                          {log.user_email || 'System'}
+                          <span className="opacity-40 mx-1.5">·</span>
+                          {new Date(log.created_at).toLocaleString()}
                         </div>
                       </div>
                     ))}
@@ -639,7 +653,7 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
 
             {/* Stock Ledger — Mobile */}
             {!ledgerLoading && (
-              <div className="md:hidden pb-nav">
+              <div className="md:hidden px-3 pt-3 pb-nav space-y-2">
                 {ledgerEntries.length === 0 ? (
                   <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
                     <BarChart3 size={32} className="opacity-40" />
@@ -650,20 +664,36 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                     {ledgerEntries.map((entry: any) => {
                       const isPositive = entry.delta > 0;
                       return (
-                        <div key={entry.id} className="px-4 py-2 border-b border-tea-border last:border-b-0 transition-colors active:bg-tea-accent-sub">
-                          <div className="flex items-center justify-between">
-                            <span className="font-serif text-ui-11 text-tea-text-dim tabular-nums">{new Date(entry.created_at).toLocaleDateString()}</span>
-                            <span className="badge-status badge-status-default text-ui-9">{REASON_LABELS[entry.reason] || entry.reason}</span>
+                        <div key={entry.id} className="relative flex bg-tea-surface border border-tea-border rounded-xl overflow-hidden transition-colors active:bg-tea-accent-sub">
+                          {/* Direction accent: in vs out */}
+                          <span className={`w-1 shrink-0 ${isPositive ? 'bg-tea-green' : 'bg-tea-error'}`} aria-hidden />
+                          <div className="flex-1 min-w-0 px-3.5 py-3">
+                            {/* Headline: product + signed delta */}
+                            <div className="flex items-baseline justify-between gap-3">
+                              <span className="font-display text-ui-17 leading-tight text-tea-text truncate">{entry.product_name || 'Unknown'}</span>
+                              <span className={`font-serif text-base tabular-nums shrink-0 inline-flex items-center gap-0.5 ${isPositive ? 'text-tea-green' : 'text-tea-error'}`}>
+                                {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                                {isPositive ? '+' : ''}{entry.delta}g
+                              </span>
+                            </div>
+                            {/* Sentence line: balance after + reason */}
+                            <div className="flex items-center justify-between gap-2 mt-1.5">
+                              <span className="font-sans text-ui-11 text-tea-text-sec tabular-nums">
+                                balance <span className="text-tea-text">{entry.balance_after}g</span>
+                              </span>
+                              <span className="font-sans text-ui-10 uppercase tracking-caps text-tea-text-dim">{REASON_LABELS[entry.reason] || entry.reason}</span>
+                            </div>
+                            {/* Caption: when + invoice */}
+                            <div className="font-sans text-ui-11 text-tea-text-dim tabular-nums mt-1.5">
+                              {new Date(entry.created_at).toLocaleDateString()}
+                              {entry.source_invoice_number && (
+                                <>
+                                  <span className="opacity-40 mx-1.5">·</span>
+                                  {entry.source_invoice_number}
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="font-display text-ui-17 leading-tight text-tea-text truncate">{entry.product_name || 'Unknown'}</span>
-                            <span className={`font-serif text-ui-15 tabular-nums ${isPositive ? 'text-tea-green' : 'text-tea-error'}`}>
-                              {isPositive ? '+' : ''}{entry.delta}g
-                            </span>
-                          </div>
-                          {entry.source_invoice_number && (
-                            <div className="font-serif text-ui-11 text-tea-text-dim mt-0.5 tabular-nums">{entry.source_invoice_number}</div>
-                          )}
                         </div>
                       );
                     })}

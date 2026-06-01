@@ -322,6 +322,22 @@ function normalize(s: string | null | undefined): string {
   return (s || '').toLowerCase().replace(/[^a-z0-9一-鿿\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Stock added via MCP (voice/agent) lands in the account's catch-all "Unsorted"
+// intake batch — same default as the admin paths — so a tea is never batch-less
+// and the inventory "Unsorted" filter honestly holds everything not assigned to a
+// named shipment, regardless of which surface added it. Mirrors defaultBatchId() in index.ts.
+async function resolveUnsortedBatchId(env: Env, accountId: string): Promise<string> {
+  const existing = await env.DB.prepare(
+    `SELECT id FROM batches WHERE account_id = ? AND label = 'Unsorted' LIMIT 1`
+  ).bind(accountId).first<{ id: string }>();
+  if (existing) return existing.id;
+  const id = `unsorted_${accountId}`;
+  await env.DB.prepare(
+    `INSERT INTO batches (id, account_id, label, intake_date) VALUES (?, ?, 'Unsorted', NULL)`
+  ).bind(id, accountId).run();
+  return id;
+}
+
 function scoreMatch(query: string, fields: (string | null | undefined)[]): number {
   const q = normalize(query);
   if (!q) return 0;
@@ -544,12 +560,13 @@ async function commitCreateTea(env: Env, m: Extract<PendingMutation, { kind: 'cr
   ];
 
   if (m.product.stockGrams > 0) {
+    const batchId = await resolveUnsortedBatchId(env, m.accountId);
     stmts.push(env.DB.prepare(
-      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, account_id)
-       VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?)`
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id)
+       VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?)`
     ).bind(
       crypto.randomUUID(), id, m.product.stockGrams, m.product.stockGrams,
-      m.userEmail, 'MCP create_tea opening stock', m.accountId,
+      m.userEmail, 'MCP create_tea opening stock', batchId, m.accountId,
     ));
   }
 
@@ -750,6 +767,7 @@ async function commitAddStock(env: Env, m: Extract<PendingMutation, { kind: 'add
   if (!product) return { error: 'not_found' };
 
   const balanceAfter = Number(product.stock_grams || 0) + m.grams;
+  const batchId = await resolveUnsortedBatchId(env, m.accountId);
 
   await env.DB.batch([
     env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
@@ -758,9 +776,9 @@ async function commitAddStock(env: Env, m: Extract<PendingMutation, { kind: 'add
       'UPDATE product_listings SET stock_grams = stock_grams + ?, updated_at = datetime(\'now\') WHERE id = ?'
     ).bind(m.grams, `list_${m.productId}`),
     env.DB.prepare(
-      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, account_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), m.productId, m.grams, balanceAfter, 'PURCHASE_RECEIPT', m.userEmail, m.note ?? `MCP add_stock`, m.accountId),
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), m.productId, m.grams, balanceAfter, 'PURCHASE_RECEIPT', m.userEmail, m.note ?? `MCP add_stock`, batchId, m.accountId),
     env.DB.prepare(
       `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`

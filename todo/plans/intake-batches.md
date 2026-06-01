@@ -51,6 +51,20 @@ ledger join with batch label, batch-products filter, batch list ordering).
   column (it had been seeded from base schema.sql only). Production has it. Harmless
   to dev, but if a fresh local D1 is ever rebuilt, run the migration chain in order.
 
+### Hardening pass (same day)
+- **MCP intake now batches too.** `commitAddStock` and `commitCreateTea` in
+  `worker/src/mcp.ts` were writing `PURCHASE_RECEIPT` rows with no batch (NULL) —
+  which would NOT show under the grid's "Unsorted" filter (a real batch id, not NULL).
+  Both now default to the account's Unsorted batch via `resolveUnsortedBatchId()`, so
+  voice/agent-added stock is honestly filterable and the Unsorted bucket means what it says.
+- **Regression test:** `worker/tests/intake-batches.test.ts` (3 tests, all pass) —
+  asserts MCP add_stock stamps the Unsorted batch, creates it on demand when absent,
+  and never leaves a null-batch intake row.
+- **Pre-existing red tests (NOT from this work):** `mcp-fulfillment.test.ts` (4) and
+  one `auth-boundaries.test.ts` case ("public article reads") fail on a clean checkout —
+  `commitFulfillInvoice` last changed 2026-05-18, the test files are unmodified here.
+  Out of scope for intake batches; flagged for separate triage.
+
 ### Surfaces
 - BatchPicker (`src/admin/components/BatchPicker.tsx`) — reusable pick-or-create.
 - CSV import: batch field in the staging footer → whole import attaches.
