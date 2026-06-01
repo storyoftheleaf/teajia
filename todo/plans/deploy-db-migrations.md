@@ -1,12 +1,31 @@
 # Let deploys apply database changes automatically
 
-Right now the automatic deploy can update the site code but cannot apply database changes (D1 migrations), because the access token it uses lacks database write permission. Worker deploys still go live; database structure changes have to be applied by hand from a logged-in terminal.
+## Status update 2026-06-01 — drift fixed, one token check left
 
-## Steps to fix
+A read-only audit found the migration tracker (`d1_migrations`) had fallen badly
+out of sync with prod: it claimed 074–080 were all unapplied, but 074/075/077/078/079
+were physically present while **076 and 080 were genuinely missing** (inquiry
+ref_numbers and the saved_collections table — both live features silently degraded).
+Root cause: migrations were applied by hand via `execute --file` without recording
+them in the tracker, and CI's `continue-on-error: true` hid the resulting failures.
 
-1. Mint a new Cloudflare API token with both Workers deploy permission and D1 write permission.
+Done this session:
+1. Applied the two missing migrations (076, 080) to prod. Both additive/safe.
+2. Reconciled the tracker — inserted applied-records for 074–080. `wrangler d1
+   migrations list --remote` now reports "No migrations to apply!".
+3. Removed `continue-on-error` from the workflow so future failures fail loudly.
+
+**The one remaining check (only you can do it):** the `CLOUDFLARE_API_TOKEN` repo
+secret must have **D1 write** permission, not just Workers deploy. If it's still
+read-only for D1, the now-loud migration step will FAIL the next deploy (safer than
+silent drift, but it blocks deploys until fixed). Confirm/upgrade the token, then the
+pipeline auto-applies migrations correctly from here on. Steps below.
+
+## Steps to fix (token)
+
+1. Mint a Cloudflare API token with both Workers deploy permission and D1 write permission.
 2. Save it as the repository secret named `CLOUDFLARE_API_TOKEN`.
-3. Remove the `continue-on-error: true` line from the "Apply D1 migrations" step so a failed migration actually fails the build instead of passing silently.
+3. ~~Remove the `continue-on-error: true` line~~ — done 2026-06-01.
 
 ## Affected workflow
 
