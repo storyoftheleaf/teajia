@@ -147,6 +147,8 @@ export function buildCollectionBasketMessage(opts: {
   collectionUrl: string;
   curatorDisplayName?: string | null;
   items: CollectionBasketItem[];
+  /** Optional free-text note for the whole basket. */
+  note?: string | null;
 }): string {
   const lines: string[] = [];
   lines.push(`Hi, I've been looking through your collection "${opts.collectionTitle}" and I'd like to request a few things:`);
@@ -175,6 +177,10 @@ export function buildCollectionBasketMessage(opts: {
   if (haveAnyPrice) {
     lines.push('');
     lines.push(`Total: $${Math.round(total * 100) / 100}`);
+  }
+  if (opts.note && opts.note.trim()) {
+    lines.push('');
+    lines.push(`Note: ${opts.note.trim()}`);
   }
   lines.push('');
   lines.push(opts.collectionUrl);

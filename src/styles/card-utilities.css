@@ -698,6 +698,17 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 
+/* Public collection card popup — scrim fade + card slide-up */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes panelInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .animate-reveal-up {
   opacity: 0;
   animation: revealUp 0.5s ease-out forwards;
