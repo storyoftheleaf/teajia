@@ -18,6 +18,14 @@ type UseInventoryProductsArgs = {
   inventoryColumns: string[];
   inventoryGroupBy: string | null;
   priceMode: 'retail' | 'cost';
+  /**
+   * While edit mode is active, the visible row ORDER is frozen so an inline
+   * rename (or any value edit that would change the sort) doesn't make the row
+   * jump under the cursor — which previously read as "a new product appeared."
+   * Filtering/search still run live; only the final sort step is pinned to the
+   * order captured when edit mode turned on.
+   */
+  isEditMode: boolean;
 };
 
 export function useInventoryProducts({
@@ -29,7 +37,16 @@ export function useInventoryProducts({
   inventoryColumns,
   inventoryGroupBy,
   priceMode,
+  isEditMode,
 }: UseInventoryProductsArgs) {
+  // Frozen row order for edit mode. Captured (id → position) the first render
+  // after edit mode turns on, cleared the moment it turns off. Items missing
+  // from the snapshot (e.g. a product that just started matching the filter)
+  // sort to the end, preserving their live relative order.
+  const frozenOrderRef = useRef<Map<string, number> | null>(null);
+  if (!isEditMode && frozenOrderRef.current) {
+    frozenOrderRef.current = null;
+  }
   // Fuse in a ref so it doesn't appear in processedProducts deps. Rebuilding only
   // when local products change prevents edit keystrokes from double-recomputing.
   const fuseRef = useRef<Fuse<Product>>(new Fuse(localProducts, {
@@ -101,7 +118,7 @@ export function useInventoryProducts({
       result = result.filter(p => p.type === filterType);
     }
 
-    return [...result].sort((a, b) => {
+    const sorted = [...result].sort((a, b) => {
       for (const sort of inventorySortConfig) {
         const key = sort.key as keyof Product;
         if (key === 'type') {
@@ -116,12 +133,29 @@ export function useInventoryProducts({
         const comparison = typeof aVal === 'number' && typeof bVal === 'number'
           ? aVal - bVal
           : String(aVal).localeCompare(String(bVal));
-        const sorted = sort.direction === 'asc' ? comparison : -comparison;
-        if (sorted !== 0) return sorted;
+        const dir = sort.direction === 'asc' ? comparison : -comparison;
+        if (dir !== 0) return dir;
       }
       return 0;
     });
-  }, [localProducts, searchQuery, filterType, inventorySortConfig, inventoryCategory]);
+
+    // Edit mode freeze — pin the visible order so an inline rename / value edit
+    // doesn't re-sort the row out from under the cursor. Capture the snapshot on
+    // the first edit-mode render, then sort every subsequent render by it.
+    if (isEditMode) {
+      if (!frozenOrderRef.current) {
+        frozenOrderRef.current = new Map(sorted.map((p, i) => [p.id, i]));
+        return sorted;
+      }
+      const frozen = frozenOrderRef.current;
+      const END = Number.MAX_SAFE_INTEGER;
+      return [...sorted].sort(
+        (a, b) => (frozen.get(a.id) ?? END) - (frozen.get(b.id) ?? END)
+      );
+    }
+
+    return sorted;
+  }, [localProducts, searchQuery, filterType, inventorySortConfig, inventoryCategory, isEditMode]);
 
   const visibleCols = useMemo(() => activeColumnDefs.filter(col => {
     const isCostCol = col.key === 'costAmount' || col.key === 'costPerGramUSD';

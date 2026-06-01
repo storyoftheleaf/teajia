@@ -981,7 +981,7 @@ export const PartnerListingEdit: React.FC = () => {
           onClick={() => navigate('/admin/inventory')}
           className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 mb-5 flex items-center gap-1"
         >
-          ← Inventory
+          ← Stock
         </button>
 
         {/* Tea name — wayfinder, not editable directly here */}

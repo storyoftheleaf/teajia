@@ -41,7 +41,7 @@ const ACCESS_PRESETS: Array<{
   },
   {
     id: 'inventory',
-    label: 'Inventory',
+    label: 'Stock',
     description: 'Products, sourcing fields, stock counts, and receiving stock.',
     bundles: ['catalog', 'stock'],
   },

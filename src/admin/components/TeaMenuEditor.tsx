@@ -237,7 +237,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
           onClick={() => { setShowPicker(true); setShowCustom(false); }}
           className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-gold-lt transition-colors px-3 py-2 border border-tea-border rounded-md hover:border-tea-gold/30"
         >
-          <Plus size={12} /> Add from Inventory
+          <Plus size={12} /> Add from Stock
         </button>
         <button
           onClick={() => { setShowCustom(true); setShowPicker(false); }}

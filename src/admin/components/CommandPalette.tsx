@@ -205,7 +205,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
             {isDevAdmin && (
               <Command.Group heading="Admin" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2 mt-2 border-t border-tea-border">
                 <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
-                  <Settings size={16} className="text-tea-text-sec" /> Master Inventory
+                  <Settings size={16} className="text-tea-text-sec" /> Stock
                 </Command.Item>
                 <Command.Item onSelect={() => runCommand(onAddProduct)} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <Plus size={16} className="text-tea-text-sec" /> Add New Product

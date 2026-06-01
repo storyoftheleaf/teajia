@@ -396,7 +396,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         <div className="px-5 pt-5 pb-3 border-b border-tea-border flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="label-caps text-tea-text-dim mb-1">Step {stepNumber} of 3 · {stepLabel}</p>
-            <h3 className="h3 text-tea-text">Import Inventory</h3>
+            <h3 className="h3 text-tea-text">Import Stock</h3>
             <p className="text-ui-13 text-tea-text-sec mt-1">
               {stage === 'upload' && 'Select your CSV file.'}
               {stage === 'staging' && 'Review data before importing.'}

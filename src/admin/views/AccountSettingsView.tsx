@@ -543,7 +543,7 @@ const LaunchReadinessPanel: React.FC<{
     },
     {
       id: 'inventory',
-      label: 'Inventory',
+      label: 'Stock',
       done: inventoryReady,
       detail: audit.loading
         ? 'Checking opening stock.'

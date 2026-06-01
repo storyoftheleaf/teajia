@@ -347,7 +347,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
             <div className="mt-4 bg-tea-surface border border-tea-border rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <AlertCircle className="w-4 h-4 text-tea-error" />
-                <h4 className="label-caps text-tea-text-dim">Inventory Not Sold in 90+ Days</h4>
+                <h4 className="label-caps text-tea-text-dim">Stock Not Sold in 90+ Days</h4>
               </div>
               <div className="space-y-2">
                 {revenueData.inventory_age_alerts.map((p) => (

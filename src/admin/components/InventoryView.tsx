@@ -294,6 +294,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Feature 4: Save View prompt
   const [showSaveViewPrompt, setShowSaveViewPrompt] = useState(false);
   const [newViewName, setNewViewName] = useState('');
+  // Desktop view-tab row: only these filters stay inline; the rest fold into a "More" menu
+  // so the row never overflows horizontally. Custom saved views always stay inline.
+  const [moreViewsOpen, setMoreViewsOpen] = useState(false);
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
@@ -444,9 +447,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showVerificationResetConfirm, setShowVerificationResetConfirm] = useState(false);
   const [stockHistoryProduct, setStockHistoryProduct] = useState<{ id: string; name: string } | null>(null);
 
+  // Permanent single-product delete (mistyped/junk row). deleteTarget holds the
+  // product being confirmed; deleteInput must equal "delete" before it fires.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteInput, setDeleteInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Track recently saved cells for visual feedback
   const [recentlySavedCells, setRecentlySavedCells] = useState<Set<string>>(new Set());
   const timeoutRefsMap = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Edit-mode save status — drives the persistent "Saving… / All changes saved"
+  // indicator in the edit toolbar so inline auto-save is visible at all times
+  // (the old per-cell pill alone was too easy to miss). `savingCount` tracks
+  // in-flight writes; `lastSavedAt` flips the idle state to "saved" once one
+  // has succeeded this session.
+  const [savingCount, setSavingCount] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const { data: rates = [] } = useRates();
 
@@ -468,6 +485,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryColumns,
     inventoryGroupBy,
     priceMode,
+    isEditMode,
   });
 
   // Initialize review drafts when switching to Pending filter or when pending products change
@@ -864,13 +882,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       // legacy is_featured column. Optimistic local state is already updated above.
       // Refetch on success so the derived value (computed from active shop
       // collections) lands consistently in local state.
+      setSavingCount(c => c + 1);
       try {
         await api.products.setFeatured(id, Boolean(value));
+        setLastSavedAt(Date.now());
         onRefresh();
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         onRefresh();
         if (options?.throwOnError) throw err;
+      } finally {
+        setSavingCount(c => Math.max(0, c - 1));
       }
       return;
     }
@@ -879,8 +901,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (!dbPayload) return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
+    setSavingCount(c => c + 1);
     try {
       await api.products.updateByDomain(id, dbPayload);
+      setLastSavedAt(Date.now());
       // Show saved pill feedback for this cell
       const cellId = `${id}-${String(field)}`;
       setRecentlySavedCells(prev => new Set([...prev, cellId]));
@@ -905,8 +929,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       showToast(`Update failed: ${err.message}`, 'error');
       onRefresh();
       if (options?.throwOnError) throw err;
+    } finally {
+      setSavingCount(c => Math.max(0, c - 1));
     }
   }, [setLocalProducts, setPanelDirty, showToast, onRefresh]);
+
+  // Permanent delete — only reachable through the typed-"delete" confirmation.
+  // Optimistically drops the row, then refetches to reconcile with the server.
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const { id, name } = deleteTarget;
+    setIsDeleting(true);
+    try {
+      await api.products.delete(id);
+      setLocalProducts(prev => prev.filter(p => p.id !== id));
+      showToast(`${name} deleted`, 'success');
+      setDeleteTarget(null);
+      setDeleteInput('');
+      onRefresh();
+    } catch (err: any) {
+      showToast(`Delete failed: ${err.message}`, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteTarget, setLocalProducts, showToast, onRefresh]);
 
   const handleExport = () => {
     const csv = Papa.unparse(processedProducts.map(p => ({
@@ -1720,37 +1766,47 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
-      <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:h-12 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md overflow-x-auto custom-scrollbar hide-scrollbar sticky top-0 z-dropdown">
-        <h1 className="h2 text-tea-text shrink-0 mr-4">Inventory</h1>
+      <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md flex-wrap sticky top-0 z-dropdown">
+        <h1 className="h2 text-tea-text shrink-0 mr-4">Stock</h1>
         {(() => {
-          const views = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
-          let didSeparate = false;
-          return views.map(view => {
-            const isIconOnly = view.icon && !view.name;
-            const needsSep = isIconOnly && !didSeparate;
-            if (needsSep) didSeparate = true;
-            return (
-              <React.Fragment key={view.id}>
-                {needsSep && <div className="w-px h-4 bg-tea-border mx-0.5 shrink-0" />}
+          const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
+          // Everyday filters stay inline; the rest fold into "More" so the row never overflows.
+          // Custom saved views (non-default ids) always stay inline — the operator made them.
+          const PRIMARY_FILTERS = new Set(['All', 'ForSale', 'Alerts', 'Unverified']);
+          const isInline = (v: typeof allViews[number]) =>
+            !v.id.startsWith('default-') || PRIMARY_FILTERS.has(v.filterType);
+          const inlineViews = allViews.filter(isInline);
+          const moreViews = allViews.filter(v => !isInline(v));
+          const activeIsInMore = moreViews.some(v => v.id === activeViewId);
+
+          const selectView = (view: typeof allViews[number]) => {
+            setGlossaryMode(false);
+            setActiveView(view.id);
+            setInventoryColumns(view.columns);
+            setInventorySortConfig(view.sortConfig);
+            setFilterType(view.filterType);
+            setInventoryGroupBy(view.groupBy);
+          };
+
+          const tabClass = (view: typeof allViews[number]) =>
+            `relative flex items-center gap-1.5 px-3 py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
+              activeViewId === view.id
+                ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
+                : view.filterType === 'Archived'
+                ? 'text-tea-text-dim/50 hover:text-tea-text-dim hover:bg-tea-surface'
+                : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
+            }`;
+
+          return (
+            <>
+              {inlineViews.map(view => (
                 <button
-                  onClick={() => {
-                    setGlossaryMode(false);
-                    setActiveView(view.id);
-                    setInventoryColumns(view.columns);
-                    setInventorySortConfig(view.sortConfig);
-                    setFilterType(view.filterType);
-                    setInventoryGroupBy(view.groupBy);
-                  }}
+                  key={view.id}
+                  onClick={() => selectView(view)}
                   title={VIEW_FILTER_LABELS[view.filterType] || view.name}
                   aria-label={`Show ${VIEW_FILTER_LABELS[view.filterType] || view.name} view`}
                   aria-pressed={activeViewId === view.id}
-                  className={`relative flex items-center gap-1.5 ${isIconOnly ? 'px-2' : 'px-3'} py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
-                    activeViewId === view.id
-                      ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
-                      : view.filterType === 'Archived'
-                      ? 'text-tea-text-dim/50 hover:text-tea-text-dim hover:bg-tea-surface'
-                      : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
-                  }`}
+                  className={tabClass(view)}
                 >
                   {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
                   {view.name}
@@ -1763,9 +1819,55 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     </span>
                   )}
                 </button>
-              </React.Fragment>
-            );
-          });
+              ))}
+
+              {moreViews.length > 0 && (
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setMoreViewsOpen(o => !o)}
+                    aria-haspopup="menu"
+                    aria-expanded={moreViewsOpen}
+                    aria-label="More views"
+                    className={`relative flex items-center gap-1 px-3 py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
+                      activeIsInMore
+                        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
+                        : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
+                    }`}
+                  >
+                    {activeIsInMore
+                      ? (VIEW_FILTER_LABELS[moreViews.find(v => v.id === activeViewId)!.filterType] || 'More')
+                      : 'More'}
+                    <ChevronDown size={12} className={`transition-transform ${moreViewsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {moreViewsOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setMoreViewsOpen(false)} />
+                      <div
+                        role="menu"
+                        className="absolute left-0 top-full mt-1 min-w-[160px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1"
+                      >
+                        {moreViews.map(view => (
+                          <button
+                            key={view.id}
+                            role="menuitem"
+                            onClick={() => { selectView(view); setMoreViewsOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-ui-11 uppercase tracking-[0.12em] text-left transition-colors ${
+                              activeViewId === view.id
+                                ? 'bg-tea-gold/10 text-tea-text'
+                                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-bg'
+                            }`}
+                          >
+                            {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
+                            {VIEW_FILTER_LABELS[view.filterType] || view.name}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
+          );
         })()}
         <div className="flex items-center gap-1 ml-auto shrink-0">
           {showSaveViewPrompt ? (
@@ -1826,9 +1928,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             card top strip (see canonical §20 inventory table in /design/system). */}
         <div className="flex px-4 md:px-6 max-w-7xl mx-auto items-center gap-4 py-1.5">
             {isEditMode && (
-              <span className="label-caps text-tea-text-dim shrink-0">
-                CLICK CELLS TO EDIT
-              </span>
+              savingCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec shrink-0" aria-live="polite">
+                  <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                  SAVING…
+                </span>
+              ) : lastSavedAt ? (
+                <span className="inline-flex items-center gap-1.5 label-caps text-tea-gold shrink-0" aria-live="polite">
+                  <Check size={12} aria-hidden="true" />
+                  ALL CHANGES SAVED
+                </span>
+              ) : (
+                <span className="label-caps text-tea-text-dim shrink-0">
+                  CLICK CELLS TO EDIT — CHANGES SAVE AUTOMATICALLY
+                </span>
+              )
             )}
 
             <div className="flex items-center gap-4 ml-auto">
@@ -2872,6 +2986,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onToggleDropdown={stableToggleDropdown}
                                   onStockHistory={stableStockHistory}
                                   onRestock={handleRestock}
+                                  onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showToast}
                                   navigate={navigate}
                                 />
@@ -2938,6 +3053,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onToggleDropdown={stableToggleDropdown}
                               onStockHistory={stableStockHistory}
                               onRestock={handleRestock}
+                              onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showToast}
                               navigate={navigate}
                             />
@@ -3028,6 +3144,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         showMaintenanceModal={showMaintenanceModal}
         onCloseMaintenanceModal={() => setShowMaintenanceModal(false)}
         onOpenDatabaseReset={() => { setShowMaintenanceModal(false); setShowResetConfirm(true); }}
+        deleteTarget={deleteTarget}
+        onCloseDeleteConfirm={() => { setDeleteTarget(null); setDeleteInput(''); }}
+        deleteInput={deleteInput}
+        onDeleteInputChange={setDeleteInput}
+        isDeleting={isDeleting}
+        onConfirmDelete={handleConfirmDelete}
       />
 
       {/* --- FEATURE 5: RECORD PANEL (Side Panel) ---

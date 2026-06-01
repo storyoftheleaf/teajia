@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { Archive, Check, Eye, EyeOff, Globe, History, MoreHorizontal, Pencil, Star } from 'lucide-react';
+import { Archive, Check, Eye, EyeOff, Globe, History, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
@@ -28,6 +28,7 @@ export interface InventoryRowProps {
   onToggleDropdown: (productId: string | null) => void;
   onStockHistory: (id: string, name: string) => void;
   onRestock: (product: Product) => void;
+  onDeleteRequest: (product: Product) => void;
   showToast: (msg: string, type: string, opts?: any) => void;
   navigate: (path: string) => void;
 }
@@ -40,7 +41,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onProductUpdate, onSelectionAwareUpdate,
-    onOpenPanel, onToggleDropdown, onStockHistory, onRestock, showToast, navigate,
+    onOpenPanel, onToggleDropdown, onStockHistory, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
 
   const globalIdxRef = useRef(globalIdx);
@@ -54,12 +55,20 @@ function InventoryRowBase(props: InventoryRowProps) {
 
   // Tone tokens — the PRODUCT NAME stays one calm color (text, or text-sec when
   // sold/archived) so the Product column reads consistently. The low-stock signal
-  // lives on the numeric columns (Grams/Retail), not on the name.
+  // is confined to the STOCK NUMBER alone (`stockTone`) so it informs without
+  // shouting; every other numeric column stays neutral. This keeps the list calm
+  // and reserves the loudest treatment for the SELECTED row, not a warning.
   const isOut = (product.stockGrams ?? 0) <= 0;
   const isLow = !isOut && product.stockGrams <= product.lowStockThreshold;
   const isSold = product.status === 'Archived' || isOut;
   const nameTone = isSold ? 'text-tea-text-sec' : 'text-tea-text';
-  const numTone = isLow ? 'text-tea-readgold' : isSold ? 'text-tea-text-dim' : 'text-tea-text';
+  // Non-stock numbers (retail, cost) never carry the low-stock tint — low stock
+  // has nothing to do with price, so tinting it there was pure noise.
+  const numTone = isSold ? 'text-tea-text-dim' : 'text-tea-text';
+  // The stock number is the only place the low-stock signal lives. `tea-gold-lt`
+  // is a softer bronze than the old `tea-readgold`, so the warning reads as a
+  // quiet flag rather than the brightest thing in the row.
+  const stockTone = isLow ? 'text-tea-gold-lt' : isSold ? 'text-tea-text-dim' : 'text-tea-text';
 
   // The Year column already shows the vintage, so a trailing year baked into the
   // name ("Aged Liu Bao 1960") is redundant. Strip it for display ONLY when it
@@ -134,7 +143,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'stockGrams': {
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${stockTone}`}>
             {/* Stock is always editable inline — type a new gram value directly in
                 the cell. The clock icon (left) opens stock history; the number
                 itself no longer hijacks the click for history. */}
@@ -148,9 +157,9 @@ function InventoryRowBase(props: InventoryRowProps) {
                 <History size={12} aria-hidden="true" />
               </button>
               {product.recheckStock && (
-                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title="Stock needs rechecking — clear flag" onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className="text-ui-10 text-tea-readgold hover:text-tea-text-sec transition-colors shrink-0"><span aria-hidden="true">&#9888;</span></button>
+                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title="Stock needs rechecking — clear flag" onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0"><span aria-hidden="true">&#9888;</span></button>
               )}
-              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-12 ${numTone}`} />
+              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-12 ${stockTone}`} />
             </div>
           </td>
         );
@@ -169,7 +178,9 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'pricePerGramUSD': {
         const sellingPrice = product.fixedRetailPriceUSD ?? product.pricePerGramUSD;
-        const overrideTone = product.fixedRetailPriceUSD != null && !isLow && !isSold ? 'text-tea-readgold' : numTone;
+        // Price-override marker: a soft bronze, not the brightest tone — the
+        // selected row is what should stand out, not a per-row price flag.
+        const overrideTone = product.fixedRetailPriceUSD != null && !isSold ? 'text-tea-gold-lt' : numTone;
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
@@ -255,7 +266,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     isPanelOpen
       ? 'bg-tea-gold/16 outline outline-2 -outline-offset-1 outline-tea-gold/70 shadow-[inset_3px_0_0_0_var(--tea-gold)]'
       : isSelected
-        ? 'bg-tea-gold/8 outline outline-1 -outline-offset-1 outline-tea-gold/40'
+        ? 'bg-tea-gold/[0.18] outline outline-2 -outline-offset-1 outline-tea-gold/80 shadow-[inset_3px_0_0_0_var(--tea-gold)]'
         : 'hover:bg-tea-accent-sub',
   ].join(' ');
 
@@ -286,19 +297,27 @@ function InventoryRowBase(props: InventoryRowProps) {
       }}
     >
       {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
-      {/* Action cluster — canonical: star / eye / edit / more, each p-1.5 Lucide 14px */}
+      {/* Action cluster — featured STAR (a status toggle) is set apart from the
+          eye / edit / more ACTION icons by a hairline divider. Off-state reads as
+          a visible outlined star (text-sec, the actionable floor — not the dim
+          grey it used to inherit); on-state is a filled bronze star inside a soft
+          bronze halo, so the fill — not a colour-only shift — carries the state. */}
       <td className="px-2 py-1 align-middle text-right whitespace-nowrap">
         <div className="inline-flex items-center gap-0 text-tea-text-dim" onClick={(e) => e.stopPropagation()}>
           {!isEditMode && !isSelected && (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }}
-                className={`tap-target p-1 transition-colors ${product.isFeatured ? 'text-tea-readgold' : 'hover:text-tea-readgold'}`}
-                aria-label={product.isFeatured ? 'Remove featured star' : 'Mark as featured'}
+                className={`tap-target p-1 mr-0.5 rounded-full transition-all duration-150 active:scale-90 ${
+                  product.isFeatured
+                    ? 'text-tea-readgold bg-tea-gold/10'
+                    : 'text-tea-text-sec hover:text-tea-readgold hover:bg-tea-gold/[0.06]'
+                }`}
+                aria-label={product.isFeatured ? 'Featured — remove from shop home' : 'Feature on shop home'}
                 aria-pressed={product.isFeatured}
-                title={product.isFeatured ? 'Remove star' : 'Star'}
+                title={product.isFeatured ? 'Featured — remove' : 'Feature on shop home'}
               >
-                <Star size={14} style={product.isFeatured ? { fill: 'currentColor' } : undefined} aria-hidden="true" />
+                <Star size={16} style={product.isFeatured ? { fill: 'currentColor' } : undefined} aria-hidden="true" />
               </button>
               {isFeaturedButHidden(product) && (
                 <span
@@ -307,6 +326,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   aria-label="Featured but hidden from shop"
                 />
               )}
+              <span className="w-px h-4 bg-tea-border mx-1 shrink-0" aria-hidden="true" />
               <button
                 onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }}
                 className="tap-target p-1 hover:text-tea-text-sec transition-colors"
@@ -342,6 +362,8 @@ function InventoryRowBase(props: InventoryRowProps) {
                     <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-md shadow-lg py-1 min-w-[160px] border border-tea-border" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
                       <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
                       <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
+                      <div className="my-1 border-t border-tea-border" />
+                      <button onClick={() => { onDeleteRequest(product); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-readgold hover:bg-tea-gold/[0.06] transition-colors text-left"><Trash2 size={12} /> Delete permanently</button>
                     </div>
                   )}
                 </div>
