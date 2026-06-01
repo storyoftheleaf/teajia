@@ -186,6 +186,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     deleted_at TEXT,                          -- Soft-delete timestamp
     notes TEXT,                              -- Free-text notes on the invoice
     source_event_id TEXT,                    -- FK to events table (sale attributed to an event)
+    source_collection_id TEXT,               -- FK to collections table (draft created from a collection share)
+    source_publication_id TEXT,              -- FK to collection_publications table (the specific share link)
     payment_status TEXT DEFAULT 'unpaid',    -- unpaid | partial | paid
     payment_date TEXT,
     payment_method TEXT,

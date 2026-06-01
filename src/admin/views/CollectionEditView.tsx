@@ -107,11 +107,24 @@ const CollectionItemRow: React.FC<{
   const catalogRate = item.fixed_retail_price_usd
     ? `$${item.fixed_retail_price_usd}/${isTeaware ? 'unit' : 'g'}`
     : '';
-  // When the price is blank, the worker quotes the catalog rate scaled to the
-  // picked amount. Say so plainly so a blank field reads as a choice, not a gap.
-  const priceHint = price.trim() === ''
-    ? (catalogRate ? `Blank uses catalog ${catalogRate}` : 'Set a price, or it stays at 0')
-    : (catalogRate ? `catalog ${catalogRate}` : '');
+
+  // Two modes:
+  // (a) Price blank + catalog rate exists: show what the blank will use.
+  // (b) Price filled + qty filled: show the live breakdown so per-gram typos
+  //     look obviously wrong (e.g. "$0.30 for 100g (~$0.003/g)").
+  let priceHint = '';
+  const qtyNum = Number(qty);
+  const priceNum = Number(price);
+  if (price.trim() !== '' && qty.trim() !== '' && Number.isFinite(qtyNum) && qtyNum > 0 && Number.isFinite(priceNum) && priceNum >= 0) {
+    const perUnit = priceNum / qtyNum;
+    const fmtTotal = `$${priceNum % 1 === 0 ? priceNum : priceNum.toFixed(2)}`;
+    const fmtPer = `$${perUnit < 0.01 ? perUnit.toFixed(4) : perUnit.toFixed(2).replace(/\.?0+$/, '')}`;
+    priceHint = isTeaware
+      ? `= ${fmtTotal} for ${qtyNum} unit${qtyNum === 1 ? '' : 's'}`
+      : `= ${fmtTotal} for ${qtyNum}g  (~${fmtPer}/g)`;
+  } else if (price.trim() === '' && catalogRate) {
+    priceHint = `Blank uses catalog ${catalogRate}`;
+  }
 
   return (
     <li
@@ -199,7 +212,7 @@ const CollectionItemRow: React.FC<{
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim">Price (USD)</span>
+          <span className="text-ui-9 uppercase tracking-caps text-tea-text-dim">Total price (USD)</span>
           <input
             type="text"
             inputMode="decimal"

@@ -725,6 +725,14 @@ export const OrdersView = () => {
                   </div>
                 )}
 
+                {/* From collection */}
+                {viewingInvoice.source_collection_id && (
+                  <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
+                    <h4 className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec mb-2">From collection</h4>
+                    <p className="text-ui-13 text-tea-text-sec">From a shared collection</p>
+                  </div>
+                )}
+
                 {/* Notes */}
                 {viewingInvoice.notes && (
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">

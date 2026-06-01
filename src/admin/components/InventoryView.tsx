@@ -38,6 +38,7 @@ import {
 import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput';
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { CollectionShareSheet } from './collections/CollectionShareSheet';
+import { AddToCollectionModal } from './collections/AddToCollectionModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import {
   BULK_EDIT_FIELDS,
@@ -411,6 +412,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [shareToNetworkOpen, setShareToNetworkOpen] = useState(false);
   const [invoiceFromInventoryOpen, setInvoiceFromInventoryOpen] = useState(false);
+  const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
   const [bulkField, setBulkField] = useState<string>('status');
   const [bulkValue, setBulkValue] = useState<string>('');
   const [isBulkApplying, setIsBulkApplying] = useState(false);
@@ -736,6 +738,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <button onClick={() => setInvoiceFromInventoryOpen(true)} disabled={isBulkApplying} className={menuItem}>
                   <Receipt size={13} />
                   <span>Add to invoice</span>
+                </button>
+                <button onClick={() => { setAddToCollectionOpen(true); setIsDrawerExpanded(false); }} disabled={isBulkApplying} className={menuItem}>
+                  <Layers size={13} />
+                  <span>Add to collection</span>
                 </button>
 
                 <div className="h-px bg-tea-border my-1" />
@@ -3093,6 +3099,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             setSelectedIds(new Set());
             lastSelectedIdxRef.current = null;
           }
+        }}
+      />
+
+      <AddToCollectionModal
+        open={addToCollectionOpen}
+        productIds={selectedIds.size > 0 ? [...selectedIds] : panelProduct ? [panelProduct.id] : []}
+        onClose={() => setAddToCollectionOpen(false)}
+        onSuccess={({ added, skipped, created }) => {
+          setAddToCollectionOpen(false);
+          setSelectedIds(new Set());
+          lastSelectedIdxRef.current = null;
+          const base = created ? 'Collection created' : `Added ${added} item${added !== 1 ? 's' : ''}`;
+          showToast(skipped > 0 ? `${base} · ${skipped} already in it` : base, 'success');
         }}
       />
 

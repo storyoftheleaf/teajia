@@ -82,6 +82,8 @@ export interface Invoice {
   notes?: string;
   source_event_id?: string;
   source_event_title?: string;
+  source_collection_id?: string | null;
+  source_publication_id?: string | null;
   deleted_at?: string;
   created_at: string;
 }

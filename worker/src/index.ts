@@ -2228,6 +2228,55 @@ async function applyProductUpdate(
 
   // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
+
+  // Price re-sync — when the retail price changes, refresh the auto-seeded
+  // price on collection items that still hold the seeded value. Collection
+  // items snapshot a recommended_price_usd at add time (seedDefaultsForProducts:
+  // round(retail × recommended_quantity)). A curator can hand-edit that to quote
+  // a custom price, so we must NOT clobber edited rows. The discriminator: if a
+  // row's stored price equals what seeding WOULD have produced from the OLD
+  // retail price, it was never edited → re-seed it from the new price. Any other
+  // value is a deliberate custom quote → leave it. Null prices (no catalog price
+  // at add time) re-seed to the new computed price too.
+  if (body.fixed_retail_price_usd !== undefined) {
+    const newPrice = body.fixed_retail_price_usd === null || body.fixed_retail_price_usd === ''
+      ? null
+      : Number(body.fixed_retail_price_usd);
+    if (newPrice === null || Number.isFinite(newPrice)) {
+      const priceRow = await env.DB.prepare(
+        'SELECT fixed_retail_price_usd FROM products WHERE id = ? AND account_id = ?'
+      ).bind(params.id, accountId).first();
+      const oldPrice = priceRow && priceRow.fixed_retail_price_usd != null
+        ? Number(priceRow.fixed_retail_price_usd) : null;
+      // Only bother if the price actually moved.
+      if (oldPrice !== newPrice) {
+        const itemRows = await env.DB.prepare(
+          `SELECT ci.id, ci.recommended_quantity, ci.recommended_price_usd
+             FROM collection_items ci
+             JOIN collections c ON c.id = ci.collection_id
+            WHERE ci.product_id = ? AND c.account_id = ?`
+        ).bind(params.id, accountId).all();
+        for (const ci of (itemRows.results ?? []) as any[]) {
+          const qty = Number(ci.recommended_quantity);
+          if (!Number.isFinite(qty) || qty <= 0) continue; // can't recompute without a quantity
+          const seededOld = oldPrice != null
+            ? Math.round(oldPrice * qty * 100) / 100 : null;
+          const stored = ci.recommended_price_usd != null
+            ? Number(ci.recommended_price_usd) : null;
+          // Untouched iff stored matches the old seed (or both null).
+          const untouched = stored === seededOld;
+          if (!untouched) continue;
+          const seededNew = newPrice != null
+            ? Math.round(newPrice * qty * 100) / 100 : null;
+          extraStmts.push(
+            env.DB.prepare('UPDATE collection_items SET recommended_price_usd = ? WHERE id = ?')
+              .bind(seededNew, ci.id)
+          );
+        }
+      }
+    }
+  }
+
   if (body.stock_grams !== undefined) {
     const current = await env.DB.prepare(
       'SELECT stock_grams, low_stock_threshold, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
@@ -14674,11 +14723,11 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
   ].filter(Boolean).join('\n');
 
   const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status, source_collection_id, source_publication_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     invoiceId, accountId, invoiceNumber, customerName, customerPhone, customerId,
-    'USD', 0, 'Draft', 0, notes, 'unpaid'
+    'USD', 0, 'Draft', 0, notes, 'unpaid', pub.collection_id, pub.id
   );
   const lineStmts = lineItems.map(li =>
     env.DB.prepare(

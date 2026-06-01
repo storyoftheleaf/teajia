@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { AlertCircle, Check, MessageCircle, Minus, Plus, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, MessageCircle, Minus, Plus, Loader2, ArrowRight } from 'lucide-react';
 import { api } from '../lib/api';
 import { buildWhatsAppUrl, buildCollectionBasketMessage } from '../lib/whatsapp';
 import type { PublicCollectionResponse, PublicCollectionItem } from '../types';
@@ -144,7 +144,10 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
 
   const slug = data.publication.slug;
   const [basket, setBasket] = useState<BasketState>({});
-  const [confirmState, setConfirmState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [confirmState, setConfirmState] = useState<'idle' | 'contact' | 'sending' | 'sent'>('idle');
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [nameError, setNameError] = useState(false);
 
   const selectedIds = Object.keys(basket);
   const selectedCount = selectedIds.length;
@@ -182,8 +185,21 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
     window.open(buildWhatsAppUrl(account?.whatsapp_number ?? '', message), '_blank');
   }
 
-  async function handleConfirm() {
+  function handleConfirmClick() {
     if (confirmState === 'sending' || selectedCount === 0) return;
+    // First click: reveal the contact step.
+    if (confirmState === 'idle') {
+      setConfirmState('contact');
+      return;
+    }
+  }
+
+  async function handleContactSubmit() {
+    if (!contactName.trim()) {
+      setNameError(true);
+      return;
+    }
+    setNameError(false);
     setConfirmState('sending');
     try {
       await api.collections.confirmPicks(slug, {
@@ -192,6 +208,8 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
           quantity: Math.max(1, Math.round(Number(basket[id].quantity) || 1)),
           note: basket[id].note || undefined,
         })),
+        contact_name: contactName.trim(),
+        contact_phone: contactPhone.trim() || undefined,
       });
       setConfirmState('sent');
     } catch {
@@ -268,32 +286,81 @@ const CollectionCatalog: React.FC<{ data: PublicCollectionResponse }> = ({ data 
 
       {/* Sticky basket footer — only visible when ≥1 item selected */}
       {selectedCount > 0 && confirmState !== 'sent' && (
-        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3 flex items-center justify-between gap-3">
-          <p className="font-sans text-ui-12 text-tea-text-sec min-w-0">
-            <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
-            {selectedCount === 1 ? 'item' : 'items'}
-            {quotedTotal > 0 && (
-              <span className="text-tea-text-dim"> · ${Math.round(quotedTotal * 100) / 100}</span>
-            )}
-          </p>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleSendPicks}
-              className="tap-target inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-ui-12 font-medium tracking-[0.3px] text-tea-text-sec hover:text-tea-text border border-tea-border transition-colors"
-              aria-label="Send my picks over WhatsApp instead"
-            >
-              <MessageCircle size={13} />
-              WhatsApp
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={confirmState === 'sending'}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt disabled:opacity-60 transition-colors"
-            >
-              {confirmState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-              {confirmState === 'sending' ? 'Sending…' : 'Confirm my picks'}
-            </button>
-          </div>
+        <div className="fixed left-0 right-0 bottom-nav bg-tea-surface border-t border-tea-border z-40 px-5 sm:px-8 py-3">
+          {/* Contact step: revealed after first "Confirm" click */}
+          {confirmState === 'contact' || confirmState === 'sending' ? (
+            <div className="max-w-[720px] mx-auto flex flex-col gap-2.5">
+              <p className="font-sans text-ui-11 text-tea-text-dim">
+                Your name lets {storeName} know who to reach out to.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-1 min-w-0 flex-1 basis-[140px]">
+                  <input
+                    type="text"
+                    value={contactName}
+                    onChange={e => { setContactName(e.target.value); if (nameError) setNameError(false); }}
+                    placeholder="Your name"
+                    autoFocus
+                    className={`input-warm w-full px-3 py-2 text-ui-13 leading-[1.5]${nameError ? ' border-tea-gold/60' : ''}`}
+                  />
+                  {nameError && (
+                    <p className="font-sans text-ui-10 text-tea-gold">Please add your name.</p>
+                  )}
+                </div>
+                <input
+                  type="tel"
+                  value={contactPhone}
+                  onChange={e => setContactPhone(e.target.value)}
+                  placeholder="Phone (optional)"
+                  className="input-warm px-3 py-2 text-ui-13 leading-[1.5] min-w-0 flex-1 basis-[120px]"
+                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setConfirmState('idle')}
+                    className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleContactSubmit}
+                    disabled={confirmState === 'sending'}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt disabled:opacity-60 transition-colors"
+                  >
+                    {confirmState === 'sending' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    {confirmState === 'sending' ? 'Sending…' : 'Send picks'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Default step: item count + action buttons */
+            <div className="max-w-[720px] mx-auto flex items-center justify-between gap-3">
+              <p className="font-sans text-ui-12 text-tea-text-sec min-w-0">
+                <span className="text-tea-gold font-medium">{selectedCount}</span>{' '}
+                {selectedCount === 1 ? 'item' : 'items'}
+                {quotedTotal > 0 && (
+                  <span className="text-tea-text-dim"> · ${Math.round(quotedTotal * 100) / 100}</span>
+                )}
+              </p>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleSendPicks}
+                  className="tap-target inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-ui-12 font-medium tracking-[0.3px] text-tea-text-sec hover:text-tea-text border border-tea-border transition-colors"
+                  aria-label="Send my picks over WhatsApp instead"
+                >
+                  <MessageCircle size={13} />
+                  WhatsApp
+                </button>
+                <button
+                  onClick={handleConfirmClick}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium tracking-[0.3px] hover:bg-tea-gold-lt transition-colors"
+                >
+                  <Check size={13} />
+                  Confirm my picks
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -336,13 +403,13 @@ const CatalogEntry: React.FC<{
   })();
   const recPrice = item.recommended_price_usd != null ? Number(item.recommended_price_usd) : null;
 
-  // Price scales with the chosen amount, mirroring the worker: the quoted price is
-  // FOR the recommended amount, so derive a per-unit rate and multiply by the qty.
-  // No recommended amount to divide by → flat quote. No price → null (no estimate shown).
+  // Price scales with the chosen amount. The quoted price is FOR the recommended
+  // quantity, so we derive a per-unit rate and multiply by the chosen qty.
+  // When recQty is absent we cannot compute a valid scaled total, so we return
+  // null rather than show a misleading per-unit estimate.
   function priceForQty(q: number): number | null {
-    if (recPrice === null) return null;
-    if (recQty) return Math.round((recPrice / recQty) * q * 100) / 100;
-    return recPrice;
+    if (recPrice === null || recQty === null) return null;
+    return Math.round((recPrice / recQty) * q * 100) / 100;
   }
 
   // Gram buttons for loose-leaf: standard options plus the curator's recommended
@@ -466,13 +533,22 @@ const CatalogEntry: React.FC<{
           </p>
         )}
 
-        {/* Curator's recommendation — what and how much, at what price. */}
-        {(recQty || recPrice != null) && (
+        <Link
+          to={`/shop/product/${item.product_id}`}
+          className="inline-flex items-center gap-1 font-sans text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors mb-5"
+        >
+          About this tea <ArrowRight size={11} />
+        </Link>
+
+        {/* Curator's recommendation — shown only when recQty is present so the
+            amount + price context is always complete. A bare price with no qty
+            would be ambiguous, so we omit the line when recQty is absent. */}
+        {recQty != null && (
           <p className="font-body text-ui-14 leading-[1.6] text-tea-gold italic mb-5">
-            {curatorFirstName} suggests
-            {recQty && ` ${recQty}${pickerMode === 'loose-leaf' ? 'g' : (recQty === 1 ? (pickerMode === 'cake-brick' ? ' cake' : ' unit') : (pickerMode === 'cake-brick' ? ' cakes' : ' units'))}`}
+            {curatorFirstName} suggests{' '}
+            {recQty}{pickerMode === 'loose-leaf' ? 'g' : (recQty === 1 ? (pickerMode === 'cake-brick' ? ' cake' : ' unit') : (pickerMode === 'cake-brick' ? ' cakes' : ' units'))}
             {recPrice != null && (
-              <span className="text-tea-text-sec not-italic">{recQty ? ' · ' : ' '}${Math.round(recPrice * 100) / 100}</span>
+              <span className="text-tea-text-sec not-italic"> · ${Math.round(recPrice * 100) / 100}</span>
             )}
           </p>
         )}
