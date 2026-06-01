@@ -39,8 +39,12 @@ jobs:
         working-directory: worker
         run: npm ci
 
+      # Migrations apply on every worker deploy. This step must NOT swallow
+      # failures: a silent `continue-on-error` is what let 076 + 080 drift out
+      # of prod undetected (the d1_migrations tracker fell out of sync while the
+      # deploy reported success). Tracker was reconciled 2026-06-01; from here a
+      # failed migration fails the deploy loudly so drift can't recur.
       - name: Apply D1 migrations
-        continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
