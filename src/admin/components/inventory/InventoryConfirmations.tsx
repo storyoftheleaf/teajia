@@ -1,4 +1,4 @@
-import { AlertOctagon, AlertTriangle, Loader2, RefreshCw, Sparkles, X } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, Loader2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 
 type VerificationStats = {
   total: number;
@@ -24,6 +24,14 @@ type InventoryConfirmationsProps = {
   showMaintenanceModal: boolean;
   onCloseMaintenanceModal: () => void;
   onOpenDatabaseReset: () => void;
+  // Permanent single-product delete (e.g. a mistyped duplicate). Irreversible,
+  // so it requires typing "delete" to confirm — same floor as the DB wipe.
+  deleteTarget: { id: string; name: string } | null;
+  onCloseDeleteConfirm: () => void;
+  deleteInput: string;
+  onDeleteInputChange: (value: string) => void;
+  isDeleting: boolean;
+  onConfirmDelete: () => void;
 };
 
 export function InventoryConfirmations({
@@ -44,6 +52,12 @@ export function InventoryConfirmations({
   showMaintenanceModal,
   onCloseMaintenanceModal,
   onOpenDatabaseReset,
+  deleteTarget,
+  onCloseDeleteConfirm,
+  deleteInput,
+  onDeleteInputChange,
+  isDeleting,
+  onConfirmDelete,
 }: InventoryConfirmationsProps) {
   return (
     <>
@@ -132,6 +146,46 @@ export function InventoryConfirmations({
                   className="flex-1 py-3 bg-tea-gold/20 border border-tea-accent-sub text-tea-gold text-xs font-semibold rounded-md hover:bg-tea-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   {isResetting ? 'Deleting...' : 'Confirm Wipe'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/90 backdrop-blur-sm p-4 animate-in fade-in duration-200" role="presentation">
+          <div className="bg-tea-bg border border-tea-accent-sub rounded-xl max-w-sm w-full p-8 relative shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="product-delete-title">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-4 rounded-full border border-tea-accent-sub text-tea-gold bg-tea-gold/10">
+                {isDeleting ? <Loader2 className="animate-spin" size={28} /> : <Trash2 size={28} />}
+              </div>
+              <h3 id="product-delete-title" className="text-xl font-serif text-tea-text">Delete this tea?</h3>
+              <p className="text-tea-text-sec text-sm">
+                You are about to permanently remove
+                {' '}<span className="text-tea-text font-medium">{deleteTarget.name}</span>.
+                This cannot be undone. To keep it but hide it from the shop, archive it instead.
+              </p>
+              <div className="w-full pt-2">
+                <input
+                  type="text"
+                  className="w-full input-warm rounded-xl p-3 text-center text-tea-gold text-xs outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold transition-colors"
+                  value={deleteInput}
+                  onChange={(e) => onDeleteInputChange(e.target.value)}
+                  placeholder='Type "delete" to confirm'
+                  aria-label={`Type "delete" to confirm removing ${deleteTarget.name}`}
+                  disabled={isDeleting}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3 w-full pt-2">
+                <button onClick={onCloseDeleteConfirm} className="flex-1 py-3 text-tea-text-sec hover:text-tea-text transition-colors text-xs uppercase tracking-[0.2em]" disabled={isDeleting}>Cancel</button>
+                <button
+                  onClick={onConfirmDelete}
+                  disabled={deleteInput.trim().toLowerCase() !== 'delete' || isDeleting}
+                  className="flex-1 py-3 bg-tea-gold/20 border border-tea-accent-sub text-tea-gold text-xs font-semibold rounded-md hover:bg-tea-gold/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  {isDeleting ? 'Deleting…' : 'Delete permanently'}
                 </button>
               </div>
             </div>

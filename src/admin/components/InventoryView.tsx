@@ -444,9 +444,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showVerificationResetConfirm, setShowVerificationResetConfirm] = useState(false);
   const [stockHistoryProduct, setStockHistoryProduct] = useState<{ id: string; name: string } | null>(null);
 
+  // Permanent single-product delete (mistyped/junk row). deleteTarget holds the
+  // product being confirmed; deleteInput must equal "delete" before it fires.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteInput, setDeleteInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Track recently saved cells for visual feedback
   const [recentlySavedCells, setRecentlySavedCells] = useState<Set<string>>(new Set());
   const timeoutRefsMap = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Edit-mode save status — drives the persistent "Saving… / All changes saved"
+  // indicator in the edit toolbar so inline auto-save is visible at all times
+  // (the old per-cell pill alone was too easy to miss). `savingCount` tracks
+  // in-flight writes; `lastSavedAt` flips the idle state to "saved" once one
+  // has succeeded this session.
+  const [savingCount, setSavingCount] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const { data: rates = [] } = useRates();
 
@@ -468,6 +482,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryColumns,
     inventoryGroupBy,
     priceMode,
+    isEditMode,
   });
 
   // Initialize review drafts when switching to Pending filter or when pending products change
@@ -864,13 +879,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       // legacy is_featured column. Optimistic local state is already updated above.
       // Refetch on success so the derived value (computed from active shop
       // collections) lands consistently in local state.
+      setSavingCount(c => c + 1);
       try {
         await api.products.setFeatured(id, Boolean(value));
+        setLastSavedAt(Date.now());
         onRefresh();
       } catch (err: any) {
         showToast(`Update failed: ${err.message}`, 'error');
         onRefresh();
         if (options?.throwOnError) throw err;
+      } finally {
+        setSavingCount(c => Math.max(0, c - 1));
       }
       return;
     }
@@ -879,8 +898,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (!dbPayload) return; // Unsupported field for quick edit
 
     // 3. Fire & Forget (with Error Revert)
+    setSavingCount(c => c + 1);
     try {
       await api.products.updateByDomain(id, dbPayload);
+      setLastSavedAt(Date.now());
       // Show saved pill feedback for this cell
       const cellId = `${id}-${String(field)}`;
       setRecentlySavedCells(prev => new Set([...prev, cellId]));
@@ -905,8 +926,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       showToast(`Update failed: ${err.message}`, 'error');
       onRefresh();
       if (options?.throwOnError) throw err;
+    } finally {
+      setSavingCount(c => Math.max(0, c - 1));
     }
   }, [setLocalProducts, setPanelDirty, showToast, onRefresh]);
+
+  // Permanent delete — only reachable through the typed-"delete" confirmation.
+  // Optimistically drops the row, then refetches to reconcile with the server.
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    const { id, name } = deleteTarget;
+    setIsDeleting(true);
+    try {
+      await api.products.delete(id);
+      setLocalProducts(prev => prev.filter(p => p.id !== id));
+      showToast(`${name} deleted`, 'success');
+      setDeleteTarget(null);
+      setDeleteInput('');
+      onRefresh();
+    } catch (err: any) {
+      showToast(`Delete failed: ${err.message}`, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteTarget, setLocalProducts, showToast, onRefresh]);
 
   const handleExport = () => {
     const csv = Papa.unparse(processedProducts.map(p => ({
@@ -1721,7 +1764,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
       <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:h-12 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md overflow-x-auto custom-scrollbar hide-scrollbar sticky top-0 z-dropdown">
-        <h1 className="h2 text-tea-text shrink-0 mr-4">Inventory</h1>
+        <h1 className="h2 text-tea-text shrink-0 mr-4">Stock</h1>
         {(() => {
           const views = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           let didSeparate = false;
@@ -1826,9 +1869,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             card top strip (see canonical §20 inventory table in /design/system). */}
         <div className="flex px-4 md:px-6 max-w-7xl mx-auto items-center gap-4 py-1.5">
             {isEditMode && (
-              <span className="label-caps text-tea-text-dim shrink-0">
-                CLICK CELLS TO EDIT
-              </span>
+              savingCount > 0 ? (
+                <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec shrink-0" aria-live="polite">
+                  <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                  SAVING…
+                </span>
+              ) : lastSavedAt ? (
+                <span className="inline-flex items-center gap-1.5 label-caps text-tea-gold shrink-0" aria-live="polite">
+                  <Check size={12} aria-hidden="true" />
+                  ALL CHANGES SAVED
+                </span>
+              ) : (
+                <span className="label-caps text-tea-text-dim shrink-0">
+                  CLICK CELLS TO EDIT — CHANGES SAVE AUTOMATICALLY
+                </span>
+              )
             )}
 
             <div className="flex items-center gap-4 ml-auto">
@@ -2872,6 +2927,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onToggleDropdown={stableToggleDropdown}
                                   onStockHistory={stableStockHistory}
                                   onRestock={handleRestock}
+                                  onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showToast}
                                   navigate={navigate}
                                 />
@@ -2938,6 +2994,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onToggleDropdown={stableToggleDropdown}
                               onStockHistory={stableStockHistory}
                               onRestock={handleRestock}
+                              onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showToast}
                               navigate={navigate}
                             />
@@ -3028,6 +3085,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         showMaintenanceModal={showMaintenanceModal}
         onCloseMaintenanceModal={() => setShowMaintenanceModal(false)}
         onOpenDatabaseReset={() => { setShowMaintenanceModal(false); setShowResetConfirm(true); }}
+        deleteTarget={deleteTarget}
+        onCloseDeleteConfirm={() => { setDeleteTarget(null); setDeleteInput(''); }}
+        deleteInput={deleteInput}
+        onDeleteInputChange={setDeleteInput}
+        isDeleting={isDeleting}
+        onConfirmDelete={handleConfirmDelete}
       />
 
       {/* --- FEATURE 5: RECORD PANEL (Side Panel) ---
