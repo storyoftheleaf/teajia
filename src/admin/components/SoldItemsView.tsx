@@ -663,33 +663,37 @@ export const RecordsView = ({ products, initialTab }: { products: Product[]; ini
                   <>
                     {ledgerEntries.map((entry: any) => {
                       const isPositive = entry.delta > 0;
+                      const balanceBefore = entry.balance_after - entry.delta;
+                      const verb = isPositive ? 'Added' : 'Removed';
+                      const reasonLabel = REASON_LABELS[entry.reason] || entry.reason;
                       return (
                         <div key={entry.id} className="relative flex bg-tea-surface border border-tea-border rounded-xl overflow-hidden transition-colors active:bg-tea-accent-sub">
                           {/* Direction accent: in vs out */}
                           <span className={`w-1 shrink-0 ${isPositive ? 'bg-tea-green' : 'bg-tea-error'}`} aria-hidden />
                           <div className="flex-1 min-w-0 px-3.5 py-3">
-                            {/* Headline: product + signed delta */}
-                            <div className="flex items-baseline justify-between gap-3">
-                              <span className="font-display text-ui-17 leading-tight text-tea-text truncate">{entry.product_name || 'Unknown'}</span>
-                              <span className={`font-serif text-base tabular-nums shrink-0 inline-flex items-center gap-0.5 ${isPositive ? 'text-tea-green' : 'text-tea-error'}`}>
-                                {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                                {isPositive ? '+' : ''}{entry.delta}g
+                            {/* Headline: product */}
+                            <div className="font-display text-ui-17 leading-tight text-tea-text truncate">{entry.product_name || 'Unknown'}</div>
+
+                            {/* The movement, written plainly: Added/Removed N, then before → after */}
+                            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2">
+                              <span className={`inline-flex items-center gap-1 font-sans text-ui-13 font-medium ${isPositive ? 'text-tea-green' : 'text-tea-error'}`}>
+                                {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                                {verb} {Math.abs(entry.delta)}g
+                              </span>
+                              <span className="font-sans text-ui-12 text-tea-text-sec tabular-nums">
+                                {balanceBefore}g <span className="text-tea-text-dim">→</span> <span className="text-tea-text font-medium">{entry.balance_after}g</span> in stock
                               </span>
                             </div>
-                            {/* Sentence line: balance after + reason */}
-                            <div className="flex items-center justify-between gap-2 mt-1.5">
-                              <span className="font-sans text-ui-11 text-tea-text-sec tabular-nums">
-                                balance <span className="text-tea-text">{entry.balance_after}g</span>
-                              </span>
-                              <span className="font-sans text-ui-10 uppercase tracking-caps text-tea-text-dim">{REASON_LABELS[entry.reason] || entry.reason}</span>
-                            </div>
-                            {/* Caption: when + invoice */}
-                            <div className="font-sans text-ui-11 text-tea-text-dim tabular-nums mt-1.5">
-                              {new Date(entry.created_at).toLocaleDateString()}
+
+                            {/* Caption: reason · when · invoice */}
+                            <div className="font-sans text-ui-11 text-tea-text-dim mt-2">
+                              <span className="uppercase tracking-caps">{reasonLabel}</span>
+                              <span className="opacity-40 mx-1.5">·</span>
+                              <span className="tabular-nums">{new Date(entry.created_at).toLocaleDateString()}</span>
                               {entry.source_invoice_number && (
                                 <>
                                   <span className="opacity-40 mx-1.5">·</span>
-                                  {entry.source_invoice_number}
+                                  <span className="tabular-nums">{entry.source_invoice_number}</span>
                                 </>
                               )}
                             </div>
