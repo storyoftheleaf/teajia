@@ -191,19 +191,26 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       icon: <Heart {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/journey?tab=collection'); },
     },
-    // Inbound is a staff/owner concept (shared collections from the network).
-    // Members don't have a destination for it yet — hide the tile for them.
-    ...(isStaffOrOwner ? [{
-      id: 'inbound',
-      verb: 'inbound',
+    // Collections are the shareable unit. Curators (publish bundle) get their
+    // create/manage home; everyone else gets their shelf of collections shared
+    // with or saved by them.
+    isStaffOrOwner ? {
+      id: 'collections',
+      verb: 'collections',
       hint: inboundUnreadCount > 0
-        ? inboundUnreadCount === 1 ? 'one share' : `${inboundUnreadCount} shares`
-        : 'nothing today',
+        ? inboundUnreadCount === 1 ? 'one share to open' : `${inboundUnreadCount} shares to open`
+        : 'curate & share',
       icon: <Tray {...ICON_PROPS} />,
       badge: inboundUnreadCount > 0 ? inboundUnreadCount : undefined,
       accent: inboundUnreadCount > 0,
       onClick: () => { onClose(); navigate('/admin/collections'); },
-    } as LaunchpadTile] : []),
+    } as LaunchpadTile : {
+      id: 'collections',
+      verb: 'collections',
+      hint: 'shared with you',
+      icon: <Tray {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/collections'); },
+    } as LaunchpadTile,
     ...(membershipsCount > 1 ? [{
       id: 'switch',
       verb: 'switch',
