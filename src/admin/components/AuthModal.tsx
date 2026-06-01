@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { api, setToken } from '../../lib/api';
+import { api, setToken, API_URL } from '../../lib/api';
 import { useAppStore } from '../store';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
@@ -208,7 +208,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
               <div className="flex-1 h-px bg-tea-border" />
             </div>
             <a
-              href="/api/auth/google"
+              href={`${API_URL}/api/auth/google?return=${encodeURIComponent('/admin')}`}
               className="w-full flex items-center justify-center gap-3 py-3 bg-tea-surface rounded-md border border-tea-border text-tea-text-sec text-sm hover:text-tea-text hover:bg-tea-elevated transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
