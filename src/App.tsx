@@ -62,6 +62,7 @@ const PalettePreviewPage = lazy(() => import('./pages/PalettePreviewPage'));
 const DesignSystemShowcase = lazy(() => import('./pages/DesignSystemShowcase'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage'));
+const SharedCollectionsPage = lazy(() => import('./pages/SharedCollectionsPage'));
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
@@ -834,6 +835,7 @@ const AppContent = () => {
                 <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignUpPage /></Suspense></ErrorBoundary>} />

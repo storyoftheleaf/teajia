@@ -1077,6 +1077,20 @@ export interface CollectionListRow {
   thumbnails: string[];
 }
 
+/** A collection on the logged-in user's shelf (saved or received via a shared link). */
+export interface SavedCollectionRow {
+  id: string;                       // collection_id
+  slug?: string | null;             // publication slug they came through (deep-link back to /c/:slug)
+  source: 'received' | 'saved';
+  saved_at: string;
+  title: string;
+  note?: string | null;
+  hero_image_url?: string | null;
+  curator_display_name?: string | null;
+  item_count: number;
+  thumbnails: string[];
+}
+
 export interface CollectionItem {
   id: string;
   collection_id: string;

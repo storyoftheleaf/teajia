@@ -2298,6 +2298,33 @@ export const api = {
       });
       return handleResponse(res);
     },
+    /** The logged-in user's saved/received collection shelf (cross-account). */
+    listMine: async (): Promise<{ collections: import('../types').SavedCollectionRow[] }> => {
+      return authedFetch(`${API_URL}/api/me/collections`)
+    },
+    /** Explicitly save a shared collection (by its publication slug) to my shelf. */
+    saveMine: async (slug: string): Promise<{ ok: true; collection_id: string }> => {
+      return authedFetch(`${API_URL}/api/me/collections/save`, {
+        method: 'POST',
+        body: JSON.stringify({ slug }),
+      });
+    },
+    /** Best-effort: record that I (a logged-in user) opened a shared link, so it
+     *  lands on my shelf as 'received'. Swallows errors — never blocks the view. */
+    markReceived: async (slug: string): Promise<void> => {
+      try {
+        await authedFetch(`${API_URL}/api/me/collections/received`, {
+          method: 'POST',
+          body: JSON.stringify({ slug }),
+        });
+      } catch { /* not logged in or dead link — fine, this is opportunistic */ }
+    },
+    /** Remove a collection from my shelf. */
+    unsaveMine: async (collectionId: string): Promise<{ ok: true }> => {
+      return authedFetch(`${API_URL}/api/me/collections/${collectionId}`, {
+        method: 'DELETE',
+      });
+    },
     /** Publish a collection to the shop audience. Idempotent. */
     publishToShop: async (collectionId: string): Promise<{ publication: import('../types').CollectionPublication; created: boolean }> => {
       return authedFetch(`${API_URL}/api/collections/${collectionId}/publish-shop`, {

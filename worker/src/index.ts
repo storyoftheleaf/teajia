@@ -14599,6 +14599,153 @@ const handlePublicCollectionView: Handler = async (_request, env, params) => {
   return json({ ok: true });
 };
 
+// ── Saved collections — a logged-in user's shelf of collections they've been
+// sent or saved from a shared link. Cross-account: keyed on the global user id.
+// See migration 080. ───────────────────────────────────────────────────────
+
+// Resolve a publication slug → an active, non-archived collection. Shared by the
+// save + auto-receive paths so both reject the same dead links identically.
+async function resolveSlugCollection(
+  env: Env, slug: string,
+): Promise<{ collectionId: string } | { error: Response }> {
+  const pub = await env.DB.prepare(
+    `SELECT collection_id, unpublished_at FROM collection_publications WHERE slug = ?`
+  ).bind(slug).first() as { collection_id: string; unpublished_at: string | null } | null;
+  if (!pub || pub.unpublished_at) return { error: json({ error: 'No longer available' }, 410) };
+  const coll = await env.DB.prepare(
+    `SELECT status FROM collections WHERE id = ?`
+  ).bind(pub.collection_id).first() as { status: string } | null;
+  if (!coll || coll.status === 'archived') return { error: json({ error: 'No longer available' }, 410) };
+  return { collectionId: pub.collection_id };
+}
+
+// Upsert a shelf row. A 'received' row is never downgraded to 'saved' and an
+// explicit 'saved' never overwrites a prior 'received' (received is the stronger
+// signal — it means a link addressed to them). updated_at always bumps so the
+// shelf re-sorts to most-recent.
+async function upsertSavedCollection(
+  env: Env, userId: string, collectionId: string, slug: string | null,
+  source: 'received' | 'saved', now: string,
+): Promise<void> {
+  const existing = await env.DB.prepare(
+    `SELECT id, source FROM saved_collections WHERE user_id = ? AND collection_id = ?`
+  ).bind(userId, collectionId).first() as { id: string; source: string } | null;
+  if (existing) {
+    // Only upgrade saved→received; never the reverse. Always refresh via_slug + updated_at.
+    const nextSource = existing.source === 'received' ? 'received' : source;
+    await env.DB.prepare(
+      `UPDATE saved_collections SET source = ?, via_slug = COALESCE(?, via_slug), updated_at = ? WHERE id = ?`
+    ).bind(nextSource, slug, now, existing.id).run();
+  } else {
+    await env.DB.prepare(
+      `INSERT INTO saved_collections (id, user_id, collection_id, via_slug, source, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(newId('sc'), userId, collectionId, slug, source, now, now).run();
+  }
+}
+
+// GET /api/me/collections — the user's shelf, newest first, enriched with the
+// curator name, item count, and up to 3 thumbnails (same shape as the admin list).
+const handleListMyCollections: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+
+  const rows = await env.DB.prepare(
+    `SELECT sc.collection_id AS id, sc.via_slug, sc.source, sc.updated_at AS saved_at,
+            c.title, c.note, c.hero_image_url, c.status,
+            c.curator_display_name, u.name AS curator_user_name, c.curator_user_id,
+            (SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id = c.id) AS item_count
+       FROM saved_collections sc
+       JOIN collections c ON c.id = sc.collection_id
+       LEFT JOIN users u ON u.id = c.curator_user_id
+      WHERE sc.user_id = ? AND c.status != 'archived'
+      ORDER BY sc.updated_at DESC`
+  ).bind(claims.sub).all();
+
+  const list = (rows.results ?? []) as any[];
+  const ids = list.map(r => r.id);
+  const thumbMap = new Map<string, string[]>();
+  if (ids.length) {
+    const placeholders = ids.map(() => '?').join(',');
+    const thumbRows = await env.DB.prepare(
+      `SELECT ci.collection_id, p.image_url
+         FROM collection_items ci JOIN products p ON p.id = ci.product_id
+        WHERE ci.collection_id IN (${placeholders})
+        ORDER BY ci.collection_id, ci.position`
+    ).bind(...ids).all();
+    for (const r of (thumbRows.results ?? []) as any[]) {
+      const arr = thumbMap.get(r.collection_id) ?? [];
+      if (arr.length < 3 && r.image_url) { arr.push(r.image_url); thumbMap.set(r.collection_id, arr); }
+    }
+  }
+
+  return json({
+    collections: list.map(r => ({
+      id: r.id,
+      slug: r.via_slug,
+      source: r.source,
+      saved_at: r.saved_at,
+      title: r.title,
+      note: r.note,
+      hero_image_url: r.hero_image_url,
+      curator_display_name: r.curator_user_id
+        ? (r.curator_display_name || r.curator_user_name || null) : null,
+      item_count: r.item_count,
+      thumbnails: thumbMap.get(r.id) ?? [],
+    })),
+  });
+};
+
+// POST /api/me/collections/save { slug } — explicit save from a shared link.
+const handleSaveCollection: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const body = await request.json().catch(() => ({})) as { slug?: string };
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!slug) return json({ error: 'slug required' }, 400);
+
+  const resolved = await resolveSlugCollection(env, slug);
+  if ('error' in resolved) return resolved.error;
+
+  await upsertSavedCollection(env, claims.sub, resolved.collectionId, slug, 'saved', new Date().toISOString());
+  return json({ ok: true, collection_id: resolved.collectionId });
+};
+
+// POST /api/me/collections/received { slug } — fire-and-forget; called when a
+// logged-in user opens a shared link, so it lands on their shelf as 'received'
+// without an explicit Save. Best-effort: a dead link just no-ops with 410.
+const handleReceiveCollection: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  const body = await request.json().catch(() => ({})) as { slug?: string };
+  const slug = typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!slug) return json({ error: 'slug required' }, 400);
+
+  const resolved = await resolveSlugCollection(env, slug);
+  if ('error' in resolved) return resolved.error;
+
+  await upsertSavedCollection(env, claims.sub, resolved.collectionId, slug, 'received', new Date().toISOString());
+  return json({ ok: true, collection_id: resolved.collectionId });
+};
+
+// DELETE /api/me/collections/:id — remove a collection from the user's shelf.
+const handleUnsaveCollection: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Invalid token' }, 401);
+  await env.DB.prepare(
+    `DELETE FROM saved_collections WHERE user_id = ? AND collection_id = ?`
+  ).bind(claims.sub, params.id).run();
+  return json({ ok: true });
+};
+
 // Public — recipient confirms their picks from a collection. No auth; link-gated
 // by slug. Creates a DRAFT invoice in the owning account, scoped via the
 // collection's account_id, so the operator reviews + sends it from Orders.
@@ -16851,6 +16998,12 @@ const routes: [string, string, Handler][] = [
   ['GET',  '/api/public/c/:slug', handleGetPublicCollection],
   ['POST', '/api/public/c/:slug/view', handlePublicCollectionView],
   ['POST', '/api/public/c/:slug/confirm', handleConfirmCollectionPicks],
+
+  // A logged-in user's saved/received collection shelf (cross-account, keyed on user id).
+  ['GET',    '/api/me/collections', handleListMyCollections],
+  ['POST',   '/api/me/collections/save', handleSaveCollection],
+  ['POST',   '/api/me/collections/received', handleReceiveCollection],
+  ['DELETE', '/api/me/collections/:id', handleUnsaveCollection],
 
   // Invoices — edit items
   ['PUT', '/api/invoices/:id/items', handleUpdateInvoiceItems],

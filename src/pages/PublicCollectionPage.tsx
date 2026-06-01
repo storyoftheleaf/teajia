@@ -80,6 +80,21 @@ const PublicCollectionPage: React.FC = () => {
     api.collections.trackPublicView(slug).catch(() => { /* ignore */ });
   }, [status, slug]);
 
+  // If the visitor is logged in, drop this collection onto their shelf as
+  // 'received' the moment they open the link. Best-effort + once per slug;
+  // markReceived swallows its own errors (guest / dead link → no-op).
+  useEffect(() => {
+    if (status !== 'ok' || !slug) return;
+    const loggedIn = !!(localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token'));
+    if (!loggedIn) return;
+    const key = `tj_c_recv_${slug}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch { /* private mode — still attempt once */ }
+    api.collections.markReceived(slug);
+  }, [status, slug]);
+
   if (status === 'loading') {
     return (
       <main className="min-h-screen bg-tea-bg flex items-center justify-center px-6">
