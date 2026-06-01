@@ -235,15 +235,16 @@ function InventoryRowBase(props: InventoryRowProps) {
 
   // Canonical active-row signature: gold-tinted bg + 1px gold outline (selection or panel open).
   const borderCls = !isSelected && !isPanelOpen ? getRowBorderClass(product) : '';
-  const activeRow = isSelected || isPanelOpen;
   const trCls = [
     'border-b border-tea-border last:border-b-0 group cursor-pointer select-none transition-colors',
     borderCls,
-    activeRow
-      ? 'bg-tea-gold/8 outline outline-1 -outline-offset-1 outline-tea-gold/40'
-      : !product.isPublic
-        ? 'opacity-60 hover:opacity-100 hover:bg-tea-accent-sub'
-        : 'hover:bg-tea-accent-sub',
+    isPanelOpen
+      ? 'bg-tea-gold/16 outline outline-2 -outline-offset-1 outline-tea-gold/70 shadow-[inset_3px_0_0_0_var(--tea-gold)]'
+      : isSelected
+        ? 'bg-tea-gold/8 outline outline-1 -outline-offset-1 outline-tea-gold/40'
+        : !product.isPublic
+          ? 'opacity-60 hover:opacity-100 hover:bg-tea-accent-sub'
+          : 'hover:bg-tea-accent-sub',
   ].join(' ');
 
   return (
