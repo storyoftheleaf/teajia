@@ -90,9 +90,9 @@ export const AlcoveShell: React.FC<AlcoveShellProps> = ({
         pointerEvents: "none", zIndex: 2,
       }}>
         <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: "24px",
-          background: `linear-gradient(to top, ${alcoveBg}, transparent)`,
-          opacity: showFade ? 1 : 0,
+          position: "absolute", bottom: 0, left: 0, right: 0, height: "14px",
+          background: `linear-gradient(to top, ${alcoveBg} 0%, ${alcoveBg} 30%, transparent 100%)`,
+          opacity: showFade ? 0.7 : 0,
           transition: "opacity 0.3s ease",
         }} />
       </div>

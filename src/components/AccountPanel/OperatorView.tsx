@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PenLine, Users, Compass, ShoppingBag, Sprout, BookOpen, GraduationCap, Globe } from 'lucide-react';
+import { PenLine, Users, Compass, ShoppingBag, Sprout, BookOpen, GraduationCap, Globe, Send } from 'lucide-react';
 import { SealIcon } from '../Icons';
 import {
   ADMIN_TOOL_GROUPS,
@@ -350,6 +350,21 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
           variant={urgentKey ? 'bordered' : 'filled'}
         />
       )}
+
+      {/* ── Send a Collection — always-present entry to the build/send flow.
+          Bordered (not filled) so it never competes with the bronze PrimaryVerb
+          above. Lands straight in the create form (?new=1) — the mobile home for
+          curating teas to send a guest. */}
+      <div className="px-6 pt-3">
+        <button
+          onClick={() => go('/admin/collections?new=1')}
+          className="w-full min-h-[48px] px-5 py-3 rounded-md border border-tea-border text-tea-text hover:bg-tea-surface active:bg-tea-elevated transition-colors flex items-center justify-center gap-2 text-ui-15 font-medium tracking-[0.01em]"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <Send size={15} strokeWidth={1.75} className="text-tea-gold" />
+          Send a Collection
+        </button>
+      </div>
 
       {/* ── Last note — Adrian's own notes are operational knowledge ── */}
       <PreviewBlock hint="Notes" icon={<PenLine {...ICON_PROPS} />} onClick={onOpenJournal}>

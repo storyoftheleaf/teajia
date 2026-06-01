@@ -2,12 +2,12 @@ name = "teajia-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
-[vars]
-# Google OAuth — values set via `wrangler secret put` for production; see worker/.dev.vars for local dev
-GOOGLE_CLIENT_ID = ""
-GOOGLE_CLIENT_SECRET = ""
-# JWT_SECRET and ADMIN_PASSWORD_HASH are set via `wrangler secret put` — never commit them here
-# Email (Resend): set SENDER_EMAIL, SENDER_NAME, and RESEND_API_KEY via `wrangler secret put`
+# Secrets (set via `wrangler secret put`, never committed):
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  — Google OAuth (local dev reads them from worker/.dev.vars)
+#   JWT_SECRET, ADMIN_PASSWORD_HASH         — auth
+#   SENDER_EMAIL, SENDER_NAME, RESEND_API_KEY — email (Resend)
+# These must NOT be declared as [vars] — a [vars] entry would shadow the secret
+# with an empty string on every deploy and break OAuth.
 
 [[d1_databases]]
 binding = "DB"

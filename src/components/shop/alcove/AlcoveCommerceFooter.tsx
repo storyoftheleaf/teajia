@@ -97,7 +97,7 @@ export const AlcoveCommerceFooter: React.FC<AlcoveCommerceFooterProps> = ({
         position: 'relative',
         zIndex: 3,
         flexShrink: 0,
-        padding: '8px 14px 10px',
+        padding: '14px 14px 10px',
         borderTop: '1px solid var(--tea-border)',
         background: alcoveColors.bg,
       }}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus, Loader2, RefreshCw, Package, Inbox, Building2 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -31,9 +31,12 @@ export const CollectionsView: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<ListMode>('mine');
   const [tab, setTab] = useState<TabFilter>('all');
-  const [creating, setCreating] = useState(false);
+  // Auto-open the create form when arriving via "Send a Collection" (?new=1),
+  // so the profile-panel entry lands straight in the build flow, not the list.
+  const [creating, setCreating] = useState(() => searchParams.get('new') === '1');
   const [newTitle, setNewTitle] = useState('');
   const [creatingSubmitting, setCreatingSubmitting] = useState(false);
 
