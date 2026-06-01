@@ -12,7 +12,7 @@ const TOOL_GROUPS = [
     copy: 'Find teas, inspect stock, and match customers before anything is changed.',
   },
   {
-    title: 'Inventory',
+    title: 'Stock',
     tools: ['create_tea', 'add_stock', 'remove_stock'],
     copy: 'Create products and record stock that entered or left the store.',
   },

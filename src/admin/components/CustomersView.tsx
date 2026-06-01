@@ -795,7 +795,7 @@ export const CustomerDetail = ({
                               <button
                                 onClick={() => { onClose(); navigate(`/admin/inventory?search=${encodeURIComponent(p.given_name || p.product_name || '')}`); }}
                                 className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
-                                title="View in Inventory"
+                                title="View in Stock"
                               >
                                 <div className="text-sm text-tea-text font-medium truncate hover:text-tea-gold transition-colors">
                                   {p.given_name || p.product_name}
@@ -1132,7 +1132,7 @@ export const CustomerDetail = ({
                             <button
                               onClick={() => { onClose(); navigate(`/admin/inventory?search=${encodeURIComponent(tea.given_name || tea.product_name || '')}`); }}
                               className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
-                              title="View in Inventory"
+                              title="View in Stock"
                             >
                               <div className="text-sm text-tea-text font-medium truncate hover:text-tea-gold transition-colors">
                                 {tea.given_name || tea.product_name}

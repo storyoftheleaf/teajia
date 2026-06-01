@@ -706,7 +706,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 onClick={() => { onClose(); navigate('/admin/inventory'); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-xl hover:bg-tea-surface border border-tea-border"
               >
-                <Package size={12} /> Browse Inventory
+                <Package size={12} /> Browse Stock
               </button>
             </div>
           </div>

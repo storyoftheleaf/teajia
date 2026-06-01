@@ -161,7 +161,7 @@ export const AdminHomeView: React.FC<{
           >
             <Package size={20} strokeWidth={1.6} className="text-tea-gold shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-ui-15 font-semibold text-tea-text leading-tight">Inventory</div>
+              <div className="text-ui-15 font-semibold text-tea-text leading-tight">Stock</div>
               <div className="text-ui-12 text-tea-text-sec mt-0.5">Tea & Teaware</div>
             </div>
             <ArrowRight size={15} className="text-tea-text-dim shrink-0" />
