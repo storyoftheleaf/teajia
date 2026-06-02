@@ -978,7 +978,7 @@ export const PartnerListingEdit: React.FC = () => {
         {/* Back link */}
         <button
           type="button"
-          onClick={() => navigate('/admin/inventory')}
+          onClick={() => navigate('/admin/stock')}
           className="text-tea-text-sec hover:text-tea-text transition-colors text-ui-13 mb-5 flex items-center gap-1"
         >
           ← Stock
@@ -1030,7 +1030,7 @@ export const PartnerListingEdit: React.FC = () => {
             You curate this tea — edit it directly in your inventory.{' '}
             <button
               type="button"
-              onClick={() => navigate('/admin/inventory')}
+              onClick={() => navigate('/admin/stock')}
               className="text-tea-text-sec hover:text-tea-text underline transition-colors"
             >
               Back to inventory

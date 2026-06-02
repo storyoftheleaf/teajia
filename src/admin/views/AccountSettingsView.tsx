@@ -549,7 +549,7 @@ const LaunchReadinessPanel: React.FC<{
         ? 'Checking opening stock.'
         : `${audit.products.total} active item${audit.products.total === 1 ? '' : 's'}, ${audit.products.readyPublic} ready for public sale.`,
       action: audit.products.total === 0 ? 'Import stock' : 'Review stock',
-      href: '/admin/inventory',
+      href: '/admin/stock',
       checks: [
         { label: 'Opening stock exists', done: audit.products.total > 0 },
         { label: 'At least one public, priced, stocked item', done: audit.products.readyPublic > 0 },
@@ -687,7 +687,7 @@ const LaunchReadinessPanel: React.FC<{
         <div className="flex flex-wrap gap-2 justify-start md:justify-end lg:self-end">
           {[
             { label: 'Open playbook', href: '/admin/launch-playbook' },
-            { label: 'Import stock', href: '/admin/inventory' },
+            { label: 'Import stock', href: '/admin/stock' },
             { label: 'Review access', href: '/admin/access' },
           ].map(step => (
             <a

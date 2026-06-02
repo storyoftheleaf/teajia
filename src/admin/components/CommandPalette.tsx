@@ -132,7 +132,7 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
                       <Command.Item
                         key={`product-${p.id}`}
                         value={`product ${p.givenName} ${p.productName}`}
-                        onSelect={() => runCommand(() => navigate(`/admin/inventory?search=${encodeURIComponent(p.givenName || p.productName)}`))}
+                        onSelect={() => runCommand(() => navigate(`/admin/stock?search=${encodeURIComponent(p.givenName || p.productName)}`))}
                         className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-elevated cursor-pointer text-tea-text aria-selected:bg-tea-elevated aria-selected:text-tea-text transition-colors"
                       >
                         <span className="flex items-center gap-2 w-full">
@@ -194,23 +194,23 @@ export const CommandPalette = ({ onAddProduct, externalOpen, onOpenChange }: { o
               <Command.Item onSelect={() => runCommand(() => navigate('/admin/tasting-events'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                 <Coffee size={16} className="text-tea-text-sec" /> Tasting events
               </Command.Item>
-              <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+              <Command.Item onSelect={() => runCommand(() => navigate('/admin/stock'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                 <Leaf size={16} className="text-tea-text-sec" /> Tea Glossary
               </Command.Item>
-              <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+              <Command.Item onSelect={() => runCommand(() => navigate('/admin/stock'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                 <Coffee size={16} className="text-tea-text-sec" /> Equipment
               </Command.Item>
             </Command.Group>
 
             {isDevAdmin && (
               <Command.Group heading="Admin" className="text-ui-10 uppercase tracking-[0.2em] font-bold text-tea-text-sec px-2 py-2 mt-2 border-t border-tea-border">
-                <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+                <Command.Item onSelect={() => runCommand(() => navigate('/admin/stock'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <Settings size={16} className="text-tea-text-sec" /> Stock
                 </Command.Item>
                 <Command.Item onSelect={() => runCommand(onAddProduct)} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <Plus size={16} className="text-tea-text-sec" /> Add New Product
                 </Command.Item>
-                <Command.Item onSelect={() => runCommand(() => navigate('/admin/inventory'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
+                <Command.Item onSelect={() => runCommand(() => navigate('/admin/stock'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">
                   <UserCheck size={16} className="text-tea-text-sec" /> Collection
                 </Command.Item>
                 <Command.Item onSelect={() => runCommand(() => navigate('/admin/activity?tab=orders'))} className="flex items-center gap-3 px-3 py-3.5 rounded-xl hover:bg-tea-surface cursor-pointer text-tea-text aria-selected:bg-tea-surface aria-selected:text-tea-gold transition-colors font-serif">

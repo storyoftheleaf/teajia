@@ -244,7 +244,8 @@ const PUBLIC_ROUTES = [
 ] as const;
 
 const ADMIN_ROUTES = [
-  ['/admin/inventory',  'Admin Inventory'],
+  ['/admin/stock',      'Admin Stock'],
+  ['/admin/inventory',  'Admin Stock (legacy redirect)'],
   ['/admin/events',     'Admin Events'],
   ['/admin/platform',   'Admin Platform'],
   ['/admin/team',       'Admin Team'],

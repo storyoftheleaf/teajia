@@ -645,7 +645,7 @@ export const CatalogBrowse: React.FC<CatalogBrowseProps> = ({ embedded = false }
                 JSON.stringify({ id: listingId, name, ts: Date.now() }),
               );
             } catch { /* storage blocked — flash won't show, not fatal */ }
-            navigate('/admin/inventory');
+            navigate('/admin/stock');
           }}
         />
       )}

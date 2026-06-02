@@ -449,7 +449,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   {entry.draftProductId && (
                     <button
                       type="button"
-                      onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(entry.draftProductId!)}`)}
+                      onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(entry.draftProductId!)}`)}
                       className="pill flex items-center gap-1"
                     >
                       <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">

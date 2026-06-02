@@ -60,7 +60,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const [adminLeftTabs, adminRightTabs] = ((): [AdminTab[], AdminTab[]] => {
     if (isAdmin) return [
       [{ id: 'compass',   label: 'curate',   path: '/admin/compass' },
-       { id: 'inventory', label: 'stock',    path: '/admin/inventory' }],
+       { id: 'inventory', label: 'stock',    path: '/admin/stock' }],
       [{ id: 'activity',  label: 'sales',    path: '/admin/activity' },
        { id: 'events',    label: 'events',   path: '/admin/events' }],
     ];

@@ -703,7 +703,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               <p className="font-serif italic text-base mb-1">{isPurchase ? 'Purchase Order Empty' : 'Registry Empty'}</p>
               <p className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-sec/70 mb-4">{isPurchase ? 'Add items to order from vendor' : 'Select items from catalog'}</p>
               <button
-                onClick={() => { onClose(); navigate('/admin/inventory'); }}
+                onClick={() => { onClose(); navigate('/admin/stock'); }}
                 className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-xl hover:bg-tea-surface border border-tea-border"
               >
                 <Package size={12} /> Browse Stock

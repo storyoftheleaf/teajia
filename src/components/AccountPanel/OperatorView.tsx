@@ -218,7 +218,7 @@ export const OperatorView: React.FC<OperatorViewProps> = ({
     if (journalCount === 0) {
       return { label: 'Begin a note', onClick: onOpenJournal };
     }
-    return { label: 'Open inventory', onClick: () => go('/admin/inventory') };
+    return { label: 'Open inventory', onClick: () => go('/admin/stock') };
   })();
 
   const frontispiece = buildOperatorFrontispiece({

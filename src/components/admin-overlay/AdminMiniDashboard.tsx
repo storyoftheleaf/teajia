@@ -36,7 +36,7 @@ export const AdminMiniDashboard: React.FC<{ onClose?: () => void }> = ({ onClose
         </button>
 
         <button
-          onClick={() => goTo('/admin/inventory')}
+          onClick={() => goTo('/admin/stock')}
           className="bg-tea-surface/30 border border-tea-border p-3 flex flex-col items-center gap-1 hover:bg-tea-surface/50 transition-colors"
         >
           <span className={`font-mono text-xl ${stats.lowStockItems > 0 ? 'text-tea-error dark:text-tea-error' : 'text-tea-text'}`}>

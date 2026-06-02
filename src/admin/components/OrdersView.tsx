@@ -781,7 +781,7 @@ export const OrdersView = () => {
                                 <div className="flex-1 min-w-0">
                                     {item.product_id ? (
                                       <button
-                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/inventory?panel=${encodeURIComponent(item.product_id)}`); }}
+                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/stock?panel=${encodeURIComponent(item.product_id)}`); }}
                                         className="text-tea-text font-medium hover:text-tea-gold transition-colors text-left truncate block"
                                       >
                                         {item.given_name || item.product_name || 'Unknown'}

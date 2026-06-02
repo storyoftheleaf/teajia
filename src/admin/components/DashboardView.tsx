@@ -46,7 +46,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
   }, []);
 
   const handleChartClick = useCallback((dimension: string, value: string) => {
-    navigate(`/admin/inventory?search=${encodeURIComponent(value)}`);
+    navigate(`/admin/stock?search=${encodeURIComponent(value)}`);
   }, [navigate]);
 
   const metrics = useMemo(() => {
@@ -353,7 +353,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                 {revenueData.inventory_age_alerts.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => navigate(`/admin/inventory?search=${encodeURIComponent(p.product_name)}`)}
+                    onClick={() => navigate(`/admin/stock?search=${encodeURIComponent(p.product_name)}`)}
                     className="flex items-center justify-between w-full px-2 py-1.5 rounded hover:bg-tea-accent-sub transition-colors text-left group"
                   >
                     <span className="text-ui-14 text-tea-text group-hover:text-tea-gold transition-colors truncate">{p.product_name}</span>

@@ -155,7 +155,7 @@ export const AdminHomeView: React.FC<{
         {/* ── Hero tile: Inventory (management only) ────────────────── */}
         {isAdmin && (
           <button
-            onClick={() => navigate('/admin/inventory')}
+            onClick={() => navigate('/admin/stock')}
             className="relative flex items-center gap-4 px-5 py-4 rounded-xl bg-tea-surface border border-tea-border text-left transition-colors duration-100 active:bg-tea-elevated/70 active:scale-[0.985]"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >

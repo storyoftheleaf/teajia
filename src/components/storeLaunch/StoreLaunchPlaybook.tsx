@@ -141,7 +141,7 @@ const setupSteps = [
     title: 'Add opening stock',
     publicCopy: 'Prepare the first items customers can actually ask about or buy.',
     adminCopy: 'Import the first batch, then make at least one item public, priced, and in stock.',
-    adminHref: '/admin/inventory',
+    adminHref: '/admin/stock',
     publicHref: '/store-launch-playbook#store-details',
     action: 'Add inventory',
     publicAction: 'Enter opening stock',

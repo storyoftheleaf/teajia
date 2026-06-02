@@ -752,7 +752,7 @@ export const SourcesView = () => {
                 </div>
               }
               onEdit={(product) => {
-                navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
+                navigate(`/admin/stock?panel=${encodeURIComponent(product.id)}`);
               }}
             />
             {(() => {
@@ -1243,7 +1243,7 @@ export const SourcesView = () => {
                             inline={true}
                             title={`${source.name}'s Teas`}
                             onEdit={(product) => {
-                              navigate(`/admin/inventory?panel=${encodeURIComponent(product.id)}`);
+                              navigate(`/admin/stock?panel=${encodeURIComponent(product.id)}`);
                             }}
                           />
                         </div>
@@ -1510,7 +1510,7 @@ export const SourcesView = () => {
                               <tr key={p.id} className="border-b border-tea-border last:border-0 hover:bg-tea-surface/50 transition-colors">
                                 <td className="px-3 py-2">
                                   <button
-                                    onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
+                                    onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(p.id)}`)}
                                     className="text-tea-text hover:text-tea-gold transition-colors flex items-center gap-1.5"
                                   >
                                     {p.image_url && <img src={p.image_url} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" loading="lazy" />}
@@ -2008,7 +2008,7 @@ export const SourcesView = () => {
                         {valueRanked.slice(0, 3).map((p) => (
                           <div key={p.id} className="flex items-center justify-between text-ui-11 py-0.5">
                             <button
-                              onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(p.id)}`)}
+                              onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(p.id)}`)}
                               className="text-tea-text hover:text-tea-gold transition-colors truncate flex-1 mr-2 text-left"
                             >
                               {p.givenName || p.productName}
@@ -2159,7 +2159,7 @@ export const SourcesView = () => {
                               <div className="text-ui-11 text-tea-text leading-tight">
                                 {evt.id ? (
                                   <button
-                                    onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(evt.id!)}`)}
+                                    onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(evt.id!)}`)}
                                     className="hover:text-tea-gold transition-colors text-left"
                                   >
                                     {evt.label}

@@ -86,7 +86,7 @@ const LineItemRow: React.FC<{
             </button>
           ) : item.productId ? (
             <button
-              onClick={() => navigate(`/admin/inventory?panel=${encodeURIComponent(item.productId!)}`)}
+              onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(item.productId!)}`)}
               className="text-tea-text hover:text-tea-gold font-serif text-ui-13 text-left transition-colors truncate block w-full"
             >
               {item.name || 'Unnamed'}
