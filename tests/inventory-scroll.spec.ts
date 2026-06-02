@@ -144,7 +144,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('scroll container has height and is scrollable', async ({ page }, testInfo) => {
-    await page.goto('/admin/inventory', { waitUntil: 'domcontentloaded' });
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
 
     const scroller = page.locator('[data-testid="inventory-scroll"]');

@@ -58,7 +58,7 @@ export const AdminToolbar: React.FC<AdminToolbarProps> = ({ collapsed: controlle
         <span className="w-px h-3 bg-tea-text/10 shrink-0" />
 
         <button
-          onClick={() => navigate('/admin/inventory')}
+          onClick={() => navigate('/admin/stock')}
           className="flex items-center gap-1.5 shrink-0 group"
           title="Low stock items"
         >

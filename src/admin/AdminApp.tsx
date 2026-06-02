@@ -333,7 +333,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const isOnInventory = location.pathname.includes('/admin/inventory');
+  const isOnInventory = location.pathname.includes('/admin/stock') || location.pathname.includes('/admin/inventory');
   const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
   const isOnCompass = location.pathname.includes('/admin/compass');
@@ -575,7 +575,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                          onClick={() => {
                            setInventorySearchQuery('');
                            setShowSourceSuggestions(false);
-                           navigate(`/admin/inventory?vendor=${encodeURIComponent(v.name)}`);
+                           navigate(`/admin/stock?vendor=${encodeURIComponent(v.name)}`);
                          }}
                          className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-tea-bg/60 transition-colors"
                        >
@@ -696,8 +696,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="people/:customerId" element={<ProtectedRoute hasAccess={canUsePeople} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CustomerProfilePage /></PageTransition></ProtectedRoute>} />
               <Route path="contact-tags" element={<ProtectedRoute hasAccess={isStaff} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContactTagsView /></PageTransition></ProtectedRoute>} />
 
-              {/* Management — admin, owner */}
-              <Route path="inventory" element={
+              {/* Management — admin, owner. Canonical route is /admin/stock;
+                  /admin/inventory redirects to it (query string preserved for ?panel= deep links). */}
+              <Route path="stock" element={
                 <ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
                     <InventoryView
@@ -716,6 +717,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                   </PageTransition>
                 </ProtectedRoute>
               } />
+              <Route path="inventory" element={<Navigate to={`/admin/stock${location.search}`} replace />} />
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
@@ -751,11 +753,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               {/* Legacy routes — redirect to new unified views */}
               <Route path="catalog" element={
                 activeMembership?.is_platform_account
-                  ? <Navigate to="/admin/inventory" replace />
+                  ? <Navigate to="/admin/stock" replace />
                   : <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CatalogView /></PageTransition></ProtectedRoute>
               } />
-              <Route path="teaware" element={<Navigate to="/admin/inventory" replace />} />
-              <Route path="personal" element={<Navigate to="/admin/inventory" replace />} />
+              <Route path="teaware" element={<Navigate to="/admin/stock" replace />} />
+              <Route path="personal" element={<Navigate to="/admin/stock" replace />} />
               <Route path="customers" element={<Navigate to="/admin/people" replace />} />
               <Route path="sources" element={<Navigate to="/admin/people" replace />} />
               <Route path="orders" element={<Navigate to="/admin/activity?tab=orders" replace />} />

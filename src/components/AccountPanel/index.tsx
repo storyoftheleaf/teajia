@@ -553,7 +553,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     }
   };
 
-  const handleGoToAdmin = (path: string = '/admin/inventory') => {
+  const handleGoToAdmin = (path: string = '/admin/stock') => {
     onClose();
     navigate(path);
   };
@@ -843,7 +843,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </button>
           {isStaff && (
             <button
-              onClick={() => handleGoToAdmin('/admin/inventory')}
+              onClick={() => handleGoToAdmin('/admin/stock')}
               className="flex-1 py-3 text-ui-11 uppercase tracking-[0.15em] text-tea-gold hover:bg-tea-accent-sub transition-colors"
             >
               Ops

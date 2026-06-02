@@ -198,7 +198,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     {
       id: 'inventory', label: 'Stock',
       icon: <Package size={18} weight={PHOSPHOR_WEIGHT} />,
-      path: '/admin/inventory',
+      path: '/admin/stock',
       children: [
         { id: 'catalog',  path: '/admin/catalog',  label: 'Tea Glossary', icon: <Leaf       size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'teaware',  path: '/admin/teaware',  label: 'Equipment',    icon: <Coffee     size={14} weight={PHOSPHOR_WEIGHT} /> },

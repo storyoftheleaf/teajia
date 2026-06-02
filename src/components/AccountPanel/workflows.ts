@@ -75,7 +75,7 @@ export const FIRST_DOOR_WORKFLOW: FirstDoorWorkflowLink[] = [
   {
     id: 'inventory',
     label: 'Prepare inventory',
-    route: '/admin/inventory',
+    route: '/admin/stock',
     description: 'Add stock, photos, pricing, and local availability.',
     bundle: 'stock',
     category: 'operate',
