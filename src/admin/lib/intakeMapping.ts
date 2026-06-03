@@ -58,32 +58,36 @@ export type ColumnMapping = Record<string, string>;
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Best-effort suggestion for a single header. Returns a target key or '' (ignore).
+// Ranks candidates so the LONGEST matching alias wins — this avoids substring
+// false-positives like "Discounts" matching "count" (qty) before "discounts".
 export function suggestTarget(header: string, alreadyUsed: Set<string>): string {
   const n = normalize(header);
   if (!n) return '';
-  // 1. exact alias match (prefer unused item fields before order fields)
+  let best = '';
+  let bestScore = 0;
   for (const f of TARGET_FIELDS) {
     if (alreadyUsed.has(f.key)) continue;
-    if (f.aliases.some((a) => normalize(a) === n)) return f.key;
+    for (const a of f.aliases) {
+      const na = normalize(a);
+      if (!na) continue;
+      let score = 0;
+      if (na === n) score = 1000 + na.length;        // exact alias match
+      else if (n.includes(na)) score = 100 + na.length; // header contains alias
+      else if (na.includes(n)) score = 50 + n.length;   // alias contains header
+      if (score > bestScore) { bestScore = score; best = f.key; }
+    }
   }
-  // 2. contains match
-  for (const f of TARGET_FIELDS) {
-    if (alreadyUsed.has(f.key)) continue;
-    if (f.aliases.some((a) => n.includes(normalize(a)) || normalize(a).includes(n))) return f.key;
-  }
-  return '';
+  return best;
 }
 
-// Auto-map a full header list.
+// Auto-map a full header list. Each matched target is reserved so columns map 1:1.
 export function autoMap(headers: string[]): ColumnMapping {
   const used = new Set<string>();
   const mapping: ColumnMapping = {};
   for (const h of headers) {
     const key = suggestTarget(h, used);
     mapping[h] = key;
-    // order-group fields and a couple of item fields can legitimately repeat,
-    // but most item identity fields should map once — reserve them.
-    if (key && TARGET_BY_KEY[key]?.group === 'item') used.add(key);
+    if (key) used.add(key);
   }
   return mapping;
 }
@@ -132,6 +136,23 @@ export function parseNum(v: unknown): number {
   }
   const n = parseFloat(str.replace(/[^0-9.-]/g, ''));
   return Number.isFinite(n) ? n : 0;
+}
+
+// Sniff a currency token out of free text (a price cell like "700 NT$" or a
+// header like "Unit Price (HK$)"). Bare "$" is intentionally ignored as too
+// ambiguous. Returns a known currency code or '' if none found.
+export function detectCurrencyToken(s: unknown): string {
+  if (!s) return '';
+  const u = String(s).toUpperCase();
+  if (u.includes('NT$') || /\bNTD?\b/.test(u) || /\bTWD\b/.test(u)) return 'NT';
+  if (u.includes('RMB') || u.includes('CNY') || u.includes('YUAN') || u.includes('¥')) return 'Yuan';
+  if (u.includes('HK$') || /\bHKD\b/.test(u)) return 'HKD';
+  if (/\bJPY\b/.test(u) || u.includes('YEN')) return 'JPY';
+  if (/\bMYR\b/.test(u) || /\bRM\b/.test(u)) return 'MYR';
+  if (/\bIDR\b/.test(u) || /\bRP\b/.test(u)) return 'IDR';
+  if (/\bAUD\b/.test(u) || u.includes('A$')) return 'AUD';
+  if (u.includes('US$') || /\bUSD\b/.test(u)) return 'USD';
+  return '';
 }
 
 export function normalizeCurrency(raw: unknown): string {
@@ -201,6 +222,24 @@ function mappedValue(row: Record<string, any>, mapping: ColumnMapping, key: stri
   return '';
 }
 
+// The spreadsheet header mapped to a given target key (for header-derived hints).
+function headerForTarget(mapping: ColumnMapping, key: string): string {
+  for (const [col, target] of Object.entries(mapping)) {
+    if (target === key) return col;
+  }
+  return '';
+}
+
+// Resolve the currency for a cost cell: explicit Currency column, else a token
+// inside the price cell ("700 NT$"), else the cost column header ("… (HK$)").
+function resolveCurrency(row: Record<string, any>, mapping: ColumnMapping, costRaw: unknown): string {
+  const explicit = normalizeCurrency(mappedValue(row, mapping, 'cost_currency'));
+  if (explicit !== 'UNK') return explicit;
+  return detectCurrencyToken(costRaw)
+    || detectCurrencyToken(headerForTarget(mapping, 'cost_amount'))
+    || 'UNK';
+}
+
 // Transform one raw spreadsheet row → a StagedItem using the column mapping.
 export function rowToStaged(
   row: Record<string, any>,
@@ -229,7 +268,7 @@ export function rowToStaged(
     originRegion: String(mappedValue(row, mapping, 'origin_region') || '').trim(),
     vendor: String(mappedValue(row, mapping, 'vendor') || '').trim(),
     costAmount: parseNum(mappedValue(row, mapping, 'cost_amount')),
-    costCurrency: normalizeCurrency(mappedValue(row, mapping, 'cost_currency')),
+    costCurrency: resolveCurrency(row, mapping, mappedValue(row, mapping, 'cost_amount')),
     stockGrams: parseNum(mappedValue(row, mapping, 'stock_grams')),
     quantityPurchased: parseNum(mappedValue(row, mapping, 'quantity_purchased')),
     description: String(mappedValue(row, mapping, 'description') || '').trim(),
