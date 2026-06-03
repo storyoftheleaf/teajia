@@ -89,6 +89,7 @@ import { PeopleView } from './components/PeopleView';
 import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
 import { DraftsView } from './components/DraftsView';
+import { IntakeWorkspace } from './views/IntakeWorkspace';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
@@ -335,6 +336,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/stock') || location.pathname.includes('/admin/inventory');
   const isOnCapture = location.pathname.includes('/admin/capture');
+  const isOnIntake = location.pathname.includes('/admin/intake');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
   const isOnCompass = location.pathname.includes('/admin/compass');
 
@@ -637,7 +639,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
            )}
         </div>}
 
-        <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
+        <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
               <Route path="/" element={<Navigate to="compass" replace />} />
               <Route path="home" element={<Navigate to="../compass" replace />} />
@@ -718,6 +720,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 </ProtectedRoute>
               } />
               <Route path="inventory" element={<Navigate to={`/admin/stock${location.search}`} replace />} />
+              <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
