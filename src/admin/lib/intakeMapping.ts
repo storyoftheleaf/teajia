@@ -290,8 +290,10 @@ export function isReadyItem(it: StagedItem): boolean {
 }
 
 // Build the product object the bulkCreate endpoint expects.
+// Everything from intake lands as Draft — a deliberate safety choice so nothing
+// reaches the public storefront without an explicit activation step. isReadyItem
+// drives the UI badge (ready-to-activate vs needs-info), not the import status.
 export function stagedToProduct(it: StagedItem): Record<string, any> {
-  const status = isReadyItem(it) ? 'Active' : 'Draft';
   const out: Record<string, any> = {
     type: it.type,
     given_name: it.givenName || null,
@@ -308,7 +310,7 @@ export function stagedToProduct(it: StagedItem): Record<string, any> {
     vendor: it.vendor || null,
     description: it.description || null,
     image_url: it.imageUrl || null,
-    status,
+    status: 'Draft',
     is_personal: it.isPersonal,
     is_public: !it.isPersonal,
   };

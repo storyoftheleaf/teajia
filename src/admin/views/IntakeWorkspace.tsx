@@ -179,8 +179,12 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
     try {
       const products = included.map(stagedToProduct);
       const chunk = 50;
+      let inserted = 0;
+      let skipped = 0;
       for (let i = 0; i < products.length; i += chunk) {
-        await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
+        const res: any = await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
+        inserted += res?.inserted ?? products.slice(i, i + chunk).length;
+        skipped += res?.skipped ?? 0;
       }
       if (savePurchaseRecord) {
         for (const src of sources) {
@@ -194,7 +198,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
             items_json: JSON.stringify(lines.map((l) => ({
               product_name: l.givenName || l.productName,
               quantity_grams: l.quantityPurchased || l.stockGrams,
-              unit_price_usd: l.costAmount,
+              unit_price: l.costAmount,
               currency: l.costCurrency,
               ...l.order,
             }))),
@@ -204,7 +208,10 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
           }).catch(() => null);
         }
       }
-      showToast(`Added ${products.length} item${products.length !== 1 ? 's' : ''} to inventory`, 'success');
+      showToast(
+        `Added ${inserted} item${inserted !== 1 ? 's' : ''} as drafts${skipped > 0 ? ` · ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped` : ''}`,
+        'success',
+      );
       onRefresh?.();
       setSources([]); setItems([]);
       navigate('/admin/capture');
@@ -305,7 +312,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
 
       {/* Footer action bar */}
       {hasContent && (
-        <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 py-3">
+        <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 pt-3 pb-nav-gap">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-baseline gap-1.5">
               <span className="text-ui-20 font-display text-tea-text leading-none">{counts.total}</span>
@@ -619,8 +626,11 @@ const ItemsTable: React.FC<{
                   {it.isPersonal ? 'Personal' : 'Sale'}
                 </button>
 
-                <span className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-14 justify-center flex-shrink-0`}>
-                  {ready ? 'Active' : 'Draft'}
+                <span
+                  className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-16 justify-center flex-shrink-0`}
+                  title={ready ? 'Has name, type, cost & stock — one click to activate in Capture' : 'Missing info — stays a draft until completed'}
+                >
+                  {ready ? 'Ready' : 'Review'}
                 </span>
               </div>
             );
