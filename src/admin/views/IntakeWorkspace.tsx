@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  Upload, FileSpreadsheet, Image as ImageIcon, Loader2, X, Check,
+  Upload, FileSpreadsheet, Image as ImageIcon, Loader2, Check,
   AlertTriangle, ChevronDown, ChevronRight, Trash2, Tag, Store,
+  Sparkles, Layers, ArrowRight, Inbox, Receipt,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
@@ -10,7 +11,7 @@ import { useToast } from '../components/Toast';
 import { BatchPicker } from '../components/BatchPicker';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import {
-  TARGET_FIELDS, type ColumnMapping, type StagedItem,
+  TARGET_FIELDS, TARGET_BY_KEY, type ColumnMapping, type StagedItem,
   autoMap, loadRememberedMapping, rememberMapping, rowToStaged,
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
@@ -47,6 +48,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
   const [committing, setCommitting] = useState(false);
   const [savePurchaseRecord, setSavePurchaseRecord] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
+  const dragDepth = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Item helpers ───────────────────────────────────────────────────────────
@@ -118,8 +120,14 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
   }, [parseFile]);
 
   // ── Drop + paste ───────────────────────────────────────────────────────────
+  const onDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); dragDepth.current += 1; setIsDragging(true);
+  }, []);
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); dragDepth.current -= 1; if (dragDepth.current <= 0) setIsDragging(false);
+  }, []);
   const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(false);
+    e.preventDefault(); dragDepth.current = 0; setIsDragging(false);
     if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
   }, [handleFiles]);
 
@@ -144,10 +152,16 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
     setItems((prev) => prev.map((i) => (i.sourceId === src.id ? { ...i, isPersonal: val } : i)));
   }, []);
 
+  const toggleExpand = useCallback((id: string) => {
+    setSources((prev) => prev.map((s) => (s.id === id && s.kind === 'sheet' ? { ...s, expanded: !s.expanded } : s)));
+  }, []);
+
   const removeSource = useCallback((id: string) => {
     setSources((prev) => prev.filter((s) => s.id !== id));
     setItems((prev) => prev.filter((i) => i.sourceId !== id));
   }, []);
+
+  const sourceName = useCallback((id: string) => sources.find((s) => s.id === id)?.name ?? '', [sources]);
 
   // ── Counts ──────────────────────────────────────────────────────────────────
   const included = useMemo(() => items.filter((i) => i.include), [items]);
@@ -168,7 +182,6 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
       for (let i = 0; i < products.length; i += chunk) {
         await api.products.bulkCreate(products.slice(i, i + chunk), batchId ?? undefined);
       }
-      // Optional purchase/expense record per spreadsheet source that has order data.
       if (savePurchaseRecord) {
         for (const src of sources) {
           if (src.kind !== 'sheet') continue;
@@ -191,7 +204,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
           }).catch(() => null);
         }
       }
-      showToast(`Added ${products.length} item${products.length !== 1 ? 's' : ''}`, 'success');
+      showToast(`Added ${products.length} item${products.length !== 1 ? 's' : ''} to inventory`, 'success');
       onRefresh?.();
       setSources([]); setItems([]);
       navigate('/admin/capture');
@@ -208,81 +221,118 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
     <div
       className="h-full flex flex-col overflow-hidden relative"
       onPaste={onPaste}
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 z-modal pointer-events-none flex items-center justify-center p-6">
+          <div className="absolute inset-3 rounded-xl border-2 border-dashed border-tea-gold bg-tea-bg/80 backdrop-blur-sm" />
+          <div className="relative flex flex-col items-center gap-2 text-tea-text">
+            <Inbox size={40} strokeWidth={1.25} className="text-tea-gold" />
+            <span className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Drop to load</span>
+            <span className="text-ui-12 text-tea-text-sec">Spreadsheets, Excel & photos</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="px-4 md:px-6 pt-4 pb-3 border-b border-tea-border flex-shrink-0">
-        <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Intake Workspace</h1>
-        <p className="text-ui-13 text-tea-text-sec mt-0.5">
-          Drop spreadsheets, Excel, or item photos. Map columns once, triage for-sale vs personal, then add to inventory.
-        </p>
-      </div>
+      <header className="px-4 md:px-7 pt-5 pb-4 flex items-start justify-between gap-4 flex-shrink-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Layers size={15} className="text-tea-gold" />
+            <span className="label-caps text-tea-text-dim">Inventory intake</span>
+          </div>
+          <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Intake Workspace</h1>
+          <p className="text-ui-13 text-tea-text-sec mt-1 max-w-xl">
+            Load any spreadsheet, Excel file, or item photo. Map columns once, triage what's for
+            sale versus your own records, and add it all to inventory.
+          </p>
+        </div>
+        {hasContent && (
+          <div className="hidden sm:flex items-center gap-5 flex-shrink-0 pt-1">
+            <Stat value={counts.forSale} label="For sale" />
+            <span className="w-px h-8 bg-tea-border" aria-hidden />
+            <Stat value={counts.personal} label="Personal" tone="gold" />
+            {counts.review > 0 && (
+              <>
+                <span className="w-px h-8 bg-tea-border" aria-hidden />
+                <Stat value={counts.review} label="Review" tone="gold" />
+              </>
+            )}
+          </div>
+        )}
+      </header>
 
+      <div className="divider-warm mx-4 md:mx-7 flex-shrink-0" />
+
+      {/* Body */}
       <div className="flex-1 min-h-0 overflow-auto pb-nav-gap">
-        <div className="px-4 md:px-6 py-4 space-y-4">
-          {/* Dropzone */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 transition-colors ${
-              isDragging ? 'border-tea-gold bg-tea-accent-sub' : 'border-tea-border hover:border-tea-text-sec bg-tea-bg'
-            }`}
-          >
-            <Upload size={28} strokeWidth={1.25} className="text-tea-text-sec" />
-            <span className="text-ui-13 text-tea-text">
-              Drag files here, paste a screenshot, or <span className="text-tea-gold">browse</span>
-            </span>
-            <span className="text-ui-11 text-tea-text-dim">CSV · Excel · images — many at once</span>
-            <input
-              ref={fileInputRef} type="file" multiple accept=".csv,.xlsx,.xls,image/*"
-              className="hidden"
-              onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
-            />
-          </button>
-
-          {/* Sources */}
-          {sources.map((src) => (
-            <SourceCard
-              key={src.id}
-              src={src}
-              itemCount={items.filter((i) => i.sourceId === src.id).length}
-              onRemove={() => removeSource(src.id)}
-              onToggleExpand={() => setSources((prev) => prev.map((s) => (s.id === src.id && s.kind === 'sheet' ? { ...s, expanded: !s.expanded } : s)))}
-              onRemap={remapSource}
-              onSetPersonal={setSourcePersonal}
-            />
-          ))}
-
-          {/* Items table */}
-          {items.length > 0 && (
-            <ItemsTable items={items} onUpdate={updateItem} />
+        <div className="px-4 md:px-7 py-5">
+          {!hasContent ? (
+            <HeroDropzone onBrowse={() => fileInputRef.current?.click()} dragging={isDragging} />
+          ) : (
+            <div className="space-y-4">
+              <SlimAdd onBrowse={() => fileInputRef.current?.click()} dragging={isDragging} />
+              <div className="space-y-3">
+                {sources.map((src) => (
+                  <SourceCard
+                    key={src.id}
+                    src={src}
+                    itemCount={items.filter((i) => i.sourceId === src.id).length}
+                    onRemove={() => removeSource(src.id)}
+                    onToggleExpand={() => toggleExpand(src.id)}
+                    onRemap={remapSource}
+                    onSetPersonal={setSourcePersonal}
+                  />
+                ))}
+              </div>
+              {items.length > 0 && (
+                <ItemsTable items={items} onUpdate={updateItem} sourceName={sourceName} />
+              )}
+            </div>
           )}
+
+          <input
+            ref={fileInputRef} type="file" multiple accept=".csv,.xlsx,.xls,image/*"
+            className="hidden"
+            onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
+          />
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer action bar */}
       {hasContent && (
-        <div className="flex-shrink-0 border-t border-tea-border bg-tea-surface px-4 md:px-6 py-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="flex items-center gap-3 text-ui-12">
-              <span className="text-tea-text">{counts.total} item{counts.total !== 1 ? 's' : ''}</span>
-              <span className="text-tea-text-sec">{counts.forSale} for sale · {counts.personal} personal</span>
-              {counts.review > 0 && <span className="text-tea-gold">{counts.review} need review</span>}
+        <div className="flex-shrink-0 glass-panel border-t border-tea-border px-4 md:px-7 py-3">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-ui-20 font-display text-tea-text leading-none">{counts.total}</span>
+              <span className="text-ui-12 text-tea-text-sec">ready to add</span>
             </div>
-            <div className="min-w-[180px]"><BatchPicker value={batchId} onChange={setBatchId} /></div>
-            <label className="flex items-center gap-1.5 text-ui-11 text-tea-text-sec cursor-pointer">
-              <input type="checkbox" checked={savePurchaseRecord} onChange={(e) => setSavePurchaseRecord(e.target.checked)} className="accent-tea-gold" />
-              Save purchase record
-            </label>
+            <div className="hidden md:block w-px h-7 bg-tea-border" aria-hidden />
+            <div className="min-w-[170px]"><BatchPicker value={batchId} onChange={setBatchId} /></div>
+            <button
+              type="button"
+              onClick={() => setSavePurchaseRecord((v) => !v)}
+              className="inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+              aria-pressed={savePurchaseRecord}
+            >
+              <span className={`relative w-8 h-[18px] rounded-full transition-colors ${savePurchaseRecord ? 'bg-tea-gold' : 'bg-tea-border'}`}>
+                <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-tea-bg transition-all ${savePurchaseRecord ? 'left-[16px]' : 'left-[2px]'}`} />
+              </span>
+              <span className="inline-flex items-center gap-1"><Receipt size={12} /> Purchase record</span>
+            </button>
             <button
               type="button"
               onClick={commit}
               disabled={committing || counts.total === 0}
-              className="ml-auto pill-active text-ui-12 px-4 py-1.5 inline-flex items-center gap-1.5 disabled:opacity-50"
+              className="ml-auto pill-active text-ui-13 px-5 py-2 inline-flex items-center gap-2 disabled:opacity-50"
             >
-              {committing ? <><Loader2 size={13} className="animate-spin" /> Adding…</> : <><Check size={13} /> Add {counts.total} to inventory</>}
+              {committing
+                ? <><Loader2 size={14} className="animate-spin" /> Adding…</>
+                : <><Check size={14} /> Add {counts.total} to inventory <ArrowRight size={13} /></>}
             </button>
           </div>
         </div>
@@ -291,7 +341,67 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
   );
 };
 
-// ─── Source card (with column mapping for sheets) ──────────────────────────────
+// ─── Stat ──────────────────────────────────────────────────────────────────────
+const Stat: React.FC<{ value: number; label: string; tone?: 'text' | 'gold' }> = ({ value, label, tone = 'text' }) => (
+  <div className="flex flex-col items-end leading-none">
+    <span className={`text-ui-26 font-display ${tone === 'gold' ? 'text-tea-gold' : 'text-tea-text'}`}>{value}</span>
+    <span className="label-caps text-tea-text-dim mt-1">{label}</span>
+  </div>
+);
+
+// ─── Hero dropzone (empty state) ────────────────────────────────────────────────
+const HeroDropzone: React.FC<{ onBrowse: () => void; dragging: boolean }> = ({ onBrowse, dragging }) => (
+  <button
+    type="button"
+    onClick={onBrowse}
+    className={`w-full rounded-xl border-2 border-dashed transition-colors py-16 px-6 flex flex-col items-center text-center ${
+      dragging ? 'border-tea-gold bg-tea-accent-sub' : 'border-tea-border hover:border-tea-text-sec admin-card'
+    }`}
+  >
+    <div className="relative mb-5">
+      <div className="w-16 h-16 rounded-xl bg-tea-gold/10 flex items-center justify-center">
+        <Upload size={30} strokeWidth={1.25} className="text-tea-gold" />
+      </div>
+      <div className="absolute -right-3 -bottom-2 w-8 h-8 rounded-md bg-tea-elevated border border-tea-border flex items-center justify-center">
+        <Sparkles size={13} className="text-tea-gold" />
+      </div>
+    </div>
+    <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1.5`}>Drag your files in</h2>
+    <p className="text-ui-13 text-tea-text-sec max-w-sm mb-5">
+      Drop a spreadsheet of an order, an Excel export, or a photo of an item — paste a screenshot
+      too. Anything you load is staged for review before it touches inventory.
+    </p>
+    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-13 font-semibold">
+      Browse files
+    </span>
+    <div className="flex items-center gap-2 mt-6">
+      <FormatChip icon={<FileSpreadsheet size={12} />} label="CSV" />
+      <FormatChip icon={<FileSpreadsheet size={12} />} label="Excel" />
+      <FormatChip icon={<ImageIcon size={12} />} label="Photos" />
+    </div>
+  </button>
+);
+
+const FormatChip: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-tea-elevated border border-tea-border text-ui-11 text-tea-text-sec">
+    {icon} {label}
+  </span>
+);
+
+// ─── Slim add strip (when content exists) ────────────────────────────────────────
+const SlimAdd: React.FC<{ onBrowse: () => void; dragging: boolean }> = ({ onBrowse, dragging }) => (
+  <button
+    type="button"
+    onClick={onBrowse}
+    className={`w-full rounded-xl border border-dashed transition-colors py-3 px-4 flex items-center justify-center gap-2 text-ui-12 ${
+      dragging ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border hover:border-tea-text-sec text-tea-text-sec hover:text-tea-text'
+    }`}
+  >
+    <Upload size={14} /> Drag in more files, paste a screenshot, or <span className="text-tea-gold">browse</span>
+  </button>
+);
+
+// ─── Source card ────────────────────────────────────────────────────────────────
 const SourceCard: React.FC<{
   src: Source;
   itemCount: number;
@@ -302,60 +412,89 @@ const SourceCard: React.FC<{
 }> = ({ src, itemCount, onRemove, onToggleExpand, onRemap, onSetPersonal }) => {
   if (src.kind === 'image') {
     return (
-      <div className="border border-tea-border rounded-xl px-4 py-2.5 flex items-center gap-3 bg-tea-surface">
-        <ImageIcon size={16} className="text-tea-text-sec flex-shrink-0" />
-        <span className="text-ui-13 text-tea-text truncate flex-1">{src.name}</span>
-        {src.status === 'extracting' && <span className="text-ui-11 text-tea-text-sec inline-flex items-center gap-1"><Loader2 size={11} className="animate-spin" /> Reading…</span>}
-        {src.status === 'error' && <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1"><AlertTriangle size={11} /> Failed</span>}
-        {src.status === 'ready' && <span className="text-ui-11 text-tea-text-sec">1 item</span>}
-        <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text" aria-label="Remove"><Trash2 size={14} /></button>
+      <div className="admin-card px-4 py-3 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-md bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+          <ImageIcon size={16} className="text-tea-gold" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-ui-13 text-tea-text truncate">{src.name}</p>
+          <p className="text-ui-11 text-tea-text-dim">
+            {src.status === 'extracting' && 'Reading the photo…'}
+            {src.status === 'ready' && 'Details extracted · 1 item'}
+            {src.status === 'error' && 'Could not read this image'}
+          </p>
+        </div>
+        {src.status === 'extracting' && <Loader2 size={15} className="animate-spin text-tea-gold flex-shrink-0" />}
+        {src.status === 'ready' && <span className="badge-status badge-status-gold flex-shrink-0"><Sparkles size={10} /> AI</span>}
+        {src.status === 'error' && <AlertTriangle size={15} className="text-tea-gold flex-shrink-0" />}
+        <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text flex-shrink-0" aria-label="Remove"><Trash2 size={15} /></button>
       </div>
     );
   }
+
+  const mappedItem = src.headers.filter((h) => TARGET_BY_KEY[src.mapping[h]]?.group === 'item').length;
+  const mappedOrder = src.headers.filter((h) => TARGET_BY_KEY[src.mapping[h]]?.group === 'order').length;
+
   return (
-    <div className="border border-tea-border rounded-xl bg-tea-surface overflow-hidden">
-      <div className="px-4 py-2.5 flex items-center gap-3">
-        <button type="button" onClick={onToggleExpand} className="tap-target text-tea-text-sec hover:text-tea-text">
+    <div className="admin-card overflow-hidden">
+      <div className="px-4 py-3 flex items-center gap-3">
+        <button type="button" onClick={onToggleExpand} className="tap-target text-tea-text-sec hover:text-tea-text flex-shrink-0">
           {src.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
-        <FileSpreadsheet size={16} className="text-tea-text-sec flex-shrink-0" />
-        <span className="text-ui-13 text-tea-text truncate flex-1">{src.name}</span>
-        <span className="text-ui-11 text-tea-text-sec">{itemCount} rows</span>
-        <button
-          type="button"
-          onClick={() => onSetPersonal(src, !src.defaultPersonal)}
-          className={`tap-target text-ui-10 px-2 py-1 rounded inline-flex items-center gap-1 ${src.defaultPersonal ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-sec hover:text-tea-text'}`}
-          title="Default destination for this file"
-        >
-          <Tag size={11} /> {src.defaultPersonal ? 'All personal' : 'All for sale'}
-        </button>
-        <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text" aria-label="Remove"><Trash2 size={14} /></button>
+        <div className="w-9 h-9 rounded-md bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+          <FileSpreadsheet size={16} className="text-tea-gold" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-ui-13 text-tea-text truncate">{src.name}</p>
+          <p className="text-ui-11 text-tea-text-dim">
+            {itemCount} rows · {mappedItem} item field{mappedItem !== 1 ? 's' : ''}
+            {mappedOrder > 0 && ` · ${mappedOrder} order`}
+          </p>
+        </div>
+        <Segmented
+          value={src.defaultPersonal ? 'personal' : 'sale'}
+          onChange={(v) => onSetPersonal(src, v === 'personal')}
+          options={[{ value: 'sale', label: 'For sale' }, { value: 'personal', label: 'Personal' }]}
+        />
+        <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text flex-shrink-0" aria-label="Remove"><Trash2 size={15} /></button>
       </div>
+
       {src.expanded && (
-        <div className="px-4 pb-3 pt-1 border-t border-tea-border">
-          <p className="text-ui-10 text-tea-text-dim uppercase tracking-wider mb-2">Map columns</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {src.headers.map((h) => (
-              <div key={h} className="flex flex-col gap-1">
-                <div className="flex items-baseline gap-1.5 min-w-0">
-                  <span className="text-ui-12 text-tea-text truncate" title={h}>{h}</span>
-                  <span className="text-ui-10 text-tea-text-dim truncate italic">{String(src.sampleRows[0]?.[h] ?? '').slice(0, 18)}</span>
+        <div className="px-4 pb-4 pt-1">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag size={12} className="text-tea-text-dim" />
+            <span className="label-caps text-tea-text-dim">Map columns</span>
+            <span className="text-ui-10 text-tea-text-dim">— remembered for files shaped like this</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {src.headers.map((h) => {
+              const group = TARGET_BY_KEY[src.mapping[h]]?.group;
+              const dot = group === 'item' ? 'bg-tea-gold' : group === 'order' ? 'bg-tea-text-sec' : 'bg-tea-border';
+              return (
+                <div key={h} className="inset-panel p-2.5 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} aria-hidden />
+                    <span className="text-ui-12 text-tea-text truncate font-medium" title={h}>{h}</span>
+                  </div>
+                  <span className="text-ui-10 text-tea-text-dim truncate italic pl-3.5">
+                    {String(src.sampleRows[0]?.[h] ?? '').slice(0, 22) || '—'}
+                  </span>
+                  <select
+                    value={src.mapping[h] || ''}
+                    onChange={(e) => onRemap(src, h, e.target.value)}
+                    className="admin-input text-ui-11 px-2 py-1.5 mt-0.5"
+                  >
+                    <option value="">— Ignore —</option>
+                    <optgroup label="Item">
+                      {TARGET_FIELDS.filter((f) => f.group === 'item').map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                    </optgroup>
+                    <optgroup label="Order / logistics">
+                      {TARGET_FIELDS.filter((f) => f.group === 'order').map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+                    </optgroup>
+                  </select>
                 </div>
-                <select
-                  value={src.mapping[h] || ''}
-                  onChange={(e) => onRemap(src, h, e.target.value)}
-                  className="text-ui-11 bg-tea-bg border border-tea-border rounded px-2 py-1 text-tea-text focus:border-tea-gold outline-none"
-                >
-                  <option value="">— Ignore —</option>
-                  <optgroup label="Item">
-                    {TARGET_FIELDS.filter((f) => f.group === 'item').map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-                  </optgroup>
-                  <optgroup label="Order / logistics">
-                    {TARGET_FIELDS.filter((f) => f.group === 'order').map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
-                  </optgroup>
-                </select>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -363,47 +502,133 @@ const SourceCard: React.FC<{
   );
 };
 
-// ─── Items table ───────────────────────────────────────────────────────────────
-const ItemsTable: React.FC<{ items: StagedItem[]; onUpdate: (id: string, patch: Partial<StagedItem>) => void }> = ({ items, onUpdate }) => (
-  <div className="border border-tea-border rounded-xl overflow-hidden">
-    <div className="px-4 py-2 border-b border-tea-border bg-tea-bg">
-      <span className="text-ui-10 text-tea-text-dim uppercase tracking-wider">Review &amp; triage</span>
-    </div>
-    <div className="divide-y divide-tea-border">
-      {items.map((it) => {
-        const ready = isReadyItem(it);
-        return (
-          <div key={it.id} className={`flex items-center gap-3 px-4 py-2 ${it.include ? '' : 'opacity-40'}`}>
-            <input type="checkbox" checked={it.include} onChange={(e) => onUpdate(it.id, { include: e.target.checked })} className="accent-tea-gold flex-shrink-0" aria-label="Include" />
-            {it.imageUrl
-              ? <img src={it.imageUrl} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0 bg-tea-bg" />
-              : <div className="w-8 h-8 rounded bg-tea-bg border border-tea-border flex items-center justify-center flex-shrink-0"><Store size={12} className="text-tea-text-dim" /></div>}
-            <input
-              value={it.givenName}
-              onChange={(e) => onUpdate(it.id, { givenName: e.target.value })}
-              placeholder="Unnamed"
-              className="flex-1 min-w-0 bg-transparent text-ui-13 text-tea-text border-b border-transparent focus:border-tea-gold outline-none py-0.5"
-            />
-            <span className="text-ui-10 text-tea-text-sec w-16 truncate hidden sm:block">{it.type}</span>
-            <span className="text-ui-10 text-tea-text-sec w-20 truncate hidden md:block">{it.vendor}</span>
-            <span className="text-ui-10 font-mono text-tea-text-sec w-20 text-right hidden sm:block">
-              {it.costAmount > 0 ? `${it.costAmount} ${it.costCurrency}` : ''}
-            </span>
-            <button
-              type="button"
-              onClick={() => onUpdate(it.id, { isPersonal: !it.isPersonal })}
-              className={`tap-target text-ui-10 px-2 py-1 rounded whitespace-nowrap ${it.isPersonal ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-sec hover:text-tea-text'}`}
-            >
-              {it.isPersonal ? 'Personal' : 'For sale'}
-            </button>
-            <span className={`text-ui-9 font-mono px-1.5 py-0.5 rounded w-12 text-center flex-shrink-0 ${ready ? 'text-tea-text bg-tea-text/10' : 'text-tea-text-sec bg-tea-text-sec/10'}`}>
-              {ready ? 'ACTIVE' : 'DRAFT'}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+// ─── Segmented two-option control ────────────────────────────────────────────────
+const Segmented: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  size?: 'sm' | 'md';
+}> = ({ value, onChange, options, size = 'md' }) => (
+  <div className="inline-flex p-0.5 rounded-md bg-tea-bg border border-tea-border flex-shrink-0">
+    {options.map((o) => {
+      const on = o.value === value;
+      return (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={on}
+          className={`tap-target rounded-md transition-colors ${size === 'sm' ? 'px-2 py-1 text-ui-10' : 'px-2.5 py-1 text-ui-11'} ${
+            on ? 'bg-tea-gold/15 text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
+          }`}
+        >
+          {o.label}
+        </button>
+      );
+    })}
   </div>
 );
+
+// ─── Items table ─────────────────────────────────────────────────────────────────
+const ItemsTable: React.FC<{
+  items: StagedItem[];
+  onUpdate: (id: string, patch: Partial<StagedItem>) => void;
+  sourceName: (id: string) => string;
+}> = ({ items, onUpdate, sourceName }) => {
+  const allOn = items.every((i) => i.include);
+  const toggleAll = () => items.forEach((i) => onUpdate(i.id, { include: !allOn }));
+
+  // group rows by source for structure
+  const groups = useMemo(() => {
+    const map = new Map<string, StagedItem[]>();
+    for (const it of items) {
+      if (!map.has(it.sourceId)) map.set(it.sourceId, []);
+      map.get(it.sourceId)!.push(it);
+    }
+    return Array.from(map.entries());
+  }, [items]);
+
+  return (
+    <div className="admin-card overflow-hidden">
+      {/* header strip */}
+      <div className="px-4 py-2.5 flex items-center gap-3 border-b border-tea-border bg-tea-bg/40">
+        <button type="button" onClick={toggleAll} className="tap-target flex-shrink-0" aria-label="Toggle all">
+          <span className={`w-4 h-4 rounded flex items-center justify-center border ${allOn ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'}`}>
+            {allOn && <Check size={11} className="text-tea-bg" />}
+          </span>
+        </button>
+        <span className="label-caps text-tea-text-dim flex-1">Review &amp; triage</span>
+        <span className="label-caps text-tea-text-dim hidden md:block w-32 text-right">Destination</span>
+        <span className="label-caps text-tea-text-dim w-14 text-right">Status</span>
+      </div>
+
+      {groups.map(([sid, rows]) => (
+        <div key={sid}>
+          {groups.length > 1 && (
+            <div className="px-4 py-1.5 bg-tea-bg/20 flex items-center gap-2">
+              <FileSpreadsheet size={11} className="text-tea-text-dim" />
+              <span className="text-ui-10 text-tea-text-dim truncate">{sourceName(sid)}</span>
+            </div>
+          )}
+          {rows.map((it) => {
+            const ready = isReadyItem(it);
+            return (
+              <div
+                key={it.id}
+                className={`group px-4 py-2 flex items-center gap-3 border-b border-tea-border last:border-0 transition-colors hover:bg-tea-gold/[0.03] ${it.include ? '' : 'opacity-45'}`}
+              >
+                <button type="button" onClick={() => onUpdate(it.id, { include: !it.include })} className="tap-target flex-shrink-0" aria-label="Include">
+                  <span className={`w-4 h-4 rounded flex items-center justify-center border ${it.include ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'}`}>
+                    {it.include && <Check size={11} className="text-tea-bg" />}
+                  </span>
+                </button>
+
+                {it.imageUrl
+                  ? <img src={it.imageUrl} alt="" className="w-9 h-9 rounded-md object-cover flex-shrink-0 bg-tea-bg" />
+                  : <div className="w-9 h-9 rounded-md bg-tea-bg border border-tea-border flex items-center justify-center flex-shrink-0"><Store size={13} className="text-tea-text-dim" /></div>}
+
+                <div className="flex-1 min-w-0">
+                  <input
+                    value={it.givenName}
+                    onChange={(e) => onUpdate(it.id, { givenName: e.target.value })}
+                    placeholder="Unnamed item"
+                    className="w-full bg-transparent text-ui-13 text-tea-text border-b border-transparent focus:border-tea-gold outline-none py-0.5"
+                  />
+                  <div className="flex items-center gap-2 mt-0.5 text-ui-10 text-tea-text-dim">
+                    <span className="truncate">{it.type}</span>
+                    {it.vendor && <><span className="opacity-40">·</span><span className="truncate max-w-[140px]">{it.vendor}</span></>}
+                    {it.costAmount > 0 && <><span className="opacity-40">·</span><span className="font-mono">{it.costAmount} {it.costCurrency}</span></>}
+                    {it.needsReview && <><span className="opacity-40">·</span><span className="text-tea-gold inline-flex items-center gap-0.5"><Sparkles size={9} /> review</span></>}
+                  </div>
+                </div>
+
+                <div className="hidden md:block">
+                  <Segmented
+                    size="sm"
+                    value={it.isPersonal ? 'personal' : 'sale'}
+                    onChange={(v) => onUpdate(it.id, { isPersonal: v === 'personal' })}
+                    options={[{ value: 'sale', label: 'Sale' }, { value: 'personal', label: 'Personal' }]}
+                  />
+                </div>
+                {/* compact toggle on mobile */}
+                <button
+                  type="button"
+                  onClick={() => onUpdate(it.id, { isPersonal: !it.isPersonal })}
+                  className={`md:hidden tap-target text-ui-10 px-2 py-1 rounded ${it.isPersonal ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-sec'}`}
+                >
+                  {it.isPersonal ? 'Personal' : 'Sale'}
+                </button>
+
+                <span className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-14 justify-center flex-shrink-0`}>
+                  {ready ? 'Active' : 'Draft'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default IntakeWorkspace;
