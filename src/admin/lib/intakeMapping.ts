@@ -252,13 +252,57 @@ const TEAWARE_RULES: { cat: string; kw: string[] }[] = [
   { cat: 'storage', kw: ['caddy', 'canister', 'storage', 'jar', 'tin', 'basket', '罐', '仓', '倉', '储', '儲', '收纳', '收納'] },
   { cat: 'tray', kw: ['tray', 'tea table', 'tea boat', 'saucer', 'pot stand', '茶盘', '茶盤', '茶船', '茶台', '茶臺', '壶承', '壺承'] },
   { cat: 'decorative', kw: ['incense', 'censer', 'ornament', 'statue', 'figurine', '香炉', '香爐', '摆件', '擺件'] },
-  { cat: 'accessory', kw: ['knife', 'needle', 'pick', 'tongs', 'tweezer', 'scoop', 'cloth', 'towel', 'filter', 'strainer', 'funnel', 'stove', 'brush', 'coaster', 'lid rest', 'spoon', '刀', '夹', '夾', '针', '針', '则', '則', '滤', '濾', '炉', '爐', '垫', '墊', '盖置', '蓋置'] },
+  // Tool keywords are kept specific so tea names don't collide — e.g. bare
+  // "needle"/"pick" would wrongly catch "Silver Needle" or "hand-picked".
+  { cat: 'accessory', kw: ['tea knife', 'pu knife', 'tea needle', 'pu needle', 'pry needle', 'tea pick', 'tongs', 'tweezer', 'tea scoop', 'tea cloth', 'tea towel', 'tea filter', 'strainer', 'funnel', 'stove', 'tea brush', 'coaster', 'lid rest', 'tea spoon', '茶刀', '茶夹', '茶夾', '茶针', '茶針', '茶则', '茶則', '滤网', '濾網', '炉', '爐', '杯垫', '杯墊', '盖置', '蓋置'] },
 ];
 export function detectTeaware(...names: string[]): string {
   const hay = names.filter(Boolean).join(' ').toLowerCase();
   if (!hay) return '';
   for (const { cat, kw } of TEAWARE_RULES) {
     if (kw.some((k) => hay.includes(k))) return cat;
+  }
+  return '';
+}
+
+// Guess a tea type from the name when the sheet has no Type column. Order is
+// significant: ripe/raw pu'er win before generic, cultivars resolve to oolong,
+// etc. Generic "pu'er" with no raw/ripe marker stays unguessed (returns '').
+const TEA_TYPE_RULES: { type: string; kw: string[] }[] = [
+  { type: 'Shou', kw: ['shou', 'ripe pu', 'cooked pu', 'ripe puer', 'shu pu', '熟普', '熟茶', '熟饼', '熟餅'] },
+  { type: 'Sheng', kw: ['sheng', 'raw pu', 'raw puer', 'raw pu-erh', 'uncooked', '生普', '生茶', '生饼', '生餅'] },
+  { type: 'Oolong', kw: ['oolong', 'wulong', 'wu long', 'tie guan yin', 'tieguanyin', 'tiekuanyin', 'da hong pao', 'dahongpao', 'rou gui', 'rougui', 'shui xian', 'shuixian', 'dan cong', 'dancong', 'dong ding', 'dongding', 'alishan', 'ali shan', 'jin xuan', 'jinxuan', 'gaba', 'milk oolong', 'high mountain', 'gao shan', '乌龙', '烏龍', '岩茶', '铁观音', '鐵觀音', '凤凰', '鳳凰', '单丛', '單欉'] },
+  { type: 'Red', kw: ['black tea', 'red tea', 'hong cha', 'hongcha', 'dian hong', 'dianhong', 'lapsang', 'zheng shan', 'jin jun mei', 'jinjunmei', 'keemun', 'qimen', '红茶', '紅茶', '正山', '金骏眉', '金駿眉'] },
+  { type: 'White', kw: ['white tea', 'bai cha', 'silver needle', 'bai hao', 'baihao', 'bai mu dan', 'baimudan', 'shou mei', 'shoumei', 'gong mei', 'gongmei', '白茶', '白毫', '白牡丹', '寿眉', '壽眉'] },
+  { type: 'Green', kw: ['green tea', 'lu cha', 'long jing', 'longjing', 'dragon well', 'bi luo chun', 'biluochun', 'mao feng', 'maofeng', 'gunpowder', 'gua pian', 'anji', '绿茶', '綠茶', '龙井', '龍井', '碧螺春', '毛峰'] },
+  { type: 'Yellow', kw: ['yellow tea', 'huang cha', 'jun shan', 'junshan', 'huang ya', '黄茶', '黃茶', '君山', '黄芽'] },
+  { type: 'Dark', kw: ['dark tea', 'hei cha', 'heicha', 'liu bao', 'liubao', 'fu zhuan', 'fu brick', 'an hua', 'anhua', 'golden flower', '黑茶', '六堡', '茯砖', '茯磚', '安化'] },
+];
+export function detectTeaType(...names: string[]): string {
+  const hay = names.filter(Boolean).join(' ').toLowerCase();
+  if (!hay) return '';
+  for (const { type, kw } of TEA_TYPE_RULES) {
+    if (kw.some((k) => hay.includes(k))) return type;
+  }
+  return '';
+}
+
+// Guess a physical form from the name (cake, tuo, brick, ball…) when absent.
+const FORM_RULES: { form: string; kw: string[] }[] = [
+  { form: 'Cake', kw: ['cake', 'bing', 'disc', 'beeng', '饼', '餅'] },
+  { form: 'Tuo', kw: ['tuo', 'tuocha', 'nest', 'bowl-shaped', '沱'] },
+  { form: 'Brick', kw: ['brick', 'zhuan', '砖', '磚'] },
+  { form: 'Ball', kw: ['dragon ball', 'ball', 'long zhu', 'pearl', '龙珠', '龍珠'] },
+  { form: 'Rolled', kw: ['rolled', 'curled'] },
+  { form: 'Powder', kw: ['powder', 'matcha', 'ground'] },
+  { form: 'Bag', kw: ['tea bag', 'teabag', 'sachet'] },
+  { form: 'Loose Leaf', kw: ['loose leaf', 'loose-leaf', 'maocha', 'mao cha'] },
+];
+export function detectForm(...names: string[]): string {
+  const hay = names.filter(Boolean).join(' ').toLowerCase();
+  if (!hay) return '';
+  for (const { form, kw } of FORM_RULES) {
+    if (kw.some((k) => hay.includes(k))) return form;
   }
   return '';
 }
@@ -282,12 +326,13 @@ export function rowToStaged(
   const chineseName = String(mappedValue(row, mapping, 'chinese_name') || '').trim();
   const productName = String(mappedValue(row, mapping, 'product_name') || '').trim();
   let type = normalizeType(mappedValue(row, mapping, 'type'));
+  let form = normalizeForm(mappedValue(row, mapping, 'form'));
   let stockGrams = parseNum(mappedValue(row, mapping, 'stock_grams'));
   let quantityUnits = 0;
   let teawareCategory = '';
 
-  // When no tea type was given, a name like "Tea Kettle" is teaware, not Misc.
-  // Reclassify and move the mapped count from grams into a unit count.
+  // When no tea type was given, infer it: teaware (kettle, cup…) → counted in
+  // units; otherwise guess the tea type from the name (sheng/shou/oolong…).
   if (type === 'Misc') {
     const cat = detectTeaware(givenName, chineseName, productName);
     if (cat) {
@@ -295,7 +340,14 @@ export function rowToStaged(
       teawareCategory = cat;
       quantityUnits = stockGrams;
       stockGrams = 0;
+    } else {
+      const guessed = detectTeaType(givenName, chineseName, productName);
+      if (guessed) type = guessed;
     }
+  }
+  if (!form && type !== 'Teaware') {
+    const f = detectForm(givenName, chineseName, productName);
+    if (f) form = f as any;
   }
 
   return {
@@ -305,7 +357,7 @@ export function rowToStaged(
     chineseName,
     productName,
     type,
-    form: normalizeForm(mappedValue(row, mapping, 'form')),
+    form,
     year: String(mappedValue(row, mapping, 'year') || '').trim(),
     originCountry: String(mappedValue(row, mapping, 'origin_country') || '').trim(),
     originRegion: String(mappedValue(row, mapping, 'origin_region') || '').trim(),
@@ -389,7 +441,9 @@ export function extractedToStaged(
   if (type === 'Misc') {
     const cat = detectTeaware(givenName, chineseName, productName);
     if (cat) { type = 'Teaware'; teawareCategory = cat; }
+    else { const guessed = detectTeaType(givenName, chineseName, productName); if (guessed) type = guessed; }
   }
+  const form = normalizeForm(data.form) || (type !== 'Teaware' ? (detectForm(givenName, chineseName, productName) as any || null) : null);
   const qty = parseNum(data.quantityPurchased);
   return {
     id: `${sourceId}-img`,
@@ -398,7 +452,7 @@ export function extractedToStaged(
     chineseName,
     productName,
     type,
-    form: normalizeForm(data.form),
+    form,
     year: data.year ? String(data.year) : '',
     originCountry: String(data.originCountry || '').trim(),
     originRegion: String(data.originRegion || '').trim(),
