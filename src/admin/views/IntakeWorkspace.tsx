@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload, FileSpreadsheet, Image as ImageIcon, Loader2, Check,
   AlertTriangle, ChevronDown, ChevronRight, Trash2, Tag, Store,
@@ -39,17 +39,55 @@ type Source = SheetSource | ImageSource;
 let uid = 0;
 const nextId = () => `src-${Date.now()}-${uid++}`;
 
-export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefresh }) => {
+type Rate = { currency: string; rateToUSD: number };
+
+// ── Pre-commit persistence ──────────────────────────────────────────────────
+// The whole staging set (parsed rows, mappings, triage, batch) is mirrored to
+// localStorage so a reload mid-triage restores it. It's cleared on commit (when
+// sources empties) and on Clear all.
+const STORAGE_KEY = 'teajia_intake_workspace_v1';
+interface Persisted { sources: Source[]; items: StagedItem[]; batchId: string | null; savePurchaseRecord: boolean; }
+
+function loadState(): Persisted | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Persisted;
+    // Drop image sources that were still extracting when the tab closed — their
+    // in-flight upload/extract didn't finish, so there's nothing to restore.
+    const sources = (p.sources || []).filter((s) => s.kind !== 'image' || s.status === 'ready');
+    const keep = new Set(sources.map((s) => s.id));
+    const items = (p.items || []).filter((i) => keep.has(i.sourceId));
+    return { sources, items, batchId: p.batchId ?? null, savePurchaseRecord: p.savePurchaseRecord ?? true };
+  } catch {
+    return null;
+  }
+}
+
+export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] }> = ({ onRefresh, rates = [] }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [sources, setSources] = useState<Source[]>([]);
-  const [items, setItems] = useState<StagedItem[]>([]);
-  const [batchId, setBatchId] = useState<string | null>(null);
+  const initial = useMemo(() => loadState(), []);
+  const [sources, setSources] = useState<Source[]>(initial?.sources ?? []);
+  const [items, setItems] = useState<StagedItem[]>(initial?.items ?? []);
+  const [batchId, setBatchId] = useState<string | null>(initial?.batchId ?? null);
   const [committing, setCommitting] = useState(false);
-  const [savePurchaseRecord, setSavePurchaseRecord] = useState(true);
+  const [savePurchaseRecord, setSavePurchaseRecord] = useState(initial?.savePurchaseRecord ?? true);
   const [isDragging, setIsDragging] = useState(false);
   const dragDepth = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Mirror staging to localStorage; clear it once everything is gone.
+  useEffect(() => {
+    try {
+      if (sources.length === 0) { localStorage.removeItem(STORAGE_KEY); return; }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ sources, items, batchId, savePurchaseRecord }));
+    } catch {
+      /* quota exceeded / serialization — non-fatal, staging just won't survive reload */
+    }
+  }, [sources, items, batchId, savePurchaseRecord]);
+
+  const clearAll = useCallback(() => { setSources([]); setItems([]); }, []);
 
   // ── Item helpers ───────────────────────────────────────────────────────────
   const replaceSourceItems = useCallback((sourceId: string, next: StagedItem[]) => {
@@ -187,24 +225,40 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
         skipped += res?.skipped ?? 0;
       }
       if (savePurchaseRecord) {
-        for (const src of sources) {
-          if (src.kind !== 'sheet') continue;
-          const lines = included.filter((i) => i.sourceId === src.id);
-          const withOrder = lines.filter((l) => Object.keys(l.order).length > 0);
-          if (withOrder.length === 0) continue;
-          const vendorName = lines.find((l) => l.vendor)?.vendor || src.name.replace(/\.[^.]+$/, '');
+        // One purchase record per vendor/store — an order sheet routinely spans
+        // many stores, so a single PO per file would lump them together wrongly.
+        const rateFor = (cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1;
+        const groups = new Map<string, StagedItem[]>();
+        for (const it of included) {
+          const key = it.vendor.trim() || sourceName(it.sourceId).replace(/\.[^.]+$/, '') || 'Unknown vendor';
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(it);
+        }
+        for (const [vendor, lines] of groups) {
+          // nothing to record if there's neither cost nor logistics
+          if (!lines.some((l) => l.costAmount > 0 || Object.keys(l.order).length > 0)) continue;
+          const totalUSD = lines.reduce((sum, l) => {
+            const qty = l.quantityPurchased || l.quantityUnits || l.stockGrams || 1;
+            return sum + (l.costAmount * qty) / rateFor(l.costCurrency);
+          }, 0);
+          // dominant non-UNK currency for display
+          const tally: Record<string, number> = {};
+          lines.forEach((l) => { if (l.costCurrency !== 'UNK') tally[l.costCurrency] = (tally[l.costCurrency] || 0) + 1; });
+          const display = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
+          const files = Array.from(new Set(lines.map((l) => sourceName(l.sourceId)))).filter(Boolean).join(', ');
           await api.purchaseOrders.create({
-            vendor_name: vendorName,
+            vendor_name: vendor,
             items_json: JSON.stringify(lines.map((l) => ({
               product_name: l.givenName || l.productName,
-              quantity_grams: l.quantityPurchased || l.stockGrams,
+              quantity: l.quantityPurchased || l.quantityUnits || l.stockGrams,
               unit_price: l.costAmount,
               currency: l.costCurrency,
               ...l.order,
             }))),
-            display_currency: lines.find((l) => l.costCurrency !== 'UNK')?.costCurrency || 'USD',
+            total_usd: Math.round(totalUSD * 100) / 100,
+            display_currency: display,
             status: 'received',
-            notes: `Imported from ${src.name}`,
+            notes: `Intake${files ? ` from ${files}` : ''}${batchId ? ` · batch ${batchId}` : ''}`,
           }).catch(() => null);
         }
       }
@@ -220,7 +274,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, batchId, savePurchaseRecord, sources, showToast, onRefresh, navigate]);
+  }, [included, committing, batchId, savePurchaseRecord, sources, rates, sourceName, showToast, onRefresh, navigate]);
 
   const hasContent = sources.length > 0;
 
@@ -259,16 +313,27 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void }> = ({ onRefres
           </p>
         </div>
         {hasContent && (
-          <div className="hidden sm:flex items-center gap-5 flex-shrink-0 pt-1">
-            <Stat value={counts.forSale} label="For sale" />
-            <span className="w-px h-8 bg-tea-border" aria-hidden />
-            <Stat value={counts.personal} label="Personal" tone="gold" />
-            {counts.review > 0 && (
-              <>
-                <span className="w-px h-8 bg-tea-border" aria-hidden />
-                <Stat value={counts.review} label="Review" tone="gold" />
-              </>
-            )}
+          <div className="flex items-center gap-5 flex-shrink-0 pt-1">
+            <div className="hidden sm:flex items-center gap-5">
+              <Stat value={counts.forSale} label="For sale" />
+              <span className="w-px h-8 bg-tea-border" aria-hidden />
+              <Stat value={counts.personal} label="Personal" tone="gold" />
+              {counts.review > 0 && (
+                <>
+                  <span className="w-px h-8 bg-tea-border" aria-hidden />
+                  <Stat value={counts.review} label="Review" tone="gold" />
+                </>
+              )}
+              <span className="w-px h-8 bg-tea-border" aria-hidden />
+            </div>
+            <button
+              type="button"
+              onClick={clearAll}
+              className="tap-target inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors"
+              title="Remove everything staged"
+            >
+              <Trash2 size={13} /> Clear all
+            </button>
           </div>
         )}
       </header>

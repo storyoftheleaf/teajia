@@ -204,6 +204,8 @@ export interface StagedItem {
   costCurrency: string;
   stockGrams: number;
   quantityPurchased: number;
+  quantityUnits: number;      // unit count for teaware (vs grams for leaf)
+  teawareCategory: string;    // pot | cup | tray | storage | accessory | decorative
   description: string;
   imageUrl: string;
   // triage
@@ -240,6 +242,27 @@ function resolveCurrency(row: Record<string, any>, mapping: ColumnMapping, costR
     || 'UNK';
 }
 
+// Detect teaware from an item's name (English + Chinese) and classify it.
+// Order matters — more specific vessels win over generic accessories so
+// "tea tray" → tray, "tea knife" → accessory, "kettle" → pot. Returns a
+// teaware_category, or '' when the name isn't teaware (e.g. a jade pendant).
+const TEAWARE_RULES: { cat: string; kw: string[] }[] = [
+  { cat: 'pot', kw: ['teapot', 'tea pot', 'gaiwan', 'kettle', 'kyusu', 'sand pot', 'clay pot', 'shui ping', '壶', '壺', '急须', '急須', '盖碗', '蓋碗'] },
+  { cat: 'cup', kw: ['teacup', 'tea cup', 'mug', 'tumbler', 'pitcher', 'gong dao', 'fairness', '杯', '盏', '盞', '公道', '品茗'] },
+  { cat: 'storage', kw: ['caddy', 'canister', 'storage', 'jar', 'tin', 'basket', '罐', '仓', '倉', '储', '儲', '收纳', '收納'] },
+  { cat: 'tray', kw: ['tray', 'tea table', 'tea boat', 'saucer', 'pot stand', '茶盘', '茶盤', '茶船', '茶台', '茶臺', '壶承', '壺承'] },
+  { cat: 'decorative', kw: ['incense', 'censer', 'ornament', 'statue', 'figurine', '香炉', '香爐', '摆件', '擺件'] },
+  { cat: 'accessory', kw: ['knife', 'needle', 'pick', 'tongs', 'tweezer', 'scoop', 'cloth', 'towel', 'filter', 'strainer', 'funnel', 'stove', 'brush', 'coaster', 'lid rest', 'spoon', '刀', '夹', '夾', '针', '針', '则', '則', '滤', '濾', '炉', '爐', '垫', '墊', '盖置', '蓋置'] },
+];
+export function detectTeaware(...names: string[]): string {
+  const hay = names.filter(Boolean).join(' ').toLowerCase();
+  if (!hay) return '';
+  for (const { cat, kw } of TEAWARE_RULES) {
+    if (kw.some((k) => hay.includes(k))) return cat;
+  }
+  return '';
+}
+
 // Transform one raw spreadsheet row → a StagedItem using the column mapping.
 export function rowToStaged(
   row: Record<string, any>,
@@ -255,13 +278,33 @@ export function rowToStaged(
     }
   }
   const personalCell = mappedValue(row, mapping, 'is_personal');
+  const givenName = String(mappedValue(row, mapping, 'given_name') || '').trim();
+  const chineseName = String(mappedValue(row, mapping, 'chinese_name') || '').trim();
+  const productName = String(mappedValue(row, mapping, 'product_name') || '').trim();
+  let type = normalizeType(mappedValue(row, mapping, 'type'));
+  let stockGrams = parseNum(mappedValue(row, mapping, 'stock_grams'));
+  let quantityUnits = 0;
+  let teawareCategory = '';
+
+  // When no tea type was given, a name like "Tea Kettle" is teaware, not Misc.
+  // Reclassify and move the mapped count from grams into a unit count.
+  if (type === 'Misc') {
+    const cat = detectTeaware(givenName, chineseName, productName);
+    if (cat) {
+      type = 'Teaware';
+      teawareCategory = cat;
+      quantityUnits = stockGrams;
+      stockGrams = 0;
+    }
+  }
+
   return {
     id: `${sourceId}-${index}`,
     sourceId,
-    givenName: String(mappedValue(row, mapping, 'given_name') || '').trim(),
-    chineseName: String(mappedValue(row, mapping, 'chinese_name') || '').trim(),
-    productName: String(mappedValue(row, mapping, 'product_name') || '').trim(),
-    type: normalizeType(mappedValue(row, mapping, 'type')),
+    givenName,
+    chineseName,
+    productName,
+    type,
     form: normalizeForm(mappedValue(row, mapping, 'form')),
     year: String(mappedValue(row, mapping, 'year') || '').trim(),
     originCountry: String(mappedValue(row, mapping, 'origin_country') || '').trim(),
@@ -269,8 +312,10 @@ export function rowToStaged(
     vendor: String(mappedValue(row, mapping, 'vendor') || '').trim(),
     costAmount: parseNum(mappedValue(row, mapping, 'cost_amount')),
     costCurrency: resolveCurrency(row, mapping, mappedValue(row, mapping, 'cost_amount')),
-    stockGrams: parseNum(mappedValue(row, mapping, 'stock_grams')),
+    stockGrams,
     quantityPurchased: parseNum(mappedValue(row, mapping, 'quantity_purchased')),
+    quantityUnits,
+    teawareCategory,
     description: String(mappedValue(row, mapping, 'description') || '').trim(),
     imageUrl: '',
     isPersonal: personalCell ? isYes(personalCell) : defaultPersonal,
@@ -285,7 +330,7 @@ export function isReadyItem(it: StagedItem): boolean {
   const hasName = !!(it.givenName || it.productName);
   const hasType = it.type !== 'Misc';
   const hasCost = it.costAmount > 0;
-  const hasStock = it.stockGrams > 0 || it.quantityPurchased > 0;
+  const hasStock = it.stockGrams > 0 || it.quantityPurchased > 0 || it.quantityUnits > 0;
   return hasName && hasType && hasCost && hasStock && !it.needsReview;
 }
 
@@ -303,8 +348,6 @@ export function stagedToProduct(it: StagedItem): Record<string, any> {
     year: it.year && !isMissing(it.year) ? it.year : null,
     origin_country: it.originCountry || 'Unknown',
     origin_region: it.originRegion || null,
-    stock_grams: it.stockGrams,
-    quantity_purchased: it.quantityPurchased,
     cost_amount: it.costAmount,
     cost_currency: it.costCurrency,
     vendor: it.vendor || null,
@@ -314,6 +357,16 @@ export function stagedToProduct(it: StagedItem): Record<string, any> {
     is_personal: it.isPersonal,
     is_public: !it.isPersonal,
   };
+  if (it.type === 'Teaware') {
+    // Teaware is counted in units, not grams. Leave stock_grams unset so the
+    // worker opens stock from quantity_units. Clay/material is intentionally
+    // not captured here.
+    out.quantity_units = it.quantityUnits || it.stockGrams || 0;
+    if (it.teawareCategory) out.teaware_category = it.teawareCategory;
+  } else {
+    out.stock_grams = it.stockGrams;
+    out.quantity_purchased = it.quantityPurchased;
+  }
   const cleaned: Record<string, any> = {};
   for (const [k, v] of Object.entries(out)) {
     if (v !== null && v !== undefined && v !== '') cleaned[k] = v;
@@ -328,13 +381,23 @@ export function extractedToStaged(
   sourceId: string,
   defaultPersonal: boolean,
 ): StagedItem {
+  const givenName = String(data.givenName || '').trim();
+  const chineseName = String(data.chineseName || '').trim();
+  const productName = String(data.productName || '').trim();
+  let type = normalizeType(data.type);
+  let teawareCategory = type === 'Teaware' ? detectTeaware(givenName, chineseName, productName) : '';
+  if (type === 'Misc') {
+    const cat = detectTeaware(givenName, chineseName, productName);
+    if (cat) { type = 'Teaware'; teawareCategory = cat; }
+  }
+  const qty = parseNum(data.quantityPurchased);
   return {
     id: `${sourceId}-img`,
     sourceId,
-    givenName: String(data.givenName || '').trim(),
-    chineseName: String(data.chineseName || '').trim(),
-    productName: String(data.productName || '').trim(),
-    type: normalizeType(data.type),
+    givenName,
+    chineseName,
+    productName,
+    type,
     form: normalizeForm(data.form),
     year: data.year ? String(data.year) : '',
     originCountry: String(data.originCountry || '').trim(),
@@ -342,8 +405,10 @@ export function extractedToStaged(
     vendor: String(data.vendor || '').trim(),
     costAmount: parseNum(data.costAmount),
     costCurrency: normalizeCurrency(data.costCurrency),
-    stockGrams: parseNum(data.quantityPurchased),
-    quantityPurchased: parseNum(data.quantityPurchased),
+    stockGrams: type === 'Teaware' ? 0 : qty,
+    quantityPurchased: qty,
+    quantityUnits: type === 'Teaware' ? qty : 0,
+    teawareCategory,
     description: String(data.description || data.notes || '').trim(),
     imageUrl,
     isPersonal: defaultPersonal,

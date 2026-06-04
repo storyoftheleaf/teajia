@@ -720,7 +720,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                 </ProtectedRoute>
               } />
               <Route path="inventory" element={<Navigate to={`/admin/stock${location.search}`} replace />} />
-              <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} /></PageTransition></ProtectedRoute>} />
+              <Route path="intake" element={<ProtectedRoute hasAccess={canManageInventory} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><IntakeWorkspace onRefresh={refetchProducts} rates={rates} /></PageTransition></ProtectedRoute>} />
               <Route path="dashboard" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><DashboardView products={products} isLoading={loading} /></PageTransition></ProtectedRoute>} />
               <Route path="vendors/:vendorId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VendorProfileView /></PageTransition></ProtectedRoute>} />
               <Route path="products/:id/story" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ProductStoryView /></PageTransition></ProtectedRoute>} />
