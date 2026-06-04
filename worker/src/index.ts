@@ -7507,7 +7507,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'tea_key', 'created_at', 'updated_at',
   ];
   const present = cols.filter(c => body[c] !== undefined);
@@ -7770,7 +7770,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'created_at', 'updated_at',
   ];
   const placeholders = allCols.map(() => '?').join(', ');
