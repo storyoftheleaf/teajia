@@ -308,14 +308,15 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           </div>
           <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Intake Workspace</h1>
           <p className="text-ui-13 text-tea-text-sec mt-1 max-w-xl">
-            Load any spreadsheet, Excel file, or item photo. Map columns once, triage what's for
-            sale versus your own records, and add it all to inventory.
+            Load any spreadsheet, Excel file, or item photo. Map columns once, then sort each item
+            into your <span className="text-tea-text">Shop</span> list (available for sale) or your{' '}
+            <span className="text-tea-text">Personal</span> list (your own purchases).
           </p>
         </div>
         {hasContent && (
           <div className="flex items-center gap-5 flex-shrink-0 pt-1">
             <div className="hidden sm:flex items-center gap-5">
-              <Stat value={counts.forSale} label="For sale" />
+              <Stat value={counts.forSale} label="Shop" />
               <span className="w-px h-8 bg-tea-border" aria-hidden />
               <Stat value={counts.personal} label="Personal" tone="gold" />
               {counts.review > 0 && (
@@ -509,26 +510,28 @@ const SourceCard: React.FC<{
 
   return (
     <div className="admin-card overflow-hidden">
-      <div className="px-4 py-3 flex items-center gap-3">
+      <div className="px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-2">
         <button type="button" onClick={onToggleExpand} className="tap-target text-tea-text-sec hover:text-tea-text flex-shrink-0">
           {src.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         <div className="w-9 h-9 rounded-md bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
           <FileSpreadsheet size={16} className="text-tea-gold" />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-[50%]">
           <p className="text-ui-13 text-tea-text truncate">{src.name}</p>
-          <p className="text-ui-11 text-tea-text-dim">
+          <p className="text-ui-11 text-tea-text-dim truncate">
             {itemCount} rows · {mappedItem} item field{mappedItem !== 1 ? 's' : ''}
             {mappedOrder > 0 && ` · ${mappedOrder} order`}
           </p>
         </div>
-        <Segmented
-          value={src.defaultPersonal ? 'personal' : 'sale'}
-          onChange={(v) => onSetPersonal(src, v === 'personal')}
-          options={[{ value: 'sale', label: 'For sale' }, { value: 'personal', label: 'Personal' }]}
-        />
-        <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text flex-shrink-0" aria-label="Remove"><Trash2 size={15} /></button>
+        <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+          <Segmented
+            value={src.defaultPersonal ? 'personal' : 'sale'}
+            onChange={(v) => onSetPersonal(src, v === 'personal')}
+            options={[{ value: 'sale', label: 'Shop' }, { value: 'personal', label: 'Personal' }]}
+          />
+          <button type="button" onClick={onRemove} className="tap-target text-tea-text-sec hover:text-tea-text" aria-label="Remove"><Trash2 size={15} /></button>
+        </div>
       </div>
 
       {src.expanded && (
@@ -647,7 +650,7 @@ const ItemsTable: React.FC<{
             return (
               <div
                 key={it.id}
-                className={`group px-4 py-2 flex items-center gap-3 border-b border-tea-border last:border-0 transition-colors hover:bg-tea-gold/[0.03] ${it.include ? '' : 'opacity-45'}`}
+                className={`group px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-tea-border last:border-0 transition-colors hover:bg-tea-gold/[0.03] ${it.include ? '' : 'opacity-45'}`}
               >
                 <button type="button" onClick={() => onUpdate(it.id, { include: !it.include })} className="tap-target flex-shrink-0" aria-label="Include">
                   <span className={`w-4 h-4 rounded flex items-center justify-center border ${it.include ? 'bg-tea-gold border-tea-gold' : 'border-tea-border'}`}>
@@ -659,7 +662,7 @@ const ItemsTable: React.FC<{
                   ? <img src={it.imageUrl} alt="" className="w-9 h-9 rounded-md object-cover flex-shrink-0 bg-tea-bg" />
                   : <div className="w-9 h-9 rounded-md bg-tea-bg border border-tea-border flex items-center justify-center flex-shrink-0"><Store size={13} className="text-tea-text-dim" /></div>}
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 basis-[45%]">
                   <input
                     value={it.givenName}
                     onChange={(e) => onUpdate(it.id, { givenName: e.target.value })}
@@ -674,29 +677,20 @@ const ItemsTable: React.FC<{
                   </div>
                 </div>
 
-                <div className="hidden md:block">
+                <div className="flex items-center gap-2 ml-auto flex-shrink-0">
                   <Segmented
                     size="sm"
                     value={it.isPersonal ? 'personal' : 'sale'}
                     onChange={(v) => onUpdate(it.id, { isPersonal: v === 'personal' })}
-                    options={[{ value: 'sale', label: 'Sale' }, { value: 'personal', label: 'Personal' }]}
+                    options={[{ value: 'sale', label: 'Shop' }, { value: 'personal', label: 'Personal' }]}
                   />
+                  <span
+                    className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-16 justify-center flex-shrink-0`}
+                    title={ready ? 'Has name, type, cost & stock — one click to activate in Capture' : 'Missing info — stays a draft until completed'}
+                  >
+                    {ready ? 'Ready' : 'Review'}
+                  </span>
                 </div>
-                {/* compact toggle on mobile */}
-                <button
-                  type="button"
-                  onClick={() => onUpdate(it.id, { isPersonal: !it.isPersonal })}
-                  className={`md:hidden tap-target text-ui-10 px-2 py-1 rounded ${it.isPersonal ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-sec'}`}
-                >
-                  {it.isPersonal ? 'Personal' : 'Sale'}
-                </button>
-
-                <span
-                  className={`badge-status ${ready ? 'badge-status-default' : 'badge-status-muted'} w-16 justify-center flex-shrink-0`}
-                  title={ready ? 'Has name, type, cost & stock — one click to activate in Capture' : 'Missing info — stays a draft until completed'}
-                >
-                  {ready ? 'Ready' : 'Review'}
-                </span>
               </div>
             );
           })}
