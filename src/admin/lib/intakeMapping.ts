@@ -308,13 +308,18 @@ export function detectForm(...names: string[]): string {
   return '';
 }
 
-// A rough default "size" (grams) for prorating shipping. Tea uses its purchased
-// weight; teaware uses a nominal per-piece weight by category × unit count. These
-// are only starting points — the user edits them per item.
-const TEAWARE_GRAMS: Record<string, number> = { pot: 800, cup: 150, tray: 1200, storage: 500, accessory: 100, decorative: 300 };
-export function defaultSize(it: { type: string; teawareCategory: string; quantityPurchased: number; stockGrams: number; quantityUnits: number }): number {
-  if (it.type === 'Teaware') return (TEAWARE_GRAMS[it.teawareCategory] || 300) * (it.quantityUnits || 1);
-  return it.quantityPurchased || it.stockGrams || 0;
+// A rough default *size* (relative bulk — how much shipping space an item takes,
+// NOT weight) used to prorate shipping. Teaware uses a per-piece size by category
+// × unit count; tea uses a per-form size × piece count. Starting points only —
+// the user edits each one.
+const TEAWARE_SIZE: Record<string, number> = { pot: 100, cup: 15, tray: 120, storage: 60, accessory: 8, decorative: 40 };
+const FORM_SIZE: Record<string, number> = { Cake: 30, Brick: 28, Tuo: 12, Ball: 5, Bag: 2, Rolled: 12, 'Loose Leaf': 15, Powder: 8 };
+export function defaultSize(it: { type: string; teawareCategory: string; form?: string | null; quantityPurchased: number; stockGrams: number; quantityUnits: number }): number {
+  if (it.type === 'Teaware') return (TEAWARE_SIZE[it.teawareCategory] || 40) * (it.quantityUnits || 1);
+  const base = (it.form && FORM_SIZE[it.form]) || 15;
+  // when stock reads as a small piece count (not grams), treat it as # of pieces
+  const count = it.stockGrams > 0 && it.stockGrams <= 100 ? it.stockGrams : 1;
+  return base * count;
 }
 
 // Transform one raw spreadsheet row → a StagedItem using the column mapping.
@@ -379,7 +384,7 @@ export function rowToStaged(
     quantityPurchased,
     quantityUnits,
     teawareCategory,
-    sizeEstimate: defaultSize({ type, teawareCategory, quantityPurchased, stockGrams, quantityUnits }),
+    sizeEstimate: defaultSize({ type, teawareCategory, form, quantityPurchased, stockGrams, quantityUnits }),
     description: String(mappedValue(row, mapping, 'description') || '').trim(),
     imageUrl: '',
     isPersonal: personalCell ? isYes(personalCell) : defaultPersonal,
@@ -477,7 +482,7 @@ export function extractedToStaged(
     quantityPurchased: qty,
     quantityUnits: type === 'Teaware' ? qty : 0,
     teawareCategory,
-    sizeEstimate: defaultSize({ type, teawareCategory, quantityPurchased: qty, stockGrams: type === 'Teaware' ? 0 : qty, quantityUnits: type === 'Teaware' ? qty : 0 }),
+    sizeEstimate: defaultSize({ type, teawareCategory, form, quantityPurchased: qty, stockGrams: type === 'Teaware' ? 0 : qty, quantityUnits: type === 'Teaware' ? qty : 0 }),
     description: String(data.description || data.notes || '').trim(),
     imageUrl,
     isPersonal: defaultPersonal,

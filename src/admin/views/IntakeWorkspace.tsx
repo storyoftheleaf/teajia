@@ -757,13 +757,13 @@ const ItemsTable: React.FC<{
                       <>
                         <span className="opacity-40">·</span>
                         <span className="inline-flex items-center gap-1">
+                          <span>size</span>
                           <input
                             type="number" min="0" value={it.sizeEstimate || ''} placeholder="0"
                             onChange={(e) => onUpdate(it.id, { sizeEstimate: parseFloat(e.target.value) || 0 })}
                             className="w-12 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-ui-10 text-tea-text-sec text-right"
                             aria-label="Estimated size"
                           />
-                          <span>g</span>
                         </span>
                         <span className="opacity-40">·</span>
                         <span className="text-tea-gold">+{shareShip(it).toFixed(2)} {shipCur} ship</span>
