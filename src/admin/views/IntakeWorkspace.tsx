@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Upload, FileSpreadsheet, Image as ImageIcon, Loader2, Check,
   AlertTriangle, ChevronDown, ChevronRight, Trash2, Tag, Store,
-  Sparkles, Layers, ArrowRight, Inbox, Receipt,
+  Sparkles, Layers, ArrowRight, Inbox, Receipt, Truck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
@@ -46,7 +46,7 @@ type Rate = { currency: string; rateToUSD: number };
 // localStorage so a reload mid-triage restores it. It's cleared on commit (when
 // sources empties) and on Clear all.
 const STORAGE_KEY = 'teajia_intake_workspace_v1';
-interface Persisted { sources: Source[]; items: StagedItem[]; batchId: string | null; savePurchaseRecord: boolean; }
+interface Persisted { sources: Source[]; items: StagedItem[]; batchId: string | null; savePurchaseRecord: boolean; shippingTotal: number; shippingCurrency: string; }
 
 function loadState(): Persisted | null {
   try {
@@ -58,11 +58,13 @@ function loadState(): Persisted | null {
     const sources = (p.sources || []).filter((s) => s.kind !== 'image' || s.status === 'ready');
     const keep = new Set(sources.map((s) => s.id));
     const items = (p.items || []).filter((i) => keep.has(i.sourceId));
-    return { sources, items, batchId: p.batchId ?? null, savePurchaseRecord: p.savePurchaseRecord ?? true };
+    return { sources, items, batchId: p.batchId ?? null, savePurchaseRecord: p.savePurchaseRecord ?? true, shippingTotal: p.shippingTotal ?? 0, shippingCurrency: p.shippingCurrency ?? '' };
   } catch {
     return null;
   }
 }
+
+const CURRENCIES = ['USD', 'NT', 'Yuan', 'HKD', 'JPY', 'MYR', 'IDR', 'AUD'];
 
 export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] }> = ({ onRefresh, rates = [] }) => {
   const { showToast } = useToast();
@@ -73,6 +75,8 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   const [batchId, setBatchId] = useState<string | null>(initial?.batchId ?? null);
   const [committing, setCommitting] = useState(false);
   const [savePurchaseRecord, setSavePurchaseRecord] = useState(initial?.savePurchaseRecord ?? true);
+  const [shippingTotal, setShippingTotal] = useState<number>(initial?.shippingTotal ?? 0);
+  const [shippingCurrency, setShippingCurrency] = useState<string>(initial?.shippingCurrency ?? '');
   const [isDragging, setIsDragging] = useState(false);
   const dragDepth = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,11 +85,11 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
   useEffect(() => {
     try {
       if (sources.length === 0) { localStorage.removeItem(STORAGE_KEY); return; }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ sources, items, batchId, savePurchaseRecord }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency }));
     } catch {
       /* quota exceeded / serialization — non-fatal, staging just won't survive reload */
     }
-  }, [sources, items, batchId, savePurchaseRecord]);
+  }, [sources, items, batchId, savePurchaseRecord, shippingTotal, shippingCurrency]);
 
   const clearAll = useCallback(() => { setSources([]); setItems([]); }, []);
 
@@ -210,12 +214,31 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     review: included.filter((i) => i.needsReview || !isReadyItem(i)).length,
   }), [included]);
 
+  // ── Shipping proration ──────────────────────────────────────────────────────
+  // Spread one total shipping cost across the included items by estimated size:
+  // each item's share = shippingTotal × (its size ÷ total size).
+  const rateFor = useCallback((cur: string) => rates.find((r) => r.currency === cur)?.rateToUSD || 1, [rates]);
+  const convert = useCallback((amt: number, from: string, to: string) => (amt / rateFor(from)) * rateFor(to), [rateFor]);
+  const dominantCurrency = useMemo(() => {
+    const t: Record<string, number> = {};
+    included.forEach((i) => { if (i.costCurrency !== 'UNK') t[i.costCurrency] = (t[i.costCurrency] || 0) + 1; });
+    return Object.entries(t).sort((a, b) => b[1] - a[1])[0]?.[0] || 'USD';
+  }, [included]);
+  const shipCur = shippingCurrency || dominantCurrency;
+  const totalSize = useMemo(() => included.reduce((s, i) => s + (i.sizeEstimate || 0), 0), [included]);
+  // shipping share for an item, expressed in the shipping currency (for display)
+  const shareShip = useCallback((it: StagedItem) => (
+    shippingTotal > 0 && totalSize > 0 ? (shippingTotal * (it.sizeEstimate || 0)) / totalSize : 0
+  ), [shippingTotal, totalSize]);
+
   // ── Commit ───────────────────────────────────────────────────────────────────
   const commit = useCallback(async () => {
     if (included.length === 0 || committing) return;
     setCommitting(true);
     try {
-      const products = included.map(stagedToProduct);
+      const products = included.map((it) =>
+        stagedToProduct(it, convert(shareShip(it), shipCur, it.costCurrency === 'UNK' ? shipCur : it.costCurrency)),
+      );
       const chunk = 50;
       let inserted = 0;
       let skipped = 0;
@@ -274,7 +297,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
     } finally {
       setCommitting(false);
     }
-  }, [included, committing, batchId, savePurchaseRecord, sources, rates, sourceName, showToast, onRefresh, navigate]);
+  }, [included, committing, batchId, savePurchaseRecord, sources, rates, sourceName, convert, shareShip, shipCur, showToast, onRefresh, navigate]);
 
   const hasContent = sources.length > 0;
 
@@ -363,7 +386,24 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
                 ))}
               </div>
               {items.length > 0 && (
-                <ItemsTable items={items} onUpdate={updateItem} sourceName={sourceName} />
+                <>
+                  <ShippingSplit
+                    total={shippingTotal}
+                    onTotal={setShippingTotal}
+                    currency={shipCur}
+                    onCurrency={setShippingCurrency}
+                    itemCount={counts.total}
+                    totalSize={totalSize}
+                  />
+                  <ItemsTable
+                    items={items}
+                    onUpdate={updateItem}
+                    sourceName={sourceName}
+                    shippingActive={shippingTotal > 0}
+                    shipCur={shipCur}
+                    shareShip={shareShip}
+                  />
+                </>
               )}
             </div>
           )}
@@ -604,12 +644,52 @@ const Segmented: React.FC<{
   </div>
 );
 
+// ─── Split shipping bar ──────────────────────────────────────────────────────────
+const ShippingSplit: React.FC<{
+  total: number;
+  onTotal: (n: number) => void;
+  currency: string;
+  onCurrency: (c: string) => void;
+  itemCount: number;
+  totalSize: number;
+}> = ({ total, onTotal, currency, onCurrency, itemCount, totalSize }) => (
+  <div className="admin-card px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 rounded-md bg-tea-gold/10 flex items-center justify-center flex-shrink-0">
+        <Truck size={15} className="text-tea-gold" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-ui-12 text-tea-text">Split shipping</p>
+        <p className="text-ui-10 text-tea-text-dim">Spread across {itemCount} item{itemCount !== 1 ? 's' : ''} by estimated size</p>
+      </div>
+    </div>
+    <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+      <input
+        type="number" min="0" inputMode="decimal" value={total || ''} placeholder="Total"
+        onChange={(e) => onTotal(parseFloat(e.target.value) || 0)}
+        className="admin-input text-ui-13 px-2.5 py-1.5 w-24 text-right"
+      />
+      <select value={currency} onChange={(e) => onCurrency(e.target.value)} className="admin-input text-ui-12 px-2 py-1.5">
+        {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
+    </div>
+    {total > 0 && (
+      <p className="text-ui-10 text-tea-text-dim basis-full">
+        Total size {Math.round(totalSize).toLocaleString()} · each item's share folds into its cost (landed cost)
+      </p>
+    )}
+  </div>
+);
+
 // ─── Items table ─────────────────────────────────────────────────────────────────
 const ItemsTable: React.FC<{
   items: StagedItem[];
   onUpdate: (id: string, patch: Partial<StagedItem>) => void;
   sourceName: (id: string) => string;
-}> = ({ items, onUpdate, sourceName }) => {
+  shippingActive: boolean;
+  shipCur: string;
+  shareShip: (it: StagedItem) => number;
+}> = ({ items, onUpdate, sourceName, shippingActive, shipCur, shareShip }) => {
   const allOn = items.every((i) => i.include);
   const toggleAll = () => items.forEach((i) => onUpdate(i.id, { include: !allOn }));
 
@@ -673,6 +753,22 @@ const ItemsTable: React.FC<{
                     <span className="truncate">{it.type}</span>
                     {it.vendor && <><span className="opacity-40">·</span><span className="truncate max-w-[140px]">{it.vendor}</span></>}
                     {it.costAmount > 0 && <><span className="opacity-40">·</span><span className="font-mono">{it.costAmount} {it.costCurrency}</span></>}
+                    {shippingActive && (
+                      <>
+                        <span className="opacity-40">·</span>
+                        <span className="inline-flex items-center gap-1">
+                          <input
+                            type="number" min="0" value={it.sizeEstimate || ''} placeholder="0"
+                            onChange={(e) => onUpdate(it.id, { sizeEstimate: parseFloat(e.target.value) || 0 })}
+                            className="w-12 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-ui-10 text-tea-text-sec text-right"
+                            aria-label="Estimated size"
+                          />
+                          <span>g</span>
+                        </span>
+                        <span className="opacity-40">·</span>
+                        <span className="text-tea-gold">+{shareShip(it).toFixed(2)} {shipCur} ship</span>
+                      </>
+                    )}
                     {it.needsReview && <><span className="opacity-40">·</span><span className="text-tea-gold inline-flex items-center gap-0.5"><Sparkles size={9} /> review</span></>}
                   </div>
                 </div>

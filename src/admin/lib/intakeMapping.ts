@@ -206,6 +206,7 @@ export interface StagedItem {
   quantityPurchased: number;
   quantityUnits: number;      // unit count for teaware (vs grams for leaf)
   teawareCategory: string;    // pot | cup | tray | storage | accessory | decorative
+  sizeEstimate: number;       // rough size/weight used to prorate shipping
   description: string;
   imageUrl: string;
   // triage
@@ -307,6 +308,15 @@ export function detectForm(...names: string[]): string {
   return '';
 }
 
+// A rough default "size" (grams) for prorating shipping. Tea uses its purchased
+// weight; teaware uses a nominal per-piece weight by category × unit count. These
+// are only starting points — the user edits them per item.
+const TEAWARE_GRAMS: Record<string, number> = { pot: 800, cup: 150, tray: 1200, storage: 500, accessory: 100, decorative: 300 };
+export function defaultSize(it: { type: string; teawareCategory: string; quantityPurchased: number; stockGrams: number; quantityUnits: number }): number {
+  if (it.type === 'Teaware') return (TEAWARE_GRAMS[it.teawareCategory] || 300) * (it.quantityUnits || 1);
+  return it.quantityPurchased || it.stockGrams || 0;
+}
+
 // Transform one raw spreadsheet row → a StagedItem using the column mapping.
 export function rowToStaged(
   row: Record<string, any>,
@@ -349,6 +359,7 @@ export function rowToStaged(
     const f = detectForm(givenName, chineseName, productName);
     if (f) form = f as any;
   }
+  const quantityPurchased = parseNum(mappedValue(row, mapping, 'quantity_purchased'));
 
   return {
     id: `${sourceId}-${index}`,
@@ -365,9 +376,10 @@ export function rowToStaged(
     costAmount: parseNum(mappedValue(row, mapping, 'cost_amount')),
     costCurrency: resolveCurrency(row, mapping, mappedValue(row, mapping, 'cost_amount')),
     stockGrams,
-    quantityPurchased: parseNum(mappedValue(row, mapping, 'quantity_purchased')),
+    quantityPurchased,
     quantityUnits,
     teawareCategory,
+    sizeEstimate: defaultSize({ type, teawareCategory, quantityPurchased, stockGrams, quantityUnits }),
     description: String(mappedValue(row, mapping, 'description') || '').trim(),
     imageUrl: '',
     isPersonal: personalCell ? isYes(personalCell) : defaultPersonal,
@@ -390,7 +402,9 @@ export function isReadyItem(it: StagedItem): boolean {
 // Everything from intake lands as Draft — a deliberate safety choice so nothing
 // reaches the public storefront without an explicit activation step. isReadyItem
 // drives the UI badge (ready-to-activate vs needs-info), not the import status.
-export function stagedToProduct(it: StagedItem): Record<string, any> {
+// extraCost (in the item's own currency) is the prorated shipping share folded
+// into the recorded cost so cost_amount reflects landed cost.
+export function stagedToProduct(it: StagedItem, extraCost = 0): Record<string, any> {
   const out: Record<string, any> = {
     type: it.type,
     given_name: it.givenName || null,
@@ -400,7 +414,7 @@ export function stagedToProduct(it: StagedItem): Record<string, any> {
     year: it.year && !isMissing(it.year) ? it.year : null,
     origin_country: it.originCountry || 'Unknown',
     origin_region: it.originRegion || null,
-    cost_amount: it.costAmount,
+    cost_amount: Math.round((it.costAmount + (extraCost || 0)) * 100) / 100,
     cost_currency: it.costCurrency,
     vendor: it.vendor || null,
     description: it.description || null,
@@ -463,6 +477,7 @@ export function extractedToStaged(
     quantityPurchased: qty,
     quantityUnits: type === 'Teaware' ? qty : 0,
     teawareCategory,
+    sizeEstimate: defaultSize({ type, teawareCategory, quantityPurchased: qty, stockGrams: type === 'Teaware' ? 0 : qty, quantityUnits: type === 'Teaware' ? qty : 0 }),
     description: String(data.description || data.notes || '').trim(),
     imageUrl,
     isPersonal: defaultPersonal,
