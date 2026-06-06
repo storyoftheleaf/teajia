@@ -106,6 +106,7 @@ type OAuthApprovalContext = {
   userId: string;
   userEmail: string;
   accountId: string;
+  creatorTier: McpCreatorTier;
 };
 
 async function resolveOAuthApprovalContext(
@@ -139,7 +140,10 @@ async function resolveOAuthApprovalContext(
     if (account.status === 'suspended') {
       return corsJson({ error: 'access_denied', error_description: 'Account is suspended' }, 403);
     }
-    return { userId: user.id, userEmail: user.email || claims.email, accountId };
+    // platform_owner unlocks platform-wide tools (exchange rates); platform_admin
+    // gets account-owner tier on the target account.
+    const tier: McpCreatorTier = platformRole === 'platform_owner' ? 'platform_owner' : 'account_owner';
+    return { userId: user.id, userEmail: user.email || claims.email, accountId, creatorTier: tier };
   }
 
   const membership = await env.DB.prepare(
@@ -159,7 +163,7 @@ async function resolveOAuthApprovalContext(
     return corsJson({ error: 'access_denied', error_description: 'Owner-tier access required for MCP OAuth approval' }, 403);
   }
 
-  return { userId: user.id, userEmail: user.email || claims.email, accountId };
+  return { userId: user.id, userEmail: user.email || claims.email, accountId, creatorTier: 'account_owner' };
 }
 
 // ── token auth ──
@@ -3620,21 +3624,96 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
 // GET /oauth/authorize — Claude opens this URL in a browser.
 //
 // Worker can't render HTML reliably (and we don't want a worker-side login
-// form), so we 302 to the Teajia frontend's /admin/oauth-consent page with
-// all the OAuth parameters in the query string. That page handles login (if
-// needed) and the user-facing approve/deny. On approve, the page POSTs back
-// to /oauth/authorize/decision below, which mints the auth code and 302s
-// back to Claude's redirect_uri.
+// form), so we send the user to the Teajia frontend's consent page. That page
+// handles login (if needed) and the user-facing approve/deny. On approve it
+// POSTs to /oauth/authorize/decision, which mints the auth code and hands back
+// a redirect to Claude's redirect_uri.
+//
+// We DO NOT forward the OAuth params in the redirect query string. Claude
+// mobile's in-app browser was observed to drop the query string on the 302
+// follow (see docs/MCP_MOBILE_OAUTH_TODO.md), leaving the consent page with no
+// client_id/code_challenge. Instead we persist the request in D1 and redirect
+// to `/admin/oauth-consent/<request_id>` — a path segment, which survives the
+// hop reliably. The consent page reads the id from the path and fetches the
+// params back from /oauth/authorize/request/<id>.
 //
 // CRITICAL: this redirect must go to the FRONTEND origin, not the worker
 // origin — the worker has no UI. We hard-code teajia.pages.dev because the
 // worker has no other reliable way to discover the frontend URL.
 const FRONTEND_ORIGIN = 'https://teajia.pages.dev';
+const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
-export function oauthAuthorize(request: Request): Response {
+export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const consentUrl = `${FRONTEND_ORIGIN}/admin/oauth-consent${url.search}`;
-  return Response.redirect(consentUrl, 302);
+  const q = url.searchParams;
+  const now = Date.now();
+
+  // Opportunistic cleanup of expired pending requests.
+  env.DB.prepare('DELETE FROM oauth_authorize_requests WHERE expires_at < ?')
+    .bind(now).run().catch(() => {});
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO oauth_authorize_requests
+       (id, client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state, scope, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    q.get('client_id') || '',
+    q.get('redirect_uri') || '',
+    q.get('response_type') || 'code',
+    q.get('code_challenge') || '',
+    q.get('code_challenge_method') || '',
+    q.get('state'),
+    q.get('scope'),
+    now + AUTHORIZE_REQUEST_TTL_MS,
+  ).run();
+
+  return Response.redirect(`${FRONTEND_ORIGIN}/admin/oauth-consent/${id}`, 302);
+}
+
+// GET /oauth/authorize/request/:id — the consent page fetches the stored
+// authorize request (public OAuth params only) so it can render and POST a
+// decision. Returns the client's display name for the consent copy.
+export async function oauthAuthorizeRequestInfo(request: Request, env: Env, requestId: string): Promise<Response> {
+  const now = Date.now();
+  const row = await env.DB.prepare(
+    `SELECT client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state, scope, expires_at
+       FROM oauth_authorize_requests WHERE id = ?`
+  ).bind(requestId).first() as Record<string, any> | null;
+
+  if (!row || Number(row.expires_at) < now) {
+    return corsJson({ error: 'not_found', error_description: 'Authorization request expired or unknown. Restart the connection from your app.' }, 404);
+  }
+
+  const client = await env.DB.prepare('SELECT client_name FROM oauth_clients WHERE id = ?')
+    .bind(row.client_id).first() as { client_name: string } | null;
+
+  return corsJson({
+    request_id: requestId,
+    client_id: row.client_id,
+    client_name: client?.client_name || null,
+    redirect_uri: row.redirect_uri,
+    response_type: row.response_type,
+    code_challenge: row.code_challenge,
+    code_challenge_method: row.code_challenge_method,
+    state: row.state ?? null,
+    scope: row.scope ?? null,
+  });
+}
+
+// Filter a requested scope list to those valid for the approving user's tier.
+// Owner-tier scopes are stripped for non-owner tiers. Empty result falls back
+// to the safe default set. Applied at both decision and token mint (defense in
+// depth), mirroring mcpAdminMintToken.
+function sanitizeScopesForTier(requested: unknown, tier: McpCreatorTier): McpScope[] {
+  if (!Array.isArray(requested)) return DEFAULT_MCP_SCOPES;
+  const filtered = requested.filter((s): s is McpScope => {
+    if (!MCP_SCOPES.includes(s as McpScope)) return false;
+    if (OWNER_TIER_SCOPES.has(s as McpScope) && !OWNER_TIERS.has(tier)) return false;
+    return true;
+  });
+  return filtered.length > 0 ? Array.from(new Set(filtered)) : DEFAULT_MCP_SCOPES;
 }
 
 // POST /oauth/authorize/decision — called by the consent page after the user
@@ -3648,7 +3727,26 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     return corsJson({ error: 'invalid_request' }, 400);
   }
 
-  const { client_id, redirect_uri, code_challenge, code_challenge_method, state, account_id } = body || {};
+  // Two shapes accepted: the new flow passes `request_id` (params are loaded
+  // from the stored authorize request), the legacy flow passes the OAuth params
+  // inline. `scopes` (an array) is the user's consent-screen selection.
+  const { request_id, account_id, scopes: requestedScopes } = body || {};
+  let { client_id, redirect_uri, code_challenge, code_challenge_method, state } = body || {};
+
+  if (request_id) {
+    const reqRow = await env.DB.prepare(
+      `SELECT client_id, redirect_uri, code_challenge, code_challenge_method, state, expires_at
+         FROM oauth_authorize_requests WHERE id = ?`
+    ).bind(String(request_id)).first() as Record<string, any> | null;
+    if (!reqRow || Number(reqRow.expires_at) < Date.now()) {
+      return corsJson({ error: 'invalid_request', error_description: 'Authorization request expired or unknown' }, 400);
+    }
+    client_id = reqRow.client_id;
+    redirect_uri = reqRow.redirect_uri;
+    code_challenge = reqRow.code_challenge;
+    code_challenge_method = reqRow.code_challenge_method;
+    state = reqRow.state ?? null;
+  }
 
   if (!client_id || !redirect_uri || !code_challenge || code_challenge_method !== 'S256') {
     return corsJson({ error: 'invalid_request', error_description: 'Missing required PKCE params' }, 400);
@@ -3670,14 +3768,18 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uri not registered' }, 400);
   }
 
+  // Scopes the user granted on the consent screen, filtered to the approver's
+  // tier. Persisted on the code so token mint honours the selection.
+  const grantedScopes = sanitizeScopesForTier(requestedScopes, approval.creatorTier);
+
   // Mint a fresh single-use auth code (5 min TTL).
   const code = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
   const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   await env.DB.prepare(
     `INSERT INTO oauth_codes
-       (code, client_id, redirect_uri, user_id, user_email, account_id, code_challenge, code_challenge_method, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (code, client_id, redirect_uri, user_id, user_email, account_id, code_challenge, code_challenge_method, expires_at, scopes, creator_tier)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     code,
     client_id,
@@ -3688,7 +3790,14 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     code_challenge,
     code_challenge_method,
     expires,
+    JSON.stringify(grantedScopes),
+    approval.creatorTier,
   ).run();
+
+  // Single-use authorize request — consume it now that a code is minted.
+  if (request_id) {
+    env.DB.prepare('DELETE FROM oauth_authorize_requests WHERE id = ?').bind(String(request_id)).run().catch(() => {});
+  }
 
   // Build the redirect URL the browser should go to next.
   const sep = redirect_uri.includes('?') ? '&' : '?';
@@ -3766,13 +3875,25 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     .bind(client_id).first() as { client_name: string } | null;
   const label = `OAuth: ${clientRow?.client_name || 'Unknown'}`;
 
+  // Honour the scopes + tier the user granted at consent. Re-filter by tier as
+  // defense in depth in case the code row was tampered with. Older codes minted
+  // before migration 082 have neither column → fall back to the safe default.
+  const grantTier: McpCreatorTier =
+    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(codeRow.creator_tier as McpCreatorTier)
+      ? (codeRow.creator_tier as McpCreatorTier)
+      : 'account_owner';
+  let grantScopes: McpScope[] = DEFAULT_MCP_SCOPES;
+  if (codeRow.scopes) {
+    try { grantScopes = sanitizeScopesForTier(JSON.parse(codeRow.scopes as string), grantTier); } catch { /* keep default */ }
+  }
+
   await env.DB.prepare(
     `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     tokenId,
     codeRow.account_id, codeRow.user_id, codeRow.user_email,
-    label, tokenHash, tokenPrefix, JSON.stringify(DEFAULT_MCP_SCOPES), 'account_owner',
+    label, tokenHash, tokenPrefix, JSON.stringify(grantScopes), grantTier,
   ).run();
 
   await env.DB.prepare(
@@ -3789,7 +3910,7 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
   return corsJson({
     access_token: accessToken,
     token_type: 'Bearer',
-    scope: DEFAULT_MCP_SCOPES.join(' '),
+    scope: grantScopes.join(' '),
     // No refresh token — clients can re-run the OAuth dance to get a new
     // access token, and the existing tokens stay valid in the meantime.
     // Most MCP clients treat the access token as long-lived by default.
