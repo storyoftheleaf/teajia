@@ -1,5 +1,5 @@
 import {
-  mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
+  mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
@@ -17373,6 +17373,12 @@ export default {
     if (url.pathname === '/mcp') {
       const response = await mcpFetch(request, env);
       return cors(response, corsOrigin);
+    }
+
+    // Public, unauthenticated, read-only MCP for the shopping public — catalog
+    // browse + WhatsApp checkout-link builder. No account data or costs exposed.
+    if (url.pathname === '/mcp/public') {
+      return cors(await publicMcpFetch(request, env), corsOrigin);
     }
 
     // OAuth 2.1 endpoints for MCP clients (Claude desktop/mobile, ChatGPT).

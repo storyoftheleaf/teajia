@@ -3916,3 +3916,317 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     // Most MCP clients treat the access token as long-lived by default.
   });
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PUBLIC read-only MCP — unauthenticated catalog access for the shopping public
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Served at /mcp/public. Anyone's Claude/ChatGPT can browse the shop, read a
+// tea's profile, and assemble a WhatsApp checkout link — but it can only READ,
+// and only sees public-safe fields (no cost, no margin, no vendor, no exact
+// stock grams). This is the on-brand bridge from AI discovery to the
+// intentional human WhatsApp close: the model prepares the order, Adrian closes
+// it. There is no write surface and no auth — every tool here is harmless to a
+// stranger.
+//
+// Account scope: ?account=<slug>, else the platform-owner account.
+//
+// Abuse: a best-effort per-isolate token bucket caps requests; production
+// should additionally front this with a Cloudflare rate-limiting rule (the
+// isolate-local counter resets on recycle and isn't shared across colos).
+
+const PUBLIC_SITE_ORIGIN = 'https://teajia.co';
+
+type PublicAccount = {
+  id: string;
+  name: string;
+  slug: string;
+  whatsapp_number: string | null;
+  currency_default: string | null;
+  public_shop_path: string | null;
+};
+
+async function resolvePublicAccount(env: Env, slug: string | null): Promise<PublicAccount | null> {
+  if (slug) {
+    return env.DB.prepare(
+      `SELECT id, name, slug, whatsapp_number, currency_default, public_shop_path
+         FROM accounts WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
+    ).bind(slug).first() as Promise<PublicAccount | null>;
+  }
+  return env.DB.prepare(
+    `SELECT id, name, slug, whatsapp_number, currency_default, public_shop_path
+       FROM accounts WHERE is_platform_owner = 1 AND public_enabled = 1 AND status = 'active'
+       LIMIT 1`
+  ).first() as Promise<PublicAccount | null>;
+}
+
+// Public-safe projection — deliberately omits cost_amount, vendor, margins, and
+// exact stock_grams (only an in_stock boolean leaks).
+function publicProductSummary(p: ProductRow & { description?: string | null; tasting_notes?: string | null }) {
+  return {
+    id: p.id,
+    name: p.given_name || p.product_name,
+    chinese_name: p.chinese_name,
+    type: p.type,
+    form: p.form,
+    year: p.year,
+    origin: [p.origin_region, p.origin_country].filter(Boolean).join(', ') || null,
+    price_per_gram_usd: p.fixed_retail_price_usd ?? null,
+    in_stock: Number(p.stock_grams || 0) > 0,
+    shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${p.id}`,
+  };
+}
+
+const PUBLIC_PRODUCT_COLS =
+  `id, given_name, product_name, chinese_name, type, form, year,
+   origin_country, origin_region, vendor, stock_grams, quantity_units,
+   low_stock_threshold, fixed_retail_price_usd, status`;
+
+async function publicSearchTea(env: Env, accountId: string, args: any) {
+  const query = String(args?.query || '').trim();
+  const limit = Math.min(Math.max(Number(args?.limit) || 8, 1), 20);
+  if (!query) return { matches: [] };
+
+  const { results } = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active'`
+  ).bind(accountId).all();
+
+  const scored = (results as unknown as ProductRow[])
+    .map(p => ({ p, score: scoreMatch(query, [p.given_name, p.product_name, p.chinese_name, p.origin_region, p.year, p.type]) }))
+    .filter(s => s.score > 0.3)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return { matches: scored.map(s => publicProductSummary(s.p)) };
+}
+
+async function publicGetTea(env: Env, accountId: string, args: any) {
+  const id = String(args?.id || '').trim();
+  if (!id) throw new Error('id is required');
+  const p = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS}, description, tasting_notes
+       FROM products WHERE id = ? AND account_id = ? AND status = 'Active'`
+  ).bind(id, accountId).first() as (ProductRow & { description?: string; tasting_notes?: string }) | null;
+  if (!p) return { error: 'not_found' };
+
+  let tasting: any = p.tasting_notes;
+  if (typeof tasting === 'string') { try { tasting = JSON.parse(tasting); } catch { tasting = []; } }
+
+  return { ...publicProductSummary(p), description: p.description ?? null, tasting_notes: tasting };
+}
+
+async function publicBrowseCatalog(env: Env, accountId: string, args: any) {
+  const limit = Math.min(Math.max(Number(args?.limit) || 30, 1), 100);
+  const wheres = ['account_id = ?', "status = 'Active'"];
+  const binds: any[] = [accountId];
+  if (args?.type) { wheres.push('type = ?'); binds.push(String(args.type)); }
+  if (args?.in_stock_only) { wheres.push('stock_grams > 0'); }
+
+  const { results } = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products
+      WHERE ${wheres.join(' AND ')}
+      ORDER BY (stock_grams > 0) DESC, year DESC, product_name ASC
+      LIMIT ?`
+  ).bind(...binds, limit).all();
+
+  return {
+    items: (results as unknown as ProductRow[]).map(publicProductSummary),
+    count: results.length,
+  };
+}
+
+// Build a WhatsApp checkout link prefilled with the requested teas. The model
+// assembles the basket; the human conversation closes it. Items resolve by id
+// or by fuzzy name. Returns the link plus a readable summary and shop URLs.
+async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
+  const rawItems = Array.isArray(args?.items) ? args.items : [];
+  if (rawItems.length === 0) throw new Error('items must be a non-empty array of { id|name, grams }');
+  if (!account.whatsapp_number) return { error: 'whatsapp_unavailable', message: 'This shop has no WhatsApp number configured for checkout.' };
+
+  const { results: catalog } = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active'`
+  ).bind(account.id).all();
+  const products = catalog as unknown as ProductRow[];
+
+  const lines: Array<{ id: string; name: string; grams: number; price_per_gram_usd: number | null; line_total_usd: number | null; in_stock: boolean; shop_url: string }> = [];
+  const unresolved: string[] = [];
+
+  for (const raw of rawItems) {
+    const grams = Math.max(0, Number(raw?.grams) || 0);
+    let match: ProductRow | undefined;
+    const id = raw?.id ? String(raw.id).trim() : '';
+    if (id) {
+      match = products.find(p => p.id === id);
+    } else if (raw?.name) {
+      const scored = products
+        .map(p => ({ p, score: scoreMatch(String(raw.name), [p.given_name, p.product_name, p.chinese_name, p.year]) }))
+        .sort((a, b) => b.score - a.score);
+      if (scored[0]?.score > 0.4) match = scored[0].p;
+    }
+    if (!match) { unresolved.push(String(raw?.name || raw?.id || '(unknown)')); continue; }
+    const price = match.fixed_retail_price_usd ?? null;
+    lines.push({
+      id: match.id,
+      name: match.given_name || match.product_name,
+      grams,
+      price_per_gram_usd: price,
+      line_total_usd: price != null && grams > 0 ? Math.round(price * grams * 100) / 100 : null,
+      in_stock: Number(match.stock_grams || 0) > 0,
+      shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${match.id}`,
+    });
+  }
+
+  if (lines.length === 0) return { error: 'no_items_resolved', unresolved };
+
+  const estimatedTotal = lines.reduce((s, l) => s + (l.line_total_usd || 0), 0);
+  const msgLines = [
+    `Hello! I'd like to order from ${account.name}:`,
+    ...lines.map(l => `• ${l.grams ? l.grams + 'g ' : ''}${l.name}${l.price_per_gram_usd != null && l.grams ? ` — ~$${l.line_total_usd} USD` : ''}`),
+    estimatedTotal > 0 ? `Estimated total: ~$${Math.round(estimatedTotal * 100) / 100} USD (please confirm)` : '',
+  ].filter(Boolean);
+  const message = msgLines.join('\n');
+  const digits = account.whatsapp_number.replace(/\D/g, '');
+
+  return {
+    whatsapp_url: `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
+    message_preview: message,
+    lines,
+    estimated_total_usd: estimatedTotal > 0 ? Math.round(estimatedTotal * 100) / 100 : null,
+    unresolved: unresolved.length ? unresolved : undefined,
+    note: 'This opens a WhatsApp message to the shop — checkout is completed in conversation, not automatically. Prices are estimates; the shop confirms final pricing, shipping, and availability.',
+  };
+}
+
+const PUBLIC_TOOL_DEFS = [
+  {
+    name: 'search_tea',
+    description: 'Search this tea shop\'s public catalog by name, Chinese name, origin, year, or type. Returns purchasable teas with retail price and in-stock status.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        limit: { type: 'number', description: 'Max matches (default 8, max 20).', default: 8 },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_tea',
+    description: 'Full public profile for one tea by id: description, tasting notes, origin, price, and a shop link.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
+    name: 'browse_catalog',
+    description: 'Browse the public catalog, optionally filtered by tea type, in-stock first. Use this to see what the shop offers.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', description: 'Filter by tea type (e.g. "Pu-erh", "Oolong").' },
+        in_stock_only: { type: 'boolean' },
+        limit: { type: 'number', description: 'Max items (default 30, max 100).', default: 30 },
+      },
+    },
+  },
+  {
+    name: 'prepare_order',
+    description: 'Assemble a WhatsApp checkout link for a basket of teas (each item is { id or name, grams }). Returns a wa.me link prefilled with the order and an estimated total. Checkout is completed by a human in the WhatsApp conversation — this tool never places an order itself.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Teas to order. Each: { id?, name?, grams }. Provide id (from search_tea) when known, else name.',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              grams: { type: 'number' },
+            },
+          },
+        },
+      },
+      required: ['items'],
+    },
+  },
+] as const;
+
+const PUBLIC_SERVER_INFO = {
+  name: 'teajia-shop',
+  version: '0.1.0',
+  description: 'Public read-only access to a Teajia tea shop catalog, with a WhatsApp checkout-link builder. Read-only; no account data, costs, or margins are exposed.',
+};
+
+// Best-effort per-isolate rate limiter. Not a security boundary — front the
+// route with a Cloudflare rate-limiting rule for real protection.
+const PUBLIC_RATE = new Map<string, { count: number; resetAt: number }>();
+const PUBLIC_RATE_LIMIT = 60;
+const PUBLIC_RATE_WINDOW_MS = 60 * 1000;
+function publicRateOk(ip: string): boolean {
+  const now = Date.now();
+  const e = PUBLIC_RATE.get(ip);
+  if (!e || e.resetAt < now) { PUBLIC_RATE.set(ip, { count: 1, resetAt: now + PUBLIC_RATE_WINDOW_MS }); return true; }
+  e.count += 1;
+  return e.count <= PUBLIC_RATE_LIMIT;
+}
+
+function publicToolDefs() {
+  return PUBLIC_TOOL_DEFS.map(t => ({ ...t, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }));
+}
+
+export async function publicMcpFetch(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const account = await resolvePublicAccount(env, url.searchParams.get('account'));
+
+  if (request.method === 'GET') {
+    return json({
+      ok: true,
+      server: PUBLIC_SERVER_INFO,
+      protocol: PROTOCOL_VERSION,
+      shop: account ? { name: account.name, slug: account.slug } : null,
+      hint: 'POST a JSON-RPC 2.0 request. No auth required. Tools: search_tea, get_tea, browse_catalog, prepare_order.',
+    });
+  }
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  if (!publicRateOk(ip)) return rpcError(null, -32000, 'Rate limit exceeded — slow down.');
+
+  if (!account) return rpcError(null, -32001, 'No public shop available.');
+
+  let body: any;
+  try { body = await request.json(); } catch { return rpcError(null, -32700, 'Parse error'); }
+  const { jsonrpc, id = null, method, params } = body || {};
+  if (jsonrpc !== '2.0' || typeof method !== 'string') return rpcError(id ?? null, -32600, 'Invalid Request');
+
+  try {
+    switch (method) {
+      case 'initialize': {
+        const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : null;
+        return rpcResult(id, { protocolVersion: requested || PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: PUBLIC_SERVER_INFO });
+      }
+      case 'tools/list':
+        return rpcResult(id, { tools: publicToolDefs() });
+      case 'tools/call': {
+        const name = params?.name;
+        const args = params?.arguments ?? {};
+        if (typeof name !== 'string') return rpcError(id, -32602, 'tools/call requires `name`');
+        let payload: unknown;
+        switch (name) {
+          case 'search_tea': payload = await publicSearchTea(env, account.id, args); break;
+          case 'get_tea': payload = await publicGetTea(env, account.id, args); break;
+          case 'browse_catalog': payload = await publicBrowseCatalog(env, account.id, args); break;
+          case 'prepare_order': payload = await publicPrepareOrder(env, account, args); break;
+          default: return rpcError(id, -32601, `Unknown tool: ${name}`);
+        }
+        return rpcResult(id, mcpContent(payload));
+      }
+      case 'ping':
+        return rpcResult(id, {});
+      default:
+        return rpcError(id, -32601, `Method not found: ${method}`);
+    }
+  } catch (err: any) {
+    return rpcError(id, -32603, err?.message || 'Internal error');
+  }
+}
