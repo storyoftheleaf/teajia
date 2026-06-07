@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem as AdminCartItem, Currency, Product } from '../admin/types';
 import { Account, AccountMembership, CartItem as PublicCartItem, CustomerTasting, PlatformRole } from '../types';
+import type { TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 
 export interface AuthUser {
   email: string;
@@ -86,6 +87,11 @@ interface AppState {
   // Recently Viewed
   recentlyViewed: string[];
   addRecentlyViewed: (id: string) => void;
+
+  // Tea Discovery profile (onboarding quiz — client-side in v1; see docs/TEA_DISCOVERY.md)
+  teaDiscoveryProfile: TeaDiscoveryProfile | null;
+  setTeaDiscoveryProfile: (profile: TeaDiscoveryProfile) => void;
+  clearTeaDiscoveryProfile: () => void;
 
   // Product Comparison
   compareItems: string[];
@@ -373,6 +379,11 @@ export const useAppStore = create<AppState>()(
           recentlyViewed: [id, ...state.recentlyViewed.filter((rid) => rid !== id)].slice(0, 10),
         })),
 
+      // Tea Discovery profile
+      teaDiscoveryProfile: null,
+      setTeaDiscoveryProfile: (teaDiscoveryProfile) => set({ teaDiscoveryProfile }),
+      clearTeaDiscoveryProfile: () => set({ teaDiscoveryProfile: null }),
+
       // Product Comparison
       compareItems: [],
       toggleCompare: (id) =>
@@ -607,6 +618,7 @@ export const useAppStore = create<AppState>()(
         favoriteTeas: state.favoriteTeas,
         tastingJournal: state.tastingJournal,
         recentlyViewed: state.recentlyViewed,
+        teaDiscoveryProfile: state.teaDiscoveryProfile,
         compareItems: state.compareItems,
         inventoryColumns: state.inventoryColumns,
         savedViews: state.savedViews,

@@ -78,6 +78,7 @@ const EventsPage = lazy(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
@@ -809,6 +810,13 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="grid" />}>
                       <StartHerePage />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/discover" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="grid" />}>
+                      <DiscoverPage />
                     </Suspense>
                   </ErrorBoundary>
                 } />
