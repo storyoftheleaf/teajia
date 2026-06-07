@@ -1,10 +1,13 @@
 # Tea Discovery — onboarding profile & integration schema
 
-> **Status:** Phase 1 (the flow + local profile) shipped. Phase 2 (server persistence,
-> tea-master visibility, recommendation matching) designed here, not yet built.
+> **Status:** Phase 1 (the flow + local profile + Your Table surfacing) shipped. Phase 2 (server
+> persistence, tea-master visibility, recommendation matching) designed here, not yet built.
 >
 > **Code:** `src/pages/DiscoverPage.tsx`, `src/components/TeaDiscovery/*`, route `/discover`.
 > **State:** `teaDiscoveryProfile` in `src/lib/store.ts` (persisted to `teajia-storage`).
+> **Your Table:** a `discover` tile in `AccountPanel/LaunchpadView.tsx` shows the member's
+> disposition (or "find your tea"); signed-out guests get a "Discover your tea" link via
+> `READER_EXPLORE_LINKS` in `AccountPanel/workflows.ts`.
 
 ## What it is
 A mobile-first, screen-by-screen question flow that helps people *discover the way they drink tea for

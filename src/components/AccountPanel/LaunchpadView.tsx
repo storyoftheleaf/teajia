@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path } from '@phosphor-icons/react';
 
 interface LaunchpadTile {
   id: string;
@@ -33,6 +33,8 @@ interface LaunchpadViewProps {
   journalLastAt: string | null;
   journalLastTea: string | null;
   collectionCount: number;
+  /** Tea Discovery disposition name, if the onboarding quiz has been taken. */
+  dispositionName: string | null;
   nextEvent: { eventDate: string } | null;
 
   // Actions
@@ -138,6 +140,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   journalLastAt,
   journalLastTea,
   collectionCount,
+  dispositionName,
   nextEvent,
   onClose,
   onOpenJournal,
@@ -190,6 +193,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         : 'no favorites yet',
       icon: <Heart {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/journey?tab=collection'); },
+    },
+    {
+      id: 'discover',
+      verb: 'discover',
+      hint: dispositionName ?? 'find your tea',
+      icon: <Path {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/discover'); },
     },
     // Collections are the shareable unit. Curators (publish bundle) get their
     // create/manage home; everyone else gets their shelf of collections shared

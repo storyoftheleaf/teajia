@@ -22,6 +22,7 @@ import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
+import { DISPOSITIONS } from '../TeaDiscovery/dispositions';
 import { StaffView } from './StaffView';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildFirstDoorReadiness } from './workflows';
@@ -292,6 +293,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setCurrency,
     publicCart,
     tastingJournal,
+    teaDiscoveryProfile,
     memberships,
     activeAccountId,
     activeAccount,
@@ -395,6 +397,11 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     } catch {}
     return null;
   }, []);
+
+  // Tea Discovery disposition — the name from the onboarding quiz (device-saved).
+  const dispositionName = teaDiscoveryProfile
+    ? DISPOSITIONS[teaDiscoveryProfile.dispositionId]?.name ?? null
+    : null;
 
   // Animate in
   useEffect(() => {
@@ -1317,6 +1324,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
                 journalLastTea={tastingJournal[0]?.productName ?? null}
                 collectionCount={favoriteTeas.length}
+                dispositionName={dispositionName}
                 nextEvent={nextEvent ?? null}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
