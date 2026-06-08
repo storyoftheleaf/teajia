@@ -6,6 +6,7 @@ import { useAppStore } from '../lib/store';
 import { TeaDiscoveryFlow } from '../components/TeaDiscovery/TeaDiscoveryFlow';
 import { DiscoveryResult } from '../components/TeaDiscovery/DiscoveryResult';
 import { deriveProfile } from '../components/TeaDiscovery/questions';
+import { pushTeaDiscoveryProfile } from '../lib/teaDiscoverySync';
 import type { TeaDiscoveryAnswers } from '../components/TeaDiscovery/types';
 
 type View = 'intro' | 'flow' | 'result';
@@ -18,12 +19,16 @@ export default function DiscoverPage() {
 
   const handleComplete = (answers: TeaDiscoveryAnswers) => {
     const { level, disposition } = deriveProfile(answers);
-    setProfile({
+    const profile = {
       answers,
       level,
       dispositionId: disposition.id,
       completedAt: new Date().toISOString(),
-    });
+    };
+    setProfile(profile);
+    // Persist to the server when signed in (no-op when anonymous; picked up on
+    // next login by the sync hook). Fire-and-forget.
+    void pushTeaDiscoveryProfile(profile);
     setView('result');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

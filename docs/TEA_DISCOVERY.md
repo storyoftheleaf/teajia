@@ -1,13 +1,17 @@
 # Tea Discovery — onboarding profile & integration schema
 
-> **Status:** Phase 1 (the flow + local profile + Your Table surfacing) shipped. Phase 2 (server
-> persistence, tea-master visibility, recommendation matching) designed here, not yet built.
+> **Status:** Phase 1 (flow + local profile + Your Table) **and** Phase 2 (server persistence,
+> tea-master visibility, recommendations) shipped. Remaining: the automated evolution loop and
+> per-article/per-product deep links (see "Remaining" below).
 >
-> **Code:** `src/pages/DiscoverPage.tsx`, `src/components/TeaDiscovery/*`, route `/discover`.
+> **Frontend:** `src/pages/DiscoverPage.tsx`, `src/components/TeaDiscovery/*`, route `/discover`.
 > **State:** `teaDiscoveryProfile` in `src/lib/store.ts` (persisted to `teajia-storage`).
+> **Sync:** `src/lib/teaDiscoverySync.ts` + `src/hooks/useTeaDiscoverySync.ts` (load/adopt/push on login).
+> **Worker:** `migrations/082_tea_discovery_profiles.sql`, `GET|PUT /api/tea-discovery` in
+> `worker/src/index.ts`; disposition joined into the customer journey + `find_customer` MCP.
 > **Your Table:** a `discover` tile in `AccountPanel/LaunchpadView.tsx` shows the member's
-> disposition (or "find your tea"); signed-out guests get a "Discover your tea" link via
-> `READER_EXPLORE_LINKS` in `AccountPanel/workflows.ts`.
+> disposition; signed-out guests get a "Discover your tea" link via `READER_EXPLORE_LINKS`.
+> **Tea master:** Tea Profile panel in `src/admin/components/CustomerProfilePage.tsx`.
 
 ## What it is
 A mobile-first, screen-by-screen question flow that helps people *discover the way they drink tea for
@@ -95,18 +99,29 @@ practice**, never tiers:
 - The incentive to keep it current is the same as keeping a journal: to witness your own palate
   change. Sharper recommendations and a tea master who knows you better follow naturally.
 
-The Phase 1 results screen plants this seed (a single line linking to the tasting journal); the full
-loop is Phase 2.
+The results screen plants this seed (a line linking to the tasting journal); the automated loop is
+listed under "Remaining" below.
 
-## Phase 2 (designed, not built)
-1. **Server persistence.** New D1 migration + a Worker route in `worker/src/index.ts`, account-scoped
-   via the `X-Teajia-Account` header, tying the profile to a signed-in customer. The v1 client writes
-   through `setTeaDiscoveryProfile`, so this slots in behind the same setter.
-2. **Tea-master visibility.** Surface the profile in admin/consult and via the `find_customer` MCP
-   tool (`worker/src/mcp.ts`) — the brief a tea master reads before the WhatsApp conversation.
-3. **Recommendation matching.** Turn `level` + `flavor` + `brew` + `motivation` into concrete article,
-   tea, and teaware recommendations (replacing the v1 generic next-step links).
-4. **Evolution loop.** Refresh the profile from tasting/purchase/event signals; reflect drift in the
-   Journey/Passport.
-5. **Real photography.** `DiscoveryOption.image` is a reserved slot — drop vessel photos in to replace
+## Phase 2 (shipped)
+1. **Server persistence.** `customer_tea_discovery` (migration 082) keyed per-person by email — like
+   the tasting journal, **not** account-scoped, so plain members need no store membership. Routes
+   `GET|PUT /api/tea-discovery` use `requireAuth` + `getUserEmail`. The client syncs in
+   `teaDiscoverySync.ts`: on login it adopts a newer server profile or pushes a newer local one
+   (last-write-wins by `completedAt`) — so a profile taken **while anonymous gets persisted the moment
+   the member signs in**. Completion pushes directly from `DiscoverPage`.
+2. **Tea-master visibility.** `handleGetCustomerJourney` joins the disposition by the customer's email
+   and returns `teaDiscoveryProfile`; `CustomerProfilePage` renders a **Tea Profile** panel (stated
+   preference, beside the observed Portrait). `find_customer` (MCP) returns `tea_disposition` +
+   `tea_level` per match — the brief a tea master reads before the WhatsApp conversation.
+3. **Recommendations.** `recommendations.ts` turns `level` + `flavor` + `brew` into tailored next
+   steps with a plain "why this" line on the results screen (replacing the generic next-step links).
+
+## Remaining
+- **Evolution loop (automated).** Refresh the profile from tasting/purchase/event signals and reflect
+   drift in the Journey/Passport. Today the deepening is manual (the journal recommendation); the
+   auto-refresh from observed behavior is still to build.
+- **Deep-link recommendations.** `recommendations.ts` routes to section surfaces (`/craft`, `/shop`);
+   swap in per-article (`/article/:slug`) and per-product targets behind the same `Recommendation`
+   shape once curriculum/article routing is confirmed.
+- **Real photography.** `DiscoveryOption.image` is a reserved slot — drop vessel photos in to replace
    the line illustrations with no schema change.

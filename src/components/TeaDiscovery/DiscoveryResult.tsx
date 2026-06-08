@@ -6,7 +6,8 @@ import { LogoEmblem } from '../Logos/LogoEmblem';
 import { useAppStore } from '../../lib/store';
 import { DISPOSITIONS } from './dispositions';
 import { QUESTIONS, optionLabel } from './questions';
-import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
+import { recommend } from './recommendations';
+import type { TeaDiscoveryProfile } from './types';
 
 interface DiscoveryResultProps {
   profile: TeaDiscoveryProfile;
@@ -22,29 +23,10 @@ const SUMMARY_KEYS: Record<string, string> = {
   motivation: 'Tea gives you',
 };
 
-/** Two next-step doors, tuned to where they are in the practice. */
-function nextSteps(level: DiscoveryLevel): { label: string; to: string }[] {
-  if (level === 'curious') {
-    return [
-      { label: 'Learn the basics', to: '/craft' },
-      { label: 'Browse gentle teas to start', to: '/shop' },
-    ];
-  }
-  if (level === 'devoted') {
-    return [
-      { label: 'Go deeper in the Craft', to: '/craft' },
-      { label: 'Find your next tea', to: '/shop' },
-    ];
-  }
-  return [
-    { label: 'Deepen your practice', to: '/craft' },
-    { label: 'Find a tea you’ll love', to: '/shop' },
-  ];
-}
-
 export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake }) => {
   const authUser = useAppStore((s) => s.authUser);
   const disposition = DISPOSITIONS[profile.dispositionId] ?? DISPOSITIONS.curiousBeginner;
+  const recommendations = recommend(profile);
 
   const summary = QUESTIONS.map((q) => {
     const a = profile.answers[q.id];
@@ -96,18 +78,28 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         </p>
       </div>
 
-      {/* Next steps */}
-      <div className="mt-7 flex flex-col gap-2.5">
-        {nextSteps(profile.level).map((step) => (
-          <Link
-            key={step.to + step.label}
-            to={step.to}
-            className="group flex items-center justify-between rounded-xl border border-tea-border bg-tea-surface px-4 py-3.5 transition-colors hover:border-tea-gold/40 hover:bg-tea-elevated"
-          >
-            <span className="font-body text-ui-15 text-tea-text">{step.label}</span>
-            <ArrowRight className="h-4 w-4 text-tea-text-sec transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        ))}
+      {/* Recommendations — tailored to level, flavor leaning, and how they brew */}
+      <div className="mt-8">
+        <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim mb-3">
+          Where to begin
+        </p>
+        <div className="flex flex-col gap-2.5">
+          {recommendations.map((rec) => (
+            <Link
+              key={rec.kind}
+              to={rec.to}
+              className="group flex items-start justify-between gap-3 rounded-xl border border-tea-border bg-tea-surface px-4 py-3.5 transition-colors hover:border-tea-gold/40 hover:bg-tea-elevated"
+            >
+              <span className="min-w-0">
+                <span className="block font-body text-ui-15 text-tea-text">{rec.title}</span>
+                <span className="mt-0.5 block font-body text-ui-13 leading-snug text-tea-text-sec">
+                  {rec.rationale}
+                </span>
+              </span>
+              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-tea-text-sec transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Sign-in nudge (signed-out only) — keep your profile across devices */}

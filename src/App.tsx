@@ -97,6 +97,7 @@ import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useTastingJournalSync } from './hooks/useTastingJournalSync';
+import { useTeaDiscoverySync } from './hooks/useTeaDiscoverySync';
 import { useCompassSync } from './hooks/useCompassSync';
 import { useNotesSync } from './hooks/useNotesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
@@ -178,6 +179,7 @@ const AppContent = () => {
   useFavoritesSync(syncEnabled);
   useOfflineSync(syncEnabled);
   useTastingJournalSync(syncEnabled);
+  useTeaDiscoverySync(syncEnabled);
   useCompassSync(syncEnabled);
   useNotesSync(syncEnabled);
   const showAdminBar = false;

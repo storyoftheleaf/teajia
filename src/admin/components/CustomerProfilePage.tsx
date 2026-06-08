@@ -14,6 +14,7 @@ import { RecommendationModal } from './RecommendationModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { ContactTagEditor } from './contactTags/ContactTagEditor';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
+import { DISPOSITIONS } from '../../components/TeaDiscovery/dispositions';
 
 interface CustomerTea {
   id: string;
@@ -46,6 +47,12 @@ interface CustomerJourney {
   impressions?: Array<{ text: string; teaName: string; eventTitle: string; eventSlug?: string; date: string }>;
   memberSince?: string;
   portrait?: string;
+  teaDiscoveryProfile?: {
+    dispositionId: string | null;
+    dispositionName: string | null;
+    level: string | null;
+    completedAt: string | null;
+  } | null;
 }
 
 const fmtUSD = (v?: number | null) =>
@@ -555,6 +562,34 @@ export const CustomerProfilePage: React.FC = () => {
               )}
             </section>
           )}
+
+          {/* Tea Discovery disposition — how they told us they like to drink.
+              Stated preference, complementing the observed Portrait above. */}
+          {journey?.teaDiscoveryProfile?.dispositionId && (() => {
+            const disc = journey.teaDiscoveryProfile!;
+            const name = disc.dispositionName || DISPOSITIONS[disc.dispositionId!]?.name || 'Tea disposition';
+            const description = DISPOSITIONS[disc.dispositionId!]?.description;
+            return (
+              <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
+                <h3 className="h3 mb-1">Tea Profile</h3>
+                <p className="label-caps text-tea-text-dim mb-4">How they like to drink · from onboarding</p>
+                <div className="bg-tea-bg border border-tea-border rounded-xl p-4">
+                  <div className="font-display text-ui-20 text-tea-text leading-tight">{name}</div>
+                  {description && (
+                    <p className="text-ui-13 text-tea-text-sec leading-relaxed mt-2">{description}</p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                    {disc.level && <StatusPill variant="draft">{disc.level}</StatusPill>}
+                    {disc.completedAt && (
+                      <span className="label-caps text-tea-text-dim">
+                        {new Date(disc.completedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Stats row */}
           <section className="bg-tea-surface border border-tea-border rounded-xl p-5">

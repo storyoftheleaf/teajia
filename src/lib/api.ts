@@ -1743,6 +1743,26 @@ export const api = {
     },
   },
 
+  // Tea Discovery — the onboarding disposition profile (one per member, server-
+  // persisted so it follows them across devices and the tea master can read it).
+  teaDiscovery: {
+    get: async () => {
+      return authedFetch(`${API_URL}/api/tea-discovery`);
+    },
+    save: async (payload: {
+      answers: Record<string, string | string[]>;
+      level: string;
+      dispositionId: string;
+      dispositionName: string;
+      completedAt: string;
+    }) => {
+      return authedFetch(`${API_URL}/api/tea-discovery`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+    },
+  },
+
   xref: {
     articles: {
       list: async (articleId: string) => {
