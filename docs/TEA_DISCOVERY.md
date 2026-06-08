@@ -1,8 +1,9 @@
 # Tea Discovery — onboarding profile & integration schema
 
-> **Status:** Phase 1 (flow + local profile + Your Table) **and** Phase 2 (server persistence,
-> tea-master visibility, recommendations) shipped. Remaining: the automated evolution loop and
-> per-article/per-product deep links (see "Remaining" below).
+> **Status:** Phase 1 (flow + local profile + Your Table), Phase 2 (server persistence, tea-master
+> visibility, recommendations), **and** the evolution loop (observed palate from the tasting journal)
+> shipped. Remaining: persisting/learning the disposition itself and per-article/per-product deep
+> links (see "Remaining" below).
 >
 > **Frontend:** `src/pages/DiscoverPage.tsx`, `src/components/TeaDiscovery/*`, route `/discover`.
 > **State:** `teaDiscoveryProfile` in `src/lib/store.ts` (persisted to `teajia-storage`).
@@ -115,11 +116,19 @@ listed under "Remaining" below.
    `tea_level` per match — the brief a tea master reads before the WhatsApp conversation.
 3. **Recommendations.** `recommendations.ts` turns `level` + `flavor` + `brew` into tailored next
    steps with a plain "why this" line on the results screen (replacing the generic next-step links).
+4. **Evolution loop (observed palate).** `evolution.ts` derives an *observed palate* from the synced
+   tasting journal (top tea types + which flavor family they lean to). The chosen disposition is
+   **never overwritten** — instead the observed layer (a) replaces the static "deepens with practice"
+   seed with real data once there are ≥3 tastings, (b) re-leads the shop recommendation with what they
+   actually drink ("Based on what you've been drinking lately"), and (c) shows a gentle **drift nudge**
+   to refresh the profile when their cups have turned away from their stated answer. No streaks/points.
+   The tea master's symmetric observed layer already exists as the journey **Portrait** (from
+   invoices/events).
 
 ## Remaining
-- **Evolution loop (automated).** Refresh the profile from tasting/purchase/event signals and reflect
-   drift in the Journey/Passport. Today the deepening is manual (the journal recommendation); the
-   auto-refresh from observed behavior is still to build.
+- **Learn the disposition itself.** Today the observed palate is derived live and refines the surface;
+   it does not yet rewrite the stored `disposition`/`level` or reflect drift in the Journey/Passport.
+   A future pass could periodically re-derive and persist the disposition from accumulated behavior.
 - **Deep-link recommendations.** `recommendations.ts` routes to section surfaces (`/craft`, `/shop`);
    swap in per-article (`/article/:slug`) and per-product targets behind the same `Recommendation`
    shape once curriculum/article routing is confirmed.

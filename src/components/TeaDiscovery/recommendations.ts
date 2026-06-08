@@ -1,4 +1,5 @@
 import type { TeaDiscoveryProfile } from './types';
+import type { ObservedPalate } from './evolution';
 
 /* ───────────────────────────────────────────────────────────────────────────
    Recommendations — turn the profile into a few tailored next steps with a
@@ -22,10 +23,15 @@ const FLAVOR_FAMILY: Record<string, string> = {
   unsure: 'a flight across styles',
 };
 
-export function recommend(profile: TeaDiscoveryProfile): Recommendation[] {
+export function recommend(profile: TeaDiscoveryProfile, observed?: ObservedPalate): Recommendation[] {
   const recs: Recommendation[] = [];
-  const flavor = (profile.answers.flavor as string) || 'unsure';
+  const statedFlavor = (profile.answers.flavor as string) || 'unsure';
   const brew = (profile.answers.brew as string) || '';
+
+  // Once there's real signal, lead with what they actually drink, not what they
+  // first guessed — this is the evolution loop reaching the recommendations.
+  const fromBehavior = !!(observed?.hasEnoughSignal && observed.flavorLean);
+  const flavor = fromBehavior ? (observed!.flavorLean as string) : statedFlavor;
 
   // 1. Learn — matched to where they are in the practice.
   if (profile.level === 'curious') {
@@ -51,14 +57,16 @@ export function recommend(profile: TeaDiscoveryProfile): Recommendation[] {
     });
   }
 
-  // 2. Shop — matched to their flavor leaning.
+  // 2. Shop — matched to their flavor leaning (observed if we have it, else stated).
   const family = FLAVOR_FAMILY[flavor] ?? FLAVOR_FAMILY.unsure;
   recs.push({
     kind: 'shop',
     title: `Teas to try — ${family}`,
-    rationale: flavor === 'unsure'
-      ? 'Not sure yet? Start broad and let your palate decide.'
-      : `Because you’re drawn to ${family}.`,
+    rationale: fromBehavior
+      ? 'Based on what you’ve been drinking lately.'
+      : flavor === 'unsure'
+        ? 'Not sure yet? Start broad and let your palate decide.'
+        : `Because you’re drawn to ${family}.`,
     to: '/shop',
   });
 

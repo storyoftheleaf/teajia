@@ -7,7 +7,15 @@ import { useAppStore } from '../../lib/store';
 import { DISPOSITIONS } from './dispositions';
 import { QUESTIONS, optionLabel } from './questions';
 import { recommend } from './recommendations';
+import { observePalate, type FlavorFamily } from './evolution';
 import type { TeaDiscoveryProfile } from './types';
+
+/** Human label for a flavor family — matches the quiz's swatch wording. */
+const FAMILY_LABEL: Record<FlavorFamily, string> = {
+  light: 'lighter, fresher teas',
+  roasted: 'roasted, fuller teas',
+  deep: 'deep, aged teas',
+};
 
 interface DiscoveryResultProps {
   profile: TeaDiscoveryProfile;
@@ -25,8 +33,21 @@ const SUMMARY_KEYS: Record<string, string> = {
 
 export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake }) => {
   const authUser = useAppStore((s) => s.authUser);
+  const tastingJournal = useAppStore((s) => s.tastingJournal);
   const disposition = DISPOSITIONS[profile.dispositionId] ?? DISPOSITIONS.curiousBeginner;
-  const recommendations = recommend(profile);
+
+  // Evolution loop — observe what they actually drink and let it refine the
+  // recommendations + show growth. The chosen disposition is never overwritten.
+  const observed = observePalate(tastingJournal);
+  const recommendations = recommend(profile, observed);
+  const statedFlavor = profile.answers.flavor as string | undefined;
+  // Drift: their cups lean somewhere their stated answer didn't (and they had one).
+  const drifted =
+    observed.hasEnoughSignal &&
+    observed.flavorLean != null &&
+    statedFlavor != null &&
+    statedFlavor !== 'unsure' &&
+    statedFlavor !== observed.flavorLean;
 
   const summary = QUESTIONS.map((q) => {
     const a = profile.answers[q.id];
@@ -63,20 +84,46 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
         ))}
       </dl>
 
-      {/* Evolution seed — deepens with practice, not points */}
-      <div className="mt-7 rounded-xl border border-tea-border bg-tea-elevated px-5 py-4">
-        <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">
-          This is a beginning, not a label. Your disposition deepens as your practice does — every tea
-          you sit with teaches it a little more.{' '}
-          <Link
-            to="/account/journal"
-            className="text-tea-text underline decoration-tea-gold/40 underline-offset-2 hover:decoration-tea-gold"
-          >
-            Start a tasting journal
-          </Link>{' '}
-          and watch it grow.
-        </p>
-      </div>
+      {/* Evolution — the seed becomes real once there's practice to read. */}
+      {observed.hasEnoughSignal ? (
+        <div className="mt-7 rounded-xl border border-tea-border bg-tea-elevated px-5 py-4">
+          <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim mb-2">
+            Your practice so far
+          </p>
+          <p className="font-body text-ui-15 leading-relaxed text-tea-text">
+            {observed.tastingCount} {observed.tastingCount === 1 ? 'tea' : 'teas'} logged
+            {observed.topTypes.length > 0 && (
+              <> — lately leaning <span className="text-tea-gold">{observed.topTypes.join(' and ')}</span></>
+            )}.
+          </p>
+          {drifted && observed.flavorLean && (
+            <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec mt-2">
+              That's a turn toward {FAMILY_LABEL[observed.flavorLean]} since you started.{' '}
+              <Link
+                to="/discover"
+                className="text-tea-text underline decoration-tea-gold/40 underline-offset-2 hover:decoration-tea-gold"
+              >
+                Refresh your profile
+              </Link>{' '}
+              when it feels true.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="mt-7 rounded-xl border border-tea-border bg-tea-elevated px-5 py-4">
+          <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">
+            This is a beginning, not a label. Your disposition deepens as your practice does — every tea
+            you sit with teaches it a little more.{' '}
+            <Link
+              to="/account/journal"
+              className="text-tea-text underline decoration-tea-gold/40 underline-offset-2 hover:decoration-tea-gold"
+            >
+              Start a tasting journal
+            </Link>{' '}
+            and watch it grow.
+          </p>
+        </div>
+      )}
 
       {/* Recommendations — tailored to level, flavor leaning, and how they brew */}
       <div className="mt-8">
