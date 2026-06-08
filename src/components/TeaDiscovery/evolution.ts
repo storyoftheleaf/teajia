@@ -61,6 +61,17 @@ export function observePalate(journal: CustomerTasting[]): ObservedPalate {
   };
 }
 
+/** How many tastings carry real substance — a personal note or flavor terms. */
+export function noteRichness(journal: CustomerTasting[]): number {
+  return journal.filter((e) => {
+    if (e.archived) return false;
+    const note: any = e.note;
+    const hasPersonal = !!(note && typeof note === 'object' && note.personalNote);
+    const flavorCount = note?.tasting?.flavor?.length ?? 0;
+    return hasPersonal || flavorCount > 0;
+  }).length;
+}
+
 /* ───────────────────────────────────────────────────────────────────────────
    Learned disposition — behaviour SUGGESTS, it never silently rewrites.
    The only thing the journal can honestly tell us about disposition is depth of
@@ -85,33 +96,69 @@ export interface EvolutionSuggestion {
   reason: string;
 }
 
+/** Behaviour we can honestly observe elsewhere in Teajia, beyond the journal. */
+export interface EvolutionSignals {
+  /** Group sessions attended (api.me.journey) — evidence of a social temperament. */
+  sessionsAttended?: number;
+  /** Tastings with real notes — evidence of a flavor & craft motivation. */
+  noteRichness?: number;
+}
+
+function joinWithAnd(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? '';
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+}
+
 /**
  * Returns a suggested (level, disposition) when accumulated practice has clearly
  * outgrown the stated profile — or null when nothing meaningful has changed.
  * Caller surfaces it as an opt-in ("Adopt this"); it is never auto-applied.
+ *
+ * Only re-derives from dimensions we can honestly observe:
+ *  - depth (tasting volume) → level, and The Deep Diver at the top;
+ *  - group sessions → a social temperament (The Host);
+ *  - rich tasting notes → a flavor & craft motivation (The Flavor Seeker).
+ * Temperament/motivation we can't see are left to the "still true?" re-ask.
  */
 export function suggestEvolution(
   profile: TeaDiscoveryProfile,
   observed: ObservedPalate,
+  signals: EvolutionSignals = {},
 ): EvolutionSuggestion | null {
   if (!observed.hasEnoughSignal) return null;
+
+  const sessions = signals.sessionsAttended ?? 0;
+  const richNotes = signals.noteRichness ?? 0;
 
   const volumeLevel = levelFromVolume(observed.tastingCount);
   const grew = LEVEL_ORDER[volumeLevel] > LEVEL_ORDER[profile.level];
   const newLevel: DiscoveryLevel = grew ? volumeLevel : profile.level;
 
-  // Re-derive disposition. The only behaviour-driven input is depth: a member
-  // whose practice has reached 'devoted' surfaces as The Deep Diver.
-  const synthAnswers = { ...profile.answers };
-  if (newLevel === 'devoted') synthAnswers.experience = 'deep';
-  const newDisposition = deriveDisposition(synthAnswers);
+  // Build a synthetic answer set from the evidence, then re-derive once.
+  const synth = { ...profile.answers };
+  if (newLevel === 'devoted') synth.experience = 'deep';
 
+  const socialFromEvents = sessions >= 3;
+  if (socialFromEvents) synth.temperament = 'group';
+
+  const craftFromNotes = richNotes >= 4;
+  if (craftFromNotes) {
+    const motivs = Array.isArray(synth.motivation)
+      ? [...synth.motivation]
+      : synth.motivation ? [synth.motivation] : [];
+    if (!motivs.includes('flavor')) motivs.push('flavor');
+    synth.motivation = motivs;
+  }
+
+  const newDisposition = deriveDisposition(synth);
   const changed = newLevel !== profile.level || newDisposition.id !== profile.dispositionId;
   if (!changed) return null;
 
-  const teas = `${observed.tastingCount} ${observed.tastingCount === 1 ? 'tea' : 'teas'}`;
-  const trail = observed.topTypes.length > 0 ? `, returning to ${observed.topTypes.join(' and ')}` : '';
-  const reason = `You've logged ${teas}${trail} since you started.`;
+  const bits = [`logged ${observed.tastingCount} ${observed.tastingCount === 1 ? 'tea' : 'teas'}`];
+  if (socialFromEvents) bits.push(`sat at ${sessions} sessions`);
+  if (craftFromNotes) bits.push(`kept notes on ${richNotes}`);
+  const reason = `You've ${joinWithAnd(bits)} since you started.`;
 
   return { level: newLevel, dispositionId: newDisposition.id, reason };
 }

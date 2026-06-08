@@ -124,12 +124,19 @@ listed under "Remaining" below.
    to refresh the profile when their cups have turned away from their stated answer. No streaks/points.
    The tea master's symmetric observed layer already exists as the journey **Portrait** (from
    invoices/events).
-5. **Learned disposition (opt-in).** `suggestEvolution()` re-derives level + disposition from practice
-   depth (tasting volume) and, when it has clearly outgrown the stated profile, the result screen
-   offers an **"Adopt this"** card — *suggests, never silently rewrites*. Adopting updates the store
-   and persists via `pushTeaDiscoveryProfile`; the original answers are kept. Honesty guardrail: only
-   depth is observable from the journal, so the re-derivation only moves level (and surfaces "The Deep
-   Diver" at the top) — temperament/motivation-driven dispositions are never fabricated from behavior.
+5. **Learned disposition (opt-in).** `suggestEvolution()` re-derives level + disposition from
+   **honestly observable** signals and, when practice has clearly outgrown the stated profile, the
+   result screen offers an **"Adopt this"** card — *suggests, never silently rewrites*. Adopting
+   updates the store and persists via `pushTeaDiscoveryProfile`; original answers are kept.
+   - **Depth** (tasting volume) → level, and *The Deep Diver* at the top.
+   - **Group sessions** (`api.me.journey` → `sessionsAttended`) → a social temperament → *The Host*.
+   - **Tasting-note richness** (`noteRichness`) → a flavor & craft motivation → *The Flavor Seeker*.
+
+   The honesty guardrail holds: it only ever re-derives from dimensions Teajia can actually see.
+   What it *can't* see (solo/pair temperament, stillness/energy/calm motivation) is handled by a
+   **"Still true?" micro re-ask** on the result screen — a single-question check-in (currently
+   temperament) shown when the profile is ~2 weeks old; answering re-derives and refreshes
+   `completedAt`. Stated, never inferred.
 
 ## Remaining
 - **Drift in Journey/Passport.** The learned disposition is opt-in on the discovery screen; it is not

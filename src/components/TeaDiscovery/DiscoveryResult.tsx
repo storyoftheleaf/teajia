@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, RotateCcw } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { LogoEmblem } from '../Logos/LogoEmblem';
 import { useAppStore } from '../../lib/store';
+import { api } from '../../lib/api';
 import { DISPOSITIONS } from './dispositions';
 import { QUESTIONS, optionLabel } from './questions';
 import { recommend } from './recommendations';
-import { observePalate, suggestEvolution, type FlavorFamily } from './evolution';
+import { observePalate, noteRichness, suggestEvolution, type FlavorFamily } from './evolution';
 import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
+
+const DAYS = 86_400_000;
+/** The dimension behaviour can't observe — re-asked, never inferred. */
+const TEMPERAMENT_Q = QUESTIONS.find((q) => q.id === 'temperament')!;
 
 /** Human label for a flavor family — matches the quiz's swatch wording. */
 const FAMILY_LABEL: Record<FlavorFamily, string> = {
@@ -22,6 +27,8 @@ interface DiscoveryResultProps {
   onRetake: () => void;
   /** Adopt a behaviour-suggested level/disposition (opt-in; never automatic). */
   onAdopt: (level: DiscoveryLevel, dispositionId: string) => void;
+  /** Re-answer a single question ("still true?") and re-derive the profile. */
+  onReanswer: (questionId: string, value: string | string[]) => void;
 }
 
 /** Short, editorial key for each question on the summary list. */
@@ -33,20 +40,33 @@ const SUMMARY_KEYS: Record<string, string> = {
   motivation: 'Tea gives you',
 };
 
-export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake, onAdopt }) => {
+export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake, onAdopt, onReanswer }) => {
   const authUser = useAppStore((s) => s.authUser);
   const tastingJournal = useAppStore((s) => s.tastingJournal);
   const disposition = DISPOSITIONS[profile.dispositionId] ?? DISPOSITIONS.curiousBeginner;
 
-  // Evolution loop — observe what they actually drink and let it refine the
-  // recommendations + show growth. The chosen disposition is never overwritten.
+  // Group sessions attended — observed temperament signal (Route A). Members only.
+  const [sessionsAttended, setSessionsAttended] = useState(0);
+  useEffect(() => {
+    if (!authUser) return;
+    let alive = true;
+    api.me.journey()
+      .then((j: any) => { if (alive) setSessionsAttended(j?.sessionsAttended ?? 0); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [authUser]);
+
+  // Evolution loop — observe what they actually drink/do and let it refine the
+  // recommendations + suggest growth. The chosen disposition is never overwritten.
   const observed = observePalate(tastingJournal);
   const recommendations = recommend(profile, observed);
   const statedFlavor = profile.answers.flavor as string | undefined;
 
-  // Behaviour-suggested evolution (opt-in). Takes priority over the lighter
-  // flavor-drift nudge when present.
-  const suggestion = suggestEvolution(profile, observed);
+  // Behaviour-suggested evolution (opt-in). Depth + sessions + note richness.
+  const suggestion = suggestEvolution(profile, observed, {
+    sessionsAttended,
+    noteRichness: noteRichness(tastingJournal),
+  });
   const suggestedDisposition = suggestion ? DISPOSITIONS[suggestion.dispositionId] : null;
 
   // Drift: their cups lean somewhere their stated answer didn't (and they had one).
@@ -57,6 +77,14 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
     statedFlavor != null &&
     statedFlavor !== 'unsure' &&
     statedFlavor !== observed.flavorLean;
+
+  // "Still true?" — periodically re-ask the one thing behaviour can't observe
+  // (temperament). Shown when the profile is a couple of weeks old and no
+  // stronger evolution prompt is up. Answering refreshes completedAt, so it
+  // settles for another fortnight.
+  const profileAgeDays = (Date.now() - new Date(profile.completedAt).getTime()) / DAYS;
+  const currentTemperament = profile.answers.temperament as string | undefined;
+  const showReask = !suggestion && profileAgeDays >= 14;
 
   const summary = QUESTIONS.map((q) => {
     const a = profile.answers[q.id];
@@ -154,6 +182,35 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
             </Link>{' '}
             and watch it grow.
           </p>
+        </div>
+      )}
+
+      {/* "Still true?" — re-ask the one dimension behaviour can't observe. */}
+      {showReask && (
+        <div className="mt-4 rounded-xl border border-tea-border bg-tea-surface px-5 py-4">
+          <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim mb-2">
+            Still true?
+          </p>
+          <p className="font-body text-ui-15 text-tea-text mb-3">{TEMPERAMENT_Q.prompt}</p>
+          <div className="flex flex-wrap gap-2">
+            {TEMPERAMENT_Q.options.map((opt) => {
+              const isCurrent = opt.id === currentTemperament;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => onReanswer(TEMPERAMENT_Q.id, opt.id)}
+                  className={`rounded-xl border px-3 py-1.5 font-body text-ui-13 transition-colors ${
+                    isCurrent
+                      ? 'border-tea-gold bg-tea-gold/8 text-tea-text'
+                      : 'border-tea-border bg-tea-surface text-tea-text-sec hover:border-tea-gold/40 hover:text-tea-text'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

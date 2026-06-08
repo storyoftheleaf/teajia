@@ -49,6 +49,17 @@ export default function DiscoverPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // "Still true?" — re-answer a single question and re-derive the whole profile
+  // from the updated answers. Stated, never inferred.
+  const handleReanswer = (questionId: string, value: string | string[]) => {
+    if (!profile) return;
+    const answers = { ...profile.answers, [questionId]: value };
+    const { level, disposition } = deriveProfile(answers);
+    const updated = { answers, level, dispositionId: disposition.id, completedAt: new Date().toISOString() };
+    setProfile(updated);
+    void pushTeaDiscoveryProfile(updated);
+  };
+
   return (
     <div className="min-h-screen pb-nav-gap-lg">
       <Helmet>
@@ -70,7 +81,12 @@ export default function DiscoverPage() {
       )}
 
       {view === 'result' && profile && (
-        <DiscoveryResult profile={profile} onRetake={handleRetake} onAdopt={handleAdopt} />
+        <DiscoveryResult
+          profile={profile}
+          onRetake={handleRetake}
+          onAdopt={handleAdopt}
+          onReanswer={handleReanswer}
+        />
       )}
     </div>
   );
