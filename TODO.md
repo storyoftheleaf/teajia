@@ -4,7 +4,13 @@
 
 ### MCP: Voice & Agent
 
-- [ ] Get the voice assistant connecting from a phone (works on desktop, fails on mobile) _(band: you-required)_ _(effort: deep)_ → Plan: [mobile-oauth.md](todo/plans/mobile-oauth.md)
+- [ ] Verify the phone connection on a real iPhone — the mobile-login bug was root-caused (the in-app browser dropped the login parameters on redirect) and fixed by passing them in the URL path instead; desktop already works _(band: you-required)_ _(effort: quick)_ → Plan: [mobile-oauth.md](todo/plans/mobile-oauth.md)
+- [ ] Add a Cloudflare rate-limiting rule in front of the public shop assistant (`/mcp/public`) — code has a basic limiter, but real protection is a dashboard/WAF rule _(band: you-required)_ _(effort: quick)_
+- [x] The assistant can now look things up, not just change things — read invoices, customer histories, sales summaries, and account context _(done 2026-06-06, PR #192)_
+- [x] Fix the assistant randomly forgetting a pending confirmation mid-conversation _(done 2026-06-06, PR #192: confirmations now stored in the database, not per-server memory)_
+- [x] Let the public's own AI browse the catalogue and build a WhatsApp order link _(done 2026-06-06, PR #192: read-only `/mcp/public` server)_
+- [x] Make Teajia legible to AI assistants — `llms.txt` guide + machine-readable tags on the site and articles _(done 2026-06-06, PR #192)_
+- [x] Let owners choose what a connected app is allowed to do, instead of a fixed permission set _(done 2026-06-06, PR #192)_
 
 ### Magazine / Journal Reader
 

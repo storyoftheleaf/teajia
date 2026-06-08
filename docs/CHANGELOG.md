@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see ROADMAP.md. For active in-progress briefs see ACTIVE_BRIEFS.md.
 
+## 2026-06
+
+- 2026-06-06 — **MCP read tools + public shop assistant + AI discoverability** (PR #192). Voice/agent assistant gained read tools (`get_account_context`, `get_customer`, `list_invoices`, `get_invoice`, `sales_summary`) so it can report and look things up, not just mutate; new `sales:read` scope with write-implies-read so existing tokens keep working. Confirmation tickets now persist in D1 (`mcp_confirmation_tickets`) instead of per-isolate memory, fixing spurious "expired token" errors. New public, unauthenticated, read-only MCP at `/mcp/public` (`search_tea`, `get_tea`, `browse_catalog`, `prepare_order` → WhatsApp checkout link). OAuth: mobile consent passed via URL path (fixes Claude-mobile param drop, migration 082) + scope selection + real approver tier. AI discoverability: `public/llms.txt`, Organization/WebSite JSON-LD in `index.html`, Article JSON-LD on `ArticlePage`. Protocol bumped to `2025-06-18` with `structuredContent` + tool annotations.
+
 ## 2026-05
 
 - 2026-05-10 — Relationship taxonomy tightened with owner-only private notes, contributor/contact links, and People audit suggestions.

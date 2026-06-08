@@ -106,6 +106,7 @@ type OAuthApprovalContext = {
   userId: string;
   userEmail: string;
   accountId: string;
+  creatorTier: McpCreatorTier;
 };
 
 async function resolveOAuthApprovalContext(
@@ -139,7 +140,10 @@ async function resolveOAuthApprovalContext(
     if (account.status === 'suspended') {
       return corsJson({ error: 'access_denied', error_description: 'Account is suspended' }, 403);
     }
-    return { userId: user.id, userEmail: user.email || claims.email, accountId };
+    // platform_owner unlocks platform-wide tools (exchange rates); platform_admin
+    // gets account-owner tier on the target account.
+    const tier: McpCreatorTier = platformRole === 'platform_owner' ? 'platform_owner' : 'account_owner';
+    return { userId: user.id, userEmail: user.email || claims.email, accountId, creatorTier: tier };
   }
 
   const membership = await env.DB.prepare(
@@ -159,7 +163,7 @@ async function resolveOAuthApprovalContext(
     return corsJson({ error: 'access_denied', error_description: 'Owner-tier access required for MCP OAuth approval' }, 403);
   }
 
-  return { userId: user.id, userEmail: user.email || claims.email, accountId };
+  return { userId: user.id, userEmail: user.email || claims.email, accountId, creatorTier: 'account_owner' };
 }
 
 // ── token auth ──
@@ -177,7 +181,7 @@ type McpAuth = {
 };
 
 const MCP_SCOPES = [
-  'inventory:read', 'stock:write', 'customers:read', 'sales:write',
+  'inventory:read', 'stock:write', 'customers:read', 'sales:read', 'sales:write',
   'catalog:write', 'customers:write', 'admin:write',
 ] as const;
 type McpScope = typeof MCP_SCOPES[number];
@@ -186,9 +190,21 @@ type McpScope = typeof MCP_SCOPES[number];
 // AND at dispatch (in case someone edits the DB row directly).
 const OWNER_TIER_SCOPES: ReadonlySet<McpScope> = new Set(['catalog:write', 'customers:write', 'admin:write']);
 
+// A held write scope implicitly grants the matching read scope — so a token
+// minted before `sales:read` existed (it only had `sales:write`) can still use
+// the new invoice/summary read tools, and operators never have to think about
+// granting read alongside write. Read tools check the read scope; write tools
+// keep checking the write scope directly.
+const SCOPE_IMPLIES: Partial<Record<McpScope, McpScope[]>> = {
+  'stock:write': ['inventory:read'],
+  'catalog:write': ['inventory:read'],
+  'sales:write': ['sales:read', 'inventory:read'],
+  'customers:write': ['customers:read'],
+};
+
 // Default set for tokens minted without explicit scope selection (legacy +
 // OAuth flow). Does NOT include owner-tier scopes.
-const DEFAULT_MCP_SCOPES: McpScope[] = ['inventory:read', 'stock:write', 'customers:read', 'sales:write'];
+const DEFAULT_MCP_SCOPES: McpScope[] = ['inventory:read', 'stock:write', 'customers:read', 'sales:read', 'sales:write'];
 
 function parseMcpScopes(raw: unknown): McpScope[] {
   if (!raw) return DEFAULT_MCP_SCOPES;
@@ -202,7 +218,8 @@ function parseMcpScopes(raw: unknown): McpScope[] {
 }
 
 function hasMcpScope(auth: McpAuth, scope: McpScope): boolean {
-  return auth.scopes.includes(scope);
+  if (auth.scopes.includes(scope)) return true;
+  return auth.scopes.some(held => SCOPE_IMPLIES[held]?.includes(scope));
 }
 
 // 401 with WWW-Authenticate header — required by the MCP OAuth spec so
@@ -289,27 +306,44 @@ type PendingMutation =
   | { kind: 'create_tea'; accountId: string; userEmail: string; product: NewTeaInput }
   | { kind: 'mark_invoice_paid'; accountId: string; userEmail: string; invoiceId: string; invoiceNumber: string; paymentMethod: string; fulfillStock: boolean };
 
-type PendingEntry = { mutation: PendingMutation; expiresAt: number };
-const PENDING = new Map<string, PendingEntry>();
 const PENDING_TTL_MS = 5 * 60 * 1000;
 
-function issueConfirmationToken(mutation: PendingMutation): string {
-  // Sweep expired entries opportunistically so the map doesn't grow unbounded
-  // in a long-lived isolate.
+// Confirmation tickets are persisted in D1 (mcp_confirmation_tickets), NOT in
+// module memory: Cloudflare may route the preview call and the confirm call to
+// different isolates, and isolates are recycled freely — an in-memory Map loses
+// pending mutations across both boundaries, surfacing as spurious
+// `invalid_or_expired_confirmation_token` errors mid voice round-trip.
+//
+// We hand the model a random UUID and store only its SHA-256 hash, so a leaked
+// ticket row can't be replayed. Consumption is a single atomic UPDATE…RETURNING
+// guarded on `consumed_at IS NULL`, which makes confirms single-use even under
+// concurrent calls.
+async function issueConfirmationToken(env: Env, mutation: PendingMutation): Promise<string> {
   const now = Date.now();
-  for (const [k, v] of PENDING) if (v.expiresAt < now) PENDING.delete(k);
+  // Opportunistically reap expired/spent rows so the table doesn't grow
+  // unbounded (best-effort, non-blocking).
+  env.DB.prepare('DELETE FROM mcp_confirmation_tickets WHERE expires_at < ?')
+    .bind(now).run().catch(() => {});
 
   const token = crypto.randomUUID();
-  PENDING.set(token, { mutation, expiresAt: now + PENDING_TTL_MS });
+  const tokenHash = await sha256Hex(token);
+  await env.DB.prepare(
+    `INSERT INTO mcp_confirmation_tickets (token_hash, account_id, kind, payload_json, expires_at)
+     VALUES (?, ?, ?, ?, ?)`
+  ).bind(tokenHash, mutation.accountId, mutation.kind, JSON.stringify(mutation), now + PENDING_TTL_MS).run();
   return token;
 }
 
-function consumeConfirmationToken(token: string): PendingMutation | null {
-  const entry = PENDING.get(token);
-  if (!entry) return null;
-  PENDING.delete(token);
-  if (entry.expiresAt < Date.now()) return null;
-  return entry.mutation;
+async function consumeConfirmationToken(env: Env, token: string): Promise<PendingMutation | null> {
+  const tokenHash = await sha256Hex(token);
+  const now = Date.now();
+  const row = await env.DB.prepare(
+    `UPDATE mcp_confirmation_tickets SET consumed_at = ?
+       WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ?
+     RETURNING payload_json`
+  ).bind(now, tokenHash, now).first() as { payload_json: string } | null;
+  if (!row) return null;
+  try { return JSON.parse(row.payload_json) as PendingMutation; } catch { return null; }
 }
 
 // ── tea name search helpers ──
@@ -429,7 +463,7 @@ type NewTeaInput = {
 async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   const confirm = args?.confirm ? String(args.confirm) : null;
   if (confirm) {
-    const pending = consumeConfirmationToken(confirm);
+    const pending = await consumeConfirmationToken(env, confirm);
     if (!pending || pending.kind !== 'create_tea') {
       return { error: 'invalid_or_expired_confirmation_token' };
     }
@@ -464,7 +498,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
     status: args?.status ? String(args.status).trim() : 'Active',
   };
 
-  const token = issueConfirmationToken({
+  const token = await issueConfirmationToken(env, {
     kind: 'create_tea', accountId: auth.accountId, userEmail: auth.userEmail, product,
   });
   return {
@@ -717,6 +751,238 @@ async function toolFindCustomer(env: Env, accountId: string, args: any) {
   };
 }
 
+// ── tool: get_account_context ──
+//
+// Lets the model orient itself before quoting prices or numbering invoices:
+// which account it's on, the default currency + invoice prefix, the WhatsApp
+// number used for checkout, and a few live counts. Without this the model
+// silently assumes USD and has no idea how many invoices are unpaid.
+async function toolGetAccountContext(env: Env, accountId: string) {
+  const acct = await env.DB.prepare(
+    `SELECT id, name, slug, currency_default, invoice_prefix, invoice_seq,
+            whatsapp_number, contact_email, location_city, location_country,
+            timezone, status
+       FROM accounts WHERE id = ?`
+  ).bind(accountId).first() as Record<string, any> | null;
+  if (!acct) return { error: 'account_not_found' };
+
+  const counts = await env.DB.prepare(
+    `SELECT
+        (SELECT COUNT(*) FROM products WHERE account_id = ?1 AND status != 'Archived') AS active_products,
+        (SELECT COUNT(*) FROM products WHERE account_id = ?1 AND status != 'Archived'
+           AND low_stock_threshold IS NOT NULL AND stock_grams < low_stock_threshold) AS low_stock,
+        (SELECT COUNT(*) FROM invoices WHERE account_id = ?1 AND deleted_at IS NULL
+           AND status != 'Void' AND COALESCE(payment_status, 'unpaid') != 'paid') AS unpaid_invoices,
+        (SELECT COUNT(*) FROM customers WHERE account_id = ?1) AS customers`
+  ).bind(accountId).first() as Record<string, any> | null;
+
+  const { results: rates } = await env.DB.prepare(
+    'SELECT currency, rate_to_usd FROM exchange_rates ORDER BY currency'
+  ).all();
+
+  return {
+    account: {
+      id: acct.id,
+      name: acct.name,
+      slug: acct.slug,
+      default_currency: acct.currency_default,
+      invoice_prefix: acct.invoice_prefix,
+      next_invoice_seq: (Number(acct.invoice_seq) || 0) + 1,
+      whatsapp_number: acct.whatsapp_number,
+      contact_email: acct.contact_email,
+      location: [acct.location_city, acct.location_country].filter(Boolean).join(', ') || null,
+      timezone: acct.timezone,
+      status: acct.status,
+    },
+    counts: counts ?? {},
+    exchange_rates: rates,
+  };
+}
+
+// ── tool: get_customer ──
+//
+// Full profile for one customer by id, including tags, lifetime spend, and the
+// last 10 invoices. find_customer locates the id; this reads the dossier.
+async function toolGetCustomer(env: Env, accountId: string, args: any) {
+  const id = String(args?.id || '').trim();
+  if (!id) throw new Error('id is required');
+
+  const customer = await env.DB.prepare(
+    `SELECT id, name, company, email, phone, whatsapp, address, city, country,
+            preferred_currency, notes, source, created_at
+       FROM customers WHERE id = ? AND account_id = ?`
+  ).bind(id, accountId).first() as Record<string, any> | null;
+  if (!customer) return { error: 'not_found' };
+
+  const { results: tagRows } = await env.DB.prepare(
+    'SELECT tag FROM customer_tags WHERE account_id = ? AND customer_id = ? ORDER BY tag ASC'
+  ).bind(accountId, id).all();
+
+  const { results: invoices } = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.status, i.payment_status, i.created_at,
+            COALESCE((SELECT SUM(quantity * price_at_sale) FROM invoice_line_items WHERE invoice_id = i.id), 0) AS total_usd
+       FROM invoices i
+      WHERE i.account_id = ? AND i.customer_id = ? AND i.deleted_at IS NULL
+      ORDER BY i.created_at DESC LIMIT 10`
+  ).bind(accountId, id).all();
+
+  const lifetime = await env.DB.prepare(
+    `SELECT
+        COUNT(DISTINCT i.id) AS invoice_count,
+        COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) AS lifetime_spend_usd
+       FROM invoices i
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
+      WHERE i.account_id = ? AND i.customer_id = ? AND i.deleted_at IS NULL AND i.status != 'Void'`
+  ).bind(accountId, id).first() as Record<string, any> | null;
+
+  return {
+    ...customer,
+    tags: (tagRows as any[]).map(r => r.tag),
+    lifetime_spend_usd: Math.round(Number(lifetime?.lifetime_spend_usd || 0) * 100) / 100,
+    invoice_count: Number(lifetime?.invoice_count || 0),
+    recent_invoices: invoices,
+  };
+}
+
+// ── tool: list_invoices ──
+//
+// The read side that voiding/fulfilling/marking-paid previously lacked — the
+// model can now FIND an invoice id instead of guessing or relying on "most
+// recent unpaid". Filterable by status, payment_status, customer, or free text.
+async function toolListInvoices(env: Env, accountId: string, args: any) {
+  const limit = Math.min(Math.max(Number(args?.limit) || 20, 1), 100);
+  const wheres: string[] = ['i.account_id = ?', 'i.deleted_at IS NULL'];
+  const binds: any[] = [accountId];
+
+  if (args?.status) { wheres.push('i.status = ?'); binds.push(String(args.status)); }
+  if (args?.payment_status) { wheres.push("COALESCE(i.payment_status, 'unpaid') = ?"); binds.push(String(args.payment_status)); }
+  if (args?.customer_id) { wheres.push('i.customer_id = ?'); binds.push(String(args.customer_id)); }
+  if (args?.unpaid_only) { wheres.push("COALESCE(i.payment_status, 'unpaid') != 'paid' AND i.status != 'Void'"); }
+  if (args?.query) {
+    const q = `%${String(args.query).trim()}%`;
+    wheres.push('(i.invoice_number LIKE ? OR i.customer_name LIKE ?)');
+    binds.push(q, q);
+  }
+
+  const { results } = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.customer_name, i.customer_id, i.status,
+            COALESCE(i.payment_status, 'unpaid') AS payment_status, i.created_at,
+            COALESCE((SELECT SUM(quantity * price_at_sale) FROM invoice_line_items WHERE invoice_id = i.id), 0) AS total_usd
+       FROM invoices i
+      WHERE ${wheres.join(' AND ')}
+      ORDER BY i.created_at DESC
+      LIMIT ?`
+  ).bind(...binds, limit).all();
+
+  return {
+    invoices: (results as any[]).map(r => ({ ...r, total_usd: Math.round(Number(r.total_usd) * 100) / 100 })),
+    count: results.length,
+  };
+}
+
+// ── tool: get_invoice ──
+//
+// Full invoice by id or invoice_number, with line items. Pairs with the write
+// tools (update_invoice / void_invoice / fulfill_invoice / mark_invoice_paid).
+async function toolGetInvoice(env: Env, accountId: string, args: any) {
+  const id = args?.invoice_id ? String(args.invoice_id).trim() : '';
+  const number = args?.invoice_number ? String(args.invoice_number).trim() : '';
+  if (!id && !number) throw new Error('invoice_id or invoice_number is required');
+
+  const invoice = id
+    ? await env.DB.prepare(
+        `SELECT * FROM invoices WHERE id = ? AND account_id = ? AND deleted_at IS NULL`
+      ).bind(id, accountId).first() as Record<string, any> | null
+    : await env.DB.prepare(
+        `SELECT * FROM invoices WHERE invoice_number = ? AND account_id = ? AND deleted_at IS NULL`
+      ).bind(number, accountId).first() as Record<string, any> | null;
+
+  if (!invoice) return { error: 'invoice_not_found' };
+
+  const { results: items } = await env.DB.prepare(
+    `SELECT ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale,
+            p.given_name, p.product_name,
+            ROUND(ili.quantity * ili.price_at_sale, 2) AS line_total_usd
+       FROM invoice_line_items ili
+       LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+      WHERE ili.invoice_id = ? AND ili.account_id = ?`
+  ).bind(accountId, invoice.id, accountId).all();
+
+  const total = (items as any[]).reduce((s, l) => s + Number(l.line_total_usd || 0), 0);
+
+  return {
+    invoice: {
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      customer_name: invoice.customer_name,
+      customer_id: invoice.customer_id,
+      customer_whatsapp: invoice.customer_whatsapp,
+      status: invoice.status,
+      payment_status: invoice.payment_status ?? 'unpaid',
+      payment_date: invoice.payment_date ?? null,
+      payment_method: invoice.payment_method ?? null,
+      inventory_deducted: !!invoice.inventory_deducted,
+      notes: invoice.notes ?? null,
+      created_at: invoice.created_at,
+    },
+    line_items: (items as any[]).map(l => ({
+      product_id: l.product_id,
+      product_name: l.given_name || l.product_name || l.custom_name || '(custom item)',
+      grams: l.quantity,
+      price_per_gram_usd: l.price_at_sale,
+      line_total_usd: l.line_total_usd,
+    })),
+    total_usd: Math.round(total * 100) / 100,
+  };
+}
+
+// ── tool: sales_summary ──
+//
+// Revenue + volume over a recent window, with the top teas by revenue. Answers
+// "how did this week go?" — previously unanswerable through MCP.
+async function toolSalesSummary(env: Env, accountId: string, args: any) {
+  const days = Math.min(Math.max(Number(args?.days) || 30, 1), 365);
+  const since = `-${days} days`;
+
+  const totals = await env.DB.prepare(
+    `SELECT
+        COUNT(DISTINCT i.id) AS invoice_count,
+        COUNT(DISTINCT CASE WHEN COALESCE(i.payment_status, 'unpaid') = 'paid' THEN i.id END) AS paid_count,
+        COUNT(DISTINCT CASE WHEN COALESCE(i.payment_status, 'unpaid') != 'paid' THEN i.id END) AS unpaid_count,
+        COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) AS gross_revenue_usd,
+        COALESCE(SUM(ili.quantity), 0) AS grams_sold
+       FROM invoices i
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
+      WHERE i.account_id = ? AND i.deleted_at IS NULL AND i.status != 'Void'
+        AND i.created_at >= datetime('now', ?)`
+  ).bind(accountId, since).first() as Record<string, any> | null;
+
+  const { results: topProducts } = await env.DB.prepare(
+    `SELECT ili.product_id,
+            COALESCE(p.given_name, p.product_name, ili.custom_name, '(custom)') AS product_name,
+            SUM(ili.quantity) AS grams_sold,
+            ROUND(SUM(ili.quantity * ili.price_at_sale), 2) AS revenue_usd
+       FROM invoices i
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
+       LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ?
+      WHERE i.account_id = ? AND i.deleted_at IS NULL AND i.status != 'Void'
+        AND i.created_at >= datetime('now', ?)
+      GROUP BY ili.product_id
+      ORDER BY revenue_usd DESC
+      LIMIT 5`
+  ).bind(accountId, accountId, since).all();
+
+  return {
+    period_days: days,
+    invoice_count: Number(totals?.invoice_count || 0),
+    paid_count: Number(totals?.paid_count || 0),
+    unpaid_count: Number(totals?.unpaid_count || 0),
+    gross_revenue_usd: Math.round(Number(totals?.gross_revenue_usd || 0) * 100) / 100,
+    grams_sold: Number(totals?.grams_sold || 0),
+    top_products: topProducts,
+  };
+}
+
 // ── tool: add_stock (preview / confirm) ──
 async function toolAddStock(env: Env, auth: McpAuth, args: any) {
   const productId = String(args?.id || '').trim();
@@ -735,7 +1001,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
 
     const current = Number(product.stock_grams || 0);
     const next = current + grams;
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'add_stock', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, grams, note,
     });
@@ -753,7 +1019,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'add_stock' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -827,7 +1093,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
       };
     }
     const next = current - grams;
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'remove_stock', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, grams, reason, note,
     });
@@ -847,7 +1113,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'remove_stock' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -979,7 +1245,7 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
   const total = previewLines.reduce((s, l) => s + l.line_total_usd, 0);
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'record_sale', accountId: auth.accountId, userEmail: auth.userEmail,
       lines: previewLines.map(l => ({ productId: l.product_id, grams: l.grams, pricePerGramUsd: l.price_per_gram_usd })),
       customerId, customerName: customerNameResolved, customerWhatsapp, notes,
@@ -1001,7 +1267,7 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'record_sale') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1139,7 +1405,7 @@ async function toolCreateCustomer(env: Env, auth: McpAuth, args: any) {
     : null;
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'create_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       name, whatsapp, email, phone, notes, tags,
     });
@@ -1154,7 +1420,7 @@ async function toolCreateCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'create_customer') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1208,7 +1474,7 @@ async function toolUpdateCustomer(env: Env, auth: McpAuth, args: any) {
     for (const [k, v] of Object.entries(fields)) {
       changes[k] = { old: customer[k] ?? null, new: v };
     }
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'update_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, fields,
     });
@@ -1223,7 +1489,7 @@ async function toolUpdateCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'update_customer' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1289,7 +1555,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
       ? `Margin will be ${Math.round(((newRetail - newCost) / newRetail) * 100)}% — below the 30% floor.`
       : null;
 
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, costAmount, costCurrency, retailPriceUsd,
     });
@@ -1309,7 +1575,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'update_tea_pricing' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1364,7 +1630,7 @@ async function toolSetLowStockThreshold(env: Env, auth: McpAuth, args: any) {
   const oldThreshold = product.low_stock_threshold ?? null;
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'set_low_stock_threshold', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, thresholdGrams,
     });
@@ -1382,7 +1648,7 @@ async function toolSetLowStockThreshold(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'set_low_stock_threshold' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1435,7 +1701,7 @@ async function toolUpdateInvoice(env: Env, auth: McpAuth, args: any) {
     for (const [k, v] of Object.entries(fields)) {
       changes[k] = { old: invoice[k] ?? null, new: v };
     }
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'update_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
       invoiceId, fields,
     });
@@ -1451,7 +1717,7 @@ async function toolUpdateInvoice(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'update_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1505,7 +1771,7 @@ async function toolVoidInvoice(env: Env, auth: McpAuth, args: any) {
   ).bind(auth.accountId, invoiceId, auth.accountId).all();
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'void_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
       invoiceId, reason,
     });
@@ -1532,7 +1798,7 @@ async function toolVoidInvoice(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'void_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1661,7 +1927,7 @@ async function toolTagCustomer(env: Env, auth: McpAuth, args: any) {
   const alreadyPresent = currentTags.includes(tag);
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'tag_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, tag,
     });
@@ -1679,7 +1945,7 @@ async function toolTagCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'tag_customer' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1726,7 +1992,7 @@ async function toolUntagCustomer(env: Env, auth: McpAuth, args: any) {
   const tagPresent = currentTags.includes(tag);
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'untag_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, tag,
     });
@@ -1744,7 +2010,7 @@ async function toolUntagCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'untag_customer' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1793,7 +2059,7 @@ async function toolLinkVendor(env: Env, auth: McpAuth, args: any) {
   const existingLink = product.vendor_id === customerId;
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'link_vendor', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, productId, note,
     });
@@ -1816,7 +2082,7 @@ async function toolLinkVendor(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'link_vendor' || pending.customerId !== customerId || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1880,7 +2146,7 @@ async function toolUnlinkVendor(env: Env, auth: McpAuth, args: any) {
   }
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'unlink_vendor', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, productId,
     });
@@ -1895,7 +2161,7 @@ async function toolUnlinkVendor(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'unlink_vendor' || pending.customerId !== customerId || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1947,7 +2213,7 @@ async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
   const newStatus = archived ? 'Archived' : 'Active';
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'set_archive_status', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, archived, reason,
     });
@@ -1968,7 +2234,7 @@ async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'set_archive_status' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2073,7 +2339,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
   }
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'fulfill_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
       invoiceId,
     });
@@ -2098,7 +2364,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'fulfill_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2226,7 +2492,7 @@ async function commitFulfillInvoice(
 async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
   const confirm = args?.confirm ? String(args.confirm) : null;
   if (confirm) {
-    const pending = consumeConfirmationToken(confirm);
+    const pending = await consumeConfirmationToken(env, confirm);
     if (!pending || pending.kind !== 'mark_invoice_paid') {
       return { error: 'invalid_or_expired_confirmation_token' };
     }
@@ -2246,7 +2512,7 @@ async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
     return { error: 'invoice_not_found', invoice_id: invoiceId || null, invoice_number: invoiceNumber || null };
   }
 
-  const token = issueConfirmationToken({
+  const token = await issueConfirmationToken(env, {
     kind: 'mark_invoice_paid', accountId: auth.accountId, userEmail: auth.userEmail,
     invoiceId: row.id, invoiceNumber: row.invoice_number,
     paymentMethod, fulfillStock,
@@ -2415,7 +2681,7 @@ async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
     for (const [k, v] of Object.entries(requestedFields) as [AccountSettingsField, string | null][]) {
       fields[k] = v;
     }
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'update_account_settings', accountId: auth.accountId, userEmail: auth.userEmail,
       fields,
     });
@@ -2430,7 +2696,7 @@ async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'update_account_settings') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2505,7 +2771,7 @@ async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
   const previousRate = Number(existing.rate_to_usd);
 
   if (!confirm) {
-    const token = issueConfirmationToken({
+    const token = await issueConfirmationToken(env, {
       kind: 'update_exchange_rate', accountId: auth.accountId, userEmail: auth.userEmail,
       currency, rateVsUsd, previousRate,
     });
@@ -2523,7 +2789,7 @@ async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = consumeConfirmationToken(confirm);
+  const pending = await consumeConfirmationToken(env, confirm);
   if (!pending || pending.kind !== 'update_exchange_rate' || pending.currency !== currency) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2588,11 +2854,66 @@ const TOOL_DEFS = [
   {
     name: 'find_customer',
     scope: 'customers:read',
-    description: 'Fuzzy-search customers by name, company, email, phone, or WhatsApp.',
+    description: 'Fuzzy-search customers by name, company, email, phone, or WhatsApp. Returns ids — use get_customer for the full dossier.',
     inputSchema: {
       type: 'object',
       properties: { query: { type: 'string' } },
       required: ['query'],
+    },
+  },
+  {
+    name: 'get_customer',
+    scope: 'customers:read',
+    description: 'Full profile for one customer by id: contact details, tags, lifetime spend, and the last 10 invoices. Use find_customer first to get the id.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Customer id from find_customer.' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'get_account_context',
+    scope: 'inventory:read',
+    description: 'Orientation for the active account: name, default currency, invoice prefix + next invoice number, WhatsApp checkout number, exchange rates, and live counts (active products, low-stock, unpaid invoices, customers). Call this first when you need to quote prices or reason about currency.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_invoices',
+    scope: 'sales:read',
+    description: 'List invoices, newest first, with totals. Filter by status, payment_status, customer_id, unpaid_only, or a free-text query over invoice number / customer name. This is how you find an invoice id for void_invoice, fulfill_invoice, or update_invoice.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', description: 'Filter by invoice status (Draft, Filled, Void).' },
+        payment_status: { type: 'string', description: 'Filter by payment status (unpaid, partial, paid).' },
+        customer_id: { type: 'string', description: 'Only invoices for this customer.' },
+        unpaid_only: { type: 'boolean', description: 'Shortcut for not-paid, not-void invoices.' },
+        query: { type: 'string', description: 'Free-text match on invoice number or customer name.' },
+        limit: { type: 'number', description: 'Max rows (default 20, max 100).', default: 20 },
+      },
+    },
+  },
+  {
+    name: 'get_invoice',
+    scope: 'sales:read',
+    description: 'Full invoice by id or invoice_number, including line items and totals.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        invoice_id: { type: 'string' },
+        invoice_number: { type: 'string', description: 'Used if invoice_id is omitted.' },
+      },
+    },
+  },
+  {
+    name: 'sales_summary',
+    scope: 'sales:read',
+    description: 'Revenue and volume over the last N days (default 30): invoice count, paid vs unpaid, gross revenue, grams sold, and the top 5 teas by revenue. Answers "how did this week/month go?".',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        days: { type: 'number', description: 'Look-back window in days (default 30, max 365).', default: 30 },
+      },
     },
   },
   {
@@ -2918,10 +3239,44 @@ function mcpContent(payload: unknown) {
   // MCP tool results are returned as a `content` array of typed parts. We
   // serialize the structured payload as JSON inside a text part — Claude
   // handles JSON-in-text reliably and it keeps the contract simple for any
-  // future non-Claude MCP client.
+  // future non-Claude MCP client — AND we mirror it into `structuredContent`
+  // (MCP 2025-06-18) so clients that prefer typed output can consume it
+  // directly. `structuredContent` must be an object, so non-object payloads
+  // are wrapped.
+  const isObject = typeof payload === 'object' && payload !== null;
   return {
     content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-    isError: typeof payload === 'object' && payload !== null && 'error' in (payload as any),
+    structuredContent: isObject ? payload : { value: payload },
+    isError: isObject && 'error' in (payload as any),
+  };
+}
+
+// MCP tool annotations (2025-06-18) — behavioural hints clients use to decide
+// what needs a human confirmation prompt and how to present a tool. Derived
+// from sets rather than hand-written on each def to keep TOOL_DEFS lean.
+const READ_ONLY_TOOLS = new Set([
+  'search_tea', 'get_tea', 'list_low_stock', 'find_customer',
+  'get_customer', 'get_account_context', 'list_invoices', 'get_invoice', 'sales_summary',
+]);
+// Tools whose commit can destroy or reverse value. void_invoice and
+// remove_stock unwind stock/sales; update_exchange_rate moves every account's
+// prices.
+const DESTRUCTIVE_TOOLS = new Set(['void_invoice', 'remove_stock', 'update_exchange_rate']);
+// Confirming twice with the same args lands in the same end state.
+const IDEMPOTENT_TOOLS = new Set([
+  'tag_customer', 'untag_customer', 'link_vendor', 'unlink_vendor',
+  'set_archive_status', 'set_low_stock_threshold', 'mark_invoice_paid',
+  'update_customer', 'update_invoice', 'update_tea_pricing',
+  'update_account_settings', 'update_exchange_rate',
+]);
+
+function annotationsFor(name: string) {
+  const readOnly = READ_ONLY_TOOLS.has(name);
+  return {
+    readOnlyHint: readOnly,
+    destructiveHint: DESTRUCTIVE_TOOLS.has(name),
+    idempotentHint: !readOnly && IDEMPOTENT_TOOLS.has(name),
+    openWorldHint: false,
   };
 }
 
@@ -2938,7 +3293,7 @@ function visibleToolDefs(auth: McpAuth) {
       if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
       return true;
     })
-    .map(({ scope: _scope, ...tool }) => tool);
+    .map(({ scope: _scope, ...tool }) => ({ ...tool, annotations: annotationsFor(tool.name) }));
 }
 
 const AUDITED_TOOLS = new Set([
@@ -3003,6 +3358,11 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
     case 'get_tea': result = mcpContent(await toolGetTea(env, auth.accountId, args)); break;
     case 'list_low_stock': result = mcpContent(await toolListLowStock(env, auth.accountId)); break;
     case 'find_customer': result = mcpContent(await toolFindCustomer(env, auth.accountId, args)); break;
+    case 'get_customer': result = mcpContent(await toolGetCustomer(env, auth.accountId, args)); break;
+    case 'get_account_context': result = mcpContent(await toolGetAccountContext(env, auth.accountId)); break;
+    case 'list_invoices': result = mcpContent(await toolListInvoices(env, auth.accountId, args)); break;
+    case 'get_invoice': result = mcpContent(await toolGetInvoice(env, auth.accountId, args)); break;
+    case 'sales_summary': result = mcpContent(await toolSalesSummary(env, auth.accountId, args)); break;
     case 'create_tea': result = mcpContent(await toolCreateTea(env, auth, args)); break;
     case 'add_stock': result = mcpContent(await toolAddStock(env, auth, args)); break;
     case 'remove_stock': result = mcpContent(await toolRemoveStock(env, auth, args)); break;
@@ -3031,11 +3391,14 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
 
 const SERVER_INFO = {
   name: 'teajia-inventory',
-  version: '0.3.0',
-  description: 'Voice-controlled inventory + invoicing for Teajia. Tools cover tea search, creating teas, stock adjustments, customer lookup, creating/voiding/fulfilling invoices, marking invoices paid, customer tags, vendor linking, catalog archive control, and (with owner-tier tokens) account settings and exchange rates.',
+  version: '0.4.0',
+  description: 'Voice-controlled inventory + invoicing for Teajia. Read tools cover tea search, account context, customer dossiers, invoice lookup/listing, and sales summaries. Write tools cover creating teas, stock adjustments, creating/voiding/fulfilling invoices, marking invoices paid, customer create/update/tag, vendor linking, catalog archive + pricing, and (with owner-tier tokens) account settings and exchange rates.',
 };
 
-const PROTOCOL_VERSION = '2024-11-05';
+// Default to the current rev (structured output + tool annotations). We echo
+// the client's requested protocolVersion when it sends one in `initialize`, so
+// older clients negotiate down cleanly instead of being forced to our default.
+const PROTOCOL_VERSION = '2025-06-18';
 
 export async function mcpFetch(request: Request, env: Env): Promise<Response> {
   if (request.method === 'GET') {
@@ -3069,12 +3432,14 @@ export async function mcpFetch(request: Request, env: Env): Promise<Response> {
 
   try {
     switch (method) {
-      case 'initialize':
+      case 'initialize': {
+        const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : null;
         return rpcResult(id, {
-          protocolVersion: PROTOCOL_VERSION,
-          capabilities: { tools: {} },
+          protocolVersion: requested || PROTOCOL_VERSION,
+          capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
         });
+      }
 
       case 'tools/list':
         return rpcResult(id, { tools: visibleToolDefs(auth) });
@@ -3259,21 +3624,96 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
 // GET /oauth/authorize — Claude opens this URL in a browser.
 //
 // Worker can't render HTML reliably (and we don't want a worker-side login
-// form), so we 302 to the Teajia frontend's /admin/oauth-consent page with
-// all the OAuth parameters in the query string. That page handles login (if
-// needed) and the user-facing approve/deny. On approve, the page POSTs back
-// to /oauth/authorize/decision below, which mints the auth code and 302s
-// back to Claude's redirect_uri.
+// form), so we send the user to the Teajia frontend's consent page. That page
+// handles login (if needed) and the user-facing approve/deny. On approve it
+// POSTs to /oauth/authorize/decision, which mints the auth code and hands back
+// a redirect to Claude's redirect_uri.
+//
+// We DO NOT forward the OAuth params in the redirect query string. Claude
+// mobile's in-app browser was observed to drop the query string on the 302
+// follow (see docs/MCP_MOBILE_OAUTH_TODO.md), leaving the consent page with no
+// client_id/code_challenge. Instead we persist the request in D1 and redirect
+// to `/admin/oauth-consent/<request_id>` — a path segment, which survives the
+// hop reliably. The consent page reads the id from the path and fetches the
+// params back from /oauth/authorize/request/<id>.
 //
 // CRITICAL: this redirect must go to the FRONTEND origin, not the worker
 // origin — the worker has no UI. We hard-code teajia.pages.dev because the
 // worker has no other reliable way to discover the frontend URL.
 const FRONTEND_ORIGIN = 'https://teajia.pages.dev';
+const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
-export function oauthAuthorize(request: Request): Response {
+export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
-  const consentUrl = `${FRONTEND_ORIGIN}/admin/oauth-consent${url.search}`;
-  return Response.redirect(consentUrl, 302);
+  const q = url.searchParams;
+  const now = Date.now();
+
+  // Opportunistic cleanup of expired pending requests.
+  env.DB.prepare('DELETE FROM oauth_authorize_requests WHERE expires_at < ?')
+    .bind(now).run().catch(() => {});
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO oauth_authorize_requests
+       (id, client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state, scope, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id,
+    q.get('client_id') || '',
+    q.get('redirect_uri') || '',
+    q.get('response_type') || 'code',
+    q.get('code_challenge') || '',
+    q.get('code_challenge_method') || '',
+    q.get('state'),
+    q.get('scope'),
+    now + AUTHORIZE_REQUEST_TTL_MS,
+  ).run();
+
+  return Response.redirect(`${FRONTEND_ORIGIN}/admin/oauth-consent/${id}`, 302);
+}
+
+// GET /oauth/authorize/request/:id — the consent page fetches the stored
+// authorize request (public OAuth params only) so it can render and POST a
+// decision. Returns the client's display name for the consent copy.
+export async function oauthAuthorizeRequestInfo(request: Request, env: Env, requestId: string): Promise<Response> {
+  const now = Date.now();
+  const row = await env.DB.prepare(
+    `SELECT client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state, scope, expires_at
+       FROM oauth_authorize_requests WHERE id = ?`
+  ).bind(requestId).first() as Record<string, any> | null;
+
+  if (!row || Number(row.expires_at) < now) {
+    return corsJson({ error: 'not_found', error_description: 'Authorization request expired or unknown. Restart the connection from your app.' }, 404);
+  }
+
+  const client = await env.DB.prepare('SELECT client_name FROM oauth_clients WHERE id = ?')
+    .bind(row.client_id).first() as { client_name: string } | null;
+
+  return corsJson({
+    request_id: requestId,
+    client_id: row.client_id,
+    client_name: client?.client_name || null,
+    redirect_uri: row.redirect_uri,
+    response_type: row.response_type,
+    code_challenge: row.code_challenge,
+    code_challenge_method: row.code_challenge_method,
+    state: row.state ?? null,
+    scope: row.scope ?? null,
+  });
+}
+
+// Filter a requested scope list to those valid for the approving user's tier.
+// Owner-tier scopes are stripped for non-owner tiers. Empty result falls back
+// to the safe default set. Applied at both decision and token mint (defense in
+// depth), mirroring mcpAdminMintToken.
+function sanitizeScopesForTier(requested: unknown, tier: McpCreatorTier): McpScope[] {
+  if (!Array.isArray(requested)) return DEFAULT_MCP_SCOPES;
+  const filtered = requested.filter((s): s is McpScope => {
+    if (!MCP_SCOPES.includes(s as McpScope)) return false;
+    if (OWNER_TIER_SCOPES.has(s as McpScope) && !OWNER_TIERS.has(tier)) return false;
+    return true;
+  });
+  return filtered.length > 0 ? Array.from(new Set(filtered)) : DEFAULT_MCP_SCOPES;
 }
 
 // POST /oauth/authorize/decision — called by the consent page after the user
@@ -3287,7 +3727,26 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     return corsJson({ error: 'invalid_request' }, 400);
   }
 
-  const { client_id, redirect_uri, code_challenge, code_challenge_method, state, account_id } = body || {};
+  // Two shapes accepted: the new flow passes `request_id` (params are loaded
+  // from the stored authorize request), the legacy flow passes the OAuth params
+  // inline. `scopes` (an array) is the user's consent-screen selection.
+  const { request_id, account_id, scopes: requestedScopes } = body || {};
+  let { client_id, redirect_uri, code_challenge, code_challenge_method, state } = body || {};
+
+  if (request_id) {
+    const reqRow = await env.DB.prepare(
+      `SELECT client_id, redirect_uri, code_challenge, code_challenge_method, state, expires_at
+         FROM oauth_authorize_requests WHERE id = ?`
+    ).bind(String(request_id)).first() as Record<string, any> | null;
+    if (!reqRow || Number(reqRow.expires_at) < Date.now()) {
+      return corsJson({ error: 'invalid_request', error_description: 'Authorization request expired or unknown' }, 400);
+    }
+    client_id = reqRow.client_id;
+    redirect_uri = reqRow.redirect_uri;
+    code_challenge = reqRow.code_challenge;
+    code_challenge_method = reqRow.code_challenge_method;
+    state = reqRow.state ?? null;
+  }
 
   if (!client_id || !redirect_uri || !code_challenge || code_challenge_method !== 'S256') {
     return corsJson({ error: 'invalid_request', error_description: 'Missing required PKCE params' }, 400);
@@ -3309,14 +3768,18 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uri not registered' }, 400);
   }
 
+  // Scopes the user granted on the consent screen, filtered to the approver's
+  // tier. Persisted on the code so token mint honours the selection.
+  const grantedScopes = sanitizeScopesForTier(requestedScopes, approval.creatorTier);
+
   // Mint a fresh single-use auth code (5 min TTL).
   const code = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
   const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   await env.DB.prepare(
     `INSERT INTO oauth_codes
-       (code, client_id, redirect_uri, user_id, user_email, account_id, code_challenge, code_challenge_method, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (code, client_id, redirect_uri, user_id, user_email, account_id, code_challenge, code_challenge_method, expires_at, scopes, creator_tier)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     code,
     client_id,
@@ -3327,7 +3790,14 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
     code_challenge,
     code_challenge_method,
     expires,
+    JSON.stringify(grantedScopes),
+    approval.creatorTier,
   ).run();
+
+  // Single-use authorize request — consume it now that a code is minted.
+  if (request_id) {
+    env.DB.prepare('DELETE FROM oauth_authorize_requests WHERE id = ?').bind(String(request_id)).run().catch(() => {});
+  }
 
   // Build the redirect URL the browser should go to next.
   const sep = redirect_uri.includes('?') ? '&' : '?';
@@ -3405,13 +3875,25 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     .bind(client_id).first() as { client_name: string } | null;
   const label = `OAuth: ${clientRow?.client_name || 'Unknown'}`;
 
+  // Honour the scopes + tier the user granted at consent. Re-filter by tier as
+  // defense in depth in case the code row was tampered with. Older codes minted
+  // before migration 082 have neither column → fall back to the safe default.
+  const grantTier: McpCreatorTier =
+    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(codeRow.creator_tier as McpCreatorTier)
+      ? (codeRow.creator_tier as McpCreatorTier)
+      : 'account_owner';
+  let grantScopes: McpScope[] = DEFAULT_MCP_SCOPES;
+  if (codeRow.scopes) {
+    try { grantScopes = sanitizeScopesForTier(JSON.parse(codeRow.scopes as string), grantTier); } catch { /* keep default */ }
+  }
+
   await env.DB.prepare(
     `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     tokenId,
     codeRow.account_id, codeRow.user_id, codeRow.user_email,
-    label, tokenHash, tokenPrefix, JSON.stringify(DEFAULT_MCP_SCOPES), 'account_owner',
+    label, tokenHash, tokenPrefix, JSON.stringify(grantScopes), grantTier,
   ).run();
 
   await env.DB.prepare(
@@ -3428,9 +3910,323 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
   return corsJson({
     access_token: accessToken,
     token_type: 'Bearer',
-    scope: DEFAULT_MCP_SCOPES.join(' '),
+    scope: grantScopes.join(' '),
     // No refresh token — clients can re-run the OAuth dance to get a new
     // access token, and the existing tokens stay valid in the meantime.
     // Most MCP clients treat the access token as long-lived by default.
   });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PUBLIC read-only MCP — unauthenticated catalog access for the shopping public
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Served at /mcp/public. Anyone's Claude/ChatGPT can browse the shop, read a
+// tea's profile, and assemble a WhatsApp checkout link — but it can only READ,
+// and only sees public-safe fields (no cost, no margin, no vendor, no exact
+// stock grams). This is the on-brand bridge from AI discovery to the
+// intentional human WhatsApp close: the model prepares the order, Adrian closes
+// it. There is no write surface and no auth — every tool here is harmless to a
+// stranger.
+//
+// Account scope: ?account=<slug>, else the platform-owner account.
+//
+// Abuse: a best-effort per-isolate token bucket caps requests; production
+// should additionally front this with a Cloudflare rate-limiting rule (the
+// isolate-local counter resets on recycle and isn't shared across colos).
+
+const PUBLIC_SITE_ORIGIN = 'https://teajia.co';
+
+type PublicAccount = {
+  id: string;
+  name: string;
+  slug: string;
+  whatsapp_number: string | null;
+  currency_default: string | null;
+  public_shop_path: string | null;
+};
+
+async function resolvePublicAccount(env: Env, slug: string | null): Promise<PublicAccount | null> {
+  if (slug) {
+    return env.DB.prepare(
+      `SELECT id, name, slug, whatsapp_number, currency_default, public_shop_path
+         FROM accounts WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
+    ).bind(slug).first() as Promise<PublicAccount | null>;
+  }
+  return env.DB.prepare(
+    `SELECT id, name, slug, whatsapp_number, currency_default, public_shop_path
+       FROM accounts WHERE is_platform_owner = 1 AND public_enabled = 1 AND status = 'active'
+       LIMIT 1`
+  ).first() as Promise<PublicAccount | null>;
+}
+
+// Public-safe projection — deliberately omits cost_amount, vendor, margins, and
+// exact stock_grams (only an in_stock boolean leaks).
+function publicProductSummary(p: ProductRow & { description?: string | null; tasting_notes?: string | null }) {
+  return {
+    id: p.id,
+    name: p.given_name || p.product_name,
+    chinese_name: p.chinese_name,
+    type: p.type,
+    form: p.form,
+    year: p.year,
+    origin: [p.origin_region, p.origin_country].filter(Boolean).join(', ') || null,
+    price_per_gram_usd: p.fixed_retail_price_usd ?? null,
+    in_stock: Number(p.stock_grams || 0) > 0,
+    shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${p.id}`,
+  };
+}
+
+const PUBLIC_PRODUCT_COLS =
+  `id, given_name, product_name, chinese_name, type, form, year,
+   origin_country, origin_region, vendor, stock_grams, quantity_units,
+   low_stock_threshold, fixed_retail_price_usd, status`;
+
+async function publicSearchTea(env: Env, accountId: string, args: any) {
+  const query = String(args?.query || '').trim();
+  const limit = Math.min(Math.max(Number(args?.limit) || 8, 1), 20);
+  if (!query) return { matches: [] };
+
+  const { results } = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active'`
+  ).bind(accountId).all();
+
+  const scored = (results as unknown as ProductRow[])
+    .map(p => ({ p, score: scoreMatch(query, [p.given_name, p.product_name, p.chinese_name, p.origin_region, p.year, p.type]) }))
+    .filter(s => s.score > 0.3)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  return { matches: scored.map(s => publicProductSummary(s.p)) };
+}
+
+async function publicGetTea(env: Env, accountId: string, args: any) {
+  const id = String(args?.id || '').trim();
+  if (!id) throw new Error('id is required');
+  const p = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS}, description, tasting_notes
+       FROM products WHERE id = ? AND account_id = ? AND status = 'Active'`
+  ).bind(id, accountId).first() as (ProductRow & { description?: string; tasting_notes?: string }) | null;
+  if (!p) return { error: 'not_found' };
+
+  let tasting: any = p.tasting_notes;
+  if (typeof tasting === 'string') { try { tasting = JSON.parse(tasting); } catch { tasting = []; } }
+
+  return { ...publicProductSummary(p), description: p.description ?? null, tasting_notes: tasting };
+}
+
+async function publicBrowseCatalog(env: Env, accountId: string, args: any) {
+  const limit = Math.min(Math.max(Number(args?.limit) || 30, 1), 100);
+  const wheres = ['account_id = ?', "status = 'Active'"];
+  const binds: any[] = [accountId];
+  if (args?.type) { wheres.push('type = ?'); binds.push(String(args.type)); }
+  if (args?.in_stock_only) { wheres.push('stock_grams > 0'); }
+
+  const { results } = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products
+      WHERE ${wheres.join(' AND ')}
+      ORDER BY (stock_grams > 0) DESC, year DESC, product_name ASC
+      LIMIT ?`
+  ).bind(...binds, limit).all();
+
+  return {
+    items: (results as unknown as ProductRow[]).map(publicProductSummary),
+    count: results.length,
+  };
+}
+
+// Build a WhatsApp checkout link prefilled with the requested teas. The model
+// assembles the basket; the human conversation closes it. Items resolve by id
+// or by fuzzy name. Returns the link plus a readable summary and shop URLs.
+async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
+  const rawItems = Array.isArray(args?.items) ? args.items : [];
+  if (rawItems.length === 0) throw new Error('items must be a non-empty array of { id|name, grams }');
+  if (!account.whatsapp_number) return { error: 'whatsapp_unavailable', message: 'This shop has no WhatsApp number configured for checkout.' };
+
+  const { results: catalog } = await env.DB.prepare(
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active'`
+  ).bind(account.id).all();
+  const products = catalog as unknown as ProductRow[];
+
+  const lines: Array<{ id: string; name: string; grams: number; price_per_gram_usd: number | null; line_total_usd: number | null; in_stock: boolean; shop_url: string }> = [];
+  const unresolved: string[] = [];
+
+  for (const raw of rawItems) {
+    const grams = Math.max(0, Number(raw?.grams) || 0);
+    let match: ProductRow | undefined;
+    const id = raw?.id ? String(raw.id).trim() : '';
+    if (id) {
+      match = products.find(p => p.id === id);
+    } else if (raw?.name) {
+      const scored = products
+        .map(p => ({ p, score: scoreMatch(String(raw.name), [p.given_name, p.product_name, p.chinese_name, p.year]) }))
+        .sort((a, b) => b.score - a.score);
+      if (scored[0]?.score > 0.4) match = scored[0].p;
+    }
+    if (!match) { unresolved.push(String(raw?.name || raw?.id || '(unknown)')); continue; }
+    const price = match.fixed_retail_price_usd ?? null;
+    lines.push({
+      id: match.id,
+      name: match.given_name || match.product_name,
+      grams,
+      price_per_gram_usd: price,
+      line_total_usd: price != null && grams > 0 ? Math.round(price * grams * 100) / 100 : null,
+      in_stock: Number(match.stock_grams || 0) > 0,
+      shop_url: `${PUBLIC_SITE_ORIGIN}/shop/product/${match.id}`,
+    });
+  }
+
+  if (lines.length === 0) return { error: 'no_items_resolved', unresolved };
+
+  const estimatedTotal = lines.reduce((s, l) => s + (l.line_total_usd || 0), 0);
+  const msgLines = [
+    `Hello! I'd like to order from ${account.name}:`,
+    ...lines.map(l => `• ${l.grams ? l.grams + 'g ' : ''}${l.name}${l.price_per_gram_usd != null && l.grams ? ` — ~$${l.line_total_usd} USD` : ''}`),
+    estimatedTotal > 0 ? `Estimated total: ~$${Math.round(estimatedTotal * 100) / 100} USD (please confirm)` : '',
+  ].filter(Boolean);
+  const message = msgLines.join('\n');
+  const digits = account.whatsapp_number.replace(/\D/g, '');
+
+  return {
+    whatsapp_url: `https://wa.me/${digits}?text=${encodeURIComponent(message)}`,
+    message_preview: message,
+    lines,
+    estimated_total_usd: estimatedTotal > 0 ? Math.round(estimatedTotal * 100) / 100 : null,
+    unresolved: unresolved.length ? unresolved : undefined,
+    note: 'This opens a WhatsApp message to the shop — checkout is completed in conversation, not automatically. Prices are estimates; the shop confirms final pricing, shipping, and availability.',
+  };
+}
+
+const PUBLIC_TOOL_DEFS = [
+  {
+    name: 'search_tea',
+    description: 'Search this tea shop\'s public catalog by name, Chinese name, origin, year, or type. Returns purchasable teas with retail price and in-stock status.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        limit: { type: 'number', description: 'Max matches (default 8, max 20).', default: 8 },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_tea',
+    description: 'Full public profile for one tea by id: description, tasting notes, origin, price, and a shop link.',
+    inputSchema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+  },
+  {
+    name: 'browse_catalog',
+    description: 'Browse the public catalog, optionally filtered by tea type, in-stock first. Use this to see what the shop offers.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', description: 'Filter by tea type (e.g. "Pu-erh", "Oolong").' },
+        in_stock_only: { type: 'boolean' },
+        limit: { type: 'number', description: 'Max items (default 30, max 100).', default: 30 },
+      },
+    },
+  },
+  {
+    name: 'prepare_order',
+    description: 'Assemble a WhatsApp checkout link for a basket of teas (each item is { id or name, grams }). Returns a wa.me link prefilled with the order and an estimated total. Checkout is completed by a human in the WhatsApp conversation — this tool never places an order itself.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Teas to order. Each: { id?, name?, grams }. Provide id (from search_tea) when known, else name.',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              grams: { type: 'number' },
+            },
+          },
+        },
+      },
+      required: ['items'],
+    },
+  },
+] as const;
+
+const PUBLIC_SERVER_INFO = {
+  name: 'teajia-shop',
+  version: '0.1.0',
+  description: 'Public read-only access to a Teajia tea shop catalog, with a WhatsApp checkout-link builder. Read-only; no account data, costs, or margins are exposed.',
+};
+
+// Best-effort per-isolate rate limiter. Not a security boundary — front the
+// route with a Cloudflare rate-limiting rule for real protection.
+const PUBLIC_RATE = new Map<string, { count: number; resetAt: number }>();
+const PUBLIC_RATE_LIMIT = 60;
+const PUBLIC_RATE_WINDOW_MS = 60 * 1000;
+function publicRateOk(ip: string): boolean {
+  const now = Date.now();
+  const e = PUBLIC_RATE.get(ip);
+  if (!e || e.resetAt < now) { PUBLIC_RATE.set(ip, { count: 1, resetAt: now + PUBLIC_RATE_WINDOW_MS }); return true; }
+  e.count += 1;
+  return e.count <= PUBLIC_RATE_LIMIT;
+}
+
+function publicToolDefs() {
+  return PUBLIC_TOOL_DEFS.map(t => ({ ...t, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } }));
+}
+
+export async function publicMcpFetch(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const account = await resolvePublicAccount(env, url.searchParams.get('account'));
+
+  if (request.method === 'GET') {
+    return json({
+      ok: true,
+      server: PUBLIC_SERVER_INFO,
+      protocol: PROTOCOL_VERSION,
+      shop: account ? { name: account.name, slug: account.slug } : null,
+      hint: 'POST a JSON-RPC 2.0 request. No auth required. Tools: search_tea, get_tea, browse_catalog, prepare_order.',
+    });
+  }
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  if (!publicRateOk(ip)) return rpcError(null, -32000, 'Rate limit exceeded — slow down.');
+
+  if (!account) return rpcError(null, -32001, 'No public shop available.');
+
+  let body: any;
+  try { body = await request.json(); } catch { return rpcError(null, -32700, 'Parse error'); }
+  const { jsonrpc, id = null, method, params } = body || {};
+  if (jsonrpc !== '2.0' || typeof method !== 'string') return rpcError(id ?? null, -32600, 'Invalid Request');
+
+  try {
+    switch (method) {
+      case 'initialize': {
+        const requested = typeof params?.protocolVersion === 'string' ? params.protocolVersion : null;
+        return rpcResult(id, { protocolVersion: requested || PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: PUBLIC_SERVER_INFO });
+      }
+      case 'tools/list':
+        return rpcResult(id, { tools: publicToolDefs() });
+      case 'tools/call': {
+        const name = params?.name;
+        const args = params?.arguments ?? {};
+        if (typeof name !== 'string') return rpcError(id, -32602, 'tools/call requires `name`');
+        let payload: unknown;
+        switch (name) {
+          case 'search_tea': payload = await publicSearchTea(env, account.id, args); break;
+          case 'get_tea': payload = await publicGetTea(env, account.id, args); break;
+          case 'browse_catalog': payload = await publicBrowseCatalog(env, account.id, args); break;
+          case 'prepare_order': payload = await publicPrepareOrder(env, account, args); break;
+          default: return rpcError(id, -32601, `Unknown tool: ${name}`);
+        }
+        return rpcResult(id, mcpContent(payload));
+      }
+      case 'ping':
+        return rpcResult(id, {});
+      default:
+        return rpcError(id, -32601, `Method not found: ${method}`);
+    }
+  } catch (err: any) {
+    return rpcError(id, -32603, err?.message || 'Internal error');
+  }
 }
