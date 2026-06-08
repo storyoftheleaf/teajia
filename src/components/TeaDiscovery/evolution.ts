@@ -1,4 +1,6 @@
 import type { CustomerTasting } from '../../types';
+import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
+import { deriveDisposition } from './dispositions';
 
 /* ───────────────────────────────────────────────────────────────────────────
    Evolution loop — the profile deepens from observed behaviour, not points.
@@ -57,4 +59,59 @@ export function observePalate(journal: CustomerTasting[]): ObservedPalate {
     flavorLean,
     hasEnoughSignal: active.length >= 3,
   };
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Learned disposition — behaviour SUGGESTS, it never silently rewrites.
+   The only thing the journal can honestly tell us about disposition is depth of
+   practice (volume of tastings), so the suggestion is a level bump and, at the
+   top of the ladder, surfacing "The Deep Diver". The member must explicitly
+   adopt it. Temperament/motivation aren't observable, so we never fabricate
+   those-driven disposition changes here — flavor drift stays a "refresh" nudge.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+const LEVEL_ORDER: Record<DiscoveryLevel, number> = { curious: 0, practicing: 1, devoted: 2 };
+
+/** Map tasting volume to the level it would imply on its own. */
+function levelFromVolume(count: number): DiscoveryLevel {
+  if (count >= 20) return 'devoted';
+  if (count >= 8) return 'practicing';
+  return 'curious';
+}
+
+export interface EvolutionSuggestion {
+  level: DiscoveryLevel;
+  dispositionId: string;
+  reason: string;
+}
+
+/**
+ * Returns a suggested (level, disposition) when accumulated practice has clearly
+ * outgrown the stated profile — or null when nothing meaningful has changed.
+ * Caller surfaces it as an opt-in ("Adopt this"); it is never auto-applied.
+ */
+export function suggestEvolution(
+  profile: TeaDiscoveryProfile,
+  observed: ObservedPalate,
+): EvolutionSuggestion | null {
+  if (!observed.hasEnoughSignal) return null;
+
+  const volumeLevel = levelFromVolume(observed.tastingCount);
+  const grew = LEVEL_ORDER[volumeLevel] > LEVEL_ORDER[profile.level];
+  const newLevel: DiscoveryLevel = grew ? volumeLevel : profile.level;
+
+  // Re-derive disposition. The only behaviour-driven input is depth: a member
+  // whose practice has reached 'devoted' surfaces as The Deep Diver.
+  const synthAnswers = { ...profile.answers };
+  if (newLevel === 'devoted') synthAnswers.experience = 'deep';
+  const newDisposition = deriveDisposition(synthAnswers);
+
+  const changed = newLevel !== profile.level || newDisposition.id !== profile.dispositionId;
+  if (!changed) return null;
+
+  const teas = `${observed.tastingCount} ${observed.tastingCount === 1 ? 'tea' : 'teas'}`;
+  const trail = observed.topTypes.length > 0 ? `, returning to ${observed.topTypes.join(' and ')}` : '';
+  const reason = `You've logged ${teas}${trail} since you started.`;
+
+  return { level: newLevel, dispositionId: newDisposition.id, reason };
 }

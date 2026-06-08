@@ -1,9 +1,9 @@
 # Tea Discovery — onboarding profile & integration schema
 
 > **Status:** Phase 1 (flow + local profile + Your Table), Phase 2 (server persistence, tea-master
-> visibility, recommendations), **and** the evolution loop (observed palate from the tasting journal)
-> shipped. Remaining: persisting/learning the disposition itself and per-article/per-product deep
-> links (see "Remaining" below).
+> visibility, recommendations), **and** the evolution loop (observed palate + an opt-in,
+> behaviour-suggested disposition) shipped. Remaining: reflecting drift in the Journey/Passport and
+> per-article/per-product deep links (see "Remaining" below).
 >
 > **Frontend:** `src/pages/DiscoverPage.tsx`, `src/components/TeaDiscovery/*`, route `/discover`.
 > **State:** `teaDiscoveryProfile` in `src/lib/store.ts` (persisted to `teajia-storage`).
@@ -124,11 +124,16 @@ listed under "Remaining" below.
    to refresh the profile when their cups have turned away from their stated answer. No streaks/points.
    The tea master's symmetric observed layer already exists as the journey **Portrait** (from
    invoices/events).
+5. **Learned disposition (opt-in).** `suggestEvolution()` re-derives level + disposition from practice
+   depth (tasting volume) and, when it has clearly outgrown the stated profile, the result screen
+   offers an **"Adopt this"** card — *suggests, never silently rewrites*. Adopting updates the store
+   and persists via `pushTeaDiscoveryProfile`; the original answers are kept. Honesty guardrail: only
+   depth is observable from the journal, so the re-derivation only moves level (and surfaces "The Deep
+   Diver" at the top) — temperament/motivation-driven dispositions are never fabricated from behavior.
 
 ## Remaining
-- **Learn the disposition itself.** Today the observed palate is derived live and refines the surface;
-   it does not yet rewrite the stored `disposition`/`level` or reflect drift in the Journey/Passport.
-   A future pass could periodically re-derive and persist the disposition from accumulated behavior.
+- **Drift in Journey/Passport.** The learned disposition is opt-in on the discovery screen; it is not
+   yet visualized as a trajectory in the Journey/Passport surfaces.
 - **Deep-link recommendations.** `recommendations.ts` routes to section surfaces (`/craft`, `/shop`);
    swap in per-article (`/article/:slug`) and per-product targets behind the same `Recommendation`
    shape once curriculum/article routing is confirmed.

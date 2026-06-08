@@ -7,7 +7,7 @@ import { TeaDiscoveryFlow } from '../components/TeaDiscovery/TeaDiscoveryFlow';
 import { DiscoveryResult } from '../components/TeaDiscovery/DiscoveryResult';
 import { deriveProfile } from '../components/TeaDiscovery/questions';
 import { pushTeaDiscoveryProfile } from '../lib/teaDiscoverySync';
-import type { TeaDiscoveryAnswers } from '../components/TeaDiscovery/types';
+import type { DiscoveryLevel, TeaDiscoveryAnswers } from '../components/TeaDiscovery/types';
 
 type View = 'intro' | 'flow' | 'result';
 
@@ -39,6 +39,16 @@ export default function DiscoverPage() {
     window.scrollTo({ top: 0 });
   };
 
+  // Adopt a behaviour-suggested evolution (explicit opt-in from the result screen).
+  // Keeps the original answers; only the derived level + disposition move.
+  const handleAdopt = (level: DiscoveryLevel, dispositionId: string) => {
+    if (!profile) return;
+    const updated = { ...profile, level, dispositionId, completedAt: new Date().toISOString() };
+    setProfile(updated);
+    void pushTeaDiscoveryProfile(updated);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen pb-nav-gap-lg">
       <Helmet>
@@ -60,7 +70,7 @@ export default function DiscoverPage() {
       )}
 
       {view === 'result' && profile && (
-        <DiscoveryResult profile={profile} onRetake={handleRetake} />
+        <DiscoveryResult profile={profile} onRetake={handleRetake} onAdopt={handleAdopt} />
       )}
     </div>
   );

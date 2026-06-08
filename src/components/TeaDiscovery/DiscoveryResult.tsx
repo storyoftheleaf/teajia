@@ -7,8 +7,8 @@ import { useAppStore } from '../../lib/store';
 import { DISPOSITIONS } from './dispositions';
 import { QUESTIONS, optionLabel } from './questions';
 import { recommend } from './recommendations';
-import { observePalate, type FlavorFamily } from './evolution';
-import type { TeaDiscoveryProfile } from './types';
+import { observePalate, suggestEvolution, type FlavorFamily } from './evolution';
+import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
 
 /** Human label for a flavor family — matches the quiz's swatch wording. */
 const FAMILY_LABEL: Record<FlavorFamily, string> = {
@@ -20,6 +20,8 @@ const FAMILY_LABEL: Record<FlavorFamily, string> = {
 interface DiscoveryResultProps {
   profile: TeaDiscoveryProfile;
   onRetake: () => void;
+  /** Adopt a behaviour-suggested level/disposition (opt-in; never automatic). */
+  onAdopt: (level: DiscoveryLevel, dispositionId: string) => void;
 }
 
 /** Short, editorial key for each question on the summary list. */
@@ -31,7 +33,7 @@ const SUMMARY_KEYS: Record<string, string> = {
   motivation: 'Tea gives you',
 };
 
-export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake }) => {
+export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake, onAdopt }) => {
   const authUser = useAppStore((s) => s.authUser);
   const tastingJournal = useAppStore((s) => s.tastingJournal);
   const disposition = DISPOSITIONS[profile.dispositionId] ?? DISPOSITIONS.curiousBeginner;
@@ -41,8 +43,15 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
   const observed = observePalate(tastingJournal);
   const recommendations = recommend(profile, observed);
   const statedFlavor = profile.answers.flavor as string | undefined;
+
+  // Behaviour-suggested evolution (opt-in). Takes priority over the lighter
+  // flavor-drift nudge when present.
+  const suggestion = suggestEvolution(profile, observed);
+  const suggestedDisposition = suggestion ? DISPOSITIONS[suggestion.dispositionId] : null;
+
   // Drift: their cups lean somewhere their stated answer didn't (and they had one).
   const drifted =
+    !suggestion &&
     observed.hasEnoughSignal &&
     observed.flavorLean != null &&
     statedFlavor != null &&
@@ -96,6 +105,29 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
               <> — lately leaning <span className="text-tea-gold">{observed.topTypes.join(' and ')}</span></>
             )}.
           </p>
+          {suggestion && suggestedDisposition && (
+            <div className="mt-3 border-t border-tea-border pt-3">
+              <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">
+                {suggestion.reason} Your practice now reads more like{' '}
+                <span className="font-body text-tea-text">{suggestedDisposition.name}</span>.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => onAdopt(suggestion.level, suggestion.dispositionId)}
+                  className="rounded-xl bg-tea-gold px-4 py-2 font-sans text-ui-13 font-medium text-tea-bg transition-all hover:bg-tea-gold/90"
+                >
+                  Adopt this
+                </button>
+                <Link
+                  to="/discover"
+                  className="tap-target font-sans text-ui-13 text-tea-text-sec underline decoration-tea-border underline-offset-[3px] transition-colors hover:text-tea-text hover:decoration-tea-gold/40"
+                >
+                  Retake instead
+                </Link>
+              </div>
+            </div>
+          )}
           {drifted && observed.flavorLean && (
             <p className="font-body text-ui-13 leading-relaxed text-tea-text-sec mt-2">
               That's a turn toward {FAMILY_LABEL[observed.flavorLean]} since you started.{' '}
