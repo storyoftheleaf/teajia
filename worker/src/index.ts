@@ -29,6 +29,9 @@ interface Env {
   // Optional — wrapping key for BYOK secrets stored in D1 (e.g. accounts.openai_api_key_encrypted).
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
+  // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
+  // wrangler.toml. Optional so local dev (no binding) still runs.
+  PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -17378,6 +17381,22 @@ export default {
     // Public, unauthenticated, read-only MCP for the shopping public — catalog
     // browse + WhatsApp checkout-link builder. No account data or costs exposed.
     if (url.pathname === '/mcp/public') {
+      // Edge rate limit per client IP. The binding is absent in local dev, so
+      // this is a no-op there; in production it caps abuse at the edge before
+      // any D1 work happens.
+      if (env.PUBLIC_MCP_LIMITER) {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        const { success } = await env.PUBLIC_MCP_LIMITER.limit({ key: ip });
+        if (!success) {
+          return cors(
+            new Response(
+              JSON.stringify({ error: 'rate_limited', message: 'Too many requests. Slow down and try again shortly.' }),
+              { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' } },
+            ),
+            corsOrigin,
+          );
+        }
+      }
       return cors(await publicMcpFetch(request, env), corsOrigin);
     }
 
