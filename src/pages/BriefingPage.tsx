@@ -5,131 +5,145 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
 
 /**
- * BriefingPage — a clear, one-page map of everything Teajia can do, for the
- * owner. Sectioned by where things live on the site (Read, Craft, Advise,
- * Shop, the admin sections, the Assistant), all visible on a single scroll —
- * no drilling, no tabs. Each item shows in plain language what it does, an
- * Open link to go straight there, and one checkbox to mark it as checked.
+ * BriefingPage — the owner's walk-through guide. Not a map of pages (those are
+ * reachable from normal nav); this holds the *flows* — the cross-feature chains
+ * and the how-to that only lived in Adrian's head. Each walk-through is a real
+ * procedure: numbered steps, a "try it here" button on the steps that have a
+ * place to go, and a per-step check so he can run the flow, see what breaks or
+ * looks wrong, and tick each step off.
  *
- * Deliberately simple: this is a reference + checklist, not a project tracker.
- * The single "checked" mark persists to D1 (feature_status.tested) via
+ * Per-step checks persist to D1 (feature_status.tested) keyed by step id, via
  * /api/admin/feature-status. Admin-only at the route; owner-only at the tile.
  */
 
 const API = 'https://teajia-api.lightcodes.workers.dev';
 
-type Item = {
-  id: string;
-  name: string;
-  to?: string;     // internal route — React-Router navigation
-  href?: string;   // external — new tab
-  /** Plain "what it does", shown inline. */
-  desc: string;
+type Step = {
+  text: string;        // the instruction
+  to?: string;         // internal route to "try it"
+  href?: string;       // external "try it"
+  goLabel?: string;    // override the button label
 };
-type Section = { id: string; title: string; blurb: string; endpoint?: string; tokenTo?: string; items: Item[] };
+type Walkthrough = {
+  id: string;
+  title: string;
+  /** Why you'd run this / what it proves. One line. */
+  intent: string;
+  status?: 'not_built';   // honest gap marker
+  steps: Step[];
+};
 
-const SECTIONS: Section[] = [
+const WALKTHROUGHS: Walkthrough[] = [
   {
-    id: 'read', title: 'Read', blurb: 'The magazine and journal — your published writing.',
-    items: [
-      { id: 'pub:magazine', name: 'Magazine', to: '/magazine', desc: 'Your articles in a vertical reader built to screenshot straight to Instagram. Open it to read any piece the way a visitor does.' },
+    id: 'wt:onboard',
+    title: 'Onboard a team member',
+    intent: 'Add someone and give them exactly the access they need — no more.',
+    steps: [
+      { text: 'Open Members & Access and invite or add the person.', to: '/admin/access', goLabel: 'Members & Access' },
+      { text: 'Pick their tier (Guest → Member → Staff → Manager → Owner) and grant only the capability bundles they need (Catalog, Stock, Publish, Gather, Sell, Members).' },
+      { text: 'Sign in as them (or have them sign in) and confirm they see only what you granted — wrong tiles here means the bundle is off.', to: '/account', goLabel: 'Your Table' },
     ],
   },
   {
-    id: 'craft', title: 'Craft', blurb: 'The learning hub.',
-    items: [
-      { id: 'pub:craft', name: 'Learn hub', to: '/craft', desc: 'Modules grouped into tea tracks a visitor works through. Open to see the curriculum as a learner sees it.' },
+    id: 'wt:mcp',
+    title: 'Connect & test the assistant (MCP)',
+    intent: 'Get a voice or AI assistant controlling the shop, and prove it works before trusting it.',
+    steps: [
+      { text: 'Mint a token in MCP Tokens (it shows once — copy it then).', to: '/admin/mcp-tokens', goLabel: 'MCP Tokens' },
+      { text: `Point your assistant at the endpoint ${API}/mcp and paste the token.` },
+      { text: 'Ask it "what\'s low on stock" — it should list your reorder teas. Compare against the real screen.', to: '/admin/stock', goLabel: 'Stock' },
+      { text: 'Ask it to record a small sale — it should preview first, then confirm. Watch that the stock actually moves.', to: '/admin/orders', goLabel: 'Orders' },
     ],
   },
   {
-    id: 'advise', title: 'Advise', blurb: 'Guiding a visitor to the right tea or next step.',
-    items: [
-      { id: 'pub:consult', name: 'Consult flow', to: '/consult', desc: 'A question-led path that points a visitor toward what suits them, instead of a wall of products.' },
-      { id: 'pub:b2b', name: 'For Your Space', to: '/for-your-space', desc: 'The B2B inquiry page for hotels, studios, and retreat centers wanting tea service.' },
-      { id: 'pub:spaces', name: 'Spaces', to: '/spaces', desc: 'Your three Bali locations, each with a WhatsApp inquiry button.' },
+    id: 'wt:csv',
+    title: 'Bring in opening stock by CSV',
+    intent: 'Load a whole spreadsheet of teas at once instead of typing each.',
+    steps: [
+      { text: 'Get the columns right: Type, Product Name, Grams, Stock, plus cost/currency where known.' },
+      { text: 'Open Stock and start the CSV import.', to: '/admin/stock', goLabel: 'Stock' },
+      { text: 'Drop the file, review the staged rows, fix any that look wrong, then commit. Confirm the teas appear in inventory with stock.' },
     ],
   },
   {
-    id: 'shop', title: 'Shop', blurb: 'The storefront — browsing and buying.',
-    items: [
-      { id: 'pub:home', name: 'Home', to: '/', desc: 'The front door — hero, the grounding lines, the four ways in.' },
-      { id: 'pub:shop', name: 'Catalog', to: '/shop', desc: 'The full shop. Visitors filter by type, mood, and flavor. Open and try the filters as a shopper would.' },
-      { id: 'pub:start', name: 'Start Here', to: '/start', desc: 'Six entry paths for someone who lands cold and doesn\'t know where to begin.' },
+    id: 'wt:new-tea',
+    title: 'A new tea, start to finish',
+    intent: 'From "I have a new tea" to it being live and shoppable.',
+    steps: [
+      { text: 'Create the product in Catalog — name, type, year, conditional fields.', to: '/admin/catalog', goLabel: 'Catalog' },
+      { text: 'Add its opening stock in Stock (writes a purchase-receipt to the ledger).', to: '/admin/stock', goLabel: 'Stock' },
+      { text: 'Write its description, lore, and tasting notes so the product page reads well.', to: '/admin/catalog', goLabel: 'Catalog' },
+      { text: 'Open the live shop and check the tea page looks right to a customer.', to: '/shop', goLabel: 'Shop' },
     ],
   },
   {
-    id: 'table', title: 'Your Table', blurb: 'A member\'s own space.',
-    items: [
-      { id: 'pub:table', name: 'Your Table', to: '/account', desc: 'The role-adaptive hub each person sees — reader, member, operator, or staff get different tiles.' },
-      { id: 'pub:journal', name: 'Tasting journal', to: '/account/journal', desc: 'A member\'s own tasting history, synced across devices, filled before and after a session.' },
-      { id: 'pub:collections', name: 'Collections', to: '/account/collections', desc: 'Curated tea sets shared with a member; they can request a basket from one.' },
+    id: 'wt:tasting-profile',
+    title: 'Tasting → profile → shop by mood',
+    intent: 'See how a tasting feeds the tea\'s mood/flavor and surfaces it to shoppers.',
+    steps: [
+      { text: 'Taste a tea and capture it (the mood/flavor taxonomy is part of the note).', to: '/account/journal', goLabel: 'Tasting Journal' },
+      { text: 'On the product, confirm the mood/flavor that got promoted from tastings looks right.', to: '/admin/catalog', goLabel: 'Catalog' },
+      { text: 'In the public shop, use "shop by mood" and check this tea shows up where it should.', to: '/shop', goLabel: 'Shop' },
     ],
   },
   {
-    id: 'curate', title: 'Curate', blurb: 'Building collections and writing.',
-    items: [
-      { id: 'admin:collections', name: 'Collections builder', to: '/admin/collections', desc: 'Assemble curated, publishable sets that become editorial bands on the storefront.' },
-      { id: 'admin:magazine', name: 'Magazine editor', to: '/admin/magazine', desc: 'The block editor for articles, with Smart Paste to drop in formatted text.' },
-      { id: 'admin:catalog', name: 'Catalog', to: '/admin/catalog', desc: 'Product setup — conditional fields per tea, vendor picker, the cost engine, pricing automation.' },
-      { id: 'admin:teaware', name: 'Teaware', to: '/admin/teaware', desc: 'The teaware side of the catalog, managed the same way as teas.' },
+    id: 'wt:samples',
+    title: 'Sample set → labels → QR',
+    intent: 'Build a set of samples and produce what the customer physically gets.',
+    steps: [
+      { text: 'Build the sample set (pick the teas, the amounts).', to: '/admin/samples', goLabel: 'Samples' },
+      { text: 'Generate the label sheet and check each label reads right.' },
+      { text: 'Generate the QR on a sample and scan it with your phone — confirm it lands where a customer expects.' },
     ],
   },
   {
-    id: 'stock', title: 'Stock', blurb: 'Inventory — what you have, what\'s low, what came in.',
-    items: [
-      { id: 'admin:stock', name: 'Inventory', to: '/admin/stock', desc: 'The core stock screen: edit in place, bulk-act, fuzzy-search, year-strip, batches, QR codes.' },
-      { id: 'io:csv-import', name: 'CSV import', to: '/admin/stock', desc: 'Drop a whole spreadsheet of teas at once and review before it commits. Inside Stock → import.' },
-      { id: 'admin:sources', name: 'Sources / Vendors', to: '/admin/sources', desc: 'Where each tea comes from — vendor lineage and cost analysis.' },
-      { id: 'io:po-pdf', name: 'Purchase orders', to: '/admin/purchase-orders', desc: 'Inbound purchase orders you can export as a PDF.' },
+    id: 'wt:brewing-qr',
+    title: 'Brewing QR card',
+    intent: 'Produce the brewing card a customer scans, and verify the scan.',
+    steps: [
+      { text: 'Open a tea in Stock and generate its brewing QR card.', to: '/admin/stock', goLabel: 'Stock' },
+      { text: 'Share it to WhatsApp (or download) and check it looks right.' },
+      { text: 'Scan the QR with your phone — confirm the brewing guide it opens is correct for that tea.' },
     ],
   },
   {
-    id: 'sales', title: 'Sales', blurb: 'Orders, invoices, money.',
-    items: [
-      { id: 'admin:dashboard', name: 'Dashboard', to: '/admin/dashboard', desc: 'The money view in real time — cost, retail, margin, currency exposure, stock by region.' },
-      { id: 'admin:orders', name: 'Orders', to: '/admin/orders', desc: 'The order pipeline: Pending to Filled to Void, with fulfillment preview and a timeline per order.' },
-      { id: 'admin:records', name: 'Records & activity', to: '/admin/records', desc: 'The archive, activity logs, stock ledger, and CSV export — the audit trail.' },
-      { id: 'admin:currency', name: 'Currency', to: '/admin/currency', desc: 'Exchange-rate admin that feeds every account\'s pricing.' },
+    id: 'wt:event',
+    title: 'Run an event end to end',
+    intent: 'From creating a gathering to the post-session recap.',
+    steps: [
+      { text: 'Create the event — date, capacity, tea menu.', to: '/admin/events', goLabel: 'Events' },
+      { text: 'Check the public event page and that RSVP + capacity behave.', to: '/events', goLabel: 'Public events' },
+      { text: 'Run the session (mark attendance, the tea menu).', to: '/admin/events', goLabel: 'Events' },
+      { text: 'Write the recap — teas served, notes, purchase links — and confirm it shows on the public recap.' },
     ],
   },
   {
-    id: 'events', title: 'Events', blurb: 'Tea gatherings — public pages and running a session.',
-    items: [
-      { id: 'pub:events', name: 'Public events', to: '/events', desc: 'How a gathering looks to a visitor — the page, RSVP, capacity, the recap.' },
-      { id: 'admin:events', name: 'Events manager', to: '/admin/events', desc: 'Full control: capacity and waitlist, attendee list, tea-menu editor, recap.' },
-      { id: 'admin:tasting-events', name: 'Tasting events', to: '/admin/tasting-events', desc: 'Live guided tastings with a structured taxonomy you drive in the room.' },
+    id: 'wt:collection',
+    title: 'Make & share a collection',
+    intent: 'Curate a set and get it in front of the right people.',
+    steps: [
+      { text: 'Build the collection (pick the teas, the order, the framing).', to: '/admin/collections', goLabel: 'Collections' },
+      { text: 'Publish it as an editorial band and check it on the storefront.', to: '/shop', goLabel: 'Shop' },
+      { text: 'Share it to a contact or a tagged group, and confirm the share lands (no duplicate sends).', to: '/admin/contact-tags', goLabel: 'Contact Tags' },
     ],
   },
   {
-    id: 'people', title: 'People', blurb: 'Customers, contacts, and access.',
-    items: [
-      { id: 'admin:people', name: 'People / CRM', to: '/admin/people', desc: 'Your customers — tags, purchase history, lifetime spend, vendor cost analysis.' },
-      { id: 'admin:contact-tags', name: 'Contact tags', to: '/admin/contact-tags', desc: 'Freeform admin-only tags on contacts, used to target who a collection is shared with.' },
-      { id: 'admin:access', name: 'Members & access', to: '/admin/access', desc: 'Who\'s on the team and what they can touch — tiers from Guest to Owner, plus capability bundles.' },
-      { id: 'admin:network', name: 'Network', to: '/admin/network', desc: 'The multi-store side — listings, wholesale orders, adoptions, cross-pollination.' },
+    id: 'wt:sale',
+    title: 'A sale, fully',
+    intent: 'Watch one sale fire everything it should downstream.',
+    steps: [
+      { text: 'Record or fulfill an invoice in Orders.', to: '/admin/orders', goLabel: 'Orders' },
+      { text: 'Confirm the stock ledger moved and the listing mirror updated.', to: '/admin/records', goLabel: 'Records' },
+      { text: 'If it crossed a threshold, confirm the low-stock alert fired; if it hit zero, confirm the tea auto-archived.', to: '/admin/stock', goLabel: 'Stock' },
     ],
   },
   {
-    id: 'capture', title: 'Capture', blurb: 'Getting tea data in fast.',
-    items: [
-      { id: 'admin:capture', name: 'Quick Capture', to: '/admin/capture', desc: 'Snap or upload a photo and let AI pull the tea details out, in a pipeline you bulk-approve.' },
-    ],
-  },
-  {
-    id: 'assistant', title: 'The Assistant', blurb: 'Voice/AI control of the shop.',
-    endpoint: API + '/mcp', tokenTo: '/admin/mcp-tokens',
-    items: [
-      { id: 'admin:mcp-tokens', name: 'Assistant tokens', to: '/admin/mcp-tokens', desc: 'Mint and revoke the tokens that let a voice or AI assistant act on your shop. Shown once on creation.' },
-      { id: 'mcp:read', name: 'What it can look up', desc: 'Connected, your assistant can search teas, read a customer\'s history, pull an invoice, and summarize sales — without changing anything.' },
-      { id: 'mcp:write', name: 'What it can change', desc: 'With the right token it can take stock in or out, record a sale, and create or fulfill invoices — each change previews first, then confirms.' },
-      { id: 'mcpp:public', name: 'Public shop assistant', href: API + '/mcp/public', desc: 'A no-login, read-only assistant any shopper\'s AI can connect to — it browses the catalog and builds a WhatsApp order link, never placing the order.' },
-    ],
-  },
-  {
-    id: 'reference', title: 'Reference', blurb: 'Docs and discoverability.',
-    items: [
-      { id: 'data:library', name: 'Development Library', to: '/account/docs', desc: 'Every design and build doc, rendered in-app. The written record of what\'s been built.' },
-      { id: 'data:llms', name: 'llms.txt', href: '/llms.txt', desc: 'A machine-readable guide that makes the shop legible to outside AI assistants.' },
+    id: 'wt:pdf-import',
+    title: 'Import an order from a PDF',
+    intent: 'Drop a supplier PDF and have the order parsed out.',
+    status: 'not_built',
+    steps: [
+      { text: 'Not built yet. Today, bulk import is CSV-only (see "Bring in opening stock by CSV"); PDF is output-only. This is here so the gap is visible — say the word to scope building it.' },
     ],
   },
 ];
@@ -147,14 +161,14 @@ export default function BriefingPage() {
         for (const [id, s] of Object.entries(map)) next[id] = (s as { tested?: boolean }).tested === true;
         setChecked(next);
       })
-      .catch(() => { /* first run — nothing checked yet */ });
+      .catch(() => { /* first run */ });
   }, [isAdmin]);
 
-  const toggle = useCallback((id: string) => {
+  const toggle = useCallback((stepId: string) => {
     setChecked((prev) => {
-      const value = !prev[id];
-      api.featureStatus.save(id, { tested: value }).catch(() => { /* optimistic */ });
-      return { ...prev, [id]: value };
+      const value = !prev[stepId];
+      api.featureStatus.save(stepId, { tested: value }).catch(() => { /* optimistic */ });
+      return { ...prev, [stepId]: value };
     });
   }, []);
 
@@ -162,83 +176,88 @@ export default function BriefingPage() {
     return (
       <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center pb-nav">
         <div className="font-display text-[22px] text-tea-text mb-2">Not available</div>
-        <p className="font-serif text-ui-15 text-tea-text-sec max-w-[320px]">This map is visible to the platform owner only.</p>
+        <p className="font-serif text-ui-15 text-tea-text-sec max-w-[320px]">These walk-throughs are visible to the platform owner only.</p>
         <button onClick={() => navigate('/account')} className="mt-6 text-ui-13 text-tea-text-sec hover:text-tea-text underline underline-offset-2">Back to Your Table</button>
       </div>
     );
   }
 
-  const total = SECTIONS.reduce((n, s) => n + s.items.length, 0);
-  const done = Object.values(checked).filter(Boolean).length;
+  const stepId = (wt: Walkthrough, i: number) => `${wt.id}#${i}`;
 
   return (
     <div className="min-h-dvh bg-tea-bg pb-nav-gap-lg">
-      <div className="max-w-[760px] mx-auto px-6 lg:px-8 pt-8">
+      <div className="max-w-[720px] mx-auto px-6 lg:px-8 pt-8">
         <button onClick={() => navigate('/account')} className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text mb-6 tap-target">
           <ArrowLeft className="w-4 h-4" weight="bold" />
           <span className="text-ui-13">Your Table</span>
         </button>
 
-        <div className="font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-dim">The Map</div>
-        <h1 className="font-display text-ui-26 text-tea-text tracking-[0.01em] mt-2">Everything Teajia can do</h1>
-        <p className="font-serif text-ui-15 text-tea-text-sec mt-3 leading-[1.65]">
-          Every part of the site, what it does, and a link to go straight there. Check things off as you look them over.
+        <div className="font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-dim">Walk-throughs</div>
+        <h1 className="font-display text-ui-26 text-tea-text tracking-[0.01em] mt-2">How to run it, and test it</h1>
+        <p className="font-serif text-ui-15 text-tea-text-sec mt-3 mb-10 leading-[1.65]">
+          The real flows behind the platform — onboarding, the assistant, importing, the chains from tasting to
+          stock to shelf. Each step has a button to go try it, so you can run the flow and catch what breaks or
+          looks wrong. Check off steps as you go.
         </p>
-        <p className="font-sans text-ui-12 text-tea-text-dim mt-2 mb-10">{done} of {total} checked</p>
 
-        {SECTIONS.map((s) => (
-          <section key={s.id} className="mb-10">
-            <div className="flex items-baseline gap-2.5 mb-0.5">
-              <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em]">{s.title}</h2>
-              <span className="font-serif text-ui-13 text-tea-text-dim italic">{s.blurb}</span>
-            </div>
-
-            {s.endpoint && (
-              <div className="mt-2 mb-3 flex flex-wrap items-center gap-2">
-                <code className="font-mono text-ui-12 text-tea-gold-lt bg-tea-elevated rounded-xl px-2.5 py-1">{s.endpoint}</code>
-                {s.tokenTo && (
-                  <button onClick={() => navigate(s.tokenTo!)} className="font-sans text-ui-12 text-tea-gold-lt underline underline-offset-2 hover:text-tea-gold tap-target">
-                    mint a token
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="mt-2 divide-y divide-tea-border border-y border-tea-border">
-              {s.items.map((it) => {
-                const isOn = !!checked[it.id];
-                return (
-                  <div key={it.id} className="flex items-start gap-3 py-3">
-                    {/* Checkbox */}
-                    <button onClick={() => toggle(it.id)} className="shrink-0 mt-0.5 tap-target" aria-label={isOn ? 'Checked' : 'Not checked'}>
-                      {isOn
-                        ? <CheckCircle className="w-5 h-5 text-tea-gold-lt" weight="fill" />
-                        : <Circle className="w-5 h-5 text-tea-text-dim" weight="regular" />}
-                    </button>
-
-                    {/* Name + what it does */}
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-sans text-ui-14 font-semibold ${isOn ? 'text-tea-text-sec' : 'text-tea-text'}`}>{it.name}</div>
-                      <p className="font-serif text-ui-14 text-tea-text-sec leading-[1.5] mt-0.5">{it.desc}</p>
-                    </div>
-
-                    {/* Open */}
-                    {it.to && (
-                      <button onClick={() => navigate(it.to!)} className="shrink-0 inline-flex items-center gap-1 font-sans text-ui-13 font-medium text-tea-gold-lt hover:text-tea-gold tap-target">
-                        Open <ArrowRight className="w-3.5 h-3.5" weight="bold" />
-                      </button>
-                    )}
-                    {it.href && (
-                      <a href={it.href} target="_blank" rel="noreferrer" className="shrink-0 inline-flex items-center gap-1 font-sans text-ui-13 font-medium text-tea-gold-lt hover:text-tea-gold tap-target">
-                        Open <ArrowRight className="w-3.5 h-3.5" weight="bold" />
-                      </a>
-                    )}
+        <div className="flex flex-col gap-5">
+          {WALKTHROUGHS.map((wt) => {
+            const notBuilt = wt.status === 'not_built';
+            const total = wt.steps.length;
+            const done = wt.steps.reduce((n, _s, i) => n + (checked[stepId(wt, i)] ? 1 : 0), 0);
+            return (
+              <section key={wt.id} className={`bg-tea-surface border rounded-xl overflow-hidden ${notBuilt ? 'border-tea-border/60' : 'border-tea-border'}`}>
+                <div className="px-5 pt-4 pb-3 border-b border-tea-border">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em]">{wt.title}</h2>
+                    {notBuilt
+                      ? <span className="font-sans text-ui-11 uppercase tracking-[0.06em] text-tea-text-dim shrink-0">Not built yet</span>
+                      : <span className="font-sans text-ui-12 text-tea-text-dim shrink-0">{done}/{total}</span>}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                  <p className="font-serif text-ui-14 text-tea-text-sec italic mt-1 leading-[1.5]">{wt.intent}</p>
+                </div>
+
+                <ol className="px-5 py-2">
+                  {wt.steps.map((step, i) => {
+                    const sid = stepId(wt, i);
+                    const on = !!checked[sid];
+                    return (
+                      <li key={sid} className="flex items-start gap-3 py-3 border-b border-tea-border last:border-0">
+                        {!notBuilt && (
+                          <button onClick={() => toggle(sid)} className="shrink-0 mt-0.5 tap-target" aria-label={on ? 'Done' : 'Not done'}>
+                            {on
+                              ? <CheckCircle className="w-5 h-5 text-tea-gold-lt" weight="fill" />
+                              : <Circle className="w-5 h-5 text-tea-text-dim" weight="regular" />}
+                          </button>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            {!notBuilt && <span className="font-sans text-ui-12 text-tea-text-dim shrink-0">{i + 1}.</span>}
+                            <p className={`font-serif text-ui-15 leading-[1.55] ${on ? 'text-tea-text-dim' : 'text-tea-text-sec'}`}>{step.text}</p>
+                          </div>
+                          {(step.to || step.href) && (
+                            <div className="mt-1.5 ml-5">
+                              {step.to && (
+                                <button onClick={() => navigate(step.to!)} className="inline-flex items-center gap-1 font-sans text-ui-13 font-medium text-tea-gold-lt hover:text-tea-gold tap-target">
+                                  {step.goLabel || 'Try it'} <ArrowRight className="w-3.5 h-3.5" weight="bold" />
+                                </button>
+                              )}
+                              {step.href && (
+                                <a href={step.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-sans text-ui-13 font-medium text-tea-gold-lt hover:text-tea-gold tap-target">
+                                  {step.goLabel || 'Try it'} <ArrowRight className="w-3.5 h-3.5" weight="bold" />
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
