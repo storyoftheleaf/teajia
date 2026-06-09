@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, BookOpen } from '@phosphor-icons/react';
 
 interface LaunchpadTile {
   id: string;
@@ -228,6 +228,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       badge: pendingInvoiceCount > 0 ? pendingInvoiceCount : undefined,
       accent: pendingInvoiceCount > 0,
       onClick: () => { onClose(); navigate('/admin/dashboard'); },
+    } as LaunchpadTile] : []),
+    ...(isOwner ? [{
+      id: 'docs',
+      verb: 'library',
+      hint: 'everything we built',
+      icon: <BookOpen {...ICON_PROPS} />,
+      onClick: () => { onClose(); navigate('/account/docs'); },
     } as LaunchpadTile] : []),
   ];
 
