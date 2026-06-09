@@ -3090,6 +3090,71 @@ const handleMcpRevokeToken: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Working Feature Guide (admin-only internal build tracker) ──
+// Returns every saved feature status as a map keyed by feature_id. The UI
+// merges this over its seed list, so features with no saved row just show
+// defaults. Admin/owner only.
+const handleFeatureStatusList: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const { results } = await env.DB.prepare(
+    'SELECT feature_id, stage, works, tested, visual, notes, updated_at FROM feature_status'
+  ).all();
+  const map: Record<string, any> = {};
+  for (const r of results as any[]) {
+    map[r.feature_id] = {
+      stage: r.stage,
+      works: r.works,
+      tested: r.tested === 1,
+      visual: r.visual,
+      notes: r.notes ?? '',
+      updated_at: r.updated_at,
+    };
+  }
+  return json(map);
+};
+
+// Upsert one feature's status. Body is a partial — only the fields present are
+// changed, the rest keep their current (or default) value. Admin/owner only.
+const handleFeatureStatusSave: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as {
+    feature_id?: string;
+    stage?: string; works?: string; tested?: boolean; visual?: string; notes?: string;
+  };
+  const id = (body.feature_id || '').trim();
+  if (!id) return json({ error: 'feature_id required' }, 400);
+
+  const STAGES = ['idea', 'building', 'needs_testing', 'solid'];
+  const WORKS = ['unknown', 'works', 'broken'];
+  const VISUAL = ['unknown', 'good', 'needs_redesign'];
+  if (body.stage && !STAGES.includes(body.stage)) return json({ error: 'bad stage' }, 400);
+  if (body.works && !WORKS.includes(body.works)) return json({ error: 'bad works' }, 400);
+  if (body.visual && !VISUAL.includes(body.visual)) return json({ error: 'bad visual' }, 400);
+
+  // Read current row (if any) so a partial update preserves untouched fields.
+  const cur = await env.DB.prepare(
+    'SELECT stage, works, tested, visual, notes FROM feature_status WHERE feature_id = ?'
+  ).bind(id).first() as any | null;
+
+  const stage = body.stage ?? cur?.stage ?? 'needs_testing';
+  const works = body.works ?? cur?.works ?? 'unknown';
+  const tested = body.tested !== undefined ? (body.tested ? 1 : 0) : (cur?.tested ?? 0);
+  const visual = body.visual ?? cur?.visual ?? 'unknown';
+  const notes = body.notes !== undefined ? body.notes : (cur?.notes ?? '');
+
+  await env.DB.prepare(
+    `INSERT INTO feature_status (feature_id, stage, works, tested, visual, notes, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(feature_id) DO UPDATE SET
+       stage = excluded.stage, works = excluded.works, tested = excluded.tested,
+       visual = excluded.visual, notes = excluded.notes, updated_at = datetime('now')`
+  ).bind(id, stage, works, tested, visual, notes).run();
+
+  return json({ ok: true, feature_id: id, stage, works, tested: tested === 1, visual, notes });
+};
+
 // ── RPC: Void Invoice (atomic server-side) ──
 const handleVoidInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
@@ -17027,6 +17092,10 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/split-invoice', handleSplitInvoice],
   ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
+
+  // Working Feature Guide (admin-only internal build tracker)
+  ['GET',  '/api/admin/feature-status', handleFeatureStatusList],
+  ['POST', '/api/admin/feature-status', handleFeatureStatusSave],
 
   // MCP tokens (voice/agent control of inventory)
   ['GET',    '/api/admin/mcp-tokens',     handleMcpListTokens],

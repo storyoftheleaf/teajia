@@ -231,8 +231,8 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
     } as LaunchpadTile] : []),
     ...(isOwner ? [{
       id: 'briefing',
-      verb: 'briefing',
-      hint: 'what you can do',
+      verb: 'guide',
+      hint: 'features to test',
       icon: <Compass {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/briefing'); },
     } as LaunchpadTile] : []),
