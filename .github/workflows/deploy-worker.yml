@@ -1,9 +1,10 @@
 name: Deploy worker
 
-# Cloudflare Pages auto-deploys the frontend on every push, but the worker
-# (the API at teajia-api.lightcodes.workers.dev) only updates when we run
-# `wrangler deploy`. This workflow runs that command in CI whenever the
-# worker source changes on main, plus on demand from the Actions tab.
+# This deploys the worker (the API at teajia-api.lightcodes.workers.dev) on
+# every push that touches worker/**, plus on demand from the Actions tab.
+# The frontend is handled separately by deploy-frontend.yml — it does NOT
+# auto-deploy from Pages git (that was a wrong assumption that left
+# production stale; see that workflow's header).
 #
 # Required GitHub repo secrets:
 #   CLOUDFLARE_API_TOKEN   — Edit Workers permission, scoped to the account
