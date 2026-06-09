@@ -1,5 +1,15 @@
 # Follow-up: finish Claude mobile OAuth connector flow
 
+> **UPDATE 2026-06-06 — addressed (pending on-device verification).** Root cause
+> was candidate A: the iOS in-app browser dropped the query string on the 302
+> from `/oauth/authorize` to the consent page. Fix: `/oauth/authorize` now
+> persists the request in D1 (`oauth_authorize_requests`, migration 082) and
+> redirects to `/admin/oauth-consent/<id>` — the params ride in the PATH, which
+> survives the hop. The consent page reads the id from the path and fetches the
+> params back via `GET /oauth/authorize/request/:id`. Query-string flow is kept
+> for desktop. Still needs a real iOS device pass to confirm. Same change also
+> un-crippled OAuth tokens (scope selection + real approver tier; see mcp.ts).
+
 > Created 2026-05-09. OAuth 2.1 + dynamic client registration shipped end-to-end
 > for Teajia's MCP server, but Claude mobile fails at the consent step. One
 > targeted debug session away from working. Deferred to keep the parent build

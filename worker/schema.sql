@@ -553,6 +553,25 @@ CREATE TABLE IF NOT EXISTS oauth_codes (
     code_challenge_method TEXT NOT NULL,
     expires_at TEXT NOT NULL,
     used_at TEXT,
+    scopes TEXT,                           -- JSON array of consented MCP scopes (migration 082)
+    creator_tier TEXT,                     -- approver tier, gates owner-tier scopes (migration 082)
     created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_codes_expires ON oauth_codes(expires_at);
+
+-- Pending OAuth authorize requests (migration 082). Persisted so the consent
+-- URL can pass a single opaque id in the PATH rather than the full query string
+-- (Claude mobile's in-app browser dropped query strings on the 302).
+CREATE TABLE IF NOT EXISTS oauth_authorize_requests (
+    id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    response_type TEXT,
+    code_challenge TEXT NOT NULL,
+    code_challenge_method TEXT NOT NULL,
+    state TEXT,
+    scope TEXT,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_authorize_requests_expires ON oauth_authorize_requests(expires_at);

@@ -1,7 +1,7 @@
 import {
-  mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
+  mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
-  oauthRegister, oauthAuthorize, oauthAuthorizeDecision, oauthToken,
+  oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 
 interface Env {
@@ -17375,6 +17375,12 @@ export default {
       return cors(response, corsOrigin);
     }
 
+    // Public, unauthenticated, read-only MCP for the shopping public — catalog
+    // browse + WhatsApp checkout-link builder. No account data or costs exposed.
+    if (url.pathname === '/mcp/public') {
+      return cors(await publicMcpFetch(request, env), corsOrigin);
+    }
+
     // OAuth 2.1 endpoints for MCP clients (Claude desktop/mobile, ChatGPT).
     // These are unauthenticated routes by design — they ARE the auth flow.
     // Both forms — the bare path AND the resource-suffixed variant — because
@@ -17397,7 +17403,11 @@ export default {
       return cors(await oauthRegister(request, env), corsOrigin);
     }
     if (url.pathname === '/oauth/authorize') {
-      return oauthAuthorize(request); // 302 redirect to consent page
+      return await oauthAuthorize(request, env); // 302 redirect to consent page (id in path)
+    }
+    if (url.pathname.startsWith('/oauth/authorize/request/')) {
+      const reqId = url.pathname.slice('/oauth/authorize/request/'.length);
+      return cors(await oauthAuthorizeRequestInfo(request, env, reqId), corsOrigin);
     }
     if (url.pathname === '/oauth/authorize/decision') {
       return cors(await oauthAuthorizeDecision(request, env), corsOrigin);

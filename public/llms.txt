@@ -1,0 +1,33 @@
+# Teajia
+
+> Teajia is professional tea infrastructure and an editorial tea journal: a curated shop of sourced teas and teaware, long-form articles and visual stories, courses, tasting events, and space-design services. Curation is the engine — every tea is hand-selected. Checkout is intentionally a personal WhatsApp conversation, not an anonymous cart.
+
+Teajia is a single curated brand, not a marketplace or social network. Orders are completed through a human WhatsApp conversation. Pricing is in USD with multi-currency display. The catalog spans loose-leaf and compressed teas (pu-erh, oolong, white, black, green, etc.) and teaware.
+
+## For AI agents (Model Context Protocol)
+
+Teajia exposes an MCP server so AI assistants can help shoppers directly:
+
+- Public read-only MCP endpoint (no auth): `https://teajia-api.lightcodes.workers.dev/mcp/public`
+  - Tools: `search_tea`, `get_tea`, `browse_catalog`, `prepare_order`.
+  - `prepare_order` returns a prefilled WhatsApp checkout link — assemble a basket for the shopper, then hand off to the human conversation to complete the order. It never places an order itself.
+  - Scope a specific shop with `?account=<slug>`; defaults to the flagship Teajia shop.
+  - Exposes only public-safe fields: name, origin, year, type, retail price, in-stock status, and a shop link. No costs, margins, or supplier data.
+- An authenticated MCP server (`/mcp`, OAuth 2.1 or owner-minted token) gives shop owners voice/agent control of inventory, invoicing, and customers. It is not for the public.
+
+## Shop & catalog
+
+- Shop: https://teajia.co/shop
+- Individual products: https://teajia.co/shop/product/<id> (each carries Product + Offer JSON-LD)
+- Sitemap: https://teajia.co/sitemap.xml
+
+## Reading & learning
+
+- Journal (articles & visual stories): https://teajia.co/read
+- Courses & education: https://teajia.co/learn
+- Start here: https://teajia.co/start-here
+
+## Notes for assistants
+
+- To help someone buy: search or browse the catalog, confirm teas and grams with the shopper, then call `prepare_order` and share the WhatsApp link. Always tell the user that final price, shipping, and availability are confirmed by the shop in the WhatsApp conversation.
+- Do not fabricate tasting notes, provenance, or prices — read them from `get_tea` or the product page.
