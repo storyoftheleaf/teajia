@@ -39,9 +39,11 @@ corrects the common misconception (people own one without knowing what it's for)
 
 ## Disposition (the mirror)
 `deriveDisposition(answers)` (`src/components/TeaDiscovery/dispositions.ts`) resolves a named
-disposition from temperament ⨯ motivation, nuanced by experience. Current set: **The Quiet Steeper ·
-The Host · The Flavor Seeker · The Daily Drinker · The Curious Beginner · The Deep Diver**. These are
+disposition from temperament ⨯ motivation, nuanced by experience. Current set: **The Contemplative ·
+The Host · The Connoisseur · The Constant · The Newcomer · The Devotee**. These are
 mirrors, not horoscopes — every line is traceable to the answers that produce it.
+(`id`s are unchanged — `quietSteeper`/`flavorSeeker`/`dailyDrinker`/`curiousBeginner`/`deepDiver` —
+so stored profiles keep resolving; only display names + copy moved.)
 
 ## Integration schema
 
@@ -128,9 +130,9 @@ listed under "Remaining" below.
    **honestly observable** signals and, when practice has clearly outgrown the stated profile, the
    result screen offers an **"Adopt this"** card — *suggests, never silently rewrites*. Adopting
    updates the store and persists via `pushTeaDiscoveryProfile`; original answers are kept.
-   - **Depth** (tasting volume) → level, and *The Deep Diver* at the top.
+   - **Depth** (tasting volume) → level, and *The Devotee* at the top.
    - **Group sessions** (`api.me.journey` → `sessionsAttended`) → a social temperament → *The Host*.
-   - **Tasting-note richness** (`noteRichness`) → a flavor & craft motivation → *The Flavor Seeker*.
+   - **Tasting-note richness** (`noteRichness`) → a flavor & craft motivation → *The Connoisseur*.
 
    The honesty guardrail holds: it only ever re-derives from dimensions Teajia can actually see.
    What it *can't* see (solo/pair temperament, stillness/energy/calm motivation) is handled by a

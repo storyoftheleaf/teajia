@@ -9,10 +9,10 @@ import type { Disposition, TeaDiscoveryAnswers } from './types';
 export const DISPOSITIONS: Record<string, Disposition> = {
   quietSteeper: {
     id: 'quietSteeper',
-    name: 'The Quiet Steeper',
+    name: 'The Contemplative',
     description:
-      'You come to tea for the stillness — a cup is a small act of slowing down. ' +
-      'The leaves are an excuse to be present, alone with the steam.',
+      'Tea is your stillness — a cup is a small act of slowing the day. ' +
+      'The leaves are reason enough to sit, alone with the steam.',
   },
   host: {
     id: 'host',
@@ -23,31 +23,31 @@ export const DISPOSITIONS: Record<string, Disposition> = {
   },
   flavorSeeker: {
     id: 'flavorSeeker',
-    name: 'The Flavor Seeker',
+    name: 'The Connoisseur',
     description:
-      'You taste your way through tea — chasing the floral, the roasted, the aged. ' +
+      'You taste your way through tea — the floral, the roasted, the aged. ' +
       'Each cup is a question about what the leaf can do.',
   },
   dailyDrinker: {
     id: 'dailyDrinker',
-    name: 'The Daily Drinker',
+    name: 'The Constant',
     description:
-      'Tea is woven into your day — for focus, for energy, for the rhythm of it. ' +
-      'Less a ceremony, more a faithful companion from morning on.',
+      'Tea is woven through your day — for focus, for steadiness, for its rhythm. ' +
+      'Not a ceremony so much as a constant, from the first cup onward.',
   },
   curiousBeginner: {
     id: 'curiousBeginner',
-    name: 'The Curious Beginner',
+    name: 'The Newcomer',
     description:
-      "You're at the gate, and curious to walk through. There's no wrong way in — " +
-      'just the next cup, and a little more to notice each time.',
+      'You are at the threshold, and glad to step through. There is no wrong way in — ' +
+      'only the next cup, and a little more to notice each time.',
   },
   deepDiver: {
     id: 'deepDiver',
-    name: 'The Deep Diver',
+    name: 'The Devotee',
     description:
-      "You're well down the rabbit hole — gongfu, aged cakes, the long view. " +
-      'Tea has stopped being a drink and become a practice you keep refining.',
+      'Tea has become a practice for you — gongfu, aged cakes, the long view. ' +
+      'No longer simply a drink, but something you keep refining.',
   },
 };
 

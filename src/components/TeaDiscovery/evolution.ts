@@ -76,7 +76,7 @@ export function noteRichness(journal: CustomerTasting[]): number {
    Learned disposition — behaviour SUGGESTS, it never silently rewrites.
    The only thing the journal can honestly tell us about disposition is depth of
    practice (volume of tastings), so the suggestion is a level bump and, at the
-   top of the ladder, surfacing "The Deep Diver". The member must explicitly
+   top of the ladder, surfacing "The Devotee". The member must explicitly
    adopt it. Temperament/motivation aren't observable, so we never fabricate
    those-driven disposition changes here — flavor drift stays a "refresh" nudge.
    ─────────────────────────────────────────────────────────────────────────── */
@@ -116,9 +116,9 @@ function joinWithAnd(parts: string[]): string {
  * Caller surfaces it as an opt-in ("Adopt this"); it is never auto-applied.
  *
  * Only re-derives from dimensions we can honestly observe:
- *  - depth (tasting volume) → level, and The Deep Diver at the top;
+ *  - depth (tasting volume) → level, and The Devotee at the top;
  *  - group sessions → a social temperament (The Host);
- *  - rich tasting notes → a flavor & craft motivation (The Flavor Seeker).
+ *  - rich tasting notes → a flavor & craft motivation (The Connoisseur).
  * Temperament/motivation we can't see are left to the "still true?" re-ask.
  */
 export function suggestEvolution(
