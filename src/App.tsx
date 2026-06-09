@@ -72,6 +72,7 @@ const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
 const DeveloperDocsPage = lazy(() => import('./pages/DeveloperDocsPage'));
+const BriefingPage = lazy(() => import('./pages/BriefingPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
@@ -846,6 +847,7 @@ const AppContent = () => {
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
                 <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
