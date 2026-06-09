@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, Circle } from '@phosphor-icons/react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../lib/api';
+import { useWalkthrough } from '../lib/walkthroughStore';
 
 /**
  * BriefingPage — the owner's walk-through guide. Not a map of pages (those are
@@ -184,6 +185,8 @@ export default function BriefingPage() {
   const { isAdmin } = useAuth();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [openRole, setOpenRole] = useState<string | null>(null);
+  const startWalk = useWalkthrough((s) => s.start);
+  const activeWalkId = useWalkthrough((s) => s.activeId);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -277,6 +280,15 @@ export default function BriefingPage() {
                       : <span className="font-sans text-ui-12 text-tea-text-dim shrink-0">{done}/{total}</span>}
                   </div>
                   <p className="font-serif text-ui-14 text-tea-text-sec italic mt-1 leading-[1.5]">{wt.intent}</p>
+                  {!notBuilt && (
+                    <button
+                      onClick={() => startWalk(wt.id, wt.title, wt.steps.map((s) => ({ text: s.text, to: s.to, goLabel: s.goLabel })))}
+                      className="mt-3 inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium text-tea-bg bg-tea-gold rounded-full px-3.5 py-1.5 hover:bg-tea-gold-lt tap-target"
+                    >
+                      {activeWalkId === wt.id ? 'Walking…' : 'Walk it with me'}
+                      <ArrowRight className="w-3.5 h-3.5" weight="bold" />
+                    </button>
+                  )}
                 </div>
 
                 <ol className="px-5 py-2">

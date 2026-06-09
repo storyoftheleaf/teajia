@@ -129,6 +129,7 @@ import { NetworkErrorNotice } from './components/shared/NetworkErrorNotice';
 import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
+import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
@@ -1037,6 +1038,10 @@ const AppContent = () => {
         onViewCart={handleViewCartFromToast}
         onDismiss={dismissCartToast}
       />
+
+      {/* Walk-through companion — follows the owner across pages while they
+          run and test a flow from the guide. Renders nothing unless active. */}
+      <WalkthroughDock />
 
       <div role="status" aria-live="polite" className={`fixed bottom-nav-gap lg:bottom-8 left-1/2 -translate-x-1/2 bg-tea-surface text-tea-text px-6 py-3 rounded-md shadow-2xl transition-all duration-500 z-toast flex items-center gap-3 ${toast.show ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
           <Icons.Seal className="w-4 h-4 text-tea-gold" />
