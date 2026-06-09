@@ -3127,7 +3127,7 @@ const handleFeatureStatusSave: Handler = async (request, env) => {
   if (!id) return json({ error: 'feature_id required' }, 400);
 
   const STAGES = ['idea', 'building', 'needs_testing', 'solid'];
-  const WORKS = ['unknown', 'works', 'broken'];
+  const WORKS = ['unknown', 'works', 'needs_revision', 'broken'];
   const VISUAL = ['unknown', 'good', 'needs_redesign'];
   if (body.stage && !STAGES.includes(body.stage)) return json({ error: 'bad stage' }, 400);
   if (body.works && !WORKS.includes(body.works)) return json({ error: 'bad works' }, 400);
