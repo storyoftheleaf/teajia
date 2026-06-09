@@ -75,6 +75,7 @@ const config: Config = {
         overlay: '30',
         drawer: '35',
         modal: '40',
+        popover: '45',
         toast: '50',
         priority: '60',
         'panel-backdrop': '65',
