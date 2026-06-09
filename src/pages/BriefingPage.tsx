@@ -33,6 +33,37 @@ type Walkthrough = {
   steps: Step[];
 };
 
+// The five user types Your Table renders, and what the platform brings each.
+// Descriptive (not impersonation) — manage the real grants in Members & Access.
+type Role = { id: string; name: string; gets: string; can: string };
+const ROLES: Role[] = [
+  {
+    id: 'reader', name: 'Reader',
+    gets: 'The public, signed-in experience — the writing and the shop, made personal.',
+    can: 'Read the magazine, browse and inquire on teas, save favorites, follow the learning tracks. No inventory, no admin. The lightest tier — someone who loves the tea but doesn\'t run anything.',
+  },
+  {
+    id: 'member', name: 'Member',
+    gets: 'A practitioner\'s own space — their tasting practice lives here.',
+    can: 'Everything a Reader can, plus their own tasting journal (synced across devices) and the collections shared with them. This is the heart of the "manage your own collection" idea — a member treats Teajia as their personal tea record, not just a shop.',
+  },
+  {
+    id: 'operator', name: 'Operator',
+    gets: 'The keys to run a shop — the back-office, scoped to what they\'re granted.',
+    can: 'Whatever capability bundles you give them: Catalog, Stock, Publish, Gather, Sell, Members — each unlocks that part of admin. An Operator with Stock+Sell runs inventory and orders but can\'t touch members; one with Publish curates and writes. You compose their power bundle by bundle.',
+  },
+  {
+    id: 'staff', name: 'Staff',
+    gets: 'A trusted hand inside one shop — broad access without ownership.',
+    can: 'The admin tools their bundles allow, working on behalf of the shop, but not the owner-only controls (pricing that crosses accounts, the exchange rate, deleting members). The person who works the counter and the inventory, not the one who sets the strategy.',
+  },
+  {
+    id: 'owner', name: 'Owner',
+    gets: 'The whole platform — every shop they own, and the cross-account controls.',
+    can: 'Everything: all admin, all bundles, the exchange rate, multi-store network, the audit log, and (as platform owner) acting across accounts. The full picture — what you have right now.',
+  },
+];
+
 const WALKTHROUGHS: Walkthrough[] = [
   {
     id: 'wt:onboard',
@@ -152,6 +183,7 @@ export default function BriefingPage() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [openRole, setOpenRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -192,14 +224,44 @@ export default function BriefingPage() {
           <span className="text-ui-13">Your Table</span>
         </button>
 
-        <div className="font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-dim">Walk-throughs</div>
-        <h1 className="font-display text-ui-26 text-tea-text tracking-[0.01em] mt-2">How to run it, and test it</h1>
+        <div className="font-sans text-ui-12 uppercase tracking-[0.14em] text-tea-text-dim">The Guide</div>
+        <h1 className="font-display text-ui-26 text-tea-text tracking-[0.01em] mt-2">How it works, and who it's for</h1>
         <p className="font-serif text-ui-15 text-tea-text-sec mt-3 mb-10 leading-[1.65]">
-          The real flows behind the platform — onboarding, the assistant, importing, the chains from tasting to
-          stock to shelf. Each step has a button to go try it, so you can run the flow and catch what breaks or
-          looks wrong. Check off steps as you go.
+          Two things: what the platform brings each kind of person, and the real flows you can run and test. Tap a
+          role to see what it offers them; walk a flow and check off steps, catching what breaks or looks wrong.
         </p>
 
+        {/* ── Roles: what the platform brings each user type ── */}
+        <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em] mb-1">Who it's for</h2>
+        <p className="font-serif text-ui-14 text-tea-text-sec italic mb-4">What each kind of person gets at their level.</p>
+        <div className="flex flex-col gap-2.5 mb-12">
+          {ROLES.map((r) => {
+            const open = openRole === r.id;
+            return (
+              <div key={r.id} className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+                <button onClick={() => setOpenRole(open ? null : r.id)} className="w-full flex items-start gap-3 px-5 py-4 text-left hover:bg-tea-gold/[0.03] transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display text-ui-20 text-tea-text tracking-[0.01em]">{r.name}</div>
+                    <div className="font-serif text-ui-14 text-tea-text-sec mt-0.5 leading-[1.45]">{r.gets}</div>
+                  </div>
+                  <ArrowRight className={`w-4 h-4 text-tea-text-dim shrink-0 mt-1 transition-transform ${open ? 'rotate-90' : ''}`} weight="bold" />
+                </button>
+                {open && (
+                  <div className="px-5 pb-4 pt-1 border-t border-tea-border">
+                    <p className="font-serif text-ui-15 text-tea-text-sec leading-[1.6] mt-3">{r.can}</p>
+                    <button onClick={() => navigate('/admin/access')} className="mt-3 inline-flex items-center gap-1 font-sans text-ui-13 font-medium text-tea-gold-lt hover:text-tea-gold tap-target">
+                      Manage roles & access <ArrowRight className="w-3.5 h-3.5" weight="bold" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Walk-throughs ── */}
+        <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em] mb-1">Run it &amp; test it</h2>
+        <p className="font-serif text-ui-14 text-tea-text-sec italic mb-4">The real flows. Each step has a button to go try it.</p>
         <div className="flex flex-col gap-5">
           {WALKTHROUGHS.map((wt) => {
             const notBuilt = wt.status === 'not_built';
