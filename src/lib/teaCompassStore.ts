@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter } from '../components/TeaCompass/types';
+import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort } from '../components/TeaCompass/types';
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 
@@ -22,6 +22,13 @@ interface TeaCompassState {
   // Browse state
   browseGrouping: BrowseGrouping;
   browseFilter: BrowseFilter;
+  browseSort: BrowseSort;
+
+  // Capture session — entries created in one contiguous run share this id.
+  // A fresh id is minted when a capture starts after SESSION_GAP_MS of idle,
+  // so a "review the batch I just tasted" surface can group a sitting.
+  currentSessionId: string | null;
+  lastCaptureAt: number | null;
 
   // Pricing formula — shipping rate used in retail preview (same currency as entry cost)
   shippingRatePerKg: number;
@@ -49,6 +56,7 @@ interface TeaCompassState {
   // Browse
   setBrowseGrouping: (grouping: BrowseGrouping) => void;
   setBrowseFilter: (filter: BrowseFilter) => void;
+  setBrowseSort: (sort: BrowseSort) => void;
 
   // Discard a pending capture without saving. For committed entries being re-edited, just exits the session.
   discardEntry: (id: string) => void;
@@ -73,6 +81,10 @@ function entryHasContent(entry: TeaCompassEntry): boolean {
   );
 }
 
+// New capture run starts after this much idle time. Keeps a single sitting
+// (back-to-back captures) grouped under one sessionId for batch review.
+const SESSION_GAP_MS = 6 * 60 * 60 * 1000; // 6 hours
+
 export const useTeaCompassStore = create<TeaCompassState>()(
   persist(
     (set, get) => ({
@@ -85,6 +97,9 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       lastCurrency: 'NT',
       browseGrouping: 'date',
       browseFilter: 'all',
+      browseSort: 'recent',
+      currentSessionId: null,
+      lastCaptureAt: null,
       shippingRatePerKg: 0,
       customEras: [],
 
@@ -132,16 +147,27 @@ export const useTeaCompassStore = create<TeaCompassState>()(
 
       startNewCapture: (category = 'tea') => {
         const state = get();
+        // Continue the current sitting if recent; otherwise start a fresh
+        // session so the batch-review surface can group one run's tastings.
+        const now = Date.now();
+        const continueSession =
+          state.currentSessionId != null &&
+          state.lastCaptureAt != null &&
+          now - state.lastCaptureAt < SESSION_GAP_MS;
+        const sessionId = continueSession ? state.currentSessionId! : crypto.randomUUID();
         const entry = createEmptyEntry(category, {
           vendorId: state.lastVendorId || undefined,
           vendorName: state.lastVendorName || undefined,
           priceCurrency: state.lastCurrency,
         });
+        entry.sessionId = sessionId;
         // Add to pendingEntries (NOT entries) — won't appear in Library until committed
         set((s) => ({
           pendingEntries: [entry, ...s.pendingEntries],
           activeEntryId: entry.id,
           sessionEntryIds: [...s.sessionEntryIds, entry.id],
+          currentSessionId: sessionId,
+          lastCaptureAt: now,
         }));
         return entry.id;
       },
@@ -200,6 +226,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
 
       setBrowseGrouping: (grouping) => set({ browseGrouping: grouping }),
       setBrowseFilter: (filter) => set({ browseFilter: filter }),
+      setBrowseSort: (sort) => set({ browseSort: sort }),
 
       getEntry: (id) => {
         const state = get();
@@ -224,6 +251,9 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         lastCurrency: state.lastCurrency,
         browseGrouping: state.browseGrouping,
         browseFilter: state.browseFilter,
+        browseSort: state.browseSort,
+        currentSessionId: state.currentSessionId,
+        lastCaptureAt: state.lastCaptureAt,
         shippingRatePerKg: state.shippingRatePerKg,
         customEras: state.customEras,
         // pendingEntries, activeEntryId, sessionEntryIds are intentionally NOT persisted
