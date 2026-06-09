@@ -2,10 +2,11 @@
 name: teajia
 status: active
 stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer Motion, Cloudflare Pages, Cloudflare Workers, D1]
-deploy: https://teajia.pages.dev
+deploy: https://teajia.com
+deploy_project: teajiafinal (Cloudflare Pages, auto-deploys from git on push to main; serves teajia.com + www.teajia.com). NOTE: teajia.pages.dev is a stale/abandoned project — do NOT deploy there or link it.
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-06-08
+last_reviewed: 2026-06-09
 ---
 
 # Teajia — flagship e-commerce + content platform

@@ -3638,9 +3638,11 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
 // params back from /oauth/authorize/request/<id>.
 //
 // CRITICAL: this redirect must go to the FRONTEND origin, not the worker
-// origin — the worker has no UI. We hard-code teajia.pages.dev because the
+// origin — the worker has no UI. We hard-code the live site because the
 // worker has no other reliable way to discover the frontend URL.
-const FRONTEND_ORIGIN = 'https://teajia.pages.dev';
+// teajia.com is the real frontend (Pages project `teajiafinal`); the old
+// teajia.pages.dev project is stale and was redirecting users to a dead site.
+const FRONTEND_ORIGIN = 'https://teajia.com';
 const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
