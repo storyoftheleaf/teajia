@@ -675,7 +675,7 @@ const ShippingSplit: React.FC<{
     </div>
     {total > 0 && (
       <p className="text-ui-10 text-tea-text-dim basis-full">
-        Total size {Math.round(totalSize).toLocaleString()} · each item's share folds into its cost (landed cost)
+        Total size {Math.round(totalSize).toLocaleString()} · sizes are auto-estimated per item — edit any you know · each share folds into landed cost
       </p>
     )}
   </div>
@@ -756,7 +756,7 @@ const ItemsTable: React.FC<{
                     {shippingActive && (
                       <>
                         <span className="opacity-40">·</span>
-                        <span className="inline-flex items-center gap-1">
+                        <span className="inline-flex items-center gap-1" title="Auto-estimated from this item's type — edit if you know its real size">
                           <span>size</span>
                           <input
                             type="number" min="0" value={it.sizeEstimate || ''} placeholder="0"
