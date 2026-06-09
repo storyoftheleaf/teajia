@@ -1,5 +1,5 @@
-import type { DiscoveryLevel, DiscoveryQuestion, Disposition, TeaDiscoveryAnswers } from './types';
-import { deriveDisposition } from './dispositions';
+import type { DiscoveryLevel, DiscoveryQuestion, TeaDiscoveryAnswers } from './types';
+import { deriveThreads } from './threads';
 import { TeabagIcon, BowlIcon, TeapotIcon, GaiwanIcon, YixingIcon } from './VesselIcons';
 
 /* ───────────────────────────────────────────────────────────────────────────
@@ -112,10 +112,10 @@ function deriveLevel(answers: TeaDiscoveryAnswers): DiscoveryLevel {
   return experienceQ.options.find((o) => o.id === optId)?.level ?? 'curious';
 }
 
-/** Pure derivation from raw answers → the profile's level + disposition. */
+/** Pure derivation from raw answers → the profile's level (Axis 2) + threads (Axis 1). */
 export function deriveProfile(answers: TeaDiscoveryAnswers): {
   level: DiscoveryLevel;
-  disposition: Disposition;
+  threadIds: string[];
 } {
-  return { level: deriveLevel(answers), disposition: deriveDisposition(answers) };
+  return { level: deriveLevel(answers), threadIds: deriveThreads(answers) };
 }

@@ -14,7 +14,7 @@ import { RecommendationModal } from './RecommendationModal';
 import { QuickInvoiceModal } from './QuickInvoiceModal';
 import { ContactTagEditor } from './contactTags/ContactTagEditor';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
-import { DISPOSITIONS } from '../../components/TeaDiscovery/dispositions';
+import { THREADS, threadsFromStored } from '../../components/TeaDiscovery/threads';
 
 interface CustomerTea {
   id: string;
@@ -563,20 +563,28 @@ export const CustomerProfilePage: React.FC = () => {
             </section>
           )}
 
-          {/* Tea Discovery disposition — how they told us they like to drink.
-              Stated preference, complementing the observed Portrait above. */}
+          {/* Tea Discovery — the threads that draw them, plus where they are in the
+              practice. Stated preference, complementing the observed Portrait above. */}
           {journey?.teaDiscoveryProfile?.dispositionId && (() => {
             const disc = journey.teaDiscoveryProfile!;
-            const name = disc.dispositionName || DISPOSITIONS[disc.dispositionId!]?.name || 'Tea disposition';
-            const description = DISPOSITIONS[disc.dispositionId!]?.description;
+            const threads = threadsFromStored(disc.dispositionId).map((id) => THREADS[id]).filter(Boolean);
+            const name = threads.length
+              ? threads.map((t) => t.name).join(' · ')
+              : disc.dispositionName || 'Tea profile';
             return (
               <section className="bg-tea-surface border border-tea-border rounded-xl p-5">
                 <h3 className="h3 mb-1">Tea Profile</h3>
-                <p className="label-caps text-tea-text-dim mb-4">How they like to drink · from onboarding</p>
+                <p className="label-caps text-tea-text-dim mb-4">What draws them · from onboarding</p>
                 <div className="bg-tea-bg border border-tea-border rounded-xl p-4">
                   <div className="font-display text-ui-20 text-tea-text leading-tight">{name}</div>
-                  {description && (
-                    <p className="text-ui-13 text-tea-text-sec leading-relaxed mt-2">{description}</p>
+                  {threads.length > 0 && (
+                    <div className="mt-2 flex flex-col gap-1.5">
+                      {threads.map((t) => (
+                        <p key={t.id} className="text-ui-13 text-tea-text-sec leading-relaxed">
+                          <span className="text-tea-text">{t.name}</span> — {t.description}
+                        </p>
+                      ))}
+                    </div>
                   )}
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
                     {disc.level && <StatusPill variant="draft">{disc.level}</StatusPill>}

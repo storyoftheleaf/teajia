@@ -18,11 +18,11 @@ export default function DiscoverPage() {
   const [view, setView] = useState<View>(profile ? 'result' : 'intro');
 
   const handleComplete = (answers: TeaDiscoveryAnswers) => {
-    const { level, disposition } = deriveProfile(answers);
+    const { level, threadIds } = deriveProfile(answers);
     const profile = {
       answers,
       level,
-      dispositionId: disposition.id,
+      threadIds,
       completedAt: new Date().toISOString(),
     };
     setProfile(profile);
@@ -40,10 +40,10 @@ export default function DiscoverPage() {
   };
 
   // Adopt a behaviour-suggested evolution (explicit opt-in from the result screen).
-  // Keeps the original answers; only the derived level + disposition move.
-  const handleAdopt = (level: DiscoveryLevel, dispositionId: string) => {
+  // Keeps the original answers; only the derived level + threads move.
+  const handleAdopt = (level: DiscoveryLevel, threadIds: string[]) => {
     if (!profile) return;
-    const updated = { ...profile, level, dispositionId, completedAt: new Date().toISOString() };
+    const updated = { ...profile, level, threadIds, completedAt: new Date().toISOString() };
     setProfile(updated);
     void pushTeaDiscoveryProfile(updated);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -54,8 +54,8 @@ export default function DiscoverPage() {
   const handleReanswer = (questionId: string, value: string | string[]) => {
     if (!profile) return;
     const answers = { ...profile.answers, [questionId]: value };
-    const { level, disposition } = deriveProfile(answers);
-    const updated = { answers, level, dispositionId: disposition.id, completedAt: new Date().toISOString() };
+    const { level, threadIds } = deriveProfile(answers);
+    const updated = { answers, level, threadIds, completedAt: new Date().toISOString() };
     setProfile(updated);
     void pushTeaDiscoveryProfile(updated);
   };

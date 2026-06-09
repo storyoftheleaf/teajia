@@ -1,6 +1,6 @@
 import type { CustomerTasting } from '../../types';
 import type { DiscoveryLevel, TeaDiscoveryProfile } from './types';
-import { deriveDisposition } from './dispositions';
+import { deriveThreads, profileThreads } from './threads';
 
 /* ───────────────────────────────────────────────────────────────────────────
    Evolution loop — the profile deepens from observed behaviour, not points.
@@ -73,26 +73,31 @@ export function noteRichness(journal: CustomerTasting[]): number {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
-   Learned disposition — behaviour SUGGESTS, it never silently rewrites.
-   The only thing the journal can honestly tell us about disposition is depth of
-   practice (volume of tastings), so the suggestion is a level bump and, at the
-   top of the ladder, surfacing "The Devotee". The member must explicitly
-   adopt it. Temperament/motivation aren't observable, so we never fabricate
-   those-driven disposition changes here — flavor drift stays a "refresh" nudge.
+   Learned threads — behaviour SUGGESTS, it never silently rewrites.
+   Practice can surface a thread someone didn't name at the start (lots of group
+   sessions → Connection; lots of real tasting notes → Quality), offered as an
+   opt-in. Two hard rules keep this from becoming a points game:
+     1. Behaviour can lift the level at most to `practicing`. `devoted` is
+        CONFERRED (Adrian knows them / they contribute) — never reached by a
+        tasting counter, or it's just a gamified badge in disguise.
+     2. Threads are only ever ADDED as a suggestion, never removed by the system.
+   Temperament we can't observe is left to the "still true?" re-ask.
    ─────────────────────────────────────────────────────────────────────────── */
 
 const LEVEL_ORDER: Record<DiscoveryLevel, number> = { curious: 0, practicing: 1, devoted: 2 };
 
-/** Map tasting volume to the level it would imply on its own. */
+/**
+ * Map tasting volume to the level it would imply — capped at `practicing`.
+ * Volume never implies `devoted`: that standing is conferred, not counted.
+ */
 function levelFromVolume(count: number): DiscoveryLevel {
-  if (count >= 20) return 'devoted';
   if (count >= 8) return 'practicing';
   return 'curious';
 }
 
 export interface EvolutionSuggestion {
   level: DiscoveryLevel;
-  dispositionId: string;
+  threadIds: string[];
   reason: string;
 }
 
@@ -111,15 +116,16 @@ function joinWithAnd(parts: string[]): string {
 }
 
 /**
- * Returns a suggested (level, disposition) when accumulated practice has clearly
- * outgrown the stated profile — or null when nothing meaningful has changed.
+ * Returns a suggested (level, threads) when accumulated practice has clearly
+ * grown past the stated profile — or null when nothing meaningful has changed.
  * Caller surfaces it as an opt-in ("Adopt this"); it is never auto-applied.
  *
  * Only re-derives from dimensions we can honestly observe:
- *  - depth (tasting volume) → level, and The Devotee at the top;
- *  - group sessions → a social temperament (The Host);
- *  - rich tasting notes → a flavor & craft motivation (The Connoisseur).
- * Temperament/motivation we can't see are left to the "still true?" re-ask.
+ *  - depth (tasting volume) → level, capped at `practicing` (devoted is conferred);
+ *  - group sessions → the Connection thread;
+ *  - rich tasting notes → the Quality thread.
+ * Threads are only ever added on top of the stated ones, never taken away.
+ * Temperament we can't see is left to the "still true?" re-ask.
  */
 export function suggestEvolution(
   profile: TeaDiscoveryProfile,
@@ -135,9 +141,8 @@ export function suggestEvolution(
   const grew = LEVEL_ORDER[volumeLevel] > LEVEL_ORDER[profile.level];
   const newLevel: DiscoveryLevel = grew ? volumeLevel : profile.level;
 
-  // Build a synthetic answer set from the evidence, then re-derive once.
+  // Build a synthetic answer set from the evidence, then re-derive threads.
   const synth = { ...profile.answers };
-  if (newLevel === 'devoted') synth.experience = 'deep';
 
   const socialFromEvents = sessions >= 3;
   if (socialFromEvents) synth.temperament = 'group';
@@ -151,8 +156,12 @@ export function suggestEvolution(
     synth.motivation = motivs;
   }
 
-  const newDisposition = deriveDisposition(synth);
-  const changed = newLevel !== profile.level || newDisposition.id !== profile.dispositionId;
+  // Add any newly-evidenced thread on top of the stated ones; never remove.
+  const current = profileThreads(profile);
+  const added = deriveThreads(synth).filter((t) => !current.includes(t));
+  const threadIds = [...current, ...added];
+
+  const changed = newLevel !== profile.level || added.length > 0;
   if (!changed) return null;
 
   const bits = [`logged ${observed.tastingCount} ${observed.tastingCount === 1 ? 'tea' : 'teas'}`];
@@ -160,5 +169,5 @@ export function suggestEvolution(
   if (craftFromNotes) bits.push(`kept notes on ${richNotes}`);
   const reason = `You've ${joinWithAnd(bits)} since you started.`;
 
-  return { level: newLevel, dispositionId: newDisposition.id, reason };
+  return { level: newLevel, threadIds, reason };
 }

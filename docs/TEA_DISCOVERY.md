@@ -16,9 +16,9 @@
 
 ## What it is
 A mobile-first, screen-by-screen question flow that helps people *discover the way they drink tea for
-themselves*, then hands back a **Tea Profile**: an experience `level`, a named **disposition** (the
-mirror), and the raw answers. It is the front door for newcomers and the connective tissue between
-every surface of Teajia.
+themselves*, then hands back a **Tea Profile**: an experience `level`, the **threads** that draw them
+(the mirror), and the raw answers. It is the front door for newcomers and the connective tissue
+between every surface of Teajia.
 
 It is **not** an analytics grab. The output is a *gift, not a form* — see "Value exchange" below.
 
@@ -30,26 +30,48 @@ One decision per screen, ~5 taps. Config lives in `src/components/TeaDiscovery/q
 | 1 | Where are you with tea right now? | `experience` | single, text | `level` (curious / practicing / devoted) → content depth |
 | 2 | How do you like to brew? | `brew` | single, **picture + tap-to-learn** | vessel literacy; teaware recs; the education layer |
 | 3 | What flavors pull you in? | `flavor` | single, **color swatch** | tea-family recs |
-| 4 | How do you like to take your tea? | `temperament` | single, text | disposition; session/event fit |
-| 5 | What does tea give you? | `motivation` | **multi**, text | disposition; maps to the taster "Effect" zone |
+| 4 | How do you like to take your tea? | `temperament` | single, text | threads; session/event fit |
+| 5 | What does tea give you? | `motivation` | **multi**, text | threads; maps to the taster "Effect" zone |
 
 Brewing options ladder from familiar to advanced — mug & teabag, bowl (grandpa style), teapot,
 gaiwan, Yixing clay — each with a non-blocking **"What's this?"** explainer. The Yixing copy gently
 corrects the common misconception (people own one without knowing what it's for).
 
-## Disposition (the mirror)
-`deriveDisposition(answers)` (`src/components/TeaDiscovery/dispositions.ts`) resolves a named
-disposition from temperament ⨯ motivation, nuanced by experience. Current set: **The Contemplative ·
-The Host · The Connoisseur · The Constant · The Newcomer · The Devotee**. These are
-mirrors, not horoscopes — every line is traceable to the answers that produce it.
-(`id`s are unchanged — `quietSteeper`/`flavorSeeker`/`dailyDrinker`/`curiousBeginner`/`deepDiver` —
-so stored profiles keep resolving; only display names + copy moved.)
+## The mirror — two axes, not one box
+A person is not one tea archetype. The mirror is built from **two independent axes**, and the
+profile carries both (`src/components/TeaDiscovery/threads.ts`):
+
+**Axis 1 — Threads (`threadIds`): what draws you.** `deriveThreads(answers)` returns the threads a
+person holds, strongest first — they stack, so someone can hold several. The set is exactly three,
+because three is all the places the draw can point:
+
+| Thread | Oriented toward | Signal |
+|---|---|---|
+| **Stillness** | yourself — the inward, meditative cup | `motivation` stillness/calm/energy, solo temperament |
+| **Connection** | other people — serving, hosting, gathering | `motivation` connection, group/pair temperament |
+| **Quality** | the tea itself — the genuinely good cup | `motivation` flavor, loose-leaf/deep experience |
+
+Each thread had to pass one test: it must name something the other two **don't** share. That test
+eliminated the impostors — *daily* (a frequency, → folds into Stillness as the grounding cup),
+*senses/learning* (the depth axis, → Axis 2), *pleasure* (an outcome everyone shares). Mirrors, not
+horoscopes — every thread is traceable to the answers that produce it.
+
+**Axis 2 — Level (`level`): how far into the practice you are.** `curious → practicing → devoted`.
+`devoted` is **conferred** (Adrian knows them / they contribute), never self-claimed or counted up
+to — the one gate in the model, so a beginner can't click their way into it. Behavioural evolution
+caps its level suggestion at `practicing` for exactly this reason.
+
+> **Persistence note:** to avoid a schema migration while the model settles, `threadIds` are stored
+> in the legacy `disposition_id`/`disposition_name` columns — ids comma-joined, names joined as
+> "Stillness · Quality". The worker/MCP/admin treat both as opaque display strings, so the round-trip
+> is transparent. `threadsFromStored()` also translates the six pre-threads archetype ids in any older
+> rows. A dedicated `thread_ids` column is the eventual home.
 
 ## Integration schema
 
 ```mermaid
 graph TD
-    Q[Tea Discovery flow<br/>/discover] --> P[Tea Profile<br/>level · disposition · answers]
+    Q[Tea Discovery flow<br/>/discover] --> P[Tea Profile<br/>level · threads · answers]
 
     P --> R[Read / Craft<br/>article & curriculum depth by level]
     P --> S[Shop<br/>tea & teaware by flavor + vessel + level]
@@ -72,18 +94,18 @@ graph TD
 | `answers.flavor` | flavor-origin articles | tea family filter | pre-highlight flavor families | what to pour first |
 | `answers.brew` | brewing lessons | teaware (gaiwan, Yixing…) | default vessel | gear-readiness |
 | `answers.motivation` (effect) | "why tea" pieces | mood-led collections | seeds the "Effect" zone | the *why* behind a recommendation |
-| `disposition` | tone of voice | curated set framing | — | the human read at a glance |
+| `threadIds` | tone of voice | curated set framing (per shelf) | — | the human read at a glance |
 
 ## Value exchange & psychology
 The reason people will *want* to fill this out — and feel served, not mined:
 
-1. **Immediate self-insight.** The disposition mirror is the reward, delivered the instant they
+1. **Immediate self-insight.** The thread mirror is the reward, delivered the instant they
    finish. It's about them, not us. (Why people share personality-quiz results and never share
    surveys.)
 2. **Education *during* the flow.** The tap-to-learn layer means even answering gives something back
    — value on every screen, not gated behind the result.
-3. **Belonging.** Naming a disposition places someone in a living tradition (a bowl-drinker, a
-   grandpa-style person), which beats points and badges.
+3. **Belonging.** Naming the threads that draw someone places them in a living tradition (a bowl-drinker,
+   a grandpa-style person), which beats points and badges.
 4. **Attunement, not analytics.** The honest stance, said plainly in the UI: *"We don't use this to
    sell you more. We use it so the right tea finds you — and so when you message us, you're already
    known."* This is the opposite of retargeting: a mass retailer profiles you to chase you with ads;
@@ -112,27 +134,29 @@ listed under "Remaining" below.
    `teaDiscoverySync.ts`: on login it adopts a newer server profile or pushes a newer local one
    (last-write-wins by `completedAt`) — so a profile taken **while anonymous gets persisted the moment
    the member signs in**. Completion pushes directly from `DiscoverPage`.
-2. **Tea-master visibility.** `handleGetCustomerJourney` joins the disposition by the customer's email
-   and returns `teaDiscoveryProfile`; `CustomerProfilePage` renders a **Tea Profile** panel (stated
-   preference, beside the observed Portrait). `find_customer` (MCP) returns `tea_disposition` +
-   `tea_level` per match — the brief a tea master reads before the WhatsApp conversation.
+2. **Tea-master visibility.** `handleGetCustomerJourney` joins the profile by the customer's email
+   and returns `teaDiscoveryProfile`; `CustomerProfilePage` renders a **Tea Profile** panel (the
+   threads that draw them, beside the observed Portrait). `find_customer` (MCP) returns
+   `tea_disposition` (the joined thread names) + `tea_level` per match — the brief a tea master reads
+   before the WhatsApp conversation.
 3. **Recommendations.** `recommendations.ts` turns `level` + `flavor` + `brew` into tailored next
    steps with a plain "why this" line on the results screen (replacing the generic next-step links).
 4. **Evolution loop (observed palate).** `evolution.ts` derives an *observed palate* from the synced
-   tasting journal (top tea types + which flavor family they lean to). The chosen disposition is
+   tasting journal (top tea types + which flavor family they lean to). Stated threads are
    **never overwritten** — instead the observed layer (a) replaces the static "deepens with practice"
    seed with real data once there are ≥3 tastings, (b) re-leads the shop recommendation with what they
    actually drink ("Based on what you've been drinking lately"), and (c) shows a gentle **drift nudge**
    to refresh the profile when their cups have turned away from their stated answer. No streaks/points.
    The tea master's symmetric observed layer already exists as the journey **Portrait** (from
    invoices/events).
-5. **Learned disposition (opt-in).** `suggestEvolution()` re-derives level + disposition from
-   **honestly observable** signals and, when practice has clearly outgrown the stated profile, the
-   result screen offers an **"Adopt this"** card — *suggests, never silently rewrites*. Adopting
-   updates the store and persists via `pushTeaDiscoveryProfile`; original answers are kept.
-   - **Depth** (tasting volume) → level, and *The Devotee* at the top.
-   - **Group sessions** (`api.me.journey` → `sessionsAttended`) → a social temperament → *The Host*.
-   - **Tasting-note richness** (`noteRichness`) → a flavor & craft motivation → *The Connoisseur*.
+5. **Learned threads (opt-in).** `suggestEvolution()` re-derives level + threads from
+   **honestly observable** signals and, when practice has clearly grown past the stated profile, the
+   result screen offers an **"Adopt this"** card — *suggests, never silently rewrites*, and only ever
+   **adds** a thread, never removes one. Adopting updates the store and persists via
+   `pushTeaDiscoveryProfile`; original answers are kept.
+   - **Depth** (tasting volume) → level, **capped at `practicing`** (devoted is conferred, never counted).
+   - **Group sessions** (`api.me.journey` → `sessionsAttended`) → surfaces the *Connection* thread.
+   - **Tasting-note richness** (`noteRichness`) → surfaces the *Quality* thread.
 
    The honesty guardrail holds: it only ever re-derives from dimensions Teajia can actually see.
    What it *can't* see (solo/pair temperament, stillness/energy/calm motivation) is handled by a

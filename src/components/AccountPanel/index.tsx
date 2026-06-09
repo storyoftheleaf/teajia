@@ -22,7 +22,7 @@ import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
-import { DISPOSITIONS } from '../TeaDiscovery/dispositions';
+import { THREADS, profileThreads } from '../TeaDiscovery/threads';
 import { StaffView } from './StaffView';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildFirstDoorReadiness } from './workflows';
@@ -398,9 +398,12 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     return null;
   }, []);
 
-  // Tea Discovery disposition — the name from the onboarding quiz (device-saved).
+  // Tea Discovery — the threads that draw them, joined ("Stillness · Quality").
   const dispositionName = teaDiscoveryProfile
-    ? DISPOSITIONS[teaDiscoveryProfile.dispositionId]?.name ?? null
+    ? profileThreads(teaDiscoveryProfile)
+        .map((id) => THREADS[id]?.name)
+        .filter(Boolean)
+        .join(' · ') || null
     : null;
 
   // Animate in

@@ -1,6 +1,12 @@
 import type { ComponentType } from 'react';
 
-/** How deep someone is in their tea practice — gates content depth today, feeds matching in Phase 2. */
+/**
+ * Axis 2 — how far into the practice someone is. Gates content depth today,
+ * feeds matching in Phase 2. `devoted` is *conferred*, not self-claimed or
+ * counted up to: a member tells us they're new or practicing, but standing as a
+ * devoted practitioner is granted (Adrian knows them, or they contribute) — the
+ * one gate in the whole model, so a beginner can never click their way into it.
+ */
 export type DiscoveryLevel = 'curious' | 'practicing' | 'devoted';
 
 /** Visual treatment for a question's options. */
@@ -32,8 +38,13 @@ export interface DiscoveryQuestion {
   options: DiscoveryOption[];
 }
 
-/** A named "tea disposition" — the mirror we hand back at the end. */
-export interface Disposition {
+/**
+ * Axis 1 — a "thread": a reason someone comes to tea. Not a box you fall into;
+ * threads stack, so a member can hold several at once. The three (Stillness /
+ * Connection / Quality) each point at a different shelf, which is the whole job:
+ * they're how Teajia knows what to put in front of someone, not a label to wear.
+ */
+export interface Thread {
   id: string;
   name: string;
   description: string;
@@ -44,8 +55,10 @@ export type TeaDiscoveryAnswers = Record<string, string | string[]>;
 
 export interface TeaDiscoveryProfile {
   answers: TeaDiscoveryAnswers;
+  /** Axis 2 — where they are in the practice (curious → practicing → devoted). */
   level: DiscoveryLevel;
-  dispositionId: string;
+  /** Axis 1 — the threads that draw them (any of Stillness / Connection / Quality). */
+  threadIds: string[];
   /** ISO timestamp — when the profile was last completed. */
   completedAt: string;
 }

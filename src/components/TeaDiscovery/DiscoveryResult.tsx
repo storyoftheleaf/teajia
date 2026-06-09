@@ -5,7 +5,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { LogoEmblem } from '../Logos/LogoEmblem';
 import { useAppStore } from '../../lib/store';
 import { api } from '../../lib/api';
-import { DISPOSITIONS } from './dispositions';
+import { THREADS, profileThreads } from './threads';
 import { QUESTIONS, optionLabel } from './questions';
 import { recommend } from './recommendations';
 import { observePalate, noteRichness, suggestEvolution, type FlavorFamily } from './evolution';
@@ -25,8 +25,8 @@ const FAMILY_LABEL: Record<FlavorFamily, string> = {
 interface DiscoveryResultProps {
   profile: TeaDiscoveryProfile;
   onRetake: () => void;
-  /** Adopt a behaviour-suggested level/disposition (opt-in; never automatic). */
-  onAdopt: (level: DiscoveryLevel, dispositionId: string) => void;
+  /** Adopt a behaviour-suggested level/threads (opt-in; never automatic). */
+  onAdopt: (level: DiscoveryLevel, threadIds: string[]) => void;
   /** Re-answer a single question ("still true?") and re-derive the profile. */
   onReanswer: (questionId: string, value: string | string[]) => void;
 }
@@ -43,7 +43,9 @@ const SUMMARY_KEYS: Record<string, string> = {
 export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRetake, onAdopt, onReanswer }) => {
   const authUser = useAppStore((s) => s.authUser);
   const tastingJournal = useAppStore((s) => s.tastingJournal);
-  const disposition = DISPOSITIONS[profile.dispositionId] ?? DISPOSITIONS.curiousBeginner;
+  // Axis 1 — the threads that draw them, strongest first. Lead thread + resonances.
+  const threadIds = profileThreads(profile);
+  const threads = threadIds.map((id) => THREADS[id]).filter(Boolean);
 
   // Group sessions attended — observed temperament signal (Route A). Members only.
   const [sessionsAttended, setSessionsAttended] = useState(0);
@@ -67,7 +69,14 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
     sessionsAttended,
     noteRichness: noteRichness(tastingJournal),
   });
-  const suggestedDisposition = suggestion ? DISPOSITIONS[suggestion.dispositionId] : null;
+  // The thread(s) the suggestion would add on top of what they already hold.
+  const addedThreadNames = suggestion
+    ? suggestion.threadIds
+        .filter((id) => !threadIds.includes(id))
+        .map((id) => THREADS[id]?.name)
+        .filter(Boolean)
+        .join(' and ')
+    : '';
 
   // Drift: their cups lean somewhere their stated answer didn't (and they had one).
   const drifted =
@@ -95,16 +104,37 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
 
   return (
     <div className="mx-auto w-full max-w-xl">
-      {/* Hero — the mirror */}
+      {/* Hero — the mirror. Lead thread, then the others that resonate. */}
       <div className="flex flex-col items-center pt-8 pb-2 text-center">
         <LogoEmblem size={44} color="var(--tea-gold)" className="mb-6 opacity-70" />
         <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim">
-          Your tea disposition
+          What draws you to tea
         </p>
-        <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-3 text-tea-text`}>{disposition.name}</h1>
-        <p className="mt-4 max-w-md font-body text-ui-16 leading-relaxed text-tea-text-sec">
-          {disposition.description}
-        </p>
+        {threads.length > 0 && (
+          <>
+            <h1 className={`${TYPOGRAPHY_CLASSES.h1} mt-3 text-tea-text`}>{threads[0].name}</h1>
+            <p className="mt-4 max-w-md font-body text-ui-16 leading-relaxed text-tea-text-sec">
+              {threads[0].description}
+            </p>
+          </>
+        )}
+        {threads.length > 1 && (
+          <div className="mt-6 w-full max-w-md border-t border-tea-border pt-5">
+            <p className="font-sans text-ui-11 uppercase tracking-[1.4px] text-tea-text-dim">
+              Also drawn to
+            </p>
+            <div className="mt-3 flex flex-col gap-4">
+              {threads.slice(1).map((t) => (
+                <div key={t.id}>
+                  <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>{t.name}</h2>
+                  <p className="mt-1.5 font-body text-ui-14 leading-relaxed text-tea-text-sec">
+                    {t.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Answer summary */}
@@ -133,16 +163,18 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
               <> — lately leaning <span className="text-tea-gold">{observed.topTypes.join(' and ')}</span></>
             )}.
           </p>
-          {suggestion && suggestedDisposition && (
+          {suggestion && (
             <div className="mt-3 border-t border-tea-border pt-3">
               <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">
-                {suggestion.reason} Your practice now reads more like{' '}
-                <span className="font-body text-tea-text">{suggestedDisposition.name}</span>.
+                {suggestion.reason}{' '}
+                {addedThreadNames
+                  ? <>Your practice now also reads like <span className="font-body text-tea-text">{addedThreadNames}</span>.</>
+                  : <>Your practice has grown into a steadier one.</>}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => onAdopt(suggestion.level, suggestion.dispositionId)}
+                  onClick={() => onAdopt(suggestion.level, suggestion.threadIds)}
                   className="rounded-xl bg-tea-gold px-4 py-2 font-sans text-ui-13 font-medium text-tea-bg transition-all hover:bg-tea-gold/90"
                 >
                   Adopt this
@@ -172,8 +204,8 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
       ) : (
         <div className="mt-7 rounded-xl border border-tea-border bg-tea-elevated px-5 py-4">
           <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">
-            This is a beginning, not a label. Your disposition deepens as your practice does — every tea
-            you sit with teaches it a little more.{' '}
+            This is a beginning, not a label. What draws you can deepen — and new threads can surface —
+            as your practice does; every tea you sit with teaches it a little more.{' '}
             <Link
               to="/account/journal"
               className="text-tea-text underline decoration-tea-gold/40 underline-offset-2 hover:decoration-tea-gold"

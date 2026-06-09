@@ -1,28 +1,30 @@
 import { useAppStore } from './store';
 import { api, hasToken } from './api';
-import { DISPOSITIONS } from '../components/TeaDiscovery/dispositions';
+import { threadsFromStored, threadNames } from '../components/TeaDiscovery/threads';
 import type { DiscoveryLevel, TeaDiscoveryProfile } from '../components/TeaDiscovery/types';
 
-// Store profile → API payload. dispositionName is denormalized from the catalog
-// so the worker/MCP can return a human-readable label without the client copy.
+// Store profile → API payload. Threads are serialized into the legacy single-
+// disposition columns: ids comma-joined into `dispositionId`, their joined names
+// into `dispositionName` (the worker/MCP/admin treat both as opaque display
+// strings), so no schema migration is needed for the threads model.
 function toPayload(p: TeaDiscoveryProfile) {
   return {
     answers: p.answers,
     level: p.level,
-    dispositionId: p.dispositionId,
-    dispositionName: DISPOSITIONS[p.dispositionId]?.name ?? '',
+    dispositionId: p.threadIds.join(','),
+    dispositionName: threadNames(p.threadIds),
     completedAt: p.completedAt,
   };
 }
 
-// API row → store profile. The name is re-derived from dispositionId on render,
-// so it is intentionally not kept on the store shape.
+// API row → store profile. Threads are parsed back from the stored `dispositionId`
+// (handles both new comma-joined thread ids and legacy single-archetype ids).
 function fromServer(raw: any): TeaDiscoveryProfile | null {
   if (!raw || !raw.dispositionId) return null;
   return {
     answers: raw.answers ?? {},
     level: (raw.level ?? 'curious') as DiscoveryLevel,
-    dispositionId: raw.dispositionId,
+    threadIds: threadsFromStored(raw.dispositionId),
     completedAt: raw.completedAt ?? new Date().toISOString(),
   };
 }
