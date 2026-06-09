@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, BookOpen } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, BookOpen, Compass } from '@phosphor-icons/react';
 
 interface LaunchpadTile {
   id: string;
@@ -43,7 +43,7 @@ interface LaunchpadViewProps {
   onSignOut: () => void;
 }
 
-const ICON_PROPS = { size: 22, weight: 'light' as const };
+const ICON_PROPS = { size: 18, weight: 'light' as const };
 
 function formatRelativeShort(iso: string | null): string {
   if (!iso) return '—';
@@ -67,7 +67,7 @@ function formatEventDay(iso: string): string {
 const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClick }) => (
   <button
     onClick={onClick}
-    className={`group relative w-full aspect-[5/4] rounded-xl flex flex-col justify-between text-left p-5 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 ${
+    className={`group relative w-full min-h-[96px] rounded-xl flex flex-col justify-between text-left p-4 transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 ${
       accent
         ? 'bg-tea-surface border border-tea-gold/40 hover:border-tea-gold/60'
         : 'bg-tea-surface border border-tea-border hover:border-tea-gold/30'
@@ -97,7 +97,7 @@ const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClic
     {/* Verb + hint */}
     <div>
       <div
-        className={`font-display text-ui-28 leading-[1.05] tracking-[0.01em] lowercase transition-colors duration-200 ${
+        className={`font-display text-ui-20 leading-[1.05] tracking-[0.01em] lowercase transition-colors duration-200 ${
           accent ? 'text-tea-gold' : 'text-tea-text'
         }`}
       >
@@ -230,6 +230,13 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       onClick: () => { onClose(); navigate('/admin/dashboard'); },
     } as LaunchpadTile] : []),
     ...(isOwner ? [{
+      id: 'briefing',
+      verb: 'briefing',
+      hint: 'what you can do',
+      icon: <Compass {...ICON_PROPS} />,
+      onClick: () => { window.location.href = '/briefing.html'; },
+    } as LaunchpadTile] : []),
+    ...(isOwner ? [{
       id: 'docs',
       verb: 'library',
       hint: 'everything we built',
@@ -278,7 +285,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
       </div>
 
       {/* ── Tile grid ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 lg:gap-3">
         {tiles.map(tile => <Tile key={tile.id} {...tile} />)}
       </div>
 
