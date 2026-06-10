@@ -1,7 +1,7 @@
 import {
-  mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
+  mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
-  oauthRegister, oauthAuthorize, oauthAuthorizeDecision, oauthToken,
+  oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 
 interface Env {
@@ -29,6 +29,9 @@ interface Env {
   // Optional — wrapping key for BYOK secrets stored in D1 (e.g. accounts.openai_api_key_encrypted).
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
+  // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
+  // wrangler.toml. Optional so local dev (no binding) still runs.
+  PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -3085,6 +3088,71 @@ const handleMcpRevokeToken: Handler = async (request, env, params) => {
   if (!ok) return json({ error: 'Token not found or already revoked' }, 404);
   await buildActivityLog(env, 'MCP_TOKEN_REVOKED', `MCP token revoked: ${params.id}`, ctx.email, 'mcp_token', params.id, ctx.accountId).run();
   return json({ success: true });
+};
+
+// ── Working Feature Guide (admin-only internal build tracker) ──
+// Returns every saved feature status as a map keyed by feature_id. The UI
+// merges this over its seed list, so features with no saved row just show
+// defaults. Admin/owner only.
+const handleFeatureStatusList: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const { results } = await env.DB.prepare(
+    'SELECT feature_id, stage, works, tested, visual, notes, updated_at FROM feature_status'
+  ).all();
+  const map: Record<string, any> = {};
+  for (const r of results as any[]) {
+    map[r.feature_id] = {
+      stage: r.stage,
+      works: r.works,
+      tested: r.tested === 1,
+      visual: r.visual,
+      notes: r.notes ?? '',
+      updated_at: r.updated_at,
+    };
+  }
+  return json(map);
+};
+
+// Upsert one feature's status. Body is a partial — only the fields present are
+// changed, the rest keep their current (or default) value. Admin/owner only.
+const handleFeatureStatusSave: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as {
+    feature_id?: string;
+    stage?: string; works?: string; tested?: boolean; visual?: string; notes?: string;
+  };
+  const id = (body.feature_id || '').trim();
+  if (!id) return json({ error: 'feature_id required' }, 400);
+
+  const STAGES = ['idea', 'building', 'needs_testing', 'solid'];
+  const WORKS = ['unknown', 'works', 'needs_revision', 'broken'];
+  const VISUAL = ['unknown', 'good', 'needs_redesign'];
+  if (body.stage && !STAGES.includes(body.stage)) return json({ error: 'bad stage' }, 400);
+  if (body.works && !WORKS.includes(body.works)) return json({ error: 'bad works' }, 400);
+  if (body.visual && !VISUAL.includes(body.visual)) return json({ error: 'bad visual' }, 400);
+
+  // Read current row (if any) so a partial update preserves untouched fields.
+  const cur = await env.DB.prepare(
+    'SELECT stage, works, tested, visual, notes FROM feature_status WHERE feature_id = ?'
+  ).bind(id).first() as any | null;
+
+  const stage = body.stage ?? cur?.stage ?? 'needs_testing';
+  const works = body.works ?? cur?.works ?? 'unknown';
+  const tested = body.tested !== undefined ? (body.tested ? 1 : 0) : (cur?.tested ?? 0);
+  const visual = body.visual ?? cur?.visual ?? 'unknown';
+  const notes = body.notes !== undefined ? body.notes : (cur?.notes ?? '');
+
+  await env.DB.prepare(
+    `INSERT INTO feature_status (feature_id, stage, works, tested, visual, notes, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(feature_id) DO UPDATE SET
+       stage = excluded.stage, works = excluded.works, tested = excluded.tested,
+       visual = excluded.visual, notes = excluded.notes, updated_at = datetime('now')`
+  ).bind(id, stage, works, tested, visual, notes).run();
+
+  return json({ ok: true, feature_id: id, stage, works, tested: tested === 1, visual, notes });
 };
 
 // ── RPC: Void Invoice (atomic server-side) ──
@@ -7529,7 +7597,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'tea_key', 'created_at', 'updated_at',
   ];
   const present = cols.filter(c => body[c] !== undefined);
@@ -7792,7 +7860,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'created_at', 'updated_at',
   ];
   const placeholders = allCols.map(() => '?').join(', ');
@@ -17111,6 +17179,10 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
 
+  // Working Feature Guide (admin-only internal build tracker)
+  ['GET',  '/api/admin/feature-status', handleFeatureStatusList],
+  ['POST', '/api/admin/feature-status', handleFeatureStatusSave],
+
   // MCP tokens (voice/agent control of inventory)
   ['GET',    '/api/admin/mcp-tokens',     handleMcpListTokens],
   ['POST',   '/api/admin/mcp-tokens',     handleMcpMintToken],
@@ -17463,6 +17535,28 @@ export default {
       return cors(response, corsOrigin);
     }
 
+    // Public, unauthenticated, read-only MCP for the shopping public — catalog
+    // browse + WhatsApp checkout-link builder. No account data or costs exposed.
+    if (url.pathname === '/mcp/public') {
+      // Edge rate limit per client IP. The binding is absent in local dev, so
+      // this is a no-op there; in production it caps abuse at the edge before
+      // any D1 work happens.
+      if (env.PUBLIC_MCP_LIMITER) {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        const { success } = await env.PUBLIC_MCP_LIMITER.limit({ key: ip });
+        if (!success) {
+          return cors(
+            new Response(
+              JSON.stringify({ error: 'rate_limited', message: 'Too many requests. Slow down and try again shortly.' }),
+              { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' } },
+            ),
+            corsOrigin,
+          );
+        }
+      }
+      return cors(await publicMcpFetch(request, env), corsOrigin);
+    }
+
     // OAuth 2.1 endpoints for MCP clients (Claude desktop/mobile, ChatGPT).
     // These are unauthenticated routes by design — they ARE the auth flow.
     // Both forms — the bare path AND the resource-suffixed variant — because
@@ -17485,7 +17579,11 @@ export default {
       return cors(await oauthRegister(request, env), corsOrigin);
     }
     if (url.pathname === '/oauth/authorize') {
-      return oauthAuthorize(request); // 302 redirect to consent page
+      return await oauthAuthorize(request, env); // 302 redirect to consent page (id in path)
+    }
+    if (url.pathname.startsWith('/oauth/authorize/request/')) {
+      const reqId = url.pathname.slice('/oauth/authorize/request/'.length);
+      return cors(await oauthAuthorizeRequestInfo(request, env, reqId), corsOrigin);
     }
     if (url.pathname === '/oauth/authorize/decision') {
       return cors(await oauthAuthorizeDecision(request, env), corsOrigin);

@@ -1,5 +1,8 @@
 # Follow-up: port `create_tea` + `mark_invoice_paid` MCP tools
 
+> **DONE.** Both `create_tea` and `mark_invoice_paid` are present and dispatched
+> in `worker/src/mcp.ts`. This doc is retained for history only.
+
 > Created 2026-05-18 during the branch-consolidation effort. This is a scoped,
 > ready-to-execute task for a fresh session — deliberately deferred so it gets
 > full attention rather than a rushed end-of-session port.

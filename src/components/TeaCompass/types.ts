@@ -19,7 +19,11 @@ export type YixingClayType = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Lvni' | 
 export type TeawareEra = string;
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'mine' | 'queue' | 'want' | 'pass';
+export type BrowseFilter = 'all' | 'mine' | 'queue' | 'loved' | 'want' | 'pass';
+export type BrowseSort = 'recent' | 'score' | 'price' | 'name';
+// Post-tasting verdict — the single organizing signal used by the triage
+// review. Generalizes the sample-only sampleVerdict (kept as a read fallback).
+export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';
 
 export interface VendorDetails {
   businessCardUrl?: string;
@@ -88,6 +92,14 @@ export interface TeaCompassEntry {
   teaKey?: string;
   // Shared/incoming entries point back to the source compass card.
   sourceEntryId?: string;
+
+  // Post-tasting verdict — first-class organizing signal (synced, migration 082).
+  // Drives the triage review and the "Loved" lens. Reads fall back to
+  // sampleVerdict for legacy sample entries that predate this field.
+  verdict?: CompassVerdict;
+  // Capture session — entries created in one capture run share this id, so a
+  // batch review can group "the teas I just tasted". Column reserved by 071.
+  sessionId?: string;
 
   // Sample flag — tea entries can be marked as samples (small tasting portions)
   isSample?: boolean;
@@ -308,6 +320,29 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
       capacity_ml: entry.capacityMl || null,
     } : {}),
   };
+}
+
+/** True when an entry carries any real tasting data (not just empty arrays). */
+export function entryHasTasting(entry: Pick<TeaCompassEntry, 'tasting'>): boolean {
+  return !!(entry.tasting && Object.values(entry.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null));
+}
+
+/**
+ * The effective verdict for an entry. Prefers the first-class `verdict`,
+ * falls back to legacy `sampleVerdict`, and finally infers from the 1–10
+ * quality score so older tastings still sort into love/like/neutral/pass.
+ */
+export function resolveVerdict(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleVerdict' | 'tasting'>): CompassVerdict | null {
+  if (entry.verdict) return entry.verdict;
+  if (entry.sampleVerdict) return entry.sampleVerdict;
+  const q = entry.tasting?.quality ?? entry.tasting?.rating;
+  if (q == null) return null;
+  return q >= 8 ? 'love' : q >= 6 ? 'like' : q >= 4 ? 'neutral' : 'pass';
+}
+
+/** An entry is "tasted but not yet sorted" — the triage review's working set. */
+export function isUntriaged(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleVerdict' | 'tasting' | 'status'>): boolean {
+  return entryHasTasting(entry) && !entry.verdict && !entry.sampleVerdict && entry.status !== 'pass';
 }
 
 export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: { vendorName?: string; vendorId?: string; priceCurrency?: Currency }): TeaCompassEntry {

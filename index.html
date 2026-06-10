@@ -21,6 +21,32 @@
     <meta name="twitter:title" content="Teajia | Tea Journal" />
     <meta name="twitter:description" content="An editorial journal for the world of tea — articles, visual stories, a curated shop, courses, and space design services." />
     <meta name="twitter:image" content="https://teajia.com/og-image.png" />
+    <!-- Structured data: Organization + WebSite (AI / search discoverability).
+         Per-page Product and Article JSON-LD is injected at runtime by the
+         respective page components. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://teajia.co/#org",
+          "name": "Teajia",
+          "url": "https://teajia.co",
+          "description": "Editorial tea journal and curated shop of sourced teas and teaware, with courses, tasting events, and space-design services.",
+          "logo": "https://teajia.com/og-image.png"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://teajia.co/#website",
+          "url": "https://teajia.co",
+          "name": "Teajia",
+          "description": "An editorial journal for the world of tea — articles, visual stories, a curated shop, courses, and space design services.",
+          "publisher": { "@id": "https://teajia.co/#org" }
+        }
+      ]
+    }
+    </script>
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#22201c">

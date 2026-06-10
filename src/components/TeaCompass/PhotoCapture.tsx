@@ -221,6 +221,17 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     setJustExtracted(true);
   };
 
+  // Keep the photo even when the label couldn't be read (or was read wrong).
+  // The frame already uploaded as `capturedImageUrl`, so a source photo of the
+  // bag + leaves is a complete-enough capture on its own — no name required.
+  const handleUsePhotoOnly = () => {
+    if (capturedImageUrl) {
+      onPhotoTaken(capturedImageUrl);
+      setJustExtracted(true);
+    }
+    closeScanner();
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -244,13 +255,21 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
         URL.revokeObjectURL(localUrl);
       } else {
-        onPhotoTaken(localUrl);
-        setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
+        // Upload failed — never persist a blob: URL into the entry (it dies on
+        // refresh and syncs a broken link). Surface a retry/dismiss instead.
+        markPreviewFailed(localUrl);
       }
     } catch {
-      onPhotoTaken(localUrl);
-      setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
+      markPreviewFailed(localUrl);
     }
+  };
+
+  // Flip a pending preview into its failed state so the user can dismiss or
+  // re-pick. The failed thumbnail UI (X overlay) is rendered below.
+  const markPreviewFailed = (localUrl: string) => {
+    setPendingPreviews((prev) =>
+      prev.map((p) => (p.localUrl === localUrl ? { ...p, uploading: false, failed: true } : p))
+    );
   };
 
   // ── Scanner modal ──────────────────────────────────────────────────────────
@@ -410,6 +429,17 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 Apply to form
               </button>
             </div>
+            {/* Escape hatch — wrong read shouldn't force a retake. Keep the
+                photo, drop the extracted fields. */}
+            {capturedImageUrl && (
+              <button
+                type="button"
+                onClick={handleUsePhotoOnly}
+                className="mt-2 w-full text-center text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+              >
+                Keep photo only
+              </button>
+            )}
           </motion.div>
         )}
 
@@ -423,15 +453,31 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           >
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-2" />
             <p className="text-ui-13 text-tea-text-sec">Couldn't read the label.</p>
-            <p className="text-ui-12 text-tea-text-dim">Try moving closer, better lighting, or a flatter angle.</p>
-            <button
-              type="button"
-              onClick={handleRetake}
-              className="flex items-center justify-center gap-1.5 w-full py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-13 font-medium hover:bg-tea-elevated transition-colors"
-            >
-              <RefreshCw size={13} />
-              Try again
-            </button>
+            <p className="text-ui-12 text-tea-text-dim">
+              {capturedImageUrl
+                ? 'No problem — the photo is saved. Keep it as-is, or retake for a cleaner read.'
+                : 'Try moving closer, better lighting, or a flatter angle.'}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleRetake}
+                className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-13 font-medium hover:bg-tea-elevated transition-colors"
+              >
+                <RefreshCw size={13} />
+                {capturedImageUrl ? 'Retake' : 'Try again'}
+              </button>
+              {/* The frame already uploaded — let a photo-only capture stand. */}
+              {capturedImageUrl && (
+                <button
+                  type="button"
+                  onClick={handleUsePhotoOnly}
+                  className="flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-13 font-semibold hover:bg-tea-gold/90 transition-colors"
+                >
+                  Use this photo
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

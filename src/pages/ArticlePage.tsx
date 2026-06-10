@@ -2585,6 +2585,22 @@ export default function ArticlePage() {
     return intro && 'text' in intro ? intro.text.slice(0, 160) : undefined;
   })();
 
+  // Article JSON-LD for AI/search — mirrors the Product schema on ProductPage.
+  const articleSlug = (article as any).slug || article.id;
+  const articleAuthor = formatAuthor(article.author_id);
+  const articleStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    ...(description && { description }),
+    ...(article.cover_image_url && { image: article.cover_image_url }),
+    ...(article.published_at && { datePublished: article.published_at }),
+    ...((article.updated_at || article.created_at) && { dateModified: article.updated_at || article.created_at }),
+    ...(articleAuthor && { author: { '@type': 'Person', name: articleAuthor } }),
+    publisher: { '@type': 'Organization', name: 'Teajia' },
+    mainEntityOfPage: `https://teajia.co/article/${articleSlug}`,
+  };
+
   return (
     <>
       <Helmet>
@@ -2595,6 +2611,7 @@ export default function ArticlePage() {
         {description && <meta property="og:description" content={description} />}
         {article.cover_image_url && <meta property="og:image" content={article.cover_image_url} />}
         <meta name="twitter:card" content={article.cover_image_url ? 'summary_large_image' : 'summary'} />
+        <script type="application/ld+json">{JSON.stringify(articleStructuredData)}</script>
       </Helmet>
 
       <div

@@ -1,15 +1,34 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal } from 'lucide-react';
+import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal, ArrowUpDown, ListChecks, ChevronRight } from 'lucide-react';
 import { CompareView } from './CompareView';
+import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
 import { CompassIcon } from './CompassIcon';
-import type { TeaCompassEntry, BrowseFilter } from './types';
+import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { isUntriaged } from './types';
+import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import type { CompassSurfaceVariant } from './index';
+
+const SORT_LABELS: Record<BrowseSort, string> = {
+  recent: 'Most recent',
+  score: 'Highest score',
+  price: 'Price · low to high',
+  name: 'Name · A–Z',
+};
+
+function scoreOf(e: TeaCompassEntry): number {
+  return e.tasting?.quality ?? e.tasting?.rating ?? -1;
+}
+
+function pricePerGram(e: TeaCompassEntry): number {
+  if (e.category === 'teaware' || !e.priceAmount || !e.pricePerUnitGrams) return Number.POSITIVE_INFINITY;
+  return e.priceAmount / e.pricePerUnitGrams;
+}
 
 interface BrowseViewProps {
   onEditEntry: (id: string) => void;
@@ -58,11 +77,30 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, surfaceVariant = 'classic' }) => {
   const isPlaybookSurface = surfaceVariant === 'playbook';
   const navigate = useNavigate();
-  const { entries, browseFilter, setBrowseFilter, removeEntry, updateEntry } = useTeaCompassStore();
+  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
+  const [sortSheetOpen, setSortSheetOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const sampleSets = useSampleStore((s) => s.sampleSets);
+
+  // Reusable sort applied to flat lists (and to "All" when not sorting by date).
+  const sortEntries = React.useCallback((list: TeaCompassEntry[]): TeaCompassEntry[] => {
+    const arr = [...list];
+    const byDateDesc = (a: TeaCompassEntry, b: TeaCompassEntry) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    switch (browseSort) {
+      case 'score':
+        return arr.sort((a, b) => scoreOf(b) - scoreOf(a) || byDateDesc(a, b));
+      case 'price':
+        return arr.sort((a, b) => pricePerGram(a) - pricePerGram(b) || byDateDesc(a, b));
+      case 'name':
+        return arr.sort((a, b) => (a.name || '￿').localeCompare(b.name || '￿'));
+      default:
+        return arr.sort(byDateDesc);
+    }
+  }, [browseSort]);
 
   const sampleSetMap = useMemo(
     () => new Map(sampleSets.map((s) => [s.id, s])),
@@ -71,7 +109,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   // Guard: remap any legacy filter value from localStorage
   React.useEffect(() => {
-    const valid: BrowseFilter[] = ['all', 'mine', 'queue', 'want', 'pass'];
+    const valid: BrowseFilter[] = ['all', 'mine', 'queue', 'loved', 'want', 'pass'];
     if (!valid.includes(browseFilter as BrowseFilter)) setBrowseFilter('all');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -112,10 +150,14 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       all:   entries.length,
       mine:  entries.filter((e) => e.status === 'in_stock' || e.status === 'incoming' || e.status === 'depleted').length,
       queue: queueCount,
+      loved: entries.filter((e) => (e.verdict ?? e.sampleVerdict) === 'love').length,
       want:  entries.filter((e) => e.status === 'want').length,
       pass:  entries.filter((e) => e.status === 'pass').length,
     };
   }, [entries]);
+
+  // Tasted teas still waiting for a verdict — the batch-review working set.
+  const untriaged = useMemo(() => entries.filter(isUntriaged), [entries]);
 
   // Entries that have no name, notes, photos, or tasting data — safe to bulk-delete
   const emptyEntries = useMemo(() =>
@@ -138,6 +180,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     { value: 'all',   label: 'All',   count: counts.all },
     { value: 'mine',  label: 'Mine',  count: counts.mine },
     { value: 'queue', label: 'Queue', count: counts.queue },
+    { value: 'loved', label: 'Loved', count: counts.loved },
     { value: 'want',  label: 'Want',  count: counts.want },
     { value: 'pass',  label: 'Pass',  count: counts.pass },
   ];
@@ -189,6 +232,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   // ─── "All" view: date-grouped ─────────────────────────────────────────────
 
   const renderAll = (result: TeaCompassEntry[]) => {
+    // Date grouping only makes sense for the recency sort. Any other sort
+    // (score / price / name) collapses to a single ranked list so the order
+    // the user asked for is actually visible.
+    if (browseSort !== 'recent') {
+      return renderEntries(sortEntries(result), { dimPassed: true });
+    }
     const grouped = new Map<string, TeaCompassEntry[]>();
     const sorted = [...result].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -392,10 +441,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </div>
       );
     }
-    const sorted = [...result].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    return renderEntries(sorted);
+    return renderEntries(sortEntries(result));
   };
 
   // ─── Apply search + filter ────────────────────────────────────────────────
@@ -418,6 +464,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             (e.status === 'in_stock' || e.status === 'incoming')
           )
         );
+      case 'loved':
+        return baseEntries.filter((e) => (e.verdict ?? e.sampleVerdict) === 'love');
       case 'want':
         return baseEntries.filter((e) => e.status === 'want');
       case 'pass':
@@ -502,6 +550,28 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           </button>
         ))}
         <div className={isPlaybookSurface ? 'hidden' : 'w-px h-3 bg-tea-border mx-0.5 shrink-0'} />
+        {/* Sort — opens a sheet of the four orderings. Active when not the
+            default recency sort, so the user can see they've reordered. */}
+        <button
+          type="button"
+          onClick={() => setSortSheetOpen(true)}
+          className={isPlaybookSurface
+            ? `inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+                browseSort !== 'recent'
+                  ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                  : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+              }`
+            : `inline-flex items-center gap-1 px-2 py-1.5 rounded-md transition-colors shrink-0 ${
+                browseSort !== 'recent' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+              }`
+          }
+          title="Sort"
+        >
+          <ArrowUpDown size={13} />
+          {(isPlaybookSurface || browseSort !== 'recent') && (
+            <span className={isPlaybookSurface ? '' : 'text-ui-11 font-medium'}>{SORT_LABELS[browseSort]}</span>
+          )}
+        </button>
         <button
           type="button"
           onClick={() => { setCompareIds(new Set()); setCompareOpen(false); }}
@@ -601,6 +671,34 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         )}
       </AnimatePresence>
 
+      {/* Triage prompt — surfaces when tasted teas are waiting for a verdict.
+          Opens the batch-review screen so a sitting of tastings can be sorted
+          down to keepers in one pass. */}
+      <AnimatePresence>
+        {!searchQuery && untriaged.length >= 2 && (
+          <motion.button
+            type="button"
+            onClick={() => setReviewOpen(true)}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="w-full overflow-hidden block text-left"
+          >
+            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-tea-gold/8 border border-tea-gold/20">
+              <ListChecks size={15} className="text-tea-gold shrink-0" />
+              <span className="flex-1 min-w-0 text-ui-12 text-tea-text">
+                <span className="font-semibold">{untriaged.length} tasted teas</span> waiting to be sorted
+              </span>
+              <span className="flex items-center gap-0.5 text-ui-11 text-tea-gold font-medium shrink-0">
+                Review
+                <ChevronRight size={13} />
+              </span>
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* Search empty state */}
       {searchQuery && filteredForView.length === 0 && (
         <div className="py-10 text-center">
@@ -614,6 +712,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           {browseFilter === 'all'   && renderAll(filteredForView)}
           {browseFilter === 'mine'  && renderMine(filteredForView)}
           {browseFilter === 'queue' && renderQueue(filteredForView)}
+          {browseFilter === 'loved' && renderFlat(filteredForView, 'Nothing loved yet — sort a tasting to flag keepers.')}
           {browseFilter === 'want'  && renderFlat(filteredForView, 'Nothing on your want list yet.')}
           {browseFilter === 'pass'  && renderFlat(filteredForView, 'Nothing passed — every tea still has a chance.')}
         </>
@@ -632,6 +731,33 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               return next;
             });
           }}
+        />
+      )}
+
+      {/* Sort options sheet */}
+      <BottomSheet
+        open={sortSheetOpen}
+        onOpenChange={setSortSheetOpen}
+        title="Sort by"
+        description="Order the library"
+      >
+        <div className="flex flex-col gap-0.5 px-1">
+          {(Object.keys(SORT_LABELS) as BrowseSort[]).map((value) => (
+            <SheetOption
+              key={value}
+              label={SORT_LABELS[value]}
+              selected={browseSort === value}
+              onSelect={() => { setBrowseSort(value); setSortSheetOpen(false); }}
+            />
+          ))}
+        </div>
+      </BottomSheet>
+
+      {/* Batch tasting review — full-screen triage of untriaged tastings */}
+      {reviewOpen && (
+        <SessionReview
+          entries={untriaged}
+          onClose={() => setReviewOpen(false)}
         />
       )}
     </div>

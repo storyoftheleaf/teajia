@@ -19,6 +19,7 @@ import { ShareSheet } from './ShareSheet';
 import { EventStatus, BriefingCard, TastingNote, Venue } from '../../types/events';
 import { VenueManager } from './VenueManager';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
+import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 
 const statusToVariant = (status: EventStatus): StatusPillVariant => {
   switch (status) {
@@ -315,9 +316,7 @@ export const EventDetail: React.FC = () => {
   const activeTab: TabKey = VALID_TABS.includes(rawTab) ? rawTab : 'requests';
   const setActiveTab = (key: TabKey) => { setSearchParams(params => { params.set('tab', key); return params; }, { replace: true }); setOverflowOpen(false); };
   const [overflowOpen, setOverflowOpen] = useState(false);
-  const overflowRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const overflowMenuRef = useRef<HTMLDivElement>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [closingRsvp, setClosingRsvp] = useState(false);
@@ -352,26 +351,6 @@ export const EventDetail: React.FC = () => {
     }
   }, [event?.id]);
 
-  useEffect(() => {
-    if (!overflowOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
-        setOverflowOpen(false);
-      }
-    };
-    const keyHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOverflowOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('keydown', keyHandler);
-    // Focus the first menu item on open
-    const firstItem = overflowMenuRef.current?.querySelector<HTMLButtonElement>('button');
-    firstItem?.focus();
-    return () => {
-      document.removeEventListener('mousedown', handler);
-      document.removeEventListener('keydown', keyHandler);
-    };
-  }, [overflowOpen]);
 
   if (isLoading || !event) {
     return (
@@ -645,51 +624,55 @@ export const EventDetail: React.FC = () => {
         ))}
 
         {/* Overflow menu */}
-        <div className="relative ml-auto" ref={overflowRef}>
-          <button
-            onClick={() => setOverflowOpen(o => !o)}
-            aria-haspopup="menu"
-            aria-expanded={overflowOpen}
-            className={`flex-shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs transition-colors border-b-2 -mb-px whitespace-nowrap ${
-              overflowActive
-                ? 'border-tea-gold text-tea-gold'
-                : 'border-transparent text-tea-text-sec hover:text-tea-text'
-            }`}
-          >
-            <MoreHorizontal size={14} />
-            {overflowActive && (
-              <span className="text-ui-10">
-                {OVERFLOW_TABS.find(t => t.key === activeTab)?.label}
-              </span>
+        <div className="ml-auto">
+          <AnchoredMenu
+            align="right"
+            width={140}
+            open={overflowOpen}
+            onOpenChange={setOverflowOpen}
+            trigger={(props) => (
+              <button
+                {...props}
+                aria-label="More tabs"
+                className={`flex-shrink-0 flex items-center gap-1 px-3 py-2.5 text-xs transition-colors border-b-2 -mb-px whitespace-nowrap ${
+                  overflowActive
+                    ? 'border-tea-gold text-tea-gold'
+                    : 'border-transparent text-tea-text-sec hover:text-tea-text'
+                }`}
+              >
+                <MoreHorizontal size={14} />
+                {overflowActive && (
+                  <span className="text-ui-10">
+                    {OVERFLOW_TABS.find(t => t.key === activeTab)?.label}
+                  </span>
+                )}
+              </button>
             )}
-          </button>
-          {overflowOpen && (
-            <div
-              ref={overflowMenuRef}
-              role="menu"
-              className="absolute right-0 top-full mt-1 z-popover bg-tea-surface border border-tea-border rounded-md shadow-lg py-1 min-w-[140px]"
-            >
-              {OVERFLOW_TABS.map(tab => (
-                <button
-                  key={tab.key}
-                  role="menuitem"
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between gap-3 ${
-                    activeTab === tab.key
-                      ? 'text-tea-gold bg-tea-gold/10'
-                      : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
-                  }`}
-                >
-                  {tab.label}
-                  {(tab as any).badge > 0 && (
-                    <span className="text-ui-10 font-mono text-tea-gold leading-none">
-                      {(tab as any).badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+          >
+            {(close) => (
+              <>
+                {OVERFLOW_TABS.map(tab => (
+                  <button
+                    key={tab.key}
+                    role="menuitem"
+                    onClick={() => { setActiveTab(tab.key); close(); }}
+                    className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center justify-between gap-3 ${
+                      activeTab === tab.key
+                        ? 'text-tea-gold bg-tea-gold/10'
+                        : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
+                    }`}
+                  >
+                    {tab.label}
+                    {(tab as any).badge > 0 && (
+                      <span className="text-ui-10 font-mono text-tea-gold leading-none">
+                        {(tab as any).badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </>
+            )}
+          </AnchoredMenu>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { Archive, Check, Eye, EyeOff, Globe, History, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react';
+import { AnchoredMenu } from '../../../components/shared/AnchoredMenu';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
@@ -348,24 +349,31 @@ function InventoryRowBase(props: InventoryRowProps) {
               )}
               {!splitView && (
                 <div className="relative" data-row-dropdown>
-                  <button
-                    onClick={() => onToggleDropdown(isDropdownOpen ? null : product.id)}
-                    className="tap-target p-1 hover:text-tea-text-sec transition-colors"
-                    aria-label="More actions"
-                    aria-haspopup="menu"
-                    aria-expanded={isDropdownOpen}
-                    title="More actions"
+                  <AnchoredMenu
+                    align="right"
+                    width={180}
+                    open={isDropdownOpen}
+                    onOpenChange={(o) => onToggleDropdown(o ? product.id : null)}
+                    trigger={(menuProps) => (
+                      <button
+                        {...menuProps}
+                        className="tap-target p-1 hover:text-tea-text-sec transition-colors"
+                        aria-label="More actions"
+                        title="More actions"
+                      >
+                        <MoreHorizontal size={14} aria-hidden="true" />
+                      </button>
+                    )}
                   >
-                    <MoreHorizontal size={14} aria-hidden="true" />
-                  </button>
-                  {isDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-50 bg-tea-surface rounded-md shadow-lg py-1 min-w-[160px] border border-tea-border" style={{ boxShadow: '0 4px 20px rgba(24,19,14,0.3)' }}>
-                      <button onClick={() => onRestock(product)} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
-                      <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
-                      <div className="my-1 border-t border-tea-border" />
-                      <button onClick={() => { onDeleteRequest(product); onToggleDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-readgold hover:bg-tea-gold/[0.06] transition-colors text-left"><Trash2 size={12} /> Delete permanently</button>
-                    </div>
-                  )}
+                    {(close) => (
+                      <>
+                        <button onClick={() => { onRestock(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
+                        <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
+                        <div className="my-1 border-t border-tea-border" />
+                        <button onClick={() => { onDeleteRequest(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-readgold hover:bg-tea-gold/[0.06] transition-colors text-left"><Trash2 size={12} /> Delete permanently</button>
+                      </>
+                    )}
+                  </AnchoredMenu>
                 </div>
               )}
             </>
