@@ -4,8 +4,10 @@
 
 ### MCP: Voice & Agent
 
-- [ ] Verify the phone connection on a real iPhone — the mobile-login bug was root-caused (the in-app browser dropped the login parameters on redirect) and fixed by passing them in the URL path instead; desktop already works _(band: you-required)_ _(effort: quick)_ → Plan: [mobile-oauth.md](todo/plans/mobile-oauth.md)
-- [ ] Add a Cloudflare rate-limiting rule in front of the public shop assistant (`/mcp/public`) — code has a basic limiter, but real protection is a dashboard/WAF rule _(band: you-required)_ _(effort: quick)_
+- [ ] **Verify iPhone login** — confirm the OAuth sign-in works on a real iPhone _(you · quick)_
+  The mobile-login bug (in-app browser dropping login params on redirect) was root-caused and fixed by passing them in the URL path; desktop already works. Done when a real iPhone completes Google sign-in end-to-end. → Plan: [mobile-oauth.md](todo/plans/mobile-oauth.md)
+- [ ] **Rate-limit public MCP** — add a Cloudflare WAF rule in front of the public shop assistant (`/mcp/public`) _(you · quick)_
+  The code has a basic limiter, but real protection is a dashboard/WAF rule. Done when a rate-limiting rule is live on `/mcp/public` in the Cloudflare dashboard.
 - [x] The assistant can now look things up, not just change things — read invoices, customer histories, sales summaries, and account context _(done 2026-06-06, PR #192)_
 - [x] Fix the assistant randomly forgetting a pending confirmation mid-conversation _(done 2026-06-06, PR #192: confirmations now stored in the database, not per-server memory)_
 - [x] Let the public's own AI browse the catalogue and build a WhatsApp order link _(done 2026-06-06, PR #192: read-only `/mcp/public` server)_
@@ -14,18 +16,24 @@
 
 ### Feature guide (owner walk-throughs)
 
-- [ ] Correct the walk-through steps and role descriptions in the owner feature guide — they're first-draft text I wrote from the code; the real procedures and the value each user type gets need your wording _(band: you-required)_ _(effort: moderate)_
-- [ ] Eyeball the walk-with-me dock on a real device — it's build-verified but not screenshotted; confirm it stays pinned across pages and that logging a problem feels quick _(band: you-required)_ _(effort: quick)_
-- [ ] Let walk-through steps be marked works/broken per user type, not just overall — tie the role layer to the testing layer so you can see "fine for Owner, confusing for Member" _(band: agent-runnable)_ _(effort: moderate)_
-- [ ] Decide whether to build real PDF order import (AI extraction) — currently listed "not built yet" in the guide; CSV is the only bulk import _(band: you-required)_ _(effort: deep)_
+- [ ] **Rewrite guide copy** — replace the first-draft walk-through steps and role descriptions in the owner feature guide _(you · moderate)_
+  The current text was drafted from the code; the real procedures and the value each user type gets need Adrian's own wording. Done when each walk-through and role description reads in Adrian's voice and matches the actual flow.
+- [ ] **Test walk dock** — eyeball the walk-with-me dock on a real device _(you · quick)_
+  It's build-verified but never screenshotted. Done when the dock is confirmed to stay pinned across pages on a real device and logging a problem feels quick.
+- [ ] **Per-role test marks** — let walk-through steps be marked works/broken per user type, not just overall _(agent · moderate)_
+  Tie the role layer to the testing layer so the guide can show "fine for Owner, confusing for Member." Done when a step's status can be recorded separately for each user type.
+- [ ] **PDF import decision** — decide whether to build real PDF order import via AI extraction _(you · deep)_
+  The guide currently lists PDF import as "not built yet"; CSV is the only bulk import today. Done when Adrian decides to build it (and it ships) or to drop it.
 
 ### Admin usability
 
-- [ ] Make adding products findable on the Stock screen, then template the fix across the admin — Import is buried in an overflow menu while New is a prominent button, the menu is duplicated and drifted, and the empty state never tells a new operator how to add their first product _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-discoverability.md](todo/plans/stock-discoverability.md)
+- [ ] **Findable add-product** — make adding products discoverable on the Stock screen, then template the fix across admin _(agent · deep)_
+  Import is buried in an overflow menu while New is prominent, the menu is duplicated and drifted, and the empty state never tells a new operator how to add their first product. Done when both add paths are clearly surfaced, the menu is de-duplicated, and the empty state guides a first product. → Plan: [stock-discoverability.md](todo/plans/stock-discoverability.md)
 
 ### Magazine / Journal Reader
 
-- [ ] Check that articles read well on the shortest phones (iPhone SE) _(band: you-required)_ _(effort: moderate)_
+- [ ] **iPhone SE check** — confirm magazine articles read well on the shortest phones _(you · moderate)_
+  Article pages use fixed-size, no-scroll layouts, so the smallest viewport is the tightest constraint. Done when articles paginate cleanly with no clipped or overflowing content on an iPhone SE.
 
 ### Product Card Redesign (in progress)
 
@@ -34,8 +42,10 @@
 - [x] Add mood tags as keyword-style pills
 - [x] Reorder card: images then tasting notes then mood tags then description
 - [x] Image lightbox on tap
-- [ ] Split product names into a title line and a subtitle line on cards _(band: you-required)_ _(effort: moderate)_
-- [ ] Settle on one naming pattern (title, subtitle, year) that every tea follows _(band: you-required)_ _(effort: moderate)_
+- [ ] **Split card names** — render product names as a separate title line and subtitle line on cards _(you · moderate)_
+  Part of the in-progress product card redesign, where the subtitle line is already reserved. Done when product names display as distinct title and subtitle lines on the card.
+- [ ] **One naming pattern** — settle on a single naming convention (title, subtitle, year) every tea follows _(you · moderate)_
+  Card names are inconsistent across teas, so a uniform pattern is needed before splitting them cleanly. Done when one title/subtitle/year pattern is decided and documented for all teas.
 
 ## Pre-launch
 
@@ -43,54 +53,75 @@
 
 - [x] Give the deploy's Cloudflare token D1 permission so migrations stop silently failing in CI _(done 2026-06-01: token has D1 write, verified via deploy run; tracker reconciled)_ → Plan: [archive/ci-cloudflare-token-d1.md](todo/plans/archive/ci-cloudflare-token-d1.md)
 - [x] Let deploys apply database changes automatically _(done 2026-06-01: continue-on-error removed, migrations now auto-apply on deploy and fail loudly on error)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
-- [ ] Rename the Google sign-in consent screen from "lightcodes.workers.dev" to "Teajia" — the Google "Continue with Google" consent screen currently shows the API domain instead of the brand, which reads as untrustworthy to customers. Fix in Google Cloud Console → APIs & Services → OAuth consent screen → App name = "Teajia" (optionally set logo + home page = teajia.com); no code change. _(band: you-required)_ _(effort: quick)_
+- [ ] **Brand consent screen** — rename the Google sign-in consent screen from "lightcodes.workers.dev" to "Teajia" _(you · quick)_
+  The "Continue with Google" screen shows the API domain instead of the brand, which reads as untrustworthy to customers; fix in Google Cloud Console → APIs & Services → OAuth consent screen (App name = "Teajia", optionally logo + home page = teajia.com), no code change. Done when the consent screen shows "Teajia."
 
 ### Magazine Editor (April 2026 Sprint)
 
 - [x] Run the one-time articles database setup so the magazine editor works _(done: articles table exists on prod, migration 031 tracked — verified 2026-06-01)_
-- [ ] Replace the placeholder gift-set product IDs with real ones from the inventory panel _(band: you-required)_ _(effort: quick)_
-- [ ] Replace the three hardcoded Spaces-page locations with real data _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] **Real gift-set IDs** — swap the placeholder gift-set product IDs for real ones from the inventory panel _(you · quick)_
+  The gift sets currently point at placeholder product IDs, so they don't resolve to actual inventory. Done when each gift set references a real product ID from the inventory panel.
+- [ ] **Real Spaces data** — replace the three hardcoded Spaces-page locations with real data _(agent · moderate)_
+  The Spaces page ships three placeholder locations instead of pulling real ones. Done when the page renders three real locations from data rather than hardcoded values.
 
 ### Brewing & QR Cards
 
-- [ ] Write the brewing guides and build the pages the QR cards link to _(band: you-required)_ _(effort: deep)_ → Plan: [brewing-guides.md](todo/plans/brewing-guides.md)
+- [ ] **Brewing guide pages** — write the brewing guides and build the pages the QR cards link to _(you · deep)_
+  Physical QR cards point at brewing-guide pages that don't exist yet. Done when each QR card resolves to a live brewing guide page. → Plan: [brewing-guides.md](todo/plans/brewing-guides.md)
 
 ### Compass tasting journal (Phases 2-3)
 
-- [ ] Add per-section voice capture so notes tag which part of the tasting they came from _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
-- [ ] Let customers star their own journal notes as candidates for Adrian's review _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
-- [ ] Build the admin queue to promote customer-starred notes onto product tastings _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] **Per-section voice** — add per-section voice capture to the Compass tasting journal _(agent · moderate)_
+  Notes should tag which part of the tasting they came from rather than landing as one undifferentiated blob. Done when a captured voice note is tagged to its tasting section. → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] **Star own notes** — let customers star their own journal notes as candidates for Adrian's review _(agent · moderate)_
+  This is the customer-facing half of the loop that feeds notes into Adrian's review queue. Done when a customer can star a journal note and it's flagged as a review candidate. → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] **Promote-notes queue** — build the admin queue to promote customer-starred notes onto product tastings _(agent · deep)_
+  This is the admin-facing half: a queue where Adrian reviews starred notes and publishes them to product tastings. Done when an admin can take a starred note and attach it to a product's tasting notes. → Plan: [docs/TODO.md](docs/TODO.md)
 
 ### Loose ends from the development log
 
-- [ ] Add a static Google map preview on the event landing page (blocked on Adrian getting a Maps API key) _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
-- [ ] Decide what to do with the 3 Bali draft products stamped as common-data (promote to active or keep as personal) _(band: you-required)_ _(effort: quick)_
-- [ ] Split the admin "Untasted" filter into never-reviewed versus on-community-data _(band: agent-runnable)_ _(effort: quick)_
-- [ ] Drop and recreate the local development database so old migrations can re-run and the inquiries table exists _(band: you-required)_ _(effort: moderate)_
-- [ ] Add real hero and gallery images to the 10 Advise projects once photos are ready _(band: you-required)_ _(effort: quick)_
+- [ ] **Event map preview** — add a static Google map preview on the event landing page _(you · moderate)_
+  Blocked on Adrian getting a Maps API key before the preview can render. Done when the event landing page shows a static map of the venue. → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] **Bali drafts call** — decide the fate of the 3 Bali draft products stamped as common-data _(you · quick)_
+  They sit in limbo between shared catalog data and Adrian's personal products. Done when each of the 3 is either promoted to active or confirmed kept as personal.
+- [ ] **Split Untasted filter** — split the admin "Untasted" filter into never-reviewed versus on-community-data _(agent · quick)_
+  The single filter conflates teas Adrian has never reviewed with teas riding on community/common data. Done when the filter offers the two states as distinct options.
+- [ ] **Reset local DB** — drop and recreate the local dev database so old migrations re-run and the inquiries table exists _(you · moderate)_
+  The local DB is missing the inquiries table because old migrations never ran against it. Done when the local database is rebuilt and the inquiries table is present.
+- [ ] **Advise project images** — add real hero and gallery images to the 10 Advise projects _(you · quick)_
+  The projects currently ship without their real imagery, pending photos. Done when all 10 Advise projects have real hero and gallery images.
 
 ## Future
 
 ### Mood & Flavor Taxonomy System
 
-- [ ] Build a connected mood and flavor tagging system for every tea _(band: agent-runnable)_ _(effort: deep)_ → Plan: [mood-flavor-taxonomy.md](todo/plans/mood-flavor-taxonomy.md)
-- [ ] Seed mood and flavor tags on Adrian's teas and walk the filter loop end-to-end before tagging all 139 _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/TODO.md](docs/TODO.md)
+- [ ] **Mood/flavor system** — build a connected mood and flavor tagging system for every tea _(agent · deep)_
+  A shared taxonomy lets teas be tagged and then filtered by mood and flavor across the catalog. Done when the tagging schema and filter UI are built and a tea can be tagged and found by mood/flavor. → Plan: [mood-flavor-taxonomy.md](todo/plans/mood-flavor-taxonomy.md)
+- [ ] **Seed + test tags** — seed mood/flavor tags on Adrian's teas and walk the filter loop end-to-end before tagging all 139 _(you · moderate)_
+  A pilot pass validates the taxonomy and filter before the full 139-product effort. Done when a sample of teas is tagged and the filter loop is verified working end-to-end. → Plan: [docs/TODO.md](docs/TODO.md)
 
 ### Pending from Development Sprint (April 2026)
 
-- [ ] Pick 1-3 magazine references whose quality is the target, then run the template overhaul _(band: you-required)_ _(effort: deep)_ → Plan: [PLAN.md](PLAN.md)
-- [ ] Publish the first contributor profile (Barry): full name, bio, photo, content _(band: you-required)_ _(effort: moderate)_
+- [ ] **Magazine references** — pick 1-3 reference magazines as the quality target, then run the template overhaul _(you · deep)_
+  The magazine template overhaul needs concrete quality exemplars to aim at before redesigning. Done when 1-3 references are chosen and the magazine template is reworked toward them. → Plan: [PLAN.md](PLAN.md)
+- [ ] **First contributor** — publish the first contributor profile for Barry _(you · moderate)_
+  The contributor profile feature needs a real first entry with full name, bio, photo, and content. Done when Barry's complete profile is live on the site.
 
 ### Your Table home for operators
 
-- [ ] Make Your Table the role-adaptive home with a readiness-based first-door for new operators _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/plan/your-table-completion-plan.md](docs/plan/your-table-completion-plan.md)
-- [ ] Give the Platform tier its own governance surface in Your Table instead of the Owner launchpad with extra tiles _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/_audit/05_your_table_member_level_links.md](docs/_audit/05_your_table_member_level_links.md) §5.7
+- [ ] **Role-adaptive home** — make Your Table a role-adaptive home with a readiness-based first door for new operators _(agent · deep)_
+  Your Table should adapt what it shows to each role and guide brand-new operators through a sensible first step. Done when Your Table renders per-role content and presents a readiness-based first door to new operators. → Plan: [docs/plan/your-table-completion-plan.md](docs/plan/your-table-completion-plan.md)
+- [ ] **Platform governance** — give the Platform tier its own governance surface in Your Table _(agent · moderate)_
+  Platform-tier currently reuses the Owner launchpad with extra tiles instead of a purpose-built surface. Done when the Platform tier has a dedicated governance view rather than bolted-on Owner tiles. → Plan: [docs/_audit/05_your_table_member_level_links.md](docs/_audit/05_your_table_member_level_links.md) §5.7
 
 ### Platform coherence (post-audit Body B)
 
-- [ ] Add cross-section links so Magazine, Learn, Consult, and Glossary point at the teas they mention _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
-- [ ] Build the "My Tea Life" personal timeline that unifies tastings, favorites, orders, and reading history _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
-- [ ] Build the post-session editor that turns event records into Magazine photo essays _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
+- [ ] **Cross-section links** — link Magazine, Learn, Consult, and Glossary to the teas they mention _(agent · deep)_
+  Content sections name teas without linking to their product pages, leaving the catalog disconnected from the editorial. Done when references to a tea across those sections link to that tea's product page. → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
+- [ ] **My Tea Life timeline** — build a personal timeline unifying tastings, favorites, orders, and reading history _(agent · deep)_
+  A customer's activity is scattered across features with no single chronological view. Done when "My Tea Life" shows one timeline merging tastings, favorites, orders, and reading history. → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
+- [ ] **Post-session editor** — build the editor that turns event records into Magazine photo essays _(agent · moderate)_
+  Events leave records that could become published photo essays but there's no tool to compose them. Done when an event record can be turned into a Magazine photo essay through the editor. → Plan: [docs/POST_AUDIT_ROADMAP.md](docs/POST_AUDIT_ROADMAP.md)
 
 ### Collection recommendations (Phase 2)
 
@@ -98,10 +129,14 @@
 
 ### Multi-account platform (the business model)
 
-- [ ] Onboard the first trusted users: Compass access for tea friends and real guests at events _(band: you-required)_ _(effort: moderate)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
-- [ ] Build the multi-account data foundation (accounts table, account scoping, role expansion) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
-- [ ] Build the wholesale catalog and sourcing-to-shelf pipeline for network operators _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
-- [ ] Build operator onboarding, operator public pages, and the network directory _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] **Onboard first users** — give Compass access to trusted tea friends and real event guests _(you · moderate)_
+  The first real users validate Compass before the multi-account platform expands. Done when a set of trusted friends and event guests are using Compass with real access. → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] **Multi-account foundation** — build the accounts table, account scoping, and role expansion _(agent · deep)_
+  This is the data layer the whole multi-tenant business model sits on. Done when entities are scoped per account and the expanded role set is enforced across the API. → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] **Wholesale pipeline** — build the wholesale catalog and sourcing-to-shelf pipeline for network operators _(agent · deep)_
+  Network operators need a path from sourced stock to their own shelves with wholesale pricing. Done when an operator can move a product from sourcing through to a listed shelf item via the pipeline. → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+- [ ] **Operator onboarding** — build operator onboarding, operator public pages, and the network directory _(agent · deep)_
+  New operators need a way to join, present a public storefront, and be discoverable in the network. Done when an operator can onboard, publish a public page, and appear in the directory. → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
 
 ## Operational notes (not TODOs: context for future-you)
 
