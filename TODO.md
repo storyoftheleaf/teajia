@@ -12,6 +12,13 @@
 - [x] Make Teajia legible to AI assistants — `llms.txt` guide + machine-readable tags on the site and articles _(done 2026-06-06, PR #192)_
 - [x] Let owners choose what a connected app is allowed to do, instead of a fixed permission set _(done 2026-06-06, PR #192)_
 
+### Feature guide (owner walk-throughs)
+
+- [ ] Correct the walk-through steps and role descriptions in the owner feature guide — they're first-draft text I wrote from the code; the real procedures and the value each user type gets need your wording _(band: you-required)_ _(effort: moderate)_
+- [ ] Eyeball the walk-with-me dock on a real device — it's build-verified but not screenshotted; confirm it stays pinned across pages and that logging a problem feels quick _(band: you-required)_ _(effort: quick)_
+- [ ] Let walk-through steps be marked works/broken per user type, not just overall — tie the role layer to the testing layer so you can see "fine for Owner, confusing for Member" _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] Decide whether to build real PDF order import (AI extraction) — currently listed "not built yet" in the guide; CSV is the only bulk import _(band: you-required)_ _(effort: deep)_
+
 ### Admin usability
 
 - [ ] Make adding products findable on the Stock screen, then template the fix across the admin — Import is buried in an overflow menu while New is a prominent button, the menu is duplicated and drifted, and the empty state never tells a new operator how to add their first product _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-discoverability.md](todo/plans/stock-discoverability.md)
