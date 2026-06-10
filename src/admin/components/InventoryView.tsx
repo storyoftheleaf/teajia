@@ -1746,6 +1746,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <button onClick={() => { onImportClick(); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                       <FileSpreadsheet size={13} /> Import CSV
                   </button>
+                  <button onClick={() => { navigate('/admin/intake'); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                      <Layers size={13} /> Bulk intake
+                  </button>
                   <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                       <Download size={13} /> Export CSV
                   </button>
@@ -2147,6 +2150,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             </button>
                             <button role="menuitem" onClick={() => { onImportClick(); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <FileSpreadsheet size={14} /> Import CSV
+                            </button>
+                            <button role="menuitem" onClick={() => { navigate('/admin/intake'); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                                <Layers size={14} /> Bulk intake
                             </button>
                             <button role="menuitem" onClick={() => { handleExport(); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Download size={14} /> Export CSV

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Loader2, ArrowRight, Compass, Check } from 'lucide-react';
+import { Loader2, ArrowRight, Compass, Check, FileStack } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import type { Product } from '../types';
@@ -107,11 +107,22 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
           </button>
         )}
 
+        {/* Bulk intake handoff — load many files / photos at once */}
+        <button
+          type="button"
+          onClick={() => navigate('/admin/intake')}
+          className="ml-auto tap-target inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors"
+          title="Load spreadsheets, Excel, or item photos in bulk"
+        >
+          <FileStack size={12} />
+          <span>Bulk intake</span>
+        </button>
+
         {/* Compass handoff — quiet text link on the right */}
         <button
           type="button"
           onClick={goToCompass}
-          className="ml-auto tap-target inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors"
+          className="tap-target inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors"
           title="Capture new items in Compass"
         >
           <Compass size={12} />
