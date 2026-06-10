@@ -29,6 +29,9 @@ type FakeDbState = {
   listings: Map<string, { stock_grams: number; status: string }>;
   ledger: Array<{ product_id: string; delta: number; balance_after: number }>;
   batchedSql: string[];
+  // Durable confirmation tickets (mcp_confirmation_tickets) — preview INSERTs a
+  // row, confirm consumes it via atomic UPDATE…RETURNING.
+  tickets: Map<string, { payload_json: string; expires_at: number; consumed_at: number | null }>;
 };
 
 class FakeStatement {
@@ -62,13 +65,33 @@ class FakeStatement {
     if (sql.includes('from products where id = ? and account_id = ?')) {
       return this.state.products.get(String(this.values[0])) || null;
     }
+    if (sql.startsWith('update mcp_confirmation_tickets set consumed_at')) {
+      // consumeConfirmationToken binds (now, token_hash, now)
+      const hash = String(this.values[1]);
+      const now = Number(this.values[2]);
+      const ticket = this.state.tickets.get(hash);
+      if (!ticket || ticket.consumed_at !== null || ticket.expires_at <= now) return null;
+      ticket.consumed_at = now;
+      return { payload_json: ticket.payload_json };
+    }
     return null;
   }
 
   async all() {
     const sql = normalizeSql(this.sql);
-    if (sql.includes('from invoice_line_items where invoice_id = ? and account_id = ?')) {
-      return { results: this.state.lineItems };
+    // The line-items query LEFT JOINs products for name + stock fields.
+    if (sql.includes('from invoice_line_items')) {
+      return {
+        results: this.state.lineItems.map(li => {
+          const p = li.product_id ? this.state.products.get(li.product_id) : undefined;
+          return {
+            ...li,
+            given_name: p?.given_name ?? null,
+            product_name: p?.product_name ?? null,
+            stock_grams: p?.stock_grams ?? null,
+          };
+        }),
+      };
     }
     return { results: [] };
   }
@@ -103,6 +126,16 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
   const sql = normalizeSql(statement.sql);
   const values = statement.values;
 
+  if (sql.startsWith('insert into mcp_confirmation_tickets')) {
+    // issueConfirmationToken binds (token_hash, account_id, kind, payload_json, expires_at)
+    state.tickets.set(String(values[0]), {
+      payload_json: String(values[3]),
+      expires_at: Number(values[4]),
+      consumed_at: null,
+    });
+    return { success: true, meta: { changes: 1 } };
+  }
+
   if (sql.startsWith('update products set stock_grams = stock_grams - ?')) {
     const grams = Number(values[0]);
     const productId = String(values[1]);
@@ -130,14 +163,9 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
     return { success: true, meta: { changes: 1 } };
   }
 
-  if (sql.startsWith('update invoices set inventory_deducted = -1')) {
-    if (state.invoice.inventory_deducted !== 0) return { success: true, meta: { changes: 0 } };
-    state.invoice.inventory_deducted = -1;
-    return { success: true, meta: { changes: 1 } };
-  }
-
-  if (sql.startsWith('update invoices set status =')) {
-    if (state.invoice.inventory_deducted !== -1) return { success: true, meta: { changes: 0 } };
+  // Single-statement commit: status and inventory_deducted are set together
+  // inside the batch (atomicity comes from DB.batch, not a -1 claim phase).
+  if (sql.startsWith("update invoices set status = 'filled', inventory_deducted = 1")) {
     state.invoice.status = 'Filled';
     state.invoice.inventory_deducted = 1;
     return { success: true, meta: { changes: 1 } };
@@ -176,6 +204,7 @@ function makeState(stockGrams: number): FakeDbState {
     listings: new Map([['list_prod_test', { stock_grams: stockGrams, status: 'Active' }]]),
     ledger: [],
     batchedSql: [],
+    tickets: new Map(),
   };
 }
 
@@ -199,7 +228,8 @@ async function callMcp(state: FakeDbState, args: Record<string, unknown>) {
 
 async function fulfillInvoice(state: FakeDbState) {
   const preview = await callMcp(state, { invoice_id: 'inv_test' });
-  return callMcp(state, { confirm: preview.confirmation_token });
+  // Confirm must repeat invoice_id — the handler checks it against the ticket.
+  return callMcp(state, { invoice_id: 'inv_test', confirm: preview.confirmation_token });
 }
 
 describe('MCP invoice fulfillment', () => {
@@ -212,7 +242,7 @@ describe('MCP invoice fulfillment', () => {
     expect(state.products.get('prod_test')?.stock_grams).toBe(20);
     expect(state.listings.get('list_prod_test')?.stock_grams).toBe(20);
     expect(state.ledger).toEqual([{ product_id: 'prod_test', delta: -80, balance_after: 20 }]);
-    expect(result.deducted).toEqual([{ product_id: 'prod_test', grams: 80, balance_after: 20 }]);
+    expect(result.items_fulfilled).toBe(1);
     expect(state.invoice.status).toBe('Filled');
     expect(state.invoice.inventory_deducted).toBe(1);
 
@@ -227,9 +257,11 @@ describe('MCP invoice fulfillment', () => {
 
     const result = await fulfillInvoice(state);
 
-    expect(result.error).toBe('insufficient_stock_at_fulfillment');
-    expect(result.requested_grams).toBe(80);
-    expect(result.available_grams).toBe(70);
+    // The aggregate underflow is caught at preview time as a hard block.
+    expect(result.error).toBe('stock_underflow');
+    expect(result.underflow_lines).toEqual([
+      expect.objectContaining({ product_id: 'prod_test', quantity_grams: 80, available_grams: 70, shortfall_grams: 10 }),
+    ]);
     expect(state.products.get('prod_test')?.stock_grams).toBe(70);
     expect(state.listings.get('list_prod_test')?.stock_grams).toBe(70);
     expect(state.ledger).toEqual([]);
@@ -244,7 +276,7 @@ describe('MCP invoice fulfillment', () => {
     const result = await fulfillInvoice(state);
 
     expect(result.committed).toBe(true);
-    expect(result.deducted).toEqual([]);
+    expect(result.items_fulfilled).toBe(0);
     expect(state.products.get('prod_test')?.stock_grams).toBe(100);
     expect(state.listings.get('list_prod_test')?.stock_grams).toBe(100);
     expect(state.ledger).toEqual([]);
@@ -265,6 +297,6 @@ describe('MCP invoice fulfillment', () => {
     expect(state.products.get('prod_test')?.stock_grams).toBe(65);
     expect(state.listings.get('list_prod_test')?.stock_grams).toBe(65);
     expect(state.ledger).toEqual([{ product_id: 'prod_test', delta: -35, balance_after: 65 }]);
-    expect(result.deducted).toEqual([{ product_id: 'prod_test', grams: 35, balance_after: 65 }]);
+    expect(result.items_fulfilled).toBe(1);
   });
 });

@@ -6,6 +6,10 @@ docs/tests/hygiene) with the highest-stakes findings hand-verified against sourc
 
 Severity legend: 🔴 fix before real customers · 🟠 fix soon · 🟡 plan it · ⚪ cleanup
 
+> **Status 2026-06-10 (same day):** remediation applied on this branch — see the
+> Addendum at the bottom for exactly what was fixed, what was corrected as a
+> false positive after hand-verification, and what remains open.
+
 ---
 
 ## 1. Critical — security & tenancy (🔴)
@@ -27,38 +31,36 @@ The same handlers look up and create customers **globally**:
 - Cross-account leak: a phone number that exists under another account returns that
   customer's name/existence to the caller.
 
-### 1.3 Event slugs are globally unique-checked, not per-account
-`SELECT id FROM events WHERE slug = ?` with no account filter at `index.ts:6243`
-(create), `index.ts:6634` (duplicate), `index.ts:8248` (update); the public resolver at
-`index.ts:6121` also matches by slug alone. Two accounts can collide, and the public
-endpoint returns whichever row matches first. Fix: `AND account_id = ?` on the
-uniqueness checks, and decide whether public event URLs are `/:account/:slug` or
-globally unique by construction.
-
-### 1.4 Schema-level slug uniqueness is global where code assumes per-account
-- `collection_publications.slug` — `UNIQUE` global (`migrations/039_collections.sql:25`)
-- `articles.slug` — `UNIQUE` global (`migrations/031_articles.sql:17`)
-- `products.slug` — no `UNIQUE(account_id, slug)` at all
-
-As more stores onboard (MULTI_STORE_PLAN), these become real collisions. Pick one rule
-— per-account uniqueness with account-scoped public URLs — and enforce it in schema.
+### 1.3 Event slugs — CORRECTED: global uniqueness is intentional, not a leak
+~~Original finding claimed cross-tenant slug collision.~~ On verification, the
+uniqueness check at `index.ts:6243` *rejects* duplicates globally on purpose — the
+comment above it states slugs are network-wide because `/api/events/:slug/public` and
+shareable URLs resolve by slug alone. Since duplicates can't be created, the public
+resolver can't return the wrong store's event. The same reasoning covers
+`collection_publications.slug` and `articles.slug` (network-shared content, global
+`UNIQUE`). Residual (minor, accepted): one account can "squat" a slug another account
+wants. No action taken.
 
 ---
 
 ## 2. Where things don't fully connect
 
-### 2.1 Migrations: 8 duplicate numbers, no applied-migrations tracker
+### 2.1 Migrations: 8 duplicate numbers (tracker exists — severity downgraded)
 Duplicate sequence numbers confirmed: **004 (×3), 012, 017, 025 (×3), 028 (×3), 058,
 059 (×3), 082**. Notably `017_multi_account.sql` vs `017_multi_account_patched.sql` —
-two competing versions of the *multi-tenancy* migration. There is no
-`migrations_applied` table; files are applied by hand/CI in filesystem order, so the
-actual production schema state is not reconstructible from the repo. This is the single
-biggest "doesn't fully connect" gap: the schema the code assumes and the schema D1
-actually has are only connected by convention.
+two competing versions of the *multi-tenancy* migration.
 
-**Recommended:** add a tracker table + a small apply script; renumber the duplicates
-(or adopt timestamp prefixes going forward); record which of each duplicate pair prod
-actually ran; delete the loser of the 017 pair.
+**Correction to the original finding:** migrations are NOT applied by hand —
+`deploy-worker.yml` runs `wrangler d1 migrations apply teajia-db --remote` on every
+worker deploy, which tracks applied files by filename in the `d1_migrations` table
+(the workflow comments document a tracker reconciliation on 2026-06-01). So duplicate
+numbers don't corrupt prod; each file applies exactly once, ordered lexically.
+
+Remaining real issues: a fresh environment replays all 92 files in lexical order
+(same-number files interleave unpredictably relative to intent), and the 017 pair
+means the repo doesn't say which multi-account schema prod actually has.
+**Recommended:** verify prod's `d1_migrations` rows for the duplicate pairs, delete
+the loser of the 017 pair, and use unique numbers going forward.
 
 ### 2.2 ~25 tables no worker code ever queries
 Defined in migrations, zero references in `worker/src` (grep-based — spot-check before
@@ -144,11 +146,15 @@ Across 339 routes: `{error}`, `{error, reason}`, `{error, required_bundle}`,
 pattern-matching strings (e.g. `'Account access denied'` triggers
 `ACCOUNT_MISMATCH_EVENT` in `src/lib/api.ts:402-408` by string equality).
 
-### 3.5 Missing indexes on hot auth paths
-No indexes on: `users` (any), `password_reset_tokens` (user_id, token),
-`oauth_clients` (client_id), `invoice_line_items.product_id` (only invoice_id is
-indexed, migration 023), `exchange_rates`, `account_features`. Every login/token
-mint/invoice list pays for it. One small migration fixes the lot.
+### 3.5 Missing indexes — CORRECTED: mostly auto-indexed, one real gap
+~~Original finding listed users/oauth_clients/exchange_rates/account_features.~~ On
+verification, those are all covered automatically: `users.email` is `UNIQUE`,
+`oauth_clients.id` / `exchange_rates.currency` are PRIMARY KEYs, `account_features`
+has a composite PK, and `idx_users_username` / `idx_refresh_tokens_user` already
+exist. `password_reset_tokens` doesn't exist in migrations at all. The one real gap:
+`invoice_line_items.product_id` (only `invoice_id` was indexed, migration 023) — the
+product-stats query at `index.ts:13399` joins `ON ili.product_id = p.id` and
+full-scans without it. **Fixed in migration 084.**
 
 ### 3.6 Delete behavior is undefined
 D1 doesn't enforce FKs by default and the schema declares no `ON DELETE` rules on
@@ -244,8 +250,58 @@ finish-or-fold decision (§5.1).
 
 ---
 
+## Addendum — remediation applied 2026-06-10 (this branch)
+
+**Fixed:**
+- §1.1 — verification codes are no longer echoed in `/api/verify/request`
+  responses unless `DEV_RETURN_VERIFY_CODES=true` (new env flag, documented in
+  the worker `Env` interface). Production verification is effectively disabled
+  until WhatsApp/email delivery ships — by design.
+- §1.2 — verify request/confirm and the journey customer lookup are now scoped
+  to the platform-owner account (same scoping as `/api/products/public`); the
+  customer INSERT now writes `account_id`. Added a 5/min/IP rate limit to
+  `/api/verify/request` (new contacts previously had no throttle).
+- §3.5 — `idx_invoice_line_items_product` added (migration 084).
+- §3.1 — CI gates added: frontend deploy now runs `npm run lint` +
+  `npm run lint:colors` before build; worker deploy runs `npm run test:worker`
+  before migrations/deploy.
+- §3.1b — the 7 genuine `border-tea-border/NN` violations fixed; lint script
+  given documented path exclusions for conditional active-state gold underlines
+  (the regex can't see JSX ternaries) and for DesignSystemShowcase's
+  banned-pattern documentation. `lint:colors` now exits 0.
+- §4 — all 3 worker test suites repaired (they were failing on main): test
+  fakes taught the durable `mcp_confirmation_tickets` INSERT/UPDATE…RETURNING
+  flow, the aliased line-items/articles queries, and the single-statement
+  invoice commit; assertions updated to the live response contract
+  (`items_fulfilled`, `stock_underflow`). **In the process a real production
+  bug was found and fixed in `mcp.ts`:** `fulfill_invoice` did not aggregate
+  duplicate product lines, so two 60g lines of the same product on 100g stock
+  passed per-line checks and drove stock negative with wrong ledger balances.
+  Lines are now aggregated per product before underflow checks and deduction.
+- §2.5 — untracked/deleted `playwright-report/`, `audit-admin-results.json`,
+  `audit.mjs`, `audit-temp.mjs`, `April to-do list.md`; `playwright-report/`
+  added to `.gitignore`. README and DEPLOY.md rewritten to match the real
+  deploy pipeline (`teajiafinal`, CI workflows, Infisical secrets).
+- §2.6 — CLAUDE.md stub-pages table updated.
+
+**Corrected as false positives after hand-verification:**
+- §1.3/1.4 — event/article/collection slug global uniqueness is intentional
+  network-wide design; the duplicate check *prevents* collisions.
+- §2.1 — an applied-migrations tracker DOES exist (`wrangler d1 migrations
+  apply` + `d1_migrations` table in CI). Duplicate numbers remain a hygiene
+  issue for fresh environments and the 017 pair remains unresolved.
+- §3.5 — most "missing indexes" were auto-indexed PKs/UNIQUEs;
+  `password_reset_tokens` doesn't exist.
+- §3.2 — `tsc --noEmit` passes; the audit-environment failure was missing
+  node_modules. The permissive `strict: false` finding stands.
+
+**Still open (unchanged):** §2.1 prod verification of the 017 pair; §2.2–2.3
+orphaned tables/columns; §3.2 strictNullChecks; §3.3 worker modularization;
+§3.4 error envelope; §3.7 timestamp formats; §3.8 distributed rate limiting;
+§4 tenancy-isolation + verify-flow test coverage; all of §5.
+
+---
+
 *Caveats: orphaned-table/column lists are grep-derived against `worker/src` — verify no
-dynamic SQL references before dropping anything. `npm run lint` could not be executed in
-the audit environment (no node_modules), so current tsc status is unverified; the CI
-finding (§3.1) stands regardless. Line numbers reference the audit-date state of
-`worker/src/index.ts` and will drift.*
+dynamic SQL references before dropping anything. Line numbers reference the audit-date
+state of `worker/src/index.ts` and will drift.*

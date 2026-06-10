@@ -26,6 +26,10 @@ interface Env {
   APP_URL?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
   ENABLE_DEV_ADMIN?: string;
+  // Optional — set to 'true' to echo verification codes in /api/verify/request
+  // responses (local dev only; WhatsApp/email delivery is not built yet).
+  // NEVER set in production: echoing the code lets anyone verify as any contact.
+  DEV_RETURN_VERIFY_CODES?: string;
   // Optional — wrapping key for BYOK secrets stored in D1 (e.g. accounts.openai_api_key_encrypted).
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
@@ -8643,6 +8647,11 @@ const handleEventInterest: Handler = async (request, env, params) => {
 
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
+  const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!checkRateLimit(`verify:${verifyIp}`, 5, 60000)) {
+    return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
+  }
+
   const body = await request.json() as { contact: string; method: 'whatsapp' | 'email' };
   if (!body.contact) return json({ error: 'contact is required' }, 400);
   if (!body.method || !['whatsapp', 'email'].includes(body.method)) {
@@ -8653,12 +8662,20 @@ const handleVerifyRequest: Handler = async (request, env) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
+  // Quiet-account customers live under the platform-owner account — same
+  // scoping as /api/products/public and the public events list. Without this,
+  // lookups match (and leak) customers from other accounts with the same
+  // contact, and new customers are created with no account_id at all.
+  const ownerAccount = await env.DB.prepare(`SELECT id FROM accounts WHERE is_platform_owner = 1 LIMIT 1`).first();
+  if (!ownerAccount) return json({ error: 'Verification is not available' }, 503);
+  const ownerAccountId = ownerAccount.id as string;
+
   // Find or create customer by contact
   const isEmail = body.method === 'email';
   const existingCustomer = isEmail
-    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ?`).bind(body.contact).first()
-    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE phone = ? OR whatsapp = ?`)
-        .bind(body.contact, body.contact).first();
+    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ? AND account_id = ?`).bind(body.contact, ownerAccountId).first()
+    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`)
+        .bind(body.contact, body.contact, ownerAccountId).first();
 
   // Rate limit: if a non-expired code was issued less than 60 seconds ago, reject
   if (existingCustomer && existingCustomer.verification_code && existingCustomer.verification_expires) {
@@ -8680,10 +8697,11 @@ const handleVerifyRequest: Handler = async (request, env) => {
   } else {
     const newId = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO customers (id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       newId,
+      ownerAccountId,
       null,
       isEmail ? null : body.contact,
       isEmail ? body.contact : null,
@@ -8694,9 +8712,13 @@ const handleVerifyRequest: Handler = async (request, env) => {
     ).run();
   }
 
-  // NOTE: Actual WhatsApp/email delivery is not yet implemented.
-  // Return code in response for now — remove before production.
-  return json({ success: true, code, expires, _note: 'Delivery not yet implemented — code returned for development' });
+  // WhatsApp/email delivery is not built yet. The code is only echoed back
+  // under an explicit dev flag — echoing it in production would let anyone
+  // verify as any contact.
+  if (env.DEV_RETURN_VERIFY_CODES === 'true') {
+    return json({ success: true, code, expires, _note: 'DEV_RETURN_VERIFY_CODES enabled — code echoed for development only' });
+  }
+  return json({ success: true, expires });
 };
 
 // POST /api/verify/confirm
@@ -8704,9 +8726,13 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   const body = await request.json() as { contact: string; code: string };
   if (!body.contact || !body.code) return json({ error: 'contact and code are required' }, 400);
 
+  // Same platform-owner scoping as handleVerifyRequest — never match a
+  // customer that belongs to another account.
   const customer = await env.DB.prepare(
     `SELECT id, name, phone, email, verification_code, verification_expires
-     FROM customers WHERE phone = ? OR whatsapp = ? OR email = ?`
+     FROM customers
+     WHERE (phone = ? OR whatsapp = ? OR email = ?)
+       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
   ).bind(body.contact, body.contact, body.contact).first();
 
   if (!customer) return json({ error: 'No account found for this contact' }, 404);
@@ -8787,7 +8813,9 @@ const handleGetJourney: Handler = async (request, env, params) => {
   }
 
   const customer = await env.DB.prepare(
-    `SELECT id, name FROM customers WHERE phone = ? OR whatsapp = ?`
+    `SELECT id, name FROM customers
+     WHERE (phone = ? OR whatsapp = ?)
+       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
   ).bind(phone, phone).first();
 
   if (!customer) return json({ error: 'No journey found for this contact' }, 404);

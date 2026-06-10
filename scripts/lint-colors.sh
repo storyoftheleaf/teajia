@@ -68,14 +68,49 @@ check_pattern_notice() {
 echo "Checking COLOR_RULES.md compliance..."
 
 # 1. border-tea-border with any opacity modifier
-check_pattern 'border-tea-border/[0-9]' \
-  "Never add opacity to border-tea-border. Use border-tea-border alone."
+#    DesignSystemShowcase.tsx is excluded by path — it renders the banned form
+#    inside <code> samples to document what NOT to do (same as Rule 7).
+BORDER_OPACITY_VIOLATIONS=$(grep -rn --include='*.tsx' --include='*.ts' \
+  -E 'border-tea-border/[0-9]' "$SRC_DIR" 2>/dev/null \
+  | grep -v 'src/pages/DesignSystemShowcase.tsx' \
+  || true)
+if [ -n "$BORDER_OPACITY_VIOLATIONS" ]; then
+  echo ""
+  echo "COLOR RULE VIOLATION: Never add opacity to border-tea-border. Use border-tea-border alone."
+  echo "$BORDER_OPACITY_VIOLATIONS"
+  ERRORS=$((ERRORS + 1))
+fi
 
 # 2. border-tea-gold as structural DIVIDER (border-t/border-b with gold, not interactive)
 #    Gold borders on cards/badges/decorative elements are intentional design choices.
 #    But dividers (border-t, border-b) should always use border-tea-border.
-check_pattern '(?<!focus:)(?<!hover:)(?<!active:)border-(t|b) border-tea-gold' \
-  "Don't use border-tea-gold for dividers. Use border-tea-border."
+#    Excluded by path — the regex can't see JSX conditionals, so these documented
+#    cases would false-positive forever:
+#      - Active-tab underlines toggled via ternaries (COLOR_RULES allows gold on
+#        active state): TeaInventory, TaxonomyChipPicker, EventForm/BasicInfoSection,
+#        EventForm/CreateWizard, PlatformAccessView.
+#      - Intentional gold-emphasis surfaces (badge-like, not dividers):
+#        GlobalSearch header, AdminApp impersonation banner.
+#      - DesignSystemShowcase documents the patterns.
+#    The rule still applies everywhere else — don't add new files here without
+#    the same justification.
+GOLD_DIVIDER_VIOLATIONS=$(grep -rn --include='*.tsx' --include='*.ts' \
+  -P '(?<!focus:)(?<!hover:)(?<!active:)border-(t|b) border-tea-gold' "$SRC_DIR" 2>/dev/null \
+  | grep -v 'src/components/TeaInventory.tsx' \
+  | grep -v 'src/admin/components/tasting/TaxonomyChipPicker.tsx' \
+  | grep -v 'src/admin/components/EventForm/sections/BasicInfoSection.tsx' \
+  | grep -v 'src/admin/components/EventForm/CreateWizard.tsx' \
+  | grep -v 'src/admin/views/PlatformAccessView.tsx' \
+  | grep -v 'src/components/shared/GlobalSearch.tsx' \
+  | grep -v 'src/admin/AdminApp.tsx' \
+  | grep -v 'src/pages/DesignSystemShowcase.tsx' \
+  || true)
+if [ -n "$GOLD_DIVIDER_VIOLATIONS" ]; then
+  echo ""
+  echo "COLOR RULE VIOLATION: Don't use border-tea-gold for dividers. Use border-tea-border."
+  echo "$GOLD_DIVIDER_VIOLATIONS"
+  ERRORS=$((ERRORS + 1))
+fi
 
 # 3. border-white or border-black
 check_pattern 'border-white|border-black' \

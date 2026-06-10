@@ -2297,7 +2297,23 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
       WHERE ili.invoice_id = ? AND ili.account_id = ?`
   ).bind(auth.accountId, invoiceId, auth.accountId).all();
 
-  const items = rawItems as any[];
+  // Aggregate duplicate product lines so underflow checks and deductions apply
+  // to the invoice total, not per line: two 60g lines of the same product on
+  // 100g stock must fail, and must never write two ledger rows that each claim
+  // the same starting balance. Custom items (no product_id) pass through as-is.
+  const byProduct = new Map<string, any>();
+  const items: any[] = [];
+  for (const raw of rawItems as any[]) {
+    if (!raw.product_id) { items.push(raw); continue; }
+    const existing = byProduct.get(raw.product_id);
+    if (existing) {
+      existing.quantity = (Number(existing.quantity) || 0) + (Number(raw.quantity) || 0);
+    } else {
+      const copy = { ...raw, quantity: Number(raw.quantity) || 0 };
+      byProduct.set(raw.product_id, copy);
+      items.push(copy);
+    }
+  }
 
   // Build per-line summary + check for underflows.
   type LineCheck = {

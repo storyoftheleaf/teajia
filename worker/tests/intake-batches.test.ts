@@ -25,6 +25,9 @@ type FakeState = {
   // Set true to simulate the Unsorted batch already existing (the common case after
   // the migration's seed). When false, resolveUnsortedBatchId must create it.
   unsortedExists: boolean;
+  // Durable confirmation tickets (mcp_confirmation_tickets) — preview INSERTs a
+  // row, confirm consumes it via atomic UPDATE…RETURNING.
+  tickets: Map<string, { payload_json: string; expires_at: number; consumed_at: number | null }>;
 };
 
 function normalizeSql(sql: string): string {
@@ -55,6 +58,15 @@ class FakeStatement {
     if (sql.includes('from products where id = ? and account_id = ?')) {
       return this.state.products.get(String(this.values[0])) || null;
     }
+    if (sql.startsWith('update mcp_confirmation_tickets set consumed_at')) {
+      // consumeConfirmationToken binds (now, token_hash, now)
+      const hash = String(this.values[1]);
+      const now = Number(this.values[2]);
+      const ticket = this.state.tickets.get(hash);
+      if (!ticket || ticket.consumed_at !== null || ticket.expires_at <= now) return null;
+      ticket.consumed_at = now;
+      return { payload_json: ticket.payload_json };
+    }
     return null;
   }
 
@@ -76,6 +88,16 @@ class FakeDb {
 function runStatement(state: FakeState, statement: FakeStatement) {
   const sql = normalizeSql(statement.sql);
   const values = statement.values;
+
+  if (sql.startsWith('insert into mcp_confirmation_tickets')) {
+    // issueConfirmationToken binds (token_hash, account_id, kind, payload_json, expires_at)
+    state.tickets.set(String(values[0]), {
+      payload_json: String(values[3]),
+      expires_at: Number(values[4]),
+      consumed_at: null,
+    });
+    return { success: true, meta: { changes: 1 } };
+  }
 
   if (sql.startsWith('insert into batches')) {
     // resolveUnsortedBatchId binds (id, account_id) and writes the 'Unsorted'
@@ -115,6 +137,7 @@ function makeState(unsortedExists: boolean): FakeState {
     ledger: [],
     insertedBatches: [],
     unsortedExists,
+    tickets: new Map(),
   };
 }
 

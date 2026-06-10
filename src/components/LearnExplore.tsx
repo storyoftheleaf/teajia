@@ -53,7 +53,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const WISDOM_TYPE_COLORS: Record<string, string> = {
-  reflection: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border/30',
+  reflection: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border',
   tip: 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf border border-tea-leaf/30',
   ritual: 'bg-tea-readgold/10 dark:bg-tea-readgold/20 text-tea-readgold dark:text-tea-readgold border border-tea-readgold/30',
   photo: 'bg-tea-gold/10 dark:bg-tea-gold/20 text-tea-gold dark:text-tea-gold border border-tea-gold/30',
