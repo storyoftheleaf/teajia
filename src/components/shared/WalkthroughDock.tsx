@@ -89,15 +89,22 @@ export const WalkthroughDock: React.FC = () => {
             </div>
           </div>
 
-          {/* Note — show when a problem is flagged (or always-available, compact) */}
-          {(entry.verdict === 'broken' || entry.verdict === 'looks_wrong' || entry.note) && (
+          {/* Note — always available so a problem can be written and saved on any
+              step without first picking a verdict. Saves to D1 as you type (debounced),
+              so a note logged on step 1 of 3 is recorded server-side immediately. */}
+          <div className="mt-2.5">
             <input
               value={entry.note}
               onChange={(e) => setNote(current, e.target.value)}
-              placeholder="What's wrong here?"
-              className="w-full mt-2.5 bg-tea-surface rounded-xl px-3 py-2 font-serif text-ui-14 text-tea-text placeholder:text-tea-text-dim border border-transparent focus:border-tea-gold/30 focus:outline-none"
+              placeholder="Note a problem here — it saves as you type"
+              className="w-full bg-tea-surface rounded-xl px-3 py-2 font-serif text-ui-14 text-tea-text placeholder:text-tea-text-dim border border-transparent focus:border-tea-gold/30 focus:outline-none"
             />
-          )}
+            {entry.note.trim() !== '' && (
+              <p className="font-sans text-ui-11 text-tea-text-dim mt-1.5 px-1">
+                Saved to this step. Flagged problems land in your todo list when you finish.
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Step nav */}
