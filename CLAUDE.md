@@ -132,8 +132,9 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 ### Known stub/incomplete pages — do not add links to these without building them first
 | Route | Status |
 |---|---|
-| `/account/orders` | Empty state only — no order data wired |
-| `/account/samples` | Empty state only — no sample data wired |
+| `/account/orders` | Wired (`api.me.orders()`); per-order detail page still missing (TODO in `OrderHistoryPage.tsx`) |
+| `/account/samples` | Wired (`api.me.samples()`) |
+| `/api/verify/*` | Code delivery (WhatsApp/email) not built — codes are only echoed when `DEV_RETURN_VERIFY_CODES=true` (dev), so production verification is effectively disabled until delivery ships |
 
 ## Voice & agent control (MCP)
 The worker exposes an MCP server at `/mcp` for voice/agent control. Tokens are minted at `/admin/mcp-tokens` (owner-tier only) and shown ONCE, or obtained via the OAuth 2.1 connector flow. There is ALSO a public, unauthenticated, read-only MCP at `/mcp/public` for the shopping public.

@@ -116,7 +116,7 @@ export const LearnCurriculum: React.FC<LearnCurriculumProps> = ({ onStoryClick, 
   const getDifficultyColor = (level: string): string => {
     switch(level) {
       case 'Beginner': return 'bg-tea-green/20 text-tea-leaf border border-tea-green/40 ';
-      case 'Intermediate': return 'bg-tea-elevated/20 text-tea-text-sec border border-tea-border/40 ';
+      case 'Intermediate': return 'bg-tea-elevated/20 text-tea-text-sec border border-tea-border ';
       case 'Advanced': return 'bg-tea-gold/20 text-tea-gold border border-tea-border ';
       default: return 'bg-tea-gold/10 text-tea-text/50';
     }

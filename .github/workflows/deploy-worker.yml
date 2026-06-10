@@ -40,6 +40,14 @@ jobs:
         working-directory: worker
         run: npm ci
 
+      # vitest lives in the root package.json (npm run test:worker runs
+      # worker/tests). A failing auth/fulfillment test blocks the deploy.
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Worker tests
+        run: npm run test:worker
+
       # Migrations apply on every worker deploy. This step must NOT swallow
       # failures: a silent `continue-on-error` is what let 076 + 080 drift out
       # of prod undetected (the d1_migrations tracker fell out of sync while the

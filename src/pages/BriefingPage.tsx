@@ -271,7 +271,7 @@ export default function BriefingPage() {
             const total = wt.steps.length;
             const done = wt.steps.reduce((n, _s, i) => n + (checked[stepId(wt, i)] ? 1 : 0), 0);
             return (
-              <section key={wt.id} className={`bg-tea-surface border rounded-xl overflow-hidden ${notBuilt ? 'border-tea-border/60' : 'border-tea-border'}`}>
+              <section key={wt.id} className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
                 <div className="px-5 pt-4 pb-3 border-b border-tea-border">
                   <div className="flex items-baseline justify-between gap-3">
                     <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em]">{wt.title}</h2>
