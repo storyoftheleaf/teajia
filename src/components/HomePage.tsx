@@ -456,9 +456,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             ))}
           </motion.nav>
 
-          {/* Start here — scrolls to the brand story (Act 2) */}
+          {/* Start here — scrolls to the brand story (Act 2) + discover the reader's tea */}
           <motion.div
-            className="mt-6"
+            className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
             initial={initial({ opacity: 0 })}
             animate={{ opacity: 1 }}
             transition={shouldAnimate ? { duration: 0.5, delay: 1.0 } : { duration: 0 }}
@@ -470,6 +470,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
               New here? Start here
             </button>
+            <Link
+              to="/discover"
+              className="tap-target rounded-md bg-transparent text-ui-13 tracking-[0.06em] text-tea-text-sec underline decoration-tea-border underline-offset-[6px] hover:text-tea-text hover:decoration-tea-gold/30 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Discover your tea
+            </Link>
           </motion.div>
         </div>
 

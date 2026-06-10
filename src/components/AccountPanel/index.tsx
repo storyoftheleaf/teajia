@@ -22,6 +22,7 @@ import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
+import { THREADS, profileThreads } from '../TeaDiscovery/threads';
 import { StaffView } from './StaffView';
 import { AccountSwitcherChip } from './AccountSwitcherChip';
 import { buildFirstDoorReadiness } from './workflows';
@@ -292,6 +293,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setCurrency,
     publicCart,
     tastingJournal,
+    teaDiscoveryProfile,
     memberships,
     activeAccountId,
     activeAccount,
@@ -395,6 +397,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     } catch {}
     return null;
   }, []);
+
+  // Tea Discovery — the threads that draw them, joined ("Stillness · Quality").
+  const dispositionName = teaDiscoveryProfile
+    ? profileThreads(teaDiscoveryProfile)
+        .map((id) => THREADS[id]?.name)
+        .filter(Boolean)
+        .join(' · ') || null
+    : null;
 
   // Animate in
   useEffect(() => {
@@ -1317,6 +1327,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 journalLastAt={tastingJournal[0]?.createdAt ?? null}
                 journalLastTea={tastingJournal[0]?.productName ?? null}
                 collectionCount={favoriteTeas.length}
+                dispositionName={dispositionName}
                 nextEvent={nextEvent ?? null}
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}

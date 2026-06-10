@@ -80,6 +80,7 @@ const EventsPage = lazy(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
+const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
@@ -98,6 +99,7 @@ import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { useTastingJournalSync } from './hooks/useTastingJournalSync';
+import { useTeaDiscoverySync } from './hooks/useTeaDiscoverySync';
 import { useCompassSync } from './hooks/useCompassSync';
 import { useNotesSync } from './hooks/useNotesSync';
 import { pathToSection, sectionToPath } from './lib/routes';
@@ -180,6 +182,7 @@ const AppContent = () => {
   useFavoritesSync(syncEnabled);
   useOfflineSync(syncEnabled);
   useTastingJournalSync(syncEnabled);
+  useTeaDiscoverySync(syncEnabled);
   useCompassSync(syncEnabled);
   useNotesSync(syncEnabled);
   const showAdminBar = false;
@@ -812,6 +815,13 @@ const AppContent = () => {
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="grid" />}>
                       <StartHerePage />
+                    </Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path="/discover" element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<SectionSkeleton variant="grid" />}>
+                      <DiscoverPage />
                     </Suspense>
                   </ErrorBoundary>
                 } />

@@ -735,19 +735,38 @@ async function toolFindCustomer(env: Env, accountId: string, args: any) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 8);
 
+  // Tea Discovery disposition for the matched customers — keyed per-person by
+  // email, so a tea master sees how each person likes to drink before replying.
+  const emails = scored.map(s => s.customer.email).filter(Boolean) as string[];
+  const dispositionByEmail = new Map<string, { name: string | null; level: string | null }>();
+  if (emails.length > 0) {
+    const placeholders = emails.map(() => '?').join(',');
+    const { results: discRows } = await env.DB.prepare(
+      `SELECT user_id, disposition_name, level FROM customer_tea_discovery WHERE user_id IN (${placeholders})`
+    ).bind(...emails).all();
+    for (const d of discRows as any[]) {
+      dispositionByEmail.set(d.user_id, { name: d.disposition_name ?? null, level: d.level ?? null });
+    }
+  }
+
   return {
-    matches: scored.map(s => ({
-      id: s.customer.id,
-      name: s.customer.name,
-      company: s.customer.company,
-      email: s.customer.email,
-      phone: s.customer.phone,
-      whatsapp: s.customer.whatsapp,
-      city: s.customer.city,
-      country: s.customer.country,
-      preferred_currency: s.customer.preferred_currency,
-      match_score: Math.round(s.score * 100) / 100,
-    })),
+    matches: scored.map(s => {
+      const disc = s.customer.email ? dispositionByEmail.get(s.customer.email) : undefined;
+      return {
+        id: s.customer.id,
+        name: s.customer.name,
+        company: s.customer.company,
+        email: s.customer.email,
+        phone: s.customer.phone,
+        whatsapp: s.customer.whatsapp,
+        city: s.customer.city,
+        country: s.customer.country,
+        preferred_currency: s.customer.preferred_currency,
+        tea_disposition: disc ? disc.name : null,
+        tea_level: disc ? disc.level : null,
+        match_score: Math.round(s.score * 100) / 100,
+      };
+    }),
   };
 }
 

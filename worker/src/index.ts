@@ -4359,9 +4359,31 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
       `).bind(params.id, accountId).all(),
 
       env.DB.prepare(
-        'SELECT created_at FROM customers WHERE id = ? AND account_id = ?'
-      ).bind(params.id, accountId).first<{ created_at: string }>(),
+        'SELECT created_at, email FROM customers WHERE id = ? AND account_id = ?'
+      ).bind(params.id, accountId).first<{ created_at: string; email: string | null }>(),
     ]);
+
+    // Tea Discovery disposition — joined by the customer's email (the profile is
+    // keyed per-person, like the tasting journal). Null when not taken / unlinked.
+    let teaDiscoveryProfile: {
+      dispositionId: string | null;
+      dispositionName: string | null;
+      level: string | null;
+      completedAt: string | null;
+    } | null = null;
+    if (customer?.email) {
+      const disc = await env.DB.prepare(
+        'SELECT level, disposition_id, disposition_name, completed_at FROM customer_tea_discovery WHERE user_id = ?'
+      ).bind(customer.email).first<any>();
+      if (disc) {
+        teaDiscoveryProfile = {
+          dispositionId: disc.disposition_id ?? null,
+          dispositionName: disc.disposition_name ?? null,
+          level: disc.level ?? null,
+          completedAt: disc.completed_at ?? null,
+        };
+      }
+    }
 
     const rows = teasResult.results as any[];
     const teaTypeMap: Record<string, number> = {};
@@ -4402,7 +4424,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
     if (sessionsAttended >= 3) portraitParts.push(`${sessionsAttended} sessions attended`);
     const portrait = portraitParts.join(' · ');
 
-    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, impressions, memberSince: customer?.created_at ?? null, portrait });
+    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, impressions, memberSince: customer?.created_at ?? null, portrait, teaDiscoveryProfile });
   } catch {
     return json({ sessionsAttended: 0, totalTeas: 0, teaTypeMap: {}, favorites: [], milestones: [], impressions: [], memberSince: null, portrait: '' });
   }
@@ -9630,7 +9652,71 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
-// Public (auth required): POST /api/samples/request
+// Customer: GET /api/tea-discovery. Returns the member's onboarding disposition
+// profile (one per user, keyed by email — a property of the person, not a store).
+const handleGetTeaDiscovery: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  if (!email) return json({ profile: null });
+
+  const row = await env.DB.prepare(
+    'SELECT answers, level, disposition_id, disposition_name, completed_at, updated_at FROM customer_tea_discovery WHERE user_id = ?'
+  ).bind(email).first<any>();
+
+  if (!row) return json({ profile: null });
+
+  return json({
+    profile: {
+      answers: typeof row.answers === 'string' ? JSON.parse(row.answers || '{}') : (row.answers ?? {}),
+      level: row.level ?? null,
+      dispositionId: row.disposition_id ?? null,
+      dispositionName: row.disposition_name ?? null,
+      completedAt: row.completed_at ?? row.updated_at ?? null,
+    },
+  });
+};
+
+// Customer: PUT /api/tea-discovery. Upserts the member's disposition profile.
+// One row per user (email); account_id is stored for context only.
+const handlePutTeaDiscovery: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  if (!email) return json({ error: 'unauthenticated' }, 401);
+  const claims = parseToken(isAuthed(request)!);
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
+  const body = await request.json() as any;
+
+  const answers = typeof body.answers === 'string' ? body.answers : JSON.stringify(body.answers || {});
+  const completedAt = body.completedAt || new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO customer_tea_discovery
+      (user_id, account_id, answers, level, disposition_id, disposition_name, completed_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    ON CONFLICT(user_id) DO UPDATE SET
+      account_id = excluded.account_id,
+      answers = excluded.answers,
+      level = excluded.level,
+      disposition_id = excluded.disposition_id,
+      disposition_name = excluded.disposition_name,
+      completed_at = excluded.completed_at,
+      updated_at = datetime('now')
+  `).bind(
+    email,
+    headerAccount,
+    answers,
+    body.level || null,
+    body.dispositionId || null,
+    body.dispositionName || null,
+    completedAt
+  ).run();
+
+  return json({ success: true });
+};
+
+
 // Customer-facing sample request — inserts into tea_samples with status 'requested'
 // and stores request metadata (quantity_grams, user_id, note) in the notes field as JSON.
 const handleRequestSample: Handler = async (request, env) => {
@@ -17282,6 +17368,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
   ['POST', '/api/tasting-journal', handleAddTastingEntry],
   ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
+  ['GET', '/api/tea-discovery', handleGetTeaDiscovery],
+  ['PUT', '/api/tea-discovery', handlePutTeaDiscovery],
 
   // Samples — Admin
   ['GET', '/api/admin/samples', handleListSamples],
