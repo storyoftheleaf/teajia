@@ -43,6 +43,7 @@
 
 - [x] Give the deploy's Cloudflare token D1 permission so migrations stop silently failing in CI _(done 2026-06-01: token has D1 write, verified via deploy run; tracker reconciled)_ → Plan: [archive/ci-cloudflare-token-d1.md](todo/plans/archive/ci-cloudflare-token-d1.md)
 - [x] Let deploys apply database changes automatically _(done 2026-06-01: continue-on-error removed, migrations now auto-apply on deploy and fail loudly on error)_ → Plan: [deploy-db-migrations.md](todo/plans/deploy-db-migrations.md)
+- [ ] Rename the Google sign-in consent screen from "lightcodes.workers.dev" to "Teajia" — the Google "Continue with Google" consent screen currently shows the API domain instead of the brand, which reads as untrustworthy to customers. Fix in Google Cloud Console → APIs & Services → OAuth consent screen → App name = "Teajia" (optionally set logo + home page = teajia.com); no code change. _(band: you-required)_ _(effort: quick)_
 
 ### Magazine Editor (April 2026 Sprint)
 
@@ -83,6 +84,7 @@
 ### Your Table home for operators
 
 - [ ] Make Your Table the role-adaptive home with a readiness-based first-door for new operators _(band: agent-runnable)_ _(effort: deep)_ → Plan: [docs/plan/your-table-completion-plan.md](docs/plan/your-table-completion-plan.md)
+- [ ] Give the Platform tier its own governance surface in Your Table instead of the Owner launchpad with extra tiles _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [docs/_audit/05_your_table_member_level_links.md](docs/_audit/05_your_table_member_level_links.md) §5.7
 
 ### Platform coherence (post-audit Body B)
 
