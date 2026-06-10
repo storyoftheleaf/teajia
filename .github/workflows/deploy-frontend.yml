@@ -1,0 +1,66 @@
+name: Deploy frontend
+
+# The live site (teajia.com / www.teajia.com) is the Cloudflare Pages project
+# `teajiafinal`. Its dashboard git integration was building PREVIEW deploys off
+# feature branches, NOT production off main — so pushes to main left production
+# stale. This workflow makes the frontend deploy to teajiafinal PRODUCTION on
+# every push to main, the same way deploy-worker.yml handles the API.
+#
+# teajia.pages.dev (project `teajia`) is a stale/abandoned project — do not
+# deploy there.
+#
+# Required GitHub repo secrets (already present, shared with deploy-worker.yml):
+#   CLOUDFLARE_API_TOKEN   — needs Cloudflare Pages: Edit (in addition to Workers)
+#   CLOUDFLARE_ACCOUNT_ID  — the account that owns teajiafinal
+
+on:
+  push:
+    branches: [main]
+    # Frontend lives everywhere except the worker; deploy on any non-worker
+    # change. (Worker-only pushes are handled by deploy-worker.yml.)
+    paths-ignore:
+      - 'worker/**'
+      - 'docs/**'
+      - '**/*.md'
+  # Manual trigger from the Actions tab — e.g. to force a redeploy.
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Public, baked-in at build time (import.meta.env.VITE_API_URL). Not a
+      # secret — it's the public worker URL. Keep in sync with .env.local.
+      VITE_API_URL: 'https://teajia-api.lightcodes.workers.dev'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Gates: a type error or color-rule violation fails the deploy instead of
+      # shipping it. Same checks CLAUDE.md requires before every commit.
+      - name: Type check
+        run: npm run lint
+
+      - name: Color rules
+        run: npm run lint:colors
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Cloudflare Pages (teajiafinal, production)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name teajiafinal --branch main

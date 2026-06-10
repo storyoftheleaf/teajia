@@ -37,6 +37,7 @@
 | **SITE_MAP.md** | Every route + action, by tier | Adding a link, designing nav, checking if a page exists |
 | **ACTIVE_BRIEFS.md** | Index of in-progress feature briefs | Implementing a feature; need to find its spec |
 | **PLAYBOOK_SURFACE_PATTERN.md** | Reusable visual/UX pattern from the store launch playbook | Applying the new guided look to Tea Compass or other tools |
+| **TEA_DISCOVERY.md** | Onboarding profile flow + how the Tea Profile connects to every surface (incl. Phase 2 tea-master view) | Touching `/discover`, the discovery profile, or wiring recommendations |
 | **COLOR_RULES.md** | Design tokens, safe colors, theme contract | Writing CSS or adding a color |
 
 ## For engineering

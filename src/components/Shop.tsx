@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import { Icons } from './Icons';
 import { fmtShopPrice, fmtShopPricePerGram } from '../utils/formatNumber';
 import { STARTER_TEA_SETS, STARTER_TEAWARE_SETS } from '../constants';
 import { CardImage } from './shared/CardImage';
+import { AnchoredMenu } from './shared/AnchoredMenu';
 import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
@@ -68,7 +69,6 @@ export const Shop: React.FC<ShopProps> = ({
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const [storePickerOpen, setStorePickerOpen] = useState(false);
-  const storePickerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useScrollRestoration('scroll-shop');
 
   const recentlyViewed = useAppStore(state => state.recentlyViewed);
@@ -113,25 +113,6 @@ export const Shop: React.FC<ShopProps> = ({
 
   const activeStore = networkStores.find(s => s.slug === shopStoreSlug) || networkStores[0];
   const activeStoreLabel = activeStore?.location_city || activeStore?.name || 'Bali';
-
-  // Close picker on outside click or Escape
-  useEffect(() => {
-    if (!storePickerOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (storePickerRef.current && !storePickerRef.current.contains(e.target as Node)) {
-        setStorePickerOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setStorePickerOpen(false);
-    };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [storePickerOpen]);
 
   // Admin overlay state
   const { isAdmin, productMap, refetchProducts } = useAdminOverlay();
@@ -346,21 +327,28 @@ export const Shop: React.FC<ShopProps> = ({
         onAccountClick={onAccountClick}
         cartItemCount={cartItemCount}
         rightContent={networkStores.length > 1 ? (
-          <div ref={storePickerRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setStorePickerOpen(p => !p)}
-              aria-haspopup="listbox"
-              aria-expanded={storePickerOpen}
-              aria-label={`Choose store, currently ${activeStoreLabel}`}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
-            >
-              <Icons.Location className="w-3.5 h-3.5 text-tea-text-sec" />
-              <span className="tracking-wide">{activeStoreLabel}</span>
-              <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {storePickerOpen && (
-              <div role="listbox" className="absolute right-0 top-full mt-1 bg-tea-elevated border border-tea-border rounded-md shadow-lg py-1 min-w-[180px] z-popover animate-[fadeIn_0.15s_ease-out]">
+          <AnchoredMenu
+            align="right"
+            width={180}
+            className="!bg-tea-elevated"
+            role="listbox"
+            open={storePickerOpen}
+            onOpenChange={setStorePickerOpen}
+            trigger={(props) => (
+              <button
+                {...props}
+                type="button"
+                aria-label={`Choose store, currently ${activeStoreLabel}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+              >
+                <Icons.Location className="w-3.5 h-3.5 text-tea-text-sec" />
+                <span className="tracking-wide">{activeStoreLabel}</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${storePickerOpen ? 'rotate-180' : ''}`} />
+              </button>
+            )}
+          >
+            {(close) => (
+              <>
                 {networkStores.map(store => {
                   const isActive = store.slug === (shopStoreSlug || 'teajia-bali');
                   return (
@@ -371,7 +359,7 @@ export const Shop: React.FC<ShopProps> = ({
                       aria-selected={isActive}
                       onClick={() => {
                         setShopStoreSlug(store.slug === 'teajia-bali' ? null : store.slug);
-                        setStorePickerOpen(false);
+                        close();
                       }}
                       className={`w-full text-left px-3 py-2 flex items-center gap-2.5 text-ui-13 transition-colors ${
                         isActive
@@ -390,9 +378,9 @@ export const Shop: React.FC<ShopProps> = ({
                     </button>
                   );
                 })}
-              </div>
+              </>
             )}
-          </div>
+          </AnchoredMenu>
         ) : undefined}
       >
         <PageHeaderTabs

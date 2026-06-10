@@ -1568,6 +1568,14 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             size="lg"
           />
         </div>
+        {/* Nudge a second angle once the first shot lands — a bag label plus
+            the dry leaves (or brewed cup) makes a photo-only capture far more
+            identifiable later. */}
+        {entry.photos.length === 1 && (
+          <p className="mt-1.5 text-ui-11 text-tea-text-dim">
+            Add a second shot — the dry leaves or the brewed cup.
+          </p>
+        )}
       </div>
 
       {/* ─── IDENTITY ─── */}
@@ -1599,6 +1607,16 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             <ChevronDown size={14} />
           </button>
         </div>
+
+        {/* Photo-first reassurance — when there's a photo or a source but no
+            name yet, the entry is already complete enough to save. Signals the
+            name is optional rather than a missing required field. */}
+        {!entry.name.trim() && (entry.photos.length > 0 || !!entry.vendorName) && (
+          <p className="flex items-center gap-1.5 text-ui-11 text-tea-gold/70">
+            <Check size={11} strokeWidth={2.5} />
+            Photo + source is enough — name optional.
+          </p>
+        )}
 
         {/* Type — bottom sheet. Each tea type carries a one-line description
             and a colour dot taken from the type chip palette so the picker

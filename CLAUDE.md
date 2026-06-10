@@ -2,10 +2,11 @@
 name: teajia
 status: active
 stack: [Vite 6, React 19, TypeScript, Tailwind v3, Zustand, React Query, Framer Motion, Cloudflare Pages, Cloudflare Workers, D1]
-deploy: https://teajia.pages.dev
+deploy: https://teajia.com
+deploy_project: teajiafinal (Cloudflare Pages, auto-deploys from git on push to main; serves teajia.com + www.teajia.com). NOTE: teajia.pages.dev is a stale/abandoned project — do NOT deploy there or link it.
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-06-01
+last_reviewed: 2026-06-09
 ---
 
 # Teajia — flagship e-commerce + content platform
@@ -131,19 +132,31 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 ### Known stub/incomplete pages — do not add links to these without building them first
 | Route | Status |
 |---|---|
-| `/account/orders` | Empty state only — no order data wired |
-| `/account/samples` | Empty state only — no sample data wired |
+| `/account/orders` | Wired (`api.me.orders()`); per-order detail page still missing (TODO in `OrderHistoryPage.tsx`) |
+| `/account/samples` | Wired (`api.me.samples()`) |
+| `/api/verify/*` | Code delivery (WhatsApp/email) not built — codes are only echoed when `DEV_RETURN_VERIFY_CODES=true` (dev), so production verification is effectively disabled until delivery ships |
 
 ## Voice & agent control (MCP)
-The worker exposes an MCP server at `/mcp` for voice/agent inventory control. Tokens are minted at `/admin/mcp-tokens` (owner-tier only) and shown ONCE on creation.
+The worker exposes an MCP server at `/mcp` for voice/agent control. Tokens are minted at `/admin/mcp-tokens` (owner-tier only) and shown ONCE, or obtained via the OAuth 2.1 connector flow. There is ALSO a public, unauthenticated, read-only MCP at `/mcp/public` for the shopping public.
 
-**Available tools:** `search_tea`, `get_tea`, `list_low_stock`, `find_customer`, `add_stock`, `remove_stock`, `record_sale`. Mutating tools follow a two-step preview/confirm pattern — first call returns a `confirmation_token`, second call commits.
+**Authenticated tools (`/mcp`)** — gated by scopes; mutating tools use a two-step preview/confirm pattern (first call returns a `confirmation_token`, second commits):
+- **Read** (`inventory:read` / `customers:read` / `sales:read`): `search_tea`, `get_tea`, `list_low_stock`, `find_customer`, `get_customer`, `get_account_context`, `list_invoices`, `get_invoice`, `sales_summary`.
+- **Write — Operator** (`stock:write` / `sales:write`): `create_tea`, `add_stock`, `remove_stock`, `set_low_stock_threshold`, `record_sale`, `update_invoice`, `void_invoice`, `fulfill_invoice`, `mark_invoice_paid`.
+- **Write — Owner** (`catalog:write` / `customers:write` / `admin:write`, owner-tier only): `update_tea_pricing`, `set_archive_status`, `create_customer`, `update_customer`, `tag_customer`, `untag_customer`, `link_vendor`, `unlink_vendor`, `update_account_settings`, `update_exchange_rate`.
 
-**Phase 1 (shipped):** all seven tools; `record_sale` creates + fills invoices through the same fulfillment path the admin UI uses (stock_ledger entries, listing mirror, low-stock alerts, sold-out auto-archive all fire). PDFs and email delivery are **Phase 2** — for now invoices created via MCP can be downloaded/shared from the admin UI.
+A held write scope implicitly grants its read scope, so pre-`sales:read` tokens still work with the new invoice read tools. `record_sale` / `fulfill_invoice` go through the same fulfillment path as the admin UI (stock_ledger, listing mirror, low-stock alerts, sold-out auto-archive all fire). Invoice PDF/email delivery is still **Phase 2** — download/share from the admin UI for now.
 
-**Implementation:** see [worker/src/mcp.ts](worker/src/mcp.ts) for the JSON-RPC handler and tool definitions, and [src/admin/views/MCPTokensView.tsx](src/admin/views/MCPTokensView.tsx) for token management.
+**Public tools (`/mcp/public`, no auth, read-only):** `search_tea`, `get_tea`, `browse_catalog`, `prepare_order`. Public-safe fields only (no cost/margin/vendor/exact stock). `prepare_order` returns a prefilled `wa.me` checkout link — it never places an order; the human WhatsApp conversation closes it. Scope a shop with `?account=<slug>`, default platform-owner.
 
-**Schema:** [worker/migrations/066_mcp_tokens.sql](worker/migrations/066_mcp_tokens.sql) — tokens stored as SHA-256 hash; `last_used_at` is bumped on every successful auth so the admin UI shows liveness.
+**Confirmation tickets are durable:** mutation previews are stored in D1 (`mcp_confirmation_tickets`), NOT module memory — Cloudflare may route preview and confirm to different isolates. Single-use via atomic `UPDATE…RETURNING`.
+
+**Protocol:** `2025-06-18` (negotiated down to the client's requested version); results carry both text and `structuredContent`; tool defs carry read-only/destructive/idempotent annotations.
+
+**Implementation:** [worker/src/mcp.ts](worker/src/mcp.ts) (JSON-RPC handlers, tool defs, OAuth, public server), [src/admin/views/MCPTokensView.tsx](src/admin/views/MCPTokensView.tsx) (token management), [src/admin/views/OAuthConsentView.tsx](src/admin/views/OAuthConsentView.tsx) (OAuth consent).
+
+**Schema:** [066_mcp_tokens.sql](worker/migrations/066_mcp_tokens.sql) (tokens as SHA-256 hash; `last_used_at` bumped on auth), [074_mcp_confirmation_tickets.sql](worker/migrations/074_mcp_confirmation_tickets.sql) (durable confirm tickets), [067_oauth.sql](worker/migrations/067_oauth.sql) + [082_oauth_authorize_requests.sql](worker/migrations/082_oauth_authorize_requests.sql) (OAuth + scoped grants + mobile-safe consent passing).
+
+**AI discoverability:** `public/llms.txt` indexes the public MCP + shop + journal; Organization/WebSite JSON-LD in `index.html`, Product JSON-LD on `ProductPage`, Article JSON-LD on `ArticlePage`.
 
 ## Open work
 See `docs/ROADMAP.md` for build sequence and `docs/MULTI_STORE_PLAN.md` for multi-tenancy rollout.

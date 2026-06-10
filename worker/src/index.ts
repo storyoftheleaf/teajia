@@ -1,7 +1,7 @@
 import {
-  mcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
+  mcpFetch, publicMcpFetch, mcpAdminMintToken, mcpAdminListTokens, mcpAdminRevokeToken,
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
-  oauthRegister, oauthAuthorize, oauthAuthorizeDecision, oauthToken,
+  oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 
 interface Env {
@@ -26,9 +26,16 @@ interface Env {
   APP_URL?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
   ENABLE_DEV_ADMIN?: string;
+  // Optional — set to 'true' to echo verification codes in /api/verify/request
+  // responses (local dev only; WhatsApp/email delivery is not built yet).
+  // NEVER set in production: echoing the code lets anyone verify as any contact.
+  DEV_RETURN_VERIFY_CODES?: string;
   // Optional — wrapping key for BYOK secrets stored in D1 (e.g. accounts.openai_api_key_encrypted).
   // Set via `wrangler secret put KEY_ENCRYPTION_SECRET` to any high-entropy string.
   KEY_ENCRYPTION_SECRET?: string;
+  // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
+  // wrangler.toml. Optional so local dev (no binding) still runs.
+  PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -3087,6 +3094,71 @@ const handleMcpRevokeToken: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+// ── Working Feature Guide (admin-only internal build tracker) ──
+// Returns every saved feature status as a map keyed by feature_id. The UI
+// merges this over its seed list, so features with no saved row just show
+// defaults. Admin/owner only.
+const handleFeatureStatusList: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const { results } = await env.DB.prepare(
+    'SELECT feature_id, stage, works, tested, visual, notes, updated_at FROM feature_status'
+  ).all();
+  const map: Record<string, any> = {};
+  for (const r of results as any[]) {
+    map[r.feature_id] = {
+      stage: r.stage,
+      works: r.works,
+      tested: r.tested === 1,
+      visual: r.visual,
+      notes: r.notes ?? '',
+      updated_at: r.updated_at,
+    };
+  }
+  return json(map);
+};
+
+// Upsert one feature's status. Body is a partial — only the fields present are
+// changed, the rest keep their current (or default) value. Admin/owner only.
+const handleFeatureStatusSave: Handler = async (request, env) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as {
+    feature_id?: string;
+    stage?: string; works?: string; tested?: boolean; visual?: string; notes?: string;
+  };
+  const id = (body.feature_id || '').trim();
+  if (!id) return json({ error: 'feature_id required' }, 400);
+
+  const STAGES = ['idea', 'building', 'needs_testing', 'solid'];
+  const WORKS = ['unknown', 'works', 'needs_revision', 'broken'];
+  const VISUAL = ['unknown', 'good', 'needs_redesign'];
+  if (body.stage && !STAGES.includes(body.stage)) return json({ error: 'bad stage' }, 400);
+  if (body.works && !WORKS.includes(body.works)) return json({ error: 'bad works' }, 400);
+  if (body.visual && !VISUAL.includes(body.visual)) return json({ error: 'bad visual' }, 400);
+
+  // Read current row (if any) so a partial update preserves untouched fields.
+  const cur = await env.DB.prepare(
+    'SELECT stage, works, tested, visual, notes FROM feature_status WHERE feature_id = ?'
+  ).bind(id).first() as any | null;
+
+  const stage = body.stage ?? cur?.stage ?? 'needs_testing';
+  const works = body.works ?? cur?.works ?? 'unknown';
+  const tested = body.tested !== undefined ? (body.tested ? 1 : 0) : (cur?.tested ?? 0);
+  const visual = body.visual ?? cur?.visual ?? 'unknown';
+  const notes = body.notes !== undefined ? body.notes : (cur?.notes ?? '');
+
+  await env.DB.prepare(
+    `INSERT INTO feature_status (feature_id, stage, works, tested, visual, notes, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(feature_id) DO UPDATE SET
+       stage = excluded.stage, works = excluded.works, tested = excluded.tested,
+       visual = excluded.visual, notes = excluded.notes, updated_at = datetime('now')`
+  ).bind(id, stage, works, tested, visual, notes).run();
+
+  return json({ ok: true, feature_id: id, stage, works, tested: tested === 1, visual, notes });
+};
+
 // ── RPC: Void Invoice (atomic server-side) ──
 const handleVoidInvoice: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'sell');
@@ -4291,9 +4363,31 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
       `).bind(params.id, accountId).all(),
 
       env.DB.prepare(
-        'SELECT created_at FROM customers WHERE id = ? AND account_id = ?'
-      ).bind(params.id, accountId).first<{ created_at: string }>(),
+        'SELECT created_at, email FROM customers WHERE id = ? AND account_id = ?'
+      ).bind(params.id, accountId).first<{ created_at: string; email: string | null }>(),
     ]);
+
+    // Tea Discovery disposition — joined by the customer's email (the profile is
+    // keyed per-person, like the tasting journal). Null when not taken / unlinked.
+    let teaDiscoveryProfile: {
+      dispositionId: string | null;
+      dispositionName: string | null;
+      level: string | null;
+      completedAt: string | null;
+    } | null = null;
+    if (customer?.email) {
+      const disc = await env.DB.prepare(
+        'SELECT level, disposition_id, disposition_name, completed_at FROM customer_tea_discovery WHERE user_id = ?'
+      ).bind(customer.email).first<any>();
+      if (disc) {
+        teaDiscoveryProfile = {
+          dispositionId: disc.disposition_id ?? null,
+          dispositionName: disc.disposition_name ?? null,
+          level: disc.level ?? null,
+          completedAt: disc.completed_at ?? null,
+        };
+      }
+    }
 
     const rows = teasResult.results as any[];
     const teaTypeMap: Record<string, number> = {};
@@ -4334,7 +4428,7 @@ const handleGetCustomerJourney: Handler = async (request, env, params) => {
     if (sessionsAttended >= 3) portraitParts.push(`${sessionsAttended} sessions attended`);
     const portrait = portraitParts.join(' · ');
 
-    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, impressions, memberSince: customer?.created_at ?? null, portrait });
+    return json({ sessionsAttended, totalTeas: rows.length, teaTypeMap, favorites, milestones, impressions, memberSince: customer?.created_at ?? null, portrait, teaDiscoveryProfile });
   } catch {
     return json({ sessionsAttended: 0, totalTeas: 0, teaTypeMap: {}, favorites: [], milestones: [], impressions: [], memberSince: null, portrait: '' });
   }
@@ -7507,7 +7601,7 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'tea_key', 'created_at', 'updated_at',
   ];
   const present = cols.filter(c => body[c] !== undefined);
@@ -7770,7 +7864,7 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
     'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total',
+    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'created_at', 'updated_at',
   ];
   const placeholders = allCols.map(() => '?').join(', ');
@@ -8575,6 +8669,11 @@ const handleEventInterest: Handler = async (request, env, params) => {
 
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
+  const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!checkRateLimit(`verify:${verifyIp}`, 5, 60000)) {
+    return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
+  }
+
   const body = await request.json() as { contact: string; method: 'whatsapp' | 'email' };
   if (!body.contact) return json({ error: 'contact is required' }, 400);
   if (!body.method || !['whatsapp', 'email'].includes(body.method)) {
@@ -8585,12 +8684,20 @@ const handleVerifyRequest: Handler = async (request, env) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
+  // Quiet-account customers live under the platform-owner account — same
+  // scoping as /api/products/public and the public events list. Without this,
+  // lookups match (and leak) customers from other accounts with the same
+  // contact, and new customers are created with no account_id at all.
+  const ownerAccount = await env.DB.prepare(`SELECT id FROM accounts WHERE is_platform_owner = 1 LIMIT 1`).first();
+  if (!ownerAccount) return json({ error: 'Verification is not available' }, 503);
+  const ownerAccountId = ownerAccount.id as string;
+
   // Find or create customer by contact
   const isEmail = body.method === 'email';
   const existingCustomer = isEmail
-    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ?`).bind(body.contact).first()
-    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE phone = ? OR whatsapp = ?`)
-        .bind(body.contact, body.contact).first();
+    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ? AND account_id = ?`).bind(body.contact, ownerAccountId).first()
+    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`)
+        .bind(body.contact, body.contact, ownerAccountId).first();
 
   // Rate limit: if a non-expired code was issued less than 60 seconds ago, reject
   if (existingCustomer && existingCustomer.verification_code && existingCustomer.verification_expires) {
@@ -8612,10 +8719,11 @@ const handleVerifyRequest: Handler = async (request, env) => {
   } else {
     const newId = crypto.randomUUID();
     await env.DB.prepare(
-      `INSERT INTO customers (id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       newId,
+      ownerAccountId,
       null,
       isEmail ? null : body.contact,
       isEmail ? body.contact : null,
@@ -8626,9 +8734,13 @@ const handleVerifyRequest: Handler = async (request, env) => {
     ).run();
   }
 
-  // NOTE: Actual WhatsApp/email delivery is not yet implemented.
-  // Return code in response for now — remove before production.
-  return json({ success: true, code, expires, _note: 'Delivery not yet implemented — code returned for development' });
+  // WhatsApp/email delivery is not built yet. The code is only echoed back
+  // under an explicit dev flag — echoing it in production would let anyone
+  // verify as any contact.
+  if (env.DEV_RETURN_VERIFY_CODES === 'true') {
+    return json({ success: true, code, expires, _note: 'DEV_RETURN_VERIFY_CODES enabled — code echoed for development only' });
+  }
+  return json({ success: true, expires });
 };
 
 // POST /api/verify/confirm
@@ -8636,9 +8748,13 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   const body = await request.json() as { contact: string; code: string };
   if (!body.contact || !body.code) return json({ error: 'contact and code are required' }, 400);
 
+  // Same platform-owner scoping as handleVerifyRequest — never match a
+  // customer that belongs to another account.
   const customer = await env.DB.prepare(
     `SELECT id, name, phone, email, verification_code, verification_expires
-     FROM customers WHERE phone = ? OR whatsapp = ? OR email = ?`
+     FROM customers
+     WHERE (phone = ? OR whatsapp = ? OR email = ?)
+       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
   ).bind(body.contact, body.contact, body.contact).first();
 
   if (!customer) return json({ error: 'No account found for this contact' }, 404);
@@ -8719,7 +8835,9 @@ const handleGetJourney: Handler = async (request, env, params) => {
   }
 
   const customer = await env.DB.prepare(
-    `SELECT id, name FROM customers WHERE phone = ? OR whatsapp = ?`
+    `SELECT id, name FROM customers
+     WHERE (phone = ? OR whatsapp = ?)
+       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
   ).bind(phone, phone).first();
 
   if (!customer) return json({ error: 'No journey found for this contact' }, 404);
@@ -9562,7 +9680,71 @@ const handleSyncTastingJournal: Handler = async (request, env) => {
   return json({ synced: stmts.length });
 };
 
-// Public (auth required): POST /api/samples/request
+// Customer: GET /api/tea-discovery. Returns the member's onboarding disposition
+// profile (one per user, keyed by email — a property of the person, not a store).
+const handleGetTeaDiscovery: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  if (!email) return json({ profile: null });
+
+  const row = await env.DB.prepare(
+    'SELECT answers, level, disposition_id, disposition_name, completed_at, updated_at FROM customer_tea_discovery WHERE user_id = ?'
+  ).bind(email).first<any>();
+
+  if (!row) return json({ profile: null });
+
+  return json({
+    profile: {
+      answers: typeof row.answers === 'string' ? JSON.parse(row.answers || '{}') : (row.answers ?? {}),
+      level: row.level ?? null,
+      dispositionId: row.disposition_id ?? null,
+      dispositionName: row.disposition_name ?? null,
+      completedAt: row.completed_at ?? row.updated_at ?? null,
+    },
+  });
+};
+
+// Customer: PUT /api/tea-discovery. Upserts the member's disposition profile.
+// One row per user (email); account_id is stored for context only.
+const handlePutTeaDiscovery: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const email = getUserEmail(request);
+  if (!email) return json({ error: 'unauthenticated' }, 401);
+  const claims = parseToken(isAuthed(request)!);
+  const headerAccount = request.headers.get('X-Teajia-Account') || claims?.active_account_id || null;
+  const body = await request.json() as any;
+
+  const answers = typeof body.answers === 'string' ? body.answers : JSON.stringify(body.answers || {});
+  const completedAt = body.completedAt || new Date().toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO customer_tea_discovery
+      (user_id, account_id, answers, level, disposition_id, disposition_name, completed_at, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    ON CONFLICT(user_id) DO UPDATE SET
+      account_id = excluded.account_id,
+      answers = excluded.answers,
+      level = excluded.level,
+      disposition_id = excluded.disposition_id,
+      disposition_name = excluded.disposition_name,
+      completed_at = excluded.completed_at,
+      updated_at = datetime('now')
+  `).bind(
+    email,
+    headerAccount,
+    answers,
+    body.level || null,
+    body.dispositionId || null,
+    body.dispositionName || null,
+    completedAt
+  ).run();
+
+  return json({ success: true });
+};
+
+
 // Customer-facing sample request — inserts into tea_samples with status 'requested'
 // and stores request metadata (quantity_grams, user_id, note) in the notes field as JSON.
 const handleRequestSample: Handler = async (request, env) => {
@@ -17025,6 +17207,10 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/rpc/link-line-item', handleLinkLineItem],
   ['POST', '/api/rpc/increment-stock', handleIncrementStock],
 
+  // Working Feature Guide (admin-only internal build tracker)
+  ['GET',  '/api/admin/feature-status', handleFeatureStatusList],
+  ['POST', '/api/admin/feature-status', handleFeatureStatusSave],
+
   // MCP tokens (voice/agent control of inventory)
   ['GET',    '/api/admin/mcp-tokens',     handleMcpListTokens],
   ['POST',   '/api/admin/mcp-tokens',     handleMcpMintToken],
@@ -17210,6 +17396,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
   ['POST', '/api/tasting-journal', handleAddTastingEntry],
   ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
+  ['GET', '/api/tea-discovery', handleGetTeaDiscovery],
+  ['PUT', '/api/tea-discovery', handlePutTeaDiscovery],
 
   // Samples — Admin
   ['GET', '/api/admin/samples', handleListSamples],
@@ -17375,6 +17563,28 @@ export default {
       return cors(response, corsOrigin);
     }
 
+    // Public, unauthenticated, read-only MCP for the shopping public — catalog
+    // browse + WhatsApp checkout-link builder. No account data or costs exposed.
+    if (url.pathname === '/mcp/public') {
+      // Edge rate limit per client IP. The binding is absent in local dev, so
+      // this is a no-op there; in production it caps abuse at the edge before
+      // any D1 work happens.
+      if (env.PUBLIC_MCP_LIMITER) {
+        const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+        const { success } = await env.PUBLIC_MCP_LIMITER.limit({ key: ip });
+        if (!success) {
+          return cors(
+            new Response(
+              JSON.stringify({ error: 'rate_limited', message: 'Too many requests. Slow down and try again shortly.' }),
+              { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' } },
+            ),
+            corsOrigin,
+          );
+        }
+      }
+      return cors(await publicMcpFetch(request, env), corsOrigin);
+    }
+
     // OAuth 2.1 endpoints for MCP clients (Claude desktop/mobile, ChatGPT).
     // These are unauthenticated routes by design — they ARE the auth flow.
     // Both forms — the bare path AND the resource-suffixed variant — because
@@ -17397,7 +17607,11 @@ export default {
       return cors(await oauthRegister(request, env), corsOrigin);
     }
     if (url.pathname === '/oauth/authorize') {
-      return oauthAuthorize(request); // 302 redirect to consent page
+      return await oauthAuthorize(request, env); // 302 redirect to consent page (id in path)
+    }
+    if (url.pathname.startsWith('/oauth/authorize/request/')) {
+      const reqId = url.pathname.slice('/oauth/authorize/request/'.length);
+      return cors(await oauthAuthorizeRequestInfo(request, env, reqId), corsOrigin);
     }
     if (url.pathname === '/oauth/authorize/decision') {
       return cors(await oauthAuthorizeDecision(request, env), corsOrigin);

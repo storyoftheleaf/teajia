@@ -11,6 +11,11 @@ interface Path {
 
 const PATHS: Path[] = [
   {
+    label: 'Discover your tea',
+    desc: 'A few questions to find where you fit',
+    route: '/discover',
+  },
+  {
     label: 'New to tea',
     desc: 'Discover what tea really is',
     route: '/craft',

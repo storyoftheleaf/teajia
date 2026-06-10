@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
@@ -1825,48 +1826,45 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               ))}
 
               {moreViews.length > 0 && (
-                <div className="relative shrink-0">
-                  <button
-                    onClick={() => setMoreViewsOpen(o => !o)}
-                    aria-haspopup="menu"
-                    aria-expanded={moreViewsOpen}
-                    aria-label="More views"
-                    className={`relative flex items-center gap-1 px-3 py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
-                      activeIsInMore
-                        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
-                        : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
-                    }`}
-                  >
-                    {activeIsInMore
-                      ? (VIEW_FILTER_LABELS[moreViews.find(v => v.id === activeViewId)!.filterType] || 'More')
-                      : 'More'}
-                    <ChevronDown size={12} className={`transition-transform ${moreViewsOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {moreViewsOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setMoreViewsOpen(false)} />
-                      <div
-                        role="menu"
-                        className="absolute left-0 top-full mt-1 min-w-[160px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1"
+                <div className="shrink-0">
+                  <AnchoredMenu
+                    align="left"
+                    width={180}
+                    open={moreViewsOpen}
+                    onOpenChange={setMoreViewsOpen}
+                    trigger={(props) => (
+                      <button
+                        {...props}
+                        aria-label="More views"
+                        className={`relative flex items-center gap-1 px-3 py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
+                          activeIsInMore
+                            ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
+                            : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
+                        }`}
                       >
-                        {moreViews.map(view => (
-                          <button
-                            key={view.id}
-                            role="menuitem"
-                            onClick={() => { selectView(view); setMoreViewsOpen(false); }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-ui-11 uppercase tracking-[0.12em] text-left transition-colors ${
-                              activeViewId === view.id
-                                ? 'bg-tea-gold/10 text-tea-text'
-                                : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-bg'
-                            }`}
-                          >
-                            {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
-                            {VIEW_FILTER_LABELS[view.filterType] || view.name}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                        {activeIsInMore
+                          ? (VIEW_FILTER_LABELS[moreViews.find(v => v.id === activeViewId)!.filterType] || 'More')
+                          : 'More'}
+                        <ChevronDown size={12} className={`transition-transform ${moreViewsOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                  >
+                    {(close) => moreViews.map(view => (
+                      <button
+                        key={view.id}
+                        role="menuitem"
+                        onClick={() => { selectView(view); close(); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-ui-11 uppercase tracking-[0.12em] text-left transition-colors ${
+                          activeViewId === view.id
+                            ? 'bg-tea-gold/10 text-tea-text'
+                            : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-bg'
+                        }`}
+                      >
+                        {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
+                        {VIEW_FILTER_LABELS[view.filterType] || view.name}
+                      </button>
+                    ))}
+                  </AnchoredMenu>
                 </div>
               )}
             </>
@@ -1991,148 +1989,154 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     )}
 
                     {/* Columns Toggle */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl transition-colors text-xs ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
-                        title="Show/Hide Columns"
-                        aria-label="Show or hide columns"
-                        aria-expanded={showColumnsPopover}
-                      >
-                        <Columns size={14} />
-                        <span className="hidden xl:inline tracking-wide">Cols</span>
-                      </button>
-                      {showColumnsPopover && (
+                    <AnchoredMenu
+                      align="right"
+                      width={176}
+                      className="!py-2"
+                      open={showColumnsPopover}
+                      onOpenChange={setShowColumnsPopover}
+                      trigger={(props) => (
+                        <button
+                          {...props}
+                          className={`flex items-center gap-1 px-2 py-1.5 rounded-xl transition-colors text-xs ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                          title="Show/Hide Columns"
+                          aria-label="Show or hide columns"
+                        >
+                          <Columns size={14} />
+                          <span className="hidden xl:inline tracking-wide">Cols</span>
+                        </button>
+                      )}
+                    >
+                      {() => (
                         <>
-                          <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2" role="menu">
-                            <div className="px-3 pb-1 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Price View</div>
-                            <div className="flex items-center gap-1 px-3 pb-2">
-                              <button
-                                onClick={() => setPriceMode('retail')}
-                                className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs transition-colors ${priceMode === 'retail' ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'text-tea-text-sec hover:bg-tea-bg'}`}
-                                title="Show retail prices"
-                              >
-                                <Tag size={12} /> Retail
-                              </button>
-                              <button
-                                onClick={() => setPriceMode('cost')}
-                                className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs transition-colors ${priceMode === 'cost' ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'text-tea-text-sec hover:bg-tea-bg'}`}
-                                title="Show cost prices"
-                              >
-                                <Receipt size={12} /> Cost
-                              </button>
-                            </div>
-                            <div className="mx-3 mb-2 border-t border-tea-border" />
-                            <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
-                            {activeColumnDefs.map(col => (
-                              <label key={col.key} role="menuitem" className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={inventoryColumns.includes(col.key)}
-                                  onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleInventoryColumn(col.key)}
-                                  disabled={'alwaysVisible' in col && col.alwaysVisible}
-                                  className="accent-tea-gold"
-                                />
-                                <span className="text-tea-text">{col.label}</span>
-                              </label>
-                            ))}
+                          <div className="px-3 pb-1 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Price View</div>
+                          <div className="flex items-center gap-1 px-3 pb-2">
+                            <button
+                              onClick={() => setPriceMode('retail')}
+                              className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs transition-colors ${priceMode === 'retail' ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'text-tea-text-sec hover:bg-tea-bg'}`}
+                              title="Show retail prices"
+                            >
+                              <Tag size={12} /> Retail
+                            </button>
+                            <button
+                              onClick={() => setPriceMode('cost')}
+                              className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs transition-colors ${priceMode === 'cost' ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40' : 'text-tea-text-sec hover:bg-tea-bg'}`}
+                              title="Show cost prices"
+                            >
+                              <Receipt size={12} /> Cost
+                            </button>
                           </div>
+                          <div className="mx-3 mb-2 border-t border-tea-border" />
+                          <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                          {activeColumnDefs.map(col => (
+                            <label key={col.key} role="menuitem" className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={inventoryColumns.includes(col.key)}
+                                onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleInventoryColumn(col.key)}
+                                disabled={'alwaysVisible' in col && col.alwaysVisible}
+                                className="accent-tea-gold"
+                              />
+                              <span className="text-tea-text">{col.label}</span>
+                            </label>
+                          ))}
                         </>
                       )}
-                    </div>
+                    </AnchoredMenu>
 
                     {/* Group By Dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowGroupByDropdown(!showGroupByDropdown)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${inventoryGroupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
-                        title="Group By"
-                        aria-label="Group inventory"
-                        aria-expanded={showGroupByDropdown}
-                      >
-                        <Layers size={14} />
-                        <span className="hidden xl:inline tracking-wide">Group</span>
-                      </button>
-                      {showGroupByDropdown && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setShowGroupByDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
-                            {GROUPBY_OPTIONS.map(opt => (
-                              <button
-                                key={opt.value}
-                                role="menuitem"
-                                onClick={() => {
-                                  setInventoryGroupBy(opt.value || null);
-                                  setShowGroupByDropdown(false);
-                                }}
-                                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </>
+                    <AnchoredMenu
+                      align="right"
+                      width={160}
+                      open={showGroupByDropdown}
+                      onOpenChange={setShowGroupByDropdown}
+                      trigger={(props) => (
+                        <button
+                          {...props}
+                          className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${inventoryGroupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                          title="Group By"
+                          aria-label="Group inventory"
+                        >
+                          <Layers size={14} />
+                          <span className="hidden xl:inline tracking-wide">Group</span>
+                        </button>
                       )}
-                    </div>
+                    >
+                      {(close) => GROUPBY_OPTIONS.map(opt => (
+                        <button
+                          key={opt.value}
+                          role="menuitem"
+                          onClick={() => { setInventoryGroupBy(opt.value || null); close(); }}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(inventoryGroupBy || '') === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </AnchoredMenu>
 
                     {/* Vendor Filter Dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowVendorDropdown(!showVendorDropdown)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${vendorFilter ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
-                        title="Filter by vendor"
-                        aria-label="Filter by vendor"
-                        aria-expanded={showVendorDropdown}
-                      >
-                        <User size={14} />
-                        <span className="hidden xl:inline tracking-wide">Vendor</span>
-                        {vendorFilter && <XIcon size={11} onClick={(e) => { e.stopPropagation(); setSearchParams({}); setShowVendorDropdown(false); }} className="ml-0.5 hover:text-tea-text" />}
-                      </button>
-                      {showVendorDropdown && (
+                    <AnchoredMenu
+                      align="right"
+                      width={192}
+                      className="max-h-60 overflow-y-auto"
+                      open={showVendorDropdown}
+                      onOpenChange={setShowVendorDropdown}
+                      trigger={(props) => (
+                        <button
+                          {...props}
+                          className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${vendorFilter ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                          title="Filter by vendor"
+                          aria-label="Filter by vendor"
+                        >
+                          <User size={14} />
+                          <span className="hidden xl:inline tracking-wide">Vendor</span>
+                          {vendorFilter && <XIcon size={11} onClick={(e) => { e.stopPropagation(); setSearchParams({}); setShowVendorDropdown(false); }} className="ml-0.5 hover:text-tea-text" />}
+                        </button>
+                      )}
+                    >
+                      {(close) => (
                         <>
-                          <div className="fixed inset-0 z-40" onClick={() => setShowVendorDropdown(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 max-h-60 overflow-y-auto" role="menu">
+                          <button
+                            role="menuitem"
+                            onClick={() => { setSearchParams({}); close(); }}
+                            className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${!vendorFilter ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                          >
+                            All Vendors
+                          </button>
+                          {[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => (
                             <button
+                              key={vendor}
                               role="menuitem"
-                              onClick={() => { setSearchParams({}); setShowVendorDropdown(false); }}
-                              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${!vendorFilter ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                              onClick={() => { setSearchParams({ vendor: vendor! }); close(); }}
+                              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors truncate ${vendorFilter === vendor ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                             >
-                              All Vendors
+                              {vendor}
                             </button>
-                            {[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => (
-                              <button
-                                key={vendor}
-                                role="menuitem"
-                                onClick={() => { setSearchParams({ vendor: vendor! }); setShowVendorDropdown(false); }}
-                                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors truncate ${vendorFilter === vendor ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                              >
-                                {vendor}
-                              </button>
-                            ))}
-                          </div>
+                          ))}
                         </>
                       )}
-                    </div>
+                    </AnchoredMenu>
 
-                    <button
-                        onClick={() => setShowOptions(!showOptions)}
-                        className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
-                        aria-label="Open inventory actions"
-                        aria-expanded={showOptions}
-                        aria-haspopup="menu"
+                    <AnchoredMenu
+                      align="right"
+                      width={192}
+                      open={showOptions}
+                      onOpenChange={setShowOptions}
+                      trigger={(props) => (
+                        <button
+                          {...props}
+                          className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
+                          aria-label="Open inventory actions"
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                      )}
                     >
-                        <MoreHorizontal size={16} />
-                    </button>
-
-                    {/* Options Dropdown */}
-                    {showOptions && (
+                      {(close) => (
                         <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col" role="menu">
                             <button
                                 role="menuitem"
-                                onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); setShowOptions(false); }}
+                                onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); close(); }}
                                 className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
                             >
                                 <Sparkles size={14} />
@@ -2141,21 +2145,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <span className="ml-auto bg-tea-gold/20 text-tea-gold text-ui-10 font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
                                 )}
                             </button>
-                            <button role="menuitem" onClick={() => { setShowContentLinks(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { setShowContentLinks(true); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Tag size={14} /> Content Links
                             </button>
-                            <button role="menuitem" onClick={() => { onImportClick(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { onImportClick(); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <FileSpreadsheet size={14} /> Import CSV
                             </button>
-                            <button role="menuitem" onClick={() => { navigate('/admin/intake'); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { navigate('/admin/intake'); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Layers size={14} /> Bulk intake
                             </button>
-                            <button role="menuitem" onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { handleExport(); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Download size={14} /> Export CSV
                             </button>
                             <button
                                 role="menuitem"
-                                onClick={() => { setShowEnrichConfirm(true); setShowOptions(false); }}
+                                onClick={() => { setShowEnrichConfirm(true); close(); }}
                                 disabled={isEnriching}
                                 className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors disabled:opacity-50"
                             >
@@ -2173,7 +2177,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <button
                                       key={b.id}
                                       role="menuitem"
-                                      onClick={() => { searchParams.set('batch', b.id); setSearchParams(searchParams); setShowOptions(false); }}
+                                      onClick={() => { searchParams.set('batch', b.id); setSearchParams(searchParams); close(); }}
                                       className={`w-full px-4 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${batchFilter === b.id ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
                                     >
                                       <span className="truncate">{b.label}</span>
@@ -2185,12 +2189,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               </>
                             )}
                             <div className="h-px bg-tea-border my-1"></div>
-                            <button role="menuitem" onClick={() => { setShowMaintenanceModal(true); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                            <button role="menuitem" onClick={() => { setShowMaintenanceModal(true); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <AlertTriangle size={14} /> Maintenance
                             </button>
-                        </div>
                         </>
-                    )}
+                      )}
+                    </AnchoredMenu>
                 </div>
             </div>
         </div>

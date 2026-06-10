@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, ChevronDown, Plus, Loader2, Check, X as XIcon } from 'lucide-react';
+import { AnchoredMenu } from '../../../components/shared/AnchoredMenu';
 import { api } from '../../../lib/api';
 
 const LAST_ID_KEY = 'teajia_last_collection_id';
@@ -29,7 +30,6 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
   const [flash, setFlash] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const rootRef = useRef<HTMLDivElement>(null);
 
   const lastId = typeof localStorage !== 'undefined' ? localStorage.getItem(LAST_ID_KEY) : null;
   const lastTitle = typeof localStorage !== 'undefined' ? localStorage.getItem(LAST_TITLE_KEY) : null;
@@ -109,19 +109,6 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
     }
   };
 
-  // Close picker on outside click.
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setCreating(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
   const bodyLabel = flash
     ? 'Added'
     : lastUsable && lastTitle
@@ -131,7 +118,7 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
         : 'Collection';
 
   return (
-    <div ref={rootRef} className="relative inline-flex">
+    <div className="relative inline-flex">
       {/* The pill: body (tap = file into last / open) + caret (tap = open picker). */}
       <div className={`admin-pill ${memberCount > 0 ? 'admin-pill-on' : ''} !pr-1.5 !gap-0`}>
         <button
@@ -150,100 +137,102 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
           )}
           <span className="max-w-[120px] truncate">{bodyLabel}</span>
         </button>
-        <button
-          type="button"
-          onClick={() => { setOpen(v => !v); setCreating(false); }}
-          disabled={busy}
-          aria-label="Choose a collection"
-          aria-expanded={open}
-          className="inline-flex items-center pl-1 border-l border-admin-border/60 disabled:opacity-50"
-        >
-          <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-        </button>
-      </div>
-
-      {/* Inline picker — expands below the pill, contracts on pick / outside click. */}
-      {open && (
-        <div
-          className="absolute left-0 top-full mt-1 z-dropdown w-56 bg-admin-elevated border border-admin-border rounded-md overflow-hidden py-1"
-          style={{ boxShadow: '0 12px 32px rgba(24,19,14,0.45)' }}
-        >
-          {loadingAll ? (
-            <div className="flex items-center gap-2 px-3 py-2 text-ui-11 text-admin-text-dim">
-              <Loader2 size={11} className="animate-spin" /> Loading…
-            </div>
-          ) : (
-            <>
-              {available.length > 0 ? (
-                <ul className="max-h-[200px] overflow-y-auto">
-                  {available.map(c => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        onClick={() => addTo(c.id, c.title)}
-                        disabled={busy}
-                        className="w-full text-left px-3 py-2 text-ui-12 text-admin-text hover:bg-admin-bg/40 transition-colors disabled:opacity-40 flex items-center justify-between gap-2"
-                      >
-                        <span className="truncate">{c.title}</span>
-                        {c.id === lastId && (
-                          <span className="text-ui-9 text-tea-gold uppercase tracking-[0.1em] shrink-0">last</span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-3 py-2 text-ui-11 text-admin-text-dim italic">
-                  {memberCount > 0 ? 'In all your collections.' : 'No collections yet.'}
-                </p>
-              )}
-
-              <div className="h-px bg-admin-border my-1" />
-
-              {creating ? (
-                <div className="flex items-center gap-1.5 px-2 py-1">
-                  <input
-                    type="text"
-                    value={newTitle}
-                    onChange={e => setNewTitle(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') createAndAdd();
-                      if (e.key === 'Escape') { setCreating(false); setNewTitle(''); }
-                    }}
-                    placeholder="New collection"
-                    autoFocus
-                    className="flex-1 min-w-0 px-2 py-1 text-ui-11 bg-admin-bg border border-admin-border rounded outline-none text-admin-text placeholder:text-admin-text-dim focus:ring-1 focus:ring-tea-gold/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={createAndAdd}
-                    disabled={!newTitle.trim() || busy}
-                    className="shrink-0 px-2 py-1 bg-tea-gold text-tea-bg rounded text-ui-10 font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
-                  >
-                    {busy ? <Loader2 size={10} className="animate-spin" /> : 'Add'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setCreating(false); setNewTitle(''); }}
-                    className="shrink-0 text-admin-text-sec hover:text-admin-text transition-colors tap-target"
-                    aria-label="Cancel"
-                  >
-                    <XIcon size={12} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setCreating(true)}
-                  className="w-full text-left px-3 py-2 text-ui-11 text-tea-gold hover:text-tea-gold-lt hover:bg-admin-bg/40 transition-colors inline-flex items-center gap-1.5"
-                >
-                  <Plus size={11} /> New collection
-                </button>
-              )}
-            </>
+        <AnchoredMenu
+          align="left"
+          width={224}
+          className="!bg-admin-elevated !border-admin-border overflow-hidden"
+          open={open}
+          onOpenChange={(o) => { setOpen(o); if (!o) setCreating(false); }}
+          trigger={(menuProps) => (
+            <button
+              {...menuProps}
+              type="button"
+              disabled={busy}
+              aria-label="Choose a collection"
+              className="inline-flex items-center pl-1 border-l border-admin-border/60 disabled:opacity-50"
+            >
+              <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
           )}
-        </div>
-      )}
+        >
+          {(close) => (
+            loadingAll ? (
+              <div className="flex items-center gap-2 px-3 py-2 text-ui-11 text-admin-text-dim">
+                <Loader2 size={11} className="animate-spin" /> Loading…
+              </div>
+            ) : (
+              <>
+                {available.length > 0 ? (
+                  <ul className="max-h-[200px] overflow-y-auto">
+                    {available.map(c => (
+                      <li key={c.id}>
+                        <button
+                          type="button"
+                          onClick={() => addTo(c.id, c.title)}
+                          disabled={busy}
+                          className="w-full text-left px-3 py-2 text-ui-12 text-admin-text hover:bg-admin-bg/40 transition-colors disabled:opacity-40 flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">{c.title}</span>
+                          {c.id === lastId && (
+                            <span className="text-ui-9 text-tea-gold uppercase tracking-[0.1em] shrink-0">last</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="px-3 py-2 text-ui-11 text-admin-text-dim italic">
+                    {memberCount > 0 ? 'In all your collections.' : 'No collections yet.'}
+                  </p>
+                )}
+
+                <div className="h-px bg-admin-border my-1" />
+
+                {creating ? (
+                  <div className="flex items-center gap-1.5 px-2 py-1">
+                    <input
+                      type="text"
+                      value={newTitle}
+                      onChange={e => setNewTitle(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') createAndAdd();
+                        if (e.key === 'Escape') { setCreating(false); setNewTitle(''); }
+                      }}
+                      placeholder="New collection"
+                      autoFocus
+                      className="flex-1 min-w-0 px-2 py-1 text-ui-11 bg-admin-bg border border-admin-border rounded outline-none text-admin-text placeholder:text-admin-text-dim focus:ring-1 focus:ring-tea-gold/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={createAndAdd}
+                      disabled={!newTitle.trim() || busy}
+                      className="shrink-0 px-2 py-1 bg-tea-gold text-tea-bg rounded text-ui-10 font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                    >
+                      {busy ? <Loader2 size={10} className="animate-spin" /> : 'Add'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setCreating(false); setNewTitle(''); }}
+                      className="shrink-0 text-admin-text-sec hover:text-admin-text transition-colors tap-target"
+                      aria-label="Cancel"
+                    >
+                      <XIcon size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCreating(true)}
+                    className="w-full text-left px-3 py-2 text-ui-11 text-tea-gold hover:text-tea-gold-lt hover:bg-admin-bg/40 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <Plus size={11} /> New collection
+                  </button>
+                )}
+              </>
+            )
+          )}
+        </AnchoredMenu>
+      </div>
     </div>
   );
 };

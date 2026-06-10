@@ -97,7 +97,8 @@ class FakeStatement {
 
   async all() {
     const sql = normalizeSql(this.sql);
-    if (sql.includes('from articles') && sql.includes("where status = 'published'")) {
+    // The public list query aliases the table (FROM articles a … WHERE a.status = 'published').
+    if (sql.includes('from articles') && sql.includes("status = 'published'")) {
       return {
         results: [{
           id: 'article_public',

@@ -36,10 +36,11 @@ interface ScopeDef {
 }
 
 const SCOPE_DEFS: ScopeDef[] = [
-  { scope: 'inventory:read', label: 'inventory:read', description: 'Search teas, view stock levels', group: 'read', defaultChecked: true },
+  { scope: 'inventory:read', label: 'inventory:read', description: 'Search teas, view stock + account context', group: 'read', defaultChecked: true },
   { scope: 'customers:read', label: 'customers:read', description: 'Look up customers', group: 'read', defaultChecked: true },
-  { scope: 'stock:write', label: 'stock:write', description: 'Add / remove stock', group: 'operator', defaultChecked: true },
-  { scope: 'sales:write', label: 'sales:write', description: 'Create and void invoices', group: 'operator', defaultChecked: true },
+  { scope: 'sales:read', label: 'sales:read', description: 'List / read invoices, sales summaries', group: 'read', defaultChecked: true },
+  { scope: 'stock:write', label: 'stock:write', description: 'Add / remove stock, create teas', group: 'operator', defaultChecked: true },
+  { scope: 'sales:write', label: 'sales:write', description: 'Create / fill / void invoices', group: 'operator', defaultChecked: true },
   { scope: 'catalog:write', label: 'catalog:write', description: 'Update pricing, thresholds, archive', group: 'owner', defaultChecked: false },
   { scope: 'customers:write', label: 'customers:write', description: 'Create and update customer records', group: 'owner', defaultChecked: false },
   { scope: 'admin:write', label: 'admin:write', description: 'Account settings, exchange rates', group: 'owner', defaultChecked: false },
@@ -89,10 +90,11 @@ export const MCPTokensView: React.FC = () => {
         <div className="label-caps text-tea-text-dim mt-2">MCP · Owner-tier access</div>
         <p className="text-tea-text-sec text-ui-14 leading-[1.6] max-w-xl mt-4">
           Mint a token to connect Claude desktop, Claude mobile, or any MCP-compatible
-          client to this account&apos;s inventory. Tools cover tea search, stock adjustments,
-          customer lookup, and creating filled invoices — every mutating action requires
-          a spoken confirmation in the model. The token grants full owner-level rights
-          on this account; treat it like a password.
+          client to this account&apos;s inventory. Tools cover tea search, account context,
+          stock adjustments, customer lookup + dossiers, invoice listing/reading, sales
+          summaries, and creating/filling/voiding invoices — every mutating action requires
+          a confirmation in the model. The token is scoped to the permissions you select
+          below; treat it like a password.
         </p>
       </header>
 

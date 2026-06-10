@@ -6,7 +6,9 @@ import {
   Pencil, Trash2, Store, Check, Loader2, Camera,
   Mic, BookmarkPlus, BookmarkCheck, ChevronDown, ChevronUp,
   ShoppingBag, Droplets, AlertTriangle, Star, ChevronLeft, ChevronRight, X, RefreshCw,
+  Heart, ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
+import type { CompassVerdict } from './types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -81,6 +83,16 @@ function getTypeLabel(entry: TeaCompassEntry): string {
   if (entry.category === 'teaware') return 'Teaware';
   return 'Tea';
 }
+
+// Verdict chips shown in the expanded card. Heart/thumbs mirror the icons used
+// across the triage review and sample-set summaries so the signal reads the same
+// everywhere.
+const VERDICT_CHIPS: { value: CompassVerdict; label: string; icon: React.ReactNode; activeCls: string }[] = [
+  { value: 'love',    label: 'Love',  icon: <Heart size={12} />,      activeCls: 'bg-tea-error/15 text-tea-error border-tea-error/40' },
+  { value: 'like',    label: 'Like',  icon: <ThumbsUp size={12} />,   activeCls: 'bg-tea-gold/15 text-tea-gold border-tea-gold/40' },
+  { value: 'neutral', label: 'Meh',   icon: <Minus size={12} />,      activeCls: 'bg-tea-elevated text-tea-text-sec border-tea-border' },
+  { value: 'pass',    label: 'Pass',  icon: <ThumbsDown size={12} />, activeCls: 'bg-tea-elevated text-tea-text-dim border-tea-border' },
+];
 
 
 export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, isCompareSelected, onToggleCompare, onSelect, isSelected }) => {
@@ -180,6 +192,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const hasTasting = entry.tasting && Object.values(entry.tasting).some(
     (v) => Array.isArray(v) ? v.length > 0 : v != null
   );
+  // Effective verdict — first-class field, falling back to legacy sample verdict.
+  const verdict: CompassVerdict | undefined = entry.verdict ?? entry.sampleVerdict;
+  const setVerdict = (v: CompassVerdict) => updateEntry(entry.id, { verdict: verdict === v ? undefined : v });
 
   // Collapsed summary tags: body first (most diagnostic), then up to 2 flavor tags
   const bodyTag = entry.tasting?.body?.slice(0, 1) ?? [];
@@ -299,13 +314,15 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               </p>
 
               {/* Rating + status badge */}
-              {(rating != null || isBought || isWishlisted || isIncoming || isPassed) && (
+              {(rating != null || verdict || isBought || isWishlisted || isIncoming || isPassed) && (
                 <div className="flex items-center gap-2">
                   {rating != null && (
                     <span className="text-ui-11 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
                       {rating}/10
                     </span>
                   )}
+                  {verdict === 'love' && <Heart size={11} className="text-tea-error" fill="currentColor" />}
+                  {verdict === 'like' && <ThumbsUp size={11} className="text-tea-gold" />}
                   {isBought && (
                     <span className="text-ui-10 text-tea-gold/70 font-medium">In Stock</span>
                   )}
@@ -402,6 +419,33 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 {/* Tasting profile (read view) */}
                 {hasTasting && (
                   <TastingProfileStrip value={entry.tasting!} />
+                )}
+
+                {/* Verdict — quick set/clear; the organizing signal behind the
+                    Loved lens and the want-list suggestion. Only shown once a
+                    tea has been tasted. */}
+                {hasTasting && (
+                  <div className="flex items-center gap-1">
+                    {VERDICT_CHIPS.map((chip) => {
+                      const active = verdict === chip.value;
+                      return (
+                        <button
+                          key={chip.value}
+                          type="button"
+                          onClick={() => setVerdict(chip.value)}
+                          aria-pressed={active}
+                          className={`flex-1 min-h-[36px] inline-flex items-center justify-center gap-1.5 rounded-md border text-ui-10 font-medium transition-colors ${
+                            active
+                              ? chip.activeCls
+                              : 'border-tea-border bg-tea-bg text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
+                          }`}
+                        >
+                          {chip.icon}
+                          <span>{chip.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
 
                 {/* Tasting history timeline */}
@@ -614,7 +658,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               compassEntryId: entry.id,
             }}
             onClose={() => setTastingOpen(false)}
-            onAfterSave={(data: TastingData) => {
+            onAfterSave={(data: TastingData, sessionVerdict?: CompassVerdict) => {
               const existingHistory = entry.tastingHistory || [];
               const today = new Date().toDateString();
               const lastEntry = existingHistory[existingHistory.length - 1];
@@ -622,7 +666,13 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               const history = lastWasToday
                 ? [...existingHistory.slice(0, -1), { data, date: new Date().toISOString() }]
                 : [...existingHistory, { data, date: new Date().toISOString() }];
-              updateEntry(entry.id, { tasting: data, tastingHistory: history });
+              updateEntry(entry.id, {
+                tasting: data,
+                tastingHistory: history,
+                // Only overwrite verdict if the session captured one — otherwise
+                // leave it for later triage in the batch review.
+                ...(sessionVerdict ? { verdict: sessionVerdict } : {}),
+              });
             }}
           />
         )}

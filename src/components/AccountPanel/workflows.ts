@@ -49,6 +49,7 @@ export const MEMBER_MEMORY_LINKS: AccountWorkflowLink[] = [
 ];
 
 export const READER_EXPLORE_LINKS: AccountWorkflowLink[] = [
+  { id: 'discover', label: 'Discover your tea', route: '/discover', category: 'continue', status: 'wired' },
   { id: 'magazine', label: 'The Magazine', route: '/magazine', category: 'continue', status: 'wired' },
   { id: 'shop', label: 'Shop', route: '/shop', category: 'continue', status: 'wired' },
   { id: 'find-table', label: 'Find a Table', route: '/find-a-table', category: 'continue', status: 'wired' },

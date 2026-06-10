@@ -20,3 +20,12 @@ bucket_name = "teajia-media"
 
 [triggers]
 crons = ["0 1 * * *"]
+
+# Edge rate limiter for the public, unauthenticated MCP (/mcp/public).
+# Native Cloudflare Workers rate limiting — works on *.workers.dev (no zone /
+# WAF rule needed). 60 requests per 10s window, keyed per client IP in code.
+[[unsafe.bindings]]
+name = "PUBLIC_MCP_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 60, period = 10 }

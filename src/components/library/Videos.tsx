@@ -6,7 +6,7 @@ const BACK_BTN = 'flex items-center gap-1.5 mb-8 group min-h-[44px] rounded-md h
 
 const FORMAT_COLORS: Record<string, string> = {
   documentary: 'bg-tea-leaf/10 dark:bg-tea-leaf/20 text-tea-leaf dark:text-tea-leaf border border-tea-leaf/30',
-  video: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border/30',
+  video: 'bg-tea-elevated/10 dark:bg-tea-elevated/20 text-tea-text-sec dark:text-tea-text-sec border border-tea-border',
 };
 
 interface VideosProps {

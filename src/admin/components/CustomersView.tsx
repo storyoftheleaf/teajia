@@ -11,6 +11,7 @@ import { useSampleStore } from '../../samples/sampleStore';
 import { SAMPLE_STATUS_CONFIG } from '../../samples/types';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import { ConfirmModal } from './ConfirmModal';
+import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 
 /** Canonical status pill — see DesignSystemShowcase §8 */
 const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
@@ -1814,41 +1815,45 @@ export const CustomersView = () => {
           <div className="flex items-center gap-1 ml-auto shrink-0">
             {/* Mobile sort */}
             <div className="relative md:hidden">
-              <button
-                onClick={() => setShowMobileSort(!showMobileSort)}
-                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              <AnchoredMenu
+                align="right"
+                width={160}
+                open={showMobileSort}
+                onOpenChange={setShowMobileSort}
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                    aria-label="Sort customers"
+                  >
+                    <ArrowUpDown size={15} />
+                  </button>
+                )}
               >
-                <ArrowUpDown size={15} />
-              </button>
-              {showMobileSort && (
-                <>
-                  <div className="fixed inset-0 z-modal" onClick={() => setShowMobileSort(false)} />
-                  <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
-                    {([
-                      { key: 'name'    as CustomerSortKey, label: 'Name' },
-                      { key: 'added'   as CustomerSortKey, label: 'Recent' },
-                      { key: 'spent'   as CustomerSortKey, label: 'Top Spent' },
-                      { key: 'orders'  as CustomerSortKey, label: 'Most Orders' },
-                    ]).map(opt => {
-                      const current = sortConfig[0];
-                      const isActive = current?.key === opt.key;
-                      return (
-                        <button
-                          key={opt.key}
-                          onClick={() => {
-                            setSortConfig([{ key: opt.key, direction: isActive && current.direction === 'asc' ? 'desc' : 'asc' }]);
-                            setShowMobileSort(false);
-                          }}
-                          className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                        >
-                          {opt.label}
-                          {isActive && (current.direction === 'asc' ? <ArrowUp size={12} className="ml-auto" /> : <ArrowDown size={12} className="ml-auto" />)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
+                {(close) => ([
+                  { key: 'name'    as CustomerSortKey, label: 'Name' },
+                  { key: 'added'   as CustomerSortKey, label: 'Recent' },
+                  { key: 'spent'   as CustomerSortKey, label: 'Top Spent' },
+                  { key: 'orders'  as CustomerSortKey, label: 'Most Orders' },
+                ]).map(opt => {
+                  const current = sortConfig[0];
+                  const isActive = current?.key === opt.key;
+                  return (
+                    <button
+                      key={opt.key}
+                      role="menuitem"
+                      onClick={() => {
+                        setSortConfig([{ key: opt.key, direction: isActive && current.direction === 'asc' ? 'desc' : 'asc' }]);
+                        close();
+                      }}
+                      className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                    >
+                      {opt.label}
+                      {isActive && (current.direction === 'asc' ? <ArrowUp size={12} className="ml-auto" /> : <ArrowDown size={12} className="ml-auto" />)}
+                    </button>
+                  );
+                })}
+              </AnchoredMenu>
             </div>
 
             {/* Search */}
@@ -1865,22 +1870,31 @@ export const CustomersView = () => {
 
             {/* Desktop: Columns toggle */}
             <div className="relative hidden md:block">
-              <button
-                onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
-                title="Show/Hide Columns"
+              <AnchoredMenu
+                align="right"
+                width={176}
+                className="!py-2"
+                open={showColumnsPopover}
+                onOpenChange={setShowColumnsPopover}
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                    title="Show/Hide Columns"
+                    aria-label="Show or hide columns"
+                  >
+                    <Columns size={14} />
+                    <span className="hidden xl:inline tracking-wide">Cols</span>
+                  </button>
+                )}
               >
-                <Columns size={14} />
-                <span className="hidden xl:inline tracking-wide">Cols</span>
-              </button>
-              {showColumnsPopover && (
-                <>
-                  <div className="fixed inset-0 z-modal" onClick={() => setShowColumnsPopover(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2">
+                {() => (
+                  <>
                     <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
                     {CUSTOMER_COLUMN_DEFS.map(col => (
                       <label
                         key={col.key}
+                        role="menuitem"
                         className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <input
@@ -1893,32 +1907,38 @@ export const CustomersView = () => {
                         <span className="text-tea-text">{col.label}</span>
                       </label>
                     ))}
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </AnchoredMenu>
             </div>
 
             {/* Desktop: options (export) */}
             <div className="relative hidden md:block">
-              <button
-                onClick={() => setShowOptions(!showOptions)}
-                className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
+              <AnchoredMenu
+                align="right"
+                width={192}
+                open={showOptions}
+                onOpenChange={setShowOptions}
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-xl hover:bg-tea-surface"
+                    aria-label="More options"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                )}
               >
-                <MoreHorizontal size={16} />
-              </button>
-              {showOptions && (
-                <>
-                  <div className="fixed inset-0 z-modal" onClick={() => setShowOptions(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col">
-                    <button
-                      onClick={() => { handleExport(); setShowOptions(false); }}
-                      className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors"
-                    >
-                      <Download size={14} /> Export CSV
-                    </button>
-                  </div>
-                </>
-              )}
+                {(close) => (
+                  <button
+                    role="menuitem"
+                    onClick={() => { handleExport(); close(); }}
+                    className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors"
+                  >
+                    <Download size={14} /> Export CSV
+                  </button>
+                )}
+              </AnchoredMenu>
             </div>
 
             {/* Add button */}

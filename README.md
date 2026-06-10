@@ -23,35 +23,33 @@ A unified tea journal, magazine, shop, and inventory management platform.
 
 ```bash
 npm install
-npm run dev          # Frontend at http://localhost:3000
+npm run dev          # Frontend at http://localhost:7777 (port reserved — see CLAUDE.md)
 ```
 
 ### Worker (API)
 
 ```bash
 cd worker
-npx wrangler dev     # Local API at http://localhost:8787
-npx wrangler deploy  # Deploy to production
+npm run dev          # Pulls secrets from Infisical, then wrangler dev at http://localhost:8787
 ```
 
 ## Environment
 
-Copy `.env.example` and create `.env.local`:
-
-```
-VITE_API_URL=https://teajia-api.lightcodes.workers.dev
-VITE_GEMINI_API_KEY=       # Optional: AI wisdom generation
-VITE_EXCHANGE_RATE_API_KEY= # Optional: live currency rates
-```
+Secrets live in Infisical (project: Teajia) — see the Secrets section in
+`CLAUDE.md`. `npm run dev` (root and worker) generates `.env.local` /
+`worker/.dev.vars` from Infisical on boot; neither file is tracked.
 
 ## Build & Deploy
 
-```bash
-npm run build    # Frontend -> dist/
-cd worker && npx wrangler deploy  # API
-```
+Deploys run from GitHub Actions on push to `main`:
 
-Frontend deploys to Cloudflare Pages. The `_redirects` file handles SPA routing.
+- `.github/workflows/deploy-frontend.yml` — type check, color lint, build, then
+  Cloudflare Pages deploy to project **`teajiafinal`** (teajia.com). Do NOT
+  deploy to the abandoned `teajia` Pages project.
+- `.github/workflows/deploy-worker.yml` — worker tests, D1 migrations
+  (`wrangler d1 migrations apply`), then worker deploy.
+
+Manual builds: `npm run build` → `dist/`. The `_redirects` file handles SPA routing.
 
 ## Architecture
 

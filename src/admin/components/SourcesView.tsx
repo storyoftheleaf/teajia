@@ -23,6 +23,7 @@ import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import type { Currency } from '../types';
+import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 
 /** Canonical status pill — see DesignSystemShowcase §8 */
 const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
@@ -898,98 +899,104 @@ export const SourcesView = () => {
           </div>
 
           {/* Sort */}
-          <div className="relative">
-            <button
-              onClick={() => { setShowMobileSort(!showMobileSort); setShowOptions(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-            >
-              <ArrowUpDown size={15} />
-            </button>
-            {showMobileSort && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-                <div className="absolute right-0 top-9 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
-                  {([
-                    { key: 'name' as SourceSortKey, label: 'Name' },
-                    { key: 'company' as SourceSortKey, label: 'Company' },
-                    { key: 'country' as SourceSortKey, label: 'Country' },
-                    { key: 'teaCount' as SourceSortKey, label: 'Tea Count' },
-                    { key: 'created' as SourceSortKey, label: 'Added' },
-                  ]).map(opt => {
-                    const current = sortConfig[0];
-                    const isActive = current?.key === opt.key;
-                    return (
-                      <button
-                        key={opt.key}
-                        onClick={() => {
-                          if (isActive) {
-                            setSortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
-                          } else {
-                            setSortConfig([{ key: opt.key, direction: 'asc' }]);
-                          }
-                          setShowMobileSort(false);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                      >
-                        {opt.label}
-                        {isActive && (
-                          <span className="ml-auto">
-                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
+          <AnchoredMenu
+            align="right"
+            width={160}
+            open={showMobileSort}
+            onOpenChange={(next) => { setShowMobileSort(next); if (next) setShowOptions(false); }}
+            trigger={(props) => (
+              <button
+                {...props}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <ArrowUpDown size={15} />
+              </button>
             )}
-          </div>
+          >
+            {(close) => ([
+              { key: 'name' as SourceSortKey, label: 'Name' },
+              { key: 'company' as SourceSortKey, label: 'Company' },
+              { key: 'country' as SourceSortKey, label: 'Country' },
+              { key: 'teaCount' as SourceSortKey, label: 'Tea Count' },
+              { key: 'created' as SourceSortKey, label: 'Added' },
+            ]).map(opt => {
+              const current = sortConfig[0];
+              const isActive = current?.key === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  role="menuitem"
+                  onClick={() => {
+                    if (isActive) {
+                      setSortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                    } else {
+                      setSortConfig([{ key: opt.key, direction: 'asc' }]);
+                    }
+                    close();
+                  }}
+                  className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${isActive ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                >
+                  {opt.label}
+                  {isActive && (
+                    <span className="ml-auto">
+                      {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </AnchoredMenu>
 
           {/* Options (New, Export, Edit) */}
-          <div className="relative">
-            <button
-              onClick={() => { setShowOptions(!showOptions); setShowMobileSort(false); }}
-              className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showOptions ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-            >
-              <MoreHorizontal size={15} />
-            </button>
-            {showOptions && (
+          <AnchoredMenu
+            align="right"
+            width={192}
+            open={showOptions}
+            onOpenChange={(next) => { setShowOptions(next); if (next) setShowMobileSort(false); }}
+            className="max-h-[calc(100dvh-100px)] overflow-y-auto"
+            trigger={(props) => (
+              <button
+                {...props}
+                className={`w-9 h-9 flex items-center justify-center transition-colors rounded-md ${showOptions ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <MoreHorizontal size={15} />
+              </button>
+            )}
+          >
+            {(close) => (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} />
-                <div className="absolute right-0 top-9 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 max-h-[calc(100dvh-100px)] overflow-y-auto">
-                  {/* Saved views */}
-                  <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
-                  {savedViews.map(view => (
-                    <button
-                      key={view.id}
-                      onClick={() => {
-                        setActiveViewId(view.id);
-                        setVisibleColumns(view.columns);
-                        setSortConfig(view.sortConfig);
-                        setGroupBy(view.groupBy);
-                        setShowOptions(false);
-                      }}
-                      className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                    >
-                      {view.name}
-                      {activeViewId === view.id && <Check size={11} className="ml-auto" />}
-                    </button>
-                  ))}
-                  <div className="h-px bg-tea-border/30 my-1" />
-                  <button onClick={() => { setEditingSource(null); setIsModalOpen(true); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
-                    <Plus size={13} /> New Source
+                {/* Saved views */}
+                <div className="px-3 py-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Views</div>
+                {savedViews.map(view => (
+                  <button
+                    key={view.id}
+                    onClick={() => {
+                      setActiveViewId(view.id);
+                      setVisibleColumns(view.columns);
+                      setSortConfig(view.sortConfig);
+                      setGroupBy(view.groupBy);
+                      close();
+                    }}
+                    className={`w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg transition-colors ${activeViewId === view.id ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                  >
+                    {view.name}
+                    {activeViewId === view.id && <Check size={11} className="ml-auto" />}
                   </button>
-                  <button onClick={() => { setIsEditMode(!isEditMode); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
-                    {isEditMode ? <Check size={13} /> : <Pencil size={13} />}
-                    {isEditMode ? 'Done Editing' : 'Edit Mode'}
-                  </button>
-                  <button onClick={() => { handleExport(); setShowOptions(false); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
-                    <Download size={13} /> Export CSV
-                  </button>
-                </div>
+                ))}
+                <div className="h-px bg-tea-border/30 my-1" />
+                <button onClick={() => { setEditingSource(null); setIsModalOpen(true); close(); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                  <Plus size={13} /> New Source
+                </button>
+                <button onClick={() => { setIsEditMode(!isEditMode); close(); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                  {isEditMode ? <Check size={13} /> : <Pencil size={13} />}
+                  {isEditMode ? 'Done Editing' : 'Edit Mode'}
+                </button>
+                <button onClick={() => { handleExport(); close(); }} className="w-full px-3 py-2 text-left text-ui-11 flex items-center gap-2 hover:bg-tea-bg text-tea-text-sec transition-colors">
+                  <Download size={13} /> Export CSV
+                </button>
               </>
             )}
-          </div>
+          </AnchoredMenu>
         </div>
       </div>
 
@@ -1041,84 +1048,95 @@ export const SourcesView = () => {
               <div className="w-px h-4 bg-tea-border mx-1"></div>
 
               {/* Columns Toggle */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowColumnsPopover(!showColumnsPopover)}
-                  className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
-                  title="Show/Hide Columns"
-                >
-                  <Columns size={14} />
-                  <span className="hidden xl:inline tracking-wide">Cols</span>
-                </button>
-                {showColumnsPopover && (
+              <AnchoredMenu
+                align="right"
+                width={176}
+                open={showColumnsPopover}
+                onOpenChange={setShowColumnsPopover}
+                className="py-1"
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    aria-label="Show/Hide Columns"
+                    title="Show/Hide Columns"
+                    className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${showColumnsPopover ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  >
+                    <Columns size={14} />
+                    <span className="hidden xl:inline tracking-wide">Cols</span>
+                  </button>
+                )}
+              >
+                {() => (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowColumnsPopover(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-44 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2">
-                      <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
-                      {SOURCE_COLUMN_DEFS.map(col => (
-                        <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                          <input
-                            type="checkbox"
-                            checked={visibleColumns.includes(col.key)}
-                            onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleColumn(col.key)}
-                            disabled={'alwaysVisible' in col && col.alwaysVisible}
-                            className="accent-tea-gold"
-                          />
-                          <span className="text-tea-text">{col.label}</span>
-                        </label>
-                      ))}
-                    </div>
+                    <div className="px-3 pb-1.5 text-ui-9 text-tea-text-sec/60 uppercase tracking-[0.2em]">Visible Columns</div>
+                    {SOURCE_COLUMN_DEFS.map(col => (
+                      <label key={col.key} className={`flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-tea-bg transition-colors cursor-pointer ${'alwaysVisible' in col && col.alwaysVisible ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(col.key)}
+                          onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleColumn(col.key)}
+                          disabled={'alwaysVisible' in col && col.alwaysVisible}
+                          className="accent-tea-gold"
+                        />
+                        <span className="text-tea-text">{col.label}</span>
+                      </label>
+                    ))}
                   </>
                 )}
-              </div>
+              </AnchoredMenu>
 
               {/* Group By Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    const el = document.getElementById('sources-groupby-dropdown');
-                    if (el) el.classList.toggle('hidden');
-                  }}
-                  className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
-                  title="Group By"
-                >
-                  <Layers size={14} />
-                  <span className="hidden xl:inline tracking-wide">Group</span>
-                </button>
-                <div id="sources-groupby-dropdown" className="hidden absolute right-0 top-full mt-2 w-40 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1">
-                  {GROUPBY_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setGroupBy(opt.value || null);
-                        document.getElementById('sources-groupby-dropdown')?.classList.add('hidden');
-                      }}
-                      className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(groupBy || '') === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowOptions(!showOptions)}
-                className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md hover:bg-tea-surface"
+              <AnchoredMenu
+                align="right"
+                width={160}
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    aria-label="Group By"
+                    title="Group By"
+                    className={`tap-target flex items-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors ${groupBy ? 'text-tea-gold bg-tea-surface' : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'}`}
+                  >
+                    <Layers size={14} />
+                    <span className="hidden xl:inline tracking-wide">Group</span>
+                  </button>
+                )}
               >
-                <MoreHorizontal size={16} />
-              </button>
+                {(close) => GROUPBY_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setGroupBy(opt.value || null);
+                      close();
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors ${(groupBy || '') === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </AnchoredMenu>
 
               {/* Options Dropdown */}
-              {showOptions && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)}></div>
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1 flex flex-col">
-                    <button onClick={() => { handleExport(); setShowOptions(false); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
-                      <Download size={14} /> Export CSV
-                    </button>
-                  </div>
-                </>
-              )}
+              <AnchoredMenu
+                align="right"
+                width={192}
+                open={showOptions}
+                onOpenChange={setShowOptions}
+                trigger={(props) => (
+                  <button
+                    {...props}
+                    aria-label="More options"
+                    className="tap-target p-1.5 text-tea-text-sec hover:text-tea-text transition-colors rounded-md hover:bg-tea-surface"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                )}
+              >
+                {(close) => (
+                  <button onClick={() => { handleExport(); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
+                    <Download size={14} /> Export CSV
+                  </button>
+                )}
+              </AnchoredMenu>
             </div>
           </div>
         </div>

@@ -552,6 +552,20 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
 }
 
 export const api = {
+  // Working Feature Guide — admin-only internal build tracker.
+  featureStatus: {
+    /** Map of feature_id → { stage, works, tested, visual, notes, updated_at }. */
+    list: async (): Promise<Record<string, {
+      stage: string; works: string; tested: boolean; visual: string; notes: string; updated_at: string;
+    }>> => authedFetch(`${API_URL}/api/admin/feature-status`),
+    /** Partial upsert — only the fields you pass change. */
+    save: async (feature_id: string, patch: {
+      stage?: string; works?: string; tested?: boolean; visual?: string; notes?: string;
+    }) => authedFetch(`${API_URL}/api/admin/feature-status`, {
+      method: 'POST',
+      body: JSON.stringify({ feature_id, ...patch }),
+    }),
+  },
   auth: {
     login: async (identifier: string, password: string) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/login`, {
@@ -1739,6 +1753,26 @@ export const api = {
       return authedFetch(`${API_URL}/api/tasting-journal/sync`, {
         method: 'POST',
         body: JSON.stringify({ entries }),
+      });
+    },
+  },
+
+  // Tea Discovery — the onboarding disposition profile (one per member, server-
+  // persisted so it follows them across devices and the tea master can read it).
+  teaDiscovery: {
+    get: async () => {
+      return authedFetch(`${API_URL}/api/tea-discovery`);
+    },
+    save: async (payload: {
+      answers: Record<string, string | string[]>;
+      level: string;
+      dispositionId: string;
+      dispositionName: string;
+      completedAt: string;
+    }) => {
+      return authedFetch(`${API_URL}/api/tea-discovery`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
       });
     },
   },
