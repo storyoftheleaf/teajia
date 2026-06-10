@@ -136,6 +136,9 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 | `/account/samples` | Wired (`api.me.samples()`) |
 | `/api/verify/*` | Code delivery (WhatsApp/email) not built — codes are only echoed when `DEV_RETURN_VERIFY_CODES=true` (dev), so production verification is effectively disabled until delivery ships |
 
+## Customer sign-in surfaces (Google OAuth)
+"Continue with Google" must stay present on all five customer/admin auth surfaces, each linking to `${API_URL}/api/auth/google?return=<path>` (never a bare relative `/api/auth/google` — the API is on a separate origin from the app, so a relative link 404s on teajia.com): `src/pages/SignInPage.tsx`, `src/pages/SignUpPage.tsx`, `src/components/AccountPanel/index.tsx`, `src/admin/components/AuthModal.tsx`, `src/components/events/RSVPFormSheet.tsx`. The worker callback (`handleGoogleCallback` in `worker/src/index.ts`) redirects the user back to the **app** origin via `env.APP_URL` (defaults to `https://www.teajia.com`), NOT `url.origin` — `url.origin` is the worker and has no app routes. The frontend reads `#oauth_token=` on load (`src/App.tsx`). Two orphaned `LoginScreen.tsx` files (`admin/`, `admin-panel/`) are dead demo code — do not wire auth into them.
+
 ## Voice & agent control (MCP)
 The worker exposes an MCP server at `/mcp` for voice/agent control. Tokens are minted at `/admin/mcp-tokens` (owner-tier only) and shown ONCE, or obtained via the OAuth 2.1 connector flow. There is ALSO a public, unauthenticated, read-only MCP at `/mcp/public` for the shopping public.
 

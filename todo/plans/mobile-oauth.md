@@ -1,6 +1,6 @@
 # Get the Teajia voice assistant connecting from a phone
 
-The voice and agent control (MCP) works on desktop via manually minted tokens. On a phone it reaches the consent page on teajia.pages.dev but reports that the query parameters are missing, so the connection never completes.
+The voice and agent control (MCP) works on desktop via manually minted tokens. On a phone it reaches the consent page on teajia.com but reports that the query parameters are missing, so the connection never completes.
 
 ## What is needed
 
