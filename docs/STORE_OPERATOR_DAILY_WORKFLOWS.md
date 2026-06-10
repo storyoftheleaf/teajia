@@ -68,3 +68,41 @@ This is the short operating guide for a non-Adrian store owner or staff member.
 4. Check pending invites.
 5. Review whether staff still need their current access.
 
+## Voice and AI assistant
+
+You can connect an AI assistant (such as Claude) to the store and talk to it in plain language. It can now both look things up and make changes.
+
+### What the assistant can look up
+
+Before, the assistant could only change things. Now it can also report:
+
+- Invoices: list them or open one to read the details.
+- A customer's history: who they are and what they have bought.
+- Sales summaries: totals over a period.
+- Account context: the store's currency and the next invoice number.
+
+Use this to ask questions like "what did this customer order last," "show me the open invoices," or "how did sales go this week," without opening the admin yourself.
+
+### Changes are now reliable
+
+When you ask the assistant to change something (record a sale, adjust stock), it first shows you a preview and waits for you to confirm. That confirmation no longer expires mid-conversation. You can read the preview, take your time, and confirm when ready without getting an "expired" error.
+
+### Letting customers' own AI browse the catalogue
+
+There is a separate public assistant that needs no login. A customer can point their own AI at the store to:
+
+- Browse and search the catalogue.
+- Build a ready-to-send WhatsApp order link.
+
+The AI only preps the basket. It never places the order. The order still closes the same way it always has: a personal WhatsApp conversation with you. The public assistant only sees public information. It never sees cost, margin, vendor, or exact stock.
+
+### The store is now AI-discoverable
+
+The site tells AI tools what it offers (through an `llms.txt` index and structured data on the site and articles). This means a customer's AI can find the shop, the journal, and the public assistant on its own. Nothing for you to do here. It works in the background.
+
+### Connecting an app, and what it can do
+
+When you connect an AI app to the store, you choose what it is allowed to do (scoped permissions). Grant only what that app needs. Read-only for looking things up, more for recording sales or adjusting stock.
+
+Connecting through Claude on mobile now works. If a previous mobile connection failed, try again.
+
