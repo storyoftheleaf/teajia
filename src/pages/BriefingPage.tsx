@@ -180,10 +180,23 @@ const WALKTHROUGHS: Walkthrough[] = [
   },
 ];
 
+/** A problem flagged during a walk-through, read back from D1 for the rollup. */
+type Finding = { stepId: string; walkTitle: string; stepText: string; works: string; note: string };
+
+// stepId is `${walkthroughId}#${index}` — resolve it back to a human walk + step.
+function resolveFinding(stepId: string, works: string, note: string): Finding | null {
+  const [walkId, idxStr] = stepId.split('#');
+  const wt = WALKTHROUGHS.find((w) => w.id === walkId);
+  const idx = Number(idxStr);
+  if (!wt || Number.isNaN(idx) || !wt.steps[idx]) return null;
+  return { stepId, walkTitle: wt.title, stepText: wt.steps[idx].text, works, note };
+}
+
 export default function BriefingPage() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [findings, setFindings] = useState<Finding[]>([]);
   const [openRole, setOpenRole] = useState<string | null>(null);
   const startWalk = useWalkthrough((s) => s.start);
   const activeWalkId = useWalkthrough((s) => s.activeId);
@@ -193,8 +206,19 @@ export default function BriefingPage() {
     api.featureStatus.list()
       .then((map) => {
         const next: Record<string, boolean> = {};
-        for (const [id, s] of Object.entries(map)) next[id] = (s as { tested?: boolean }).tested === true;
+        const problems: Finding[] = [];
+        for (const [id, s] of Object.entries(map)) {
+          const row = s as { tested?: boolean; works?: string; notes?: string };
+          next[id] = row.tested === true;
+          // A finding = a step flagged broken / needs-revision, or one carrying a note.
+          const isProblem = row.works === 'broken' || row.works === 'needs_revision';
+          if (isProblem || (row.notes && row.notes.trim() !== '')) {
+            const f = resolveFinding(id, row.works ?? 'unknown', row.notes ?? '');
+            if (f) problems.push(f);
+          }
+        }
         setChecked(next);
+        setFindings(problems);
       })
       .catch(() => { /* first run */ });
   }, [isAdmin]);
@@ -233,6 +257,37 @@ export default function BriefingPage() {
           Two things: what the platform brings each kind of person, and the real flows you can run and test. Tap a
           role to see what it offers them; walk a flow and check off steps, catching what breaks or looks wrong.
         </p>
+
+        {/* ── Problems found: the rollup of everything flagged across walk-throughs ──
+            Reads from D1 so it survives reloads and shows after a walk is finished.
+            This is the owner's working todo of what's broken, in one place. */}
+        {findings.length > 0 && (
+          <div className="mb-12 bg-tea-surface border border-tea-gold/30 rounded-xl overflow-hidden">
+            <div className="px-5 pt-4 pb-3 border-b border-tea-border flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em]">Problems found</h2>
+              <span className="font-sans text-ui-12 text-tea-gold shrink-0">{findings.length} to fix</span>
+            </div>
+            <ul className="px-5 py-2">
+              {findings.map((f) => (
+                <li key={f.stepId} className="flex items-start gap-3 py-3 border-b border-tea-border last:border-0">
+                  <span className={`shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full ${f.works === 'broken' ? 'bg-tea-gold' : 'bg-tea-gold/50'}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-sans text-ui-12 text-tea-text-dim">{f.walkTitle}</div>
+                    <p className="font-serif text-ui-14 text-tea-text-sec leading-[1.5] mt-0.5">{f.stepText}</p>
+                    {f.note.trim() !== '' && (
+                      <p className="font-serif text-ui-14 text-tea-text leading-[1.5] mt-1.5 pl-3 border-l-2 border-tea-gold/40">{f.note}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="px-5 py-2.5 border-t border-tea-border">
+              <p className="font-sans text-ui-11 text-tea-text-dim leading-[1.5]">
+                These are saved. To pull them into the project todo list, run <span className="text-tea-text-sec">npm run intake:findings</span> from the repo.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Roles: what the platform brings each user type ── */}
         <h2 className="font-display text-ui-20 text-tea-text tracking-[0.01em] mb-1">Who it's for</h2>
