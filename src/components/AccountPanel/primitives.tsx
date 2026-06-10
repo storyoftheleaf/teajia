@@ -269,7 +269,7 @@ export const PrimaryVerb: React.FC<PrimaryVerbProps> = ({ label, onClick, varian
   </div>
 );
 
-// ── Shared content-preview block (extracted from MemberView/OperatorView) ──
+// ── Shared content-preview block (used by StaffView and the launchpad views) ──
 
 export const PreviewBlock: React.FC<{
   hint: string;

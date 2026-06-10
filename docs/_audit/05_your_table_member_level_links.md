@@ -1,5 +1,7 @@
 # Your Table Section Audit
 
+> **Reconciliation note (2026-06-10):** This audit predates the LaunchpadView rebuild. The signed-in surface is no longer split across `MemberView` + `OperatorView` (both deleted) — every authenticated tier now renders **LaunchpadView** (a tile launchpad, tier-gated), guests render **ReaderView**, and **StaffView** is the bundle-aware staff surface. Treat the *architecture / "Current Shape"* sections below as historical; the *level-by-level link reasoning* (§5) and the *features-that-need-a-home* matrix (§6) are still current and are the source of truth for which links belong at which level. The `/account` route gap flagged in §2 is now resolved (AccountRouteBridge in App.tsx).
+
 **Audit date:** 2026-05-10  
 **Scope:** The `Your Table` section only: AccountPanel, personal/account routes, operator access, staff bundle surfaces, and features that need a home inside or adjacent to the panel.  
 **Reason for audit:** Decide what links, homes, and access rules the Your Table section should own before changing navigation or routing.

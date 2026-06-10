@@ -12,8 +12,8 @@ interface ReaderViewProps {
 
 const ICON_PROPS = { size: 14, strokeWidth: 1.5 } as const;
 
-// Small text-link cluster, matches the footer pattern used in
-// MemberView/OperatorView — no chevrons, no row grammar.
+// Small text-link cluster, matches the footer pattern used across the
+// panel views — no chevrons, no row grammar.
 const LinkCluster: React.FC<{
   hint: string;
   icon?: React.ReactNode;
