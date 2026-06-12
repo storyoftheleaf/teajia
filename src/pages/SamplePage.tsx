@@ -570,7 +570,7 @@ const SamplePage: React.FC = () => {
               className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
             >
               <ExternalLink size={14} />
-              Promote to Tea Compass
+              Promote to Curate
             </button>
           </motion.div>
         )}

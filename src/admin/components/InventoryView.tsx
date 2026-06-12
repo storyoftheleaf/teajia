@@ -2860,7 +2860,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     <button
                                         onClick={() => handleRestock(product)}
                                         className="tap-target w-10 h-10 flex items-center justify-center rounded-xl transition-colors text-tea-text-dim hover:text-tea-gold hover:bg-tea-gold/10"
-                                        aria-label="Restock via Compass"
+                                        aria-label="Restock via Curate"
                                     >
                                         <Globe size={16} />
                                     </button>

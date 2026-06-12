@@ -1466,18 +1466,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     className="inline-flex items-center gap-1 text-tea-gold text-ui-11 hover:underline"
                   >
                     <ExternalLink size={10} />
-                    View full compass entry
+                    View full Curate entry
                   </a>
                 </div>
               </div>
             ) : (
               <div className="text-xs text-tea-text-dim">
-                Compass entry not found.{' '}
+                Curate entry not found.{' '}
                 <a
                   href={`/admin/compass?entry=${initialData.sourceCompassEntryId}`}
                   className="text-tea-gold hover:underline"
                 >
-                  Open compass
+                  Open Curate
                 </a>
               </div>
             )}

@@ -261,7 +261,7 @@ export function compassEntryToProductDraft(entry: TeaCompassEntry): Record<strin
   // Build description: notes + field notes attribution
   const descParts: string[] = [];
   if (entry.notes?.trim()) descParts.push(entry.notes.trim());
-  descParts.push(`---\nField notes from Tea Compass capture on ${captureDate}`);
+  descParts.push(`---\nField notes from Curate capture on ${captureDate}`);
   const description = descParts.join('\n\n');
 
   // Determine stock: grams for tea, units for teaware

@@ -14,14 +14,14 @@ import type { PlatformRole } from '../../types';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const KNOWN_FEATURES: { id: string; label: string; description: string; planDefault: string[] }[] = [
-  { id: 'compass',             label: 'Tea Compass',          description: 'Tea sourcing, tasting & tracking tool',          planDefault: ['verified', 'partner', 'platform'] },
+  { id: 'compass',             label: 'Curate',               description: 'Tea sourcing, tasting & tracking tool',          planDefault: ['verified', 'partner', 'platform'] },
   { id: 'catalog_sharing',     label: 'Catalog Access',       description: 'Source teas from the Teajia catalog',            planDefault: ['partner', 'platform'] },
   { id: 'ai_wisdom_generation',label: 'AI Wisdom Generation', description: 'Generate lore, terroir & experience copy via Claude', planDefault: ['platform'] },
 ];
 
 const TRUST_TIERS: { value: 'basic' | 'verified' | 'partner'; label: string; description: string }[] = [
   { value: 'basic',    label: 'Basic',    description: 'New account, default access' },
-  { value: 'verified', label: 'Verified', description: 'Identity confirmed — Tea Compass enabled' },
+  { value: 'verified', label: 'Verified', description: 'Identity confirmed — Curate enabled' },
   { value: 'partner',  label: 'Partner',  description: 'Full partner — all features available' },
 ];
 

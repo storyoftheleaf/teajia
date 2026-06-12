@@ -419,7 +419,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         <button
           onClick={() => onTaste?.(sample.compassEntryId!)}
           className="p-1 text-tea-text-dim hover:text-tea-gold transition-colors"
-          title="Open in Tea Compass to taste"
+          title="Open in Curate to taste"
         >
           <Compass size={14} />
         </button>

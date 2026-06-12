@@ -123,10 +123,10 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
           type="button"
           onClick={goToCompass}
           className="tap-target inline-flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-gold transition-colors"
-          title="Capture new items in Compass"
+          title="Capture new items in Curate"
         >
           <Compass size={12} />
-          <span>Capture in Compass</span>
+          <span>Capture in Curate</span>
         </button>
       </div>
 
@@ -188,14 +188,14 @@ const EmptyState: React.FC<{ onCompass: () => void }> = ({ onCompass }) => (
       <Check size={32} className="mx-auto mb-3 text-tea-text-dim opacity-30" />
       <p className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1`}>No drafts in the queue</p>
       <p className="text-ui-13 text-tea-text-sec mb-5">
-        Every tea you capture in Compass lands here as a draft. Set price + stock to activate, mark personal to keep it private, or archive.
+        Every tea you capture in Curate lands here as a draft. Set price + stock to activate, mark personal to keep it private, or archive.
       </p>
       <button
         type="button"
         onClick={onCompass}
         className="pill text-ui-12 px-3 py-1.5 inline-flex items-center gap-1.5"
       >
-        <Compass size={12} /> Open Compass
+        <Compass size={12} /> Open Curate
       </button>
     </div>
   </div>

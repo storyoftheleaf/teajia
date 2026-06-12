@@ -367,7 +367,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                   >
                     {(close) => (
                       <>
-                        <button onClick={() => { onRestock(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Compass</button>
+                        <button onClick={() => { onRestock(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Curate</button>
                         <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
                         <div className="my-1 border-t border-tea-border" />
                         <button onClick={() => { onDeleteRequest(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-readgold hover:bg-tea-gold/[0.06] transition-colors text-left"><Trash2 size={12} /> Delete permanently</button>
