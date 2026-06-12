@@ -43,6 +43,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         tastingNotes: Array.isArray(p.tasting_notes) ? p.tasting_notes : [],
         imageUrl: p.image_url || '',
         additionalImages: Array.isArray(p.additional_images) ? p.additional_images : [],
+        bagPhotoUrl: p.bag_photo_url || undefined,
         status: p.status,
         vendor: p.vendor,
         costCurrency: p.cost_currency || 'USD',

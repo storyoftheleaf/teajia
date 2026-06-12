@@ -1416,7 +1416,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             tea variant so both forms have the share affordance in the
             commit area instead of the page header. */}
         {(() => {
-          const ready = !!entry.name?.trim();
+          const ready = !!entry.name?.trim() || (entry.photos.length > 0 && !!entry.vendorName?.trim());
           return (
             <div className="flex items-stretch gap-2 mt-1">
               {onShare && (
@@ -2031,7 +2031,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           here so the user has commit + share colocated in the action
           area, rather than share floating up in the page header. */}
       {(() => {
-        const ready = !!entry.name?.trim();
+        const ready = !!entry.name?.trim() || (entry.photos.length > 0 && !!entry.vendorName?.trim());
         return (
           <div className="lg:hidden flex items-stretch gap-2 mt-1">
             {onShare && (

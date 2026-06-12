@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal, ArrowUpDown, ListChecks, ChevronRight } from 'lucide-react';
+import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal, ArrowUpDown, ListChecks, ChevronRight, Images } from 'lucide-react';
 import { CompareView } from './CompareView';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,12 +72,69 @@ const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: R
   </div>
 );
 
+// ─── Photo tile — the bag-shot view of an entry ──────────────────────────────
+// Image-led card for the Photos layout: capture photo (the bag), title or
+// vendor + date fallback, and a small inline note that saves on blur.
+
+const PhotoTile: React.FC<{
+  entry: TeaCompassEntry;
+  onOpen: (id: string) => void;
+  isSelected?: boolean;
+}> = ({ entry, onOpen, isSelected }) => {
+  const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const [note, setNote] = useState(entry.notes);
+  // Follow edits made elsewhere (detail panel, capture) into the local draft
+  React.useEffect(() => { setNote(entry.notes); }, [entry.notes]);
+
+  const photo = entry.photos.find(Boolean);
+  const dateLabel = new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fallbackTitle = [entry.vendorName, dateLabel].filter(Boolean).join(' · ') || 'Unnamed';
+  const title = entry.name.trim() || fallbackTitle;
+
+  return (
+    <div className={`rounded-xl bg-tea-surface/60 overflow-hidden ${isSelected ? 'ring-1 ring-tea-gold/40' : ''}`}>
+      <button type="button" onClick={() => onOpen(entry.id)} className="relative block w-full aspect-square">
+        {photo ? (
+          <img src={photo} alt={title} loading="lazy" className="w-full h-full object-cover" />
+        ) : (
+          <span className="w-full h-full flex items-center justify-center bg-tea-elevated px-3">
+            <span className="font-serif text-ui-13 text-tea-text-sec text-center leading-snug">{title}</span>
+          </span>
+        )}
+        {entry.isSample && (
+          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-tea-bg/80 text-tea-gold text-ui-9 uppercase tracking-[0.08em]">
+            Sample
+          </span>
+        )}
+      </button>
+      <div className="px-2.5 pt-2 pb-2.5 space-y-1">
+        <button type="button" onClick={() => onOpen(entry.id)} className="block w-full text-left">
+          <span className="block text-ui-12 text-tea-text font-medium truncate">{title}</span>
+        </button>
+        <span className="block text-ui-10 text-tea-text-dim truncate">
+          {[entry.vendorName, dateLabel].filter(Boolean).join(' · ')}
+        </span>
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => { if (note !== entry.notes) updateEntry(entry.id, { notes: note }); }}
+          placeholder="Add a note"
+          aria-label={`Note for ${title}`}
+          className="w-full bg-transparent text-ui-11 text-tea-text-sec placeholder:text-tea-text-dim outline-none
+                     focus:text-tea-text border-b border-transparent focus:border-tea-border pb-0.5 transition-colors"
+        />
+      </div>
+    </div>
+  );
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, surfaceVariant = 'classic' }) => {
   const isPlaybookSurface = surfaceVariant === 'playbook';
   const navigate = useNavigate();
-  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, removeEntry, updateEntry } = useTeaCompassStore();
+  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
@@ -431,6 +488,30 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     );
   };
 
+  // ─── Photos layout — grid of capture photos (bag shots) ──────────────────
+
+  const renderPhotos = (result: TeaCompassEntry[]) => {
+    if (result.length === 0) {
+      return (
+        <div className="py-10 text-center">
+          <p className="text-ui-13 text-tea-text-dim font-serif">Nothing here yet.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
+        {sortEntries(result).map((entry) => (
+          <PhotoTile
+            key={entry.id}
+            entry={entry}
+            onOpen={(id) => (onSelectEntry ?? onEditEntry)(id)}
+            isSelected={selectedEntryId === entry.id}
+          />
+        ))}
+      </div>
+    );
+  };
+
   // ─── Flat views (Want, Pass) ──────────────────────────────────────────────
 
   const renderFlat = (result: TeaCompassEntry[], emptyMessage: string) => {
@@ -572,6 +653,26 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             <span className={isPlaybookSurface ? '' : 'text-ui-11 font-medium'}>{SORT_LABELS[browseSort]}</span>
           )}
         </button>
+        {/* Photos layout toggle — swap the list for a grid of bag shots */}
+        <button
+          type="button"
+          onClick={() => setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos')}
+          className={isPlaybookSurface
+            ? `inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+                browseLayout === 'photos'
+                  ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                  : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+              }`
+            : `p-1.5 rounded-md transition-colors shrink-0 ${
+                browseLayout === 'photos' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface/60'
+              }`
+          }
+          title={browseLayout === 'photos' ? 'Back to list' : 'Photo view'}
+          aria-pressed={browseLayout === 'photos'}
+        >
+          <Images size={13} />
+          {isPlaybookSurface && <span>Photos</span>}
+        </button>
         <button
           type="button"
           onClick={() => { setCompareIds(new Set()); setCompareOpen(false); }}
@@ -708,14 +809,16 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
 
       {/* View */}
       {!searchQuery || filteredForView.length > 0 ? (
-        <>
-          {browseFilter === 'all'   && renderAll(filteredForView)}
-          {browseFilter === 'mine'  && renderMine(filteredForView)}
-          {browseFilter === 'queue' && renderQueue(filteredForView)}
-          {browseFilter === 'loved' && renderFlat(filteredForView, 'Nothing loved yet — sort a tasting to flag keepers.')}
-          {browseFilter === 'want'  && renderFlat(filteredForView, 'Nothing on your want list yet.')}
-          {browseFilter === 'pass'  && renderFlat(filteredForView, 'Nothing passed — every tea still has a chance.')}
-        </>
+        browseLayout === 'photos' ? renderPhotos(filteredForView) : (
+          <>
+            {browseFilter === 'all'   && renderAll(filteredForView)}
+            {browseFilter === 'mine'  && renderMine(filteredForView)}
+            {browseFilter === 'queue' && renderQueue(filteredForView)}
+            {browseFilter === 'loved' && renderFlat(filteredForView, 'Nothing loved yet — sort a tasting to flag keepers.')}
+            {browseFilter === 'want'  && renderFlat(filteredForView, 'Nothing on your want list yet.')}
+            {browseFilter === 'pass'  && renderFlat(filteredForView, 'Nothing passed — every tea still has a chance.')}
+          </>
+        )
       ) : null}
 
       {/* Compare view — full-screen panel */}

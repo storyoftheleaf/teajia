@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort } from '../components/TeaCompass/types';
+import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout } from '../components/TeaCompass/types';
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 
@@ -23,6 +23,7 @@ interface TeaCompassState {
   browseGrouping: BrowseGrouping;
   browseFilter: BrowseFilter;
   browseSort: BrowseSort;
+  browseLayout: BrowseLayout;
 
   // Capture session — entries created in one contiguous run share this id.
   // A fresh id is minted when a capture starts after SESSION_GAP_MS of idle,
@@ -57,6 +58,7 @@ interface TeaCompassState {
   setBrowseGrouping: (grouping: BrowseGrouping) => void;
   setBrowseFilter: (filter: BrowseFilter) => void;
   setBrowseSort: (sort: BrowseSort) => void;
+  setBrowseLayout: (layout: BrowseLayout) => void;
 
   // Discard a pending capture without saving. For committed entries being re-edited, just exits the session.
   discardEntry: (id: string) => void;
@@ -98,6 +100,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       browseGrouping: 'date',
       browseFilter: 'all',
       browseSort: 'recent',
+      browseLayout: 'list',
       currentSessionId: null,
       lastCaptureAt: null,
       shippingRatePerKg: 0,
@@ -227,6 +230,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       setBrowseGrouping: (grouping) => set({ browseGrouping: grouping }),
       setBrowseFilter: (filter) => set({ browseFilter: filter }),
       setBrowseSort: (sort) => set({ browseSort: sort }),
+      setBrowseLayout: (layout) => set({ browseLayout: layout }),
 
       getEntry: (id) => {
         const state = get();
@@ -252,6 +256,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         browseGrouping: state.browseGrouping,
         browseFilter: state.browseFilter,
         browseSort: state.browseSort,
+        browseLayout: state.browseLayout,
         currentSessionId: state.currentSessionId,
         lastCaptureAt: state.lastCaptureAt,
         shippingRatePerKg: state.shippingRatePerKg,

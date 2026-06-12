@@ -602,8 +602,11 @@ const TastingNotesEditor: React.FC<{
 };
 
 // Slot index → stable R2 slot key the worker uses for in-place writes.
-const SLOT_KEYS = ['main', '1', '2'] as const;
+// Slot 3 is the bag photo: the capture-time bag shot keeps its own slot so
+// product photo edits never displace it. Replaceable, but not removable.
+const SLOT_KEYS = ['main', '1', '2', 'bag'] as const;
 type SlotKey = typeof SLOT_KEYS[number];
+const BAG_SLOT = 3;
 
 export const ImageManager = ({ product, onUpdate }: {
   product: Product; onUpdate: (field: keyof Product, value: any) => void;
@@ -619,10 +622,13 @@ export const ImageManager = ({ product, onUpdate }: {
 
   const images = [product.imageUrl || '', ...(product.additionalImages || [])].slice(0, 3);
   while (images.length < 3) images.push('');
+  images.push(product.bagPhotoUrl || '');
 
   const writeSlot = (slotIndex: number, url: string) => {
     if (slotIndex === 0) {
       onUpdate('imageUrl', url);
+    } else if (slotIndex === BAG_SLOT) {
+      onUpdate('bagPhotoUrl' as keyof Product, url);
     } else {
       const additional = [...(product.additionalImages || [])];
       additional[slotIndex - 1] = url;
@@ -697,6 +703,7 @@ export const ImageManager = ({ product, onUpdate }: {
 
   const handleRemove = (slotIndex: number) => {
     setOpenMenu(null);
+    if (slotIndex === BAG_SLOT) return; // bag photo can be replaced, never removed
     if (slotIndex === 0) onUpdate('imageUrl', '');
     else {
       const additional = [...(product.additionalImages || [])];
@@ -726,7 +733,7 @@ export const ImageManager = ({ product, onUpdate }: {
     }
   };
 
-  const slotLabels = ['Primary', 'Second', 'Third'];
+  const slotLabels = ['Primary', 'Second', 'Third', 'Bag'];
   return (
     <>
       <div className="flex gap-2">
@@ -735,7 +742,11 @@ export const ImageManager = ({ product, onUpdate }: {
             {img ? (
               <>
                 <img src={img} alt={slotLabels[i]} className="w-full h-full object-cover rounded-md" loading="lazy" />
-                <span aria-hidden="true" className="absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-ui-10 font-serif tabular-nums flex items-center justify-center">{i + 1}</span>
+                {i === BAG_SLOT ? (
+                  <span aria-hidden="true" className="absolute top-1 left-1 px-1.5 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-ui-9 font-serif uppercase tracking-[0.08em] flex items-center justify-center">Bag</span>
+                ) : (
+                  <span aria-hidden="true" className="absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg/80 text-tea-text-dim text-ui-10 font-serif tabular-nums flex items-center justify-center">{i + 1}</span>
+                )}
 
                 {justUploadedSlot === i ? (
                   <div className="absolute inset-0 rounded-md bg-tea-bg/70 flex items-center justify-center pointer-events-none">
@@ -780,8 +791,12 @@ export const ImageManager = ({ product, onUpdate }: {
                             disabled={!hasOpenAIKey}
                             hint={hasOpenAIKey ? undefined : 'Add OpenAI key'}
                           />
-                          <div className="my-1 border-t border-tea-border" />
-                          <SlotMenuItem icon={Trash2} label="Remove" onClick={() => handleRemove(i)} destructive />
+                          {i !== BAG_SLOT && (
+                            <>
+                              <div className="my-1 border-t border-tea-border" />
+                              <SlotMenuItem icon={Trash2} label="Remove" onClick={() => handleRemove(i)} destructive />
+                            </>
+                          )}
                         </div>
                       </>
                     )}
@@ -900,6 +915,7 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'lowStockThreshold': return { low_stock_threshold: Number(value) };
     case 'costCurrency': return { cost_currency: value };
     case 'additionalImages': return { additional_images: JSON.stringify(value || []) };
+    case 'bagPhotoUrl': return { bag_photo_url: value || null };
     default: return null;
   }
 }
