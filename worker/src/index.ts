@@ -5383,9 +5383,11 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   const mimeType = file.type || 'image/jpeg';
 
-  // Also upload to R2 so the draft product has an image (account-partitioned)
+  // Also upload to R2 so the draft product has an image (account-partitioned).
+  // Skipped when the caller already uploaded the photo via /api/upload-image.
+  const skipUpload = formData.get('skip_upload') === '1';
   let imageUrl = '';
-  if (env.MEDIA_BUCKET) {
+  if (env.MEDIA_BUCKET && !skipUpload) {
     const ext = file.name.split('.').pop() || 'jpg';
     const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
     await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
