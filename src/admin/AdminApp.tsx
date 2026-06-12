@@ -93,7 +93,7 @@ import { IntakeWorkspace } from './views/IntakeWorkspace';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
 import { TeaCompass } from '../components/TeaCompass';
-import type { CompassMode, CompassSurfaceVariant } from '../components/TeaCompass';
+import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
@@ -119,7 +119,7 @@ import { AddToCartModal } from './components/AddToCartModal';
 import { AddProductModal } from './components/AddProductModal';
 
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
-const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSurfaceVariant }> = ({ onBack, surfaceVariant = 'playbook' }) => {
+const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [params] = useSearchParams();
   const tab = params.get('tab');
   const entryId = params.get('entry');
@@ -146,7 +146,6 @@ const CompassWithMode: React.FC<{ onBack: () => void; surfaceVariant?: CompassSu
       initialMode={initialMode}
       initialEntryId={entryId || undefined}
       initialCaptureOption={initialCaptureOption}
-      surfaceVariant={surfaceVariant}
     />
   );
 };
@@ -662,7 +661,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="compass-current" element={
                 <ProtectedRoute hasAccess={hasCatalogBundle} isLoggingIn={isLoginOpen || !isLoggedIn}>
                   <PageTransition>
-                    <CompassWithMode onBack={() => navigate(-1)} surfaceVariant="classic" />
+                    <CompassWithMode onBack={() => navigate(-1)} />
                   </PageTransition>
                 </ProtectedRoute>
               } />

@@ -3,7 +3,6 @@ import { ChevronDown, Minus, Plus } from 'lucide-react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
-import type { CompassSurfaceVariant } from './index';
 
 /**
  * PricingRow — the shared "what does this cost and how much of it"
@@ -61,7 +60,6 @@ export type PricingRowUnit =
     };
 
 interface PricingRowProps {
-  surfaceVariant?: CompassSurfaceVariant;
   priceAmount?: number;
   priceCurrency: Currency;
   onPriceChange: (amount: number | undefined) => void;
@@ -70,7 +68,6 @@ interface PricingRowProps {
 }
 
 export const PricingRow: React.FC<PricingRowProps> = ({
-  surfaceVariant = 'classic',
   priceAmount,
   priceCurrency,
   onPriceChange,
@@ -78,10 +75,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   unit,
 }) => {
   const [formSheetOpen, setFormSheetOpen] = useState(false);
-  const isPlaybookSurface = surfaceVariant === 'playbook';
-  const inputShellClass = isPlaybookSurface
-    ? 'bg-tea-bg rounded-md border border-tea-border focus-within:border-tea-gold/40'
-    : 'bg-tea-gold/[0.06] rounded-xl border border-tea-border focus-within:border-tea-gold/40';
+  const inputShellClass = 'bg-tea-bg rounded-md border border-tea-border focus-within:border-tea-gold/40';
 
   const handlePriceInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,7 +114,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
             style={noSpinnerStyle}
-            className={isPlaybookSurface ? 'flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none' : 'flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'}
+            className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             aria-label="Price"
           />
         </div>
@@ -140,7 +134,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                   unit.onGramsChange(val === '' ? undefined : Number(val));
                 }}
                 style={noSpinnerStyle}
-                className={isPlaybookSurface ? 'flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none' : 'flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-sec/70 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'}
+                className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 aria-label="Grams"
               />
               <span
@@ -156,13 +150,9 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                 type="button"
                 onClick={() => setFormSheetOpen(true)}
                 className={`flex-1 min-w-0 flex items-center justify-between gap-1 px-3 py-2.5 border transition-colors ${
-                  isPlaybookSurface
-                    ? unit.form
-                      ? 'rounded-md bg-tea-accent-sub border-tea-gold/30 text-tea-text font-medium'
-                      : 'rounded-md bg-tea-bg border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text hover:border-tea-gold/30'
-                    : unit.form
-                      ? 'rounded-xl bg-tea-gold/[0.10] border-tea-gold/40 text-tea-gold font-semibold'
-                      : 'rounded-xl bg-tea-gold/[0.06] border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40'
+                  unit.form
+                    ? 'rounded-md bg-tea-accent-sub border-tea-gold/30 text-tea-text font-medium'
+                    : 'rounded-md bg-tea-bg border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text hover:border-tea-gold/30'
                 }`}
                 aria-label="Tea form"
               >
@@ -173,7 +163,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           </>
         ) : (
           <div
-            className={`shrink-0 flex items-stretch ${isPlaybookSurface ? 'bg-tea-bg rounded-md border border-tea-border' : 'bg-tea-gold/[0.06] rounded-xl border border-tea-border'}`}
+            className="shrink-0 flex items-stretch bg-tea-bg rounded-md border border-tea-border"
             aria-label={`Quantity: ${unit.quantity} count`}
           >
             <button

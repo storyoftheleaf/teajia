@@ -27,7 +27,6 @@ import type { ExtractedTeaData } from './PhotoCapture';
 import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
-import type { CompassSurfaceVariant } from './index';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -63,7 +62,6 @@ interface CaptureCardProps {
    *  CTA so the user has share + commit colocated in the action area
    *  (rather than share floating up in the page header). */
   onShare?: () => void;
-  surfaceVariant?: CompassSurfaceVariant;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -166,40 +164,27 @@ const EntryMark: React.FC<{
   active: boolean;
   onClick: () => void;
   ariaLabel?: string;
-  surfaceVariant?: CompassSurfaceVariant;
-}> = ({ icon, label, description, active, onClick, ariaLabel, surfaceVariant = 'classic' }) => (
+}> = ({ icon, label, description, active, onClick, ariaLabel }) => (
   <button
     type="button"
     onClick={onClick}
     aria-pressed={active}
     aria-label={ariaLabel || label}
-    className={surfaceVariant === 'playbook'
-      ? `group relative flex flex-col items-start justify-start gap-1 min-h-[76px] px-3 py-3 rounded-md border text-left transition-all duration-200 ${
-          active
-            ? 'bg-tea-accent-sub border-tea-gold/30 text-tea-text'
-            : 'bg-tea-bg border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-        }`
-      : `group relative flex flex-col items-center justify-center gap-1 min-h-[60px] px-1 py-2 rounded-md border text-ui-12 font-medium transition-all duration-200 ${
-          active
-            ? 'bg-tea-gold/10 border-tea-gold/40 text-tea-gold'
-            : 'bg-tea-elevated/60 border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
-        }`
-    }
+    className={`group relative flex flex-col items-start justify-start gap-1 min-h-[76px] px-3 py-3 rounded-md border text-left transition-all duration-200 ${
+      active
+        ? 'bg-tea-accent-sub border-tea-gold/30 text-tea-text'
+        : 'bg-tea-bg border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+    }`}
   >
-    <span className={surfaceVariant === 'playbook' ? 'pointer-events-none flex items-center gap-2 text-ui-13 font-medium' : 'pointer-events-none'}>
+    <span className="pointer-events-none flex items-center gap-2 text-ui-13 font-medium">
       {icon}
-      {surfaceVariant === 'playbook' && <span>{label}</span>}
+      <span>{label}</span>
     </span>
-    {surfaceVariant === 'playbook' ? (
-      <span className="pointer-events-none text-ui-11 leading-[1.35] text-tea-text-sec">{description}</span>
-    ) : (
-      <span className="leading-none whitespace-nowrap pointer-events-none">{label}</span>
-    )}
+    <span className="pointer-events-none text-ui-11 leading-[1.35] text-tea-text-sec">{description}</span>
   </button>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, surfaceVariant = 'classic' }) => {
-  const isPlaybookSurface = surfaceVariant === 'playbook';
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -697,29 +682,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   if (!entry) return null;
 
-  const shellClass = isPlaybookSurface
-    ? 'bg-tea-surface border border-tea-border rounded-md p-5 md:p-6 space-y-5'
-    : 'bg-tea-surface border border-tea-border rounded-xl px-4 py-4 space-y-4';
-  const sourceShellClass = isPlaybookSurface
-    ? 'rounded-md border border-tea-border bg-tea-bg px-3 py-3'
-    : 'rounded-xl border border-tea-border bg-tea-gold/[0.025] px-3 py-2.5';
-  const fieldClass = isPlaybookSurface
-    ? 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim'
-    : 'bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70';
-  const tallFieldClass = isPlaybookSurface
-    ? 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim'
-    : 'bg-tea-gold/[0.06] text-tea-text text-base rounded-xl px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-sec/70';
-  const selectClass = (selected: boolean) => isPlaybookSurface
-    ? `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
-        selected
-          ? 'text-tea-text font-medium bg-tea-accent-sub'
-          : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
-      }`
-    : `shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm border border-tea-border transition-colors ${
-        selected
-          ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
-          : 'text-tea-text-sec font-medium bg-tea-elevated hover:text-tea-text hover:bg-tea-gold/[0.10]'
-      }`;
+  const shellClass = 'bg-tea-surface border border-tea-border rounded-md p-5 md:p-6 space-y-5';
+  const sourceShellClass = 'rounded-md border border-tea-border bg-tea-bg px-3 py-3';
+  const fieldClass = 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim';
+  const tallFieldClass = 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim';
+  const selectClass = (selected: boolean) =>
+    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
+      selected
+        ? 'text-tea-text font-medium bg-tea-accent-sub'
+        : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
+    }`;
 
   // ── Tasting overlay opener — hoisted so actionRef can reference it ──────
   const openTastingOverlay = () => {
@@ -747,7 +719,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       (v) => Array.isArray(v) ? v.length > 0 : v != null
     );
     return (
-      <div className={isPlaybookSurface ? 'bg-tea-surface border border-tea-border rounded-md px-4 py-3 space-y-2' : 'bg-tea-surface rounded-xl px-4 py-2.5 space-y-2'}>
+      <div className="bg-tea-surface border border-tea-border rounded-md px-4 py-3 space-y-2">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -767,12 +739,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => { setTastingOverlayOpen(true); }}
-            className={isPlaybookSurface
-              ? `shrink-0 rounded-md border border-tea-border p-2 transition-colors ${
-                  hasTastingC ? 'bg-tea-accent-sub text-tea-gold' : 'bg-tea-bg text-tea-text-dim hover:bg-tea-accent-sub hover:text-tea-text'
-                }`
-              : `shrink-0 p-2 rounded-xl transition-colors ${hasTastingC ? 'bg-tea-gold/10 text-tea-gold' : 'bg-tea-elevated text-tea-text-dim hover:text-tea-text'}`
-            }
+            className={`shrink-0 rounded-md border border-tea-border p-2 transition-colors ${
+              hasTastingC ? 'bg-tea-accent-sub text-tea-gold' : 'bg-tea-bg text-tea-text-dim hover:bg-tea-accent-sub hover:text-tea-text'
+            }`}
             title="Quick taste"
           >
             <Droplets size={14} strokeWidth={1.5} />
@@ -780,7 +749,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className={isPlaybookSurface ? 'shrink-0 rounded-md border border-tea-border bg-tea-bg p-2 text-tea-text-dim transition-colors hover:text-tea-text' : 'shrink-0 p-2 rounded-xl bg-tea-elevated text-tea-text-dim hover:text-tea-text transition-colors'}
+            className="shrink-0 rounded-md border border-tea-border bg-tea-bg p-2 text-tea-text-dim transition-colors hover:text-tea-text"
             title="Expand"
           >
             <ChevronDown size={14} />
@@ -1004,10 +973,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             with a faint gold inner glow and a subtle hairline between the
             vendor row and the photo row. Treats the two rows as one
             cohesive header rather than two stacked widgets. */}
-        <div
-          className={sourceShellClass}
-          style={isPlaybookSurface ? undefined : { boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.05)' }}
-        >
+        <div className={sourceShellClass}>
           {/* Photo counter floats top-right of the card when photos exist;
               otherwise the card opens directly with the vendor strip. The
               SOURCE label that used to sit on the left was removed —
@@ -1087,18 +1053,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   setMaterialPopoverOpen(true);
                   setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
                 }}
-                className={isPlaybookSurface
-                  ? `inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors ${
-                      entry.material
-                        ? 'text-tea-text font-medium bg-tea-accent-sub'
-                        : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
-                    }`
-                  : `inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors ${
-                      entry.material
-                        ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
-                        : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
-                    }`
-                }
+                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                  entry.material
+                    ? 'text-tea-text font-medium bg-tea-accent-sub'
+                    : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
+                }`}
               >
                 <span>{materialChipLabel}</span>
                 <ChevronDown size={13} />
@@ -1112,7 +1071,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={() => setClaySheetOpen(true)}
-                  className={isPlaybookSurface ? 'tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors' : 'tap-target inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-medium bg-tea-gold/[0.10] text-tea-gold border border-tea-gold/30 hover:bg-tea-gold/[0.14] transition-colors'}
+                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
                   aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
                 >
                   <span
@@ -1153,18 +1112,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setEraSheetOpen(true)}
-              className={isPlaybookSurface
-                ? `shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
-                    entry.era
-                      ? 'text-tea-text font-medium bg-tea-accent-sub'
-                      : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
-                  }`
-                : `shrink-0 inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
-                    entry.era
-                      ? 'text-tea-text font-semibold bg-tea-gold/[0.10]'
-                      : 'text-tea-text-sec font-medium bg-tea-gold/[0.06] hover:text-tea-text'
-                  }`
-              }
+              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
+                entry.era
+                  ? 'text-tea-text font-medium bg-tea-accent-sub'
+                  : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
+              }`}
             >
               <span>{entry.era || 'Era'}</span>
               <ChevronDown size={13} />
@@ -1370,7 +1322,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             row beneath. Volume (ml) lives elsewhere when teaware
             dimensions earn their place. */}
         <PricingRow
-          surfaceVariant={surfaceVariant}
           priceAmount={entry.priceAmount}
           priceCurrency={entry.priceCurrency || 'NT'}
           onPriceChange={(priceAmount) => update({ priceAmount })}
@@ -1406,7 +1357,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 description="Remember this for later."
                 active={isWantTeaware}
                 onClick={() => update({ status: isWantTeaware ? 'noted' : 'want' })}
-                surfaceVariant={surfaceVariant}
               />
             </div>
           );
@@ -1423,7 +1373,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={onShare}
-                  className={isPlaybookSurface ? 'shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text' : 'shrink-0 inline-flex items-center justify-center w-12 rounded-xl bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors'}
+                  className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
                   aria-label="Share this entry"
                   title="Share this entry"
                 >
@@ -1435,28 +1385,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 onClick={handleCommit}
                 disabled={!ready}
                 className={`flex-1 py-3.5 text-base font-semibold transition-all ${
-                  isPlaybookSurface
-                    ? ready
-                      ? 'rounded-md border border-tea-border bg-tea-bg text-tea-text hover:bg-tea-accent-sub'
-                      : 'rounded-md border border-tea-border bg-tea-bg text-tea-text-sec cursor-not-allowed'
-                    : ready
-                      ? 'rounded-xl text-tea-bg'
-                      : 'rounded-xl text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
+                  ready
+                    ? 'rounded-md border border-tea-border bg-tea-bg text-tea-text hover:bg-tea-accent-sub'
+                    : 'rounded-md border border-tea-border bg-tea-bg text-tea-text-sec cursor-not-allowed'
                 }`}
-                style={
-                  isPlaybookSurface
-                    ? { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
-                    : ready
-                    ? {
-                        fontFamily: 'var(--font-display)',
-                        letterSpacing: '0.06em',
-                        background:
-                          'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
-                        boxShadow:
-                          '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
-                      }
-                    : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
-                }
+                style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
                 aria-label="Done — commit this entry"
               >
                 Done
@@ -1528,10 +1461,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           open with an identical vendor + photo cluster. Photo strip uses
           the lg size so thumbnails render at full visibility, and the
           right-side counter mirrors what Teaware shows. */}
-      <div
-        className={sourceShellClass}
-        style={isPlaybookSurface ? undefined : { boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.05)' }}
-      >
+      <div className={sourceShellClass}>
           {/* Photo counter floats top-right of the card when photos exist;
               otherwise the card opens directly with the vendor strip. The
               SOURCE label that used to sit on the left was removed —
@@ -1594,14 +1524,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className={isPlaybookSurface
-              ? 'shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-bg text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors'
-              : 'shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium bg-tea-elevated text-tea-text-sec border border-tea-border hover:bg-tea-gold/[0.1] hover:text-tea-text active:bg-tea-gold/[0.14] transition-colors'
-            }
-            style={entry.type && !isPlaybookSurface ? {
-              backgroundColor: getTypeChipStyle(entry.type).bg,
-              color: getTypeChipStyle(entry.type).text,
-            } : undefined}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-bg text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors"
           >
             <span>{entry.type || 'Type'}</span>
             <ChevronDown size={14} />
@@ -1627,52 +1550,34 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           title="Tea type"
           description="What kind of tea is this?"
         >
-          <div className={isPlaybookSurface ? 'grid grid-cols-1 gap-2 px-1 sm:grid-cols-2' : 'flex flex-col gap-0.5 px-1'}>
+          <div className="grid grid-cols-1 gap-2 px-1 sm:grid-cols-2">
             {TEA_TYPES.map((type) => {
               const chipStyle = getTypeChipStyle(type);
               const selected = entry.type === type;
-              if (isPlaybookSurface) {
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => handleTypeSelect(type)}
-                    className={`flex min-h-[76px] items-start gap-3 rounded-md border px-3 py-3 text-left transition-colors ${
-                      selected
-                        ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
-                        : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-                    }`}
-                  >
-                    <span
-                      className="mt-1 block h-3 w-3 rounded-full shrink-0"
-                      style={{ backgroundColor: chipStyle.text }}
-                      aria-hidden
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-ui-13 font-medium">{type}</span>
-                      <span className="mt-1 block text-ui-11 leading-[1.35] text-tea-text-sec">
-                        {TEA_TYPE_DESCRIPTIONS[type]}
-                      </span>
-                    </span>
-                    {selected && <Check size={13} className="ml-auto mt-0.5 shrink-0 text-tea-gold" />}
-                  </button>
-                );
-              }
               return (
-                <SheetOption
+                <button
                   key={type}
-                  label={type}
-                  hint={TEA_TYPE_DESCRIPTIONS[type]}
-                  selected={entry.type === type}
-                  leading={
-                    <span
-                      className="block w-3 h-3 rounded-full"
-                      style={{ backgroundColor: chipStyle.text }}
-                      aria-hidden
-                    />
-                  }
-                  onSelect={() => handleTypeSelect(type)}
-                />
+                  type="button"
+                  onClick={() => handleTypeSelect(type)}
+                  className={`flex min-h-[76px] items-start gap-3 rounded-md border px-3 py-3 text-left transition-colors ${
+                    selected
+                      ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                      : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+                  }`}
+                >
+                  <span
+                    className="mt-1 block h-3 w-3 rounded-full shrink-0"
+                    style={{ backgroundColor: chipStyle.text }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-ui-13 font-medium">{type}</span>
+                    <span className="mt-1 block text-ui-11 leading-[1.35] text-tea-text-sec">
+                      {TEA_TYPE_DESCRIPTIONS[type]}
+                    </span>
+                  </span>
+                  {selected && <Check size={13} className="ml-auto mt-0.5 shrink-0 text-tea-gold" />}
+                </button>
               );
             })}
           </div>
@@ -1707,7 +1612,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         <div className="border-t border-tea-border" />
 
         <PricingRow
-          surfaceVariant={surfaceVariant}
           priceAmount={entry.priceAmount}
           priceCurrency={entry.priceCurrency}
           onPriceChange={(priceAmount) => update({ priceAmount })}
@@ -1974,14 +1878,13 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       {/* Mobile entry marks — primary action row, sized to read as a
           first-class control surface (not a status chip strip). */}
-      <div className={isPlaybookSurface ? 'lg:hidden grid grid-cols-2 gap-2' : 'lg:hidden grid grid-cols-4 gap-1.5'}>
+      <div className="lg:hidden grid grid-cols-2 gap-2">
         <EntryMark
           icon={<Droplets size={18} strokeWidth={1.5} />}
           label={hasTasting ? 'Tasted' : 'Taste'}
           description="Start tasting notes."
           active={!!hasTasting}
           onClick={openTastingOverlay}
-          surfaceVariant={surfaceVariant}
         />
         <EntryMark
           icon={isWant ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
@@ -1989,7 +1892,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           description="Remember this for later."
           active={isWant}
           onClick={() => update({ status: isWant ? 'noted' : 'want' })}
-          surfaceVariant={surfaceVariant}
         />
         <EntryMark
           icon={<ShoppingCart size={18} />}
@@ -2001,7 +1903,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             if (!showBuyPicker) setBuyingQty(defaultQty);
             setShowBuyPicker((v) => !v);
           }}
-          surfaceVariant={surfaceVariant}
         />
         <EntryMark
           icon={<FlaskConical size={18} strokeWidth={1.5} />}
@@ -2026,7 +1927,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               update({ isSample: true });
             }
           }}
-          surfaceVariant={surfaceVariant}
         />
       </div>
 
@@ -2042,7 +1942,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               <button
                 type="button"
                 onClick={onShare}
-                  className={isPlaybookSurface ? 'shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text' : 'shrink-0 inline-flex items-center justify-center w-12 rounded-xl bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-gold hover:border-tea-gold/40 transition-colors'}
+                className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
                 aria-label="Share this entry"
                 title="Share this entry"
               >
@@ -2054,28 +1954,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               onClick={handleCommit}
               disabled={!ready}
               className={`flex-1 py-3.5 text-base font-semibold transition-all ${
-                isPlaybookSurface
-                  ? ready
-                    ? 'rounded-md border border-tea-border bg-tea-bg text-tea-text hover:bg-tea-accent-sub'
-                    : 'rounded-md border border-tea-border bg-tea-bg text-tea-text-sec cursor-not-allowed'
-                  : ready
-                    ? 'rounded-xl text-tea-bg'
-                    : 'rounded-xl text-tea-text-sec bg-tea-elevated border border-tea-border cursor-not-allowed'
+                ready
+                  ? 'rounded-md border border-tea-border bg-tea-bg text-tea-text hover:bg-tea-accent-sub'
+                  : 'rounded-md border border-tea-border bg-tea-bg text-tea-text-sec cursor-not-allowed'
               }`}
-              style={
-                isPlaybookSurface
-                  ? { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
-                  : ready
-                  ? {
-                      fontFamily: 'var(--font-display)',
-                      letterSpacing: '0.06em',
-                      background:
-                        'linear-gradient(180deg, rgb(var(--tea-gold-rgb)) 0%, rgb(var(--tea-gold-lt-rgb)) 100%)',
-                      boxShadow:
-                        '0 4px 14px -2px rgb(var(--tea-gold-rgb) / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.12)',
-                    }
-                  : { fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }
-              }
+              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
               aria-label="Done — commit this entry"
             >
               Done
