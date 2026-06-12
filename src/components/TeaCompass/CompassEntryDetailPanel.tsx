@@ -3,6 +3,7 @@ import { ArrowRight, BookmarkCheck, BookmarkPlus, Store, X } from 'lucide-react'
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { getDateGroup } from './BrowseCard';
+import { entryDisplayTitle } from './types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 
 interface CompassEntryDetailPanelProps {
@@ -90,7 +91,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           </button>
         </div>
         <h2 className="font-serif text-xl text-tea-text leading-snug mt-3">
-          {entry.name || <span className="italic text-tea-text-dim">Untitled</span>}
+          {entry.name || <span className="text-tea-text-sec">{entryDisplayTitle(entry)}</span>}
         </h2>
         {entry.chineseName && (
           <p

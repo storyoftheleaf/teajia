@@ -2011,6 +2011,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           onClick={() => {
             if (sampleCartHas) {
               removeSampleCartItem(entryId);
+              update({ isSample: false });
             } else {
               addSampleCartItem({
                 id: entryId,
@@ -2020,6 +2021,9 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                 vendorName: entry.vendorName,
                 compassEntryId: entryId,
               });
+              // Mark the entry itself so the library's Queue (which keys on
+              // isSample) tracks it — the cart alone is invisible to Browse.
+              update({ isSample: true });
             }
           }}
           surfaceVariant={surfaceVariant}

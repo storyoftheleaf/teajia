@@ -1658,6 +1658,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           if (!activeEntryId || !activeEntry) return;
                           if (captureEntryInCart) {
                             removeSampleCartItem(activeEntryId);
+                            updateEntry(activeEntryId, { isSample: false });
                           } else {
                             addSampleCartItem({
                               id: activeEntryId,
@@ -1667,6 +1668,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               vendorName: activeEntry.vendorName,
                               compassEntryId: activeEntryId,
                             });
+                            // Mark the entry too — the library Queue keys on
+                            // isSample; the cart alone is invisible to Browse.
+                            updateEntry(activeEntryId, { isSample: true });
                           }
                         }}
                         className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
