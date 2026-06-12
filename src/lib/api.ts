@@ -1032,9 +1032,12 @@ export const api = {
     });
   },
 
-  extractFromImage: async (file: File) => {
+  extractFromImage: async (file: File, opts?: { skipUpload?: boolean }) => {
     const formData = new FormData();
     formData.append('file', file);
+    // Callers that already uploaded the photo themselves set skipUpload so
+    // the extract endpoint doesn't write a duplicate R2 object.
+    if (opts?.skipUpload) formData.append('skip_upload', '1');
     const token = localStorage.getItem('teajia_token');
     const res = await fetchWithTimeout(`${API_URL}/api/extract-from-image`, {
       method: 'POST',

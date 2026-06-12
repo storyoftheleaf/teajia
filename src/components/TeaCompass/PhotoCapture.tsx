@@ -195,7 +195,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
       const [imageUrl, result] = await Promise.all([
         api.uploadImage(file).catch(() => null),
-        api.extractFromImage(file).catch(() => null),
+        // uploadImage already stores the photo — skip the extract endpoint's
+        // own R2 write so each scan stores one object, not two.
+        api.extractFromImage(file, { skipUpload: true }).catch(() => null),
       ]);
 
       if (imageUrl) setCapturedImageUrl(imageUrl);
@@ -254,6 +256,20 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         if (onPhotoReplaced) onPhotoReplaced(localUrl, imageUrl);
         setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== localUrl));
         URL.revokeObjectURL(localUrl);
+
+        // Gallery-added photos get the same label read as the scanner.
+        // Fire-and-forget: the form fills only empty fields the user hasn't
+        // touched (handleExtracted's contract), so a wrong read costs nothing.
+        api.extractFromImage(compressedFile, { skipUpload: true })
+          .then((result) => {
+            if (!result) return;
+            const parsed = parseExtractResult(result as Record<string, any>);
+            if (Object.keys(parsed).length > 0) {
+              onExtracted(parsed);
+              setJustExtracted(true);
+            }
+          })
+          .catch(() => { /* photo is already saved — a failed read is fine */ });
       } else {
         // Upload failed — never persist a blob: URL into the entry (it dies on
         // refresh and syncs a broken link). Surface a retry/dismiss instead.
