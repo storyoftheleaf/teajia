@@ -21,6 +21,8 @@ export type TeawareEra = string;
 export type BrowseGrouping = 'date' | 'vendor';
 export type BrowseFilter = 'all' | 'mine' | 'queue' | 'loved' | 'want' | 'pass';
 export type BrowseSort = 'recent' | 'score' | 'price' | 'name';
+// Library layout — list rows, or a grid of the capture photos (bag shots)
+export type BrowseLayout = 'list' | 'photos';
 // Post-tasting verdict — the single organizing signal used by the triage
 // review. Generalizes the sample-only sampleVerdict (kept as a read fallback).
 export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';

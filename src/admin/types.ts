@@ -50,6 +50,7 @@ export interface Product {
   mood?: string; // e.g. "Grounding & Meditative"
   experience?: string; // e.g. "A deeply centering tea..."
   additionalImages?: string[]; // Extra photos (different angles, detail shots)
+  bagPhotoUrl?: string; // Original bag shot from capture — kept apart from product imagery so it's never displaced; replaceable deliberately
   // Teaware-specific fields (null/undefined for tea)
   material?: string; // e.g. "Yixing clay", "porcelain", "silver"
   capacityMl?: number; // Vessel capacity in ml

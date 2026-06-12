@@ -2159,7 +2159,7 @@ const PRODUCT_UPDATE_COLUMNS = new Set([
   'is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated',
   'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
   'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
-  'additional_images', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
+  'additional_images', 'bag_photo_url', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
   'in_transit_grams', 'in_transit_eta',
   'tasting', 'tasting_source',
   'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
@@ -2173,7 +2173,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
-  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'quantity_units',
+  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
   'tea_key', 'source_compass_entry_id',
 ]);
 
@@ -5231,7 +5231,7 @@ const handleUploadImage: Handler = async (request, env) => {
 
   const productId = (formData.get('product_id') as string | null)?.trim() || '';
   const slotRaw = (formData.get('slot') as string | null)?.trim() || '';
-  const allowedSlots = new Set(['main', '1', '2']);
+  const allowedSlots = new Set(['main', '1', '2', 'bag']);
 
   // Stable key path — only when both inputs are provided and well-formed.
   let key: string;
@@ -5284,8 +5284,8 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
 
   const body = await request.json().catch(() => ({})) as { slot?: string; prompt?: string };
   const slot = (body.slot || 'main').trim();
-  if (!['main', '1', '2'].includes(slot)) {
-    return json({ error: 'Invalid slot (expected main, 1, or 2)' }, 400);
+  if (!['main', '1', '2', 'bag'].includes(slot)) {
+    return json({ error: 'Invalid slot (expected main, 1, 2, or bag)' }, 400);
   }
   const prompt = (body.prompt || 'Studio-quality product photograph on a clean neutral background. Preserve colors, label, and shape exactly. No added decorations.').slice(0, 1000);
 
@@ -7694,11 +7694,24 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   }
 
   const isTeaware = entry.category === 'teaware';
-  const name = (entry.name as string | null)?.trim();
-  if (!name) return json({ error: 'Cannot promote: entry has no name' }, 400);
 
   let photos: string[] = [];
   try { photos = entry.photos ? JSON.parse(entry.photos) : []; } catch { photos = []; }
+
+  // Photo + vendor is a complete capture; the name can come later. Auto-name
+  // from vendor + capture date so the record can enter the library unnamed.
+  let name = (entry.name as string | null)?.trim();
+  if (!name) {
+    const vendor = (entry.vendor_name as string | null)?.trim();
+    if (!vendor && photos.length === 0) {
+      return json({ error: 'Cannot promote: entry needs a name, or a photo + vendor' }, 400);
+    }
+    const captured = new Date((entry.created_at as string) || Date.now());
+    const dateLabel = isNaN(captured.getTime())
+      ? ''
+      : captured.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    name = [vendor, dateLabel].filter(Boolean).join(' · ') || 'Unnamed tea';
+  }
   const tasting = entry.tasting; // already a JSON string in storage
 
   const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');
@@ -7726,6 +7739,9 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     description: null,
     image_url: photos[0] ?? null,
     additional_images: JSON.stringify(photos.slice(1)),
+    // The bag shot from capture keeps its own slot so later product photo
+    // edits never lose it. Replaceable deliberately, never displaced.
+    bag_photo_url: photos[0] ?? null,
     status: 'Draft',
     vendor: entry.vendor_name ?? null,
     vendor_id: vendorId,

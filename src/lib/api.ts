@@ -207,7 +207,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
   'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
   'material', 'capacity_ml', 'teaware_category', 'description', 'notes', 'tags', 'moods',
   'tasting_notes', 'brewing_notes', 'tasting', 'tasting_source', 'lore', 'processing_notes',
-  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'quantity_units',
+  'terroir', 'mood', 'experience', 'image_url', 'additional_images', 'bag_photo_url', 'quantity_units',
   'tea_key', 'source_compass_entry_id',
 ]);
 
@@ -721,7 +721,7 @@ export const api = {
     },
     enhanceImage: async (
       id: string,
-      slot: 'main' | '1' | '2',
+      slot: 'main' | '1' | '2' | 'bag',
       prompt?: string,
     ): Promise<{ url: string }> => {
       return authedFetch(`${API_URL}/api/products/${id}/enhance-image`, {
@@ -1065,7 +1065,7 @@ export const api = {
 
   uploadImage: async (
     file: File | Blob,
-    options?: { productId?: string; slot?: 'main' | '1' | '2'; filename?: string },
+    options?: { productId?: string; slot?: 'main' | '1' | '2' | 'bag'; filename?: string },
   ) => {
     const formData = new FormData();
     // Browsers default a Blob filename to "blob"; pass a real .jpg filename so
