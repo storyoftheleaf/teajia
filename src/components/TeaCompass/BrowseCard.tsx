@@ -9,6 +9,7 @@ import {
   Heart, ThumbsUp, Minus, ThumbsDown,
 } from 'lucide-react';
 import type { CompassVerdict } from './types';
+import { entryDisplayTitle } from './types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
@@ -148,7 +149,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
     const unitBased = (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
     addLineItem(txId, {
-      name: entry.name || 'Unnamed',
+      name: entry.name || entryDisplayTitle(entry),
       chineseName: entry.chineseName,
       type: entry.type,
       form: entry.form,
@@ -275,8 +276,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <div className="flex-1 min-w-0 space-y-0.5">
               {/* Name · Region · liquor color dot */}
               <div className="flex items-baseline gap-2 min-w-0">
-                <span className={`min-w-0 truncate text-sm font-serif ${hasName ? 'text-tea-text' : 'text-tea-text-dim italic'}`}>
-                  {hasName ? entry.name : 'Untitled'}
+                <span className={`min-w-0 truncate text-sm font-serif ${hasName ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+                  {entryDisplayTitle(entry)}
                 </span>
                 {entry.originRegion && (
                   <span className="text-ui-11 text-tea-text-sec truncate shrink-0">· {entry.originRegion}</span>

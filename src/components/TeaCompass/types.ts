@@ -347,6 +347,18 @@ export function isUntriaged(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleVerd
   return entryHasTasting(entry) && !entry.verdict && !entry.sampleVerdict && entry.status !== 'pass';
 }
 
+/** Display title for an entry anywhere a name is expected. Nameless entries
+ *  (photo + vendor captures) read as "Vendor · Jun 12" instead of a blank or
+ *  generic "Untitled", matching the auto-name they get when promoted. */
+export function entryDisplayTitle(entry: Pick<TeaCompassEntry, 'name' | 'vendorName' | 'createdAt'>): string {
+  if (entry.name.trim()) return entry.name;
+  const date = new Date(entry.createdAt);
+  const dateLabel = isNaN(date.getTime())
+    ? ''
+    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return [entry.vendorName, dateLabel].filter(Boolean).join(' · ') || 'Untitled';
+}
+
 export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: { vendorName?: string; vendorId?: string; priceCurrency?: Currency }): TeaCompassEntry {
   const now = new Date().toISOString();
   return {

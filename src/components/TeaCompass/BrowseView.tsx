@@ -10,7 +10,7 @@ import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
-import { isUntriaged } from './types';
+import { isUntriaged, entryDisplayTitle } from './types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import type { CompassSurfaceVariant } from './index';
 
@@ -88,8 +88,7 @@ const PhotoTile: React.FC<{
 
   const photo = entry.photos.find(Boolean);
   const dateLabel = new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const fallbackTitle = [entry.vendorName, dateLabel].filter(Boolean).join(' · ') || 'Unnamed';
-  const title = entry.name.trim() || fallbackTitle;
+  const title = entryDisplayTitle(entry);
 
   return (
     <div className={`rounded-xl bg-tea-surface/60 overflow-hidden ${isSelected ? 'ring-1 ring-tea-gold/40' : ''}`}>
