@@ -283,6 +283,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleSelectEntry = useCallback(
     (id: string) => {
       setActiveEntry(id);
+      setFromLibrary(true);
       setMode('sourcing');
     },
     [setActiveEntry]
