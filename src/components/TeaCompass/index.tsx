@@ -484,7 +484,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
 
   return (
-    <div className="flex flex-col relative lg:h-full bg-tea-bg">
+    <div className="flex flex-col relative h-full min-h-0 bg-tea-bg">
       {/* ── HEADER (single row prototype) ──
           [back] [Source ▾] [Tea/Teaware/Samples on sourcing] [share/sync]
 
@@ -543,7 +543,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               option so it reads at a glance. */}
           {mode === 'sourcing' && (
             <div className="flex-1 flex items-center min-w-0">
-              <div className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide">
+              <div className="inline-flex max-w-full flex-nowrap items-center gap-3 overflow-x-auto scrollbar-hide">
                 {([
                   { id: 'tea', label: 'Tea' },
                   { id: 'teaware', label: 'Teaware' },
@@ -555,7 +555,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       key={opt.id}
                       type="button"
                       onClick={() => handleCaptureOption(opt.id)}
-                      className={`shrink-0 whitespace-nowrap py-2.5 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
+                      className={`shrink-0 whitespace-nowrap px-1 py-2.5 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
                         active
                           ? 'text-tea-text border-b border-tea-gold'
                           : 'text-tea-text-sec hover:text-tea-text border-transparent'
