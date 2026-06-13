@@ -498,11 +498,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           scroll-up. Resets to revealed when the user is at the top. */}
       <div
         className={`shrink-0 overflow-hidden bg-tea-bg transition-[height,opacity] duration-200 ease-out lg:!h-auto lg:!opacity-100 ${
-          headerCollapsed ? 'h-0 opacity-0' : 'h-[44px] opacity-100'
+          headerCollapsed ? 'h-0 opacity-0' : 'h-[56px] opacity-100'
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
-        <div className="flex items-center gap-2 h-11 px-3 border-b border-tea-border" role="tablist">
+        <div className="flex items-center gap-2.5 h-14 px-4 border-b border-tea-border" role="tablist">
           <button
             type="button"
             onClick={onBack}
@@ -522,9 +522,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             onClick={() => setScreenSheetOpen(true)}
             aria-haspopup="menu"
             aria-expanded={screenSheetOpen}
-            className="inline-flex items-center gap-1.5 h-8 px-2 rounded-md text-ui-12 uppercase tracking-[0.15em] text-tea-text hover:bg-tea-accent-sub transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 h-9 px-2 rounded-md text-ui-13 uppercase tracking-[0.15em] text-tea-text hover:bg-tea-accent-sub transition-colors shrink-0"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" aria-hidden />
             <span>{currentTab?.label ?? 'Source'}</span>
             {currentTab?.badge != null && (
               <span className="text-tea-text-dim tabular-nums">({currentTab.badge})</span>
@@ -556,7 +555,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       key={opt.id}
                       type="button"
                       onClick={() => handleCaptureOption(opt.id)}
-                      className={`shrink-0 whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-[0.15em] border-b transition-colors ${
+                      className={`shrink-0 whitespace-nowrap py-2.5 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
                         active
                           ? 'text-tea-text border-b border-tea-gold'
                           : 'text-tea-text-sec hover:text-tea-text border-transparent'
