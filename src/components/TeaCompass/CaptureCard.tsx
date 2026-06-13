@@ -1356,12 +1356,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Notes — the footer Mic owns voice capture, so the in-textarea mic is hidden to avoid two mics in the same view. */}
+        {/* Notes — in-field mic dictates straight into the note; the footer Mic does whole-entry voice scan. */}
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
-          hideMic
         />
 
         {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
@@ -1752,7 +1751,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         compassEntryId={entry.id}
         teaKey={entry.teaKey ?? undefined}
         compact
-        hideMic
         hideTastingArtifacts
       />
 
