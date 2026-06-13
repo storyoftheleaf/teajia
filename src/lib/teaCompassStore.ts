@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout } from '../components/TeaCompass/types';
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
+import { api, hasToken } from './api';
 
 interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
@@ -138,13 +139,24 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           };
         }),
 
-      removeEntry: (id) =>
+      removeEntry: (id) => {
+        // Drop it from local state immediately so the UI responds at once...
+        const existed = get().entries.some((e) => e.id === id);
         set((state) => ({
           entries: state.entries.filter((e) => e.id !== id),
           pendingEntries: state.pendingEntries.filter((e) => e.id !== id),
           sessionEntryIds: state.sessionEntryIds.filter((sid) => sid !== id),
           activeEntryId: state.activeEntryId === id ? null : state.activeEntryId,
-        })),
+        }));
+        // ...then delete it on the server. Without this the row reappears from
+        // D1 on the next sync/refresh — the bug that made "Clean up" and the
+        // per-card delete look broken. Fired unconditionally for any committed
+        // entry: a row that never reached D1 just no-ops the DELETE (the
+        // worker's WHERE clause matches nothing), which is harmless.
+        if (existed && hasToken()) {
+          void api.compass.remove(id).catch(() => { /* already gone or offline — local removal stands */ });
+        }
+      },
 
       setActiveEntry: (id) => set({ activeEntryId: id }),
 

@@ -2,6 +2,10 @@
 
 ## Soon
 
+### Curate
+
+- [ ] Restyle the Curate capture screen into the Teajia editorial language (structure stays, skin changes) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-capture-restyle.md](todo/plans/curate-capture-restyle.md)
+
 ### MCP: Voice & Agent
 
 - [ ] **Verify iPhone login** — confirm the OAuth sign-in works on a real iPhone _(you · quick)_
