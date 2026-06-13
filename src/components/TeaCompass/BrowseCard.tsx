@@ -27,9 +27,6 @@ export interface BrowseCardProps {
   onEdit: (id: string) => void;
   /** Shows a queue/prioritise button — used in the To Taste filter */
   tasteQueueActive?: boolean;
-  /** Compare mode: whether this card is selected for comparison */
-  isCompareSelected?: boolean;
-  onToggleCompare?: (id: string) => void;
   /** Desktop: fires instead of expand-in-place when provided */
   onSelect?: (id: string) => void;
   /** Desktop: shows selection highlight on the card */
@@ -96,7 +93,7 @@ const VERDICT_CHIPS: { value: CompassVerdict; label: string; icon: React.ReactNo
 ];
 
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, isCompareSelected, onToggleCompare, onSelect, isSelected }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, onSelect, isSelected }) => {
   const navigate = useNavigate();
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -210,25 +207,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     <>
       <div
         className={`relative bg-tea-surface border border-tea-border rounded-xl overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
-        style={{
-          ...(isCompareSelected ? { outline: '2px solid var(--tea-gold)', outlineOffset: '-2px' } : {}),
-        }}
       >
-        {/* Compare select dot — shown when compare mode active */}
-        {onToggleCompare && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onToggleCompare(entry.id); }}
-            className={`absolute top-2 right-2 z-10 w-5 h-5 rounded-full border transition-colors flex items-center justify-center ${
-              isCompareSelected
-                ? 'bg-tea-gold border-tea-gold text-tea-bg'
-                : 'border-tea-border bg-tea-surface/80 text-transparent hover:border-tea-gold/50'
-            }`}
-            aria-label={isCompareSelected ? 'Deselect for compare' : 'Select for compare'}
-          >
-            {isCompareSelected && <Check size={10} strokeWidth={3} />}
-          </button>
-        )}
         {/* ── Tappable content area ── */}
         <button
           type="button"
@@ -276,11 +255,11 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <div className="flex-1 min-w-0 space-y-0.5">
               {/* Name · Region · liquor color dot */}
               <div className="flex items-baseline gap-2 min-w-0">
-                <span className={`min-w-0 truncate text-sm font-serif ${hasName ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+                <span className={`min-w-0 truncate text-ui-16 font-serif ${hasName ? 'text-tea-text' : 'text-tea-text-sec'}`}>
                   {entryDisplayTitle(entry)}
                 </span>
                 {entry.originRegion && (
-                  <span className="text-ui-11 text-tea-text-sec truncate shrink-0">· {entry.originRegion}</span>
+                  <span className="text-ui-12 text-tea-text-sec truncate shrink-0">· {entry.originRegion}</span>
                 )}
                 {liquorColorHex && (
                   <span
@@ -298,14 +277,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
               {/* Vendor — provenance group, right after Chinese name */}
               {entry.vendorName && (
-                <div className="flex items-center gap-1 text-ui-10 text-tea-text-dim">
-                  <Store size={10} />
+                <div className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
+                  <Store size={11} />
                   <span className="truncate">{entry.vendorName}</span>
                 </div>
               )}
 
               {/* Type · Year · Age · Price/gram */}
-              <p className="text-ui-10 text-tea-text-dim tabular-nums">
+              <p className="text-ui-12 text-tea-text-dim tabular-nums">
                 {[
                   getTypeLabel(entry),
                   entry.year && String(entry.year),
@@ -318,23 +297,23 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               {(rating != null || verdict || isBought || isWishlisted || isIncoming || isPassed) && (
                 <div className="flex items-center gap-2">
                   {rating != null && (
-                    <span className="text-ui-11 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
+                    <span className="text-ui-12 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
                       {rating}/10
                     </span>
                   )}
-                  {verdict === 'love' && <Heart size={11} className="text-tea-error" fill="currentColor" />}
-                  {verdict === 'like' && <ThumbsUp size={11} className="text-tea-gold" />}
+                  {verdict === 'love' && <Heart size={12} className="text-tea-error" fill="currentColor" />}
+                  {verdict === 'like' && <ThumbsUp size={12} className="text-tea-gold" />}
                   {isBought && (
-                    <span className="text-ui-10 text-tea-gold/70 font-medium">In Stock</span>
+                    <span className="text-ui-12 text-tea-gold/70 font-medium">In Stock</span>
                   )}
                   {isPassed && (
-                    <span className="text-ui-10 text-tea-text-dim font-medium">Passed</span>
+                    <span className="text-ui-12 text-tea-text-dim font-medium">Passed</span>
                   )}
                   {isWishlisted && !isBought && (
-                    <span className="text-ui-10 text-tea-text-dim font-medium">Wishlist</span>
+                    <span className="text-ui-12 text-tea-text-dim font-medium">Wishlist</span>
                   )}
                   {isIncoming && (
-                    <span className="text-ui-10 text-tea-accent-sub font-medium">Incoming</span>
+                    <span className="text-ui-12 text-tea-accent-sub font-medium">Incoming</span>
                   )}
                 </div>
               )}
@@ -343,7 +322,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               {!expanded && summaryTags.length > 0 && (
                 <div className="flex gap-1 flex-wrap">
                   {summaryTags.map((tag) => (
-                    <span key={tag} className="tag text-ui-10">{tag}</span>
+                    <span key={tag} className="tag text-ui-11">{tag}</span>
                   ))}
                 </div>
               )}

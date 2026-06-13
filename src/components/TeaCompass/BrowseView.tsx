@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, SplitSquareHorizontal, ArrowUpDown, ListChecks, ChevronRight, Images } from 'lucide-react';
-import { CompareView } from './CompareView';
+import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ArrowUpDown, ListChecks, ChevronRight, Images } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -60,12 +59,12 @@ function hasTastingData(e: TeaCompassEntry): boolean {
 
 const SectionHeader: React.FC<{ label: React.ReactNode; count: number; right?: React.ReactNode }> = ({ label, count, right }) => (
   <div className="flex items-center justify-between mb-2.5">
-    <span className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
+    <span className="text-ui-12 uppercase tracking-[0.15em] text-tea-text-sec font-medium font-serif">
       {label}
     </span>
     <span className="flex items-center gap-2">
       {right}
-      <span className="text-ui-10 text-tea-text-dim num">{count}</span>
+      <span className="text-ui-11 text-tea-text-dim num">{count}</span>
     </span>
   </div>
 );
@@ -99,16 +98,16 @@ const PhotoTile: React.FC<{
           </span>
         )}
         {entry.isSample && (
-          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-tea-bg/80 text-tea-gold text-ui-9 uppercase tracking-[0.08em]">
+          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-tea-bg/80 text-tea-gold text-ui-10 uppercase tracking-[0.08em]">
             Sample
           </span>
         )}
       </button>
       <div className="px-2.5 pt-2 pb-2.5 space-y-1">
         <button type="button" onClick={() => onOpen(entry.id)} className="block w-full text-left">
-          <span className="block text-ui-12 text-tea-text font-medium truncate">{title}</span>
+          <span className="block text-ui-14 text-tea-text font-medium truncate">{title}</span>
         </button>
-        <span className="block text-ui-10 text-tea-text-dim truncate">
+        <span className="block text-ui-12 text-tea-text-dim truncate">
           {[entry.vendorName, dateLabel].filter(Boolean).join(' · ')}
         </span>
         <input
@@ -118,7 +117,7 @@ const PhotoTile: React.FC<{
           onBlur={() => { if (note !== entry.notes) updateEntry(entry.id, { notes: note }); }}
           placeholder="Add a note"
           aria-label={`Note for ${title}`}
-          className="w-full bg-transparent text-ui-11 text-tea-text-sec placeholder:text-tea-text-dim outline-none
+          className="w-full bg-transparent text-ui-12 text-tea-text-sec placeholder:text-tea-text-dim outline-none
                      focus:text-tea-text border-b border-transparent focus:border-tea-border pb-0.5 transition-colors"
         />
       </div>
@@ -132,8 +131,6 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const navigate = useNavigate();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
-  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
-  const [compareOpen, setCompareOpen] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const sampleSets = useSampleStore((s) => s.sampleSets);
@@ -262,16 +259,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 entry={entry}
                 onEdit={onEditEntry}
                 tasteQueueActive={opts?.tasteQueueActive}
-                isCompareSelected={compareIds.has(entry.id)}
-                onToggleCompare={(id) => {
-                  setCompareIds((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(id)) next.delete(id);
-                    else if (next.size < 3) next.add(id);
-                    return next;
-                  });
-                }
-                }
                 onSelect={onSelectEntry}
                 isSelected={selectedEntryId === entry.id}
               />
@@ -651,19 +638,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </button>
         <button
           type="button"
-          onClick={() => { setCompareIds(new Set()); setCompareOpen(false); }}
-          className={`inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
-            compareIds.size > 0
-              ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
-              : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-          }`}
-          title="Compare teas"
-        >
-          <SplitSquareHorizontal size={13} />
-          <span>Compare</span>
-        </button>
-        <button
-          type="button"
           onClick={onNewCapture}
           className="inline-flex min-h-[36px] items-center gap-2 rounded-md border border-tea-gold/30 bg-tea-accent-sub px-3 py-2 text-ui-12 text-tea-text transition-colors hover:bg-tea-gold/10"
         >
@@ -671,40 +645,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           New
         </button>
       </div>
-
-      {/* Compare selection bar */}
-      <AnimatePresence>
-        {compareIds.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tea-surface border border-tea-gold/20 text-ui-12">
-              <SplitSquareHorizontal size={11} className="text-tea-gold shrink-0" />
-              <span className="flex-1 text-tea-text-sec">{compareIds.size} selected</span>
-              {compareIds.size >= 2 && (
-                <button
-                  type="button"
-                  onClick={() => setCompareOpen(true)}
-                  className="text-tea-gold font-medium hover:text-tea-gold/80 transition-colors"
-                >
-                  Compare →
-                </button>
-              )}
-              <span className="text-tea-text-dim text-ui-10">tap cards to select</span>
-              <button
-                type="button"
-                onClick={() => setCompareIds(new Set())}
-                className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Cleanup banner — shown when empty test entries exist */}
       <AnimatePresence>
@@ -788,22 +728,6 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           </>
         )
       ) : null}
-
-      {/* Compare view — full-screen panel */}
-      {compareOpen && compareIds.size >= 2 && (
-        <CompareView
-          entries={entries.filter((e) => compareIds.has(e.id))}
-          onClose={() => setCompareOpen(false)}
-          onRemove={(id) => {
-            setCompareIds((prev) => {
-              const next = new Set(prev);
-              next.delete(id);
-              if (next.size < 2) setCompareOpen(false);
-              return next;
-            });
-          }}
-        />
-      )}
 
       {/* Sort options sheet */}
       <BottomSheet
