@@ -77,8 +77,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const isLg = size === 'lg';
   const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-14 h-14';
   const btnCls = isLg
-    ? 'w-11 h-11 rounded-xl'  // 44×44 — meets WCAG 2.5.5 floor without tap-target padding
-    : 'w-7 h-7 rounded-xl';
+    ? 'w-11 h-11 rounded-md'  // 44×44 — meets WCAG 2.5.5 floor without tap-target padding
+    : 'w-7 h-7 rounded-md';
   const btnIcon = isLg ? 18 : 12;
   const btnGap = isLg ? 'gap-2' : 'gap-1';
   const stripGap = isLg ? 'gap-2' : 'gap-1.5';
@@ -597,7 +597,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             key={url}
             type="button"
             onClick={() => setMenuPhotoIndex(i)}
-            className={`${thumbCls} relative shrink-0 block rounded-xl overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
+            className={`${thumbCls} relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
               menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
             }`}
             aria-haspopup="menu"
@@ -667,10 +667,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <img
               src={preview.localUrl}
               alt={`Uploading ${i + 1}`}
-              className={`${thumbCls} rounded-xl object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+              className={`${thumbCls} rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
             />
             {preview.uploading && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20">
+              <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/20">
                 <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
               </div>
             )}
@@ -678,7 +678,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
-                className="absolute inset-0 flex items-center justify-center rounded-xl bg-tea-error/20 text-tea-error"
+                className="absolute inset-0 flex items-center justify-center rounded-md bg-tea-error/20 text-tea-error"
                 aria-label="Upload failed"
               >
                 <X size={10} />
@@ -686,6 +686,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             )}
           </div>
         ))}
+
+        {validPhotos.length === 0 && pendingPreviews.length === 0 && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Add photo"
+            className="w-[60px] h-[60px] rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/30 flex flex-col items-center justify-center gap-0.5 shrink-0 transition-colors"
+          >
+            <Camera size={16} strokeWidth={1.5} />
+            <span className="text-ui-9 uppercase tracking-[1.2px]">Photo</span>
+          </button>
+        )}
 
         <div className={`flex ${isLg ? 'flex-row ml-auto' : 'flex-col'} ${btnGap} shrink-0`}>
           {/* Sparkles = AI label scanner. Carries a subtle gold accent at
@@ -699,11 +711,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
                 : 'border-tea-gold/30 bg-tea-gold/[0.06] text-tea-gold hover:bg-tea-gold/[0.12] hover:border-tea-gold/50'
             }`}
-            style={
-              justExtracted
-                ? undefined
-                : { boxShadow: 'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.10)' }
-            }
             aria-label="Scan label"
             title="Scan label"
           >
@@ -715,7 +722,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center bg-tea-elevated border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 shrink-0 transition-colors`}
+            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 shrink-0 transition-colors`}
             aria-label="Add photo"
             title="Add photo"
           >

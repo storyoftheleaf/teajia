@@ -153,34 +153,41 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-/** Inline status mark — Want/Buy/Sample/Taste tile inside the form. Glass
- *  surface with gold accent on active. Tile height (60px) and icon size
- *  (18px) are tuned to read as a primary action row, not a secondary
- *  status chip. The tap area is the full tile via min-h. */
+/** Section eyebrow divider — hairline + uppercase label + hairline. */
+const SectionDivider: React.FC<{ label: string }> = ({ label }) => (
+  <div className="flex items-center gap-2 pt-2">
+    <div className="flex-1 h-px bg-tea-border" />
+    <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">{label}</span>
+    <div className="flex-1 h-px bg-tea-border" />
+  </div>
+);
+
+/** Inline status mark — Want/Buy/Sample/Taste tile inside the form.
+ *  Transparent bg at rest; gold-tint border + accent-sub when active.
+ *  Tile height (76px min) and icon size (18px) are tuned to read as a
+ *  primary action row, not a secondary status chip. */
 const EntryMark: React.FC<{
   icon: React.ReactNode;
   label: string;
-  description?: string;
   active: boolean;
   onClick: () => void;
   ariaLabel?: string;
-}> = ({ icon, label, description, active, onClick, ariaLabel }) => (
+}> = ({ icon, label, active, onClick, ariaLabel }) => (
   <button
     type="button"
     onClick={onClick}
     aria-pressed={active}
     aria-label={ariaLabel || label}
-    className={`group relative flex flex-col items-start justify-start gap-1 min-h-[76px] px-3 py-3 rounded-md border text-left transition-all duration-200 ${
+    className={`group relative flex flex-col items-start justify-start gap-1 min-h-[76px] px-3 py-3 rounded-md border text-left transition-colors ${
       active
         ? 'bg-tea-accent-sub border-tea-gold/30 text-tea-text'
-        : 'bg-tea-bg border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+        : 'bg-transparent border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
     }`}
   >
-    <span className="pointer-events-none flex items-center gap-2 text-ui-13 font-medium">
-      {icon}
+    <span className={`pointer-events-none flex items-center gap-2 font-display text-ui-15 ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+      <span className={`shrink-0 ${active ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{icon}</span>
       <span>{label}</span>
     </span>
-    <span className="pointer-events-none text-ui-11 leading-[1.35] text-tea-text-sec">{description}</span>
   </button>
 );
 
@@ -682,10 +689,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   if (!entry) return null;
 
-  const shellClass = 'bg-tea-surface border border-tea-border rounded-md p-5 md:p-6 space-y-5';
-  const sourceShellClass = 'rounded-md border border-tea-border bg-tea-bg px-3 py-3';
-  const fieldClass = 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim';
-  const tallFieldClass = 'bg-tea-bg text-tea-text text-base rounded-md px-3 py-2.5 border border-tea-border focus:border-tea-gold/40 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors placeholder:text-tea-text-dim';
+  const shellClass = 'px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
+  const sourceShellClass = 'px-0 py-1';
+  const fieldClass = 'bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
+  const tallFieldClass = 'bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
     `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
       selected
@@ -730,7 +737,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
           {entry.type && chipStyle && (
             <span
-              className="shrink-0 text-ui-11 font-medium px-2.5 py-1 rounded-xl"
+              className="shrink-0 text-ui-11 font-medium px-2.5 py-1 rounded-md"
               style={{ backgroundColor: chipStyle.bg, color: chipStyle.text }}
             >
               {entry.type}
@@ -1186,13 +1193,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
                     }}
                     placeholder="e.g. Song Dynasty"
-                    className="flex-1 min-w-0 bg-tea-bg text-tea-text text-base rounded-xl px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-sec/70"
+                    className="flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
                   />
                   <button
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-xl bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
                   >
                     Add
                   </button>
@@ -1354,7 +1361,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               <EntryMark
                 icon={isWantTeaware ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
                 label={isWantTeaware ? 'Wanted' : 'Want'}
-                description="Remember this for later."
                 active={isWantTeaware}
                 onClick={() => update({ status: isWantTeaware ? 'noted' : 'want' })}
               />
@@ -1373,7 +1379,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={onShare}
-                  className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
+                  className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
                   aria-label="Share this entry"
                   title="Share this entry"
                 >
@@ -1384,13 +1390,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 type="button"
                 onClick={handleCommit}
                 disabled={!ready}
-                className={`flex-1 py-3.5 text-base font-semibold transition-all ${
-                  ready
-                    ? 'rounded-md border border-tea-border bg-tea-bg text-tea-text hover:bg-tea-accent-sub'
-                    : 'rounded-md border border-tea-border bg-tea-bg text-tea-text-sec cursor-not-allowed'
-                }`}
-                style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-                aria-label="Done — commit this entry"
+                className="flex-1 py-3 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-16 shadow-lg shadow-tea-gold/10 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Done, commit this entry"
               >
                 Done
               </button>
@@ -1509,6 +1510,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       </div>
 
       {/* ─── IDENTITY ─── */}
+      <SectionDivider label="Tea" />
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <AutocompleteInput
@@ -1524,7 +1526,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-bg text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-surface text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors"
           >
             <span>{entry.type || 'Type'}</span>
             <ChevronDown size={14} />
@@ -1609,7 +1611,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </div>
 
 
-        <div className="border-t border-tea-border" />
+        <SectionDivider label="Pricing" />
 
         <PricingRow
           priceAmount={entry.priceAmount}
@@ -1676,11 +1678,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       {hasTasting && entry.tasting && (
         <>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 h-px bg-tea-border" />
-            <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Profile</span>
-            <div className="flex-1 h-px bg-tea-border" />
-          </div>
+          <SectionDivider label="Profile" />
           <div className="space-y-2.5">
             {/* Quality 1–10 — same segment toggle as TastingSession */}
             <div>
@@ -1735,11 +1733,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       )}
 
       {/* ─── Notes zone ─── */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-px bg-tea-border" />
-        <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">Notes</span>
-        <div className="flex-1 h-px bg-tea-border" />
-      </div>
+      <SectionDivider label="Notes" />
       <NoteThread
         compassEntryId={entry.id}
         teaKey={entry.teaKey ?? undefined}
@@ -1840,8 +1834,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-ui-10 transition-colors ${
-                          buyingQty === g ? 'bg-tea-gold/15 text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        className={`py-0.5 px-2 rounded text-ui-10 tabular-nums transition-colors ${
+                          buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
                         {g}g
@@ -1882,21 +1876,18 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         <EntryMark
           icon={<Droplets size={18} strokeWidth={1.5} />}
           label={hasTasting ? 'Tasted' : 'Taste'}
-          description="Start tasting notes."
           active={!!hasTasting}
           onClick={openTastingOverlay}
         />
         <EntryMark
           icon={isWant ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
           label={isWant ? 'Wanted' : 'Want'}
-          description="Remember this for later."
           active={isWant}
           onClick={() => update({ status: isWant ? 'noted' : 'want' })}
         />
         <EntryMark
           icon={<ShoppingCart size={18} />}
           label="Buy"
-          description="Add quantity and price."
           active={showBuyPicker}
           onClick={() => {
             const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
@@ -1907,7 +1898,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         <EntryMark
           icon={<FlaskConical size={18} strokeWidth={1.5} />}
           label={sampleCartHas ? 'Listed' : 'Sample'}
-          description="Track as a sample."
           active={sampleCartHas}
           onClick={() => {
             if (sampleCartHas) {
@@ -1942,7 +1932,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               <button
                 type="button"
                 onClick={onShare}
-                className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
+                className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
                 aria-label="Share this entry"
                 title="Share this entry"
               >
@@ -1953,13 +1943,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               type="button"
               onClick={handleCommit}
               disabled={!ready}
-              className={`flex-1 py-3.5 text-base font-semibold transition-all ${
-                ready
-                  ? 'rounded-md border border-tea-border bg-tea-bg text-tea-text hover:bg-tea-accent-sub'
-                  : 'rounded-md border border-tea-border bg-tea-bg text-tea-text-sec cursor-not-allowed'
-              }`}
-              style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.06em' }}
-              aria-label="Done — commit this entry"
+              className="flex-1 py-3 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-16 shadow-lg shadow-tea-gold/10 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Done, commit this entry"
             >
               Done
             </button>

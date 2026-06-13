@@ -498,15 +498,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           scroll-up. Resets to revealed when the user is at the top. */}
       <div
         className={`shrink-0 overflow-hidden bg-tea-bg transition-[height,opacity] duration-200 ease-out lg:!h-auto lg:!opacity-100 ${
-          headerCollapsed ? 'h-0 opacity-0' : 'h-[56px] opacity-100'
+          headerCollapsed ? 'h-0 opacity-0' : 'h-[44px] opacity-100'
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
-        <div className="mx-4 my-2 flex min-h-10 items-center gap-2 rounded-md border border-tea-border bg-tea-surface px-2" role="tablist">
+        <div className="flex items-center gap-2 h-11 px-3 border-b border-tea-border" role="tablist">
           <button
             type="button"
             onClick={onBack}
-            className="tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
+            className="tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
             aria-label="Back"
           >
             <ArrowLeft size={18} strokeWidth={1.75} />
@@ -522,12 +522,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             onClick={() => setScreenSheetOpen(true)}
             aria-haspopup="menu"
             aria-expanded={screenSheetOpen}
-            className="font-display self-center inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-tea-border bg-tea-bg px-2.5 text-ui-13 font-normal leading-none tracking-[0.02em] text-tea-text transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub active:bg-tea-accent-sub"
+            className="inline-flex items-center gap-1.5 h-8 px-2 rounded-md text-ui-12 uppercase tracking-[0.15em] text-tea-text hover:bg-tea-accent-sub transition-colors shrink-0"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-tea-gold" aria-hidden />
             <span>{currentTab?.label ?? 'Source'}</span>
             {currentTab?.badge != null && (
-              <span className="text-ui-9 px-1.5 py-px rounded-full bg-tea-gold/20 text-tea-gold tabular-nums">{currentTab.badge}</span>
+              <span className="text-tea-text-dim tabular-nums">({currentTab.badge})</span>
             )}
             <ChevronDown size={13} className="text-tea-text-sec -mr-0.5" />
           </button>
@@ -556,17 +556,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       key={opt.id}
                       type="button"
                       onClick={() => handleCaptureOption(opt.id)}
-                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 h-8 transition-colors ${
+                      className={`shrink-0 whitespace-nowrap py-2.5 text-ui-12 uppercase tracking-[0.15em] border-b transition-colors ${
                         active
-                          ? 'font-display rounded-md bg-tea-accent-sub text-ui-12 font-normal leading-none tracking-[0.02em] text-tea-text border border-tea-gold/30'
-                          : 'font-display rounded-md text-ui-12 font-normal leading-none tracking-[0.02em] text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub border border-transparent'
+                          ? 'text-tea-text border-b border-tea-gold'
+                          : 'text-tea-text-sec hover:text-tea-text border-transparent'
                       }`}
                     >
                       {opt.label}
                       {opt.id === 'samples' && sampleCartCount > 0 && (
-                        <span className={`text-ui-9 px-1.5 py-px rounded-full tabular-nums font-medium ${active ? 'bg-tea-gold/20 text-tea-gold' : 'bg-tea-elevated text-tea-text'}`}>
-                          {sampleCartCount}
-                        </span>
+                        <span className="text-tea-text-dim ml-1">({sampleCartCount})</span>
                       )}
                     </button>
                   );
@@ -581,7 +579,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               type="button"
               onClick={() => handleNewCapture()}
               className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
-              style={{ fontFamily: 'var(--font-display)' }}
             >
               <Plus size={11} />
               New
@@ -591,7 +588,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           {/* Right-side action cluster — voice capture button when on
               the sourcing tab for privileged accounts. Lives in-panel
               so the global nav's center can remain the home logo. */}
-          <div className="flex items-center pr-2 self-center gap-1">
+          <div className="flex items-center self-center gap-1 ml-auto">
             {showInlineMic && (
               <button
                 type="button"
@@ -607,14 +604,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   : voiceState === 'transcribing' ? 'Transcribing…'
                   : 'Record voice note'
                 }
-                className={`tap-target relative inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors ${
+                className={`tap-target relative inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
                   voiceState === 'recording'
-                    ? 'border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
+                    ? 'border border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
                     : voiceState === 'error'
-                      ? 'border-tea-border bg-tea-surface text-tea-error'
+                      ? 'text-tea-error hover:bg-tea-accent-sub'
                       : voiceState === 'transcribing'
-                        ? 'border-tea-border bg-tea-surface text-tea-text-dim cursor-wait'
-                        : 'border-tea-border bg-tea-surface text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+                        ? 'text-tea-text-dim cursor-wait'
+                        : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                 }`}
               >
                 {voiceState === 'recording' ? (
@@ -707,7 +704,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               spot. They use rounded-md tiles, not pills — same big tap
               target, less of the floating-pill feel. */}
           {mode === 'sourcing' && captureOption !== 'samples' && (
-            <div className="mx-4 mt-2 shrink-0 flex flex-wrap items-center gap-2 rounded-md border border-tea-border bg-tea-surface p-2">
+            <div className="shrink-0 flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-tea-border">
               {/* Compact + icon-only — "New" label dropped to free up
                   horizontal room for entry chips. The plus glyph is the
                   universal "add" affordance, and the title/aria-label
@@ -717,7 +714,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 onClick={() => handleNewCapture()}
                 aria-label="Start a new entry"
                 title="Start a new entry"
-                className="tap-target shrink-0 inline-flex h-9 w-10 items-center justify-center rounded-md border border-tea-border bg-tea-bg text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
+                className="tap-target shrink-0 inline-flex h-9 w-10 items-center justify-center rounded-md text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
               >
                 <Plus size={14} />
               </button>
@@ -729,10 +726,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 aria-pressed={batchMode}
                 aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
                 title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
-                className={`tap-target whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-md border transition-colors shrink-0 ${
+                className={`tap-target whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-md text-ui-12 transition-colors shrink-0 ${
                   batchMode
-                    ? 'font-display text-ui-12 font-normal leading-none tracking-[0.02em] bg-tea-accent-sub text-tea-text border-tea-gold/30'
-                    : 'font-display text-ui-12 font-normal leading-none tracking-[0.02em] text-tea-text-sec border-tea-border bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text hover:border-tea-gold/30'
+                    ? 'bg-tea-accent-sub text-tea-text'
+                    : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                 }`}
               >
                 Batch
@@ -749,10 +746,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     key={entry.id}
                     type="button"
                     onClick={() => handleSelectEntry(entry.id)}
-                    className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md border transition-colors shrink-0 ${
+                    className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-12 transition-colors shrink-0 ${
                       isActive
-                        ? 'font-display text-ui-12 font-normal leading-none tracking-[0.02em] bg-tea-accent-sub text-tea-text border-tea-gold/30'
-                        : 'font-display text-ui-12 font-normal leading-none tracking-[0.02em] bg-tea-bg text-tea-text-sec border-tea-border hover:bg-tea-accent-sub hover:text-tea-text'
+                        ? 'bg-tea-accent-sub text-tea-text'
+                        : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                     }`}
                   >
                     {/* Active session = solid gold pill. Differentiated
