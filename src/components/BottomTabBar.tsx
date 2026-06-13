@@ -131,8 +131,18 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         navigate('/admin/dashboard');
         return;
       }
-      onNavigate('HOME');
-      setTimeout(() => window.scrollTo({ top: 0 }), 150);
+      onSearchClose?.();
+      onAccountClose?.();
+      // Always return to the home screen. We route on the actual pathname,
+      // not the derived section: pages like /discover or /start fall back to
+      // the HOME section, which would make onNavigate('HOME') a no-op and
+      // strand the user. Navigating to '/' directly always lands home.
+      if (location.pathname === '/') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        navigate('/');
+        setTimeout(() => window.scrollTo({ top: 0 }), 150);
+      }
     },
   });
 
