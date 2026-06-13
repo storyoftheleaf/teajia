@@ -153,12 +153,26 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-/** Section eyebrow divider — hairline + uppercase label + hairline. */
-const SectionDivider: React.FC<{ label: string }> = ({ label }) => (
-  <div className="flex items-center gap-2 pt-2">
-    <div className="flex-1 h-px bg-tea-border" />
-    <span className="text-ui-9 text-tea-text-dim tracking-[0.2em] uppercase shrink-0">{label}</span>
-    <div className="flex-1 h-px bg-tea-border" />
+/** The brand's editorial eyebrow — Cormorant italic small-caps in gold.
+ *  Borrowed from the magazine card eyebrow so the section markers read in the
+ *  same museum-caption register as the rest of the brand, not as form labels. */
+const CAPTURE_EYEBROW_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-display)',
+  fontSize: 13,
+  fontStyle: 'italic',
+  fontWeight: 500,
+  fontVariant: 'all-small-caps',
+  letterSpacing: '0.08em',
+  color: 'var(--tea-gold)',
+};
+
+/** Section eyebrow divider — warm gold hairline + small-caps gold label.
+ *  `ornament` adds a single centered gold dot (use sparingly, once). */
+const SectionDivider: React.FC<{ label: string; ornament?: boolean }> = ({ label, ornament }) => (
+  <div className="flex items-center gap-3 pt-2">
+    <div className={`relative flex-1 divider-warm${ornament ? ' divider-ornament' : ''}`} />
+    <span style={CAPTURE_EYEBROW_STYLE} className="shrink-0">{label}</span>
+    <div className="flex-1 divider-warm" />
   </div>
 );
 
@@ -689,10 +703,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   if (!entry) return null;
 
-  const shellClass = 'px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
+  const shellClass = 'surface-warm relative px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
   const sourceShellClass = 'px-0 py-1';
-  const fieldClass = 'bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
-  const tallFieldClass = 'bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
+  const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
+  const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
     `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
       selected
@@ -1342,12 +1356,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Notes — the footer Mic owns voice capture, so the in-textarea mic is hidden to avoid two mics in the same view. */}
+        {/* Notes — in-field mic dictates straight into the note; the footer Mic does whole-entry voice scan. */}
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
-          hideMic
         />
 
         {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
@@ -1733,12 +1746,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       )}
 
       {/* ─── Notes zone ─── */}
-      <SectionDivider label="Notes" />
+      <SectionDivider label="Notes" ornament />
       <NoteThread
         compassEntryId={entry.id}
         teaKey={entry.teaKey ?? undefined}
         compact
-        hideMic
         hideTastingArtifacts
       />
 

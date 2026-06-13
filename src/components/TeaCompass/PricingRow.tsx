@@ -75,7 +75,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   unit,
 }) => {
   const [formSheetOpen, setFormSheetOpen] = useState(false);
-  const inputShellClass = 'bg-tea-surface rounded-md border border-tea-border focus-within:border-tea-gold/40';
+  const inputShellClass = 'field-recessed bg-tea-surface rounded-md border border-tea-border focus-within:border-tea-gold/40';
 
   const handlePriceInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

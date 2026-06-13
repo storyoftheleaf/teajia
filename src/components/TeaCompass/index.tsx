@@ -283,6 +283,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleSelectEntry = useCallback(
     (id: string) => {
       setActiveEntry(id);
+      setFromLibrary(true);
       setMode('sourcing');
     },
     [setActiveEntry]
@@ -402,12 +403,32 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     }
   }, [activeEntryId, getSessionEntries, discardEntry, setActiveEntry, startNewCapture, activeCategory]);
 
+  // Remember the screen we switched away from, so the header back arrow can
+  // return there (Source → Library → back → Source) instead of exiting Curate.
+  const [prevMode, setPrevMode] = useState<CompassMode | null>(null);
+
   const handleSwitchMode = useCallback((newMode: CompassMode) => {
+    setMode((current) => {
+      if (newMode !== current) setPrevMode(current);
+      return newMode;
+    });
     if (newMode === 'sourcing' && !activeEntryId) {
       startNewCapture(activeCategory);
     }
-    setMode(newMode);
   }, [activeEntryId, startNewCapture, activeCategory]);
+
+  // Header back: if we came from another screen within Curate, go back to it;
+  // otherwise exit Curate via onBack.
+  const handleHeaderBack = useCallback(() => {
+    if (prevMode !== null && prevMode !== mode) {
+      const target = prevMode;
+      setPrevMode(null);
+      setMode(target);
+      if (target === 'sourcing' && !activeEntryId) startNewCapture(activeCategory);
+      return;
+    }
+    onBack?.();
+  }, [prevMode, mode, activeEntryId, startNewCapture, activeCategory, onBack]);
 
   // Compass + notes hydration / debounced push / online-retry all live
   // in `useCompassSync` and `useNotesSync` at the app root in `App.tsx`,
@@ -484,7 +505,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
 
   return (
-    <div className="flex flex-col relative lg:h-full bg-tea-bg">
+    <div className="flex flex-col relative h-full min-h-0 bg-tea-bg">
       {/* ── HEADER (single row prototype) ──
           [back] [Source ▾] [Tea/Teaware/Samples on sourcing] [share/sync]
 
@@ -505,7 +526,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         <div className="flex items-center gap-2.5 h-14 px-4 border-b border-tea-border" role="tablist">
           <button
             type="button"
-            onClick={onBack}
+            onClick={handleHeaderBack}
             className="tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
             aria-label="Back"
           >
@@ -543,7 +564,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               option so it reads at a glance. */}
           {mode === 'sourcing' && (
             <div className="flex-1 flex items-center min-w-0">
-              <div className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto scrollbar-hide">
+              <div className="inline-flex max-w-full flex-nowrap items-center gap-3 overflow-x-auto scrollbar-hide">
                 {([
                   { id: 'tea', label: 'Tea' },
                   { id: 'teaware', label: 'Teaware' },
@@ -555,7 +576,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       key={opt.id}
                       type="button"
                       onClick={() => handleCaptureOption(opt.id)}
-                      className={`shrink-0 whitespace-nowrap py-2.5 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
+                      className={`shrink-0 whitespace-nowrap px-1 py-2.5 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
                         active
                           ? 'text-tea-text border-b border-tea-gold'
                           : 'text-tea-text-sec hover:text-tea-text border-transparent'
