@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -187,11 +186,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Batch entry mode — rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
-
-  // Screen switcher — opens when the user taps the "{Screen} ▾" chip in
-  // the header. Replaces the old SOURCE/LIBRARY/LEDGER underline tab row
-  // so the header collapses to one line with sub-tabs sharing it.
-  const [screenSheetOpen, setScreenSheetOpen] = useState(false);
 
   // Auto-collapse the header on scroll. We hide it when the user scrolls
   // down (engaged with the form) and reveal on scroll up. Threshold + a
@@ -518,12 +512,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           Auto-collapses on scroll-down (translate-y-full) and reveals on
           scroll-up. Resets to revealed when the user is at the top. */}
       <div
-        className={`shrink-0 overflow-hidden bg-tea-bg transition-[height,opacity] duration-200 ease-out lg:!h-auto lg:!opacity-100 ${
-          headerCollapsed ? 'h-0 opacity-0' : 'h-[56px] opacity-100'
+        className={`shrink-0 overflow-hidden bg-tea-bg transition-[max-height,opacity] duration-200 ease-out lg:!max-h-none lg:!opacity-100 ${
+          headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-[112px] opacity-100'
         }`}
         style={{ position: 'relative', zIndex: 5 }}
       >
-        <div className="flex items-center gap-2.5 h-14 px-4 border-b border-tea-border" role="tablist">
+        {/* Row 1 — Screen segmented control (Source / Library / Ledger).
+            Always visible, one tap between screens. The capture-type
+            sub-tabs (Tea / Teaware / Samples) moved to Row 2 so this row
+            stays single-purpose: which screen am I on. */}
+        <div className="flex items-center gap-2 h-14 px-4 border-b border-tea-border" role="tablist" aria-label="Screen">
           <button
             type="button"
             onClick={handleHeaderBack}
@@ -533,72 +531,41 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <ArrowLeft size={18} strokeWidth={1.75} />
           </button>
 
-          {/* Screen identity ▾ — a real bordered chip with a leading dot
-              (gold = sourcing, brighter on tap). Reads as a tappable
-              "switch screen" affordance, not as a label. The chevron
-              sits opposite the dot so the eye can scan the chip as a
-              labelled control. */}
-          <button
-            type="button"
-            onClick={() => setScreenSheetOpen(true)}
-            aria-haspopup="menu"
-            aria-expanded={screenSheetOpen}
-            className="inline-flex items-center gap-1.5 h-9 px-2 rounded-md text-ui-13 uppercase tracking-[0.15em] text-tea-text hover:bg-tea-accent-sub transition-colors shrink-0"
-          >
-            <span>{currentTab?.label ?? 'Source'}</span>
-            {currentTab?.badge != null && (
-              <span className="text-tea-text-dim tabular-nums">({currentTab.badge})</span>
-            )}
-            <ChevronDown size={13} className="text-tea-text-sec -mr-0.5" />
-          </button>
+          {/* Segmented control — the three Curate screens as peers. The
+              active segment carries a gold-tinted fill + gold hairline so
+              it reads at a glance; inactive segments stay quiet. */}
+          <div className="flex items-center gap-0.5 rounded-xl bg-tea-elevated/40 p-0.5 shrink-0">
+            {tabs.map((tab) => {
+              const active = mode === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => handleSwitchMode(tab.id)}
+                  className={`inline-flex items-center gap-1 h-8 px-3 rounded-md text-ui-12 uppercase tracking-[0.13em] transition-colors ${
+                    active
+                      ? 'bg-tea-gold/10 text-tea-text border border-tea-gold/40'
+                      : 'text-tea-text-sec hover:text-tea-text border border-transparent'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {tab.badge != null && (
+                    <span className="text-tea-text-dim tabular-nums">({tab.badge})</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Hairline divider between the screen-switcher chip and the
-              sub-tabs so they read as two separate controls instead of a
-              run-on row. */}
-          {mode === 'sourcing' && (
-            <div className="self-center h-5 w-px shrink-0 bg-tea-border" aria-hidden />
-          )}
-
-          {/* Sub-tabs inline (sourcing only). Bigger text + clearer
-              active state — gold tinted bg + gold border on the active
-              option so it reads at a glance. */}
-          {mode === 'sourcing' && (
-            <div className="flex-1 flex items-center min-w-0">
-              <div className="inline-flex max-w-full flex-nowrap items-center gap-3 overflow-x-auto scrollbar-hide">
-                {([
-                  { id: 'tea', label: 'Tea' },
-                  { id: 'teaware', label: 'Teaware' },
-                  { id: 'samples', label: 'Samples' },
-                ] as const).map((opt) => {
-                  const active = captureOption === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => handleCaptureOption(opt.id)}
-                      className={`shrink-0 whitespace-nowrap px-1 py-2.5 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
-                        active
-                          ? 'text-tea-text border-b border-tea-gold'
-                          : 'text-tea-text-sec hover:text-tea-text border-transparent'
-                      }`}
-                    >
-                      {opt.label}
-                      {opt.id === 'samples' && sampleCartCount > 0 && (
-                        <span className="text-tea-text-dim ml-1">({sampleCartCount})</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {mode !== 'sourcing' && <div className="flex-1" />}
+          <div className="flex-1" />
 
           {mode !== 'sourcing' && (
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="pill pill-active flex items-center gap-1 text-ui-10 mr-2 self-center"
+              className="pill pill-active flex items-center gap-1 text-ui-10 self-center shrink-0"
             >
               <Plus size={11} />
               New
@@ -608,7 +575,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           {/* Right-side action cluster — voice capture button when on
               the sourcing tab for privileged accounts. Lives in-panel
               so the global nav's center can remain the home logo. */}
-          <div className="flex items-center self-center gap-1 ml-auto">
+          <div className="flex items-center self-center gap-1 shrink-0">
             {showInlineMic && (
               <button
                 type="button"
@@ -645,38 +612,43 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             )}
           </div>
         </div>
-      </div>
 
-      {/* Screen switcher sheet — Source / Library / Ledger live here
-          rather than as inline tabs. Each option carries its current
-          unread badge if any. */}
-      <BottomSheet
-        open={screenSheetOpen}
-        onOpenChange={setScreenSheetOpen}
-        title="Screen"
-        description="Switch between Source, Library, and Ledger"
-      >
-        <div className="flex flex-col gap-0.5 px-1">
-          {tabs.map((tab) => (
-            <SheetOption
-              key={tab.id}
-              label={tab.label}
-              hint={
-                tab.id === 'sourcing'
-                  ? 'Capture vendors and entries in real time'
-                  : tab.id === 'library'
-                    ? 'Browse, taste, and edit your library'
-                    : 'Review purchases and transactions'
-              }
-              selected={mode === tab.id}
-              onSelect={() => {
-                handleSwitchMode(tab.id);
-                setScreenSheetOpen(false);
-              }}
-            />
-          ))}
-        </div>
-      </BottomSheet>
+        {/* Row 2 — capture type (Tea / Teaware / Samples). Only relevant
+            inside Source, so it appears only there; Library and Ledger
+            collapse to the single Row 1, keeping their header clean. */}
+        {mode === 'sourcing' && (
+          <div className="flex items-center h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture type">
+            <div className="inline-flex max-w-full flex-nowrap items-center gap-4 overflow-x-auto scrollbar-hide">
+              {([
+                { id: 'tea', label: 'Tea' },
+                { id: 'teaware', label: 'Teaware' },
+                { id: 'samples', label: 'Samples' },
+              ] as const).map((opt) => {
+                const active = captureOption === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => handleCaptureOption(opt.id)}
+                    className={`shrink-0 whitespace-nowrap px-1 py-2 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
+                      active
+                        ? 'text-tea-text border-b border-tea-gold'
+                        : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                    }`}
+                  >
+                    {opt.label}
+                    {opt.id === 'samples' && sampleCartCount > 0 && (
+                      <span className="text-tea-text-dim ml-1">({sampleCartCount})</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── BODY ── */}
       <div className="flex-1 min-h-0 flex flex-col">
