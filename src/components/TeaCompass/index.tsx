@@ -498,6 +498,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // voice capture lives contextually here in the panel instead.
   const showInlineMic = mode === 'sourcing' && isPlatformPrivileged;
 
+  // Library, desktop, nothing selected → the list fills the whole pane as a
+  // grid (no narrow rail beside an empty detail panel). Selecting an entry
+  // collapses back to rail + detail. Only Library has an "empty right pane"
+  // state; Source (editor) and Ledger (overview) always fill their pane.
+  const libraryGrid = mode === 'library' && !tastingSelectedEntryId;
+
   return (
     <div className="flex flex-col relative h-full min-h-0 bg-tea-bg">
       {/* ── HEADER (single row prototype) ──
@@ -1101,8 +1107,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           {/* ── LEFT COLUMN (list rail) — widens at larger breakpoints so the
               cards breathe and the empty detail panel doesn't read as dead
-              space on wide monitors. ── */}
-          <div className="flex flex-col w-[320px] xl:w-[400px] 2xl:w-[460px] shrink-0 border-r border-tea-border overflow-hidden">
+              space on wide monitors. In Library with nothing selected it
+              expands to fill the whole pane as a grid (libraryGrid). ── */}
+          <div
+            className={`flex flex-col overflow-hidden ${
+              libraryGrid
+                ? 'flex-1 min-w-0'
+                : 'w-[320px] xl:w-[400px] 2xl:w-[460px] shrink-0 border-r border-tea-border'
+            }`}
+          >
 
             {/* Search bar (desktop) */}
             <div className="shrink-0 px-4 pt-2.5 pb-1">
@@ -1419,6 +1432,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       externalSearchQuery={tabSearchQuery}
                       onSelectEntry={(id) => setTastingSelectedEntryId(id)}
                       selectedEntryId={tastingSelectedEntryId}
+                      gridMode={libraryGrid}
                     />
                   </motion.div>
                 )}
@@ -1463,8 +1477,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
           {/* END LEFT COLUMN */}
 
-          {/* ── RIGHT COLUMN (flex-1) ── */}
-          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          {/* ── RIGHT COLUMN (flex-1) — hidden in Library grid mode, where the
+              left column owns the full width until an entry is selected. ── */}
+          <div className={`flex-col flex-1 min-w-0 overflow-hidden ${libraryGrid ? 'hidden' : 'flex'}`}>
 
             {/* Right column scrollable content */}
             <div
