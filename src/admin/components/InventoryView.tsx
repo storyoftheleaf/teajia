@@ -52,6 +52,7 @@ import {
 import type { InventoryCategory } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
+import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
@@ -171,6 +172,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [glossaryMode, setGlossaryMode] = useState(false);
   const [viewTabsExpanded, setViewTabsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  // Viewport width, tracked so the action rail can tuck against the left edge of
+  // the ProductEditPanel (whose width is responsive: md 360, lg 420, xl 440).
+  const [winWidth, setWinWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const onResize = () => setWinWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Reset glossary mode when switching categories
   useEffect(() => { setGlossaryMode(false); setGlossaryLimit(48); }, [externalCategory]);
@@ -428,13 +437,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const scrollRAFRef = useRef<number | null>(null);
   const [containerHeight, setContainerHeight] = useState(600);
 
-  // Floating action popover — anchored offsets from the desktop table wrapper. null
-  // hides the popover (no selection, mobile, or anchor row not yet measured). The
-  // tiny chip sits at the row's right edge; the expanded action bar drops just below.
+  // The desktop table wrapper — kept for layout queries (the old floating drawer
+  // anchored to it; the action rail replaced the drawer but the ref is harmless).
   const tableWrapperRef = useRef<HTMLDivElement>(null);
-  const [anchorRect, setAnchorRect] = useState<{ top: number; bottom: number } | null>(null);
-  const [menuOpenAbove, setMenuOpenAbove] = useState(false);
-  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   // Modals
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
@@ -591,193 +596,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return () => { clearTimeout(t); ro.disconnect(); };
   }, []);
 
-  // Context-anchored action drawer — the row the drawer docks beneath.
-  // Prefers the last-clicked row (lastSelectedIdxRef) so the drawer follows the user's
-  // most recent action; falls back to any selected id if that anchor isn't selected.
-  const anchorProductId = (() => {
-    if (selectedIds.size === 0) return null;
-    const lastIdx = lastSelectedIdxRef.current;
-    if (lastIdx != null) {
-      const p = processedProducts[lastIdx];
-      if (p && selectedIds.has(p.id)) return p.id;
-    }
-    for (const p of processedProducts) if (selectedIds.has(p.id)) return p.id;
-    return null;
-  })();
-
-  // Track the anchor row's bottom offset relative to the desktop table wrapper so the
-  // floating action popover can dock just below it. ResizeObserver re-measures on row
-  // height changes (data updates, group collapse/expand, window resize).
-  useLayoutEffect(() => {
-    if (!anchorProductId || !tableWrapperRef.current || isMobile) {
-      setAnchorRect(null);
-      return;
-    }
-    const wrapper = tableWrapperRef.current;
-    const scrollContainer = wrapper.closest<HTMLElement>('[data-testid="inventory-scroll"]');
-    const compute = () => {
-      const row = wrapper.querySelector<HTMLElement>(`[data-product-id="${anchorProductId}"]`);
-      if (!row) { setAnchorRect(null); return; }
-      const wRect = wrapper.getBoundingClientRect();
-      const rRect = row.getBoundingClientRect();
-      setAnchorRect({ top: rRect.top - wRect.top, bottom: rRect.bottom - wRect.top });
-      // Decide menu open direction by remaining space inside the scroll viewport.
-      // Prefer opening below; flip up when the row is within ~MENU_HEIGHT of the bottom.
-      const MENU_HEIGHT = 280;
-      if (scrollContainer) {
-        const scRect = scrollContainer.getBoundingClientRect();
-        const spaceBelow = scRect.bottom - rRect.bottom;
-        const spaceAbove = rRect.top - scRect.top;
-        setMenuOpenAbove(spaceBelow < MENU_HEIGHT && spaceAbove > spaceBelow);
-      }
-    };
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(wrapper);
-    if (scrollContainer) ro.observe(scrollContainer);
-    return () => ro.disconnect();
-  }, [anchorProductId, processedProducts, isMobile, collapsedGroups]);
-
-  // Always collapse the action chip when the anchor row changes — the user is
-  // moving on; the next expand should be intentional, not residual.
-  useEffect(() => { setIsDrawerExpanded(false); }, [anchorProductId]);
-
-  // Click outside the chip or menu collapses the action menu.
-  useEffect(() => {
-    if (!isDrawerExpanded) return;
-    const handler = (e: MouseEvent) => {
-      const t = e.target as HTMLElement;
-      if (t.closest('[data-action-menu]') || t.closest('[data-action-chip]')) return;
-      setIsDrawerExpanded(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [isDrawerExpanded]);
-
-  // Selection UI — tiny gold chip in the row's right corner + vertical dropdown
-  // menu anchored to the chip. Both float absolutely so toggling selection never
-  // reflows the table; the menu's narrow column means it overlays only the right
-  // strip of rows below (or above, when near the viewport bottom).
-  const renderActionDrawer = () => {
-    if (!anchorProductId || isEditMode || !anchorRect) return null;
-    const count = selectedIds.size;
-    const allSelected = count === processedProducts.length;
-    const menuItem = "w-full flex items-center gap-2.5 px-3 py-2 text-ui-12 text-tea-text-sec hover:text-tea-text hover:bg-tea-gold/8 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed";
-
-    return (
-      <>
-        {/* Chip — gold tab that slots into the row's right wall. Flush with the
-            wrapper's right edge; small breathing margin on top and bottom so it
-            respects the row's vertical rhythm. Left side rounded, right side
-            flat against the edge — reads as a button tab pulled in from the
-            right. */}
-        <div
-          className="absolute right-0 z-dropdown"
-          style={{ top: anchorRect.top + 4, height: Math.max(0, anchorRect.bottom - anchorRect.top - 8) }}
-        >
-          <motion.button
-            key={`__chip__${anchorProductId}`}
-            data-action-chip
-            initial={{ opacity: 0, x: 4 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 4 }}
-            transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
-            onClick={() => setIsDrawerExpanded(v => !v)}
-            aria-expanded={isDrawerExpanded}
-            aria-label={`${allSelected ? 'All' : count} selected — ${isDrawerExpanded ? 'close' : 'open'} actions`}
-            title={`${allSelected ? 'All' : count} selected`}
-            className="flex items-center gap-1 px-2.5 h-full bg-tea-gold text-tea-bg rounded-l-md hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
-            style={{ boxShadow: 'inset 1px 0 0 rgba(24,19,14,0.12)' }}
-          >
-            <span className="text-ui-12 font-bold tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-            <motion.span
-              animate={{ rotate: isDrawerExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="inline-flex items-center"
-              aria-hidden="true"
-            >
-              <ChevronDown size={11} strokeWidth={3} />
-            </motion.span>
-          </motion.button>
-        </div>
-
-        {/* Vertical action menu — opens below the row by default, flips above
-            when there isn't enough room. Origin is the corner closest to the
-            chip so the open animation reads as expanding *from* the chip. */}
-        <AnimatePresence>
-          {isDrawerExpanded && (
-            <motion.div
-              key={`__menu__${anchorProductId}`}
-              data-action-menu
-              initial={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: menuOpenAbove ? 4 : -4 }}
-              transition={{ duration: 0.16, ease: [0.4, 0, 0.2, 1] }}
-              className={`absolute right-0 z-dropdown w-48 ${menuOpenAbove ? 'origin-bottom-right' : 'origin-top-right'}`}
-              style={{
-                top: menuOpenAbove ? undefined : anchorRect.bottom + 6,
-                bottom: menuOpenAbove ? `calc(100% - ${anchorRect.top}px + 6px)` : undefined,
-              }}
-            >
-              <div
-                className="bg-tea-elevated border-y border-l border-tea-border rounded-l-xl overflow-hidden py-1"
-                style={{ boxShadow: '-12px 14px 36px rgba(24,19,14,0.42), inset 1px 0 0 rgba(212,166,82,0.12)' }}
-              >
-                {/* Header — selection summary + select-all toggle */}
-                <button
-                  onClick={toggleSelectAll}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-tea-bg/30 transition-colors"
-                  title={allSelected ? 'Deselect all' : 'Select all'}
-                >
-                  <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.12em]">Selection</span>
-                  <span className="flex items-baseline gap-1">
-                    <span className="text-ui-12 font-bold text-tea-text tabular-nums leading-none">{allSelected ? 'All' : count}</span>
-                    <span className="text-ui-9 text-tea-text-sec uppercase tracking-[0.1em] leading-none">item{count !== 1 ? 's' : ''}</span>
-                  </span>
-                </button>
-                <div className="h-px bg-tea-border" />
-
-                {/* Primary action — Publish, accented gold */}
-                <button onClick={() => handleBulkVisibility(true)} disabled={isBulkApplying} className={menuItem}>
-                  {isBulkApplying ? <Loader2 size={13} className="animate-spin text-tea-gold" /> : <Eye size={13} className="text-tea-gold" />}
-                  <span className="text-tea-text">Publish</span>
-                </button>
-                <button onClick={() => handleBulkVisibility(false)} disabled={isBulkApplying} className={menuItem}>
-                  {isBulkApplying ? <Loader2 size={13} className="animate-spin" /> : <EyeOff size={13} />}
-                  <span>Unpublish</span>
-                </button>
-                <button onClick={handleSendToSamples} disabled={isBulkApplying} className={menuItem}>
-                  <FlaskConical size={13} />
-                  <span>Send to samples</span>
-                </button>
-                <button onClick={() => setShareToNetworkOpen(true)} disabled={isBulkApplying} className={menuItem}>
-                  <Globe size={13} />
-                  <span>Share</span>
-                </button>
-                <button onClick={() => setInvoiceFromInventoryOpen(true)} disabled={isBulkApplying} className={menuItem}>
-                  <Receipt size={13} />
-                  <span>Add to invoice</span>
-                </button>
-                <button onClick={() => { setAddToCollectionOpen(true); setIsDrawerExpanded(false); }} disabled={isBulkApplying} className={menuItem}>
-                  <Layers size={13} />
-                  <span>Add to collection</span>
-                </button>
-
-                <div className="h-px bg-tea-border my-1" />
-                <button
-                  onClick={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; setIsDrawerExpanded(false); }}
-                  className={menuItem}
-                >
-                  <XIcon size={13} />
-                  <span>Clear selection</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </>
-    );
-  };
+  // Action rail derived state — the rail replaces the old floating selection
+  // drawer + the per-row action cluster. It slides in whenever rows are selected.
+  // Exactly one selected unlocks the Edit door to the full ProductEditPanel.
+  const railOpen = selectedIds.size > 0 && !isEditMode;
+  const railSingle = selectedIds.size === 1;
+  // On desktop the rail tucks against the left edge of the ProductEditPanel when
+  // it's open; otherwise it sits flush against the viewport right edge. On mobile
+  // the panel is a full-screen overlay, so the rail always rides the right edge.
+  const panelWidth = winWidth >= 1280 ? 440 : winWidth >= 1024 ? 420 : 360;
+  const railRightOffset = !isMobile && panelProduct ? panelWidth : 0;
 
   // --- HANDLERS ---
   const handleSort = (key: keyof Product) => {
@@ -1332,31 +1160,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // Declared after toggleSelectId so useCallback deps resolve correctly.
-  // Plain click = single-select (open panel, replace selection). Shift/Cmd/Ctrl =
-  // multi-select toggle/range. The "panel closed but selection exists" branch
-  // preserves mobile long-press multi-select: long-press enters multi mode without
-  // opening the panel, so subsequent taps continue to toggle.
+  // The row body SELECTS — it never opens the edit panel (that door is the rail's
+  // Edit button now). Plain click = single-select, replacing any prior selection;
+  // clicking the already-single-selected row deselects it. Cmd/Ctrl-click and
+  // shift-click ADD to the selection (toggle / range). Long-press on mobile adds
+  // too (stableLongPressSelect). When the panel happens to be open, a plain click
+  // closes it and re-selects, so the row stays information-first.
   const stableRowClick = useCallback((productId: string, globalIdx: number, e: React.MouseEvent) => {
+    if (isEditModeRef.current) return;
     if (e.metaKey || e.ctrlKey) {
       toggleSelectId(productId, globalIdx, false);
-    } else if (e.shiftKey) {
+      return;
+    }
+    if (e.shiftKey) {
       e.preventDefault();
       toggleSelectId(productId, globalIdx, true);
-    } else if (panelProductRef.current === null && selectedIdsRef.current.size > 0) {
-      toggleSelectId(productId, globalIdx, false);
-    } else if (!isEditModeRef.current) {
-      const idx = productIndexMapRef.current.get(productId) ?? -1;
-      if (idx >= 0) {
-        const current = panelProductRef.current;
-        if (current && current.id === productId) {
-          setPanelProduct(null);
-          setSelectedIds(new Set());
-        } else {
-          setPanelProduct(processedProductsRef.current[idx]);
-          setSelectedIds(new Set([productId]));
-          lastSelectedIdxRef.current = idx;
-        }
-      }
+      return;
+    }
+    // Plain click — single-select replace. Close the panel if it was open.
+    if (panelProductRef.current) setPanelProduct(null);
+    const isOnlySelected = selectedIdsRef.current.size === 1 && selectedIdsRef.current.has(productId);
+    if (isOnlySelected) {
+      setSelectedIds(new Set());
+      lastSelectedIdxRef.current = null;
+    } else {
+      setSelectedIds(new Set([productId]));
+      lastSelectedIdxRef.current = globalIdx;
     }
   }, [toggleSelectId, setPanelProduct]);
 
@@ -1403,6 +1232,66 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     } finally {
       setIsBulkApplying(false);
     }
+  };
+
+  // Rail Star action — toggle isFeatured across the selection. Reads the current
+  // selection's prevailing state and flips it: if every selected row is already
+  // featured, un-feature them all; otherwise feature them all.
+  const handleBulkFeature = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    const allFeatured = ids.every(id => localProducts.find(p => p.id === id)?.isFeatured);
+    const makeFeatured = !allFeatured;
+    setIsBulkApplying(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map(id => handleProductUpdate(id, 'isFeatured', makeFeatured, { throwOnError: true }))
+      );
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.length - succeeded;
+      showToast(
+        failed > 0 ? `${makeFeatured ? 'Featured' : 'Unfeatured'} ${succeeded}, failed ${failed}` : `${makeFeatured ? 'Featured' : 'Unfeatured'} ${succeeded} item${succeeded !== 1 ? 's' : ''}`,
+        failed > 0 ? 'error' : 'success'
+      );
+      setSelectedIds(new Set());
+      lastSelectedIdxRef.current = null;
+    } catch (err: any) {
+      showToast(`Bulk update failed: ${err.message}`, 'error');
+    } finally {
+      setIsBulkApplying(false);
+    }
+  };
+
+  // Rail Archive action — set status to Archived across the selection.
+  const handleBulkArchive = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setIsBulkApplying(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map(id => handleProductUpdate(id, 'status', 'Archived', { throwOnError: true }))
+      );
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.length - succeeded;
+      showToast(
+        failed > 0 ? `Archived ${succeeded}, failed ${failed}` : `Archived ${succeeded} item${succeeded !== 1 ? 's' : ''}`,
+        failed > 0 ? 'error' : 'success'
+      );
+      setSelectedIds(new Set());
+      lastSelectedIdxRef.current = null;
+    } catch (err: any) {
+      showToast(`Bulk update failed: ${err.message}`, 'error');
+    } finally {
+      setIsBulkApplying(false);
+    }
+  };
+
+  // Rail Edit action — open the full ProductEditPanel for the single selected row.
+  const handleRailEdit = () => {
+    if (selectedIds.size !== 1) return;
+    const id = [...selectedIds][0];
+    const product = processedProducts.find(p => p.id === id) ?? localProducts.find(p => p.id === id);
+    if (product) setPanelProduct(product);
   };
 
   // Spreadsheet-style row action: if the clicked product is in the selection, apply to all selected
@@ -1479,8 +1368,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     );
   }
 
+  // Reserve room on the right for the fixed ProductEditPanel and/or the action
+  // rail so the spreadsheet never hides under either. On mobile both are
+  // full-bleed / edge overlays, so the content keeps the full width.
+  const contentRightMargin = isMobile
+    ? 0
+    : (panelProduct ? panelWidth : 0) + (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0);
+
   return (
-    <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelProduct ? 'md:mr-[360px] lg:mr-[420px] xl:mr-[440px]' : ''} transition-all duration-300`}>
+    <div
+      className="h-full flex flex-col overflow-hidden bg-tea-bg transition-all duration-300"
+      style={{ marginRight: contentRightMargin }}
+    >
 
       {/* --- VENDOR FILTER BANNER --- */}
       {vendorFilter && (
@@ -2889,10 +2788,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         {!isMobile && filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-3 md:px-4 lg:px-6">
           <div className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
 
-          {/* Floating bulk-action popover — anchored to the last-clicked row, positioned
-              absolutely so toggling selection never reflows the table. */}
-          <AnimatePresence>{renderActionDrawer()}</AnimatePresence>
-
           {/* Top strip — canonical: stock-history link + active-view label (left) + item counter (right). */}
           {processedProducts.length > 0 && (
             <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
@@ -2930,14 +2825,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
                   {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
-                  <col className="w-[120px]" />
                 </colgroup>
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
                     {visibleCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                     ))}
-                    <th className="px-2 py-1.5 border-b border-tea-border" aria-hidden="true"></th>
                   </tr>
                 </thead>
               </table>
@@ -2969,7 +2862,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ) : (
                             visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                           )}
-                          <col className={splitView ? 'w-[100px]' : 'w-[120px]'} />
                         </colgroup>
                         <tbody>
                           {items.map((product) => {
@@ -3019,7 +2911,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     ) : (
                       visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                     )}
-                    <col className={splitView ? 'w-[100px]' : 'w-[120px]'} />
                 </colgroup>
 
                 {/* Canonical header — auto-aligned: numerics right, others left. */}
@@ -3034,7 +2925,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         )}
-                        <th className="px-2 py-1.5 border-b border-tea-border" aria-hidden="true"></th>
                     </tr>
                 </thead>
 
@@ -3160,6 +3050,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onDeleteInputChange={setDeleteInput}
         isDeleting={isDeleting}
         onConfirmDelete={handleConfirmDelete}
+      />
+
+      {/* --- ACTION RAIL ---
+          The one surface for acting on selected rows. Slides in from the right
+          edge; tucks against the left edge of the ProductEditPanel on desktop.
+          All handlers reuse the existing bulk business logic. */}
+      <InventoryActionRail
+        open={railOpen}
+        selectedCount={selectedIds.size}
+        isSingle={railSingle}
+        isBusy={isBulkApplying}
+        rightOffset={railRightOffset}
+        onEdit={handleRailEdit}
+        onPublish={() => handleBulkVisibility(true)}
+        onStar={handleBulkFeature}
+        onSample={handleSendToSamples}
+        onShare={() => setShareToNetworkOpen(true)}
+        onInvoice={() => setInvoiceFromInventoryOpen(true)}
+        onCollect={() => setAddToCollectionOpen(true)}
+        onArchive={handleBulkArchive}
+        onClear={() => { setSelectedIds(new Set()); lastSelectedIdxRef.current = null; }}
       />
 
       {/* --- FEATURE 5: RECORD PANEL (Side Panel) ---

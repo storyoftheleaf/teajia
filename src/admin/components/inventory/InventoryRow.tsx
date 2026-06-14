@@ -1,13 +1,12 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { Archive, Check, Eye, EyeOff, Globe, History, MoreHorizontal, Pencil, Star, Trash2 } from 'lucide-react';
-import { AnchoredMenu } from '../../../components/shared/AnchoredMenu';
+import { Check, History } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
 import { getThemeColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
-import { isFeaturedButHidden, stripMatchingYear } from './helpers';
+import { stripMatchingYear } from './helpers';
 
 export interface InventoryRowProps {
   product: Product;
@@ -35,8 +34,9 @@ export interface InventoryRowProps {
 }
 
 // Canonical inventory row — see DesignSystemShowcase § Inventory list (INV_ROWS).
-// Serif numerics for year/grams/price, dot+label for type, gold-tinted active row,
-// star/eye/edit/more action cluster on the right edge.
+// Serif numerics for year/grams/price, dot+label for type, gold-tinted active row.
+// Information-first: the row body selects (it has no action cluster). Every row
+// action lives in the unified action rail that appears when rows are selected.
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
@@ -297,89 +297,11 @@ function InventoryRowBase(props: InventoryRowProps) {
         onRowClick(product.id, globalIdxRef.current, e as unknown as React.MouseEvent);
       }}
     >
+      {/* Rows are information-first: the per-row action cluster (star / eye /
+          edit / more) was removed. Selecting a row reveals the unified action
+          rail at the right edge, which is now the single surface for every row
+          action. The Edit pencil moved into that rail (single-select only). */}
       {(splitView ? splitViewCols : visibleCols).map((col, colIdx) => renderCell(col.key, colIdx))}
-      {/* Action cluster — featured STAR (a status toggle) is set apart from the
-          eye / edit / more ACTION icons by a hairline divider. Off-state reads as
-          a visible outlined star (text-sec, the actionable floor — not the dim
-          grey it used to inherit); on-state is a filled bronze star inside a soft
-          bronze halo, so the fill — not a colour-only shift — carries the state. */}
-      <td className="px-2 py-1 align-middle text-right whitespace-nowrap">
-        <div className="inline-flex items-center gap-0 text-tea-text-dim" onClick={(e) => e.stopPropagation()}>
-          {!isEditMode && !isSelected && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isFeatured', !product.isFeatured); }}
-                className={`tap-target p-1 mr-0.5 rounded-full transition-all duration-150 active:scale-90 ${
-                  product.isFeatured
-                    ? 'text-tea-readgold bg-tea-gold/10'
-                    : 'text-tea-text-sec hover:text-tea-readgold hover:bg-tea-gold/[0.06]'
-                }`}
-                aria-label={product.isFeatured ? 'Featured — remove from shop home' : 'Feature on shop home'}
-                aria-pressed={product.isFeatured}
-                title={product.isFeatured ? 'Featured — remove' : 'Feature on shop home'}
-              >
-                <Star size={16} style={product.isFeatured ? { fill: 'currentColor' } : undefined} aria-hidden="true" />
-              </button>
-              {isFeaturedButHidden(product) && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-tea-readgold shrink-0 -ml-0.5 mr-0.5"
-                  title="Featured but hidden from shop"
-                  aria-label="Featured but hidden from shop"
-                />
-              )}
-              <span className="w-px h-4 bg-tea-border mx-1 shrink-0" aria-hidden="true" />
-              <button
-                onClick={(e) => { e.stopPropagation(); onSelectionAwareUpdate(product, 'isPublic', !product.isPublic); }}
-                className="tap-target p-1 hover:text-tea-text-sec transition-colors"
-                aria-label={product.isPublic ? 'Hide from shop' : 'Show in shop'}
-                aria-pressed={product.isPublic}
-                title={product.isPublic ? 'Hide' : 'Show'}
-              >
-                {product.isPublic ? <Eye size={14} aria-hidden="true" /> : <EyeOff size={14} aria-hidden="true" />}
-              </button>
-              {!splitView && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onOpenPanel(product); }}
-                  className="tap-target p-1 hover:text-tea-text-sec transition-colors"
-                  aria-label="Edit product"
-                  title="Edit"
-                >
-                  <Pencil size={14} aria-hidden="true" />
-                </button>
-              )}
-              {!splitView && (
-                <div className="relative" data-row-dropdown>
-                  <AnchoredMenu
-                    align="right"
-                    width={180}
-                    open={isDropdownOpen}
-                    onOpenChange={(o) => onToggleDropdown(o ? product.id : null)}
-                    trigger={(menuProps) => (
-                      <button
-                        {...menuProps}
-                        className="tap-target p-1 hover:text-tea-text-sec transition-colors"
-                        aria-label="More actions"
-                        title="More actions"
-                      >
-                        <MoreHorizontal size={14} aria-hidden="true" />
-                      </button>
-                    )}
-                  >
-                    {(close) => (
-                      <>
-                        <button onClick={() => { onRestock(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Globe size={12} /> Restock via Curate</button>
-                        <button onClick={() => { onProductUpdate(product.id, 'status', product.status === 'Archived' ? 'Active' : 'Archived'); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-text hover:bg-tea-accent-sub transition-colors text-left"><Archive size={12} /> {product.status === 'Archived' ? 'Unarchive' : 'Archive'}</button>
-                        <div className="my-1 border-t border-tea-border" />
-                        <button onClick={() => { onDeleteRequest(product); close(); }} className="w-full flex items-center gap-2 px-3 py-1 text-ui-13 text-tea-readgold hover:bg-tea-gold/[0.06] transition-colors text-left"><Trash2 size={12} /> Delete permanently</button>
-                      </>
-                    )}
-                  </AnchoredMenu>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </td>
     </tr>
   );
 }
