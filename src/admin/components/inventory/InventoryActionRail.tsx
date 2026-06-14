@@ -5,28 +5,24 @@ import { Pencil, Eye, Star, FlaskConical, Share2, Receipt, Layers, Archive, X as
 /**
  * InventoryActionRail — the ONE surface for acting on selected inventory rows.
  *
- * A bottom action bar that slides up from the bottom edge when one or more rows
- * are selected. Each action is an icon-on-top, short-word-below tile, laid out in
- * a horizontal row. The count sits on the left, Clear on the right. Replaces the
- * old per-row action cluster AND the floating selection-chip drawer.
+ * A narrow vertical strip (68px) that slides in from the right edge when one or
+ * more rows are selected. Each action is icon-on-top, short-word-below, stacked.
+ * Identical narrow width on mobile and desktop. Replaces the old per-row action
+ * cluster AND the floating selection-chip drawer.
  *
- * Why the bottom (not the right edge): the right edge collides with the
- * full-screen edit-panel overlay, the framer-motion transform on the page shell,
- * and the rounded content card. A bottom bar sits above all of that and spans the
- * visible width, so it cannot be clipped or hidden behind the panel.
- *
- * Layout (left to right): count, Edit (single-select only), Publish / Star /
- * Sample / Share / Invoice / Collect / Archive, then Clear pinned at the right.
- * All handlers are passed in and reuse the existing InventoryView business logic.
+ * Layout (top to bottom): count header, Edit (single-select only), separator,
+ * Publish / Star / Sample, separator, Share / Invoice / Collect / Archive,
+ * spacer, Clear pinned at the bottom. All handlers are passed in and reuse the
+ * existing InventoryView business logic.
  */
 export interface InventoryActionRailProps {
   open: boolean;
   selectedCount: number;
   isSingle: boolean;
   isBusy: boolean;
-  /** Kept for API compatibility with the previous right-edge rail. Unused by the
-   *  bottom bar (which spans the full width), so callers need not change. */
-  rightOffset?: number;
+  /** Distance from the viewport right edge, in px. Lets the rail tuck against
+   *  the spreadsheet while the ProductEditPanel occupies the far edge. */
+  rightOffset: number;
   onEdit: () => void;
   onPublish: () => void;
   onStar: () => void;
@@ -38,8 +34,7 @@ export interface InventoryActionRailProps {
   onClear: () => void;
 }
 
-/** The bar's resting height in px, exported so callers can reserve bottom space. */
-const RAIL_HEIGHT = 72;
+const RAIL_WIDTH = 60;
 
 interface RailButtonProps {
   label: string;
@@ -63,7 +58,7 @@ const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, varia
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`tap-target flex flex-col items-center justify-center gap-1 w-[58px] min-h-[48px] shrink-0 rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-surface disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
+      className={`tap-target flex flex-col items-center justify-center gap-1 w-[52px] min-h-[48px] rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-surface disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
     >
       {children}
       <span className="text-ui-9 leading-none text-center" style={{ letterSpacing: '0.02em' }}>{label}</span>
@@ -72,77 +67,78 @@ const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, varia
 };
 
 export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
-  open, selectedCount, isSingle, isBusy,
+  open, selectedCount, isSingle, isBusy, rightOffset,
   onEdit, onPublish, onStar, onSample, onShare, onInvoice, onCollect, onArchive, onClear,
 }) => {
-  // Portal to document.body so the bar's `position: fixed` resolves against the
+  // Portal to document.body so the rail's `position: fixed` resolves against the
   // viewport, NOT against an ancestor. The admin shell wraps pages in a
-  // framer-motion PageTransition (a `transform`) and InventoryView's root is
-  // `overflow-hidden`; either would otherwise become the containing block and
-  // clip a fixed child.
+  // framer-motion PageTransition (a `transform`), and the InventoryView root is
+  // `overflow-hidden` for its height chain. A transformed/overflow ancestor would
+  // otherwise become the containing block and clip the rail off-screen.
   return createPortal(
     <div
-      className={`fixed left-0 right-0 bottom-0 z-modal bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
+      className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       style={{
-        // A pronounced top shadow + the darkest surface so the bar reads as its
-        // own raised panel above the table, never a part of it.
-        boxShadow: '0 -10px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,166,82,0.14)',
-        paddingTop: 10,
-        paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+        right: rightOffset,
+        width: RAIL_WIDTH,
+        // A pronounced left shadow + darker-than-the-toolbar surface so the rail
+        // reads as its own recessed panel, never a continuation of the bar above.
+        boxShadow: '-12px 0 28px rgba(0,0,0,0.5), inset 1px 0 0 rgba(212,166,82,0.14)',
+        paddingTop: 12,
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
       }}
       role="toolbar"
       aria-label="Selection actions"
       aria-hidden={!open}
     >
-      <div className="flex items-center gap-1 px-3 overflow-x-auto">
-        {/* Count — left anchor, never scrolls away */}
-        <div className="shrink-0 pr-2 mr-1 border-r border-tea-border text-center leading-tight">
-          <span className="block text-ui-15 text-tea-gold-lt font-semibold tabular-nums">{selectedCount}</span>
-          <span className="block text-ui-9 text-tea-text-dim uppercase">{selectedCount === 1 ? 'item' : 'items'}</span>
-        </div>
-
-        {/* Edit — the ONLY door to the full ProductEditPanel, single-select only */}
-        {isSingle && (
-          <RailButton label="Edit" variant="edit" onClick={onEdit}>
-            <Pencil size={19} aria-hidden="true" />
-          </RailButton>
-        )}
-
-        <RailButton label="Publish" onClick={onPublish} disabled={isBusy}>
-          {isBusy ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
-        </RailButton>
-        <RailButton label="Star" onClick={onStar} disabled={isBusy}>
-          <Star size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Sample" onClick={onSample} disabled={isBusy}>
-          <FlaskConical size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Share" onClick={onShare} disabled={isBusy}>
-          <Share2 size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Invoice" onClick={onInvoice} disabled={isBusy}>
-          <Receipt size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Collect" onClick={onCollect} disabled={isBusy}>
-          <Layers size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Archive" variant="danger" onClick={onArchive} disabled={isBusy}>
-          <Archive size={19} aria-hidden="true" />
-        </RailButton>
-
-        {/* Clear — right anchor */}
-        <div className="flex-1 min-w-2" />
-        <RailButton label="Clear" onClick={onClear}>
-          <XIcon size={19} aria-hidden="true" />
-        </RailButton>
+      {/* Count header */}
+      <div className="text-ui-11 text-tea-gold-lt font-semibold text-center leading-tight pb-2 mb-1.5 border-b border-tea-border w-11">
+        <span className="tabular-nums">{selectedCount}</span>
+        <span className="block text-ui-9 text-tea-text-dim font-normal uppercase">{selectedCount === 1 ? 'item' : 'items'}</span>
       </div>
+
+      {/* Edit — the ONLY door to the full ProductEditPanel, single-select only */}
+      {isSingle && (
+        <RailButton label="Edit" variant="edit" onClick={onEdit}>
+          <Pencil size={19} aria-hidden="true" />
+        </RailButton>
+      )}
+
+      <div className="h-px bg-tea-border my-1.5" style={{ width: 36 }} />
+
+      <RailButton label="Publish" onClick={onPublish} disabled={isBusy}>
+        {isBusy ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
+      </RailButton>
+      <RailButton label="Star" onClick={onStar} disabled={isBusy}>
+        <Star size={19} aria-hidden="true" />
+      </RailButton>
+      <RailButton label="Sample" onClick={onSample} disabled={isBusy}>
+        <FlaskConical size={19} aria-hidden="true" />
+      </RailButton>
+
+      <div className="h-px bg-tea-border my-1.5" style={{ width: 36 }} />
+
+      <RailButton label="Share" onClick={onShare} disabled={isBusy}>
+        <Share2 size={19} aria-hidden="true" />
+      </RailButton>
+      <RailButton label="Invoice" onClick={onInvoice} disabled={isBusy}>
+        <Receipt size={19} aria-hidden="true" />
+      </RailButton>
+      <RailButton label="Collect" onClick={onCollect} disabled={isBusy}>
+        <Layers size={19} aria-hidden="true" />
+      </RailButton>
+      <RailButton label="Archive" variant="danger" onClick={onArchive} disabled={isBusy}>
+        <Archive size={19} aria-hidden="true" />
+      </RailButton>
+
+      <div className="flex-1" />
+
+      <RailButton label="Clear" onClick={onClear}>
+        <XIcon size={19} aria-hidden="true" />
+      </RailButton>
     </div>,
     document.body
   );
 };
 
-export const INVENTORY_ACTION_RAIL_HEIGHT = RAIL_HEIGHT;
-// Back-compat alias: some callers reserved horizontal space for the old rail.
-// The bottom bar reserves vertical space instead; keep the export name so the
-// import in InventoryView resolves, mapped to the bar height.
-export const INVENTORY_ACTION_RAIL_WIDTH = RAIL_HEIGHT;
+export const INVENTORY_ACTION_RAIL_WIDTH = RAIL_WIDTH;

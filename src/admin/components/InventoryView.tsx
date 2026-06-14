@@ -52,7 +52,7 @@ import {
 import type { InventoryCategory } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
-import { InventoryActionRail, INVENTORY_ACTION_RAIL_HEIGHT } from './inventory/InventoryActionRail';
+import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
@@ -604,9 +604,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Exactly one selected unlocks the Edit door to the full ProductEditPanel.
   const railOpen = selectedIds.size > 0 && !isEditMode;
   const railSingle = selectedIds.size === 1;
-  // The action bar lives at the bottom now, so the edit panel goes flush to the
-  // right edge as before (no horizontal competition between the two).
+  // The rail always rides the far right edge of the viewport (rightOffset 0). When
+  // the edit panel is open on desktop, the PANEL sits to the LEFT of the rail,
+  // offset inward by the rail width, so the order reads spreadsheet -> edit panel
+  // -> rail. On mobile the panel is a full-screen overlay (it covers the rail),
+  // so the offset is unused there.
   const panelWidth = winWidth >= 1280 ? 440 : winWidth >= 1024 ? 420 : 360;
+  const railRightOffset = 0;
+  const panelRightOffset = !isMobile && railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0;
 
   // --- HANDLERS ---
   const handleSort = (key: keyof Product) => {
@@ -1375,16 +1380,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // rail so the spreadsheet never hides under either. On mobile the edit panel
   // is a full-screen overlay (no margin needed for it), but the action rail is a
   // 60px edge strip on EVERY screen size, so the row content must give up that
-  // Reserve room on the RIGHT only for the edit panel (desktop). The action bar
-  // now lives at the BOTTOM, so it reserves bottom space instead (so the last
-  // rows are not hidden beneath it) and never competes for the right edge.
-  const contentRightMargin = isMobile ? 0 : (panelProduct ? panelWidth : 0);
-  const contentBottomPad = railOpen ? INVENTORY_ACTION_RAIL_HEIGHT : 0;
+  // 60px when the rail is open or the stock number and price hide beneath it.
+  const contentRightMargin = isMobile
+    ? (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0)
+    : (panelProduct ? panelWidth : 0) + (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0);
 
   return (
     <div
       className="h-full flex flex-col overflow-hidden bg-tea-bg transition-all duration-300"
-      style={{ marginRight: contentRightMargin, paddingBottom: contentBottomPad }}
+      style={{ marginRight: contentRightMargin }}
     >
 
       {/* --- VENDOR FILTER BANNER --- */}
@@ -3065,14 +3069,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       />
 
       {/* --- ACTION RAIL ---
-          The one surface for acting on selected rows. Slides up from the bottom
-          edge and spans the visible width. All handlers reuse the existing bulk
-          business logic. */}
+          The one surface for acting on selected rows. Slides in from the right
+          edge; tucks against the left edge of the ProductEditPanel on desktop.
+          All handlers reuse the existing bulk business logic. */}
       <InventoryActionRail
         open={railOpen}
         selectedCount={selectedIds.size}
         isSingle={railSingle}
         isBusy={isBulkApplying}
+        rightOffset={railRightOffset}
         onEdit={handleRailEdit}
         onPublish={() => handleBulkVisibility(true)}
         onStar={handleBulkFeature}
@@ -3098,6 +3103,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
         onShowStorePreview={(p) => setDetailsProduct(p)}
+        rightOffset={panelRightOffset}
       />
 
       <InventoryBulkToolbar
