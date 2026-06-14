@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { Check, History, AlertTriangle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
@@ -145,27 +145,13 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'stockGrams': {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${stockTone}`}>
-            {/* Stock is always editable inline — type a new gram value directly in
-                the cell. The clock icon (left) opens stock history; the number
-                itself no longer hijacks the click for history. */}
-            <div className="inline-flex items-center gap-1.5 justify-end" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={(e) => { e.stopPropagation(); onStockHistory(product.id, product.givenName || product.productName); }}
-                className="tap-target shrink-0 text-tea-text-dim hover:text-tea-gold transition-colors"
-                title="View stock history"
-                aria-label={`View stock history for ${product.productName}`}
-              >
-                <History size={12} aria-hidden="true" />
-              </button>
-              <button
-                aria-label={product.recheckStock ? `Clear recount flag for ${product.productName}` : `Mark ${product.productName} for stock recount`}
-                title={product.recheckStock ? 'Flagged for recount. Click to clear.' : 'Mark for recount'}
-                onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }}
-                className={`tap-target shrink-0 transition-colors ${product.recheckStock ? 'text-tea-gold hover:text-tea-gold-lt' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-              >
-                <AlertTriangle size={13} aria-hidden="true" />
-              </button>
-              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-16 ${stockTone}`} />
+            {/* Stock is the gram quantity, editable inline — type a new value
+                directly in the cell. The history clock and recount-flag icons
+                were removed: stock history opens from the column-header link,
+                and the recount flag lives in the side action bar / edit panel.
+                The number now gets the full column width so it never clips. */}
+            <div className="block" onClick={(e) => e.stopPropagation()}>
+              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-full ${stockTone}`} />
             </div>
           </td>
         );
