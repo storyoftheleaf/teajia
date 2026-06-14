@@ -1171,7 +1171,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-labelledby={titleId}
         aria-hidden={!product}
         style={{ backgroundColor: 'var(--admin-bg)', willChange: 'transform', ['--panel-right' as any]: `${rightOffset}px` }}
-        className={`fixed inset-0 md:inset-auto md:right-[var(--panel-right)] md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-modal flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed inset-0 md:inset-auto md:right-[var(--panel-right)] md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-modal flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav. Sits on the panel bg with a single hairline border. */}
