@@ -1387,8 +1387,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   return (
     <div
-      className="h-full flex flex-col overflow-hidden bg-tea-bg transition-all duration-300"
-      style={{ marginRight: contentRightMargin }}
+      className="h-full flex flex-col overflow-hidden bg-tea-bg"
     >
 
       {/* --- VENDOR FILTER BANNER --- */}
@@ -2127,11 +2126,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
-      {/* --- SCROLL CONTAINER --- */}
+      {/* --- SCROLL CONTAINER ---
+          The right margin (room for the action rail / edit panel) lives HERE,
+          on the scrolling table only — not on the outer container — so the
+          sticky toolbar above keeps its full width and its right-side action
+          cluster never slides under the rail when a row is selected. */}
       <div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg pt-3 pb-nav-gap"
+        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg pt-3 pb-nav-gap transition-all duration-300"
+        style={{ marginRight: contentRightMargin }}
         onScroll={(e) => {
           if (filterType === 'Pending') return;
           const top = e.currentTarget.scrollTop;
