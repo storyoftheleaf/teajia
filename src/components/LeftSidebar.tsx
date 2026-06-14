@@ -27,13 +27,15 @@ interface SubNavItem {
   id: string;
   path: string;
   label: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 interface NavItem {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
+  /** Short token shown in the collapsed rail in place of an icon. */
+  collapsedLabel?: string;
   section?: Section;
   path?: string;
   badge?: number;
@@ -52,27 +54,27 @@ const NavButton: React.FC<{
   delay?: number;
   collapsed?: boolean;
 }> = ({ item, isActive, onClick, delay = 0, collapsed = false }) => {
-  // Icons appear in both modes — muted gold anchor in expanded mode so the
-  // eye has a landmark per row without losing the editorial text-first feel.
-  const iconEl = (
-    <div className={`shrink-0 transition-colors duration-200 ${
-      isActive
-        ? 'text-tea-gold'
-        : collapsed
-          ? 'text-tea-text-sec group-hover:text-tea-text'
-          : 'text-tea-text-sec group-hover:text-tea-text'
-    }`}>
-      {item.icon}
-    </div>
-  );
+  // Text-only nav per the chrome rule — no icon glyphs. Expanded mode shows the
+  // full label; collapsed mode shows a short letter token (item.collapsedLabel,
+  // or the first 2 letters of the label) so the narrow rail rows aren't blank.
+  const collapsedToken = item.collapsedLabel ?? item.label.slice(0, 2);
 
-  const labelEl = !collapsed && (
+  const labelEl = !collapsed ? (
     <span
       className={`${TYPOGRAPHY_CLASSES.navSidebar} text-left transition-colors duration-200 ${
         isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
       }`}
     >
       {item.label}
+    </span>
+  ) : (
+    <span
+      className={`${TYPOGRAPHY_CLASSES.navSidebar} text-center leading-none transition-colors duration-200 ${
+        isActive ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+      }`}
+      aria-hidden="true"
+    >
+      {collapsedToken}
     </span>
   );
 
@@ -104,7 +106,6 @@ const NavButton: React.FC<{
 
   const inner = (
     <>
-      {iconEl}
       {labelEl}
       {badgeEl}
       {indicatorEl}
@@ -118,11 +119,11 @@ const NavButton: React.FC<{
       transition={{ delay: delay / 1000, duration: 0.25, ease: 'easeOut' }}
     >
       {item.action ? (
-        <button onClick={item.action} className={`w-full ${baseClass}`}>{inner}</button>
+        <button onClick={item.action} aria-label={collapsed ? item.label : undefined} className={`w-full ${baseClass}`}>{inner}</button>
       ) : item.path ? (
-        <Link to={item.path} onClick={onClick} className={baseClass}>{inner}</Link>
+        <Link to={item.path} onClick={onClick} aria-label={collapsed ? item.label : undefined} className={baseClass}>{inner}</Link>
       ) : (
-        <button onClick={onClick} className={`w-full ${baseClass}`}>{inner}</button>
+        <button onClick={onClick} aria-label={collapsed ? item.label : undefined} className={`w-full ${baseClass}`}>{inner}</button>
       )}
     </motion.div>
   );
@@ -558,14 +559,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                             transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                           />
                         )}
-                        <div className={`shrink-0 transition-colors duration-200 ${
-                          (showActive || isAnyChildActive)
-                            ? 'text-tea-gold'
-                            : 'text-tea-text-sec group-hover:text-tea-text'
-                        }`}>
-                          {React.cloneElement(item.icon as React.ReactElement<{ size?: number }>, { size: 16 })}
-                        </div>
-                        {!collapsed && (
+                        {collapsed ? (
+                          <span
+                            className={`${TYPOGRAPHY_CLASSES.navSidebar} text-center leading-none transition-colors duration-200 ${
+                              (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {item.collapsedLabel ?? item.label.slice(0, 2)}
+                          </span>
+                        ) : (
                           <span
                             className={`${TYPOGRAPHY_CLASSES.navSidebarChild} text-left transition-colors duration-200 ${
                               (showActive || isAnyChildActive) ? 'text-tea-gold' : 'text-tea-text-sec group-hover:text-tea-text'

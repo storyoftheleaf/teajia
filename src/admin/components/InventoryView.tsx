@@ -3,7 +3,7 @@ import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
-  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, FileText, User, Receipt, History
+  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -2425,9 +2425,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             {/* Tappable name area — expands card. Canonical mobile signature:
                                 font-display 17px name + font-sans 11px type/year/origin subtitle,
                                 font-serif 15px tabular-nums stock + retail. */}
-                            <button
+                            {/* Name area is informational now. Quick edit opens via
+                                the pen icon on the right, not by tapping the name. */}
+                            <div
                                 className="flex-1 min-w-0 text-left px-4 py-3 flex items-center gap-2"
-                                onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
                             >
                                 {/* Name + metadata */}
                                 <div className="flex-1 min-w-0">
@@ -2481,21 +2482,26 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                       </>
                                     )}
                                 </div>
-                            </button>
+                            </div>
 
-                            {/* Inline action icons — Edit + Details */}
+                            {/* Inline action icons — Quick edit (toggles the inline
+                                panel below) + full Edit (opens the panel, where the
+                                store preview now lives). The old Details/Alcove link
+                                is gone: quick fields live in the inline panel, the
+                                store view lives inside full Edit. */}
                             <div className="flex items-center gap-0 pr-2 flex-shrink-0">
                                 <button
-                                    onClick={() => setDetailsProduct(product)}
-                                    className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-xl"
-                                    aria-label="View details"
+                                    onClick={() => setExpandedCardId(isExpanded ? null : product.id)}
+                                    className={`tap-target w-10 h-10 flex items-center justify-center transition-colors rounded-xl ${isExpanded ? 'text-tea-gold-lt' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                                    aria-label={isExpanded ? 'Close quick edit' : 'Quick edit'}
+                                    aria-expanded={isExpanded}
                                 >
-                                    <FileText size={16} />
+                                    <PenLine size={16} />
                                 </button>
                                 <button
                                     onClick={() => setPanelProduct(product)}
                                     className="tap-target w-10 h-10 flex items-center justify-center text-tea-text-dim hover:text-tea-text transition-colors rounded-xl"
-                                    aria-label="Edit product"
+                                    aria-label="Full edit"
                                 >
                                     <Pencil size={16} />
                                 </button>
@@ -3096,6 +3102,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         products={processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        onShowStorePreview={(p) => setDetailsProduct(p)}
         rightOffset={panelRightOffset}
       />
 
