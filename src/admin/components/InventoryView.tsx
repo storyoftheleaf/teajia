@@ -537,7 +537,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const splitColWidth = (key: string): string => {
     if (key === 'productName') return '';
-    if (key === 'stockGrams' || key === 'quantityUnits') return 'w-[60px]';
+    // Stock must always show its full gram value (e.g. 12,345), never clip — the
+    // cell also carries the history + recount-flag buttons, so it needs real room.
+    if (key === 'stockGrams') return 'w-[88px]';
+    if (key === 'quantityUnits') return 'w-[60px]';
     return 'w-[78px]';
   };
 
@@ -601,11 +604,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Exactly one selected unlocks the Edit door to the full ProductEditPanel.
   const railOpen = selectedIds.size > 0 && !isEditMode;
   const railSingle = selectedIds.size === 1;
-  // On desktop the rail tucks against the left edge of the ProductEditPanel when
-  // it's open; otherwise it sits flush against the viewport right edge. On mobile
-  // the panel is a full-screen overlay, so the rail always rides the right edge.
+  // The rail always rides the far right edge of the viewport (rightOffset 0). When
+  // the edit panel is open on desktop, the PANEL sits to the LEFT of the rail,
+  // offset inward by the rail width, so the order reads spreadsheet -> edit panel
+  // -> rail. On mobile the panel is a full-screen overlay (it covers the rail),
+  // so the offset is unused there.
   const panelWidth = winWidth >= 1280 ? 440 : winWidth >= 1024 ? 420 : 360;
-  const railRightOffset = !isMobile && panelProduct ? panelWidth : 0;
+  const railRightOffset = 0;
+  const panelRightOffset = !isMobile && railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0;
 
   // --- HANDLERS ---
   const handleSort = (key: keyof Product) => {
@@ -1287,9 +1293,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   // Rail Edit action — open the full ProductEditPanel for the single selected row.
+  // Edit toggles the full panel: press once to open, again to close it down.
   const handleRailEdit = () => {
     if (selectedIds.size !== 1) return;
     const id = [...selectedIds][0];
+    if (panelProduct && panelProduct.id === id) { setPanelProduct(null); return; }
     const product = processedProducts.find(p => p.id === id) ?? localProducts.find(p => p.id === id);
     if (product) setPanelProduct(product);
   };
@@ -1369,10 +1377,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }
 
   // Reserve room on the right for the fixed ProductEditPanel and/or the action
-  // rail so the spreadsheet never hides under either. On mobile both are
-  // full-bleed / edge overlays, so the content keeps the full width.
+  // rail so the spreadsheet never hides under either. On mobile the edit panel
+  // is a full-screen overlay (no margin needed for it), but the action rail is a
+  // 60px edge strip on EVERY screen size, so the row content must give up that
+  // 60px when the rail is open or the stock number and price hide beneath it.
   const contentRightMargin = isMobile
-    ? 0
+    ? (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0)
     : (panelProduct ? panelWidth : 0) + (railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0);
 
   return (
@@ -3086,6 +3096,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         products={processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        rightOffset={panelRightOffset}
       />
 
       <InventoryBulkToolbar

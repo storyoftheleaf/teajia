@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { Check, History } from 'lucide-react';
+import { Check, History, AlertTriangle } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
@@ -157,10 +157,15 @@ function InventoryRowBase(props: InventoryRowProps) {
               >
                 <History size={12} aria-hidden="true" />
               </button>
-              {product.recheckStock && (
-                <button aria-label={product.recheckStock ? 'Clear recheck flag' : 'Flag for stock recheck'} title="Stock needs rechecking — clear flag" onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }} className="text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0"><span aria-hidden="true">&#9888;</span></button>
-              )}
-              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-12 ${stockTone}`} />
+              <button
+                aria-label={product.recheckStock ? `Clear recount flag for ${product.productName}` : `Mark ${product.productName} for stock recount`}
+                title={product.recheckStock ? 'Flagged for recount. Click to clear.' : 'Mark for recount'}
+                onClick={(e) => { e.stopPropagation(); onProductUpdate(product.id, 'recheckStock', !product.recheckStock); }}
+                className={`tap-target shrink-0 transition-colors ${product.recheckStock ? 'text-tea-gold hover:text-tea-gold-lt' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              >
+                <AlertTriangle size={13} aria-hidden="true" />
+              </button>
+              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-16 ${stockTone}`} />
             </div>
           </td>
         );

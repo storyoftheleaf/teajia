@@ -948,6 +948,10 @@ export interface ProductEditPanelProps {
   onNavigate?: (product: Product) => void;
   /** Label for filter context shown in header (e.g. "Needs Attention"). */
   filterLabel?: string;
+  /** Distance from the viewport right edge, in px (desktop only). Lets the panel
+   *  sit to the LEFT of the action rail when both are open, so the order reads
+   *  spreadsheet -> edit panel -> rail. Ignored on mobile (full-screen overlay). */
+  rightOffset?: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -965,6 +969,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   products = [],
   onNavigate,
   filterLabel,
+  rightOffset = 0,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -1165,8 +1170,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-hidden={!product}
-        style={{ backgroundColor: 'var(--admin-bg)', willChange: 'transform' }}
-        className={`fixed inset-0 md:inset-auto md:right-0 md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-30 flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ backgroundColor: 'var(--admin-bg)', willChange: 'transform', ['--panel-right' as any]: `${rightOffset}px` }}
+        className={`fixed inset-0 md:inset-auto md:right-[var(--panel-right)] md:top-0 md:bottom-0 md:w-[360px] lg:w-[420px] xl:w-[440px] z-modal flex flex-col panel-sidebar transition-transform duration-300 ease-out ${product ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {product && (<>
           {/* Header — Row 1: Nav. Sits on the panel bg with a single hairline border. */}
