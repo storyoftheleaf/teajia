@@ -88,7 +88,7 @@ fi
 #    cases would false-positive forever:
 #      - Active-tab underlines toggled via ternaries (COLOR_RULES allows gold on
 #        active state): TeaInventory, TaxonomyChipPicker, EventForm/BasicInfoSection,
-#        EventForm/CreateWizard, PlatformAccessView.
+#        EventForm/CreateWizard, PlatformAccessView, TeaCompass capture-option tabs.
 #      - Intentional gold-emphasis surfaces (badge-like, not dividers):
 #        GlobalSearch header, AdminApp impersonation banner.
 #      - DesignSystemShowcase documents the patterns.
@@ -102,6 +102,7 @@ GOLD_DIVIDER_VIOLATIONS=$(grep -rn --include='*.tsx' --include='*.ts' \
   | grep -v 'src/admin/components/EventForm/CreateWizard.tsx' \
   | grep -v 'src/admin/views/PlatformAccessView.tsx' \
   | grep -v 'src/components/shared/GlobalSearch.tsx' \
+  | grep -v 'src/components/TeaCompass/index.tsx' \
   | grep -v 'src/admin/AdminApp.tsx' \
   | grep -v 'src/pages/DesignSystemShowcase.tsx' \
   || true)
