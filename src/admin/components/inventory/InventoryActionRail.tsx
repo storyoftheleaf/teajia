@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Pencil, Eye, Star, FlaskConical, Share2, Receipt, Layers, Archive, X as XIcon, Loader2 } from 'lucide-react';
 
 /**
@@ -69,7 +70,12 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
   open, selectedCount, isSingle, isBusy, rightOffset,
   onEdit, onPublish, onStar, onSample, onShare, onInvoice, onCollect, onArchive, onClear,
 }) => {
-  return (
+  // Portal to document.body so the rail's `position: fixed` resolves against the
+  // viewport, NOT against an ancestor. The admin shell wraps pages in a
+  // framer-motion PageTransition (a `transform`), and the InventoryView root is
+  // `overflow-hidden` for its height chain. A transformed/overflow ancestor would
+  // otherwise become the containing block and clip the rail off-screen.
+  return createPortal(
     <div
       className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       style={{
@@ -130,7 +136,8 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
       <RailButton label="Clear" onClick={onClear}>
         <XIcon size={19} aria-hidden="true" />
       </RailButton>
-    </div>
+    </div>,
+    document.body
   );
 };
 
