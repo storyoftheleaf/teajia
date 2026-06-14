@@ -63,7 +63,7 @@ const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, varia
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`tap-target flex flex-col items-center justify-center gap-1 w-[58px] min-h-[48px] shrink-0 rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-surface disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
+      className={`tap-target flex flex-1 flex-col items-center justify-center gap-1 min-w-0 min-h-[46px] rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-surface disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
     >
       {children}
       <span className="text-ui-9 leading-none text-center" style={{ letterSpacing: '0.02em' }}>{label}</span>
@@ -96,47 +96,56 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
       aria-label="Selection actions"
       aria-hidden={!open}
     >
-      <div className="flex items-center gap-1 px-3 overflow-x-auto">
-        {/* Count — left anchor, never scrolls away */}
-        <div className="shrink-0 pr-2 mr-1 border-r border-tea-border text-center leading-tight">
-          <span className="block text-ui-15 text-tea-gold-lt font-semibold tabular-nums">{selectedCount}</span>
-          <span className="block text-ui-9 text-tea-text-dim uppercase">{selectedCount === 1 ? 'item' : 'items'}</span>
+      {/* Two equal rows of flex tiles. All eight actions visible, no horizontal
+          scroll, no item-count label. A small Clear sits in the top-right corner. */}
+      <div className="relative px-2">
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Clear selection"
+          title="Clear selection"
+          className="tap-target absolute top-0 right-1 z-10 p-1 rounded-md text-tea-text-dim hover:text-tea-text hover:bg-tea-surface transition-colors"
+        >
+          <XIcon size={15} aria-hidden="true" />
+        </button>
+
+        <div className="flex flex-col gap-1">
+          {/* Row 1 — Edit (single only) / Publish / Star / Sample */}
+          <div className="flex items-stretch gap-1">
+            {isSingle ? (
+              <RailButton label="Edit" variant="edit" onClick={onEdit}>
+                <Pencil size={19} aria-hidden="true" />
+              </RailButton>
+            ) : (
+              <div className="flex-1" />
+            )}
+            <RailButton label="Publish" onClick={onPublish} disabled={isBusy}>
+              {isBusy ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
+            </RailButton>
+            <RailButton label="Star" onClick={onStar} disabled={isBusy}>
+              <Star size={19} aria-hidden="true" />
+            </RailButton>
+            <RailButton label="Sample" onClick={onSample} disabled={isBusy}>
+              <FlaskConical size={19} aria-hidden="true" />
+            </RailButton>
+          </div>
+
+          {/* Row 2 — Share / Invoice / Collect / Archive */}
+          <div className="flex items-stretch gap-1">
+            <RailButton label="Share" onClick={onShare} disabled={isBusy}>
+              <Share2 size={19} aria-hidden="true" />
+            </RailButton>
+            <RailButton label="Invoice" onClick={onInvoice} disabled={isBusy}>
+              <Receipt size={19} aria-hidden="true" />
+            </RailButton>
+            <RailButton label="Collect" onClick={onCollect} disabled={isBusy}>
+              <Layers size={19} aria-hidden="true" />
+            </RailButton>
+            <RailButton label="Archive" variant="danger" onClick={onArchive} disabled={isBusy}>
+              <Archive size={19} aria-hidden="true" />
+            </RailButton>
+          </div>
         </div>
-
-        {/* Edit — the ONLY door to the full ProductEditPanel, single-select only */}
-        {isSingle && (
-          <RailButton label="Edit" variant="edit" onClick={onEdit}>
-            <Pencil size={19} aria-hidden="true" />
-          </RailButton>
-        )}
-
-        <RailButton label="Publish" onClick={onPublish} disabled={isBusy}>
-          {isBusy ? <Loader2 size={19} className="animate-spin" aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
-        </RailButton>
-        <RailButton label="Star" onClick={onStar} disabled={isBusy}>
-          <Star size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Sample" onClick={onSample} disabled={isBusy}>
-          <FlaskConical size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Share" onClick={onShare} disabled={isBusy}>
-          <Share2 size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Invoice" onClick={onInvoice} disabled={isBusy}>
-          <Receipt size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Collect" onClick={onCollect} disabled={isBusy}>
-          <Layers size={19} aria-hidden="true" />
-        </RailButton>
-        <RailButton label="Archive" variant="danger" onClick={onArchive} disabled={isBusy}>
-          <Archive size={19} aria-hidden="true" />
-        </RailButton>
-
-        {/* Clear — right anchor */}
-        <div className="flex-1 min-w-2" />
-        <RailButton label="Clear" onClick={onClear}>
-          <XIcon size={19} aria-hidden="true" />
-        </RailButton>
       </div>
     </div>,
     document.body
