@@ -1099,8 +1099,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             ══════════════════════════════════════════════════ */}
         <div className="hidden lg:flex flex-row flex-1 min-h-0 overflow-hidden">
 
-          {/* ── LEFT COLUMN (300px) ── */}
-          <div className="flex flex-col w-[300px] shrink-0 border-r border-tea-border overflow-hidden">
+          {/* ── LEFT COLUMN (list rail) — widens at larger breakpoints so the
+              cards breathe and the empty detail panel doesn't read as dead
+              space on wide monitors. ── */}
+          <div className="flex flex-col w-[320px] xl:w-[400px] 2xl:w-[460px] shrink-0 border-r border-tea-border overflow-hidden">
 
             {/* Search bar (desktop) */}
             <div className="shrink-0 px-4 pt-2.5 pb-1">
