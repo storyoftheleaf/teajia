@@ -33,7 +33,7 @@ export interface InventoryActionRailProps {
   onClear: () => void;
 }
 
-const RAIL_WIDTH = 68;
+const RAIL_WIDTH = 60;
 
 interface RailButtonProps {
   label: string;
@@ -57,7 +57,7 @@ const RailButton: React.FC<RailButtonProps> = ({ label, onClick, disabled, varia
       disabled={disabled}
       title={label}
       aria-label={label}
-      className={`tap-target flex flex-col items-center justify-center gap-1 w-[60px] min-h-[50px] rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-elevated disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
+      className={`tap-target flex flex-col items-center justify-center gap-1 w-[52px] min-h-[48px] rounded-[10px] px-0.5 py-1.5 transition-colors hover:bg-tea-surface disabled:opacity-40 disabled:cursor-not-allowed ${tone}`}
     >
       {children}
       <span className="text-ui-9 leading-none text-center" style={{ letterSpacing: '0.02em' }}>{label}</span>
@@ -71,11 +71,13 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
 }) => {
   return (
     <div
-      className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center bg-tea-surface border-l border-tea-border transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      className={`fixed top-0 bottom-0 z-drawer flex flex-col items-center bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}
       style={{
         right: rightOffset,
         width: RAIL_WIDTH,
-        boxShadow: '-8px 0 24px rgba(0,0,0,0.3)',
+        // A pronounced left shadow + darker-than-the-toolbar surface so the rail
+        // reads as its own recessed panel, never a continuation of the bar above.
+        boxShadow: '-12px 0 28px rgba(0,0,0,0.5), inset 1px 0 0 rgba(212,166,82,0.14)',
         paddingTop: 12,
         paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
       }}
