@@ -1677,8 +1677,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             )}
       </div>
 
-      {/* --- SAVED VIEWS TAB BAR (desktop only) --- */}
-      <div className="hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 border-b border-tea-border bg-tea-bg/90 backdrop-blur-md flex-wrap sticky top-0 z-dropdown">
+      {/* --- UNIFIED DESKTOP TOOLBAR (desktop only) ---
+          One sticky top bar: [Stock] [view tabs / More] ...ml-auto... [edit status]
+          [Save view] [Glossary] | [Edit] [New] [Carry] [Cols] [Group] [Vendor] [overflow].
+          Solid background (no backdrop-blur — backdrop-blur caused an invisible-icon
+          bug here). z-sticky keeps the bar below the InventoryActionRail (z-drawer).
+          The right action cluster carries paddingRight = INVENTORY_ACTION_RAIL_WIDTH
+          when railOpen (with a 200ms transition matching the rail's slide-in) so the
+          icons shift clear of the rail when a row is selected. */}
+      <div className={`hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 border-b border-tea-border flex-wrap sticky top-0 z-sticky transition-colors ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
         <h1 className="h2 text-tea-text shrink-0 mr-4">Stock</h1>
         {(() => {
           const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
@@ -1778,7 +1785,31 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </>
           );
         })()}
-        <div className="flex items-center gap-1 ml-auto shrink-0">
+        <div
+          className="flex items-center gap-3 ml-auto shrink-0 transition-[padding-right] duration-200"
+          style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}
+        >
+          {/* Edit-mode save status */}
+          {isEditMode && (
+            savingCount > 0 ? (
+              <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec shrink-0" aria-live="polite">
+                <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                SAVING…
+              </span>
+            ) : lastSavedAt ? (
+              <span className="inline-flex items-center gap-1.5 label-caps text-tea-gold shrink-0" aria-live="polite">
+                <Check size={12} aria-hidden="true" />
+                ALL CHANGES SAVED
+              </span>
+            ) : (
+              <span className="label-caps text-tea-text-dim shrink-0 hidden xl:inline">
+                CLICK CELLS TO EDIT — CHANGES SAVE AUTOMATICALLY
+              </span>
+            )
+          )}
+
+          {/* Save view + Glossary */}
+          <div className="flex items-center gap-1 shrink-0">
           {showSaveViewPrompt ? (
             <div className="flex items-center gap-1">
               <input
@@ -1827,43 +1858,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               </button>
             </>
           )}
-        </div>
-      </div>
+          </div>
 
-      {/* --- HEADER CONTROLS ---
-          Solid background (no backdrop-blur). The toolbar's right-side icon
-          buttons (Cols / Group / Vendor / overflow) are in the rightmost ~60px
-          of the viewport. The InventoryActionRail (fixed top-0 bottom-0,
-          z-drawer, bg-tea-bg) covers that zone at z-drawer > z-sticky when a
-          row is selected. The toolbar flex container gets paddingRight =
-          INVENTORY_ACTION_RAIL_WIDTH when railOpen so the cluster stays clear
-          of the rail. The duration-200 transition-[padding-right] matches the
-          rail's own 200ms slide-in, so the buttons shift with it. */}
-      <div className={`sticky top-0 z-sticky border-b border-tea-border py-1 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
-
-        {/* Desktop toolbar — actions only. Count + stock-history link live INSIDE the table
-            card top strip (see canonical §20 inventory table in /design/system). */}
-        <div className="flex px-4 md:px-6 max-w-7xl mx-auto items-center gap-4 py-1.5 transition-[padding-right] duration-200"
-             style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}>
-            {isEditMode && (
-              savingCount > 0 ? (
-                <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec shrink-0" aria-live="polite">
-                  <Loader2 size={12} className="animate-spin" aria-hidden="true" />
-                  SAVING…
-                </span>
-              ) : lastSavedAt ? (
-                <span className="inline-flex items-center gap-1.5 label-caps text-tea-gold shrink-0" aria-live="polite">
-                  <Check size={12} aria-hidden="true" />
-                  ALL CHANGES SAVED
-                </span>
-              ) : (
-                <span className="label-caps text-tea-text-dim shrink-0">
-                  CLICK CELLS TO EDIT — CHANGES SAVE AUTOMATICALLY
-                </span>
-              )
-            )}
-
-            <div className="flex items-center gap-4 ml-auto">
+          {/* Actions cluster (migrated from former second toolbar) */}
+          <div className="flex items-center gap-4">
                 {/* Actions Group */}
                 <div className="flex items-center gap-2 relative">
 
