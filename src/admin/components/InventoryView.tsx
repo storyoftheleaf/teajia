@@ -1831,16 +1831,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- HEADER CONTROLS ---
-          Solid background (no backdrop-blur). The frosted-glass blur created a
-          compositing layer that painted the bare icon-only trigger buttons
-          (Cols / Group / Vendor / overflow) behind it — they were clickable but
-          invisible, flickering in only on a transition repaint. A solid bg
-          removes that layer so the action icons always paint. */}
+          Solid background (no backdrop-blur). The toolbar's right-side icon
+          buttons (Cols / Group / Vendor / overflow) are in the rightmost ~60px
+          of the viewport. The InventoryActionRail (fixed top-0 bottom-0,
+          z-drawer, bg-tea-bg) covers that zone at z-drawer > z-sticky when a
+          row is selected. The toolbar flex container gets paddingRight =
+          INVENTORY_ACTION_RAIL_WIDTH when railOpen so the cluster stays clear
+          of the rail. The duration-200 transition-[padding-right] matches the
+          rail's own 200ms slide-in, so the buttons shift with it. */}
       <div className={`sticky top-0 z-sticky border-b border-tea-border py-1 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
 
         {/* Desktop toolbar — actions only. Count + stock-history link live INSIDE the table
             card top strip (see canonical §20 inventory table in /design/system). */}
-        <div className="flex px-4 md:px-6 max-w-7xl mx-auto items-center gap-4 py-1.5">
+        <div className="flex px-4 md:px-6 max-w-7xl mx-auto items-center gap-4 py-1.5 transition-[padding-right] duration-200"
+             style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}>
             {isEditMode && (
               savingCount > 0 ? (
                 <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec shrink-0" aria-live="polite">
