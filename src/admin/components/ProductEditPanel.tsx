@@ -952,6 +952,9 @@ export interface ProductEditPanelProps {
    *  sit to the LEFT of the action rail when both are open, so the order reads
    *  spreadsheet -> edit panel -> rail. Ignored on mobile (full-screen overlay). */
   rightOffset?: number;
+  /** Open the store preview (the Alcove / shop-card view) for this product.
+   *  Surfaced high in the panel so full edit shows how it looks in the shop. */
+  onShowStorePreview?: (product: Product) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -970,6 +973,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   onNavigate,
   filterLabel,
   rightOffset = 0,
+  onShowStorePreview,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -1255,9 +1259,16 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                     </select>
                     <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-admin-text-dim" aria-hidden="true" />
                   </div>
-                  <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
-                    <QrCode size={12} aria-hidden="true" /> QR
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {onShowStorePreview && (
+                      <button onClick={() => onShowStorePreview(product)} aria-label="Preview in shop" title="Preview how this looks in the shop" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
+                        <Eye size={12} aria-hidden="true" /> Shop
+                      </button>
+                    )}
+                    <button onClick={() => setQrProduct(product)} aria-label="Generate QR code" title="Generate QR Code" className="inline-flex items-center gap-1 text-ui-11 text-admin-text-sec hover:text-admin-text transition-colors rounded px-1 py-0.5">
+                      <QrCode size={12} aria-hidden="true" /> QR
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

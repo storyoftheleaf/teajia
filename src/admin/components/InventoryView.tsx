@@ -3097,6 +3097,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         products={processedProducts}
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
+        onShowStorePreview={(p) => setDetailsProduct(p)}
       />
 
       <InventoryBulkToolbar
