@@ -1830,8 +1830,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       </div>
 
-      {/* --- HEADER CONTROLS --- */}
-      <div className={`sticky top-0 z-sticky border-b border-tea-border py-1 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface/95' : 'bg-tea-bg/90 backdrop-blur-md'}`}>
+      {/* --- HEADER CONTROLS ---
+          Solid background (no backdrop-blur). The frosted-glass blur created a
+          compositing layer that painted the bare icon-only trigger buttons
+          (Cols / Group / Vendor / overflow) behind it — they were clickable but
+          invisible, flickering in only on a transition repaint. A solid bg
+          removes that layer so the action icons always paint. */}
+      <div className={`sticky top-0 z-sticky border-b border-tea-border py-1 transition-colors hidden md:block ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
 
         {/* Desktop toolbar — actions only. Count + stock-history link live INSIDE the table
             card top strip (see canonical §20 inventory table in /design/system). */}
