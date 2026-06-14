@@ -82,13 +82,15 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
   // clip a fixed child.
   return createPortal(
     <div
-      className={`fixed left-0 right-0 bottom-0 z-modal bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
+      className={`fixed left-0 right-0 bottom-nav z-modal bg-tea-bg transition-transform duration-200 ease-out ${open ? 'translate-y-0' : 'translate-y-[200%]'}`}
       style={{
         // A pronounced top shadow + the darkest surface so the bar reads as its
-        // own raised panel above the table, never a part of it.
+        // own raised panel above the table, never a part of it. The `bottom-nav`
+        // utility lifts the bar above the mobile bottom tab bar (and drops to the
+        // viewport bottom on desktop where there is no tab bar).
         boxShadow: '0 -10px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(212,166,82,0.14)',
         paddingTop: 10,
-        paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+        paddingBottom: 10,
       }}
       role="toolbar"
       aria-label="Selection actions"
