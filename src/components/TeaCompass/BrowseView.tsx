@@ -37,6 +37,13 @@ interface BrowseViewProps {
   onSelectEntry?: (id: string) => void;
   /** Desktop: which entry is currently shown in the right detail panel */
   selectedEntryId?: string | null;
+  /**
+   * Desktop: when true, cards lay out as a responsive multi-column grid that
+   * fills the full width instead of a single stacked column. Used in Library
+   * before an entry is selected, so the list fills the pane rather than
+   * cramming into a narrow rail beside an empty detail panel.
+   */
+  gridMode?: boolean;
 }
 
 function getDateGroup(dateStr: string): string {
@@ -127,7 +134,7 @@ const PhotoTile: React.FC<{
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode }) => {
   const navigate = useNavigate();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
@@ -242,7 +249,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     dimTasted?: boolean;
     tasteQueueActive?: boolean;
   }) => (
-    <div className="space-y-1.5">
+    <div
+      className={
+        gridMode
+          ? 'grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-2.5 items-start'
+          : 'space-y-1.5'
+      }
+    >
       <AnimatePresence initial={false}>
         {list.map((entry) => {
           const dim = (opts?.dimPassed && entry.status === 'pass') ||
@@ -250,9 +263,9 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           return (
             <motion.div
               key={entry.id}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: dim ? 0.55 : 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={gridMode ? { opacity: 0 } : { opacity: 0, height: 0 }}
+              animate={gridMode ? { opacity: dim ? 0.55 : 1 } : { opacity: dim ? 0.55 : 1, height: 'auto' }}
+              exit={gridMode ? { opacity: 0 } : { opacity: 0, height: 0 }}
               transition={{ duration: 0.18 }}
             >
               <BrowseCard
