@@ -1403,13 +1403,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       </div>
                     )}
 
-                    {/* Co-tasting strip */}
+                    {/* Co-tasting — demoted to a single quiet line so it stops
+                        competing with the library content. Text-only "Start". */}
                     {hasToken() && (
-                      <div className="mb-4 rounded-xl bg-tea-surface/40 border border-tea-border px-3 py-2.5 flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-ui-11 text-tea-text-sec font-medium">Co-Tasting</p>
-                          <p className="text-ui-11 text-tea-text-dim mt-0.5">Taste with others and compare notes</p>
-                        </div>
+                      <div className="mb-3 flex items-center gap-2 px-0.5 text-ui-11">
+                        <span className="flex-1 min-w-0 text-tea-text-dim truncate">
+                          <span className="text-tea-text-sec">Co-Tasting</span> — taste with others and compare notes
+                        </span>
                         <button
                           type="button"
                           onClick={async () => {
@@ -1418,9 +1418,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               if (result?.session?.id) navigate(`/session/${result.session.id}`);
                             } catch { /* ignore */ }
                           }}
-                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-11 font-semibold hover:bg-tea-gold/15 transition-colors"
+                          className="shrink-0 text-tea-gold hover:text-tea-gold/80 font-medium transition-colors"
                         >
-                          <Plus size={11} strokeWidth={2.5} />
                           Start
                         </button>
                       </div>

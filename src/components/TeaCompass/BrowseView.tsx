@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ArrowUpDown, ListChecks, ChevronRight, Images } from 'lucide-react';
+import { Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ListChecks, ChevronRight } from 'lucide-react';
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
@@ -602,8 +602,13 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </div>
       )}
 
-      {/* Filter controls + New */}
+      {/* Controls — two groups, separated by a hairline:
+            1. status filters (which subset of the library)
+            2. view controls (how to view it: sort + photo grid)
+          "New" was removed here — it duplicated the header "+ NEW" and the
+          empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Group 1 — status filters */}
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
@@ -616,9 +621,14 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             }`}
           >
             <span>{opt.label}</span>
-            <span className="font-mono text-ui-11 text-tea-text-dim">{opt.count}</span>
+            <span className="text-ui-11 text-tea-text-dim tabular-nums">{opt.count}</span>
           </button>
         ))}
+
+        {/* Hairline divider between "what to show" and "how to view it" */}
+        <div className="self-center h-5 w-px bg-tea-border mx-1" aria-hidden />
+
+        {/* Group 2 — view controls */}
         {/* Sort — opens a sheet of the four orderings. Active when not the
             default recency sort, so the user can see they've reordered. */}
         <button
@@ -631,10 +641,10 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           }`}
           title="Sort"
         >
-          <ArrowUpDown size={13} />
           <span>{SORT_LABELS[browseSort]}</span>
         </button>
-        {/* Photos layout toggle — swap the list for a grid of bag shots */}
+        {/* Photos layout toggle — swap the list for a grid of bag shots.
+            A view control, so it lives with Sort, not in the filter row. */}
         <button
           type="button"
           onClick={() => setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos')}
@@ -643,19 +653,10 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
               : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
           }`}
-          title={browseLayout === 'photos' ? 'Back to list' : 'Photo view'}
+          title={browseLayout === 'photos' ? 'Back to list' : 'Photo grid'}
           aria-pressed={browseLayout === 'photos'}
         >
-          <Images size={13} />
-          <span>Photos</span>
-        </button>
-        <button
-          type="button"
-          onClick={onNewCapture}
-          className="inline-flex min-h-[36px] items-center gap-2 rounded-md border border-tea-gold/30 bg-tea-accent-sub px-3 py-2 text-ui-12 text-tea-text transition-colors hover:bg-tea-gold/10"
-        >
-          <Plus size={11} />
-          New
+          <span>{browseLayout === 'photos' ? 'List' : 'Photos'}</span>
         </button>
       </div>
 
