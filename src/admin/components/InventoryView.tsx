@@ -52,7 +52,7 @@ import {
 import type { InventoryCategory } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
-import { InventoryActionRail } from './inventory/InventoryActionRail';
+import { InventoryActionRail, INVENTORY_ACTION_RAIL_HEIGHT } from './inventory/InventoryActionRail';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
@@ -1379,11 +1379,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // now lives at the BOTTOM, so it reserves bottom space instead (so the last
   // rows are not hidden beneath it) and never competes for the right edge.
   const contentRightMargin = isMobile ? 0 : (panelProduct ? panelWidth : 0);
+  const contentBottomPad = railOpen ? INVENTORY_ACTION_RAIL_HEIGHT : 0;
 
   return (
     <div
       className="h-full flex flex-col overflow-hidden bg-tea-bg transition-all duration-300"
-      style={{ marginRight: contentRightMargin }}
+      style={{ marginRight: contentRightMargin, paddingBottom: contentBottomPad }}
     >
 
       {/* --- VENDOR FILTER BANNER --- */}
