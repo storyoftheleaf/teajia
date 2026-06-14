@@ -108,8 +108,12 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // When the thumbnail URL fails to load (dead R2 link, expired blob), fall
+  // back to the type swatch instead of the browser's broken-image glyph.
+  const [thumbFailed, setThumbFailed] = useState(false);
 
   const validPhotos = (entry.photos || []).filter(Boolean);
+  const showThumb = validPhotos.length > 0 && !thumbFailed;
 
   // Reset confirm-delete after 3s of no interaction
   useEffect(() => {
@@ -222,8 +226,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           aria-expanded={onSelect ? undefined : expanded}
         >
           <div className="flex gap-3 px-3 pt-2.5 pb-2">
-            {/* Photo or type swatch */}
-            {validPhotos.length > 0 ? (
+            {/* Photo or type swatch. On a dead/expired photo URL we drop to
+                the swatch via onError rather than rendering a broken glyph. */}
+            {showThumb ? (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setLightboxIndex(0); }}
@@ -233,6 +238,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 <img
                   src={validPhotos[0]}
                   alt=""
+                  onError={() => setThumbFailed(true)}
                   className="w-14 h-14 rounded-md object-cover"
                 />
                 {validPhotos.length > 1 && (
@@ -241,15 +247,21 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   </span>
                 )}
               </button>
-            ) : typeColor ? (
+            ) : (
               <div
-                className="shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-9 font-semibold tracking-[0.1em] uppercase"
-                style={{ background: `${typeColor}18`, color: typeColor }}
+                className={`shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-9 font-semibold tracking-[0.1em] uppercase${typeColor ? '' : ' bg-tea-elevated'}`}
+                style={
+                  typeColor
+                    ? { background: `${typeColor}18`, color: typeColor }
+                    : undefined
+                }
                 aria-hidden="true"
               >
-                {(entry.type || entry.category || 'TEA').slice(0, 3)}
+                <span className={typeColor ? '' : 'text-tea-text-dim'}>
+                  {(entry.type || entry.category || 'TEA').slice(0, 3)}
+                </span>
               </div>
-            ) : null}
+            )}
 
             {/* Text content */}
             <div className="flex-1 min-w-0 space-y-0.5">
@@ -278,8 +290,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               {/* Vendor — provenance group, right after Chinese name */}
               {entry.vendorName && (
                 <div className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
-                  <Store size={11} />
-                  <span className="truncate">{entry.vendorName}</span>
+                  <Store size={11} className="shrink-0" />
+                  <span className="truncate" title={entry.vendorName}>{entry.vendorName}</span>
                 </div>
               )}
 
@@ -490,8 +502,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           )}
         </AnimatePresence>
 
-        {/* ── Action bar — always visible ── */}
-        <div className="flex items-center gap-0.5 px-2 pb-2 pt-1.5 border-t border-tea-border">
+        {/* ── Action bar — always visible. Wraps on narrow columns so the
+            Sample action is never clipped by the card edge. ── */}
+        <div className="flex flex-wrap items-center gap-y-1 gap-x-0.5 px-2 pb-2 pt-1.5 border-t border-tea-border">
           {/* Wishlist toggle */}
           <button
             type="button"
