@@ -78,6 +78,17 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
       className="inv-detail-panel relative bg-tea-elevated rounded-xl mx-3 my-2 pl-4 pr-3 py-2 overflow-hidden flex items-center gap-x-4 gap-y-2 flex-wrap"
       style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}
     >
+      {/* Close — first in the row so it sits top-left per the panel/drawer rule. */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          aria-label="Close quick edit"
+          className="tap-target shrink-0 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+        >
+          <X size={16} strokeWidth={1.75} />
+        </button>
+      )}
+
       {/* Tea name — the anchor, kept short. */}
       <p className="font-display text-ui-15 text-tea-text truncate leading-snug min-w-0 max-w-[200px]">{name}</p>
 
@@ -128,15 +139,6 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
         >
           Full edit
         </button>
-        {onClose && (
-          <button
-            onClick={onClose}
-            aria-label="Close quick edit"
-            className="tap-target shrink-0 text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            <X size={16} strokeWidth={1.75} />
-          </button>
-        )}
       </div>
     </div>
   );
