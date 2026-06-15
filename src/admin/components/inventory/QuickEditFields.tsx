@@ -2,9 +2,17 @@ import React, { useEffect, useState } from 'react';
 import type { Product, ExchangeRate } from '../../types';
 import { getThemeColor } from '../../themeUtils';
 
+export interface QuickEditColumn {
+  key: string;
+  /** Tailwind width class (e.g. 'w-[9%]') — the SAME class the table column uses. */
+  width: string;
+}
+
 export interface QuickEditFieldsProps {
   /** The product being quick-edited. */
   product: Product;
+  /** The visible columns (key + width), in order — the editors align to these. */
+  cols: QuickEditColumn[];
   /** Same optimistic + persisted update path the table's inline edits use. */
   onUpdate: (id: string, field: keyof Product, value: any) => void;
   /** Opens the tasting flow for this product (and collapses the panel). */
@@ -13,92 +21,93 @@ export interface QuickEditFieldsProps {
   onFullEdit: (product: Product) => void;
   /** Exchange rates, accepted for forward-compatible pricing display. */
   rates: ExchangeRate[];
-  /** Collapses the panel. Wired to setExpandedRowId(null) in the parent. */
-  onClose?: () => void;
 }
 
-// One inline field: a quiet label and a tiny content-width input on the SAME
-// line. These are small values (stock, price, year) — they don't need eyebrow
-// labels or boxed wells. Width is set per field so the input is just big enough.
+// A single editable value, sitting in its own column cell directly under the
+// matching table header. No label needed — the column header above IS the label.
 // Saves on blur only when the value changed, mirroring GhostInput.
-const InlineField = ({
-  label, value, onSave, ariaLabel, prefix, suffix, width,
+const CellInput = ({
+  value, onSave, ariaLabel, prefix, suffix,
 }: {
-  label: string;
   value: string | number;
   onSave: (val: string) => void;
   ariaLabel: string;
   prefix?: string;
   suffix?: string;
-  width: string;
 }) => {
   const [local, setLocal] = useState<string>(value === '' || value == null ? '' : String(value));
   useEffect(() => { setLocal(value === '' || value == null ? '' : String(value)); }, [value]);
   const commit = () => { if (local !== (value == null ? '' : String(value))) onSave(local); };
   return (
-    <label className="flex items-center gap-1.5 shrink-0">
-      <span className="text-ui-12 text-tea-text-dim">{label}</span>
-      <span className="flex items-center gap-0.5 rounded-md bg-tea-bg border border-tea-border px-2 py-1 focus-within:border-tea-gold transition-colors">
-        {prefix && <span className="text-ui-12 text-tea-text-dim shrink-0 num">{prefix}</span>}
-        <input
-          type="number"
-          inputMode="decimal"
-          aria-label={ariaLabel}
-          value={local}
-          onChange={(e) => setLocal(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
-          autoComplete="off"
-          spellCheck={false}
-          className={`${width} bg-transparent border-0 outline-none text-ui-14 text-right num text-tea-text`}
-        />
-        {suffix && <span className="text-ui-12 text-tea-text-dim shrink-0">{suffix}</span>}
-      </span>
-    </label>
+    <span className="flex items-center gap-0.5 rounded-md bg-tea-bg border border-tea-border px-2 py-1 focus-within:border-tea-gold transition-colors">
+      {prefix && <span className="text-ui-12 text-tea-text-dim shrink-0 num">{prefix}</span>}
+      <input
+        type="number"
+        inputMode="decimal"
+        aria-label={ariaLabel}
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
+        autoComplete="off"
+        spellCheck={false}
+        className="min-w-0 flex-1 bg-transparent border-0 outline-none text-ui-13 text-right num text-tea-text"
+      />
+      {suffix && <span className="text-ui-12 text-tea-text-dim shrink-0">{suffix}</span>}
+    </span>
   );
 };
 
-// The inner quick-edit form. Rendered inline in the inventory table directly
-// under the long-pressed row. Stock / Retail / Year are small numbers and the
-// in-shop control is a yes/no — so the whole thing is ONE compact line: a quiet
-// type-coloured accent bar, the three inline fields, the in-shop chip, and the
-// two actions. The tea name is NOT repeated here — it's in the row right above.
-// Saves route through onUpdate (same path as the table's inline edits), so
-// nothing about persistence changes.
+// The inline quick-edit form. Rendered under the long-pressed row as a nested
+// table-fixed grid that mirrors the parent's column widths, so each editor lands
+// directly beneath its real column: Stock under Stock, Year under Year, Retail
+// under Retail. Columns with no quick-edit field stay empty; the in-shop chip and
+// the two actions ride in the wide Product (first) column. Saves route through
+// onUpdate (same path as the table's inline edits), so persistence is unchanged.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
-  product, onUpdate, onTasting, onFullEdit, rates,
+  product, cols, onUpdate, onTasting, onFullEdit, rates,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
   const accent = getThemeColor(product.type);
 
-  return (
-    <div
-      className="inv-detail-panel relative bg-tea-elevated rounded-xl mx-3 my-2 pl-4 pr-3 py-2 overflow-hidden flex items-center gap-x-4 gap-y-2 flex-wrap"
-      style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}
-    >
-      {/* No name or close here — the tea name sits in the row directly above
-          this panel, so repeating it (and a close X) is redundant. */}
+  // Renders the editor that belongs in a given column, or null if that column
+  // has no quick-edit field.
+  const editorFor = (key: string): React.ReactNode => {
+    switch (key) {
+      case 'stockGrams':
+        return (
+          <CellInput
+            ariaLabel="Stock grams" suffix="g"
+            value={Math.round(product.stockGrams ?? 0)}
+            onSave={(val) => onUpdate(product.id, 'stockGrams', val)}
+          />
+        );
+      case 'year':
+        return (
+          <CellInput
+            ariaLabel="Year"
+            value={product.year ?? ''}
+            onSave={(val) => onUpdate(product.id, 'year', val)}
+          />
+        );
+      case 'pricePerGramUSD':
+        return (
+          <CellInput
+            ariaLabel="Retail price per gram" prefix="$"
+            value={retailValue}
+            onSave={(val) => onUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
-      {/* The three small numbers, inline. */}
-      <InlineField
-        label="Stock" ariaLabel="Stock grams" suffix="g" width="w-12"
-        value={Math.round(product.stockGrams ?? 0)}
-        onSave={(val) => onUpdate(product.id, 'stockGrams', val)}
-      />
-      <InlineField
-        label="Retail" ariaLabel="Retail price per gram" prefix="$" suffix="/g" width="w-14"
-        value={retailValue}
-        onSave={(val) => onUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
-      />
-      <InlineField
-        label="Year" ariaLabel="Year" width="w-12"
-        value={product.year ?? ''}
-        onSave={(val) => onUpdate(product.id, 'year', val)}
-      />
-
-      {/* In shop — a plain yes/no chip, not a circle switch. Fills gold when
-          on, sits as a quiet outline when off. The label itself is the control. */}
+  // The first (widest, Product) column carries the in-shop chip + actions. The
+  // controls that belong here regardless of which numeric columns are visible.
+  const controls = (
+    <div className="flex items-center gap-2">
       <button
         role="switch"
         aria-checked={product.isPublic}
@@ -112,22 +121,44 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
       >
         In shop
       </button>
+      <button
+        onClick={() => onTasting(product)}
+        className="tap-target h-7 px-2.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-13"
+      >
+        Tasting
+      </button>
+      <button
+        onClick={() => onFullEdit(product)}
+        className="tap-target h-7 px-2.5 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors text-ui-13 font-medium"
+      >
+        Full edit
+      </button>
+    </div>
+  );
 
-      {/* Actions — quiet text + a small filled chip, pushed to the right. */}
-      <div className="flex items-center gap-2 shrink-0 ml-auto">
-        <button
-          onClick={() => onTasting(product)}
-          className="tap-target h-7 px-2.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-13"
-        >
-          Tasting
-        </button>
-        <button
-          onClick={() => onFullEdit(product)}
-          className="tap-target h-7 px-2.5 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors text-ui-13 font-medium"
-        >
-          Full edit
-        </button>
-      </div>
+  return (
+    <div
+      className="inv-detail-panel relative overflow-hidden py-2"
+      style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}
+    >
+      <table className="w-full table-fixed border-collapse">
+        <colgroup>
+          {cols.map(c => <col key={c.key} className={c.width} />)}
+        </colgroup>
+        <tbody>
+          <tr>
+            {cols.map((c, i) => {
+              const editor = editorFor(c.key);
+              // First column hosts the controls; others host their editor (or stay empty).
+              return (
+                <td key={c.key} className={`align-middle px-3 ${i === 0 ? 'pl-5' : ''}`}>
+                  {i === 0 ? controls : editor}
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 };

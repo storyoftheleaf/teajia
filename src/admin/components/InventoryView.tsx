@@ -2517,12 +2517,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   <QuickEditInlineRow
                                     product={product}
                                     expanded
+                                    cols={(splitView ? renderSplitCols : renderCols).map(c => ({ key: c.key, width: splitView ? splitColWidth(c.key) : c.defaultWidth }))}
                                     colSpan={(splitView ? renderSplitCols : renderCols).length}
                                     onUpdate={handleProductUpdate}
                                     onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
                                     onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                     rates={rates}
-                                    onClose={() => setExpandedRowId(null)}
                                   />
                                 )}
                               </React.Fragment>
@@ -2595,12 +2595,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               <QuickEditInlineRow
                                 product={product}
                                 expanded
+                                cols={(splitView ? renderSplitCols : renderCols).map(c => ({ key: c.key, width: splitView ? splitColWidth(c.key) : c.defaultWidth }))}
                                 colSpan={(splitView ? renderSplitCols : renderCols).length}
                                 onUpdate={handleProductUpdate}
                                 onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
                                 onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                 rates={rates}
-                                onClose={() => setExpandedRowId(null)}
                               />
                             )}
                           </React.Fragment>
