@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import type { Product, ExchangeRate } from '../../types';
 import { getThemeColor } from '../../themeUtils';
+
+export interface QuickEditColumn {
+  key: string;
+  /** Tailwind width class (e.g. 'w-[9%]') — the SAME class the table column uses. */
+  width: string;
+}
 
 export interface QuickEditFieldsProps {
   /** The product being quick-edited. */
   product: Product;
+  /** The visible columns (key + width), in order — the editors align to these. */
+  cols: QuickEditColumn[];
   /** Same optimistic + persisted update path the table's inline edits use. */
   onUpdate: (id: string, field: keyof Product, value: any) => void;
   /** Opens the tasting flow for this product (and collapses the panel). */
@@ -18,128 +26,164 @@ export interface QuickEditFieldsProps {
   onClose?: () => void;
 }
 
-// One inline field: a quiet label and a tiny content-width input on the SAME
-// line. These are small values (stock, price, year) — they don't need eyebrow
-// labels or boxed wells. Width is set per field so the input is just big enough.
+// A single editable value, sitting in its own column cell directly under the
+// matching table header. No label needed — the column header above IS the label.
 // Saves on blur only when the value changed, mirroring GhostInput.
-const InlineField = ({
-  label, value, onSave, ariaLabel, prefix, suffix, width,
+const CellInput = ({
+  value, onSave, ariaLabel, prefix, suffix,
 }: {
-  label: string;
   value: string | number;
   onSave: (val: string) => void;
   ariaLabel: string;
   prefix?: string;
   suffix?: string;
-  width: string;
 }) => {
   const [local, setLocal] = useState<string>(value === '' || value == null ? '' : String(value));
   useEffect(() => { setLocal(value === '' || value == null ? '' : String(value)); }, [value]);
   const commit = () => { if (local !== (value == null ? '' : String(value))) onSave(local); };
   return (
-    <label className="flex items-center gap-1.5 shrink-0">
-      <span className="text-ui-12 text-tea-text-dim">{label}</span>
-      <span className="flex items-center gap-0.5 rounded-md bg-tea-bg border border-tea-border px-2 py-1 focus-within:border-tea-gold transition-colors">
-        {prefix && <span className="text-ui-12 text-tea-text-dim shrink-0 num">{prefix}</span>}
-        <input
-          type="number"
-          inputMode="decimal"
-          aria-label={ariaLabel}
-          value={local}
-          onChange={(e) => setLocal(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
-          autoComplete="off"
-          spellCheck={false}
-          className={`${width} bg-transparent border-0 outline-none text-ui-14 text-right num text-tea-text`}
-        />
-        {suffix && <span className="text-ui-12 text-tea-text-dim shrink-0">{suffix}</span>}
-      </span>
-    </label>
+    <span className="flex items-center gap-0.5 rounded-md bg-tea-bg border border-tea-border px-2 py-1 focus-within:border-tea-gold transition-colors">
+      {prefix && <span className="text-ui-12 text-tea-text-dim shrink-0 num">{prefix}</span>}
+      <input
+        type="number"
+        inputMode="decimal"
+        aria-label={ariaLabel}
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
+        autoComplete="off"
+        spellCheck={false}
+        className="min-w-0 flex-1 bg-transparent border-0 outline-none text-ui-13 text-right num text-tea-text"
+      />
+      {suffix && <span className="text-ui-12 text-tea-text-dim shrink-0">{suffix}</span>}
+    </span>
   );
 };
 
-// The inner quick-edit form. Rendered inline in the inventory table directly
-// under the long-pressed row. Stock / Retail / Year are small numbers and the
-// in-shop control is a yes/no — so the whole thing is ONE compact line: a quiet
-// type-coloured accent bar, the tea name, the three inline fields, the toggle,
-// and the two actions. Saves route through onUpdate (same path as the table's
-// inline edits), so nothing about persistence changes.
+// The inline quick-edit form. Rendered under the long-pressed row as a nested
+// table-fixed grid that mirrors the parent's column widths, so each editor lands
+// directly beneath its real column: Stock under Stock, Year under Year, Retail
+// under Retail. Columns with no quick-edit field stay empty; the in-shop chip and
+// the two actions ride in the wide Product (first) column. Saves route through
+// onUpdate (same path as the table's inline edits), so persistence is unchanged.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
-  product, onUpdate, onTasting, onFullEdit, rates, onClose,
+  product, cols, onUpdate, onTasting, onFullEdit, rates, onClose,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
-  const name = product.givenName || product.productName;
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
   const accent = getThemeColor(product.type);
 
+  // Renders the editor that belongs in a given column, or null if that column
+  // has no quick-edit field.
+  const editorFor = (key: string): React.ReactNode => {
+    switch (key) {
+      case 'stockGrams':
+        return (
+          <CellInput
+            ariaLabel="Stock grams" suffix="g"
+            value={Math.round(product.stockGrams ?? 0)}
+            onSave={(val) => onUpdate(product.id, 'stockGrams', val)}
+          />
+        );
+      case 'year':
+        return (
+          <CellInput
+            ariaLabel="Year"
+            value={product.year ?? ''}
+            onSave={(val) => onUpdate(product.id, 'year', val)}
+          />
+        );
+      case 'pricePerGramUSD':
+        return (
+          <CellInput
+            ariaLabel="Retail price per gram" prefix="$"
+            value={retailValue}
+            onSave={(val) => onUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  // The first (widest, Product) column carries the in-shop control — a clearly
+  // LABELLED checkbox so it reads as "show this tea in the shop", never a bare
+  // pill that looks like a stray tag or a date.
+  const inShop = (
+    <button
+      role="switch"
+      aria-checked={product.isPublic}
+      aria-label="Show in shop"
+      onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
+      className="tap-target inline-flex items-center gap-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+    >
+      <span
+        className={`inline-flex items-center justify-center w-4 h-4 rounded-[4px] border transition-colors ${
+          product.isPublic ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border'
+        }`}
+        aria-hidden="true"
+      >
+        {product.isPublic && <Check size={11} strokeWidth={3} />}
+      </span>
+      Show in shop
+    </button>
+  );
+
   return (
     <div
-      className="inv-detail-panel relative bg-tea-elevated rounded-xl mx-3 my-2 pl-4 pr-3 py-2 overflow-hidden flex items-center gap-x-4 gap-y-2 flex-wrap"
+      className="inv-detail-panel relative overflow-hidden py-2"
       style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}
     >
-      {/* Close — first in the row so it sits top-left per the panel/drawer rule. */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          aria-label="Close quick edit"
-          className="tap-target shrink-0 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
-        >
-          <X size={16} strokeWidth={1.75} />
-        </button>
-      )}
-
-      {/* Tea name — the anchor, kept short. */}
-      <p className="font-display text-ui-15 text-tea-text truncate leading-snug min-w-0 max-w-[200px]">{name}</p>
-
-      {/* The three small numbers, inline. */}
-      <InlineField
-        label="Stock" ariaLabel="Stock grams" suffix="g" width="w-12"
-        value={Math.round(product.stockGrams ?? 0)}
-        onSave={(val) => onUpdate(product.id, 'stockGrams', val)}
-      />
-      <InlineField
-        label="Retail" ariaLabel="Retail price per gram" prefix="$" suffix="/g" width="w-14"
-        value={retailValue}
-        onSave={(val) => onUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)}
-      />
-      <InlineField
-        label="Year" ariaLabel="Year" width="w-12"
-        value={product.year ?? ''}
-        onSave={(val) => onUpdate(product.id, 'year', val)}
-      />
-
-      {/* In shop — just a yes/no switch with its label. */}
-      <label className="flex items-center gap-2 shrink-0">
-        <span className="text-ui-12 text-tea-text-dim">In shop</span>
-        <button
-          role="switch"
-          aria-checked={product.isPublic}
-          aria-label="Show in shop"
-          onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
-          className={`tap-target relative w-10 h-6 rounded-full transition-colors shrink-0 ${product.isPublic ? 'bg-tea-gold' : 'bg-tea-surface'}`}
-        >
-          <span
-            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg transition-transform ${product.isPublic ? 'translate-x-4' : 'translate-x-0'}`}
-          />
-        </button>
-      </label>
-
-      {/* Actions — quiet text + a small filled chip, pushed to the right. */}
-      <div className="flex items-center gap-2 shrink-0 ml-auto">
-        <button
-          onClick={() => onTasting(product)}
-          className="tap-target h-7 px-2.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-13"
-        >
-          Tasting
-        </button>
-        <button
-          onClick={() => onFullEdit(product)}
-          className="tap-target h-7 px-2.5 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors text-ui-13 font-medium"
-        >
-          Full edit
-        </button>
-      </div>
+      <table className="w-full table-fixed border-collapse">
+        <colgroup>
+          {cols.map(c => <col key={c.key} className={c.width} />)}
+        </colgroup>
+        <tbody>
+          <tr>
+            {cols.map((c, i) => {
+              const isFirst = i === 0;
+              return (
+                <td key={c.key} className={`align-middle px-3 ${isFirst ? 'pl-5' : ''}`}>
+                  {/* First (widest) column: a left-aligned close, the in-shop
+                      control, and the two actions as a quiet line so nothing is
+                      crammed. The numeric columns just hold their aligned editor. */}
+                  {isFirst ? (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-3">
+                        {onClose && (
+                          <button
+                            onClick={onClose}
+                            aria-label="Close quick edit"
+                            className="tap-target shrink-0 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                          >
+                            <X size={16} strokeWidth={1.75} />
+                          </button>
+                        )}
+                        {inShop}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => onTasting(product)}
+                          className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                        >
+                          Tasting
+                        </button>
+                        <button
+                          onClick={() => onFullEdit(product)}
+                          className="tap-target text-ui-13 text-tea-gold hover:text-tea-gold-lt transition-colors font-medium"
+                        >
+                          Full edit
+                        </button>
+                      </div>
+                    </div>
+                  ) : editorFor(c.key)}
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 };

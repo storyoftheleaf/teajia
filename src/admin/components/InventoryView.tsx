@@ -307,6 +307,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Inline quick-edit — opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  // Dismiss the quick-edit the moment you click/tap anywhere outside it. We
+  // ignore clicks inside the panel itself (data-quick-edit) and on the row that
+  // owns it (the long-press toggle handles its own row), so a normal click
+  // elsewhere closes it.
+  useEffect(() => {
+    if (!expandedRowId) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (target.closest('[data-quick-edit]')) return;
+      if (target.closest(`tr[data-product-id="${expandedRowId}"]`)) return;
+      setExpandedRowId(null);
+    };
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [expandedRowId]);
   const [panelDirty, setPanelDirty] = useState(false);
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
@@ -2517,6 +2534,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   <QuickEditInlineRow
                                     product={product}
                                     expanded
+                                    cols={(splitView ? renderSplitCols : renderCols).map(c => ({ key: c.key, width: splitView ? splitColWidth(c.key) : c.defaultWidth }))}
                                     colSpan={(splitView ? renderSplitCols : renderCols).length}
                                     onUpdate={handleProductUpdate}
                                     onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
@@ -2595,12 +2613,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               <QuickEditInlineRow
                                 product={product}
                                 expanded
+                                cols={(splitView ? renderSplitCols : renderCols).map(c => ({ key: c.key, width: splitView ? splitColWidth(c.key) : c.defaultWidth }))}
                                 colSpan={(splitView ? renderSplitCols : renderCols).length}
                                 onUpdate={handleProductUpdate}
                                 onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
                                 onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                 rates={rates}
-                                onClose={() => setExpandedRowId(null)}
+                                    onClose={() => setExpandedRowId(null)}
                               />
                             )}
                           </React.Fragment>
