@@ -1721,7 +1721,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           The right action cluster carries paddingRight = INVENTORY_ACTION_RAIL_WIDTH
           when railOpen (with a 200ms transition matching the rail's slide-in) so the
           icons shift clear of the rail when a row is selected. */}
-      <div className={`hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 border-b border-tea-border flex-wrap sticky top-0 z-sticky transition-colors ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
+      <div className={`hidden md:block border-b border-tea-border sticky top-0 z-sticky transition-colors ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
+       {/* Inner cap matches the table below (max-w-7xl mx-auto) so the toolbar
+           shares the table's left/right edge instead of the bar's tools hugging
+           the viewport edge — that overhang was the source of the center void. */}
+       <div className="flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 flex-wrap max-w-7xl mx-auto w-full">
         {(() => {
           const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           // Everyday filters stay inline; the rest fold into "More" so the row never overflows.
@@ -2113,6 +2117,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
             </div>
         </div>
+       </div>
       </div>
 
       {/* ENRICHMENT PROGRESS BANNER */}
