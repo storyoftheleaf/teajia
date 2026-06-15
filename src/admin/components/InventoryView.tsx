@@ -51,7 +51,7 @@ import {
 import type { InventoryCategory } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
-import { QuickEditSheet } from './inventory/QuickEditSheet';
+import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
@@ -304,8 +304,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
-  // Mobile quick-edit sheet — opened by a long-press on a row (touch only).
-  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
+  // Inline quick-edit — opened by a long-press on a row. Holds the id of the one
+  // row that is currently expanded; the panel slides down directly under it.
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
@@ -1219,11 +1220,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     toggleSelectId(productId, globalIdx, false);
   }, [toggleSelectId]);
 
-  // Mobile long-press opens the lightweight quick-edit sheet for that one row
-  // (touch only, so desktop is naturally unaffected). The row's tap still selects.
+  // Long-press toggles the inline quick-edit panel for that one row. The panel
+  // renders as an extra full-width row directly under the long-pressed row and
+  // slides down (the old expand-under-the-tea feel). Long-pressing the same row
+  // again collapses it; only one row is ever expanded at a time. The row's tap
+  // still selects.
   const stableLongPressQuickEdit = useCallback((productId: string, _globalIdx: number) => {
-    const product = processedProductsRef.current.find(p => p.id === productId);
-    if (product) setQuickEditProduct(product);
+    setExpandedRowId(prev => (prev === productId ? null : productId));
   }, []);
 
   const handleBulkApply = async () => {
@@ -2510,6 +2513,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   showToast={showToast}
                                   navigate={navigate}
                                 />
+                                {expandedRowId === product.id && (
+                                  <QuickEditInlineRow
+                                    product={product}
+                                    expanded
+                                    colSpan={(splitView ? renderSplitCols : renderCols).length}
+                                    onUpdate={handleProductUpdate}
+                                    onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
+                                    onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
+                                    rates={rates}
+                                  />
+                                )}
                               </React.Fragment>
                             );
                           })}
@@ -2576,6 +2590,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               showToast={showToast}
                               navigate={navigate}
                             />
+                            {expandedRowId === product.id && (
+                              <QuickEditInlineRow
+                                product={product}
+                                expanded
+                                colSpan={(splitView ? renderSplitCols : renderCols).length}
+                                onUpdate={handleProductUpdate}
+                                onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
+                                onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
+                                rates={rates}
+                              />
+                            )}
                           </React.Fragment>
                         );
                     })}
@@ -2749,16 +2774,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           }}
         />
       )}
-
-      {/* Mobile quick-edit sheet (long-press a row to open) */}
-      <QuickEditSheet
-        product={quickEditProduct}
-        onClose={() => setQuickEditProduct(null)}
-        onUpdate={handleProductUpdate}
-        onTasting={(p) => { setTastingEditorProduct(p); setQuickEditProduct(null); }}
-        onFullEdit={(p) => { setPanelProduct(p); setQuickEditProduct(null); }}
-        rates={rates}
-      />
 
       {/* Floating Stock History Panel (from table click) */}
       {stockHistoryProduct && !panelProduct && (
