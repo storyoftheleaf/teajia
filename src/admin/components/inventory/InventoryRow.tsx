@@ -271,15 +271,20 @@ function InventoryRowBase(props: InventoryRowProps) {
       style={{ height: rowHeight }}
       tabIndex={isEditMode ? -1 : 0}
       aria-selected={isSelected}
-      onTouchStart={() => {
+      onPointerDown={() => {
+        // Pointer events fire for touch, mouse, AND trackpad, so press-and-hold
+        // opens the quick-edit sheet whether on a phone or a desktop browser at
+        // mobile width. (Touch-only listeners never fired for mouse testing.)
         lpFired.current = false;
+        if (lpTimer.current) clearTimeout(lpTimer.current);
         lpTimer.current = setTimeout(() => {
           lpFired.current = true;
           onLongPressQuickEdit(product.id, globalIdxRef.current);
         }, 500);
       }}
-      onTouchMove={() => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } }}
-      onTouchEnd={() => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } }}
+      onPointerMove={() => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } }}
+      onPointerUp={() => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } }}
+      onPointerCancel={() => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } lpFired.current = false; }}
       onClick={(e) => {
         if (lpFired.current) { lpFired.current = false; return; }
         onRowClick(product.id, globalIdxRef.current, e);
