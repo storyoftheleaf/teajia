@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
 import type { Product, ExchangeRate } from '../../types';
 import { getThemeColor } from '../../themeUtils';
 
@@ -62,14 +61,14 @@ const InlineField = ({
 // The inner quick-edit form. Rendered inline in the inventory table directly
 // under the long-pressed row. Stock / Retail / Year are small numbers and the
 // in-shop control is a yes/no — so the whole thing is ONE compact line: a quiet
-// type-coloured accent bar, the tea name, the three inline fields, the toggle,
-// and the two actions. Saves route through onUpdate (same path as the table's
-// inline edits), so nothing about persistence changes.
+// type-coloured accent bar, the three inline fields, the in-shop chip, and the
+// two actions. The tea name is NOT repeated here — it's in the row right above.
+// Saves route through onUpdate (same path as the table's inline edits), so
+// nothing about persistence changes.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
-  product, onUpdate, onTasting, onFullEdit, rates, onClose,
+  product, onUpdate, onTasting, onFullEdit, rates,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
-  const name = product.givenName || product.productName;
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
   const accent = getThemeColor(product.type);
 
@@ -78,8 +77,8 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
       className="inv-detail-panel relative bg-tea-elevated rounded-xl mx-3 my-2 pl-4 pr-3 py-2 overflow-hidden flex items-center gap-x-4 gap-y-2 flex-wrap"
       style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}
     >
-      {/* Tea name — the anchor, kept short. */}
-      <p className="font-display text-ui-15 text-tea-text truncate leading-snug min-w-0 max-w-[200px]">{name}</p>
+      {/* No name or close here — the tea name sits in the row directly above
+          this panel, so repeating it (and a close X) is redundant. */}
 
       {/* The three small numbers, inline. */}
       <InlineField
@@ -98,21 +97,21 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
         onSave={(val) => onUpdate(product.id, 'year', val)}
       />
 
-      {/* In shop — just a yes/no switch with its label. */}
-      <label className="flex items-center gap-2 shrink-0">
-        <span className="text-ui-12 text-tea-text-dim">In shop</span>
-        <button
-          role="switch"
-          aria-checked={product.isPublic}
-          aria-label="Show in shop"
-          onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
-          className={`tap-target relative w-10 h-6 rounded-full transition-colors shrink-0 ${product.isPublic ? 'bg-tea-gold' : 'bg-tea-surface'}`}
-        >
-          <span
-            className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-tea-bg transition-transform ${product.isPublic ? 'translate-x-4' : 'translate-x-0'}`}
-          />
-        </button>
-      </label>
+      {/* In shop — a plain yes/no chip, not a circle switch. Fills gold when
+          on, sits as a quiet outline when off. The label itself is the control. */}
+      <button
+        role="switch"
+        aria-checked={product.isPublic}
+        aria-label="Show in shop"
+        onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
+        className={`tap-target shrink-0 h-7 px-2.5 rounded-md text-ui-13 transition-colors ${
+          product.isPublic
+            ? 'bg-tea-gold/15 text-tea-gold'
+            : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+        }`}
+      >
+        In shop
+      </button>
 
       {/* Actions — quiet text + a small filled chip, pushed to the right. */}
       <div className="flex items-center gap-2 shrink-0 ml-auto">
@@ -128,15 +127,6 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
         >
           Full edit
         </button>
-        {onClose && (
-          <button
-            onClick={onClose}
-            aria-label="Close quick edit"
-            className="tap-target shrink-0 text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            <X size={16} strokeWidth={1.75} />
-          </button>
-        )}
       </div>
     </div>
   );
