@@ -2540,6 +2540,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
                                     onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                     rates={rates}
+                                    onClose={() => setExpandedRowId(null)}
                                   />
                                 )}
                               </React.Fragment>
@@ -2618,6 +2619,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
                                 onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                 rates={rates}
+                                    onClose={() => setExpandedRowId(null)}
                               />
                             )}
                           </React.Fragment>

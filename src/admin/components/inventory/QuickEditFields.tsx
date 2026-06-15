@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import type { Product, ExchangeRate } from '../../types';
 import { getThemeColor } from '../../themeUtils';
 
@@ -22,6 +22,8 @@ export interface QuickEditFieldsProps {
   onFullEdit: (product: Product) => void;
   /** Exchange rates, accepted for forward-compatible pricing display. */
   rates: ExchangeRate[];
+  /** Collapses the panel. Wired to setExpandedRowId(null) in the parent. */
+  onClose?: () => void;
 }
 
 // A single editable value, sitting in its own column cell directly under the
@@ -66,7 +68,7 @@ const CellInput = ({
 // the two actions ride in the wide Product (first) column. Saves route through
 // onUpdate (same path as the table's inline edits), so persistence is unchanged.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
-  product, cols, onUpdate, onTasting, onFullEdit, rates,
+  product, cols, onUpdate, onTasting, onFullEdit, rates, onClose,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
@@ -143,12 +145,23 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
               const isFirst = i === 0;
               return (
                 <td key={c.key} className={`align-middle px-3 ${isFirst ? 'pl-5' : ''}`}>
-                  {/* First (widest) column: the in-shop control, with the two
-                      actions as a quiet second line so nothing is crammed. The
-                      numeric columns just hold their aligned editor. */}
+                  {/* First (widest) column: a left-aligned close, the in-shop
+                      control, and the two actions as a quiet line so nothing is
+                      crammed. The numeric columns just hold their aligned editor. */}
                   {isFirst ? (
                     <div className="flex flex-col gap-1.5">
-                      {inShop}
+                      <div className="flex items-center gap-3">
+                        {onClose && (
+                          <button
+                            onClick={onClose}
+                            aria-label="Close quick edit"
+                            className="tap-target shrink-0 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+                          >
+                            <X size={16} strokeWidth={1.75} />
+                          </button>
+                        )}
+                        {inShop}
+                      </div>
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => onTasting(product)}

@@ -16,6 +16,8 @@ export interface QuickEditInlineRowProps {
   onTasting: (product: Product) => void;
   onFullEdit: (product: Product) => void;
   rates: ExchangeRate[];
+  /** Collapses the panel (parent sets expandedRowId to null). */
+  onClose?: () => void;
 }
 
 // The inline quick-edit panel rendered as an extra full-width table row directly
@@ -24,7 +26,7 @@ export interface QuickEditInlineRowProps {
 // nested table-fixed grid mirroring the parent's column widths — so each editor
 // sits directly under its real column (Stock under Stock, Year under Year).
 function QuickEditInlineRowBase({
-  product, expanded, cols, colSpan, onUpdate, onTasting, onFullEdit, rates,
+  product, expanded, cols, colSpan, onUpdate, onTasting, onFullEdit, rates, onClose,
 }: QuickEditInlineRowProps) {
   return (
     <tr aria-hidden={!expanded} className="border-b-0">
@@ -46,6 +48,7 @@ function QuickEditInlineRowBase({
                 onTasting={onTasting}
                 onFullEdit={onFullEdit}
                 rates={rates}
+                onClose={onClose}
               />
             </motion.div>
           )}
