@@ -22,6 +22,8 @@ export interface InventoryRowProps {
   isDropdownOpen: boolean;
   onRowClick: (productId: string, globalIdx: number, e: React.MouseEvent) => void;
   onLongPressSelect: (productId: string, globalIdx: number) => void;
+  /** Mobile long-press (touch only) opens the quick-edit sheet for this product. */
+  onLongPressQuickEdit: (productId: string, globalIdx: number) => void;
   onProductUpdate: (id: string, field: keyof Product, value: any) => void;
   onSelectionAwareUpdate: (product: Product, field: keyof Product, value: any) => void;
   onOpenPanel: (product: Product) => void;
@@ -41,9 +43,10 @@ function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, rowHeight, isPanelOpen, isDropdownOpen,
-    onRowClick, onLongPressSelect, onProductUpdate, onSelectionAwareUpdate,
+    onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
+  void onLongPressSelect; // retained in the prop type; long-press now routes to quick-edit
 
   const globalIdxRef = useRef(globalIdx);
   useLayoutEffect(() => { globalIdxRef.current = globalIdx; }, [globalIdx]);
@@ -273,7 +276,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         lpFired.current = false;
         lpTimer.current = setTimeout(() => {
           lpFired.current = true;
-          onLongPressSelect(product.id, globalIdxRef.current);
+          onLongPressQuickEdit(product.id, globalIdxRef.current);
         }, 500);
       }}
       onTouchMove={() => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null; } }}

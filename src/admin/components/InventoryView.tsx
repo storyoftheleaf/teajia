@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
-  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History
+  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Save, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -14,6 +14,7 @@ import { QrCodeModal } from './QrCodeModal';
 import { useRates, useCustomers } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
+import { selectHasBundle } from '../../lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { fmtNum } from '../../utils/formatNumber';
 import { getThemeColor } from '../themeUtils';
@@ -51,6 +52,7 @@ import {
 import type { InventoryCategory } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
+import { QuickEditSheet } from './inventory/QuickEditSheet';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
@@ -139,8 +141,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setIsCartOpen: s.setIsCartOpen,
   })));
 
-  // "Carry from network" moved to the sidebar (gated there by the Catalog
-  // bundle). The toolbar no longer renders it.
+  // Catalog bundle gates the "Carry from network" entry point. Per Step 2 of
+  // the Network Rollout — partners with the Catalog bundle can carry teas
+  // from Adrian's curated catalog into their own listings.
+  // Reactive subscription, not a one-shot snapshot — store hydrates async after mount.
+  const hasCatalogBundle = useAppStore(s => selectHasBundle(s, 'catalog'));
 
   const { addSampleSet, addSample, setActiveSet } = useSampleStore();
 
@@ -297,12 +302,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
   }, [filterType, searchQuery]);
 
+  // Feature 4: Save View prompt
+  const [showSaveViewPrompt, setShowSaveViewPrompt] = useState(false);
+  const [newViewName, setNewViewName] = useState('');
   // Desktop view-tab row: only these filters stay inline; the rest fold into a "More" menu
   // so the row never overflows horizontally. Custom saved views always stay inline.
   const [moreViewsOpen, setMoreViewsOpen] = useState(false);
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+  // Mobile quick-edit sheet — opened by a long-press on a row (touch only).
+  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
@@ -470,7 +480,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     activeColumnDefs,
     activeDefaultViews,
     processedProducts,
-    visibleCols: allVisibleCols,
+    visibleCols,
     productIndexMap,
     groupedProducts,
     pendingCount,
@@ -486,16 +496,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     priceMode,
     isEditMode,
   });
-
-  // On mobile, drop the Origin column so the narrower screen can show the
-  // numbers that matter (stock, price). Origin stays on desktop and in the
-  // saved-view config untouched — this is a render-time trim, not a view edit.
-  // Driving every render + keyboard-nav site off this keeps header, colgroup,
-  // and rows in lockstep so the table never desyncs its column count.
-  const visibleCols = useMemo(
-    () => (isMobile ? allVisibleCols.filter(col => col.key !== 'originRegion') : allVisibleCols),
-    [isMobile, allVisibleCols],
-  );
 
   // Initialize review drafts when switching to Pending filter or when pending products change
   useEffect(() => {
@@ -537,6 +537,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       : new Set(['productName', 'stockGrams', 'pricePerGramUSD', 'costPerGramUSD', 'costAmount']);
     return visibleCols.filter(col => essential.has(col.key));
   }, [visibleCols, inventoryCategory]);
+
+  // Mobile column trim — at the render layer only (never mutates the persisted
+  // inventoryColumns store). On phones the Type and Origin columns are dropped so
+  // Product / Year / Stock / Retail keep readable width; table-fixed lets the
+  // remaining columns absorb the freed space. Desktop keeps every column.
+  const MOBILE_HIDDEN_COLS = ['type', 'originRegion'];
+  const renderCols = useMemo(
+    () => (isMobile ? visibleCols.filter(col => !MOBILE_HIDDEN_COLS.includes(col.key)) : visibleCols),
+    [isMobile, visibleCols],
+  );
+  const renderSplitCols = useMemo(
+    () => (isMobile ? splitViewCols.filter(col => !MOBILE_HIDDEN_COLS.includes(col.key)) : splitViewCols),
+    [isMobile, splitViewCols],
+  );
 
   const splitColWidth = (key: string): string => {
     if (key === 'productName') return '';
@@ -1202,6 +1216,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     toggleSelectId(productId, globalIdx, false);
   }, [toggleSelectId]);
 
+  // Mobile long-press opens the lightweight quick-edit sheet for that one row
+  // (touch only, so desktop is naturally unaffected). The row's tap still selects.
+  const stableLongPressQuickEdit = useCallback((productId: string, _globalIdx: number) => {
+    const product = processedProductsRef.current.find(p => p.id === productId);
+    if (product) setQuickEditProduct(product);
+  }, []);
+
   const handleBulkApply = async () => {
     if (selectedIds.size === 0 || !bulkField) return;
     setIsBulkApplying(true);
@@ -1444,13 +1465,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
       <div className={`md:hidden sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
-        {/* Shift the whole bar clear of the action rail when it slides in from the
-            right, matching the rail's 200ms slide so the tabs/sort row are never
-            painted over. Mirrors the desktop toolbar's paddingRight treatment. */}
-        <div
-          className="flex flex-col border-b border-tea-border transition-[padding-right] duration-200"
-          style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}
-        >
+        <div className="flex flex-col border-b border-tea-border">
         <div className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar">
           {/* View tabs — all visible, horizontally scrollable */}
           {(() => {
@@ -1687,14 +1702,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       </div>
 
       {/* --- UNIFIED DESKTOP TOOLBAR (desktop only) ---
-          One sticky top bar: [view tabs / More] ...ml-auto... [edit status]
-          [Glossary] | [Edit] [+] [Cols] [Group] [Vendor] [overflow].
+          One sticky top bar: [Stock] [view tabs / More] ...ml-auto... [edit status]
+          [Save view] [Glossary] | [Edit] [New] [Carry] [Cols] [Group] [Vendor] [overflow].
           Solid background (no backdrop-blur — backdrop-blur caused an invisible-icon
           bug here). z-sticky keeps the bar below the InventoryActionRail (z-drawer).
           The right action cluster carries paddingRight = INVENTORY_ACTION_RAIL_WIDTH
           when railOpen (with a 200ms transition matching the rail's slide-in) so the
           icons shift clear of the rail when a row is selected. */}
       <div className={`hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 border-b border-tea-border flex-wrap sticky top-0 z-sticky transition-colors ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
+        <h1 className="h2 text-tea-text shrink-0 mr-4">Stock</h1>
         {(() => {
           const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           // Everyday filters stay inline; the rest fold into "More" so the row never overflows.
@@ -1735,9 +1751,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   aria-pressed={activeViewId === view.id}
                   className={tabClass(view)}
                 >
-                  {/* Inline filter tabs are text-only — the icons read as actions and
-                      add orientation tax. Icons are kept in the More dropdown and the
-                      active-view header where they aid scanning. */}
+                  {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
                   {view.name}
                   {!view.id.startsWith('default-') && (
                     <span
@@ -1749,26 +1763,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   )}
                 </button>
               ))}
-
-              {/* Pending AI Approval — a filter, not an action, so it lives in the
-                  filter row. Only shown when the queue is non-empty; the live count
-                  makes it an actionable indicator (click opens the queue). */}
-              {inventoryCategory === 'tea' && pendingCount > 0 && (
-                <button
-                  onClick={() => setFilterType(filterType === 'Pending' ? 'All' : 'Pending')}
-                  title="Pending AI approval"
-                  aria-label="Show teas pending AI approval"
-                  aria-pressed={filterType === 'Pending'}
-                  className={`relative flex items-center gap-1.5 px-3 py-1.5 text-ui-11 uppercase tracking-[0.12em] rounded-md whitespace-nowrap transition-colors ${
-                    filterType === 'Pending'
-                      ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
-                      : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
-                  }`}
-                >
-                  Pending
-                  <span className="bg-tea-gold/20 text-tea-gold text-ui-10 font-bold px-1.5 py-0.5 rounded-full tabular-nums">{pendingCount}</span>
-                </button>
-              )}
 
               {moreViews.length > 0 && (
                 <div className="shrink-0">
@@ -1838,6 +1832,58 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             )
           )}
 
+          {/* Save view + Glossary */}
+          <div className="flex items-center gap-1 shrink-0">
+          {showSaveViewPrompt ? (
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newViewName.trim()) {
+                    const id = `custom-${Date.now()}`;
+                    saveView({ id, name: newViewName.trim(), columns: inventoryColumns, sortConfig: inventorySortConfig, filterType, groupBy: inventoryGroupBy });
+                    setActiveView(id);
+                    setNewViewName('');
+                    setShowSaveViewPrompt(false);
+                  } else if (e.key === 'Escape') {
+                    setShowSaveViewPrompt(false);
+                    setNewViewName('');
+                  }
+                }}
+                placeholder="View name..."
+                className="bg-transparent border-b border-tea-border text-ui-10 text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg w-24 py-0.5 px-1"
+              />
+              <button onClick={() => { setShowSaveViewPrompt(false); setNewViewName(''); }} className="text-tea-text-sec/40 hover:text-tea-text-sec" aria-label="Dismiss"><XIcon size={10} /></button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSaveViewPrompt(true)}
+              className="flex items-center justify-center w-8 h-8 rounded-md text-tea-text-sec/40 hover:text-tea-text-sec hover:bg-tea-surface transition-colors shrink-0"
+              aria-label="Save current view"
+            >
+              <Save size={15} />
+            </button>
+          )}
+          {inventoryCategory === 'tea' && (
+            <>
+              <div className="w-px h-4 bg-tea-border shrink-0" />
+              <button
+                onClick={() => setGlossaryMode(prev => !prev)}
+                className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0 ${
+                  glossaryMode
+                    ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
+                    : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
+                }`}
+                aria-label="Glossary view"
+              >
+                <ImageIcon size={15} />
+              </button>
+            </>
+          )}
+          </div>
+
           {/* Actions cluster (migrated from former second toolbar) */}
           <div className="flex items-center gap-4">
                 {/* Actions Group */}
@@ -1865,31 +1911,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <div className="w-px h-4 bg-tea-border mx-1"></div>
 
-                    <button
-                      onClick={onAddClick}
-                      title="Add new tea"
-                      aria-label="Add new tea"
-                      className="tap-target inline-flex items-center justify-center w-8 h-8 rounded-xl bg-tea-gold text-tea-bg hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
-                    >
-                        <Plus size={16} />
+                    <button onClick={onAddClick} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors">
+                        <Plus size={13} />
+                        <span>New</span>
                     </button>
 
-                    {/* Glossary — grouped with the view-shaping controls (Cols/Group/
-                        Vendor) since it toggles how the whole table is viewed. Tea only. */}
-                    {inventoryCategory === 'tea' && (
-                      <button
-                        onClick={() => setGlossaryMode(prev => !prev)}
-                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs transition-colors ${
-                          glossaryMode
-                            ? 'text-tea-gold bg-tea-surface'
-                            : 'text-tea-text-sec hover:text-tea-text hover:bg-tea-surface'
-                        }`}
-                        title="Glossary view"
-                        aria-label="Glossary view"
+                    {/* Carry from network — gated by Catalog bundle. Step 2 of the Network Rollout. */}
+                    {hasCatalogBundle && (
+                      <Link
+                        to="/admin/network?tab=catalog"
+                        className="font-body text-ui-13 text-tea-text-sec hover:text-tea-gold transition-colors px-3 py-1.5 group"
                       >
-                        <ImageIcon size={14} />
-                        <span className="hidden xl:inline tracking-wide">Glossary</span>
-                      </button>
+                        Carry{' '}
+                        <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+                      </Link>
                     )}
 
                     {/* Columns Toggle */}
@@ -1981,7 +2016,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {/* Vendor Filter Dropdown */}
                     <AnchoredMenu
                       align="right"
-                      width={208}
+                      width={192}
+                      className="max-h-60 overflow-y-auto"
                       open={showVendorDropdown}
                       onOpenChange={setShowVendorDropdown}
                       trigger={(props) => (
@@ -2006,22 +2042,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           >
                             All Vendors
                           </button>
-                          {/* The list scrolls on its own with a right gutter so the
-                              scrollbar never paints over the vendor names (the clip
-                              bug). max-h is on this inner list, not the whole panel. */}
-                          <div className="max-h-56 overflow-y-auto custom-scrollbar pr-0.5">
-                            {[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => (
-                              <button
-                                key={vendor}
-                                role="menuitem"
-                                onClick={() => { setSearchParams({ vendor: vendor! }); close(); }}
-                                title={vendor!}
-                                className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors truncate ${vendorFilter === vendor ? 'text-tea-gold' : 'text-tea-text-sec'}`}
-                              >
-                                {vendor}
-                              </button>
-                            ))}
-                          </div>
+                          {[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => (
+                            <button
+                              key={vendor}
+                              role="menuitem"
+                              onClick={() => { setSearchParams({ vendor: vendor! }); close(); }}
+                              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-tea-bg transition-colors truncate ${vendorFilter === vendor ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                            >
+                              {vendor}
+                            </button>
+                          ))}
                         </>
                       )}
                     </AnchoredMenu>
@@ -2043,6 +2073,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     >
                       {(close) => (
                         <>
+                            <button
+                                role="menuitem"
+                                onClick={() => { setFilterType(filterType === 'Pending' ? 'All' : 'Pending'); close(); }}
+                                className={`px-4 py-2 text-left text-xs flex items-center gap-2 hover:bg-tea-bg transition-colors ${filterType === 'Pending' ? 'text-tea-gold' : 'text-tea-text-sec'}`}
+                            >
+                                <Sparkles size={14} />
+                                Pending AI Approval
+                                {pendingCount > 0 && (
+                                    <span className="ml-auto bg-tea-gold/20 text-tea-gold text-ui-10 font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+                                )}
+                            </button>
                             <button role="menuitem" onClick={() => { setShowContentLinks(true); close(); }} className="px-4 py-2 text-left text-xs text-tea-text-sec hover:text-tea-text hover:bg-tea-bg flex items-center gap-2 transition-colors">
                                 <Tag size={14} /> Content Links
                             </button>
@@ -2427,11 +2468,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
-                  {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
+                  {renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                 </colgroup>
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
-                    {visibleCols.map(col => (
+                    {renderCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                     ))}
                   </tr>
@@ -2461,9 +2502,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <table className="w-full table-fixed border-collapse">
                         <colgroup>
                           {splitView ? (
-                            splitViewCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
+                            renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                           ) : (
-                            visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
+                            renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                           )}
                         </colgroup>
                         <tbody>
@@ -2477,14 +2518,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   isSelected={selectedIds.has(product.id)}
                                   focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                                   isEditMode={isEditMode}
-                                  visibleCols={visibleCols}
-                                  splitViewCols={splitViewCols}
+                                  visibleCols={renderCols}
+                                  splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
                                   isDropdownOpen={rowDropdownId === product.id}
                                   onRowClick={stableRowClick}
                                   onLongPressSelect={stableLongPressSelect}
+                                  onLongPressQuickEdit={stableLongPressQuickEdit}
                                   onProductUpdate={handleProductUpdate}
                                   onSelectionAwareUpdate={handleSelectionAwareUpdate}
                                   onOpenPanel={stableOpenPanel}
@@ -2510,9 +2552,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <table className="w-full table-fixed border-collapse">
                 <colgroup>
                     {splitView ? (
-                      splitViewCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
+                      renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                     ) : (
-                      visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
+                      renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                     )}
                 </colgroup>
 
@@ -2520,11 +2562,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                     <tr>
                         {splitView ? (
-                          splitViewCols.map(col => (
+                          renderSplitCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         ) : (
-                          visibleCols.map(col => (
+                          renderCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         )}
@@ -2542,14 +2584,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               isSelected={selectedIds.has(product.id)}
                               focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                               isEditMode={isEditMode}
-                              visibleCols={visibleCols}
-                              splitViewCols={splitViewCols}
+                              visibleCols={renderCols}
+                              splitViewCols={renderSplitCols}
                               splitView={splitView}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
                               isDropdownOpen={rowDropdownId === product.id}
                               onRowClick={stableRowClick}
                               onLongPressSelect={stableLongPressSelect}
+                              onLongPressQuickEdit={stableLongPressQuickEdit}
                               onProductUpdate={handleProductUpdate}
                               onSelectionAwareUpdate={handleSelectionAwareUpdate}
                               onOpenPanel={stableOpenPanel}
@@ -2733,6 +2776,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           }}
         />
       )}
+
+      {/* Mobile quick-edit sheet (long-press a row to open) */}
+      <QuickEditSheet
+        product={quickEditProduct}
+        onClose={() => setQuickEditProduct(null)}
+        onUpdate={handleProductUpdate}
+        onTasting={(p) => { setTastingEditorProduct(p); setQuickEditProduct(null); }}
+        onFullEdit={(p) => { setPanelProduct(p); setQuickEditProduct(null); }}
+        rates={rates}
+      />
 
       {/* Floating Stock History Panel (from table click) */}
       {stockHistoryProduct && !panelProduct && (
