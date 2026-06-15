@@ -206,6 +206,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         { id: 'personal', path: '/admin/personal', label: 'Collection',   icon: <UserCheck  size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'capture',  path: '/admin/capture',  label: 'Quick Capture', icon: <Camera    size={14} weight={PHOSPHOR_WEIGHT} /> },
         { id: 'compass',  path: '/admin/compass',  label: 'Curate',       icon: <Compass    size={14} weight={PHOSPHOR_WEIGHT} /> },
+        // Carry from the network catalog into your own store. Gated by the
+        // Catalog bundle — admins who can populate their own store. Moved here
+        // from the inventory toolbar so it lives next to the stock destinations.
+        ...(hasCatalog ? [{ id: 'carry', path: '/admin/network?tab=catalog', label: 'Carry from network', icon: <Globe size={14} weight={PHOSPHOR_WEIGHT} /> }] : []),
       ],
     },
     {

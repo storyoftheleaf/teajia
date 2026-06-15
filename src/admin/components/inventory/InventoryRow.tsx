@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
-import { getThemeColor } from '../../themeUtils';
+import { getThemeTextColor } from '../../themeUtils';
 import { TYPE_OPTIONS } from './config';
 import type { ColDef } from './types';
 import { stripMatchingYear } from './helpers';
@@ -106,27 +106,26 @@ function InventoryRowBase(props: InventoryRowProps) {
         );
       }
       case 'type': {
-        const dotColor = getThemeColor(product.type);
+        const typeColor = getThemeTextColor(product.type);
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
             {isEditMode ? (
-              <label className="inline-flex items-center gap-2 cursor-pointer">
-                <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: dotColor }} />
+              <label className="inline-flex items-center cursor-pointer">
                 <select
                   value={product.type}
                   onChange={(e) => onProductUpdate(product.id, 'type', e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent outline-none appearance-none cursor-pointer text-ui-13 text-tea-text-sec hover:text-tea-text focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
+                  className="bg-transparent outline-none appearance-none cursor-pointer text-ui-13 font-bold hover:opacity-80 focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
+                  style={{ color: typeColor }}
                   aria-label="Tea type"
                 >
                   {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
                 </select>
               </label>
             ) : (
-              <span className="inline-flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: dotColor }} />
-                {product.type}
-              </span>
+              // The type is carried by the word itself, tinted + bold in the
+              // type's colour — the separate colour dot was redundant ink.
+              <span className="font-bold truncate block" style={{ color: typeColor }}>{product.type}</span>
             )}
           </td>
         );

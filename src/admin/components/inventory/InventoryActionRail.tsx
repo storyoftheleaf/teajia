@@ -81,9 +81,10 @@ export const InventoryActionRail: React.FC<InventoryActionRailProps> = ({
       style={{
         right: rightOffset,
         width: RAIL_WIDTH,
-        // A pronounced left shadow + darker-than-the-toolbar surface so the rail
-        // reads as its own recessed panel, never a continuation of the bar above.
-        boxShadow: '-12px 0 28px rgba(0,0,0,0.5), inset 1px 0 0 rgba(212,166,82,0.14)',
+        // A thin inset gold hairline marks the rail's left edge without casting a
+        // drop shadow onto the table. The earlier -12px blurred shadow smeared
+        // shading over the right columns in both shrunken and expanded states.
+        boxShadow: 'inset 1px 0 0 rgba(212,166,82,0.14)',
         paddingTop: 12,
         paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
       }}

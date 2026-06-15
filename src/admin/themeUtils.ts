@@ -12,3 +12,16 @@ export const getThemeColor = (type: string) => {
     default: return '#737373';
   }
 };
+
+// Text-legible variant of the type colour. The dot palette above is tuned for a
+// small filled swatch; the darkest types (Shou, Dark, default) are too dim to
+// read as 13px text on the dark inventory surface, so lift those to a lighter
+// tint that keeps the hue but clears the contrast floor.
+export const getThemeTextColor = (type: string) => {
+  switch (type) {
+    case 'Shou': return '#9B8F84';
+    case 'Dark': return '#A7A8A4';
+    case 'Red': return '#BE9189';
+    default: return getThemeColor(type);
+  }
+};
