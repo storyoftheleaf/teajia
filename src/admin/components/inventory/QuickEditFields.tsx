@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import type { Product, ExchangeRate } from '../../types';
 import { getThemeColor } from '../../themeUtils';
 
@@ -104,36 +105,27 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
     }
   };
 
-  // The first (widest, Product) column carries the in-shop chip + actions. The
-  // controls that belong here regardless of which numeric columns are visible.
-  const controls = (
-    <div className="flex items-center gap-2">
-      <button
-        role="switch"
-        aria-checked={product.isPublic}
-        aria-label="Show in shop"
-        onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
-        className={`tap-target shrink-0 h-7 px-2.5 rounded-md text-ui-13 transition-colors ${
-          product.isPublic
-            ? 'bg-tea-gold/15 text-tea-gold'
-            : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
+  // The first (widest, Product) column carries the in-shop control — a clearly
+  // LABELLED checkbox so it reads as "show this tea in the shop", never a bare
+  // pill that looks like a stray tag or a date.
+  const inShop = (
+    <button
+      role="switch"
+      aria-checked={product.isPublic}
+      aria-label="Show in shop"
+      onClick={() => onUpdate(product.id, 'isPublic', !product.isPublic)}
+      className="tap-target inline-flex items-center gap-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+    >
+      <span
+        className={`inline-flex items-center justify-center w-4 h-4 rounded-[4px] border transition-colors ${
+          product.isPublic ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border'
         }`}
+        aria-hidden="true"
       >
-        In shop
-      </button>
-      <button
-        onClick={() => onTasting(product)}
-        className="tap-target h-7 px-2.5 rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors text-ui-13"
-      >
-        Tasting
-      </button>
-      <button
-        onClick={() => onFullEdit(product)}
-        className="tap-target h-7 px-2.5 rounded-md bg-tea-gold text-tea-bg hover:bg-tea-gold-lt transition-colors text-ui-13 font-medium"
-      >
-        Full edit
-      </button>
-    </div>
+        {product.isPublic && <Check size={11} strokeWidth={3} />}
+      </span>
+      Show in shop
+    </button>
   );
 
   return (
@@ -148,11 +140,31 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
         <tbody>
           <tr>
             {cols.map((c, i) => {
-              const editor = editorFor(c.key);
-              // First column hosts the controls; others host their editor (or stay empty).
+              const isFirst = i === 0;
               return (
-                <td key={c.key} className={`align-middle px-3 ${i === 0 ? 'pl-5' : ''}`}>
-                  {i === 0 ? controls : editor}
+                <td key={c.key} className={`align-middle px-3 ${isFirst ? 'pl-5' : ''}`}>
+                  {/* First (widest) column: the in-shop control, with the two
+                      actions as a quiet second line so nothing is crammed. The
+                      numeric columns just hold their aligned editor. */}
+                  {isFirst ? (
+                    <div className="flex flex-col gap-1.5">
+                      {inShop}
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => onTasting(product)}
+                          className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                        >
+                          Tasting
+                        </button>
+                        <button
+                          onClick={() => onFullEdit(product)}
+                          className="tap-target text-ui-13 text-tea-gold hover:text-tea-gold-lt transition-colors font-medium"
+                        >
+                          Full edit
+                        </button>
+                      </div>
+                    </div>
+                  ) : editorFor(c.key)}
                 </td>
               );
             })}
