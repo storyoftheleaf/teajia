@@ -52,6 +52,7 @@ import {
 import type { InventoryCategory } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
+import { QuickEditSheet } from './inventory/QuickEditSheet';
 import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/InventoryActionRail';
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
@@ -310,6 +311,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+  // Mobile quick-edit sheet — opened by a long-press on a row (touch only).
+  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [panelDirty, setPanelDirty] = useState(false);
   const [rowDropdownId, setRowDropdownId] = useState<string | null>(null);
   const [panelBreakdownOpen, setPanelBreakdownOpen] = useState(false);
@@ -534,6 +537,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       : new Set(['productName', 'stockGrams', 'pricePerGramUSD', 'costPerGramUSD', 'costAmount']);
     return visibleCols.filter(col => essential.has(col.key));
   }, [visibleCols, inventoryCategory]);
+
+  // Mobile column trim — at the render layer only (never mutates the persisted
+  // inventoryColumns store). On phones the Type and Origin columns are dropped so
+  // Product / Year / Stock / Retail keep readable width; table-fixed lets the
+  // remaining columns absorb the freed space. Desktop keeps every column.
+  const MOBILE_HIDDEN_COLS = ['type', 'originRegion'];
+  const renderCols = useMemo(
+    () => (isMobile ? visibleCols.filter(col => !MOBILE_HIDDEN_COLS.includes(col.key)) : visibleCols),
+    [isMobile, visibleCols],
+  );
+  const renderSplitCols = useMemo(
+    () => (isMobile ? splitViewCols.filter(col => !MOBILE_HIDDEN_COLS.includes(col.key)) : splitViewCols),
+    [isMobile, splitViewCols],
+  );
 
   const splitColWidth = (key: string): string => {
     if (key === 'productName') return '';
@@ -1198,6 +1215,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const stableLongPressSelect = useCallback((productId: string, globalIdx: number) => {
     toggleSelectId(productId, globalIdx, false);
   }, [toggleSelectId]);
+
+  // Mobile long-press opens the lightweight quick-edit sheet for that one row
+  // (touch only, so desktop is naturally unaffected). The row's tap still selects.
+  const stableLongPressQuickEdit = useCallback((productId: string, _globalIdx: number) => {
+    const product = processedProductsRef.current.find(p => p.id === productId);
+    if (product) setQuickEditProduct(product);
+  }, []);
 
   const handleBulkApply = async () => {
     if (selectedIds.size === 0 || !bulkField) return;
@@ -2444,11 +2468,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
               <table className="w-full table-fixed border-collapse">
                 <colgroup>
-                  {visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
+                  {renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
                 </colgroup>
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
-                    {visibleCols.map(col => (
+                    {renderCols.map(col => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                     ))}
                   </tr>
@@ -2478,9 +2502,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <table className="w-full table-fixed border-collapse">
                         <colgroup>
                           {splitView ? (
-                            splitViewCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
+                            renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                           ) : (
-                            visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
+                            renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                           )}
                         </colgroup>
                         <tbody>
@@ -2494,14 +2518,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   isSelected={selectedIds.has(product.id)}
                                   focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                                   isEditMode={isEditMode}
-                                  visibleCols={visibleCols}
-                                  splitViewCols={splitViewCols}
+                                  visibleCols={renderCols}
+                                  splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
                                   isDropdownOpen={rowDropdownId === product.id}
                                   onRowClick={stableRowClick}
                                   onLongPressSelect={stableLongPressSelect}
+                                  onLongPressQuickEdit={stableLongPressQuickEdit}
                                   onProductUpdate={handleProductUpdate}
                                   onSelectionAwareUpdate={handleSelectionAwareUpdate}
                                   onOpenPanel={stableOpenPanel}
@@ -2527,9 +2552,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <table className="w-full table-fixed border-collapse">
                 <colgroup>
                     {splitView ? (
-                      splitViewCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
+                      renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                     ) : (
-                      visibleCols.map(col => <col key={col.key} className={col.defaultWidth} />)
+                      renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)
                     )}
                 </colgroup>
 
@@ -2537,11 +2562,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                     <tr>
                         {splitView ? (
-                          splitViewCols.map(col => (
+                          renderSplitCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         ) : (
-                          visibleCols.map(col => (
+                          renderCols.map(col => (
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         )}
@@ -2559,14 +2584,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               isSelected={selectedIds.has(product.id)}
                               focusedCol={focusedCell?.row === globalIdx ? (focusedCell.col ?? null) : null}
                               isEditMode={isEditMode}
-                              visibleCols={visibleCols}
-                              splitViewCols={splitViewCols}
+                              visibleCols={renderCols}
+                              splitViewCols={renderSplitCols}
                               splitView={splitView}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
                               isDropdownOpen={rowDropdownId === product.id}
                               onRowClick={stableRowClick}
                               onLongPressSelect={stableLongPressSelect}
+                              onLongPressQuickEdit={stableLongPressQuickEdit}
                               onProductUpdate={handleProductUpdate}
                               onSelectionAwareUpdate={handleSelectionAwareUpdate}
                               onOpenPanel={stableOpenPanel}
@@ -2750,6 +2776,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           }}
         />
       )}
+
+      {/* Mobile quick-edit sheet (long-press a row to open) */}
+      <QuickEditSheet
+        product={quickEditProduct}
+        onClose={() => setQuickEditProduct(null)}
+        onUpdate={handleProductUpdate}
+        onTasting={(p) => { setTastingEditorProduct(p); setQuickEditProduct(null); }}
+        onFullEdit={(p) => { setPanelProduct(p); setQuickEditProduct(null); }}
+        rates={rates}
+      />
 
       {/* Floating Stock History Panel (from table click) */}
       {stockHistoryProduct && !panelProduct && (
