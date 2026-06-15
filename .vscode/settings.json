@@ -1,4 +1,5 @@
 {
   "playwright.reuseBrowser": false,
-  "playwright.showTrace": true
+  "playwright.showTrace": true,
+  "workbench.colorTheme": "Monokai Pro (Filter Ristretto)"
 }
