@@ -230,6 +230,7 @@ CREATE TABLE IF NOT EXISTS mcp_confirmation_tickets (
   payload_json TEXT NOT NULL,
   expires_at INTEGER NOT NULL,
   consumed_at INTEGER,
+  token_id TEXT,                          -- issuing mcp_tokens.id (migration 088); NULL = legacy ticket
   created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 
@@ -426,6 +427,13 @@ CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, s
 CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, name);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);
+-- Inventory & attribution lookups (migration 086, audit H7/M8)
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_product ON stock_ledger(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_source_invoice ON stock_ledger(source_invoice_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_account_customer ON invoices(account_id, customer_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_source_event ON invoices(source_event_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_source_collection ON invoices(source_collection_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_source_publication ON invoices(source_publication_id);
 CREATE INDEX IF NOT EXISTS idx_account_members_user_status ON account_members(user_id, status);
 
 -- Relationship-aware people model. One customer row can carry multiple
@@ -501,7 +509,7 @@ CREATE TABLE IF NOT EXISTS collection_items (
 CREATE TABLE IF NOT EXISTS collection_publications (
     id TEXT PRIMARY KEY,
     collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
-    target_type TEXT NOT NULL DEFAULT 'person' CHECK (target_type IN ('person','store','event','shop')),
+    target_type TEXT NOT NULL DEFAULT 'person' CHECK (target_type IN ('person','store','event','shop','tag')),
     target_id TEXT,
     slug TEXT NOT NULL UNIQUE,
     recipients_json TEXT,
@@ -530,6 +538,7 @@ CREATE TABLE IF NOT EXISTS mcp_tokens (
     created_at TEXT DEFAULT (datetime('now')),
     last_used_at TEXT,
     revoked_at TEXT,
+    expires_at INTEGER,                  -- unix seconds (migration 087); NULL = legacy non-expiring
     creator_tier TEXT NOT NULL DEFAULT 'account_owner'
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_tokens_hash ON mcp_tokens(token_hash);
