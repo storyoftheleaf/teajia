@@ -81,10 +81,12 @@ export function ProseSection({ text, dropcap }: { text: string; dropcap?: boolea
   return (
     <section className="py-20 md:py-32">
       <ReadingColumn>
-        <ScrollHighlightText
-          text={text}
-          className={`font-body text-[18px] md:text-ui-20 leading-[1.78] ${dropcap ? 'immersive-dropcap' : ''}`}
-        />
+        <Reveal>
+          <ScrollHighlightText
+            text={text}
+            className={`font-body text-[18px] md:text-ui-20 leading-[1.78] ${dropcap ? 'immersive-dropcap' : ''}`}
+          />
+        </Reveal>
       </ReadingColumn>
     </section>
   );
@@ -94,7 +96,9 @@ export function SectionHeading({ text }: { text: string }) {
   return (
     <section className="pt-12 pb-2 md:pt-20">
       <ReadingColumn>
-        <h3 className="font-display font-medium text-tea-text leading-[1.05] text-[34px] md:text-[44px]">{text}</h3>
+        <Reveal>
+          <h3 className="font-display font-medium text-tea-text leading-[1.05] text-[34px] md:text-[44px]">{text}</h3>
+        </Reveal>
       </ReadingColumn>
     </section>
   );
@@ -103,12 +107,14 @@ export function SectionHeading({ text }: { text: string }) {
 export function PullQuote({ text, attribution }: { text: string; attribution?: string }) {
   return (
     <section className="py-24 md:py-32 text-center px-6">
-      <blockquote className="font-display font-medium italic text-tea-gold-lt leading-[1.18] text-[32px] md:text-[46px] max-w-[760px] mx-auto">
-        {text}
-      </blockquote>
-      {attribution && (
-        <cite className="block mt-8 font-sans not-italic text-ui-11 tracking-[0.16em] uppercase text-tea-text-dim">{attribution}</cite>
-      )}
+      <Reveal>
+        <blockquote className="font-display font-medium italic text-tea-gold-lt leading-[1.18] text-[32px] md:text-[46px] max-w-[760px] mx-auto">
+          {text}
+        </blockquote>
+        {attribution && (
+          <cite className="block mt-8 font-sans not-italic text-ui-11 tracking-[0.16em] uppercase text-tea-text-dim">{attribution}</cite>
+        )}
+      </Reveal>
     </section>
   );
 }
@@ -144,15 +150,19 @@ export function Epilogue({ text, signature }: { text: string; signature?: string
 export function renderBlock(block: ArticleBlock, index: number) {
   switch (block.type) {
     case 'cover':
-      return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={block.image} kicker={block.kicker} />;
+      return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={block.image} kicker={block.kicker} variant={block.variant} />;
     case 'intro':
       return <ProseSection key={index} text={block.text} dropcap />;
     case 'paragraph':
       return <ProseSection key={index} text={block.text} />;
     case 'section_heading':
       return <SectionHeading key={index} text={block.text} />;
+    case 'chapter_divider':
+      return <ChapterDivider key={index} number={block.number} title={block.title} subtitle={block.subtitle} />;
     case 'quote':
       return <PullQuote key={index} text={block.text} attribution={block.attribution} />;
+    case 'epilogue':
+      return <Epilogue key={index} text={block.text} signature={block.signature} />;
     default:
       return null;
   }
