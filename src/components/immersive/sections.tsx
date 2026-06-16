@@ -632,8 +632,16 @@ export function AudioBlock({ src, title }: { src?: string; title?: string }) {
 }
 
 // Closing colophon: credits + a "Share a card ↗" button-in-button pill. The
-// outer pill is the share affordance; the inner segment names the format.
-export function Colophon({ lines, shareHref }: { lines: string[]; shareHref?: string }) {
+// outer pill is the share affordance; the inner segment opens the share-card
+// generator (AR.6). `onShare` is provided by the reader page; a plain anchor
+// fallback keeps the preview/editor render harmless when no handler is wired.
+export function Colophon({ lines, onShare }: { lines: string[]; onShare?: () => void }) {
+  const inner = (
+    <>
+      <span className="font-sans text-ui-12 tracking-[0.14em] uppercase text-tea-text-sec">Share a card</span>
+      <span className="rounded-full font-sans text-ui-11 tracking-[0.12em] uppercase text-tea-bg px-4 py-2" style={{ background: 'var(--tea-gold)' }}>Open ↗</span>
+    </>
+  );
   return (
     <section className="py-24 md:py-32 px-6 text-center border-t border-tea-border">
       <Reveal>
@@ -641,14 +649,15 @@ export function Colophon({ lines, shareHref }: { lines: string[]; shareHref?: st
           {lines.map((l, i) => (
             <p key={i} className="font-sans text-ui-12 tracking-[0.14em] uppercase text-tea-text-dim leading-[2.1]">{l}</p>
           ))}
-          <a
-            href={shareHref ?? '#'}
+          <button
+            type="button"
+            onClick={onShare}
+            data-testid="colophon-share"
             className="inline-flex items-center gap-1 rounded-full mt-10 pl-5 pr-1 py-1 border border-tea-border"
             style={{ background: 'var(--tea-surface)' }}
           >
-            <span className="font-sans text-ui-12 tracking-[0.14em] uppercase text-tea-text-sec">Share a card</span>
-            <span className="rounded-full font-sans text-ui-11 tracking-[0.12em] uppercase text-tea-bg px-4 py-2" style={{ background: 'var(--tea-gold)' }}>Open ↗</span>
-          </a>
+            {inner}
+          </button>
         </div>
       </Reveal>
     </section>
@@ -720,10 +729,15 @@ function normalizeHeadingEffect(e?: TextEffect): TextEffect | undefined {
   return e;
 }
 
+// Optional render context. The reader page passes onShare so the colophon's
+// "Share a card" pill opens the share-card generator (AR.6). The editor preview
+// omits it, so the pill is inert there (no modal to open in a preview pane).
+export interface RenderBlockContext { onShare?: () => void }
+
 // Maps one ArticleBlock to its section. Visual variants are read off the
 // image/list/recipe/map/tasting blocks. Unmapped block types render nothing;
 // they are intentionally skipped, not errored.
-export function renderBlock(block: ArticleBlock, index: number) {
+export function renderBlock(block: ArticleBlock, index: number, ctx?: RenderBlockContext) {
   switch (block.type) {
     case 'cover':
       return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={block.image} kicker={block.kicker} variant={block.variant} />;
@@ -785,7 +799,7 @@ export function renderBlock(block: ArticleBlock, index: number) {
     case 'stat':
       return <CountUpStat key={index} value={block.value} label={block.label} context={block.context} />;
     case 'back_matter':
-      return <Colophon key={index} lines={block.lines} />;
+      return <Colophon key={index} lines={block.lines} onShare={ctx?.onShare} />;
     case 'comparison':
       return <ComparisonSlider key={index} before={block.before} after={block.after} beforeLabel={block.beforeLabel} afterLabel={block.afterLabel} caption={block.caption} />;
     case 'audio':
