@@ -22,9 +22,14 @@ function initialsOf(name: string): string {
 
 interface Props {
   compact?: boolean;
+  /**
+   * Which way the dropdown opens. 'up' suits a sidebar footer (the original
+   * home); 'down' suits a top header bar. Defaults to 'up' for back-compat.
+   */
+  direction?: 'up' | 'down';
 }
 
-export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
+export const AccountSwitcher: React.FC<Props> = ({ compact = false, direction = 'up' }) => {
   const { memberships, activeAccountId, platformRole } = useAppStore();
   const isPlatformOwner = platformRole === 'platform_owner' || platformRole === 'platform_admin';
   const [open, setOpen] = useState(false);
@@ -137,7 +142,9 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false }) => {
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 right-0 bottom-full mb-2 bg-tea-surface rounded-xl shadow-2xl overflow-hidden z-priority border border-tea-border"
+          className={`absolute left-0 right-0 ${
+            direction === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
+          } bg-tea-surface rounded-xl shadow-2xl overflow-hidden z-priority border border-tea-border min-w-[220px]`}
         >
           <div className="px-3 py-2 text-ui-9 uppercase tracking-[0.2em] text-tea-text-dim border-b border-tea-border">
             Your Tea Houses
