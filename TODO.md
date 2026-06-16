@@ -2,6 +2,10 @@
 
 ## Soon
 
+### Read / Magazine
+
+- [ ] Build the immersive article reader that replaces the 4:5 carousel as the default, where writing leads and visuals plus text-effects punctuate it, reading great on phone and desktop _(band: you-required)_ _(effort: deep)_ → Plan: [immersive-article-system.md](todo/plans/immersive-article-system.md)
+
 ### Curate
 
 - [ ] Restyle the Curate capture screen into the Teajia editorial language (structure stays, skin changes) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-capture-restyle.md](todo/plans/curate-capture-restyle.md)
