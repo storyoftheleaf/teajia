@@ -1,7 +1,33 @@
 // src/components/immersive/sections.tsx
-import type React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { ArticleBlock } from '../../types';
 import { ScrollHighlightText } from './ScrollHighlightText';
+
+// Wraps a child and fades it up (translateY + blur-clear) the first time it
+// enters the viewport. IntersectionObserver, one-shot. Animates only
+// transform/opacity/filter. Respects prefers-reduced-motion (skips to visible).
+export function Reveal({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setShown(true);
+      return;
+    }
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { setShown(true); io.disconnect(); }
+    }, { threshold: 0.2 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={`immersive-reveal ${shown ? 'is-in' : ''} ${className ?? ''}`}>
+      {children}
+    </div>
+  );
+}
 
 // Cover: full-height image backdrop with overlaid title. Phone-first; the same
 // markup reads wider on desktop via the responsive measure classes below.
