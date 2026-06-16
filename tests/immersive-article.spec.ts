@@ -11,6 +11,8 @@ const ARTICLE = {
     { type: 'section_heading', text: 'Then comes the fire.' },
     { type: 'paragraph', text: 'By the third pass the green has gone entirely, folded down into warm stone and dried longan and a faint mineral sweetness underneath.' },
     { type: 'quote', text: 'You do not drink the leaf. You drink the mountain.', attribution: 'Master Chen' },
+    { type: 'chapter_divider', number: '二', title: 'The Roast' },
+    { type: 'epilogue', text: 'The rock remembers.', signature: 'A.R.' },
   ],
 };
 
@@ -33,6 +35,13 @@ test('immersive article renders the stack and does not error', async ({ page }) 
   await expect(page.getByTestId('immersive-article')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'The Rock Remembers' })).toBeVisible();
   await expect(page.getByText('You do not drink the leaf.')).toBeVisible();
+
+  // New AR.1 narrative shapes. Scroll each into view first so the Reveal
+  // IntersectionObserver fires (the epilogue starts at opacity:0).
+  await page.getByText('The Roast').scrollIntoViewIfNeeded();
+  await expect(page.getByText('The Roast')).toBeVisible();
+  await page.getByText('The rock remembers.').scrollIntoViewIfNeeded();
+  await expect(page.getByText('The rock remembers.')).toBeVisible();
 
   // No horizontal overflow.
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 2);
