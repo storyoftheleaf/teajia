@@ -36,6 +36,10 @@ interface Env {
   // Edge rate limiter for the public MCP. Bound via [[unsafe.bindings]] in
   // wrangler.toml. Optional so local dev (no binding) still runs.
   PUBLIC_MCP_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
+  // Edge rate limiter for auth (login/signup). Same shape as PUBLIC_MCP_LIMITER.
+  // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
+  // stays as a fallback when this is unset.
+  LOGIN_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -633,6 +637,8 @@ async function requireOwnerTier(
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx;
   if (ctx.role === 'owner') return ctx;
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  console.warn(`[auth] requireOwnerTier denied: account=${ctx.accountId} role=${ctx.role} ip=${ip}`);
   return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
 }
 
@@ -686,6 +692,8 @@ async function requirePlatformOwner(request: Request, env: Env): Promise<Respons
   const dbRole = await resolveDbPlatformRole(env, claims.sub);
   if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
   if (dbRole !== 'platform_owner') {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    console.warn(`[auth] requirePlatformOwner denied: sub=${claims.sub} role=${dbRole || 'none'} ip=${ip}`);
     return json({ error: 'Platform owner access required' }, 403);
   }
   return null;
@@ -702,6 +710,8 @@ async function requirePlatformAdmin(request: Request, env: Env): Promise<Respons
   const dbRole = await resolveDbPlatformRole(env, claims.sub);
   if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
   if (dbRole !== 'platform_owner' && dbRole !== 'platform_admin') {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    console.warn(`[auth] requirePlatformAdmin denied: sub=${claims.sub} role=${dbRole || 'none'} ip=${ip}`);
     return json({ error: 'Platform admin access required' }, 403);
   }
   return null;
@@ -965,26 +975,43 @@ async function requireAuth(request: Request, env: Env): Promise<Response | null>
   return null;
 }
 
+// Re-read the user's role from the DB rather than trusting the JWT `role`
+// claim, so a demoted user loses admin powers immediately rather than at token
+// expiry. Mirrors resolveDbPlatformRole's pattern. Returns 'db_error' if the
+// DB is unavailable so the caller can fail closed with a 503.
+async function resolveDbUserRole(env: Env, userId: string): Promise<string | null | 'db_error'> {
+  try {
+    const row = await env.DB.prepare('SELECT role FROM users WHERE id = ?').bind(userId).first();
+    if (!row) return null;
+    return ((row.role as string) ?? null);
+  } catch {
+    return 'db_error';
+  }
+}
+
 async function requireAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
   const status = await classifyToken(token, env.JWT_SECRET);
   if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
   const claims = parseToken(token);
-  if (!claims || (claims.role !== 'admin' && claims.role !== 'owner')) {
-    return json({ error: 'Admin access required' }, 403);
-  }
-  return null;
-}
+  if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
 
-async function requireOwner(request: Request, env: Env): Promise<Response | null> {
-  const token = isAuthed(request);
-  if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
-  const claims = parseToken(token);
-  if (!claims || claims.role !== 'owner') {
-    return json({ error: 'Owner access required' }, 403);
+  // The env-admin synthetic principal has no users row; trust its claim.
+  // Every other principal is re-validated against the DB so a demotion takes
+  // effect immediately rather than at token expiry.
+  let effectiveRole = claims.role;
+  if (claims.sub !== 'env-admin') {
+    const dbRole = await resolveDbUserRole(env, claims.sub);
+    if (dbRole === 'db_error') return json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503);
+    // A missing user row means the account was deleted — fall through to 403.
+    effectiveRole = dbRole ?? '';
+  }
+
+  if (effectiveRole !== 'admin' && effectiveRole !== 'owner') {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    console.warn(`[auth] requireAdmin denied: sub=${claims.sub} role=${effectiveRole || 'none'} ip=${ip}`);
+    return json({ error: 'Admin access required' }, 403);
   }
   return null;
 }
@@ -1126,8 +1153,22 @@ const handleLogin: Handler = async (request, env) => {
   const password = body.password;
   if (!identifier || !password) return json({ error: 'Email/username and password required' }, 400);
 
-  const loginIp = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  // CF-Connecting-IP is set by Cloudflare and cannot be spoofed by the client.
+  // Do NOT fall back to X-Forwarded-For — it is client-controlled and lets an
+  // attacker rotate the rate-limit key trivially.
+  const loginIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  // Edge rate limiter (durable, cross-isolate) when bound; falls back to the
+  // in-memory checkRateLimit otherwise.
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `login:${loginIp}` });
+    if (!success) {
+      console.warn(`[auth] login rate-limited (edge): ip=${loginIp} identifier=${identifier}`);
+      return json({ error: 'Too many login attempts. Please try again in a minute.' }, 429);
+    }
+  }
   if (!checkRateLimit(`login:${loginIp}`, 10, 60000)) {
+    console.warn(`[auth] login rate-limited: ip=${loginIp} identifier=${identifier}`);
     return json({ error: 'Too many login attempts. Please try again in a minute.' }, 429);
   }
 
@@ -1229,6 +1270,7 @@ const handleLogin: Handler = async (request, env) => {
     });
   }
 
+  console.warn(`[auth] failed login: ip=${loginIp} identifier=${identifier}`);
   return json({ error: 'Invalid credentials' }, 401);
 };
 
@@ -1247,8 +1289,19 @@ const handleSignup: Handler = async (request, env) => {
     return json({ error: 'Username must be 3–32 chars, letters/numbers/._- only' }, 400);
   }
 
-  const signupIp = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
+  // client-controlled X-Forwarded-For header.
+  const signupIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `signup:${signupIp}` });
+    if (!success) {
+      console.warn(`[auth] signup rate-limited (edge): ip=${signupIp}`);
+      return json({ error: 'Too many signup attempts. Please try again later.' }, 429);
+    }
+  }
   if (!checkRateLimit(`signup:${signupIp}`, 5, 3600000)) {
+    console.warn(`[auth] signup rate-limited: ip=${signupIp}`);
     return json({ error: 'Too many signup attempts. Please try again later.' }, 429);
   }
 
@@ -2294,12 +2347,16 @@ async function applyProductUpdate(
     }
   }
 
+  // When stock_grams is being set, we record the expected old value so the
+  // products UPDATE below can be made conditional (M11 — absolute-set race).
+  let stockExpectedOld: number | null = null;
   if (body.stock_grams !== undefined) {
     const current = await env.DB.prepare(
       'SELECT stock_grams, low_stock_threshold, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(params.id, accountId).first();
     if (current) {
       const oldStock = Number(current.stock_grams) || 0;
+      stockExpectedOld = oldStock;
       const newStock = Number(body.stock_grams);
       const delta = newStock - oldStock;
       const threshold = Number(current.low_stock_threshold) || 0;
@@ -2338,19 +2395,53 @@ async function applyProductUpdate(
   const cols = Object.keys(body).filter(k => allowedColumns.has(k));
   if (cols.length === 0) return json({ success: true });
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
-    .bind(...cols.map(c => body[c] ?? null), params.id, accountId);
 
   // Mirror writes to tea_profiles + product_listings so partner catalog browse
   // and network views never see stale canonical data. No-op for teaware (no
   // profile/listing exists) since the UPDATE WHERE clauses won't match.
   const mirrorStmts = buildProductMirrorStmts(env, params.id, body);
 
-  const allStmts = [updateStmt, ...extraStmts, ...mirrorStmts];
-  if (allStmts.length > 1) {
-    await env.DB.batch(allStmts);
+  // M11 — absolute stock set is a read-modify-write race. When this update
+  // writes stock_grams, guard the WHERE on the value we read so a concurrent
+  // adjustment can't be silently clobbered. RETURNING lets us detect a stale
+  // write (no row matched) and retry once after re-reading.
+  const guardStock = body.stock_grams !== undefined && stockExpectedOld !== null;
+  const buildUpdateStmt = (expectedOld: number | null) => {
+    const where = expectedOld !== null
+      ? `WHERE id = ? AND account_id = ? AND stock_grams = ?`
+      : `WHERE id = ? AND account_id = ?`;
+    const binds = expectedOld !== null
+      ? [...cols.map(c => body[c] ?? null), params.id, accountId, expectedOld]
+      : [...cols.map(c => body[c] ?? null), params.id, accountId];
+    return env.DB.prepare(`UPDATE products SET ${sets} ${where}${guardStock ? ' RETURNING stock_grams' : ''}`)
+      .bind(...binds);
+  };
+
+  if (guardStock) {
+    // Run the guarded stock update on its own first so we can verify it matched
+    // before committing the dependent ledger/mirror/log statements.
+    let updated = await buildUpdateStmt(stockExpectedOld).first();
+    if (!updated) {
+      // Lost the race — re-read and retry once with the fresh value.
+      const fresh = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
+        .bind(params.id, accountId).first();
+      if (!fresh) return json({ error: 'Product not found' }, 404);
+      const freshOld = Number(fresh.stock_grams) || 0;
+      updated = await buildUpdateStmt(freshOld).first();
+      if (!updated) {
+        return json({ error: 'stale_stock', message: 'Stock changed concurrently — please retry' }, 409);
+      }
+    }
+    const dependent = [...extraStmts, ...mirrorStmts];
+    if (dependent.length > 0) await env.DB.batch(dependent);
   } else {
-    await updateStmt.run();
+    const updateStmt = buildUpdateStmt(null);
+    const allStmts = [updateStmt, ...extraStmts, ...mirrorStmts];
+    if (allStmts.length > 1) {
+      await env.DB.batch(allStmts);
+    } else {
+      await updateStmt.run();
+    }
   }
 
   await auditPlatformActingWrite(env, ctx, auditAction, 'product', params.id, {
@@ -2636,6 +2727,19 @@ const handlePlatformDeleteExchangeRate: Handler = async (request, env, params) =
   return json({ success: true });
 };
 
+// Pagination guards — reject NaN / negative / oversized client-supplied values.
+// limit clamps to 1..200 (default 50); offset clamps to >= 0 (default 0).
+function clampLimit(raw: string | null, def = 50, max = 200): number {
+  const n = parseInt(raw ?? '', 10);
+  if (!Number.isFinite(n)) return def;
+  return Math.min(max, Math.max(1, n));
+}
+function clampOffset(raw: string | null): number {
+  const n = parseInt(raw ?? '', 10);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return n;
+}
+
 // ── Invoices ──
 const handleGetInvoices: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -2643,8 +2747,8 @@ const handleGetInvoices: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const url = new URL(request.url);
-  const limit = parseInt(url.searchParams.get('limit') || '50');
-  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = clampLimit(url.searchParams.get('limit'));
+  const offset = clampOffset(url.searchParams.get('offset'));
   const includeDeleted = url.searchParams.get('include_deleted') === '1';
 
   const whereClause = includeDeleted
@@ -2665,18 +2769,14 @@ const handleGetInvoices: Handler = async (request, env) => {
   return json(result.results);
 };
 
-// Apply the active account's invoice_prefix (e.g. "TJB-", "TJA-") when the
-// caller didn't supply their own prefix. Leaves explicit values alone so
-// clients can still override.
-async function prefixInvoiceNumber(env: Env, accountId: string, raw: string): Promise<string> {
-  if (!raw) return raw;
-  try {
-    const acc = await env.DB.prepare('SELECT invoice_prefix FROM accounts WHERE id = ?')
-      .bind(accountId).first();
-    const prefix = (acc?.invoice_prefix as string) || '';
-    if (prefix && !raw.startsWith(prefix)) return `${prefix}-${raw}`;
-  } catch {}
-  return raw;
+// Canonical invoice-number formatter. ONE source of truth shared across
+// handleCreateInvoice, handleSplitInvoice, and (via import) commitRecordSale in
+// mcp.ts so the visible number format never drifts between code paths. Applies
+// consistent 5-digit zero-padding and the account's invoice_prefix (e.g.
+// "TJB-00042"). An empty/null prefix yields just the padded sequence.
+export function formatInvoiceNumber(accountPrefix: string | null, seq: number): string {
+  const padded = String(seq).padStart(5, '0');
+  return accountPrefix ? `${accountPrefix}-${padded}` : padded;
 }
 
 const handleCreateInvoice: Handler = async (request, env) => {
@@ -2687,33 +2787,7 @@ const handleCreateInvoice: Handler = async (request, env) => {
   const userEmail = getUserEmail(request);
   const body = await request.json() as { invoice: Record<string, any>; lineItems: Record<string, any>[] };
   const id = crypto.randomUUID();
-
-  const seqRow = await env.DB.prepare(
-    'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
-  ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
-  const seq = seqRow?.invoice_seq ?? 1;
-  const pfx = seqRow?.invoice_prefix || '';
-  const invoiceNumber = pfx ? `${pfx}-${seq}` : String(seq);
   const paymentStatus = body.invoice.payment_status || 'unpaid';
-
-  const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id,
-    accountId,
-    invoiceNumber,
-    body.invoice.customer_name,
-    body.invoice.customer_whatsapp || null,
-    body.invoice.customer_id || null,
-    body.invoice.display_currency,
-    body.invoice.shipping_cost_usd || 0,
-    body.invoice.status || 'Pending',
-    0,
-    body.invoice.notes || null,
-    body.invoice.source_event_id || null,
-    paymentStatus
-  );
 
   const lineItemStmts = body.lineItems.map((item: Record<string, any>) =>
     env.DB.prepare(
@@ -2721,13 +2795,59 @@ const handleCreateInvoice: Handler = async (request, env) => {
     ).bind(crypto.randomUUID(), accountId, id, item.product_id ?? null, item.custom_name ?? null, item.quantity, item.price_at_sale)
   );
 
-  const logStmt = buildActivityLog(
-    env, 'INVOICE_CREATED',
-    `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
-    userEmail, 'invoice', id, accountId
-  );
+  // Bump invoice_seq and INSERT, retrying on the active-invoice-number unique
+  // index collision (two concurrent creates can race to the same seq, or a
+  // soft-deleted history row can collide). Each retry bumps the seq again.
+  let invoiceNumber = '';
+  let committed = false;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+    const seqRow = await env.DB.prepare(
+      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+    ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+    const seq = seqRow?.invoice_seq ?? 1;
+    invoiceNumber = formatInvoiceNumber(seqRow?.invoice_prefix || null, seq);
 
-  await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
+    const invoiceStmt = env.DB.prepare(
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, source_event_id, payment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id,
+      accountId,
+      invoiceNumber,
+      body.invoice.customer_name,
+      body.invoice.customer_whatsapp || null,
+      body.invoice.customer_id || null,
+      body.invoice.display_currency,
+      body.invoice.shipping_cost_usd || 0,
+      body.invoice.status || 'Pending',
+      0,
+      body.invoice.notes || null,
+      body.invoice.source_event_id || null,
+      paymentStatus
+    );
+
+    const logStmt = buildActivityLog(
+      env, 'INVOICE_CREATED',
+      `Invoice ${invoiceNumber} created for ${body.invoice.customer_name} (${body.lineItems.length} items)`,
+      userEmail, 'invoice', id, accountId
+    );
+
+    try {
+      await env.DB.batch([invoiceStmt, ...lineItemStmts, logStmt]);
+      committed = true;
+    } catch (err: any) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
+      throw err; // unrelated failure
+    }
+  }
+  if (!committed) {
+    console.error('handleCreateInvoice: failed after retries:', lastErr);
+    return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
+  }
+
   await ensureContactRelationship(env, accountId, body.invoice.customer_id, 'buyer', 'workflow', 'invoice', id);
 
   return json({ id, invoice_number: invoiceNumber }, 201);
@@ -2811,6 +2931,84 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     if (p) products.set(pid as string, p);
   }
 
+  // ── Pre-check pass (C2) ────────────────────────────────────────────────
+  // Validate availability for every line BEFORE writing anything. The admin
+  // fulfill path previously did no availability check at all, so concurrent
+  // fulfillments could drive stock negative. We 409 here on the common case;
+  // the guarded UPDATE below defends against the narrow race window.
+  for (const item of items.results as any[]) {
+    if (!item.product_id) continue;
+    const product = products.get(item.product_id as string);
+    const available = product ? Number(product.stock_grams) || 0 : 0;
+    const qty = Number(item.quantity) || 0;
+    if (qty > available) {
+      return json({
+        error: 'insufficient_stock',
+        product_id: item.product_id,
+        requested: qty,
+        available,
+      }, 409);
+    }
+  }
+
+  // ── Phase A: atomic, guarded stock deduction ───────────────────────────
+  // Each deduct is conditional on `stock_grams >= qty`. If a concurrent
+  // fulfillment drained stock since the pre-check, the row won't match and
+  // RETURNING is empty — we detect that, restore, and 409 before committing
+  // any of the downstream ledger / status / invoice state.
+  const deductLines = (items.results as any[]).filter(i => i.product_id);
+  const deductStmts: D1PreparedStatement[] = deductLines.map(item =>
+    env.DB.prepare(
+      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
+    ).bind(Number(item.quantity) || 0, item.product_id, accountId, Number(item.quantity) || 0)
+  );
+
+  // Maps product_id → balance_after taken from the actual RETURNING value.
+  const balanceAfter = new Map<string, number>();
+  if (deductStmts.length > 0) {
+    let deductResults: D1Result[];
+    try {
+      deductResults = await env.DB.batch(deductStmts);
+    } catch (err: any) {
+      console.error('handleFulfillInvoice deduct batch failed:', err);
+      return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
+    }
+
+    // Find any line whose guarded UPDATE matched no row (lost the race).
+    const failedIdx = deductResults.findIndex(r => (r.results?.length ?? 0) === 0);
+    if (failedIdx !== -1) {
+      // Compensate: add back the qty for every line that DID deduct, so the
+      // partial Phase-A commit is undone before we abort.
+      const restoreStmts: D1PreparedStatement[] = [];
+      deductResults.forEach((r, i) => {
+        if ((r.results?.length ?? 0) > 0) {
+          const qty = Number(deductLines[i].quantity) || 0;
+          restoreStmts.push(
+            env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+              .bind(qty, deductLines[i].product_id, accountId)
+          );
+        }
+      });
+      if (restoreStmts.length > 0) {
+        try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment rollback failed:', e); }
+      }
+      const failed = deductLines[failedIdx];
+      const product = products.get(failed.product_id as string);
+      return json({
+        error: 'insufficient_stock',
+        product_id: failed.product_id,
+        requested: Number(failed.quantity) || 0,
+        available: product ? Number(product.stock_grams) || 0 : 0,
+      }, 409);
+    }
+
+    deductResults.forEach((r, i) => {
+      const row = r.results?.[0] as { stock_grams?: number } | undefined;
+      balanceAfter.set(deductLines[i].product_id as string, Number(row?.stock_grams) || 0);
+    });
+  }
+
+  // ── Phase B: ledger, mirror, status, holds, invoice (atomic batch) ─────
   const stmts: D1PreparedStatement[] = [];
 
   for (const item of items.results as any[]) {
@@ -2818,14 +3016,20 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     const product = products.get(item.product_id as string);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
-    const newBalance = currentStock - qty;
+    // balance_after derived from the conditional UPDATE's RETURNING value, not
+    // the earlier (potentially stale) read.
+    const newBalance = balanceAfter.has(item.product_id as string)
+      ? (balanceAfter.get(item.product_id as string) as number)
+      : currentStock - qty;
     const threshold = product ? Number(product.low_stock_threshold) || 0 : 0;
 
+    // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))
+    // pattern) so a mirror that drifted below the products row can't go negative.
     stmts.push(
-      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
-        .bind(qty, item.product_id, accountId)
+      env.DB.prepare(
+        `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?`
+      ).bind(qty, `list_${item.product_id}`)
     );
-    stmts.push(buildListingStockDelta(env, item.product_id as string, -qty));
     stmts.push(buildStockLedgerEntry(
       env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
       userEmail, invoice_id, invoice.invoice_number as string, null, accountId
@@ -2880,6 +3084,16 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     await env.DB.batch(stmts);
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
+    // Phase A already committed the stock deduction in a separate batch, so we
+    // MUST compensate it here — otherwise stock stays reduced with no invoice/
+    // ledger record and a retry would double-deduct.
+    if (deductLines.length > 0) {
+      const restoreStmts: D1PreparedStatement[] = deductLines.map(item =>
+        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+          .bind(Number(item.quantity) || 0, item.product_id, accountId)
+      );
+      try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment Phase-B rollback failed:', e); }
+    }
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
 
@@ -2909,8 +3123,10 @@ const handleFulfillInvoice: Handler = async (request, env) => {
           ).bind(customerUserId, targetAccountId, sourceEntry.id).first();
           if (alreadyQueued) continue;
 
+          // INSERT OR IGNORE so a retry / partial failure of this fire-and-forget
+          // pass (outside the main batch) can't duplicate or corrupt the queue.
           await env.DB.prepare(
-            `INSERT INTO tea_compass_entries
+            `INSERT OR IGNORE INTO tea_compass_entries
                (id, user_id, account_id, name, chinese_name, type, form, year, season, origin_region,
                 category, photos, tea_key, status, notes, quantity, price_currency,
                 source_entry_id, created_at, updated_at)
@@ -3262,39 +3478,54 @@ const handleSplitInvoice: Handler = async (request, env) => {
   }
 
   const newId = crypto.randomUUID();
-  const splitSeqRow = await env.DB.prepare(
-    'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
-  ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
-  const splitSeq = splitSeqRow?.invoice_seq ?? 1;
-  const splitPfx = splitSeqRow?.invoice_prefix || '';
-  const newNumber = splitPfx ? `${splitPfx}-${splitSeq}` : String(splitSeq);
 
-  const stmts: D1PreparedStatement[] = [];
+  // Allocate the split's invoice number, retrying on the active-invoice-number
+  // unique index collision. Each retry re-bumps the seq and rebuilds the batch.
+  let newNumber = '';
+  let committed = false;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+    const splitSeqRow = await env.DB.prepare(
+      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+    ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+    const splitSeq = splitSeqRow?.invoice_seq ?? 1;
+    newNumber = formatInvoiceNumber(splitSeqRow?.invoice_prefix || null, splitSeq);
 
-  stmts.push(env.DB.prepare(
-    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
-  ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+    const stmts: D1PreparedStatement[] = [];
 
-  for (const itemId of line_item_ids) {
-    stmts.push(
-      env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
-        .bind(newId, itemId, accountId)
-    );
+    stmts.push(env.DB.prepare(
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'Pending', 0, ?)`
+    ).bind(newId, accountId, newNumber, invoice.customer_name, invoice.customer_whatsapp, invoice.customer_id, invoice.display_currency, invoice.notes));
+
+    for (const itemId of line_item_ids) {
+      stmts.push(
+        env.DB.prepare('UPDATE invoice_line_items SET invoice_id = ? WHERE id = ? AND account_id = ?')
+          .bind(newId, itemId, accountId)
+      );
+    }
+
+    stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
+      `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
+      userEmail, 'invoice', invoice_id, accountId));
+    stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
+      `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
+      userEmail, 'invoice', newId, accountId));
+
+    try {
+      await env.DB.batch(stmts);
+      committed = true;
+    } catch (err: any) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      if (/UNIQUE|constraint/i.test(msg)) continue; // collision — bump seq and retry
+      console.error('handleSplitInvoice batch failed:', err);
+      return json({ error: 'Split failed — no changes were committed' }, 500);
+    }
   }
-
-  stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
-    `Invoice ${invoice.invoice_number} split. ${line_item_ids.length} item(s) moved to ${newNumber}.`,
-    userEmail, 'invoice', invoice_id, accountId));
-  stmts.push(buildActivityLog(env, 'INVOICE_SPLIT',
-    `Invoice ${newNumber} created from split of ${invoice.invoice_number}.`,
-    userEmail, 'invoice', newId, accountId));
-
-  try {
-    await env.DB.batch(stmts);
-  } catch (err: any) {
-    console.error('handleSplitInvoice batch failed:', err);
-    return json({ error: 'Split failed — no changes were committed' }, 500);
+  if (!committed) {
+    console.error('handleSplitInvoice: failed after retries:', lastErr);
+    return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
   }
   await ensureContactRelationship(env, accountId, invoice.customer_id, 'buyer', 'workflow', 'invoice', newId);
   return json({ original_id: invoice_id, new_id: newId, new_invoice_number: newNumber }, 201);
@@ -3391,13 +3622,34 @@ const handleLinkLineItem: Handler = async (request, env) => {
   ).bind(product_id, line_item_id, invoice_id, accountId));
 
   if (invoice.inventory_deducted) {
-    const qty = Number(lineItem.quantity);
-    const newBalance = Number(product.stock_grams) - qty;
+    const qty = Number(lineItem.quantity) || 0;
+    const available = Number(product.stock_grams) || 0;
 
+    // C2 — availability pre-check before any retroactive deduction.
+    if (qty > available) {
+      return json({ error: 'insufficient_stock', product_id, requested: qty, available }, 409);
+    }
+
+    // Atomic, guarded deduction. RETURNING gives us the true balance_after; an
+    // empty result means a concurrent fulfillment drained stock since the
+    // pre-check — abort with 409 before committing the rest of the batch.
+    const deducted = await env.DB.prepare(
+      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
+    ).bind(qty, product_id, accountId, qty).first() as { stock_grams?: number } | null;
+    if (!deducted) {
+      const fresh = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
+        .bind(product_id, accountId).first();
+      return json({
+        error: 'insufficient_stock', product_id, requested: qty,
+        available: fresh ? Number(fresh.stock_grams) || 0 : 0,
+      }, 409);
+    }
+    const newBalance = Number(deducted.stock_grams) || 0;
+
+    // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))).
     stmts.push(env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?'
-    ).bind(qty, product_id, accountId));
-    stmts.push(buildListingStockDelta(env, product_id, -qty));
+      `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?`
+    ).bind(qty, `list_${product_id}`));
 
     stmts.push(buildStockLedgerEntry(
       env, product_id, -qty, newBalance, 'FULFILLMENT',
@@ -3422,7 +3674,21 @@ const handleLinkLineItem: Handler = async (request, env) => {
     `Invoice ${invoice.invoice_number}: custom item linked to ${productName}.${invoice.inventory_deducted ? ' Stock deducted.' : ''}`,
     userEmail, 'invoice', invoice_id, accountId));
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (err: any) {
+    console.error('handleLinkLineItem batch failed:', err);
+    // If we already committed a guarded deduction above, compensate it so the
+    // failed link can't leave stock reduced (and a retry double-deduct).
+    if (invoice.inventory_deducted) {
+      const qty = Number(lineItem.quantity) || 0;
+      try {
+        await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+          .bind(qty, product_id, accountId).run();
+      } catch (e) { console.error('handleLinkLineItem rollback failed:', e); }
+    }
+    return json({ error: 'Failed to link line item — no changes were committed' }, 500);
+  }
   return json({ success: true, inventory_deducted: !!invoice.inventory_deducted });
 };
 
@@ -3434,8 +3700,8 @@ const handleGetStockLedger: Handler = async (request, env) => {
 
   const url = new URL(request.url);
   const productId = url.searchParams.get('product_id');
-  const limit = parseInt(url.searchParams.get('limit') || '50');
-  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = clampLimit(url.searchParams.get('limit'));
+  const offset = clampOffset(url.searchParams.get('offset'));
 
   if (productId) {
     const [result, countRow] = await Promise.all([
@@ -3492,6 +3758,14 @@ const handleTruncateAll: Handler = async (request, env) => {
     env.DB.prepare('DELETE FROM invoices WHERE account_id = ?').bind(accountId),
     env.DB.prepare('DELETE FROM products WHERE account_id = ?').bind(accountId),
     env.DB.prepare('DELETE FROM activity_logs WHERE account_id = ?').bind(accountId),
+    // Also clear the listing mirror, ledger, holds, batches and originated
+    // profiles so the new-table side isn't left inconsistent with products.
+    env.DB.prepare('DELETE FROM product_listings WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM stock_ledger WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM stock_holds WHERE account_id = ?').bind(accountId),
+    env.DB.prepare('DELETE FROM batches WHERE account_id = ?').bind(accountId),
+    // tea_profiles is keyed by originated_by_account_id (no plain account_id).
+    env.DB.prepare('DELETE FROM tea_profiles WHERE originated_by_account_id = ?').bind(accountId),
   ]);
   return json({ success: true });
 };
@@ -4675,11 +4949,30 @@ const handleListCustomersByTag: Handler = async (request, env, params) => {
 };
 
 // ── Cross-reference junction table handlers (article_products, module_products, project_products) ──
-function makeXrefHandlers(tableName: string, fkColumn: string) {
+function makeXrefHandlers(tableName: string, fkColumn: string, parentTable?: string) {
   // These xref tables join articles/modules/projects (network-level content)
-  // to products (account-scoped). We only need to scope the product side —
-  // reads join through products.account_id, writes require the product
-  // belongs to the caller's account.
+  // to products (account-scoped). Writes must verify BOTH sides belong to the
+  // caller's account: the product (always) AND the parent row (when its table
+  // is account-scoped). Without the parent check (M3) a caller could attach
+  // their own product to another tenant's article/module/project.
+
+  // Returns null if the parent belongs to the caller, or a Response to return
+  // (404) if it does not. Returns null on a verification error (table not
+  // account-scoped / missing) so platform-level content keeps working.
+  async function verifyParent(env: Env, parentId: string, accountId: string): Promise<Response | null> {
+    if (!parentTable) return null;
+    try {
+      const row = await env.DB.prepare(
+        `SELECT 1 FROM ${parentTable} WHERE id = ? AND account_id = ?`
+      ).bind(parentId, accountId).first();
+      if (!row) return json({ error: 'Not found' }, 404);
+      return null;
+    } catch {
+      // Parent table isn't account-scoped (or doesn't exist) — can't verify
+      // ownership here; fall through rather than block platform-level content.
+      return null;
+    }
+  }
 
   const list: Handler = async (request, env, params) => {
     const ctx = await requireBundle(request, env, 'publish');
@@ -4704,6 +4997,10 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
     const productId = body.product_id;
     if (!productId) return json({ error: 'product_id required' }, 400);
 
+    // Verify the parent (article/module/project) belongs to the caller's account.
+    const parentErr = await verifyParent(env, params.id, accountId);
+    if (parentErr) return parentErr;
+
     // Verify the product belongs to the caller's account before linking.
     const product = await env.DB.prepare(
       'SELECT id FROM products WHERE id = ? AND account_id = ?'
@@ -4720,6 +5017,9 @@ function makeXrefHandlers(tableName: string, fkColumn: string) {
     const ctx = await requireBundle(request, env, 'publish');
     if ('error' in ctx) return ctx.error;
     const { accountId } = ctx;
+    // Verify the parent (article/module/project) belongs to the caller's account.
+    const parentErr = await verifyParent(env, params.id, accountId);
+    if (parentErr) return parentErr;
     // Only allow unlinking products that belong to the caller's account.
     const product = await env.DB.prepare(
       'SELECT id FROM products WHERE id = ? AND account_id = ?'
@@ -4809,9 +5109,9 @@ function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
   };
 }
 
-const articleProductXref = makeXrefHandlers('article_products', 'article_id');
-const moduleProductXref = makeXrefHandlers('module_products', 'module_id');
-const projectProductXref = makeXrefHandlers('project_products', 'project_id');
+const articleProductXref = makeXrefHandlers('article_products', 'article_id', 'articles');
+const moduleProductXref = makeXrefHandlers('module_products', 'module_id', 'modules');
+const projectProductXref = makeXrefHandlers('project_products', 'project_id', 'projects');
 
 // ── Backfill: match existing invoices to customers (scoped) ──
 const handleBackfillCustomerLinks: Handler = async (request, env) => {
@@ -5032,7 +5332,10 @@ const handleTranscribe: Handler = async (request, env) => {
 
   if (!groqRes.ok) {
     const errText = await groqRes.text();
-    return json({ error: `Groq API error: ${groqRes.status} — ${errText}` }, 502);
+    // Log the upstream detail; return a generic message so the raw Groq error
+    // body (which can carry request internals) never reaches the client.
+    console.error(`Transcription upstream error: ${groqRes.status} — ${errText}`);
+    return json({ error: 'Transcription failed' }, 502);
   }
 
   const result = await groqRes.json() as { text: string };
@@ -5175,8 +5478,8 @@ const handleGetActivityLogs: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const url = new URL(request.url);
-  const limit = parseInt(url.searchParams.get('limit') || '50');
-  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = clampLimit(url.searchParams.get('limit'));
+  const offset = clampOffset(url.searchParams.get('offset'));
   const action = url.searchParams.get('action');
   const search = url.searchParams.get('search');
   const entityId = url.searchParams.get('entity_id');
@@ -5452,7 +5755,9 @@ Important:
 
   if (!geminiRes.ok) {
     const errText = await geminiRes.text();
-    return json({ error: `Gemini API error: ${geminiRes.status}`, details: errText }, 502);
+    // Log the upstream detail; do not echo it back to the client.
+    console.error(`extract-from-image upstream error: ${geminiRes.status} — ${errText}`);
+    return json({ error: `Gemini API error: ${geminiRes.status}` }, 502);
   }
 
   const geminiData = await geminiRes.json() as any;
@@ -9788,6 +10093,14 @@ const handleRequestSample: Handler = async (request, env) => {
   const accountId = (claims.active_account_id as string | null | undefined) || body.account_id;
   if (!accountId) return json({ error: 'No active account' }, 400);
 
+  // Guard: any authed user could otherwise pass an arbitrary account_id and
+  // insert a sample request into any tenant. Only allow requests against a
+  // published/public store (same gate as the public store directory).
+  const targetAccount = await env.DB.prepare(
+    "SELECT 1 FROM accounts WHERE id = ? AND public_enabled = 1 AND status = 'active'"
+  ).bind(accountId).first();
+  if (!targetAccount) return json({ error: 'Store is not accepting sample requests' }, 403);
+
   // Look up the product name for the sample record
   const product = await env.DB.prepare(
     'SELECT given_name, product_name, type FROM products WHERE id = ? AND account_id = ?'
@@ -10549,8 +10862,8 @@ const handleGetAccountActivity: Handler = async (request, env, params) => {
   }
 
   const url = new URL(request.url);
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 500);
-  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = clampLimit(url.searchParams.get('limit'), 100, 500);
+  const offset = clampOffset(url.searchParams.get('offset'));
 
   const { results } = await env.DB.prepare(
     `SELECT id, action, actor_id, actor_email, target_type, target_id, details, created_at,
@@ -11038,8 +11351,8 @@ const handlePlatformAuditLog: Handler = async (request, env) => {
   if (authErr) return authErr;
 
   const url = new URL(request.url);
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
-  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = clampLimit(url.searchParams.get('limit'));
+  const offset = clampOffset(url.searchParams.get('offset'));
   const filterAccountId = url.searchParams.get('account_id') || null;
   const filterActorId = url.searchParams.get('actor_id') || null;
   const filterAction = url.searchParams.get('action') || null;
@@ -12616,7 +12929,9 @@ const handleIssueJoinCode: Handler = async (request, env) => {
 };
 
 const handleRedeemJoinCode: Handler = async (request, env) => {
-  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
+  // client-controlled X-Forwarded-For header for a rate-limit key.
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   if (!checkRateLimit(`joincode:${ip}`, 20, 60000)) {
     return json({ error: 'Too many attempts. Please try again later.' }, 429);
   }
@@ -13339,8 +13654,8 @@ const handleDeleteArticle: Handler = async (request, env, params) => {
 
 const handleGetPublicArticles: Handler = async (request, env) => {
   const url = new URL(request.url);
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 100);
-  const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const limit = clampLimit(url.searchParams.get('limit'), 20, 100);
+  const offset = clampOffset(url.searchParams.get('offset'));
 
   const rows = await env.DB.prepare(
     `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
@@ -15061,14 +15376,6 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
     return json({ error: 'None of the selected teas are currently available' }, 400);
   }
 
-  // Allocate an invoice number from the owning account's sequence.
-  const seqRow = await env.DB.prepare(
-    'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
-  ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
-  const seq = seqRow?.invoice_seq ?? 1;
-  const pfx = seqRow?.invoice_prefix || '';
-  const invoiceNumber = pfx ? `${pfx}-${seq}` : String(seq);
-
   const invoiceId = crypto.randomUUID();
   const recipientNotes = picks
     .map(p => (p.note && String(p.note).trim()) ? `${byItemId.get(p.item_id || '')?.product_name || 'Item'}: ${String(p.note).trim()}` : null)
@@ -15079,25 +15386,52 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
     recipientNotes ? `Recipient notes: ${recipientNotes}` : null,
   ].filter(Boolean).join('\n');
 
-  const invoiceStmt = env.DB.prepare(
-    `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status, source_collection_id, source_publication_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    invoiceId, accountId, invoiceNumber, customerName, customerPhone, customerId,
-    'USD', 0, 'Draft', 0, notes, 'unpaid', pub.collection_id, pub.id
-  );
   const lineStmts = lineItems.map(li =>
     env.DB.prepare(
       'INSERT INTO invoice_line_items (id, account_id, invoice_id, product_id, custom_name, quantity, price_at_sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).bind(crypto.randomUUID(), accountId, invoiceId, li.product_id, li.custom_name, li.quantity, li.price_at_sale)
   );
-  const logStmt = buildActivityLog(
-    env, 'INVOICE_CREATED',
-    `Draft invoice ${invoiceNumber} created from collection "${coll.title}" — ${customerName} confirmed ${lineItems.length} item${lineItems.length === 1 ? '' : 's'}`,
-    'collection-recipient', 'invoice', invoiceId, accountId
-  );
 
-  await env.DB.batch([invoiceStmt, ...lineStmts, logStmt]);
+  // Allocate an invoice number from the owning account's sequence, retrying on
+  // the active-invoice-number unique index collision (consistent format via
+  // formatInvoiceNumber).
+  let invoiceNumber = '';
+  let committed = false;
+  let lastErr: any = null;
+  for (let attempt = 0; attempt < 3 && !committed; attempt++) {
+    const seqRow = await env.DB.prepare(
+      'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
+    ).bind(accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
+    const seq = seqRow?.invoice_seq ?? 1;
+    invoiceNumber = formatInvoiceNumber(seqRow?.invoice_prefix || null, seq);
+
+    const invoiceStmt = env.DB.prepare(
+      `INSERT INTO invoices (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id, display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status, source_collection_id, source_publication_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      invoiceId, accountId, invoiceNumber, customerName, customerPhone, customerId,
+      'USD', 0, 'Draft', 0, notes, 'unpaid', pub.collection_id, pub.id
+    );
+    const logStmt = buildActivityLog(
+      env, 'INVOICE_CREATED',
+      `Draft invoice ${invoiceNumber} created from collection "${coll.title}" — ${customerName} confirmed ${lineItems.length} item${lineItems.length === 1 ? '' : 's'}`,
+      'collection-recipient', 'invoice', invoiceId, accountId
+    );
+    try {
+      await env.DB.batch([invoiceStmt, ...lineStmts, logStmt]);
+      committed = true;
+    } catch (err: any) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      if (/UNIQUE|constraint/i.test(msg)) continue;
+      throw err;
+    }
+  }
+  if (!committed) {
+    console.error('handleConfirmCollectionPicks: invoice create failed after retries:', lastErr);
+    return json({ error: 'Could not allocate a unique invoice number — please retry' }, 409);
+  }
+
   if (customerId) {
     await ensureContactRelationship(env, accountId, customerId, 'buyer', 'workflow', 'invoice', invoiceId);
   }
@@ -17647,8 +17981,10 @@ export default {
       const response = await match.handler(request, env, match.params);
       return cors(response, corsOrigin);
     } catch (err: any) {
+      // Log the detail for forensics; never leak err.message (may contain SQL,
+      // stack frames, secrets) to the client.
       console.error('Worker error:', err);
-      return cors(json({ error: err.message || 'Internal server error' }, 500), corsOrigin);
+      return cors(json({ error: 'Internal server error' }, 500), corsOrigin);
     }
   },
 
