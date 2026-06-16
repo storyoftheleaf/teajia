@@ -43,6 +43,23 @@ const ShopProductLoader: React.FC<{
   const { id } = useParams<{ id: string }>();
   return <Shop {...props} initialProductId={id} />;
 };
+
+// Branches /article/:slug by render mode. Both readers fetch by slug with the
+// SAME query key ['article', slug], so the chosen reader reuses the cached
+// result (no double fetch). Until the article loads, falls through to the
+// carousel reader, which shares the same query.
+function ArticleRouteSwitch() {
+  const { slug } = useParams();
+  const { data: article } = useQuery<DbArticle>({
+    queryKey: ['article', slug],
+    queryFn: () => api.articles.getBySlug(slug as string),
+    enabled: !!slug,
+  });
+  if (article && getArticleRenderMode(article) === 'immersive_scroll') {
+    return <ImmersiveArticlePage />;
+  }
+  return <ArticlePage />;
+}
 const SharedCollection = lazy(() => import('./components/SharedCollection').then(m => ({ default: m.SharedCollection })));
 const EventLanding = lazy(() => import('./components/events/EventLanding'));
 const EventRecapPage = lazy(() => import('./pages/EventRecapPage'));
@@ -82,6 +99,7 @@ const SpacesPage = lazy(() => import('./pages/SpacesPage'));
 const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
+const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
@@ -92,9 +110,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
 import { STORIES, LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
-import type { Account } from './types';
+import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
-import { setToken, hydrateAccountStateFromToken } from './lib/api';
+import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
+import { getArticleRenderMode } from './lib/articleRenderMode';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
@@ -761,7 +780,7 @@ const AppContent = () => {
                 <Route path="/article/:slug" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="hero" />}>
-                      <ArticlePage />
+                      <ArticleRouteSwitch />
                     </Suspense>
                   </ErrorBoundary>
                 } />
