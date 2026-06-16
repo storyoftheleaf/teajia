@@ -31,9 +31,22 @@ export function Reveal({ children, className }: { children: React.ReactNode; cla
 
 // Cover: full-height image backdrop with overlaid title. Phone-first; the same
 // markup reads wider on desktop via the responsive measure classes below.
-export function CoverSection({ title, subtitle, image, kicker }: {
-  title: string; subtitle?: string; image?: string; kicker?: string;
+// A `centered` variant renders a quiet ceremonial title page (no image).
+export function CoverSection({ title, subtitle, image, kicker, variant, mark }: {
+  title: string; subtitle?: string; image?: string; kicker?: string; variant?: string; mark?: string;
 }) {
+  if (variant === 'centered') {
+    return (
+      <section
+        className="relative min-h-[100dvh] flex flex-col items-center justify-center text-center px-8"
+        style={{ background: 'radial-gradient(circle at 50% 30%, #2c2924, var(--tea-bg))' }}
+      >
+        {mark && <div className="font-display text-tea-gold leading-none text-[34px] md:text-[44px] mb-8 opacity-90">{mark}</div>}
+        <h1 className="font-display text-tea-text leading-none text-[56px] md:text-[80px]">{title}</h1>
+        {subtitle && <p className="font-sans text-tea-text-dim tracking-[0.2em] uppercase text-ui-12 mt-6">{subtitle}</p>}
+      </section>
+    );
+  }
   return (
     <section className="relative min-h-[100dvh] flex items-end overflow-hidden">
       {image && (
