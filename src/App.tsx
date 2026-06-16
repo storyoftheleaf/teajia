@@ -113,6 +113,7 @@ import { Story, ContentType, ViewState, Person, InventoryItem, Section } from '.
 import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
+import { currentHostStoreSlug } from './lib/storeHost';
 import { getArticleRenderMode } from './lib/articleRenderMode';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
@@ -173,6 +174,11 @@ const AccountRouteBridge: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
 
 // Create an inner component to use the context
 const AppContent = () => {
+  // When the site is reached on a store-dedicated subdomain (e.g. au.teajia.com),
+  // the root URL opens straight onto that store's shop instead of the homepage.
+  // Computed once — the host doesn't change within a session.
+  const hostStoreSlug = currentHostStoreSlug();
+
   // Track click/tap position for cart fly animation (activeElement unreliable on mobile)
   useEffect(() => {
     const handler = (e: MouseEvent | TouchEvent) => {
@@ -742,6 +748,19 @@ const AppContent = () => {
             <AnimatedRoutes>
             <Routes>
                 <Route path="/" element={
+                  hostStoreSlug ? (
+                    <ErrorBoundary>
+                      <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                        <Storefront
+                          slug={hostStoreSlug}
+                          onAddToCart={handleAddToCart}
+                          onCartClick={handleOpenCart}
+                          onAccountClick={handleOpenAccount}
+                          cartItemCount={cart.length}
+                        />
+                      </Suspense>
+                    </ErrorBoundary>
+                  ) : (
                   <ErrorBoundary>
                     <HomePage
                       onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
@@ -760,6 +779,7 @@ const AppContent = () => {
                       cartItemCount={cart.length}
                     />
                   </ErrorBoundary>
+                  )
                 } />
                 <Route path="/magazine" element={
                   <ErrorBoundary>
