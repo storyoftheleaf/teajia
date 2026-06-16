@@ -310,3 +310,9 @@
 /* Scroll-highlight read-along effect (immersive reader) */
 .shl-word { color: rgba(221, 210, 189, 0.28); transition: color 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
 .shl-word.shl-on { color: var(--tea-text); }
+
+/* Immersive prose drop cap */
+.immersive-dropcap::first-letter {
+  font-family: var(--font-display); float: left; font-size: 70px; line-height: 0.66;
+  padding: 9px 12px 0 0; color: var(--tea-gold); font-weight: 600;
+}
