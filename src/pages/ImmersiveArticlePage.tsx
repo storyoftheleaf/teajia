@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import type { DbArticle } from '../types';
 import { ReadingProgress } from '../components/immersive/ReadingProgress';
 import { renderBlock } from '../components/immersive/sections';
+import '../styles/reader-animations.css';
 
 export default function ImmersiveArticlePage() {
   const { slug } = useParams();
@@ -22,7 +23,7 @@ export default function ImmersiveArticlePage() {
     <div className="bg-tea-bg text-tea-text min-h-[100dvh]" data-testid="immersive-article">
       <Helmet><title>{article.title} · Teajia</title></Helmet>
       <ReadingProgress />
-      <article>
+      <article className="pb-nav-gap">
         {article.blocks.map((block, i) => renderBlock(block, i))}
       </article>
     </div>
