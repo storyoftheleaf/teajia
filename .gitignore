@@ -6,3 +6,6 @@ dist
 worker/.wrangler/
 test-results/
 playwright-report/
+
+# Agent brainstorm scratch (never commit)
+.superpowers/
