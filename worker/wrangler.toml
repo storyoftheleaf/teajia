@@ -29,3 +29,14 @@ name = "PUBLIC_MCP_LIMITER"
 type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 60, period = 10 }
+
+# Edge rate limiter for auth endpoints (login / signup), keyed per client IP
+# via CF-Connecting-IP in code (audit M1). The in-memory checkRateLimit() is a
+# per-isolate fallback only — it resets on cold start and does not span
+# isolates, so distributed brute-force slips past it. This durable limiter is
+# used first when present. 10 attempts per 60s window.
+[[unsafe.bindings]]
+name = "LOGIN_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 10, period = 60 }

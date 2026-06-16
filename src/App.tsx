@@ -101,6 +101,12 @@ const StartHerePage = lazy(() => import('./pages/StartHerePage'));
 const DiscoverPage = lazy(() => import('./pages/DiscoverPage'));
 const ArticlePage = lazy(() => import('./pages/ArticlePage'));
 const ImmersiveArticlePage = lazy(() => import('./pages/ImmersiveArticlePage'));
+// Immersive long-reads (espresso + gold scrolling articles) for the Read section.
+const ReadIndex = lazy(() => import('./pages/read/ReadIndex'));
+const LeafToLiquor = lazy(() => import('./pages/read/LeafToLiquor'));
+const RockRemembers = lazy(() => import('./pages/read/RockRemembers'));
+const EarthWaterFire = lazy(() => import('./pages/read/EarthWaterFire'));
+const BeforeTheMist = lazy(() => import('./pages/read/BeforeTheMist'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
@@ -115,6 +121,7 @@ import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
 import { getArticleRenderMode } from './lib/articleRenderMode';
+import { currentHostStoreSlug } from './lib/storeHost';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
@@ -174,6 +181,11 @@ const AccountRouteBridge: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
 
 // Create an inner component to use the context
 const AppContent = () => {
+  // When the site is reached on a store-dedicated subdomain (e.g. au.teajia.com),
+  // the root URL opens straight onto that store's shop instead of the homepage.
+  // Computed once — the host doesn't change within a session.
+  const hostStoreSlug = currentHostStoreSlug();
+
   // Track click/tap position for cart fly animation (activeElement unreliable on mobile)
   useEffect(() => {
     const handler = (e: MouseEvent | TouchEvent) => {
@@ -677,6 +689,11 @@ const AppContent = () => {
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
+  // Immersive Read-section long-reads are full-bleed editorial experiences with
+  // their own sticky nav, reading-progress bar and accent control. They must
+  // escape the app's content padding and the floating bottom tab bar (which
+  // would otherwise overlap the bottom-right accent swatches).
+  const isImmersiveRead = location.pathname === '/read' || location.pathname.startsWith('/read/');
 
   // LeftSidebar only mounts on admin routes now, so its useEffect that sets
   // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so
@@ -737,12 +754,25 @@ const AppContent = () => {
         </Suspense>
       ) : (
       <>
-      <main id="main-content" className={`${isFocusedShareRoute ? 'px-0 pb-0' : 'px-4 md:px-6 lg:px-10 pb-nav-gap-lg lg:pb-8'} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
+      <main id="main-content" className={`${isFocusedShareRoute || isImmersiveRead ? 'px-0 pb-0' : 'px-4 md:px-6 lg:px-10 pb-nav-gap-lg lg:pb-8'} pt-0 lg:pt-0 min-h-screen w-full flex-1 transition-opacity duration-300`}>
           <AnimatePresence mode="wait">
           {viewState === 'BROWSE' && (
             <AnimatedRoutes>
             <Routes>
                 <Route path="/" element={
+                  hostStoreSlug ? (
+                    <ErrorBoundary>
+                      <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                        <Storefront
+                          slug={hostStoreSlug}
+                          onAddToCart={handleAddToCart}
+                          onCartClick={handleOpenCart}
+                          onAccountClick={handleOpenAccount}
+                          cartItemCount={cart.length}
+                        />
+                      </Suspense>
+                    </ErrorBoundary>
+                  ) : (
                   <ErrorBoundary>
                     <HomePage
                       onNavigateToSection={(section, magazineTab?: 'articles' | 'visual' | 'tea-inspire') => {
@@ -761,6 +791,7 @@ const AppContent = () => {
                       cartItemCount={cart.length}
                     />
                   </ErrorBoundary>
+                  )
                 } />
                 <Route path="/magazine" element={
                   <ErrorBoundary>
@@ -784,6 +815,22 @@ const AppContent = () => {
                       <ArticleRouteSwitch />
                     </Suspense>
                   </ErrorBoundary>
+                } />
+                {/* Immersive long-reads — espresso + gold scrolling articles for the Read section. */}
+                <Route path="/read" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ReadIndex /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/leaf-to-liquor" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LeafToLiquor /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/rock-remembers" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><RockRemembers /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/earth-water-fire" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EarthWaterFire /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/before-the-mist" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><BeforeTheMist /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/craft" element={
                   <ErrorBoundary>
@@ -1083,7 +1130,7 @@ const AppContent = () => {
       {/* Soft fade behind the floating bottom tab bar — masks page content
           peeking through the pill's side margins and bottom gap so the bar
           reads cleanly without distracting text behind it. */}
-      {!isFocusedShareRoute && !isCartOpen && (
+      {!isFocusedShareRoute && !isImmersiveRead && !isCartOpen && (
         <div
           aria-hidden="true"
           className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
@@ -1096,7 +1143,7 @@ const AppContent = () => {
       )}
 
       {/* Bottom Tab Bar for Mobile */}
-      {!isFocusedShareRoute && (
+      {!isFocusedShareRoute && !isImmersiveRead && (
         <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
       )}
 
