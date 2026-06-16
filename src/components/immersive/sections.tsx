@@ -113,6 +113,32 @@ export function PullQuote({ text, attribution }: { text: string; attribution?: s
   );
 }
 
+// Chapter divider: a full-height pause between movements. Number + title,
+// centered. Not Reveal-wrapped (it is itself the breath).
+export function ChapterDivider({ number, title, subtitle }: { number?: string; title: string; subtitle?: string }) {
+  return (
+    <section className="py-28 md:py-40 px-8 text-center">
+      {number && <div className="font-display text-tea-gold leading-none text-[44px] md:text-[64px] mb-4">{number}</div>}
+      <h2 className="font-display font-medium text-tea-text leading-[1.05] text-[36px] md:text-[52px]">{title}</h2>
+      {subtitle && <p className="font-body text-tea-text-dim mt-4 text-ui-16 md:text-ui-20 max-w-[520px] mx-auto">{subtitle}</p>}
+    </section>
+  );
+}
+
+// Epilogue: the closing voice. Italic display, optional signature.
+export function Epilogue({ text, signature }: { text: string; signature?: string }) {
+  return (
+    <section className="py-24 md:py-32">
+      <div className="px-6 md:px-0 mx-auto max-w-[680px]">
+        <Reveal>
+          <p className="font-display italic text-tea-text-sec leading-[1.5] text-[24px] md:text-[30px]">{text}</p>
+          {signature && <p className="font-sans text-tea-text-dim tracking-[0.14em] uppercase text-ui-11 mt-8">{signature}</p>}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 // Maps one ArticleBlock to its section. Unmapped block types render nothing in
 // AR.0 (added in AR.1/AR.2); they are intentionally skipped, not errored.
 export function renderBlock(block: ArticleBlock, index: number) {
