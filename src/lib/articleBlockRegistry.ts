@@ -191,6 +191,30 @@ export const ARTICLE_BLOCK_REGISTRY: Record<ArticleBlockType, ArticleBlockRegist
     keeperTemplate: false,
     intent: 'Provides a simple breath between pages.',
   },
+  comparison: {
+    type: 'comparison',
+    label: 'Comparison Slider',
+    readerSupported: true,
+    editorSupport: 'editable',
+    keeperTemplate: false,
+    intent: 'Sets two states of a tea side by side (steep 1 vs 5) behind a draggable divider. Immersive reader only.',
+  },
+  audio: {
+    type: 'audio',
+    label: 'Listen',
+    readerSupported: true,
+    editorSupport: 'editable',
+    keeperTemplate: false,
+    intent: 'Offers a read-aloud of the passage with an animated waveform. Immersive reader only.',
+  },
+  product_link: {
+    type: 'product_link',
+    label: 'Product Cross-link',
+    readerSupported: true,
+    editorSupport: 'editable',
+    keeperTemplate: false,
+    intent: 'Links the read to a tea in the shop (material-flow reference rule: links, never copies). Immersive reader only.',
+  },
 };
 
 export const EDITABLE_ARTICLE_BLOCK_TYPES = Object.values(ARTICLE_BLOCK_REGISTRY)
