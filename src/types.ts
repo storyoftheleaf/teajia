@@ -996,11 +996,27 @@ export type PoemVariant = 'centered';
 
 export type BackMatterVariant = 'copyright' | 'dedication';
 
+// Text-effect dial (AR.3). Attaches to reading sections as an optional per-block
+// toggle. Inert in the 4:5 carousel reader (which ignores the field); the
+// immersive reader reads it in renderBlock. 'scroll-highlight' is the default
+// reading effect for prose when the field is absent.
+export type ArticleTextEffect =
+  | 'none'
+  | 'scroll-highlight'
+  | 'word-rise'
+  | 'shimmer'
+  | 'blur-focus'
+  | 'line-stagger'
+  | 'scale-jump'
+  | 'color-wipe'
+  | 'underline-draw'
+  | 'letter-expand';
+
 export type ArticleBlock =
   // Original 6, extended:
-  | { type: 'intro'; text: string }
-  | { type: 'paragraph'; variant?: ParagraphVariant; text: string }
-  | { type: 'section_heading'; text: string }
+  | { type: 'intro'; text: string; textEffect?: ArticleTextEffect }
+  | { type: 'paragraph'; variant?: ParagraphVariant; text: string; textEffect?: ArticleTextEffect }
+  | { type: 'section_heading'; text: string; textEffect?: ArticleTextEffect }
   | { type: 'quote'; variant?: QuoteVariant; text: string; attribution?: string }
   | { type: 'image'; variant?: ImageVariant; url?: string; images?: string[]; description: string; caption?: string }
   | { type: 'divider' }

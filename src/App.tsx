@@ -76,6 +76,7 @@ const Storefront = lazy(() => import('./components/storefront/Storefront').then(
 const FindATable = lazy(() => import('./components/storefront/FindATable').then(m => ({ default: m.FindATable })));
 const TabStyleDemo = lazy(() => import('./pages/TabStyleDemo'));
 const PalettePreviewPage = lazy(() => import('./pages/PalettePreviewPage'));
+const ArticleEditorHarness = lazy(() => import('./pages/ArticleEditorHarness'));
 const DesignSystemShowcase = lazy(() => import('./pages/DesignSystemShowcase'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage'));
@@ -880,6 +881,7 @@ const AppContent = () => {
                 <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
                 <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
+                <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
                 <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
                 <Route path="/events" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><EventsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />

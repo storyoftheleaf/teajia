@@ -1,6 +1,52 @@
-import type { ArticleBlock } from '../types';
+import type { ArticleBlock, ArticleTextEffect, ImageVariant } from '../types';
 
 export type ArticleBlockType = ArticleBlock['type'];
+
+// ─── AR.5 authoring catalogs ───────────────────────────────────────────────
+// Plain-language option lists for the block-stack editor. These name the
+// text-effect dials and image layouts a block can carry, with a short, human
+// label (no jargon, no file names) so the dropdowns read as design choices.
+
+export const TEXT_EFFECT_OPTIONS: { value: ArticleTextEffect; label: string }[] = [
+  { value: 'scroll-highlight', label: 'Scroll highlight (words brighten)' },
+  { value: 'none', label: 'None (plain reading)' },
+  { value: 'word-rise', label: 'Words rise in sequence' },
+  { value: 'blur-focus', label: 'Blur into focus' },
+  { value: 'line-stagger', label: 'Line by line' },
+  { value: 'shimmer', label: 'Gradient shimmer' },
+  { value: 'scale-jump', label: 'Scale-jump opener' },
+  { value: 'color-wipe', label: 'Bronze color wipe' },
+  { value: 'underline-draw', label: 'Underline draws on' },
+  { value: 'letter-expand', label: 'Letters spread open' },
+];
+
+// Text-effects that read well on a heading vs. on body prose. Headings have no
+// continuous scroll-highlight, so that option is omitted from the heading list.
+export const PROSE_TEXT_EFFECTS: ArticleTextEffect[] = [
+  'scroll-highlight', 'none', 'word-rise', 'blur-focus', 'letter-expand',
+];
+export const HEADING_TEXT_EFFECTS: ArticleTextEffect[] = [
+  'none', 'shimmer', 'scale-jump', 'color-wipe', 'underline-draw', 'letter-expand', 'line-stagger',
+];
+
+// Which block types accept a text-effect dial in the editor.
+export const TEXT_EFFECT_BLOCK_TYPES: ArticleBlockType[] = ['intro', 'paragraph', 'section_heading'];
+
+// Image layout choices, named for the immersive reader's visual family. The
+// stored value is the existing ImageVariant (no new block type).
+export const IMAGE_LAYOUT_OPTIONS: { value: ImageVariant; label: string }[] = [
+  { value: 'full_bleed', label: 'Full-bleed (edge to edge, ken-burns)' },
+  { value: 'caption_bottom', label: 'Inline (sits in the reading flow)' },
+  { value: 'split_vertical', label: 'Split diptych (two side by side)' },
+  { value: 'film_strip', label: 'Swipe gallery (snap-scroll row)' },
+  { value: 'book_plate', label: 'Book plate (quiet fine-press frame)' },
+  { value: 'pinned_hero', label: 'Pinned hero (held image, text crosses)' },
+];
+
+export function textEffectOptionsFor(type: ArticleBlockType): { value: ArticleTextEffect; label: string }[] {
+  const allowed = type === 'section_heading' ? HEADING_TEXT_EFFECTS : PROSE_TEXT_EFFECTS;
+  return TEXT_EFFECT_OPTIONS.filter(o => allowed.includes(o.value));
+}
 
 export type ArticleBlockEditorSupport = 'editable' | 'read_only' | 'planned';
 

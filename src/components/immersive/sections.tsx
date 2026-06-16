@@ -704,6 +704,22 @@ function scoresFromNotes(items: Array<{ label: string; note: string }>): Array<{
   });
 }
 
+// Prose defaults to scroll-highlight when no dial is set; 'none' falls back to
+// plain prose. Any value the prose path does not specially handle renders as
+// plain prose, so an unknown stored value never breaks the read.
+function normalizeEffect(e?: TextEffect): TextEffect {
+  if (!e || e === 'scroll-highlight') return 'scroll-highlight';
+  if (e === 'none') return 'none';
+  return e;
+}
+
+// Headings have no scroll-highlight; an absent or scroll-highlight value means
+// "no heading effect" (undefined), so the heading renders in its plain form.
+function normalizeHeadingEffect(e?: TextEffect): TextEffect | undefined {
+  if (!e || e === 'none' || e === 'scroll-highlight') return undefined;
+  return e;
+}
+
 // Maps one ArticleBlock to its section. Visual variants are read off the
 // image/list/recipe/map/tasting blocks. Unmapped block types render nothing;
 // they are intentionally skipped, not errored.
@@ -712,14 +728,14 @@ export function renderBlock(block: ArticleBlock, index: number) {
     case 'cover':
       return <CoverSection key={index} title={block.title} subtitle={block.subtitle} image={block.image} kicker={block.kicker} variant={block.variant} />;
     case 'intro':
-      return <ProseSection key={index} text={block.text} dropcap />;
+      return <ProseSection key={index} text={block.text} dropcap effect={normalizeEffect(block.textEffect)} />;
     case 'paragraph':
-      // The paragraph variant `drop_cap` carries dropcap; others render plain
-      // scroll-highlight prose. (Text-effect dials ride a separate field once
-      // the authoring UI lands — AR.5.)
-      return <ProseSection key={index} text={block.text} dropcap={block.variant === 'drop_cap'} />;
+      // The paragraph variant `drop_cap` carries dropcap; the per-block
+      // text-effect dial (AR.5) rides `textEffect`, defaulting to
+      // scroll-highlight when absent.
+      return <ProseSection key={index} text={block.text} dropcap={block.variant === 'drop_cap'} effect={normalizeEffect(block.textEffect)} />;
     case 'section_heading':
-      return <SectionHeading key={index} text={block.text} />;
+      return <SectionHeading key={index} text={block.text} effect={normalizeHeadingEffect(block.textEffect)} />;
     case 'chapter_divider':
       return <ChapterDivider key={index} number={block.number} title={block.title} subtitle={block.subtitle} />;
     case 'quote':
