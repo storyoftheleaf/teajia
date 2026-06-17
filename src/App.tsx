@@ -122,7 +122,6 @@ import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
 import { currentHostStoreSlug } from './lib/storeHost';
 import { getArticleRenderMode } from './lib/articleRenderMode';
-import { currentHostStoreSlug } from './lib/storeHost';
 import { useAuth } from './hooks/useAuth';
 import { useFavoritesSync } from './hooks/useFavoritesSync';
 import { useOfflineSync } from './hooks/useOfflineSync';
