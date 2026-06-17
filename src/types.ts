@@ -979,7 +979,11 @@ export type ParagraphVariant =
 
 export type ImageVariant =
   | 'full_bleed' | 'caption_bottom' | 'split_vertical' | 'film_strip'
-  | 'polaroid_scatter' | 'circle_mask' | 'arch_mask';
+  | 'polaroid_scatter' | 'circle_mask' | 'arch_mask'
+  // Immersive reader (AR.2) visual variants. Added minimally so the data-driven
+  // image block can render the book-plate and pinned-hero layouts without a new
+  // block type. Inert in the 4:5 carousel reader (which ignores unknown variants).
+  | 'book_plate' | 'pinned_hero';
 
 export type QuoteVariant = 'big' | 'minimal';
 
@@ -992,11 +996,27 @@ export type PoemVariant = 'centered';
 
 export type BackMatterVariant = 'copyright' | 'dedication';
 
+// Text-effect dial (AR.3). Attaches to reading sections as an optional per-block
+// toggle. Inert in the 4:5 carousel reader (which ignores the field); the
+// immersive reader reads it in renderBlock. 'scroll-highlight' is the default
+// reading effect for prose when the field is absent.
+export type ArticleTextEffect =
+  | 'none'
+  | 'scroll-highlight'
+  | 'word-rise'
+  | 'shimmer'
+  | 'blur-focus'
+  | 'line-stagger'
+  | 'scale-jump'
+  | 'color-wipe'
+  | 'underline-draw'
+  | 'letter-expand';
+
 export type ArticleBlock =
   // Original 6, extended:
-  | { type: 'intro'; text: string }
-  | { type: 'paragraph'; variant?: ParagraphVariant; text: string }
-  | { type: 'section_heading'; text: string }
+  | { type: 'intro'; text: string; textEffect?: ArticleTextEffect }
+  | { type: 'paragraph'; variant?: ParagraphVariant; text: string; textEffect?: ArticleTextEffect }
+  | { type: 'section_heading'; text: string; textEffect?: ArticleTextEffect }
   | { type: 'quote'; variant?: QuoteVariant; text: string; attribution?: string }
   | { type: 'image'; variant?: ImageVariant; url?: string; images?: string[]; description: string; caption?: string }
   | { type: 'divider' }
@@ -1014,7 +1034,14 @@ export type ArticleBlock =
   | { type: 'map'; caption?: string; locations: string[] }
   | { type: 'list'; variant: 'checklist' | 'timeline'; title?: string; items: string[] }
   | { type: 'embed'; platform: 'youtube' | 'instagram'; externalId: string; caption?: string; description?: string }
-  | { type: 'back_matter'; variant: BackMatterVariant; lines: string[] };
+  | { type: 'back_matter'; variant: BackMatterVariant; lines: string[] }
+  // Immersive reader (AR.4) interactive blocks. New, minimal — no existing
+  // block carries before/after pairs, an audio source, or a product link.
+  // These render only in the immersive reader; the 4:5 carousel skips unknown
+  // block types, so coexistence holds.
+  | { type: 'comparison'; before: string; after: string; beforeLabel?: string; afterLabel?: string; caption?: string }
+  | { type: 'audio'; src?: string; title?: string }
+  | { type: 'product_link'; title: string; blurb?: string; href: string; image?: string };
 
 export interface DbArticle {
   id: string;

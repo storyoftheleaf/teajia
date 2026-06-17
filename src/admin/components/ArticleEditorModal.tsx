@@ -5,9 +5,18 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
-import { EDITABLE_ARTICLE_BLOCK_TYPES, getArticleBlockLabel } from '../../lib/articleBlockRegistry';
+import {
+  EDITABLE_ARTICLE_BLOCK_TYPES,
+  getArticleBlockLabel,
+  textEffectOptionsFor,
+  TEXT_EFFECT_BLOCK_TYPES,
+  IMAGE_LAYOUT_OPTIONS,
+} from '../../lib/articleBlockRegistry';
 import { useToast } from './Toast';
-import type { DbArticle, ArticleBlock } from '../../types';
+import { ImmersivePreview } from './ImmersivePreview';
+import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant } from '../../types';
+
+const IMMERSIVE_TEMPLATE = 'immersive_scroll';
 
 interface ArticleEditorModalProps {
   isOpen: boolean;
@@ -119,7 +128,63 @@ interface BlockEditorProps {
   onMoveDown: () => void;
 }
 
-const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown }) => {
+// Per-block design dials (AR.5). Text-effect for reading sections; layout for
+// images. Only shown for immersive articles, where these actually render.
+const BlockDials: React.FC<{ block: ArticleBlock; onChange: (b: ArticleBlock) => void }> = ({ block, onChange }) => {
+  const showTextEffect = TEXT_EFFECT_BLOCK_TYPES.includes(block.type);
+  const showLayout = block.type === 'image';
+  if (!showTextEffect && !showLayout) return null;
+
+  return (
+    <div className="flex flex-wrap gap-3 pt-1 border-t border-tea-border mt-1">
+      {showLayout && block.type === 'image' && (
+        <label className="flex-1 min-w-[160px]">
+          <span className="block text-ui-9 uppercase tracking-[0.18em] text-tea-text-dim mb-1">Layout</span>
+          <div className="relative">
+            <select
+              value={block.variant ?? 'full_bleed'}
+              onChange={e => onChange({ ...block, variant: e.target.value as ImageVariant })}
+              className={selectClass}
+            >
+              {IMAGE_LAYOUT_OPTIONS.map(o => (
+                <option key={o.value} value={o.value} className="bg-tea-surface text-tea-text">{o.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+          </div>
+        </label>
+      )}
+      {showTextEffect && (
+        <label className="flex-1 min-w-[160px]">
+          <span className="block text-ui-9 uppercase tracking-[0.18em] text-tea-text-dim mb-1">Text effect</span>
+          <div className="relative">
+            <select
+              value={makeEffectProbe(block).textEffect ?? defaultEffectFor(block.type)}
+              onChange={e => onChange({ ...block, textEffect: e.target.value as ArticleTextEffect } as ArticleBlock)}
+              className={selectClass}
+            >
+              {textEffectOptionsFor(block.type).map(o => (
+                <option key={o.value} value={o.value} className="bg-tea-surface text-tea-text">{o.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
+          </div>
+        </label>
+      )}
+    </div>
+  );
+};
+
+// Section headings have no scroll-highlight; their sensible default is "none".
+function defaultEffectFor(type: ArticleBlock['type']): ArticleTextEffect {
+  return type === 'section_heading' ? 'none' : 'scroll-highlight';
+}
+// Type-narrowing helper so the union accepts a textEffect read without casting noise.
+function makeEffectProbe(block: ArticleBlock): { textEffect?: ArticleTextEffect } {
+  return block as { textEffect?: ArticleTextEffect };
+}
+
+const BlockEditor: React.FC<BlockEditorProps & { showDials: boolean }> = ({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown, showDials }) => {
   const renderFields = () => {
     switch (block.type) {
       case 'intro':
@@ -252,6 +317,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({ block, index, total, onChange
         </div>
       </div>
       {renderFields()}
+      {showDials && <BlockDials block={block} onChange={onChange} />}
     </div>
   );
 };
@@ -394,14 +460,17 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [tagsInput, setTagsInput] = useState((initialData?.tags ?? []).join(', '));
   const [coverImageUrl, setCoverImageUrl] = useState(initialData?.cover_image_url ?? '');
   const [layoutTemplate, setLayoutTemplate] = useState(initialData?.layout_template ?? 'default');
+  const isImmersive = layoutTemplate === IMMERSIVE_TEMPLATE;
 
   // Paste panel
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [pasteWarnings, setPasteWarnings] = useState<string[]>([]);
 
-  // Right panel tab
-  const [rightTab, setRightTab] = useState<'metadata' | 'preview'>('metadata');
+  // Right panel tab. 'immersive' shows the real reader render; only meaningful
+  // when the article is set to the immersive look, but always selectable so the
+  // operator can preview before committing the mode.
+  const [rightTab, setRightTab] = useState<'metadata' | 'preview' | 'immersive'>('metadata');
 
   // Add block dropdown
   const [addBlockOpen, setAddBlockOpen] = useState(false);
@@ -462,12 +531,21 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     }
   }, [articleId, buildPayload, title, onSaved, showToast]);
 
-  // Auto-save on field change (debounced 1.5s) — only when we have a title
+  // Keep a ref to the latest save so the debounced timer never fires a stale
+  // closure. Without this, calling scheduleAutoSave() in the same handler that
+  // setState's a field (e.g. the render-mode toggle) would debounce a save that
+  // still closed over the previous value, persisting the old layout_template.
+  const saveRef = useRef(save);
+  useEffect(() => { saveRef.current = save; }, [save]);
+
+  // Auto-save on field change (debounced 1.5s) — only when we have a title.
+  // Reads the freshest save via the ref so the persisted payload always
+  // reflects the latest state at the moment the timer fires.
   const scheduleAutoSave = useCallback(() => {
     if (!title.trim()) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => { void save(); }, 1500);
-  }, [save, title]);
+    autoSaveTimer.current = setTimeout(() => { void saveRef.current(); }, 1500);
+  }, [title]);
 
   // Cleanup timer on unmount
   useEffect(() => () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); }, []);
@@ -560,10 +638,11 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     '', 'Origin Story', 'Interview', 'Technique', 'Culture', 'Tea & Food', 'Photo Essay',
   ];
   const LAYOUT_TEMPLATES = [
-    { value: 'default', label: 'Default' },
-    { value: 'minimal', label: 'Minimal' },
-    { value: 'dark', label: 'Dark' },
-    { value: 'interview', label: 'Interview' },
+    { value: IMMERSIVE_TEMPLATE, label: 'Immersive scroll (new reader)' },
+    { value: 'default', label: 'Carousel — Default (4:5)' },
+    { value: 'minimal', label: 'Carousel — Minimal' },
+    { value: 'dark', label: 'Carousel — Dark' },
+    { value: 'interview', label: 'Carousel — Interview' },
   ];
 
   if (!isOpen) return null;
@@ -589,6 +668,34 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           placeholder="Article title"
           className="flex-1 min-w-0 bg-transparent text-base font-semibold text-tea-text placeholder:text-tea-text-sec/40 outline-none focus:placeholder:text-tea-text-sec/20 transition-colors"
         />
+
+        {/* Render-mode toggle — the single most important wire: choose the
+            immersive scroll reader vs the 4:5 carousel. Persists via
+            layout_template on save. Text-only segments per brand law. */}
+        <div className="hidden md:flex items-center rounded-full border border-tea-border bg-tea-elevated p-0.5 shrink-0" role="group" aria-label="Article render mode">
+          <button
+            type="button"
+            data-testid="render-mode-carousel"
+            aria-pressed={!isImmersive}
+            onClick={() => { setLayoutTemplate('default'); scheduleAutoSave(); }}
+            className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${
+              !isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec hover:text-tea-text'
+            }`}
+          >
+            Carousel
+          </button>
+          <button
+            type="button"
+            data-testid="render-mode-immersive"
+            aria-pressed={isImmersive}
+            onClick={() => { setLayoutTemplate(IMMERSIVE_TEMPLATE); scheduleAutoSave(); }}
+            className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${
+              isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec hover:text-tea-text'
+            }`}
+          >
+            Immersive
+          </button>
+        </div>
 
         {/* Status badge */}
         <span className={`text-ui-9 uppercase tracking-[0.15em] px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_BADGE_STYLES[status] ?? STATUS_BADGE_STYLES.draft}`}>
@@ -656,6 +763,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                     onDelete={() => deleteBlock(i)}
                     onMoveUp={() => moveBlock(i, 'up')}
                     onMoveDown={() => moveBlock(i, 'down')}
+                    showDials={isImmersive}
                   />
                 </motion.div>
               ))}
@@ -719,6 +827,16 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
               }`}
             >
               Preview
+            </button>
+            <button
+              onClick={() => setRightTab('immersive')}
+              className={`px-4 py-2.5 text-ui-11 uppercase tracking-[0.15em] font-medium transition-colors ${
+                rightTab === 'immersive'
+                  ? 'text-tea-text border-b-2 border-tea-gold -mb-px'
+                  : 'text-tea-text-sec hover:text-tea-text'
+              }`}
+            >
+              Reader
             </button>
           </div>
 
@@ -887,6 +1005,30 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             </div>
           )}
 
+          {/* Reader (immersive) tab — the real reader render, phone + desktop */}
+          {rightTab === 'immersive' && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {!isImmersive && (
+                <div className="px-4 py-2.5 border-b border-tea-border bg-tea-gold/8">
+                  <p className="text-ui-11 text-tea-text-sec leading-relaxed">
+                    Previewing the immersive look. Switch this article to{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setLayoutTemplate(IMMERSIVE_TEMPLATE); scheduleAutoSave(); }}
+                      className="text-tea-gold-lt underline underline-offset-2"
+                    >
+                      Immersive
+                    </button>{' '}
+                    to publish it this way.
+                  </p>
+                </div>
+              )}
+              <div className="flex-1 overflow-hidden">
+                <ImmersivePreview blocks={blocks} />
+              </div>
+            </div>
+          )}
+
         </div>
 
       </div>
@@ -899,6 +1041,28 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             <ChevronDown size={13} className="text-tea-text-dim" />
           </summary>
           <div className="pb-4 space-y-4">
+            <Field label="Reader">
+              <div className="flex items-center rounded-full border border-tea-border bg-tea-elevated p-0.5 w-fit" role="group" aria-label="Article render mode">
+                <button
+                  type="button"
+                  data-testid="render-mode-carousel-mobile"
+                  aria-pressed={!isImmersive}
+                  onClick={() => { setLayoutTemplate('default'); scheduleAutoSave(); }}
+                  className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${!isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec'}`}
+                >
+                  Carousel
+                </button>
+                <button
+                  type="button"
+                  data-testid="render-mode-immersive-mobile"
+                  aria-pressed={isImmersive}
+                  onClick={() => { setLayoutTemplate(IMMERSIVE_TEMPLATE); scheduleAutoSave(); }}
+                  className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec'}`}
+                >
+                  Immersive
+                </button>
+              </div>
+            </Field>
             <Field label="Subtitle">
               <input type="text" value={subtitle} onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }} placeholder="Short subtitle…" className={inputClass} />
             </Field>

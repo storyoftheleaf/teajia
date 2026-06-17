@@ -249,14 +249,26 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
 
   const hash = await sha256Hex(plaintext);
   const row = await env.DB.prepare(
-    'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier FROM mcp_tokens WHERE token_hash = ?'
+    'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
   ).bind(hash).first() as Record<string, any> | null;
 
   if (!row || row.revoked_at) {
     return unauthorized(request, 'Invalid or revoked token');
   }
 
+  // Enforce expiry. expires_at is unix seconds (nullable; NULL = legacy
+  // non-expiring token). Expired tokens are treated exactly like revoked ones.
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (row.expires_at != null && (row.expires_at as number) < nowSeconds) {
+    return unauthorized(request, 'Invalid or revoked token');
+  }
+
   // Bump last_used_at on every successful auth (best-effort; non-blocking).
+  // NOTE: not wrapped in ctx.waitUntil — authenticateMcp's signature is
+  // (request, env) and threading an ExecutionContext here would ripple a
+  // signature change into index.ts (mcp.ts is imported BY index.ts). Left
+  // best-effort: if the isolate is torn down before this commits, the only
+  // loss is a slightly stale last_used_at, never a correctness issue.
   env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
     .bind(row.id).run().catch(() => {});
 
@@ -318,7 +330,7 @@ const PENDING_TTL_MS = 5 * 60 * 1000;
 // ticket row can't be replayed. Consumption is a single atomic UPDATE…RETURNING
 // guarded on `consumed_at IS NULL`, which makes confirms single-use even under
 // concurrent calls.
-async function issueConfirmationToken(env: Env, mutation: PendingMutation): Promise<string> {
+async function issueConfirmationToken(env: Env, mutation: PendingMutation, tokenId: string | null): Promise<string> {
   const now = Date.now();
   // Opportunistically reap expired/spent rows so the table doesn't grow
   // unbounded (best-effort, non-blocking).
@@ -327,22 +339,29 @@ async function issueConfirmationToken(env: Env, mutation: PendingMutation): Prom
 
   const token = crypto.randomUUID();
   const tokenHash = await sha256Hex(token);
+  // Bind the issuing token's id so the confirm call can only be made by the
+  // same token (see consumeConfirmationToken). Prevents a sibling token in the
+  // same account/scope from confirming another token's pending mutation.
   await env.DB.prepare(
-    `INSERT INTO mcp_confirmation_tickets (token_hash, account_id, kind, payload_json, expires_at)
-     VALUES (?, ?, ?, ?, ?)`
-  ).bind(tokenHash, mutation.accountId, mutation.kind, JSON.stringify(mutation), now + PENDING_TTL_MS).run();
+    `INSERT INTO mcp_confirmation_tickets (token_hash, account_id, kind, payload_json, expires_at, token_id)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(tokenHash, mutation.accountId, mutation.kind, JSON.stringify(mutation), now + PENDING_TTL_MS, tokenId).run();
   return token;
 }
 
-async function consumeConfirmationToken(env: Env, token: string): Promise<PendingMutation | null> {
+async function consumeConfirmationToken(env: Env, token: string, tokenId: string | null): Promise<PendingMutation | null> {
   const tokenHash = await sha256Hex(token);
   const now = Date.now();
   const row = await env.DB.prepare(
     `UPDATE mcp_confirmation_tickets SET consumed_at = ?
        WHERE token_hash = ? AND consumed_at IS NULL AND expires_at > ?
-     RETURNING payload_json`
-  ).bind(now, tokenHash, now).first() as { payload_json: string } | null;
+     RETURNING payload_json, token_id`
+  ).bind(now, tokenHash, now).first() as { payload_json: string; token_id: string | null } | null;
   if (!row) return null;
+  // Bind the ticket to its issuing token. NULL token_id is tolerated for
+  // backward-compat with any in-flight legacy tickets created before this
+  // column existed. A mismatch means a different token is trying to confirm.
+  if (row.token_id != null && row.token_id !== tokenId) return null;
   try { return JSON.parse(row.payload_json) as PendingMutation; } catch { return null; }
 }
 
@@ -463,7 +482,7 @@ type NewTeaInput = {
 async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
   const confirm = args?.confirm ? String(args.confirm) : null;
   if (confirm) {
-    const pending = await consumeConfirmationToken(env, confirm);
+    const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
     if (!pending || pending.kind !== 'create_tea') {
       return { error: 'invalid_or_expired_confirmation_token' };
     }
@@ -500,7 +519,7 @@ async function toolCreateTea(env: Env, auth: McpAuth, args: any) {
 
   const token = await issueConfirmationToken(env, {
     kind: 'create_tea', accountId: auth.accountId, userEmail: auth.userEmail, product,
-  });
+  }, auth.tokenId);
   return {
     preview: { action: 'create_tea', product },
     confirmation_token: token,
@@ -1023,7 +1042,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'add_stock', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, grams, note,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'add_stock',
@@ -1038,7 +1057,7 @@ async function toolAddStock(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'add_stock' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1115,7 +1134,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'remove_stock', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, grams, reason, note,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'remove_stock',
@@ -1132,7 +1151,7 @@ async function toolRemoveStock(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'remove_stock' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1149,13 +1168,27 @@ async function commitRemoveStock(env: Env, m: Extract<PendingMutation, { kind: '
   if (m.grams > current) {
     return { error: 'insufficient_stock', requested_grams: m.grams, available_grams: current };
   }
-  const balanceAfter = current - m.grams;
+
+  // Atomic, conditional decrement. The earlier SELECT is advisory only — two
+  // concurrent removes could both pass it and oversell. The `stock_grams >= ?`
+  // guard makes the deduction safe under concurrency: if another writer got
+  // there first and stock is now insufficient, the UPDATE matches no row and
+  // we bail BEFORE writing the ledger/listing/sold-out rows. Run it standalone
+  // (not in the batch) so we can branch on the RETURNING result.
+  const decremented = await env.DB.prepare(
+    'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
+  ).bind(m.grams, m.productId, m.accountId, m.grams).first() as { stock_grams: number } | null;
+  if (!decremented) {
+    // Re-read live stock for an accurate available figure in the error.
+    const live = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
+      .bind(m.productId, m.accountId).first() as { stock_grams: number } | null;
+    return { error: 'insufficient_stock', requested_grams: m.grams, available_grams: Number(live?.stock_grams ?? 0) };
+  }
+  const balanceAfter = Number(decremented.stock_grams);
 
   const stmts: D1PreparedStatement[] = [
-    env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
-      .bind(m.grams, m.productId, m.accountId),
     env.DB.prepare(
-      'UPDATE product_listings SET stock_grams = stock_grams - ?, updated_at = datetime(\'now\') WHERE id = ?'
+      'UPDATE product_listings SET stock_grams = MAX(0, stock_grams - ?), updated_at = datetime(\'now\') WHERE id = ?'
     ).bind(m.grams, `list_${m.productId}`),
     env.DB.prepare(
       `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, account_id)
@@ -1268,7 +1301,7 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
       kind: 'record_sale', accountId: auth.accountId, userEmail: auth.userEmail,
       lines: previewLines.map(l => ({ productId: l.product_id, grams: l.grams, pricePerGramUsd: l.price_per_gram_usd })),
       customerId, customerName: customerNameResolved, customerWhatsapp, notes,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'record_sale',
@@ -1286,7 +1319,7 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'record_sale') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1294,27 +1327,54 @@ async function toolRecordSale(env: Env, auth: McpAuth, args: any) {
 }
 
 async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'record_sale' }>) {
-  // Re-validate stock at commit time — the preview window is 5min and stock
-  // could have changed via another channel (admin UI, another tool call).
+  // Re-validate + fetch product metadata at commit time — the preview window
+  // is 5min and stock could have changed via another channel.
   const productCache = new Map<string, { id: string; stock_grams: number; given_name: string | null; product_name: string; status: string; low_stock_threshold: number | null; source_compass_entry_id: string | null }>();
   for (const line of m.lines) {
     const p = await env.DB.prepare(
       'SELECT id, stock_grams, given_name, product_name, status, low_stock_threshold, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(line.productId, m.accountId).first() as any;
     if (!p) return { error: 'product_not_found', product_id: line.productId };
-    if (Number(p.stock_grams || 0) < line.grams) {
+    productCache.set(line.productId, p);
+  }
+
+  // Atomic, conditional decrement of every line BEFORE allocating an invoice
+  // number or writing the invoice. The SELECT above is advisory; the
+  // `stock_grams >= ?` guard is what actually prevents overselling under
+  // concurrency. We run these standalone (not in env.DB.batch, which can't
+  // branch mid-batch on a row count) and bail on the first failure so no
+  // invoice/ledger rows are written and the invoice_seq is not consumed.
+  // balance_after is derived from the RETURNING value, never the stale read.
+  const balances = new Map<string, number>();
+  const appliedLines: [string, number][] = []; // [productId, grams] already deducted
+  for (const line of m.lines) {
+    const p = productCache.get(line.productId)!;
+    const dec = await env.DB.prepare(
+      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
+    ).bind(line.grams, line.productId, m.accountId, line.grams).first() as { stock_grams: number } | null;
+    if (!dec) {
+      // Roll back any decrements already applied for earlier lines in this sale
+      // so a multi-line failure doesn't leave partial deductions behind.
+      for (const [pid, restoreLine] of appliedLines) {
+        await env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
+          .bind(restoreLine, pid, m.accountId).run().catch(() => {});
+      }
+      const live = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
+        .bind(line.productId, m.accountId).first() as { stock_grams: number } | null;
       return {
         error: 'insufficient_stock_at_commit',
         product_id: line.productId,
         product_name: p.given_name || p.product_name,
         requested_grams: line.grams,
-        available_grams: Number(p.stock_grams || 0),
+        available_grams: Number(live?.stock_grams ?? 0),
       };
     }
-    productCache.set(line.productId, p);
+    balances.set(line.productId, Number(dec.stock_grams));
+    appliedLines.push([line.productId, line.grams]);
   }
 
   // Allocate invoice number using the existing per-account sequence.
+  // Inline format — keep in sync with formatInvoiceNumber in index.ts.
   const seqRow = await env.DB.prepare(
     'UPDATE accounts SET invoice_seq = invoice_seq + 1 WHERE id = ? RETURNING invoice_seq, invoice_prefix'
   ).bind(m.accountId).first() as { invoice_seq: number; invoice_prefix: string | null } | null;
@@ -1326,6 +1386,8 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   const stmts: D1PreparedStatement[] = [];
 
   // Invoice + line items, written as Filled with inventory_deducted=1 in one pass.
+  // Stock has already been deducted above; this batch records the invoice,
+  // ledger, listing mirror, and status side effects.
   stmts.push(env.DB.prepare(
     `INSERT INTO invoices
        (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id,
@@ -1339,7 +1401,7 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   for (const line of m.lines) {
     const p = productCache.get(line.productId)!;
     const currentStock = Number(p.stock_grams || 0);
-    const balanceAfter = currentStock - line.grams;
+    const balanceAfter = balances.get(line.productId)!;
     const threshold = Number(p.low_stock_threshold || 0);
 
     stmts.push(env.DB.prepare(
@@ -1347,11 +1409,7 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
     ).bind(crypto.randomUUID(), m.accountId, invoiceId, line.productId, line.grams, line.pricePerGramUsd));
 
     stmts.push(env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?'
-    ).bind(line.grams, line.productId, m.accountId));
-
-    stmts.push(env.DB.prepare(
-      'UPDATE product_listings SET stock_grams = stock_grams - ?, updated_at = datetime(\'now\') WHERE id = ?'
+      'UPDATE product_listings SET stock_grams = MAX(0, stock_grams - ?), updated_at = datetime(\'now\') WHERE id = ?'
     ).bind(line.grams, `list_${line.productId}`));
 
     stmts.push(env.DB.prepare(
@@ -1427,7 +1485,7 @@ async function toolCreateCustomer(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'create_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       name, whatsapp, email, phone, notes, tags,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'create_customer',
@@ -1439,7 +1497,7 @@ async function toolCreateCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'create_customer') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1496,7 +1554,7 @@ async function toolUpdateCustomer(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'update_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, fields,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'update_customer',
@@ -1508,7 +1566,7 @@ async function toolUpdateCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'update_customer' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1567,17 +1625,35 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     const oldRetail = Number(product.fixed_retail_price_usd || 0);
     const newRetail = retailPriceUsd ?? oldRetail;
 
-    // Margin warning: (retail - cost_in_usd) / retail < 30%
-    // (Cost currency conversion omitted here — just use cost_amount directly for the warning)
-    const newCost = costAmount ?? Number(product.cost_amount || 0);
-    const marginWarning = newRetail > 0 && (newRetail - newCost) / newRetail < 0.3
-      ? `Margin will be ${Math.round(((newRetail - newCost) / newRetail) * 100)}% — below the 30% floor.`
+    // Margin warning: (retail_usd - cost_usd) / retail_usd < 30%.
+    // retail_price_usd is already USD, but cost_amount is in cost_currency and
+    // must be converted before comparison or the warning is meaningless for
+    // non-USD costs (e.g. a 7.2-Yuan cost is ~$1, not $7.2). Convention:
+    // exchange_rates.rate_to_usd is units-per-USD, so USD = amount / rate_to_usd.
+    const newCostAmount = costAmount ?? Number(product.cost_amount || 0);
+    const newCostCurrency = (costCurrency ?? product.cost_currency ?? 'USD') as string;
+
+    let costUsd: number | null;
+    if (newCostCurrency === 'USD') {
+      costUsd = newCostAmount;
+    } else {
+      const rateRow = await env.DB.prepare(
+        'SELECT rate_to_usd FROM exchange_rates WHERE currency = ?'
+      ).bind(newCostCurrency).first() as { rate_to_usd: number } | null;
+      // No rate row → skip the warning rather than emit a false one.
+      costUsd = rateRow && Number.isFinite(rateRow.rate_to_usd) && rateRow.rate_to_usd > 0
+        ? newCostAmount / rateRow.rate_to_usd
+        : null;
+    }
+
+    const marginWarning = costUsd !== null && newRetail > 0 && (newRetail - costUsd) / newRetail < 0.3
+      ? `Margin will be ${Math.round(((newRetail - costUsd) / newRetail) * 100)}% — below the 30% floor.`
       : null;
 
     const token = await issueConfirmationToken(env, {
       kind: 'update_tea_pricing', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, costAmount, costCurrency, retailPriceUsd,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'update_tea_pricing',
@@ -1594,7 +1670,7 @@ async function toolUpdateTeaPricing(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'update_tea_pricing' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1652,7 +1728,7 @@ async function toolSetLowStockThreshold(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'set_low_stock_threshold', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, thresholdGrams,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'set_low_stock_threshold',
@@ -1667,7 +1743,7 @@ async function toolSetLowStockThreshold(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'set_low_stock_threshold' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1723,7 +1799,7 @@ async function toolUpdateInvoice(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'update_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
       invoiceId, fields,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'update_invoice',
@@ -1736,7 +1812,7 @@ async function toolUpdateInvoice(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'update_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1793,7 +1869,7 @@ async function toolVoidInvoice(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'void_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
       invoiceId, reason,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'void_invoice',
@@ -1817,7 +1893,7 @@ async function toolVoidInvoice(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'void_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -1949,7 +2025,7 @@ async function toolTagCustomer(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'tag_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, tag,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'tag_customer',
@@ -1964,7 +2040,7 @@ async function toolTagCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'tag_customer' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2014,7 +2090,7 @@ async function toolUntagCustomer(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'untag_customer', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, tag,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'untag_customer',
@@ -2029,7 +2105,7 @@ async function toolUntagCustomer(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'untag_customer' || pending.customerId !== customerId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2081,7 +2157,7 @@ async function toolLinkVendor(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'link_vendor', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, productId, note,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'link_vendor',
@@ -2101,7 +2177,7 @@ async function toolLinkVendor(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'link_vendor' || pending.customerId !== customerId || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2168,7 +2244,7 @@ async function toolUnlinkVendor(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'unlink_vendor', accountId: auth.accountId, userEmail: auth.userEmail,
       customerId, productId,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'unlink_vendor',
@@ -2180,7 +2256,7 @@ async function toolUnlinkVendor(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'unlink_vendor' || pending.customerId !== customerId || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2235,7 +2311,7 @@ async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'set_archive_status', accountId: auth.accountId, userEmail: auth.userEmail,
       productId, archived, reason,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'set_archive_status',
@@ -2253,7 +2329,7 @@ async function toolSetArchiveStatus(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'set_archive_status' || pending.productId !== productId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2377,7 +2453,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'fulfill_invoice', accountId: auth.accountId, userEmail: auth.userEmail,
       invoiceId,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'fulfill_invoice',
@@ -2399,7 +2475,7 @@ async function toolFulfillInvoice(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'fulfill_invoice' || pending.invoiceId !== invoiceId) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2527,8 +2603,16 @@ async function commitFulfillInvoice(
 async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
   const confirm = args?.confirm ? String(args.confirm) : null;
   if (confirm) {
-    const pending = await consumeConfirmationToken(env, confirm);
-    if (!pending || pending.kind !== 'mark_invoice_paid') {
+    const suppliedInvoiceId = args?.invoice_id ? String(args.invoice_id).trim() : '';
+    const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
+    // Rebind guard: if the caller re-supplies invoice_id on confirm it must
+    // match the previewed ticket (parity with add_stock/void_invoice/
+    // fulfill_invoice). Empty arg means "trust the ticket" and is allowed.
+    if (
+      !pending ||
+      pending.kind !== 'mark_invoice_paid' ||
+      (suppliedInvoiceId && pending.invoiceId !== suppliedInvoiceId)
+    ) {
       return { error: 'invalid_or_expired_confirmation_token' };
     }
     return commitMarkInvoicePaid(env, pending);
@@ -2551,7 +2635,7 @@ async function toolMarkInvoicePaid(env: Env, auth: McpAuth, args: any) {
     kind: 'mark_invoice_paid', accountId: auth.accountId, userEmail: auth.userEmail,
     invoiceId: row.id, invoiceNumber: row.invoice_number,
     paymentMethod, fulfillStock,
-  });
+  }, auth.tokenId);
   return {
     preview: {
       action: 'mark_invoice_paid',
@@ -2719,7 +2803,7 @@ async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'update_account_settings', accountId: auth.accountId, userEmail: auth.userEmail,
       fields,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'update_account_settings',
@@ -2731,7 +2815,7 @@ async function toolUpdateAccountSettings(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'update_account_settings') {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -2809,7 +2893,7 @@ async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
     const token = await issueConfirmationToken(env, {
       kind: 'update_exchange_rate', accountId: auth.accountId, userEmail: auth.userEmail,
       currency, rateVsUsd, previousRate,
-    });
+    }, auth.tokenId);
     return {
       preview: {
         action: 'update_exchange_rate',
@@ -2824,7 +2908,7 @@ async function toolUpdateExchangeRate(env: Env, auth: McpAuth, args: any) {
     };
   }
 
-  const pending = await consumeConfirmationToken(env, confirm);
+  const pending = await consumeConfirmationToken(env, confirm, auth.tokenId);
   if (!pending || pending.kind !== 'update_exchange_rate' || pending.currency !== currency) {
     return { error: 'invalid_or_expired_confirmation_token' };
   }
@@ -3532,10 +3616,12 @@ export async function mcpAdminMintToken(
     scopes = DEFAULT_MCP_SCOPES;
   }
 
+  // Expire one year out. expires_at is unix seconds; enforced in authenticateMcp.
+  const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 3600;
   await env.DB.prepare(
-    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, accountId, userId, userEmail, label.slice(0, 80), hash, prefix, JSON.stringify(scopes), tier).run();
+    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, accountId, userId, userEmail, label.slice(0, 80), hash, prefix, JSON.stringify(scopes), tier, expiresAt).run();
 
   return { id, token: plaintext, prefix, scopes };
 }
@@ -3587,6 +3673,51 @@ function corsJson(data: unknown, status = 200): Response {
   });
 }
 
+// Allowlist of redirect_uri targets we will 302 to with an OAuth `code=`.
+// Dynamic client registration (RFC 7591) lets ANY caller register a client,
+// so validating the requested redirect_uri only against the client's own
+// registered list is meaningless — the attacker registered the client. We
+// therefore pin the redirect target to the legitimate MCP connector clients
+// (Claude + ChatGPT web origins, their desktop custom schemes) plus localhost
+// for dev. Anything else is an open-redirect / auth-code-exfil vector.
+const OAUTH_REDIRECT_HOST_ALLOWLIST = [
+  'claude.ai',
+  'claude.com',
+  'chatgpt.com',
+  'chat.openai.com',
+  'platform.openai.com',
+];
+const OAUTH_REDIRECT_SCHEME_ALLOWLIST = ['claude:', 'cursor:', 'vscode:'];
+
+function isAllowedRedirectUri(uri: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(uri);
+  } catch {
+    return false; // unparseable → reject
+  }
+
+  // Custom desktop-client schemes (claude://, cursor://, vscode://).
+  if (OAUTH_REDIRECT_SCHEME_ALLOWLIST.includes(parsed.protocol)) return true;
+
+  // Local dev: http://localhost or http://127.0.0.1 on any port.
+  if (parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')) {
+    return true;
+  }
+
+  // Web connector clients must be https with an allowlisted host (exact or
+  // a subdomain). Exact/suffix match only — never `includes()`, which would
+  // let `evil-claude.ai.attacker.com` slip through.
+  if (parsed.protocol === 'https:') {
+    const host = parsed.hostname.toLowerCase();
+    return OAUTH_REDIRECT_HOST_ALLOWLIST.some(
+      (base) => host === base || host.endsWith('.' + base),
+    );
+  }
+
+  return false;
+}
+
 function originOf(request: Request): string {
   const u = new URL(request.url);
   return `${u.protocol}//${u.host}`;
@@ -3617,10 +3748,12 @@ export function oauthAuthorizationServerMetadata(request: Request): Response {
   });
 }
 
-// POST /oauth/register — dynamic client registration (RFC 7591). We accept
-// any redirect_uri the client gives us; we don't pre-validate hostnames
-// because Claude desktop, mobile, and ChatGPT all use different schemes
-// (claude://oauth, https://claude.ai/api/..., etc).
+// POST /oauth/register — dynamic client registration (RFC 7591). Because
+// registration is open, every requested redirect_uri is checked against the
+// connector allowlist (see isAllowedRedirectUri) at registration time AND
+// again at the authorize/decision step. Claude desktop/mobile and ChatGPT
+// use a known, bounded set of schemes/hosts (claude://oauth,
+// https://claude.ai/..., etc.), so this does not break legitimate clients.
 export async function oauthRegister(request: Request, env: Env): Promise<Response> {
   if (request.method !== 'POST') return corsJson({ error: 'Method not allowed' }, 405);
 
@@ -3635,6 +3768,15 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
   const redirectUris = Array.isArray(body?.redirect_uris) ? body.redirect_uris.filter((u: any) => typeof u === 'string') : [];
   if (redirectUris.length === 0) {
     return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uris required' }, 400);
+  }
+  // Reject the whole registration if ANY redirect_uri is off-allowlist — we
+  // won't store a client we'd later refuse to redirect to anyway.
+  const disallowed = redirectUris.find((u: string) => !isAllowedRedirectUri(u));
+  if (disallowed) {
+    return corsJson({
+      error: 'invalid_redirect_uri',
+      error_description: `redirect_uri not permitted: ${disallowed}`,
+    }, 400);
   }
   const grantTypes = Array.isArray(body?.grant_types) ? body.grant_types : ['authorization_code'];
   const responseTypes = Array.isArray(body?.response_types) ? body.response_types : ['code'];
@@ -3804,6 +3946,12 @@ export async function oauthAuthorizeDecision(request: Request, env: Env): Promis
   if (!registered.includes(redirect_uri)) {
     return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uri not registered' }, 400);
   }
+  // Defense in depth: even a registered redirect_uri must be on the connector
+  // allowlist before we 302 a fresh auth code to it (clients registered before
+  // this check existed, or via a tampered row, are caught here).
+  if (!isAllowedRedirectUri(redirect_uri)) {
+    return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uri not permitted' }, 400);
+  }
 
   // Scopes the user granted on the consent screen, filtered to the approver's
   // tier. Persisted on the code so token mint honours the selection.
@@ -3924,13 +4072,15 @@ export async function oauthToken(request: Request, env: Env): Promise<Response> 
     try { grantScopes = sanitizeScopesForTier(JSON.parse(codeRow.scopes as string), grantTier); } catch { /* keep default */ }
   }
 
+  // Expire one year out. expires_at is unix seconds; enforced in authenticateMcp.
+  const tokenExpiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 3600;
   await env.DB.prepare(
-    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO mcp_tokens (id, account_id, user_id, user_email, label, token_hash, token_prefix, scopes, creator_tier, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     tokenId,
     codeRow.account_id, codeRow.user_id, codeRow.user_email,
-    label, tokenHash, tokenPrefix, JSON.stringify(grantScopes), grantTier,
+    label, tokenHash, tokenPrefix, JSON.stringify(grantScopes), grantTier, tokenExpiresAt,
   ).run();
 
   await env.DB.prepare(
@@ -4024,8 +4174,11 @@ async function publicSearchTea(env: Env, accountId: string, args: any) {
   const limit = Math.min(Math.max(Number(args?.limit) || 8, 1), 20);
   if (!query) return { matches: [] };
 
+  // Cap the candidate set fetched from D1. Scoring happens in app code below,
+  // so an unbounded catalog would let one unauthenticated request full-scan
+  // the whole products table (DoS / cost amplification).
   const { results } = await env.DB.prepare(
-    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active'`
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' LIMIT 200`
   ).bind(accountId).all();
 
   const scored = (results as unknown as ProductRow[])
@@ -4080,8 +4233,11 @@ async function publicPrepareOrder(env: Env, account: PublicAccount, args: any) {
   if (rawItems.length === 0) throw new Error('items must be a non-empty array of { id|name, grams }');
   if (!account.whatsapp_number) return { error: 'whatsapp_unavailable', message: 'This shop has no WhatsApp number configured for checkout.' };
 
+  // Cap the candidate set fetched from D1 — items are resolved/scored in app
+  // code below, so an unbounded catalog would let one unauthenticated request
+  // full-scan the whole products table (DoS / cost amplification).
   const { results: catalog } = await env.DB.prepare(
-    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active'`
+    `SELECT ${PUBLIC_PRODUCT_COLS} FROM products WHERE account_id = ? AND status = 'Active' LIMIT 200`
   ).bind(account.id).all();
   const products = catalog as unknown as ProductRow[];
 
