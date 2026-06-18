@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
@@ -1394,7 +1394,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             tea variant so both forms have the share affordance in the
             commit area instead of the page header. */}
         {(() => {
-          const ready = !!entry.name?.trim() || (entry.photos.length > 0 && !!entry.vendorName?.trim());
+          // Done is enabled whenever the entry holds anything worth keeping —
+          // a name, a photo, notes, or tasting data — matching exactly what
+          // commitEntry() will persist. Requiring a name blocked saving an
+          // entry that already has notes/flavor/tags, which read as broken.
+          const ready = entryHasContent(entry);
           return (
             <div className="flex items-center gap-2 mt-1">
               {onShare && (
