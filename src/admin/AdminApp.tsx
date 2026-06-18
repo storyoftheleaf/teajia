@@ -97,6 +97,7 @@ import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
 import { PlatformAuditLogPage } from './views/PlatformAuditLogPage';
+import { MovementStockView } from './views/MovementStockView';
 import { AccountActivityView } from './views/AccountActivityView';
 import { MagazineView } from './views/MagazineView';
 import { CollectionsView } from './views/CollectionsView';
@@ -751,6 +752,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="activity" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><AccountActivityView /></PageTransition></ProtectedRoute>} />
               <Route path="platform" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAdminView /></PageTransition></ProtectedRoute>} />
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
+              <Route path="platform/all-stock" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MovementStockView /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
               <Route path="collections" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
               <Route path="collections/inbound/:pubId" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><InboundCollectionView /></PageTransition></ProtectedRoute>} />

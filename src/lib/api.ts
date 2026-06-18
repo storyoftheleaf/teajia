@@ -40,6 +40,35 @@ export interface PlatformAccount {
   features: Record<string, boolean>;
 }
 
+// Stock spine step 3 — one row of the all-locations master view (the movement).
+export interface PlatformStockRow {
+  id: string;
+  type: string;
+  given_name: string | null;
+  product_name: string | null;
+  chinese_name: string | null;
+  year: number | null;
+  origin_country: string | null;
+  origin_region: string | null;
+  stock_grams: number | null;
+  quantity_units: number | null;
+  status: string;
+  is_public: number;
+  shown_in_shop: number;
+  image_url: string | null;
+  fixed_retail_price_usd: number | null;
+  created_at: string;
+  account_id: string;
+  account_name: string;
+  account_slug: string;
+  location_city: string | null;
+  location_country: string | null;
+  is_platform_owner: number;
+  owner_user_id: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+}
+
 export interface PurchaseOrder {
   id: string;
   account_id: string;
@@ -2400,6 +2429,10 @@ export const api = {
     },
     listAccounts: async (): Promise<{ accounts: PlatformAccount[] }> => {
       return authedFetch(`${API_URL}/api/platform/accounts`)
+    },
+    // Stock spine step 3 — read-only stock across every location.
+    allStock: async (): Promise<{ stock: PlatformStockRow[] }> => {
+      return authedFetch(`${API_URL}/api/platform/all-stock`)
     },
     toggleFeature: async (accountId: string, feature: string, enabled: boolean): Promise<void> => {
       await authedFetch(`${API_URL}/api/platform/accounts/${accountId}/features/${feature}`, {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, ShieldCheck, Store, Users, Check, Loader2,
   ChevronDown, ChevronUp, Plus, Copy,
-  AlertTriangle, RefreshCw, ClipboardList, X,
+  AlertTriangle, RefreshCw, ClipboardList, X, Boxes,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
@@ -734,6 +734,7 @@ interface PlatformAdminViewProps {
 }
 
 export const PlatformAdminView: React.FC<PlatformAdminViewProps> = ({ embedded = false }) => {
+  const navigate = useNavigate();
   const { platformRole } = useAppStore();
   const [tab, setTab] = useState<'accounts' | 'users' | 'audit' | 'new'>('accounts');
   const [accountsKey, setAccountsKey] = useState(0);
@@ -773,6 +774,12 @@ export const PlatformAdminView: React.FC<PlatformAdminViewProps> = ({ embedded =
             {t.icon}{t.label}
           </button>
         ))}
+        {/* Stock spine step 3: the movement's all-locations master lens lives on
+            its own full page (read-only, can span hundreds of rows). */}
+        <button onClick={() => navigate('/admin/platform/all-stock')}
+          className="pill flex items-center gap-1.5">
+          <Boxes size={11} /> All Stock
+        </button>
       </div>
 
       {tab === 'accounts'  && <AccountsPanel key={accountsKey} />}

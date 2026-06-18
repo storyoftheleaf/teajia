@@ -11224,6 +11224,33 @@ const handlePlatformListAccounts: Handler = async (request, env) => {
   return json({ accounts: result });
 };
 
+// GET /api/platform/all-stock — stock spine step 3: the movement's master lens.
+// Read-only stock across EVERY location (no account_id filter — the one query
+// that spans accounts), each row labelled by location and owner. Platform-tier
+// only; never customer-facing, no cart, no buy. To change anything the operator
+// steps into the location via the AccountSwitcher.
+const handlePlatformAllStock: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, p.type, p.given_name, p.product_name, p.chinese_name, p.year,
+            p.origin_country, p.origin_region, p.stock_grams, p.quantity_units,
+            p.status, p.is_public, p.shown_in_shop, p.image_url,
+            p.fixed_retail_price_usd, p.created_at,
+            p.account_id, a.name AS account_name, a.slug AS account_slug,
+            a.location_city, a.location_country, a.is_platform_owner,
+            p.owner_user_id, u.name AS owner_name, u.email AS owner_email
+       FROM products p
+       JOIN accounts a ON a.id = p.account_id
+       LEFT JOIN users u ON u.id = p.owner_user_id
+      WHERE p.status != 'Archived'
+      ORDER BY a.is_platform_owner DESC, a.name ASC, p.created_at DESC`
+  ).all();
+
+  return json({ stock: (results as any[]) ?? [] });
+};
+
 // PUT /api/platform/accounts/:id/features/:feature — toggle a feature on/off
 const handlePlatformToggleFeature: Handler = async (request, env, params) => {
   const authErr = await requirePlatformAdmin(request, env);
@@ -17426,6 +17453,7 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
+  ['GET',  '/api/platform/all-stock', handlePlatformAllStock],
   ['POST', '/api/platform/accounts', handlePlatformCreateAccount],
   ['PUT',  '/api/platform/accounts/:id/status', handlePlatformSetAccountStatus],
   ['POST', '/api/platform/accounts/:id/suspend', handlePlatformSuspendAccount],
