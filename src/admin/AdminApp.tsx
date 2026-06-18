@@ -556,7 +556,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                    value={inventorySearchQuery}
                    onChange={(e) => { setInventorySearchQuery(e.target.value); setShowSourceSuggestions(true); }}
                    onFocus={() => setShowSourceSuggestions(true)}
-                   className="w-full bg-transparent pl-5 pr-7 py-1 text-xs text-tea-text outline-none font-serif italic placeholder-tea-text-sec/50 transition-colors"
+                   className="w-full bg-transparent pl-5 pr-7 py-1 text-ui-13 text-tea-text outline-none font-serif placeholder-tea-text-sec/60 transition-colors"
                  />
                  {inventorySearchQuery && (
                    <button
@@ -599,14 +599,17 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
              </button>
            )}
 
-           {/* Current account badge — so staff never forget which store they're acting on */}
+           {/* Current account badge — so staff never forget which store they're
+               acting on. This is most important on the SMALLEST screens (a phone
+               in the shop), so it must survive mobile: the dot always shows, and
+               the name truncates harder rather than disappearing. */}
            {activeMembership && (
              <div
-               className="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-md bg-tea-elevated border border-tea-border shrink-0"
+               className="flex items-center gap-1.5 ml-2 px-2 sm:px-2.5 py-1 rounded-md bg-tea-elevated border border-tea-border shrink-0"
                title={`Active account: ${activeMembership?.account_name}`}
              >
                <span className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
-               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium truncate max-w-[140px]">
+               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium truncate max-w-[88px] sm:max-w-[140px]">
                  {activeMembership?.account_name}
                </span>
              </div>
