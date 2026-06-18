@@ -17,6 +17,8 @@ export interface InventoryRowProps {
   visibleCols: readonly ColDef[];
   splitViewCols: readonly ColDef[];
   splitView: boolean;
+  /** Mobile horizontal-swipe mode — pins the Product column to the left edge. */
+  stickyFirstCol?: boolean;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -42,7 +44,7 @@ export interface InventoryRowProps {
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
@@ -83,6 +85,23 @@ function InventoryRowBase(props: InventoryRowProps) {
     const fr = focusedCol === colIndex ? 'ring-1 ring-tea-gold/50 rounded' : '';
     switch (colKey) {
       case 'productName': {
+        // On mobile the name column is pinned while the rest of the row swipes
+        // under it, so the cell needs an opaque background matching the row state
+        // (selected/panel get a solid gold-tinted mix of the page bg; plain rows
+        // the page bg) plus a right-edge shadow that signals "more →". The name
+        // itself is dialled back from the bold/large desktop treatment to a
+        // calmer weight so the pinned column stops shouting.
+        const nameWeightCls = stickyFirstCol
+          ? 'font-display text-ui-15 leading-snug truncate font-normal'
+          : 'font-display text-ui-17 leading-snug truncate font-medium';
+        const stickyNameBg = isPanelOpen
+          ? 'color-mix(in srgb, var(--tea-gold) 16%, rgb(var(--tea-bg-rgb)))'
+          : isSelected
+            ? 'color-mix(in srgb, var(--tea-gold) 18%, rgb(var(--tea-bg-rgb)))'
+            : 'rgb(var(--tea-bg-rgb))';
+        const stickyNameCls = stickyFirstCol
+          ? 'sticky left-0 z-[1] shadow-[6px_0_8px_-6px_rgba(0,0,0,0.45)]'
+          : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
         const subtitle = product.givenName
@@ -91,12 +110,17 @@ function InventoryRowBase(props: InventoryRowProps) {
             ? product.form
             : ' ';
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 align-middle overflow-hidden ${fr}`}>
+          <td
+            key={colKey}
+            id={cellId(colIndex)}
+            className={`px-3 py-1 align-middle overflow-hidden ${stickyNameCls} ${fr}`}
+            style={stickyFirstCol ? { backgroundColor: stickyNameBg } : undefined}
+          >
             <div className="flex flex-col justify-center">
               {isEditMode ? (
-                <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`font-display text-ui-17 leading-snug truncate font-medium ${nameTone}`} ariaLabel="Product name" />
+                <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
               ) : (
-                <span className={`font-display text-ui-17 leading-snug truncate font-medium ${nameTone}`}>{displayName}</span>
+                <span className={`${nameWeightCls} ${nameTone}`}>{displayName}</span>
               )}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-px truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
@@ -313,6 +337,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.visibleCols === next.visibleCols &&
   prev.splitViewCols === next.splitViewCols &&
   prev.splitView === next.splitView &&
+  prev.stickyFirstCol === next.stickyFirstCol &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
   prev.isDropdownOpen === next.isDropdownOpen
