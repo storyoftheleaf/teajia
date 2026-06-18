@@ -20,6 +20,7 @@ import type { TeaEvent } from '../../types/events';
 
 import type { PanelView } from './types';
 import { TastingJournalView } from './TastingJournalView';
+import { CellarView } from './CellarView';
 import { ReaderView } from './ReaderView';
 import { LaunchpadView } from './LaunchpadView';
 import { THREADS, profileThreads } from '../TeaDiscovery/threads';
@@ -315,7 +316,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const PERSISTABLE_VIEWS: PanelView[] = ['main'];
   const STORAGE_KEY = 'teajia-account-view';
 
-  const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup', 'journal'];
+  const VALID_VIEWS: PanelView[] = ['main', 'location-switcher', 'events', 'signin', 'signup', 'journal', 'cellar'];
   const [panelView, setPanelViewRaw] = useState<PanelView>(() => {
     if (initialView && VALID_VIEWS.includes(initialView)) return initialView;
     try {
@@ -785,6 +786,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     panelView === 'signin' ? 'Sign In' :
     panelView === 'signup' ? 'Create Account' :
     panelView === 'journal' ? 'Tasting Journal' :
+    panelView === 'cellar' ? 'My Cellar' :
     'Your Table';
 
   // Filtered memberships for location switcher
@@ -1261,6 +1263,13 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             )}
 
             {/* ══════════════════════════════════════════════════════════════
+                PERSONAL CELLAR (stock spine step 4)
+            ══════════════════════════════════════════════════════════════ */}
+            {panelView === 'cellar' && (
+              <CellarView onBack={() => setPanelView('main')} />
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
                 LOCATION SWITCHER (4+ memberships)
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'location-switcher' && (
@@ -1332,6 +1341,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                 onClose={onClose}
                 onOpenJournal={() => setPanelView('journal')}
                 onOpenEvents={() => setPanelView('events')}
+                onOpenCellar={() => setPanelView('cellar')}
                 onOpenLocationSwitcher={() => setPanelView('location-switcher')}
                 onSignOut={handleSignOut}
               />

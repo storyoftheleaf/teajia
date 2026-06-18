@@ -4,4 +4,5 @@ export type PanelView =
   | 'events'
   | 'signin'
   | 'signup'
-  | 'journal';
+  | 'journal'
+  | 'cellar';

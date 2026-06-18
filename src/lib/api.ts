@@ -69,6 +69,29 @@ export interface PlatformStockRow {
   owner_email: string | null;
 }
 
+// Stock spine step 4 — one item in a user's personal cellar.
+export interface CellarItem {
+  id: string;
+  name: string;
+  type?: string | null;
+  year?: number | null;
+  origin?: string | null;
+  notes?: string | null;
+  grams: number;
+  imageUrl?: string | null;
+  placementStatus: 'private' | 'requested' | 'placed';
+  placementAccountId?: string | null;
+  linkedProductId?: string | null;
+  shelfPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CellarPlacementRequest extends CellarItem {
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+}
+
 export interface PurchaseOrder {
   id: string;
   account_id: string;
@@ -2739,6 +2762,40 @@ export const api = {
     }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/samples`, { headers: authHeaders() });
       return handleResponse(res);
+    },
+  },
+
+  // Stock spine step 4 — the personal cellar: location-less, person-owned stock.
+  cellar: {
+    list: async (): Promise<{ items: CellarItem[] }> => {
+      return authedFetch(`${API_URL}/api/me/cellar`);
+    },
+    create: async (data: Partial<CellarItem> & { name: string }): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar`, { method: 'POST', body: JSON.stringify(data) });
+    },
+    update: async (id: string, data: Partial<CellarItem>): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    remove: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}`, { method: 'DELETE' });
+    },
+    requestPlacement: async (id: string, accountId: string): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/request-placement`, {
+        method: 'POST', body: JSON.stringify({ account_id: accountId }),
+      });
+    },
+    cancelPlacement: async (id: string): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/cancel-placement`, { method: 'POST' });
+    },
+    // Location-owner side — review and decide placement requests.
+    listPlacements: async (): Promise<{ requests: CellarPlacementRequest[] }> => {
+      return authedFetch(`${API_URL}/api/cellar-placements`);
+    },
+    approvePlacement: async (id: string): Promise<{ ok: boolean; product_id: string }> => {
+      return authedFetch(`${API_URL}/api/cellar-placements/${id}/approve`, { method: 'POST' });
+    },
+    declinePlacement: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/cellar-placements/${id}/decline`, { method: 'POST' });
     },
   },
 
