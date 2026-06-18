@@ -13,7 +13,7 @@ import {
 const moreLinks = [
   { to: '/read/rock-remembers', kicker: 'Conversation · N°02', title: 'The Rock Remembers', blurb: 'A Wuyi rock-tea roaster on fire, patience & lineage.' },
   { to: '/read/before-the-mist', kicker: 'Field Notes · N°04', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };

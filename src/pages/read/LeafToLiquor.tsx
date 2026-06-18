@@ -1,5 +1,5 @@
 /**
- * From Leaf to Liquor — The Craft of Tea, N°01
+ * From Leaf to Liquor — The Art of Tea, N°01
  * A tea-education explainer in five switchable directions:
  *   I  Manuscript — classical, narrow column, drop caps, marginalia
  *   II Gallery     — expressive, full-bleed plates, big asymmetric type
@@ -47,7 +47,7 @@ const Manuscript: React.FC = () => (
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 18%, rgba(168,135,77,0.13) 0%, transparent 62%), radial-gradient(ellipse 60% 50% at 50% 100%, rgba(168,135,77,0.06) 0%, transparent 60%)' }} />
       <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(58vw,560px)', lineHeight: 1, color: 'rgba(168,135,77,0.05)', pointerEvents: 'none', userSelect: 'none' }}>茶</div>
       <div style={{ position: 'relative', maxWidth: 760 }}>
-        <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Craft of Tea &nbsp;·&nbsp; N°01</div>
+        <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Art of Tea &nbsp;·&nbsp; N°01</div>
         <h1 style={{ fontFamily: F.display, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(52px,10vw,116px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>From Leaf<br />to Liquor</h1>
         <div aria-hidden="true" style={{ width: 54, height: 1, background: C.gold, opacity: 0.6, margin: '34px auto' }} />
         <p style={{ fontFamily: F.body, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(17px,2.4vw,22px)', lineHeight: 1.5, color: C.taupe, margin: '0 auto', maxWidth: 520 }}>
@@ -174,7 +174,7 @@ const Manuscript: React.FC = () => (
         <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(22px,3.4vw,30px)', lineHeight: 1.4, color: C.ink, margin: 0 }}>
           From a single shrub on a single hillside, six families of tea — and within them, ten thousand cups. To learn tea is to learn where to stop. The rest, the leaf will teach you.
         </p>
-        <div style={{ marginTop: 44, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia<br />The Craft of Tea &nbsp;·&nbsp; N°01</div>
+        <div style={{ marginTop: 44, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia<br />The Art of Tea &nbsp;·&nbsp; N°01</div>
       </section>
     </div>
   </article>
@@ -200,7 +200,7 @@ const Gallery: React.FC = () => (
     <header style={{ position: 'relative', minHeight: '96vh', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,400px),1fr))', alignItems: 'stretch', overflow: 'hidden', borderBottom: '1px solid rgba(168,135,77,0.14)' }}>
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 'clamp(28px,5vw,72px)', gap: 0 }}>
         <div style={{ fontFamily: F.mono, fontSize: 'clamp(60px,9vw,130px)', fontWeight: 400, lineHeight: 0.9, color: 'rgba(168,135,77,0.34)', letterSpacing: '-0.02em' }}>N°01</div>
-        <div style={{ fontFamily: F.ui, fontSize: 11, fontWeight: 500, letterSpacing: '0.3em', textTransform: 'uppercase', color: C.gold, margin: '18px 0 22px' }}>The Craft of Tea</div>
+        <div style={{ fontFamily: F.ui, fontSize: 11, fontWeight: 500, letterSpacing: '0.3em', textTransform: 'uppercase', color: C.gold, margin: '18px 0 22px' }}>The Art of Tea</div>
         <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(50px,8.2vw,108px)', lineHeight: 0.93, letterSpacing: '-0.02em', color: C.cream, margin: 0 }}>From Leaf<br /><span style={{ fontStyle: 'italic', fontWeight: 400, color: C.gold }}>to Liquor</span></h1>
         <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,1.9vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>How a single leaf becomes the six colours of tea — and why the whole craft turns on knowing when to stop.</p>
       </div>
@@ -309,7 +309,7 @@ const Gallery: React.FC = () => (
     <section data-reveal style={{ padding: 'clamp(60px,9vw,120px) clamp(24px,6vw,96px) clamp(80px,11vw,150px)', textAlign: 'center', borderTop: '1px solid rgba(168,135,77,0.12)' }}>
       <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 'clamp(44px,7vw,80px)', fontWeight: 200, color: C.gold, opacity: 0.6, lineHeight: 1, marginBottom: 30 }}>止</div>
       <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,4.5vw,52px)', lineHeight: 1.22, color: C.ink, margin: '0 auto', maxWidth: 900 }}>To learn tea is to learn where to stop. The rest, the leaf will teach you.</p>
-      <div style={{ marginTop: 44, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia &nbsp;·&nbsp; The Craft of Tea &nbsp;·&nbsp; N°01</div>
+      <div style={{ marginTop: 44, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia &nbsp;·&nbsp; The Art of Tea &nbsp;·&nbsp; N°01</div>
     </section>
   </article>
 );
@@ -330,7 +330,7 @@ const Folio: React.FC = () => (
     {/* TITLE PAGE */}
     <header style={{ padding: 'clamp(60px,10vw,128px) 0 clamp(40px,5vw,64px)', borderBottom: '1px solid rgba(168,135,77,0.2)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, fontFamily: F.mono, fontSize: 10.5, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, marginBottom: 'clamp(30px,5vw,56px)' }}>
-        <span style={{ color: C.gold }}>The Craft of Tea — N°01</span>
+        <span style={{ color: C.gold }}>The Art of Tea — N°01</span>
         <span>An illustrated explainer</span>
       </div>
       <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(44px,7.5vw,92px)', lineHeight: 1.0, letterSpacing: '-0.015em', color: C.cream, margin: 0, maxWidth: '13ch' }}>From Leaf to Liquor</h1>
@@ -436,7 +436,7 @@ const Folio: React.FC = () => (
     {/* CLOSING */}
     <section data-reveal style={{ padding: 'clamp(40px,6vw,64px) 0 clamp(80px,11vw,140px)', borderTop: '1px solid rgba(168,135,77,0.2)', marginTop: 'clamp(20px,4vw,40px)' }}>
       <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(22px,3.2vw,34px)', lineHeight: 1.3, color: C.ink, margin: '0 auto', maxWidth: 760, textAlign: 'center' }}>From a single shrub, six families of tea — and within them, ten thousand cups. To learn tea is to learn where to stop.</p>
-      <div style={{ marginTop: 40, textAlign: 'center', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>The Teajia Studio &nbsp;·&nbsp; The Craft of Tea &nbsp;·&nbsp; N°01</div>
+      <div style={{ marginTop: 40, textAlign: 'center', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>The Teajia Studio &nbsp;·&nbsp; The Art of Tea &nbsp;·&nbsp; N°01</div>
     </section>
   </article>
 );
@@ -560,7 +560,7 @@ const Thread: React.FC = () => {
       <section data-reveal style={{ position: 'relative', padding: 'clamp(30px,5vw,56px) 24px clamp(72px,10vw,130px)', textAlign: 'center' }}>
         <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 'clamp(40px,6vw,64px)', fontWeight: 200, color: C.gold, opacity: 0.65, lineHeight: 1, marginBottom: 26 }}>止</div>
         <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(22px,3.6vw,34px)', lineHeight: 1.32, color: C.ink, margin: '0 auto', maxWidth: 760 }}>To learn tea is to learn where to stop. The rest, the leaf will teach you.</p>
-        <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia &nbsp;·&nbsp; The Craft of Tea &nbsp;·&nbsp; N°01</div>
+        <div style={{ marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia &nbsp;·&nbsp; The Art of Tea &nbsp;·&nbsp; N°01</div>
       </section>
     </article>
   );
@@ -578,7 +578,7 @@ const Reverie: React.FC = () => (
     <section style={{ ...reverieSection, position: 'relative' }}>
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 45% at 50% 42%, rgba(168,135,77,0.1), transparent 65%)' }} />
       <div style={{ position: 'relative' }}>
-        <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.4em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Craft of Tea · N°01</div>
+        <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.4em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>The Art of Tea · N°01</div>
         <h1 style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(48px,9vw,104px)', lineHeight: 1.0, letterSpacing: '-0.01em', color: C.cream, margin: 0 }}>From Leaf<br />to Liquor</h1>
         <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(15px,2vw,19px)', color: C.taupe, margin: '28px auto 0', maxWidth: 380 }}>A slow read, one breath at a time.</p>
       </div>
@@ -642,7 +642,7 @@ const Reverie: React.FC = () => (
     <section style={{ ...reverieSection, paddingBottom: 70 }}>
       <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 'clamp(44px,7vw,72px)', fontWeight: 200, color: C.gold, opacity: 0.65, lineHeight: 1, marginBottom: 30 }}>止</div>
       <p style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(24px,4.4vw,46px)', lineHeight: 1.26, color: C.ink, margin: '0 auto', maxWidth: 780 }}>To learn tea is to learn where to stop. The rest, the leaf will teach you.</p>
-      <div style={{ marginTop: 42, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia &nbsp;·&nbsp; The Craft of Tea &nbsp;·&nbsp; N°01</div>
+      <div style={{ marginTop: 42, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>Words by Teajia &nbsp;·&nbsp; The Art of Tea &nbsp;·&nbsp; N°01</div>
     </section>
   </article>
 );
