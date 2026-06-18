@@ -48,7 +48,7 @@ import {
   VIEW_FILTER_LABELS,
   VIEW_ICON_MAP,
 } from './inventory/config';
-import type { InventoryCategory } from './inventory/types';
+import type { InventoryCategory, ColDef } from './inventory/types';
 import { isFeaturedButHidden } from './inventory/helpers';
 import { InventoryRow } from './inventory/InventoryRow';
 import { QuickEditInlineRow } from './inventory/QuickEditInlineRow';
@@ -508,14 +508,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     isEditMode,
   });
 
-  // On mobile, drop the Origin column so the narrower screen can show the
-  // numbers that matter (stock, price). Origin stays on desktop and in the
-  // saved-view config untouched — this is a render-time trim, not a view edit.
-  // Driving every render + keyboard-nav site off this keeps header, colgroup,
-  // and rows in lockstep so the table never desyncs its column count.
+  // Every visible column is rendered on every screen size. On mobile the table
+  // becomes horizontally swipeable (see `mobileHScroll` below) with the Product
+  // column pinned, so we no longer drop Origin/Type to fit — the user swipes to
+  // reach them instead. Keeping header, colgroup, and rows driven off one list
+  // keeps the table from ever desyncing its column count.
   const visibleCols = useMemo(
-    () => (isMobile ? allVisibleCols.filter(col => col.key !== 'originRegion') : allVisibleCols),
-    [isMobile, allVisibleCols],
+    () => allVisibleCols,
+    [allVisibleCols],
   );
 
   // Initialize review drafts when switching to Pending filter or when pending products change
@@ -559,19 +559,60 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return visibleCols.filter(col => essential.has(col.key));
   }, [visibleCols, inventoryCategory]);
 
-  // Mobile column trim — at the render layer only (never mutates the persisted
-  // inventoryColumns store). On phones the Type and Origin columns are dropped so
-  // Product / Year / Stock / Retail keep readable width; table-fixed lets the
-  // remaining columns absorb the freed space. Desktop keeps every column.
-  const MOBILE_HIDDEN_COLS = ['type', 'originRegion'];
+  // --- MOBILE HORIZONTAL SWIPE ---
+  // On a phone (no panel open) the table is too wide to fit, so instead of
+  // hiding columns we let it scroll sideways with the Product column pinned to
+  // the left. The user swipes left/right to bring Stock → Retail → Cost →
+  // Source into view while the tea's name stays put. Fixed px widths (below)
+  // make the table exceed the viewport so the surrounding overflow-auto
+  // container scrolls it; `table-fixed` honours the colgroup widths. When the
+  // edit panel is open it becomes a full-screen overlay on mobile, so this mode
+  // turns off and the compact split columns take over.
+  const mobileHScroll = isMobile && !splitView;
+
+  // Per-column pixel widths for the swipeable mobile table. Product is the
+  // pinned anchor; numeric columns stay tight; text columns get a little more.
+  const MOBILE_COL_PX: Record<string, number> = {
+    productName: 172,
+    type: 84,
+    year: 60,
+    originRegion: 124,
+    stockGrams: 72,
+    verified: 60,
+    costAmount: 76,
+    costPerGramUSD: 76,
+    pricePerGramUSD: 80,
+    teawareCategory: 124,
+    material: 124,
+    capacityMl: 84,
+    quantityUnits: 64,
+    vendor: 130,
+  };
+  const mobileColPxWidth = (key: string) => MOBILE_COL_PX[key] ?? 90;
+
+  // Mobile keeps every visible column (swipe to reach them); only the panel's
+  // compact split view still trims down, since it shares the screen on desktop.
   const renderCols = useMemo(
-    () => (isMobile ? visibleCols.filter(col => !MOBILE_HIDDEN_COLS.includes(col.key)) : visibleCols),
-    [isMobile, visibleCols],
+    () => (isMobile && splitView ? splitViewCols : visibleCols),
+    [isMobile, splitView, splitViewCols, visibleCols],
   );
   const renderSplitCols = useMemo(
-    () => (isMobile ? splitViewCols.filter(col => !MOBILE_HIDDEN_COLS.includes(col.key)) : splitViewCols),
-    [isMobile, splitViewCols],
+    () => splitViewCols,
+    [splitViewCols],
   );
+
+  // Total width the swipeable table needs so it overflows the viewport. Driving
+  // both the table's minWidth and the colgroup off the same map keeps the three
+  // table render paths (grouped header, grouped body, flat) in lockstep.
+  const mobileTableMinWidth = useMemo(
+    () => renderCols.reduce((sum, c) => sum + mobileColPxWidth(c.key), 0),
+    [renderCols],
+  );
+  const mobileTableStyle = mobileHScroll ? { minWidth: mobileTableMinWidth } : undefined;
+  const renderColEl = (col: ColDef) =>
+    mobileHScroll
+      ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
+      : <col key={col.key} className={col.defaultWidth} />;
 
   const splitColWidth = (key: string): string => {
     if (key === 'productName') return '';
@@ -1079,16 +1120,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const RIGHT_ALIGN_KEYS = new Set([
     'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'capacityMl', 'quantityUnits',
   ]);
-  const SortHeader = ({ colKey, label, align: alignProp }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center' }) => {
+  const SortHeader = ({ colKey, label, align: alignProp, sticky }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center', sticky?: boolean }) => {
       const align: 'left' | 'right' | 'center' = alignProp ?? (RIGHT_ALIGN_KEYS.has(colKey as string) ? 'right' : 'left');
       const sortIndex = inventorySortConfig.findIndex(s => s.key === colKey);
       const sortEntry = sortIndex >= 0 ? inventorySortConfig[sortIndex] : null;
       const showBadge = inventorySortConfig.length > 1 && sortEntry;
       const ariaSort = sortEntry ? (sortEntry.direction === 'asc' ? 'ascending' : 'descending') : 'none';
+      // The pinned Product header sits at the cross of the two sticky axes
+      // (top from the sticky thead, left from this), so it needs a solid bg and
+      // a z above its sibling header cells, plus the same right-edge shadow the
+      // body cells use to signal there's more to swipe to.
+      const stickyCls = sticky
+        ? 'sticky left-0 z-[21] bg-tea-bg shadow-[6px_0_8px_-6px_rgba(0,0,0,0.45)]'
+        : '';
       return (
         <th
           aria-sort={ariaSort}
-          className={`font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}`}
+          className={`font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
         >
           <button
             type="button"
@@ -2473,18 +2521,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           )}
 
+          {/* On mobile the table is wider than the screen so this wrapper scrolls
+              it sideways (the Product column is pinned via `sticky left-0` on its
+              cells, which reference THIS scroll box). It lives inside the card so
+              the card chrome and the top/bottom strips stay full-width. On
+              desktop it is an inert pass-through div. */}
+          <div className={mobileHScroll ? 'overflow-x-auto overscroll-x-contain custom-scrollbar' : ''}>
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className="w-full table-fixed border-collapse">
+              <table className="w-full table-fixed border-collapse" style={mobileTableStyle}>
                 <colgroup>
-                  {renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)}
+                  {renderCols.map(renderColEl)}
                 </colgroup>
                 <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
-                    {renderCols.map(col => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
+                    {renderCols.map((col, i) => (
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} />
                     ))}
                   </tr>
                 </thead>
@@ -2501,7 +2555,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
                         return next;
                       })}
-                      className="w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
+                      className={`w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left ${mobileHScroll ? 'sticky left-0' : ''}`}
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
                       <span className="font-display text-ui-15 text-tea-text">{groupKey}</span>
@@ -2510,12 +2564,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className="w-full table-fixed border-collapse">
+                      <table className="w-full table-fixed border-collapse" style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                           ) : (
-                            renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)
+                            renderCols.map(renderColEl)
                           )}
                         </colgroup>
                         <tbody>
@@ -2532,6 +2586,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   visibleCols={renderCols}
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
+                                  stickyFirstCol={mobileHScroll}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
                                   isDropdownOpen={rowDropdownId === product.id}
@@ -2573,12 +2628,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className="w-full table-fixed border-collapse">
+            <table className="w-full table-fixed border-collapse" style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
                     ) : (
-                      renderCols.map(col => <col key={col.key} className={col.defaultWidth} />)
+                      renderCols.map(renderColEl)
                     )}
                 </colgroup>
 
@@ -2590,8 +2645,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
                           ))
                         ) : (
-                          renderCols.map(col => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} />
+                          renderCols.map((col, i) => (
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} />
                           ))
                         )}
                     </tr>
@@ -2611,6 +2666,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               visibleCols={renderCols}
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
+                              stickyFirstCol={mobileHScroll}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
                               isDropdownOpen={rowDropdownId === product.id}
@@ -2646,6 +2702,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </tbody>
             </table>
           )}
+          </div>
 
           {/* Canonical bottom strip — counter + (placeholder for) load-more. The data
               source is already virtualized, so we simply restate the total. */}
