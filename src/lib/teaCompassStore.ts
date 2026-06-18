@@ -72,7 +72,7 @@ interface TeaCompassState {
 
 /** An entry has meaningful content if it has a name, photo, notes, or real tasting data.
  *  Selecting a type, status, or vendor alone does NOT count — those are too easy to tap accidentally. */
-function entryHasContent(entry: TeaCompassEntry): boolean {
+export function entryHasContent(entry: TeaCompassEntry): boolean {
   return (
     entry.name.trim().length > 0 ||
     entry.photos.length > 0 ||
