@@ -8,10 +8,11 @@
  *   V  Reverie     — cinematic full-screen sections that snap, one idea per screen
  * Ported pixel-faithfully from the tea-article-redesign mockup.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
-  C, F, ImmersiveRoot, ProgressTrack, AccentSwatches,
+  C, F, ImmersiveRoot, ProgressTrack,
   useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
@@ -659,9 +660,13 @@ function hexA(hex: string, a: number): string {
 //  SHELL — tab switcher + scroll behaviour
 // ════════════════════════════════════════════════════════════════════════════
 const LeafToLiquor: React.FC = () => {
-  const [accent, setAccent] = useState<string>(ACCENTS[0]);
-  const [active, setActive] = useState<Direction>('manuscript');
-  useImmersiveChrome(accent);
+  // Each "direction" is a distinct template for the same piece. The template is
+  // chosen by the URL (/read/leaf-to-liquor/<template>), so each one is its own
+  // article-link in the Read index — no in-page mode switcher. Default: manuscript.
+  const { template } = useParams<{ template?: string }>();
+  const active: Direction =
+    DIRECTIONS.some((d) => d.key === template) ? (template as Direction) : 'manuscript';
+  useImmersiveChrome(ACCENTS[0]);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const progress = useReadingProgress();
 
@@ -717,30 +722,15 @@ const LeafToLiquor: React.FC = () => {
 
       {/* NAV with direction switcher */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px clamp(18px,4vw,40px)', background: 'rgba(20,16,11,0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(168,135,77,0.12)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
-          <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 19, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>Teajia</span>
-          <span style={{ fontFamily: F.mono, fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>/ Read</span>
-        </div>
-        <div className="tj-tabs" style={{ display: 'flex', alignItems: 'stretch', gap: 'clamp(10px,1.7vw,22px)', flex: '1 1 auto', minWidth: 0, justifyContent: 'flex-end', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-          {DIRECTIONS.map((d) => {
-            const on = active === d.key;
-            return (
-              <button
-                key={d.key}
-                onClick={() => setActive(d.key)}
-                className="tj-tab"
-                style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 1px', flex: '0 0 auto', fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: on ? C.ink : C.taupe, whiteSpace: 'nowrap', transition: 'color 240ms' }}
-              >
-                <span style={{ opacity: 0.55, fontFamily: F.mono, marginRight: 6 }}>{d.numeral}</span>{d.label}
-                {on && <div style={{ position: 'absolute', left: 0, right: 0, bottom: -13, height: 2, background: C.gold }} />}
-              </button>
-            );
-          })}
-        </div>
+        <a href="/read" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', color: 'inherit', minWidth: 0 }}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>Teajia</span>
+        </a>
+        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
+          From Leaf to Liquor · {DIRECTIONS.find((d) => d.key === active)?.label}
+        </span>
         <ProgressTrack progress={progress} />
       </nav>
-
-      <AccentSwatches accent={accent} setAccent={setAccent} />
 
       {active === 'manuscript' && <Manuscript />}
       {active === 'gallery' && <Gallery />}
