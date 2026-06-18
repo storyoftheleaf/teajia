@@ -1,4 +1,4 @@
--- Migration 092: Personal cellar — location-less, person-owned stock (stock spine step 4)
+-- Migration 093: Personal cellar — location-less, person-owned stock (stock spine step 4)
 --
 -- A personal collection is the SAME person-owned stock as everything else, just
 -- placed at NO location (docs/MULTI_STORE_PLAN.md, todo/plans/stock-spine.md).

@@ -1,4 +1,4 @@
--- Migration 093: Standalone public shelf (stock spine step 5)
+-- Migration 094: Standalone public shelf (stock spine step 5)
 --
 -- The top of the spine: a person NOT on any location's team makes their own
 -- personal cellar (step 4) public at their own link (/u/<slug>), with Adrian's

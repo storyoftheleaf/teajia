@@ -155,7 +155,7 @@
 
 Build in order; each step sits on the one before it. The whole model is specced in [docs/MULTI_STORE_PLAN.md](docs/MULTI_STORE_PLAN.md) (the "Movement / Locations / Sellers / Personal Collections" section). The locations layer and Adrian-as-master switching already work.
 
-**All five steps shipped.** Steps 2–5 landed on branch `claude/affectionate-clarke-mpx6t8` (migrations 091–093); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record.
+**All five steps shipped.** Steps 2–5 landed on branch `claude/affectionate-clarke-mpx6t8` (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record.
 
 - [x] **1. Give every piece of stock an owner** — record which person a stock row belongs to, defaulting to the location itself so nothing changes on screen yet _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
   The foundation the other three sit on. Today a tea belongs to a location but not to a person; this makes "whose tea is this" a real fact on every row. Done when every stock row carries an owner and existing teas all read as owned by their location with no visible change.

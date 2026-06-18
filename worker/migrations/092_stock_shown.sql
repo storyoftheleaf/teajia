@@ -1,4 +1,4 @@
--- Migration 091: Stock shown-in-shop switch (stock spine step 2)
+-- Migration 092: Stock shown-in-shop switch (stock spine step 2)
 --
 -- Step 1 (migration 090) recorded WHOSE tea each row is (owner_user_id).
 -- Step 2 splits "stock exists" from "stock is shown": the location owner — not
