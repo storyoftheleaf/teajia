@@ -215,7 +215,7 @@ export function selectActiveDraftProduct(
   return state.draftProductByAccountId[state.activeAccountId] ?? null;
 }
 
-const DEFAULT_INVENTORY_COLUMNS = ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'];
+const DEFAULT_INVENTORY_COLUMNS = ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD', 'vendor', 'form'];
 const DEFAULT_INVENTORY_SORT_CONFIG = [{ key: 'type', direction: 'asc' as const }];
 
 const scopedStateReset = () => ({
@@ -650,10 +650,16 @@ export const useAppStore = create<AppState>()(
         cartLastAddedAt: state.cartLastAddedAt,
       }),
       // v1: introduced `draftProductByAccountId` (was `draftProduct`).
-      // Lift any existing single-slot draft into the active account's slot
-      // so operators don't lose work on the rollout. One-shot migration only
-      // — no ongoing back-compat.
-      version: 1,
+      //     Lift any existing single-slot draft into the active account's slot
+      //     so operators don't lose work on the rollout.
+      // v2: the Source (vendor) and Leaf (form) inventory columns were added to
+      //     the column set. They never existed before, so a persisted column
+      //     list / saved view from v1 simply omits them and they can never
+      //     render. Append them (never reorder or remove) to any persisted
+      //     `inventoryColumns` and to each saved view's `columns` so a returning
+      //     operator's stored layout picks up the new columns without losing any
+      //     deliberate customization.
+      version: 2,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState as AppState;
         if (version < 1) {
@@ -669,6 +675,29 @@ export const useAppStore = create<AppState>()(
           }
           delete prev.draftProduct;
           prev.draftProductByAccountId = byAccount;
+        }
+        if (version < 2) {
+          const prev = persistedState as Record<string, unknown> & {
+            inventoryColumns?: string[];
+            savedViews?: InventoryViewConfig[];
+          };
+          const ADDED = ['vendor', 'form'];
+          const withAdded = (cols: string[] | undefined): string[] => {
+            const base = Array.isArray(cols) ? [...cols] : [...DEFAULT_INVENTORY_COLUMNS];
+            for (const key of ADDED) if (!base.includes(key)) base.push(key);
+            return base;
+          };
+          prev.inventoryColumns = withAdded(prev.inventoryColumns);
+          if (Array.isArray(prev.savedViews)) {
+            // Only the tea "All" view should gain the new columns automatically;
+            // teaware and the filtered tea views (Selling, Alerts, etc.) keep
+            // their intentionally narrower sets.
+            prev.savedViews = prev.savedViews.map((v) =>
+              v.filterType === 'All' && !v.id.includes('teaware')
+                ? { ...v, columns: withAdded(v.columns) }
+                : v
+            );
+          }
         }
         return persistedState as AppState;
       },

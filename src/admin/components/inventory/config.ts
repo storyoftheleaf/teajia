@@ -85,7 +85,7 @@ export const DEFAULT_TEA_VIEWS: InventoryViewConfig[] = [
     id: 'default-all',
     name: 'All',
     icon: null,
-    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD', 'vendor', 'form'],
     sortConfig: [{ key: 'type', direction: 'asc' }],
     filterType: 'All',
     groupBy: null,
