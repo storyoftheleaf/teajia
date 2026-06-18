@@ -71,13 +71,18 @@ interface TeaCompassState {
   getSessionEntries: () => TeaCompassEntry[];
 }
 
-/** An entry has meaningful content if it has a name, photo, notes, or real tasting data.
- *  Selecting a type, status, or vendor alone does NOT count — those are too easy to tap accidentally. */
+/** An entry has meaningful content if it has a name, photo, notes, real tasting
+ *  data, or a linked source (shop). Selecting a type or status alone does NOT
+ *  count — those are too easy to tap accidentally. A vendor link IS a deliberate
+ *  action (you searched and matched a shop), and "photo + source is enough" is
+ *  the promised saveable minimum the capture card shows, so it counts here too. */
 export function entryHasContent(entry: TeaCompassEntry): boolean {
   if (
     entry.name.trim().length > 0 ||
     entry.photos.length > 0 ||
     entry.notes.trim().length > 0 ||
+    !!entry.vendorName?.trim() ||
+    !!entry.vendorId ||
     (entry.tasting != null &&
       Object.values(entry.tasting).some((v) =>
         Array.isArray(v) ? v.length > 0 : v != null

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Leaf, X } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
+import { entryHasContent } from '../../lib/teaCompassStore';
 import type { TeaCompassEntry } from './types';
 
 interface SessionStackProps {
@@ -9,16 +10,6 @@ interface SessionStackProps {
   activeEntryId: string | null;
   onSelectEntry: (id: string) => void;
   onDiscardEntry: (id: string) => void;
-}
-
-function entryHasContent(e: TeaCompassEntry): boolean {
-  return (
-    e.name.trim().length > 0 ||
-    e.photos.length > 0 ||
-    e.notes.trim().length > 0 ||
-    (e.tasting != null &&
-      Object.values(e.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null))
-  );
 }
 
 export const SessionStack: React.FC<SessionStackProps> = ({
