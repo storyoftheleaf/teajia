@@ -694,7 +694,24 @@ const AppContent = () => {
   // their own sticky nav, reading-progress bar and accent control. They must
   // escape the app's content padding and the floating bottom tab bar (which
   // would otherwise overlap the bottom-right accent swatches).
-  const isImmersiveRead = location.pathname === '/read' || location.pathname.startsWith('/read/');
+  //
+  // The DB-driven immersive reader at /article/:slug (chosen by the article's
+  // layout_template) is the same kind of full-bleed read, so it must escape the
+  // same chrome. We read the article from the shared react-query cache (same key
+  // ArticleRouteSwitch uses, so no extra fetch) and subscribe via useQuery so the
+  // flag flips the moment the article resolves to immersive.
+  const articleSlugMatch = location.pathname.match(/^\/article\/([^/]+)/);
+  const articleSlug = articleSlugMatch?.[1];
+  const { data: routeArticle } = useQuery<DbArticle>({
+    queryKey: ['article', articleSlug],
+    queryFn: () => api.articles.getBySlug(articleSlug as string),
+    enabled: !!articleSlug,
+  });
+  const isImmersiveArticle = !!routeArticle && getArticleRenderMode(routeArticle) === 'immersive_scroll';
+  const isImmersiveRead =
+    location.pathname === '/read' ||
+    location.pathname.startsWith('/read/') ||
+    isImmersiveArticle;
 
   // LeftSidebar only mounts on admin routes now, so its useEffect that sets
   // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so

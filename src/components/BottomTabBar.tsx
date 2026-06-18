@@ -199,6 +199,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   return (
       <nav
         aria-label="Main navigation"
+        data-testid="bottom-tab-bar"
         onContextMenu={(e) => e.preventDefault()}
         className={`fixed z-nav flex transition-transform duration-200 select-none overflow-hidden left-4 right-4 lg:left-1/2 lg:right-auto lg:w-[min(760px,calc(100vw-64px))] lg:-translate-x-1/2 animate-[slideUp_0.4s_ease-out] lg:animate-none ${
           isOnAdmin ? 'lg:hidden' : ''
