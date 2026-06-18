@@ -12,6 +12,16 @@ Everything is **one stock spine**: every piece of tea is a row owned by a person
 
 **Load-bearing rules (do not break):** one order belongs to one location that fills it (no cross-location fulfillment until built as its own project); the movement holds no stock and no storefront; stock-exists and stock-shown are separate switches; private by default; cross-border shipping and per-seller payouts are explicitly deferred.
 
+**Stock is owned by a PERSON; a location is a movable attachment.** This is the clarifying decision (2026-06-18) that resolves the storage question. A person's stock travels with them: a tea master who moves location carries their teas, and moving location moves the stock. "Show my catalog at location X" (e.g. a Bali tea master requesting their teas appear at a future USA location) is always a **curated, human-approved request — never automatic, never a silent copy.** So `owner_user_id` (step 1) is the anchor; the location attachment (`account_id`) is what changes. Personal collection vs shop tea is NOT two stores — it is one person-owned stock that is sometimes placed at a location (and shown there only if the owner curates it) and sometimes placed nowhere (private). One spine, person-anchored.
+
+---
+
+## Decisions locked (2026-06-18) — build to these, do not re-ask
+
+1. **New seller stock starts HIDDEN.** When a team member who is not the location owner adds their own tea, it is invisible in that location's shop until the owner explicitly shows it. Hidden-by-default is the literal meaning of "the owner curates what shows." (Affects step 2 — the seller-added default is 0/held; pre-existing rows stay visible so nothing changes today.)
+2. **Stock is person-owned, location is a movable attachment** (see the load-bearing rule just above). Relocating a person moves their stock; placing a catalog at a new location is a curated, approved request, never automated. This decides the step-4 storage question at the MODEL level (one person-anchored spine, not two stores). The build session still SURVEYS the code to find the safe *implementation* of movable/location-less stock — but does not reopen the model.
+3. **Standalone shelf is shelf-first, profile-later.** Step 5 ships a clean shelf at the seller's own link with a direct WhatsApp order and nothing else. A bio/profile is a later polish, not part of the first build.
+
 ---
 
 ## What step 1 already gave you (the foundation)
@@ -31,7 +41,7 @@ So: "whose tea is this" is now a real fact on every row. Steps 2–5 read and ac
 **Goal:** several people can hold their own tea in one location; the location owner chooses which of it appears in that location's shop. Being in stock and being shown become two separate switches.
 
 **Build:**
-1. New migration: add a per-row show/hide flag that the **location owner** controls, distinct from the existing `is_public`. Suggest `owner_approved INTEGER` (or `shown_in_shop`) on `product_listings` — default so existing rows stay visible (1), so no current shop changes. A seller's freshly-added row could default to 0 (held until the owner approves) — decide and document.
+1. New migration: add a per-row show/hide flag that the **location owner** controls, distinct from the existing `is_public`. Suggest `owner_approved INTEGER` (or `shown_in_shop`) on `product_listings`. **LOCKED:** existing rows default to 1 (visible — nothing changes in the shop today), but a row added by a seller who is NOT the location owner defaults to 0 (held until the owner approves). Set this from the creating user's role at insert time: owner/manager → 1, staff seller → 0.
 2. Worker: gate the public storefront query (`fetchPublicProductsForAccount` in `worker/src/index.ts`, the `WHERE is_public = 1 AND status = 'Active' AND account_id = ?` clause) to ALSO require the owner-approved switch. A seller's own row that the owner hasn't shown must not appear.
 3. Admin: in `InventoryView.tsx`, let the operator filter/group stock by owner (using `owner_user_id` from step 1) and toggle each row's show/hide. Reuse the existing in-shop Eye toggle pattern (`ProductEditPanel.tsx` ~line 1283) — this is a sibling switch, not a replacement.
 4. Permissions: only `owner`/`manager` of the location may flip the show/hide. A `staff` seller can add their own stock but not self-approve into the shop.
@@ -63,13 +73,13 @@ So: "whose tea is this" is now a real fact on every row. Steps 2–5 read and ac
 
 **Current state (verified):** users can favorite shop products (`favoriteTeas`, localStorage-only) and journal tastings (`customer_tasting_journal`, server-synced). Neither records **owned stock with a quantity**. There is no personal-inventory primitive today.
 
+**MODEL LOCKED (do not reopen):** a personal collection is the SAME person-owned stock as everything else, just placed at no location. Stock is anchored to `owner_user_id` (step 1); `account_id` is a movable attachment. So this is **one spine** — option (a), not a separate store. A person's stock travels with them: change their location and their placed stock moves; "show my catalog at location X" is a curated, approved request, never automatic. What the build session decides is only the SAFE IMPLEMENTATION of location-less / movable stock, not whether to use one store.
+
 **Build:**
-1. Decide the storage shape. Two honest options — pick and document:
-   - **(a) Reuse the spine:** a personal collection is `product_listings`-style rows with `owner_user_id` = the user, no `account_id` (or a sentinel personal scope), private flag on, not for sale. Maximises "one spine" but means the listings/products tables must tolerate location-less rows — check every query that assumes `account_id NOT NULL`.
-   - **(b) A dedicated `personal_inventory` table** owned by `user_id` that can later be "promoted" into a location listing. Cleaner isolation, but a second store to bridge in step 5.
-   - Recommendation leans (a) to honour "one spine", but (b) may be safer given how many queries assume account-scoped products. Survey before committing.
+1. Implement person-owned, location-less stock on the one spine: rows with `owner_user_id` = the user and NO `account_id` (or a clearly-named personal sentinel), private, not for sale. **The real work is the survey:** find every query/handler that assumes `account_id NOT NULL` (the worker scopes nearly everything by account) and make location-less personal rows safe — they must never leak into a location's shop, storefront, or master view. List the touch points before writing the migration. If the survey proves location-less rows are genuinely unsafe to slot into `products`/`product_listings` without broad risk, a thin dedicated table is an acceptable FALLBACK — but it must keep `owner_user_id` as the anchor and support being placed at a location later (the move), so the model still holds. Flag to Adrian if you take the fallback.
 2. Customer UI: in `AccountPanel`, a "my collection" surface where a user adds tea they own with a quantity (grams), kept private, synced to their account (not localStorage — favorites' localStorage-only limitation is a known gap).
-3. Private by default: nothing here appears in any shop or any location until step 5's permission flips it.
+3. Private by default: nothing here appears in any shop or any location until it is placed at a location (the move, owner-curated) or published via step 5.
+4. Support the MOVE: a person's placed stock can be re-attached to a different location (relocating the tea master), and a curated request to place their catalog at a new location. The move is human-approved, never automatic — design the placement as a request the receiving location's owner (or Adrian) approves, not a silent write.
 
 **Done when:** a logged-in user can add tea they own with a quantity, kept private and synced to their account, visible to no one else.
 
@@ -83,7 +93,7 @@ So: "whose tea is this" is now a real fact on every row. Steps 2–5 read and ac
 
 **Build:**
 1. Permission: a platform-owner-granted flag that lets a specific user publish their personal collection (from step 4) as a public page. Private-by-default still holds — public requires this grant.
-2. A public route + page rendering that user's shown personal-collection items. Model it on the existing per-location storefront (`/store/:slug`, `Storefront.tsx`) but scoped to a user, not an account.
+2. A public route + page rendering that user's shown personal-collection items. Model it on the existing per-location storefront (`/store/:slug`, `Storefront.tsx`) but scoped to a user, not an account. **LOCKED: shelf-first.** Ship a clean shelf at the seller's own link (`/t/<slug>` is the working default — confirm the slug doesn't collide with existing routes) showing their tea + a direct order, and NOTHING else. A bio/profile is a deliberate later polish, not part of this build — do not add it.
 3. Checkout = the same WhatsApp direct-order model every Teajia order uses. The buyer deals with the seller directly. **Teajia does not take the order or hold the money** — no platform checkout, no payout, no split. This is the rule that keeps it out of marketplace territory.
 4. The seller fulfills and is paid themselves. No location owner stands behind the order, by design.
 
@@ -101,8 +111,11 @@ So: "whose tea is this" is now a real fact on every row. Steps 2–5 read and ac
 - Every new migration is the single source of its columns — never edit an applied migration to add a column (see the step-1 discipline note above).
 - When a step ships, move its TODO line to `todo/archive.md` and update this file's status.
 
-## Open decisions a builder will hit (flag to Adrian, don't guess)
+## Decisions — all resolved (2026-06-18), see "Decisions locked" near the top
 
-- **Step 2:** does a seller's freshly-added stock default to hidden (owner must approve) or visible (owner must hide)? Hidden-by-default is safer for "owner curates" but adds friction.
-- **Step 4:** storage shape (a) reuse the spine vs (b) dedicated table — survey the account-scoping assumptions before deciding.
-- **Step 5:** what the public slug looks like (`/t/<name>`?) and whether a standalone seller needs any profile page beyond the shelf.
+The three forks a builder would have hit are answered. Do not re-ask:
+- **Step 2 default:** seller-added stock starts HIDDEN; owner/manager-added starts visible. (Set from creating role at insert.)
+- **Step 4 storage:** ONE spine, person-anchored, location is movable. Survey for the safe implementation only; dedicated table is a fallback that must keep `owner_user_id` as anchor.
+- **Step 5 page:** shelf-first at `/t/<slug>` (confirm no route collision); profile is later polish, out of scope.
+
+The only thing left to a builder's judgement is the SAFE IMPLEMENTATION of location-less/movable stock in step 4 (survey the `account_id NOT NULL` assumptions) — and that is an evidence call, not a model call. If the survey forces the fallback table, flag it to Adrian.
