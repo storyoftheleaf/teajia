@@ -1,5 +1,15 @@
 # Stock spine — handoff for steps 2–5
 
+> **STATUS (2026-06-18): ALL STEPS SHIPPED.** Step 1 shipped earlier (branch `feat/stock-spine-step1-ownership`, commit `7fc398d3`, migration 090). Steps 2–5 shipped on branch `claude/affectionate-clarke-mpx6t8`:
+> - **Step 2** — migration `091_stock_shown.sql`; `shown_in_shop` curation gate, owner-tier `PUT /api/products/:id/shown`, public storefront gated, `ProductEditPanel` "Shown/Held" pill + inventory group-by-owner.
+> - **Step 3** — `GET /api/platform/all-stock` (platform-tier, cross-account), `MovementStockView` at `/admin/platform/all-stock`.
+> - **Step 4** — migration `092_personal_cellar.sql` (**dedicated-table fallback taken** — flagged below); `/api/me/cellar` CRUD + placement request/approve (the move); AccountPanel "My Cellar" sub-view.
+> - **Step 5** — migration `093_personal_shelf.sql`; public shelf at **`/u/:slug`** (NOT `/t/<slug>` — that collides with the existing `/t/:token` TableCardPage); platform-owner grant, `GET /api/shelf/:slug` public, `ShelfPage` + WhatsApp direct order.
+>
+> **Builder's-judgement calls made (both pre-authorized by this doc):** (1) step-4 storage took the dedicated-table fallback because ~310 worker queries filter `account_id = ?` and a NULL-account `products` row risks leaking — `personal_cellar_items` keeps `owner_user_id` as the anchor and supports placement, so the one-spine model still holds. (2) step-5 route is `/u/:slug`, not the doc's `/t/<slug>` (route collision).
+>
+> Migrations 091–093 are NOT yet applied to prod D1 — apply on deploy. Per-step the Playwright mobile suite could not run in the build environment (no browser binary); verified via `tsc` (root + worker), `lint:colors`, and a production build instead.
+
 This is the build plan for the Teajia movement/locations/sellers/collections model. **Step 1 is shipped** (branch `feat/stock-spine-step1-ownership`, commit `7fc398d3`); steps 2–5 are queued here in order. Each step sits on the one before it — do not reorder.
 
 The full conceptual spec lives in [docs/MULTI_STORE_PLAN.md](../../docs/MULTI_STORE_PLAN.md), sections "Movement / Locations / Sellers / Personal Collections" and "The standalone seller — a public personal shelf". **Read that first.** This file is the execution plan; that doc is the why.
