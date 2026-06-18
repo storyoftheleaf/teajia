@@ -269,48 +269,12 @@ export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
   </div>
 );
 
-// ─── Accent tweak control ────────────────────────────────────────────────────
-// A small, self-explanatory swatch row pinned bottom-right. Lets the reader
-// shift the accent (gold / copper / jade / claret) — the design's "tweak".
-export const AccentSwatches: React.FC<{ accent: string; setAccent: (a: string) => void }> = ({ accent, setAccent }) => (
-  <div
-    style={{
-      position: 'fixed',
-      right: 'clamp(14px,3vw,22px)',
-      // Sit above the floating bottom tab bar (now kept visible on Read pages)
-      // so the accent swatches never collide with it.
-      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)',
-      zIndex: 30,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      padding: '8px 10px',
-      borderRadius: 999,
-      background: 'rgba(20,16,11,0.78)',
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      border: '1px solid rgba(168,135,77,0.18)',
-    }}
-  >
-    {ACCENTS.map((a) => (
-      <button
-        key={a}
-        onClick={() => setAccent(a)}
-        aria-label={`Accent ${a}`}
-        style={{
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          background: a,
-          cursor: 'pointer',
-          border: accent === a ? '1px solid #f3ead9' : '1px solid rgba(243,234,217,0.25)',
-          boxShadow: accent === a ? '0 0 0 2px rgba(243,234,217,0.15)' : 'none',
-          padding: 0,
-        }}
-      />
-    ))}
-  </div>
-);
+// ─── Accent tweak control (retired) ──────────────────────────────────────────
+// The reader-facing accent swatch row (gold / copper / jade / claret) was
+// removed by design decision: every Read page stays on the gold accent
+// (ACCENTS[0], the default the pages already initialise with). The component is
+// kept as a no-op so the existing call sites compile unchanged; nothing renders.
+export const AccentSwatches: React.FC<{ accent: string; setAccent: (a: string) => void }> = () => null;
 
 // ─── "More from The Craft of Tea" footer ─────────────────────────────────────
 export type MoreLink = { to: string; kicker: string; title: string; blurb: string };
