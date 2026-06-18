@@ -166,6 +166,8 @@ export function useImmersiveChrome(accent: string) {
       .tj-morecard{ transition:border-color 240ms; }
       .tj-morecard:hover{ border-color:rgba(168,135,77,0.4) !important; }
       .tj-tab:hover{ color:#ede4d4 !important; }
+      .tj-explore-link{ transition:color 200ms; }
+      .tj-explore-link:hover{ color:var(--tj-gold,#a8874d) !important; }
     `;
     document.head.appendChild(style);
 
