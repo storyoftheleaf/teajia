@@ -6,6 +6,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api';
+import type { DbArticle } from '../../types';
 import { C, F, ImmersiveRoot, ProgressTrack, AccentSwatches, useReadingProgress, useImmersiveChrome, useReveals, grainCss, ACCENTS } from './immersive';
 
 type Piece = {
@@ -77,7 +80,21 @@ const pieces: Piece[] = [
 const ReadIndex: React.FC = () => {
   const [accent, setAccent] = useState<string>(ACCENTS[0]);
   useImmersiveChrome(accent);
-  const rootRef = useReveals([]);
+
+  // Published articles authored in the editor, shown in the same card register
+  // as the four hand-built showcases so Read reads as one collection. They link
+  // to /article/:slug, which opens the immersive or carousel reader per template.
+  const { data: published } = useQuery<DbArticle[]>({
+    queryKey: ['read-published-articles'],
+    queryFn: async () => {
+      const res = await api.articles.listPublished(40, 0);
+      const list = Array.isArray(res) ? res : (res?.articles ?? res?.data ?? []);
+      return list as DbArticle[];
+    },
+  });
+
+  // Re-arm the scroll reveals once the articles land so their cards fade in too.
+  const rootRef = useReveals([published?.length ?? 0]);
   const progress = useReadingProgress();
 
   return (
@@ -131,6 +148,37 @@ const ReadIndex: React.FC = () => {
                 <div style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>{p.kind}</div>
                 <div style={{ fontFamily: F.display, fontSize: 'clamp(26px,3vw,32px)', lineHeight: 1.05, color: C.cream }}>{p.title}</div>
                 <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14.5, lineHeight: 1.55, color: C.dim, margin: '12px 0 0' }}>{p.blurb}</p>
+              </div>
+            </Link>
+          ))}
+
+          {/* Editor-authored articles, in the same card register. */}
+          {(published ?? []).map((a) => (
+            <Link
+              key={a.id}
+              to={`/article/${a.slug}`}
+              data-reveal
+              className="tj-morecard"
+              style={{ textDecoration: 'none', color: 'inherit', border: '1px solid rgba(168,135,77,0.16)', borderRadius: 5, overflow: 'hidden', background: 'linear-gradient(160deg,#1b160f,#15110b)', display: 'flex', flexDirection: 'column' }}
+            >
+              {/* plate — real cover image when present, else the espresso plate */}
+              <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden', background: 'linear-gradient(155deg,#2a2117 0%,#14100b 80%)', borderBottom: '1px solid rgba(168,135,77,0.14)' }}>
+                {a.cover_image_url ? (
+                  <img src={a.cover_image_url} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92 }} />
+                ) : (
+                  <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 60% at 50% 35%, rgba(168,135,77,0.1), transparent 66%)' }} />
+                )}
+                <div aria-hidden="true" style={{ ...grainCss('0.85', 130), opacity: 0.07 }} />
+              </div>
+              {/* meta */}
+              <div style={{ padding: 'clamp(20px,3vw,28px)' }}>
+                {a.category && (
+                  <div style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>{a.category}</div>
+                )}
+                <div style={{ fontFamily: F.display, fontSize: 'clamp(26px,3vw,32px)', lineHeight: 1.05, color: C.cream }}>{a.title}</div>
+                {a.subtitle && (
+                  <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14.5, lineHeight: 1.55, color: C.dim, margin: '12px 0 0' }}>{a.subtitle}</p>
+                )}
               </div>
             </Link>
           ))}
