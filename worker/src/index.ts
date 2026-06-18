@@ -813,6 +813,7 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   tasting:               'tasting',
   tasting_source:        'tasting_source',
   owner_user_id:         'owner_user_id',   // stock spine step 1 — NULL = location-owned
+  shown_in_shop:         'shown_in_shop',   // stock spine step 2 — owner's curation gate
 };
 
 // Build mirror statements for a product update. Pass the SAME body the
@@ -948,9 +949,9 @@ function buildProductMirrorInserts(
       show_wisdom, is_custom_wisdom,
       status, sold_out_at,
       tasting, tasting_source,
-      owner_user_id,
+      owner_user_id, shown_in_shop,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -963,7 +964,7 @@ function buildProductMirrorInserts(
     body.show_wisdom ?? 1, body.is_custom_wisdom ?? 0,
     listingStatus, body.sold_out_at ?? null,
     body.tasting ?? '{}', body.tasting_source ?? null,
-    body.owner_user_id ?? null,
+    body.owner_user_id ?? null, body.shown_in_shop ?? 1,
     productId
   );
 
@@ -2053,7 +2054,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -2067,6 +2068,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   // caller already specified one. NULL stays "owned by the location"; here a
   // real authenticated creator is cleanly on ctx.userId, so record it.
   if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
+  // Stock spine step 2: the location owner curates what shows. Owner-tier
+  // creators (role 'owner', which platform owner/admin act as) put their tea
+  // straight in the shop; a staff seller's tea starts HELD (0) until the owner
+  // shows it. This is the literal meaning of "the owner curates what shows."
+  if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
@@ -2169,9 +2175,14 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
+    // Stock spine step 2: owner-tier imports go straight to the shop; a staff
+    // seller's bulk import starts HELD (0) until the owner shows each row.
+    if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
+    // Stock spine step 1: stamp the creating user as owner unless specified.
+    if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
     // Apply cached vendor_id
     if (body.vendor && !body.vendor_id) {
       const vkey = (body.vendor as string).trim().toLowerCase();
@@ -2255,6 +2266,12 @@ const PRODUCT_PUBLICATION_UPDATE_COLUMNS = new Set([
   'show_wisdom', 'is_custom_wisdom', 'is_personal', 'is_sample', 'sold_out_at',
 ]);
 
+// Stock spine step 2: the LOCATION OWNER's curation gate (distinct from
+// is_public, the operator's "list at all" flag). Only owner-tier may flip it —
+// see handleUpdateProductVisibility — so a staff seller cannot self-approve
+// their own tea into the shop.
+const PRODUCT_VISIBILITY_UPDATE_COLUMNS = new Set(['shown_in_shop']);
+
 async function applyProductUpdate(
   request: Request,
   env: Env,
@@ -2284,7 +2301,7 @@ async function applyProductUpdate(
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -2480,6 +2497,16 @@ const handleUpdateProductCatalog = makeProductCommandUpdateHandler('catalog', PR
 const handleUpdateProductStock = makeProductCommandUpdateHandler('stock', PRODUCT_STOCK_UPDATE_COLUMNS, 'product.stock_updated');
 const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PRODUCT_COMMERCIAL_UPDATE_COLUMNS, 'product.commercial_updated');
 const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish', PRODUCT_PUBLICATION_UPDATE_COLUMNS, 'product.publication_updated');
+
+// Stock spine step 2: flip the location-owner curation gate (shown_in_shop).
+// Gated by requireOwnerTier, NOT a bundle — a staff seller may hold the
+// 'publish' bundle (and thus list their own tea via is_public) but must not be
+// able to show it in the shop; only the location owner curates what appears.
+const handleUpdateProductVisibility: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return applyProductUpdate(request, env, params, ctx, PRODUCT_VISIBILITY_UPDATE_COLUMNS, true, 'product.visibility_updated');
+};
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
@@ -5087,6 +5114,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
          WHERE xr.${fkColumn} = ?
            AND p.account_id = ?
            AND p.is_public = 1
+           AND p.shown_in_shop = 1
            AND p.status = 'Active'
          ORDER BY xr.created_at DESC`
       ).bind(id, BALI_ACCOUNT_ID),
@@ -11953,7 +11981,7 @@ async function fetchPublicProductsForAccount(
                   AND cp.target_type = 'shop'
                   AND cp.unpublished_at IS NULL) AS is_featured
        FROM products p
-       WHERE p.is_public = 1 AND p.status = 'Active' AND p.account_id = ?
+       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?
        ORDER BY p.created_at DESC`
     ).bind(accountId),
   ]);
@@ -17469,6 +17497,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id/stock', handleUpdateProductStock],
   ['PUT', '/api/products/:id/commercial', handleUpdateProductCommercial],
   ['PUT', '/api/products/:id/publication', handleUpdateProductPublication],
+  ['PUT', '/api/products/:id/shown', handleUpdateProductVisibility],
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],

@@ -174,7 +174,12 @@ export function useInventoryProducts({
     if (!inventoryGroupBy) return null;
     const groups: Record<string, { items: Product[]; totalStock: number; totalRetail: number }> = {};
     for (const p of processedProducts) {
-      const key = String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? 'Unknown');
+      // Stock spine step 2: a null owner means the row is owned by the location
+      // itself (house stock), not an individual seller — label it as such rather
+      // than the generic "Unknown" bucket.
+      const key = inventoryGroupBy === 'ownerUserId'
+        ? (p.ownerUserId ? `Seller · ${p.ownerUserId.slice(0, 8)}` : 'House stock')
+        : String((p as unknown as Record<string, unknown>)[inventoryGroupBy] ?? 'Unknown');
       if (!groups[key]) groups[key] = { items: [], totalStock: 0, totalRetail: 0 };
       groups[key].items.push(p);
       groups[key].totalStock += Number(p.stockGrams) || 0;

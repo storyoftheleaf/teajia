@@ -66,6 +66,7 @@ export const GROUPBY_OPTIONS = [
   { value: 'vendor', label: 'Vendor' },
   { value: 'status', label: 'Status' },
   { value: 'originCountry', label: 'Origin Country' },
+  { value: 'ownerUserId', label: 'Owner' }, // stock spine step 2 — group by whose stock it is
 ] as const;
 
 export const DEFAULT_TEA_VIEWS: InventoryViewConfig[] = [

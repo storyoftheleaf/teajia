@@ -53,6 +53,8 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         isPersonal: !!p.is_personal,
         canReorder: !!p.can_reorder,
         isPublic: p.is_public == null ? true : !!p.is_public,
+        shownInShop: p.shown_in_shop == null ? true : !!p.shown_in_shop,
+        ownerUserId: p.owner_user_id ?? null,
         isFeatured: !!p.is_featured,
         isSample: !!p.is_sample,
         inTransit: !!p.in_transit,

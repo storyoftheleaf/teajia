@@ -705,6 +705,11 @@ export const api = {
     updatePublication: async (id: string, data: Record<string, any>) => {
       return putProductUpdate(id, '/publication', data);
     },
+    // Stock spine step 2 — flip the location-owner curation gate. Owner-tier only
+    // (server enforces requireOwnerTier); a staff seller cannot show their own tea.
+    updateShown: async (id: string, shown: boolean) => {
+      return putProductUpdate(id, '/shown', { shown_in_shop: shown });
+    },
     delete: async (id: string) => {
       return authedFetch(`${API_URL}/api/products/${id}`, {
         method: 'DELETE',

@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Eye, EyeOff, Star, Sparkles,
   FlaskConical, RefreshCw, User, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
-  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square,
+  Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Store,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { SquareCropModal } from '../../components/shared/SquareCropModal';
 import { useAppStore } from '../store';
+import { selectIsOwnerTier } from '../../lib/store';
 import type { Product, ExchangeRate, Currency } from '../types';
 import { calculatePricing } from '../utils';
 import { useCustomers } from '../hooks/useAdminData';
@@ -977,6 +978,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const panelQueryClient = useQueryClient();
+  // Stock spine step 2: only the location owner curates what shows in the shop.
+  const isOwnerTier = useAppStore(selectIsOwnerTier);
   const compassEntries = useTeaCompassStore((s) => s.entries);
 
   // Local state for modals mounted inside the panel
@@ -1029,6 +1033,18 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
     try { await api.products.updateByDomain(id, payload); }
     catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
   }, [onUpdate, showToast]);
+
+  // Stock spine step 2: flip the owner curation gate (shown_in_shop). Routes
+  // through the parent's optimistic handler when present (InventoryView), else
+  // hits the owner-tier endpoint directly. Separate from handleUpdate because
+  // it must never fall through to the per-domain product update.
+  const handleToggleShown = useCallback(async (id: string, next: boolean) => {
+    if (onUpdate) { await onUpdate(id, 'shownInShop' as keyof Product, next); return; }
+    try {
+      await api.products.updateShown(id, next);
+      panelQueryClient.invalidateQueries({ queryKey: ['products'] });
+    } catch (err: any) { showToast(`Update failed: ${err.message}`, 'error'); }
+  }, [onUpdate, showToast, panelQueryClient]);
 
   // Fetch events / tasting aggregate when product changes
   useEffect(() => {
@@ -1282,6 +1298,20 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
             <div className="px-3 pb-3 flex flex-wrap gap-1.5">
               <button onClick={() => handleUpdate(product.id, 'isPublic', !product.isPublic)} className={`admin-pill ${product.isPublic ? 'admin-pill-on' : ''}`} title={product.isPublic ? 'Visible in shop — click to hide' : 'Hidden — click to show in shop'}>
                 {product.isPublic ? <Eye size={10} /> : <EyeOff size={10} />} In Shop
+              </button>
+              {/* Stock spine step 2: the LOCATION OWNER's curation gate, a sibling
+                  of "In Shop" (the operator's list-at-all flag). Only owner-tier
+                  may flip it; a staff seller sees the held/shown state of their
+                  own tea but cannot self-approve it into the shop. */}
+              <button
+                onClick={() => { if (isOwnerTier) handleToggleShown(product.id, !product.shownInShop); }}
+                disabled={!isOwnerTier}
+                className={`admin-pill ${product.shownInShop ? 'admin-pill-on' : ''} ${!isOwnerTier ? 'opacity-60 cursor-default' : ''}`}
+                title={isOwnerTier
+                  ? (product.shownInShop ? 'Shown by the owner — click to hold' : 'Held — click to show in this shop')
+                  : (product.shownInShop ? 'Shown in this shop by the owner' : 'Held — only the location owner can show this')}
+              >
+                <Store size={10} /> {product.shownInShop ? 'Shown' : 'Held'}
               </button>
               <button onClick={() => handleUpdate(product.id, 'isFeatured', !product.isFeatured)} className={`admin-pill ${product.isFeatured ? 'admin-pill-on' : ''}`} title="Starred — promoted on collection pages">
                 <Star size={10} className={product.isFeatured ? 'fill-current' : ''} /> Starred
