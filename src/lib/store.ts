@@ -127,7 +127,11 @@ interface AppState {
   inventoryGroupBy: string | null;
   inventorySortConfig: { key: string; direction: 'asc' | 'desc' }[];
   inventoryPriceMode: 'cost' | 'retail';
+  /** Mobile swipe-table per-column pixel widths, keyed by column key. Persisted
+   *  so a drag-resize survives reload. Absent keys fall back to MOBILE_COL_PX. */
+  inventoryMobileColWidths: Record<string, number>;
   setInventoryColumns: (columns: string[]) => void;
+  setInventoryMobileColWidth: (key: string, px: number) => void;
   toggleInventoryColumn: (column: string) => void;
   saveView: (view: InventoryViewConfig) => void;
   deleteView: (viewId: string) => void;
@@ -501,8 +505,13 @@ export const useAppStore = create<AppState>()(
       inventoryGroupBy: null,
       inventorySortConfig: [...DEFAULT_INVENTORY_SORT_CONFIG],
       inventoryPriceMode: 'retail' as 'cost' | 'retail',
+      inventoryMobileColWidths: {},
 
       setInventoryColumns: (columns) => set({ inventoryColumns: columns }),
+      setInventoryMobileColWidth: (key, px) =>
+        set((state) => ({
+          inventoryMobileColWidths: { ...state.inventoryMobileColWidths, [key]: Math.round(px) },
+        })),
       toggleInventoryColumn: (column) =>
         set((state) => ({
           inventoryColumns: state.inventoryColumns.includes(column)
@@ -626,6 +635,7 @@ export const useAppStore = create<AppState>()(
         inventoryGroupBy: state.inventoryGroupBy,
         inventorySortConfig: state.inventorySortConfig,
         inventoryPriceMode: state.inventoryPriceMode,
+        inventoryMobileColWidths: state.inventoryMobileColWidths,
         draftProductByAccountId: state.draftProductByAccountId,
         shopStoreSlug: state.shopStoreSlug,
         memberships: state.memberships,

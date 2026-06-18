@@ -5730,7 +5730,7 @@ Return ONLY a valid JSON object with these fields (omit any you can't determine)
   "chineseName": "Chinese characters if visible",
   "productName": "Cultivar or botanical name if identifiable (e.g. Da Hong Pao, Tie Guan Yin)",
   "type": "One of: Green, Yellow, White, Oolong, Red, Dark, Sheng, Shou, Herbal, Teaware, Misc",
-  "form": "One of: Loose Leaf, Cake, Tuo, Brick, Rolled, Ball, Powder, Bag, Other",
+  "form": "One of: Loose, Cake, Tuo, Brick, Rolled, Ball, Powder, Bag, Other",
   "year": 2024,
   "originCountry": "Country of origin",
   "originRegion": "Specific region if visible",
