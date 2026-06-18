@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
+import { useNotesStore } from '../../lib/notesStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
@@ -232,6 +233,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const sampleCartHas = useSampleCartStore((s) => s.items.some((i) => i.id === entryId));
   const addSampleCartItem = useSampleCartStore((s) => s.addItem);
   const removeSampleCartItem = useSampleCartStore((s) => s.removeItem);
+
+  // The note thread (NoteThread) stores notes in the notes store, not on the
+  // entry. Subscribe to the count for this entry so the Done button's readiness
+  // (entryHasContent, which reads that store) re-evaluates the moment a note is
+  // added or removed — otherwise the button would stay disabled until some
+  // other re-render happened.
+  const threadNoteCount = useNotesStore(
+    (s) => s.notes.filter((n) => !n.deleted && n.compassEntryId === entryId).length
+  );
+  void threadNoteCount;
 
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
@@ -1950,7 +1961,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           here so the user has commit + share colocated in the action
           area, rather than share floating up in the page header. */}
       {(() => {
-        const ready = !!entry.name?.trim() || (entry.photos.length > 0 && !!entry.vendorName?.trim());
+        // Done is enabled whenever the entry holds anything worth keeping — a
+        // name, a photo, notes (incl. thread notes), or tasting data — matching
+        // exactly what commitEntry() will persist. Requiring a name blocked
+        // saving an entry that already had notes/flavor, which read as broken.
+        const ready = entryHasContent(entry);
         return (
           <div className="lg:hidden flex items-center gap-2 mt-1">
             {onShare && (

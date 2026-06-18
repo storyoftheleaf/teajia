@@ -4,6 +4,7 @@ import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, Br
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 import { api, hasToken } from './api';
+import { useNotesStore } from './notesStore';
 
 interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
@@ -73,7 +74,7 @@ interface TeaCompassState {
 /** An entry has meaningful content if it has a name, photo, notes, or real tasting data.
  *  Selecting a type, status, or vendor alone does NOT count — those are too easy to tap accidentally. */
 export function entryHasContent(entry: TeaCompassEntry): boolean {
-  return (
+  if (
     entry.name.trim().length > 0 ||
     entry.photos.length > 0 ||
     entry.notes.trim().length > 0 ||
@@ -81,7 +82,17 @@ export function entryHasContent(entry: TeaCompassEntry): boolean {
       Object.values(entry.tasting).some((v) =>
         Array.isArray(v) ? v.length > 0 : v != null
       ))
-  );
+  ) {
+    return true;
+  }
+  // Notes typed in the NoteThread are stored in the notes store keyed by the
+  // entry id (and/or its teaKey), NOT on entry.notes — so an entry whose only
+  // content is thread notes must still count as having content, or committing
+  // it would discard the entry and orphan those notes.
+  const ns = useNotesStore.getState();
+  if (ns.getNotesForCompassEntry(entry.id).length > 0) return true;
+  if (entry.teaKey && ns.getNotesForTea(entry.teaKey).length > 0) return true;
+  return false;
 }
 
 // New capture run starts after this much idle time. Keeps a single sitting
