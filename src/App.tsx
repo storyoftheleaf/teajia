@@ -1139,7 +1139,7 @@ const AppContent = () => {
       {/* Soft fade behind the floating bottom tab bar — masks page content
           peeking through the pill's side margins and bottom gap so the bar
           reads cleanly without distracting text behind it. */}
-      {!isFocusedShareRoute && !isImmersiveRead && !isCartOpen && (
+      {!isFocusedShareRoute && !isCartOpen && (
         <div
           aria-hidden="true"
           className="lg:hidden fixed inset-x-0 bottom-0 pointer-events-none"
@@ -1151,8 +1151,11 @@ const AppContent = () => {
         />
       )}
 
-      {/* Bottom Tab Bar for Mobile */}
-      {!isFocusedShareRoute && !isImmersiveRead && (
+      {/* Bottom Tab Bar for Mobile — kept visible on the Read section too, so the
+          reader can always navigate. The Read long-reads stay full-bleed (the
+          px-0 layout still keys off isImmersiveRead); their bottom-right accent
+          swatches sit above the bar's height so they don't collide. */}
+      {!isFocusedShareRoute && (
         <BottomTabBar activeSection={activeSection} onNavigate={handleNavSection} hidden={isCartOpen} onAccountClick={handleToggleAccount} onAccountClose={handleCloseAccount} isAccountOpen={showAccountModal} onSearchClick={() => { window.dispatchEvent(new CustomEvent('dismiss-tasting-overlay')); setShowAccountModal(false); setAccountInitialView(undefined); setShowGlobalSearch(true); }} onSearchClose={() => setShowGlobalSearch(false)} isSearchOpen={showGlobalSearch} isAdminRoute={isAdminRoute} />
       )}
 
