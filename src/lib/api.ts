@@ -23,6 +23,8 @@ export interface PlatformUser {
   username?: string | null;
   platform_role: PlatformRole;
   created_at: string;
+  shelf_enabled?: boolean;   // stock spine step 5 — public shelf granted
+  shelf_slug?: string | null;
   memberships: { account_id: string; role: string }[];
 }
 
@@ -38,6 +40,85 @@ export interface PlatformAccount {
   trust_tier: 'basic' | 'verified' | 'partner';
   member_count: number;
   features: Record<string, boolean>;
+}
+
+// Stock spine step 3 — one row of the all-locations master view (the movement).
+export interface PlatformStockRow {
+  id: string;
+  type: string;
+  given_name: string | null;
+  product_name: string | null;
+  chinese_name: string | null;
+  year: number | null;
+  origin_country: string | null;
+  origin_region: string | null;
+  stock_grams: number | null;
+  quantity_units: number | null;
+  status: string;
+  is_public: number;
+  shown_in_shop: number;
+  image_url: string | null;
+  fixed_retail_price_usd: number | null;
+  created_at: string;
+  account_id: string;
+  account_name: string;
+  account_slug: string;
+  location_city: string | null;
+  location_country: string | null;
+  is_platform_owner: number;
+  owner_user_id: string | null;
+  owner_name: string | null;
+  owner_email: string | null;
+}
+
+// Stock spine step 4 — one item in a user's personal cellar.
+export interface CellarItem {
+  id: string;
+  name: string;
+  type?: string | null;
+  year?: number | null;
+  origin?: string | null;
+  notes?: string | null;
+  grams: number;
+  imageUrl?: string | null;
+  placementStatus: 'private' | 'requested' | 'placed';
+  placementAccountId?: string | null;
+  linkedProductId?: string | null;
+  shelfPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CellarPlacementRequest extends CellarItem {
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+}
+
+// Stock spine step 5 — the seller's own shelf settings (grant state + identity).
+export interface ShelfSettings {
+  enabled: boolean;
+  slug: string | null;
+  title: string | null;
+  whatsapp: string | null;
+}
+
+// One item on a public shelf — public-safe fields only.
+export interface PublicShelfItem {
+  id: string;
+  name: string;
+  type: string | null;
+  year: number | null;
+  origin: string | null;
+  grams: number;
+  image_url: string | null;
+}
+
+export interface PublicShelf {
+  slug: string;
+  title: string | null;
+  seller_name: string | null;
+  whatsapp: string | null;
+  items: PublicShelfItem[];
 }
 
 export interface PurchaseOrder {
@@ -704,6 +785,11 @@ export const api = {
     },
     updatePublication: async (id: string, data: Record<string, any>) => {
       return putProductUpdate(id, '/publication', data);
+    },
+    // Stock spine step 2 — flip the location-owner curation gate. Owner-tier only
+    // (server enforces requireOwnerTier); a staff seller cannot show their own tea.
+    updateShown: async (id: string, shown: boolean) => {
+      return putProductUpdate(id, '/shown', { shown_in_shop: shown });
     },
     delete: async (id: string) => {
       return authedFetch(`${API_URL}/api/products/${id}`, {
@@ -2393,8 +2479,19 @@ export const api = {
         body: JSON.stringify({ platform_role }),
       });
     },
+    // Stock spine step 5 — grant/revoke a user's public shelf and set its slug.
+    grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/shelf`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
     listAccounts: async (): Promise<{ accounts: PlatformAccount[] }> => {
       return authedFetch(`${API_URL}/api/platform/accounts`)
+    },
+    // Stock spine step 3 — read-only stock across every location.
+    allStock: async (): Promise<{ stock: PlatformStockRow[] }> => {
+      return authedFetch(`${API_URL}/api/platform/all-stock`)
     },
     toggleFeature: async (accountId: string, feature: string, enabled: boolean): Promise<void> => {
       await authedFetch(`${API_URL}/api/platform/accounts/${accountId}/features/${feature}`, {
@@ -2700,6 +2797,61 @@ export const api = {
       }>;
     }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/samples`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+  },
+
+  // Stock spine step 4 — the personal cellar: location-less, person-owned stock.
+  cellar: {
+    list: async (): Promise<{ items: CellarItem[] }> => {
+      return authedFetch(`${API_URL}/api/me/cellar`);
+    },
+    create: async (data: Partial<CellarItem> & { name: string }): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar`, { method: 'POST', body: JSON.stringify(data) });
+    },
+    update: async (id: string, data: Partial<CellarItem>): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    remove: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}`, { method: 'DELETE' });
+    },
+    requestPlacement: async (id: string, accountId: string): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/request-placement`, {
+        method: 'POST', body: JSON.stringify({ account_id: accountId }),
+      });
+    },
+    cancelPlacement: async (id: string): Promise<{ item: CellarItem }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/cancel-placement`, { method: 'POST' });
+    },
+    // Location-owner side — review and decide placement requests.
+    listPlacements: async (): Promise<{ requests: CellarPlacementRequest[] }> => {
+      return authedFetch(`${API_URL}/api/cellar-placements`);
+    },
+    approvePlacement: async (id: string): Promise<{ ok: boolean; product_id: string }> => {
+      return authedFetch(`${API_URL}/api/cellar-placements/${id}/approve`, { method: 'POST' });
+    },
+    declinePlacement: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/cellar-placements/${id}/decline`, { method: 'POST' });
+    },
+    // Stock spine step 5 — the standalone public shelf.
+    getShelf: async (): Promise<ShelfSettings> => {
+      return authedFetch(`${API_URL}/api/me/shelf`);
+    },
+    updateShelf: async (data: { title?: string; whatsapp?: string }): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/shelf`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    publishToShelf: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/publish-shelf`, { method: 'POST' });
+    },
+    unpublishFromShelf: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/unpublish-shelf`, { method: 'POST' });
+    },
+  },
+
+  // Stock spine step 5 — PUBLIC standalone shelf (no auth).
+  shelf: {
+    getPublic: async (slug: string): Promise<PublicShelf> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/shelf/${encodeURIComponent(slug)}`);
       return handleResponse(res);
     },
   },

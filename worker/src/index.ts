@@ -813,6 +813,7 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   tasting:               'tasting',
   tasting_source:        'tasting_source',
   owner_user_id:         'owner_user_id',   // stock spine step 1 — NULL = location-owned
+  shown_in_shop:         'shown_in_shop',   // stock spine step 2 — owner's curation gate
 };
 
 // Build mirror statements for a product update. Pass the SAME body the
@@ -948,9 +949,9 @@ function buildProductMirrorInserts(
       show_wisdom, is_custom_wisdom,
       status, sold_out_at,
       tasting, tasting_source,
-      owner_user_id,
+      owner_user_id, shown_in_shop,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -963,7 +964,7 @@ function buildProductMirrorInserts(
     body.show_wisdom ?? 1, body.is_custom_wisdom ?? 0,
     listingStatus, body.sold_out_at ?? null,
     body.tasting ?? '{}', body.tasting_source ?? null,
-    body.owner_user_id ?? null,
+    body.owner_user_id ?? null, body.shown_in_shop ?? 1,
     productId
   );
 
@@ -2053,7 +2054,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
   // Convert booleans to integers for SQLite
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -2067,6 +2068,11 @@ const handleCreateProduct: Handler = async (request, env) => {
   // caller already specified one. NULL stays "owned by the location"; here a
   // real authenticated creator is cleanly on ctx.userId, so record it.
   if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
+  // Stock spine step 2: the location owner curates what shows. Owner-tier
+  // creators (role 'owner', which platform owner/admin act as) put their tea
+  // straight in the shop; a staff seller's tea starts HELD (0) until the owner
+  // shows it. This is the literal meaning of "the owner curates what shows."
+  if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
@@ -2169,9 +2175,14 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
     if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
     if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+    for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
+    // Stock spine step 2: owner-tier imports go straight to the shop; a staff
+    // seller's bulk import starts HELD (0) until the owner shows each row.
+    if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
+    // Stock spine step 1: stamp the creating user as owner unless specified.
+    if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
     // Apply cached vendor_id
     if (body.vendor && !body.vendor_id) {
       const vkey = (body.vendor as string).trim().toLowerCase();
@@ -2255,6 +2266,12 @@ const PRODUCT_PUBLICATION_UPDATE_COLUMNS = new Set([
   'show_wisdom', 'is_custom_wisdom', 'is_personal', 'is_sample', 'sold_out_at',
 ]);
 
+// Stock spine step 2: the LOCATION OWNER's curation gate (distinct from
+// is_public, the operator's "list at all" flag). Only owner-tier may flip it —
+// see handleUpdateProductVisibility — so a staff seller cannot self-approve
+// their own tea into the shop.
+const PRODUCT_VISIBILITY_UPDATE_COLUMNS = new Set(['shown_in_shop']);
+
 async function applyProductUpdate(
   request: Request,
   env: Env,
@@ -2284,7 +2301,7 @@ async function applyProductUpdate(
     body.tasting_source = body.tasting && Object.keys(body.tasting).length > 0 ? 'owner' : null;
   }
   if (body.tasting && typeof body.tasting === 'object') body.tasting = JSON.stringify(body.tasting);
-  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit']) {
+  for (const key of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
     if (body[key] !== undefined) body[key] = body[key] ? 1 : 0;
   }
 
@@ -2480,6 +2497,16 @@ const handleUpdateProductCatalog = makeProductCommandUpdateHandler('catalog', PR
 const handleUpdateProductStock = makeProductCommandUpdateHandler('stock', PRODUCT_STOCK_UPDATE_COLUMNS, 'product.stock_updated');
 const handleUpdateProductCommercial = makeProductCommandUpdateHandler('sell', PRODUCT_COMMERCIAL_UPDATE_COLUMNS, 'product.commercial_updated');
 const handleUpdateProductPublication = makeProductCommandUpdateHandler('publish', PRODUCT_PUBLICATION_UPDATE_COLUMNS, 'product.publication_updated');
+
+// Stock spine step 2: flip the location-owner curation gate (shown_in_shop).
+// Gated by requireOwnerTier, NOT a bundle — a staff seller may hold the
+// 'publish' bundle (and thus list their own tea via is_public) but must not be
+// able to show it in the shop; only the location owner curates what appears.
+const handleUpdateProductVisibility: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return applyProductUpdate(request, env, params, ctx, PRODUCT_VISIBILITY_UPDATE_COLUMNS, true, 'product.visibility_updated');
+};
 
 const handleDeleteProduct: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
@@ -5087,6 +5114,7 @@ function makePublicXrefHandler(tableName: string, fkColumn: string): Handler {
          WHERE xr.${fkColumn} = ?
            AND p.account_id = ?
            AND p.is_public = 1
+           AND p.shown_in_shop = 1
            AND p.status = 'Active'
          ORDER BY xr.created_at DESC`
       ).bind(id, BALI_ACCOUNT_ID),
@@ -7659,6 +7687,456 @@ const handlePutUserFavorites: Handler = async (request, env) => {
     }
   }
   return json({ ok: true, count: body.favorites.length });
+};
+
+// ── Personal cellar (stock spine step 4) ────────────────────────────────────
+//
+// Location-less, person-owned stock: tea a logged-in user records as their own,
+// private by default, tied to no location. Lives in its own table
+// (personal_cellar_items) so it never touches the ~310 account-scoped product
+// queries. owner_user_id is the anchor; an item can later be PLACED at a
+// location — a human-approved request, never a silent write (the move).
+
+// Map a DB row to the API shape (camelCase, booleans).
+function cellarItemToApi(row: any) {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type ?? null,
+    year: row.year ?? null,
+    origin: row.origin ?? null,
+    notes: row.notes ?? null,
+    grams: Number(row.grams) || 0,
+    imageUrl: row.image_url ?? null,
+    placementStatus: row.placement_status ?? 'private',
+    placementAccountId: row.placement_account_id ?? null,
+    linkedProductId: row.linked_product_id ?? null,
+    shelfPublished: !!row.shelf_published,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function authedUserId(request: Request): string | null {
+  const token = isAuthed(request);
+  if (!token) return null;
+  const claims = parseToken(token);
+  return claims?.sub ?? null;
+}
+
+// GET /api/me/cellar — list the caller's personal cellar (private to them).
+const handleListCellar: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const { results } = await env.DB.prepare(
+    'SELECT * FROM personal_cellar_items WHERE owner_user_id = ? ORDER BY created_at DESC'
+  ).bind(userId).all();
+  return json({ items: (results as any[]).map(cellarItemToApi) });
+};
+
+// POST /api/me/cellar — add a tea the caller owns, with a quantity. Private.
+const handleCreateCellarItem: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const body = await request.json() as Record<string, any>;
+  const name = String(body.name ?? '').trim();
+  if (!name) return json({ error: 'name is required' }, 400);
+  const grams = Number(body.grams);
+  if (body.grams !== undefined && (!Number.isFinite(grams) || grams < 0)) {
+    return json({ error: 'grams must be a non-negative number' }, 400);
+  }
+  const id = newId('cellar');
+  await env.DB.prepare(
+    `INSERT INTO personal_cellar_items (id, owner_user_id, name, type, year, origin, notes, grams, image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, userId, name,
+    body.type ?? null,
+    body.year != null && /^\d{4}$/.test(String(body.year)) ? Number(body.year) : null,
+    body.origin ?? null,
+    body.notes ?? null,
+    Number.isFinite(grams) ? grams : 0,
+    body.image_url ?? null,
+  ).run();
+  const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(id).first();
+  return json({ item: cellarItemToApi(row) }, 201);
+};
+
+// PUT /api/me/cellar/:id — edit a cellar item the caller owns.
+const handleUpdateCellarItem: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const existing = await env.DB.prepare(
+    'SELECT owner_user_id FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first();
+  if (!existing) return json({ error: 'Not found' }, 404);
+  if (existing.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
+
+  const body = await request.json() as Record<string, any>;
+  const EDITABLE: Record<string, string> = {
+    name: 'name', type: 'type', year: 'year', origin: 'origin',
+    notes: 'notes', grams: 'grams', image_url: 'image_url',
+  };
+  const sets: string[] = [];
+  const binds: any[] = [];
+  for (const [key, col] of Object.entries(EDITABLE)) {
+    if (body[key] === undefined) continue;
+    if (key === 'grams') {
+      const g = Number(body.grams);
+      if (!Number.isFinite(g) || g < 0) return json({ error: 'grams must be a non-negative number' }, 400);
+      sets.push(`${col} = ?`); binds.push(g);
+    } else if (key === 'year') {
+      sets.push(`${col} = ?`);
+      binds.push(body.year != null && /^\d{4}$/.test(String(body.year)) ? Number(body.year) : null);
+    } else {
+      sets.push(`${col} = ?`); binds.push(body[key] ?? null);
+    }
+  }
+  if (sets.length === 0) return json({ ok: true });
+  sets.push("updated_at = datetime('now')");
+  await env.DB.prepare(
+    `UPDATE personal_cellar_items SET ${sets.join(', ')} WHERE id = ? AND owner_user_id = ?`
+  ).bind(...binds, params.id, userId).run();
+  const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
+  return json({ item: cellarItemToApi(row) });
+};
+
+// DELETE /api/me/cellar/:id — remove a cellar item the caller owns.
+const handleDeleteCellarItem: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const res = await env.DB.prepare(
+    'DELETE FROM personal_cellar_items WHERE id = ? AND owner_user_id = ?'
+  ).bind(params.id, userId).run();
+  if (!res.meta.changes) return json({ error: 'Not found' }, 404);
+  return json({ ok: true });
+};
+
+// POST /api/me/cellar/:id/request-placement — the MOVE, requested. The owner
+// asks for their tea to be placed at a location; it stays held until that
+// location's owner approves (never a silent write). Body: { account_id }.
+const handleRequestCellarPlacement: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const body = await request.json() as { account_id?: string };
+  const accountId = String(body.account_id ?? '').trim();
+  if (!accountId) return json({ error: 'account_id is required' }, 400);
+  const acct = await env.DB.prepare('SELECT id FROM accounts WHERE id = ?').bind(accountId).first();
+  if (!acct) return json({ error: 'Location not found' }, 404);
+  const item = await env.DB.prepare(
+    'SELECT owner_user_id, placement_status FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first();
+  if (!item) return json({ error: 'Not found' }, 404);
+  if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
+  if (item.placement_status === 'placed') {
+    return json({ error: 'Already placed at a location' }, 409);
+  }
+  await env.DB.prepare(
+    `UPDATE personal_cellar_items
+        SET placement_status = 'requested', placement_account_id = ?, updated_at = datetime('now')
+      WHERE id = ? AND owner_user_id = ?`
+  ).bind(accountId, params.id, userId).run();
+  const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
+  return json({ item: cellarItemToApi(row) });
+};
+
+// POST /api/me/cellar/:id/cancel-placement — withdraw a pending placement
+// request, returning the item to private. (Cannot un-place an approved item
+// here — that is a location-side stock decision.)
+const handleCancelCellarPlacement: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const item = await env.DB.prepare(
+    'SELECT owner_user_id, placement_status FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first();
+  if (!item) return json({ error: 'Not found' }, 404);
+  if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
+  if (item.placement_status !== 'requested') {
+    return json({ error: 'No pending placement request to cancel' }, 409);
+  }
+  await env.DB.prepare(
+    `UPDATE personal_cellar_items
+        SET placement_status = 'private', placement_account_id = NULL, updated_at = datetime('now')
+      WHERE id = ? AND owner_user_id = ?`
+  ).bind(params.id, userId).run();
+  const row = await env.DB.prepare('SELECT * FROM personal_cellar_items WHERE id = ?').bind(params.id).first();
+  return json({ item: cellarItemToApi(row) });
+};
+
+// GET /api/cellar-placements — location-owner view of pending placement
+// requests targeting the ACTIVE account. Owner-tier only.
+const handleListCellarPlacements: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { results } = await env.DB.prepare(
+    `SELECT c.*, u.name AS owner_name, u.email AS owner_email
+       FROM personal_cellar_items c
+       LEFT JOIN users u ON u.id = c.owner_user_id
+      WHERE c.placement_account_id = ? AND c.placement_status = 'requested'
+      ORDER BY c.updated_at ASC`
+  ).bind(ctx.accountId).all();
+  return json({
+    requests: (results as any[]).map(r => ({
+      ...cellarItemToApi(r),
+      ownerName: r.owner_name ?? null,
+      ownerEmail: r.owner_email ?? null,
+    })),
+  });
+};
+
+// POST /api/cellar-placements/:id/approve — the MOVE, approved. The location
+// owner lands the person's tea as real stock in THIS account: a held product
+// (shown_in_shop = 0, is_public = 0) owned by the person. The owner then lists
+// and shows it via the normal step-2 controls. Owner-tier only.
+const handleApproveCellarPlacement: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+  const item = await env.DB.prepare(
+    'SELECT * FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first() as any;
+  if (!item) return json({ error: 'Not found' }, 404);
+  if (item.placement_status !== 'requested' || item.placement_account_id !== accountId) {
+    return json({ error: 'No pending placement request for this location' }, 409);
+  }
+
+  const productId = crypto.randomUUID();
+  const grams = Number(item.grams) || 0;
+  const body: Record<string, any> = {
+    account_id: accountId,
+    type: item.type ?? 'Misc',
+    product_name: item.name,
+    given_name: item.name,
+    year: item.year ?? null,
+    origin_region: item.origin ?? null,
+    description: item.notes ?? null,
+    image_url: item.image_url ?? null,
+    stock_grams: grams,
+    quantity_purchased: grams,
+    status: 'Active',
+    // Held AND unlisted: the person's tea exists at the location but the owner
+    // must deliberately list (is_public) and show (shown_in_shop) it.
+    is_public: 0,
+    shown_in_shop: 0,
+    owner_user_id: item.owner_user_id,
+  };
+  const cols = Object.keys(body);
+  const placeholders = cols.map(() => '?').join(', ');
+  const insertProduct = env.DB.prepare(
+    `INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`
+  ).bind(productId, ...cols.map(c => body[c] ?? null));
+  const mirrorInserts = buildProductMirrorInserts(env, productId, accountId, body);
+  const stmts = [insertProduct, ...mirrorInserts];
+  if (grams > 0) {
+    stmts.push(buildStockLedgerEntry(
+      env, productId, grams, grams, 'PURCHASE_RECEIPT',
+      ctx.email, null, null, 'Placed from personal cellar', accountId
+    ));
+  }
+  stmts.push(
+    env.DB.prepare(
+      `UPDATE personal_cellar_items
+          SET placement_status = 'placed', linked_product_id = ?, updated_at = datetime('now')
+        WHERE id = ?`
+    ).bind(productId, item.id)
+  );
+  await env.DB.batch(stmts);
+
+  await auditPlatformActingWrite(env, ctx, 'cellar.placement_approved', 'product', productId, {
+    cellar_item_id: item.id, owner_user_id: item.owner_user_id,
+  });
+  return json({ ok: true, product_id: productId });
+};
+
+// POST /api/cellar-placements/:id/decline — reject a pending request; the item
+// returns to the owner's private cellar. Owner-tier only.
+const handleDeclineCellarPlacement: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const item = await env.DB.prepare(
+    'SELECT placement_status, placement_account_id FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first() as any;
+  if (!item) return json({ error: 'Not found' }, 404);
+  if (item.placement_status !== 'requested' || item.placement_account_id !== ctx.accountId) {
+    return json({ error: 'No pending placement request for this location' }, 409);
+  }
+  await env.DB.prepare(
+    `UPDATE personal_cellar_items
+        SET placement_status = 'private', placement_account_id = NULL, updated_at = datetime('now')
+      WHERE id = ?`
+  ).bind(params.id).run();
+  return json({ ok: true });
+};
+
+// ── Standalone public shelf (stock spine step 5) ────────────────────────────
+//
+// The top of the spine: a person publishes their private cellar (step 4) at
+// their own link /u/<slug>, with Adrian's permission. Private-by-default holds —
+// public requires the platform-owner grant (users.shelf_enabled). The buyer
+// deals with the seller directly over WhatsApp; Teajia never takes the order or
+// holds the money. Shelf-first: tea + a direct order, nothing else.
+
+function normalizeShelfSlug(raw: string): string {
+  return String(raw).toLowerCase().trim()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+// GET /api/me/shelf — the caller's shelf settings (grant state + identity).
+const handleGetMyShelf: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const row = await env.DB.prepare(
+    'SELECT shelf_enabled, shelf_slug, shelf_title, shelf_whatsapp FROM users WHERE id = ?'
+  ).bind(userId).first() as any;
+  if (!row) return json({ error: 'Not found' }, 404);
+  return json({
+    enabled: !!row.shelf_enabled,
+    slug: row.shelf_slug ?? null,
+    title: row.shelf_title ?? null,
+    whatsapp: row.shelf_whatsapp ?? null,
+  });
+};
+
+// PUT /api/me/shelf — the seller sets their shelf title + WhatsApp. Only once
+// the platform owner has granted the shelf (shelf_enabled).
+const handleUpdateMyShelf: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const row = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
+  if (!row) return json({ error: 'Not found' }, 404);
+  if (!row.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
+  const body = await request.json() as { title?: string; whatsapp?: string };
+  await env.DB.prepare(
+    'UPDATE users SET shelf_title = ?, shelf_whatsapp = ? WHERE id = ?'
+  ).bind(
+    body.title?.trim() || null,
+    body.whatsapp ? String(body.whatsapp).replace(/[^\d]/g, '') || null : null,
+    userId,
+  ).run();
+  return json({ ok: true });
+};
+
+// POST /api/me/cellar/:id/publish-shelf — put a private cellar item on the
+// caller's public shelf. Shelf publishes location-less stock only; a placed
+// item belongs to a location, not the standalone shelf.
+const handlePublishToShelf: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const user = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
+  if (!user?.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
+  const item = await env.DB.prepare(
+    'SELECT owner_user_id, placement_status FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first() as any;
+  if (!item) return json({ error: 'Not found' }, 404);
+  if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
+  if (item.placement_status !== 'private') {
+    return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  }
+  await env.DB.prepare(
+    "UPDATE personal_cellar_items SET shelf_published = 1, updated_at = datetime('now') WHERE id = ? AND owner_user_id = ?"
+  ).bind(params.id, userId).run();
+  return json({ ok: true });
+};
+
+// POST /api/me/cellar/:id/unpublish-shelf — take an item off the shelf.
+const handleUnpublishFromShelf: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const res = await env.DB.prepare(
+    "UPDATE personal_cellar_items SET shelf_published = 0, updated_at = datetime('now') WHERE id = ? AND owner_user_id = ?"
+  ).bind(params.id, userId).run();
+  if (!res.meta.changes) return json({ error: 'Not found' }, 404);
+  return json({ ok: true });
+};
+
+// GET /api/shelf/:slug — PUBLIC, no auth. The seller's shelf: published items +
+// a direct WhatsApp contact. Public-safe fields only (no cost, no vendor).
+const handleGetPublicShelf: Handler = async (_request, env, params) => {
+  const slug = normalizeShelfSlug(params.slug);
+  if (!slug) return json({ error: 'Not found' }, 404);
+  const seller = await env.DB.prepare(
+    'SELECT id, name, shelf_enabled, shelf_title, shelf_whatsapp FROM users WHERE shelf_slug = ?'
+  ).bind(slug).first() as any;
+  if (!seller || !seller.shelf_enabled) return json({ error: 'Shelf not found' }, 404);
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, type, year, origin, grams, image_url
+       FROM personal_cellar_items
+      WHERE owner_user_id = ? AND shelf_published = 1 AND placement_status = 'private'
+      ORDER BY created_at DESC`
+  ).bind(seller.id).all();
+  return cachedJson({
+    slug,
+    title: seller.shelf_title ?? null,
+    seller_name: seller.name ?? null,
+    whatsapp: seller.shelf_whatsapp ?? null,
+    items: (results as any[]).map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type ?? null,
+      year: r.year ?? null,
+      origin: r.origin ?? null,
+      grams: Number(r.grams) || 0,
+      image_url: r.image_url ?? null,
+    })),
+  }, 30);
+};
+
+// PUT /api/platform/users/:id/shelf — platform-owner grant. Turns a user's
+// public shelf on/off and assigns its slug. Private-by-default: the shelf does
+// not exist until granted here.
+const handleGrantShelf: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as { enabled?: boolean; slug?: string };
+  const user = await env.DB.prepare('SELECT id, username, shelf_slug FROM users WHERE id = ?').bind(params.id).first() as any;
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  const enabled = body.enabled ? 1 : 0;
+  // Resolve the slug: explicit > existing > username. Required to enable.
+  let slug = body.slug ? normalizeShelfSlug(body.slug) : (user.shelf_slug ?? (user.username ? normalizeShelfSlug(user.username) : null));
+  if (enabled && !slug) {
+    return json({ error: 'A slug is required to enable a shelf' }, 400);
+  }
+  if (slug) {
+    const clash = await env.DB.prepare(
+      'SELECT id FROM users WHERE shelf_slug = ? AND id != ?'
+    ).bind(slug, params.id).first();
+    if (clash) return json({ error: 'That shelf link is taken' }, 409);
+  }
+  await env.DB.prepare(
+    'UPDATE users SET shelf_enabled = ?, shelf_slug = ? WHERE id = ?'
+  ).bind(enabled, slug, params.id).run();
+
+  const actorClaims = parseToken(isAuthed(request)!);
+  await logPlatformAction(
+    env, 'shelf.grant_changed',
+    actorClaims?.sub ?? 'unknown', actorClaims?.email ?? '',
+    'user', params.id, { enabled: !!enabled, slug },
+  );
+
+  return json({ ok: true, enabled: !!enabled, slug });
 };
 
 // ── Teaware Collection ──
@@ -11096,6 +11574,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
 
   const { results } = await env.DB.prepare(
     `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
+            u.shelf_enabled, u.shelf_slug,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -11115,6 +11594,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     username: u.username,
     platform_role: u.platform_role ?? null,
     created_at: u.created_at,
+    shelf_enabled: !!u.shelf_enabled,
+    shelf_slug: u.shelf_slug ?? null,
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -11194,6 +11675,33 @@ const handlePlatformListAccounts: Handler = async (request, env) => {
   });
 
   return json({ accounts: result });
+};
+
+// GET /api/platform/all-stock — stock spine step 3: the movement's master lens.
+// Read-only stock across EVERY location (no account_id filter — the one query
+// that spans accounts), each row labelled by location and owner. Platform-tier
+// only; never customer-facing, no cart, no buy. To change anything the operator
+// steps into the location via the AccountSwitcher.
+const handlePlatformAllStock: Handler = async (request, env) => {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+
+  const { results } = await env.DB.prepare(
+    `SELECT p.id, p.type, p.given_name, p.product_name, p.chinese_name, p.year,
+            p.origin_country, p.origin_region, p.stock_grams, p.quantity_units,
+            p.status, p.is_public, p.shown_in_shop, p.image_url,
+            p.fixed_retail_price_usd, p.created_at,
+            p.account_id, a.name AS account_name, a.slug AS account_slug,
+            a.location_city, a.location_country, a.is_platform_owner,
+            p.owner_user_id, u.name AS owner_name, u.email AS owner_email
+       FROM products p
+       JOIN accounts a ON a.id = p.account_id
+       LEFT JOIN users u ON u.id = p.owner_user_id
+      WHERE p.status != 'Archived'
+      ORDER BY a.is_platform_owner DESC, a.name ASC, p.created_at DESC`
+  ).all();
+
+  return json({ stock: (results as any[]) ?? [] });
 };
 
 // PUT /api/platform/accounts/:id/features/:feature — toggle a feature on/off
@@ -11953,7 +12461,7 @@ async function fetchPublicProductsForAccount(
                   AND cp.target_type = 'shop'
                   AND cp.unpublished_at IS NULL) AS is_featured
        FROM products p
-       WHERE p.is_public = 1 AND p.status = 'Active' AND p.account_id = ?
+       WHERE p.is_public = 1 AND p.shown_in_shop = 1 AND p.status = 'Active' AND p.account_id = ?
        ORDER BY p.created_at DESC`
     ).bind(accountId),
   ]);
@@ -17396,8 +17904,10 @@ const routes: [string, string, Handler][] = [
   // Platform admin
   ['GET',  '/api/platform/users', handlePlatformListUsers],
   ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
+  ['PUT',  '/api/platform/users/:id/shelf', handleGrantShelf],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
+  ['GET',  '/api/platform/all-stock', handlePlatformAllStock],
   ['POST', '/api/platform/accounts', handlePlatformCreateAccount],
   ['PUT',  '/api/platform/accounts/:id/status', handlePlatformSetAccountStatus],
   ['POST', '/api/platform/accounts/:id/suspend', handlePlatformSuspendAccount],
@@ -17469,6 +17979,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id/stock', handleUpdateProductStock],
   ['PUT', '/api/products/:id/commercial', handleUpdateProductCommercial],
   ['PUT', '/api/products/:id/publication', handleUpdateProductPublication],
+  ['PUT', '/api/products/:id/shown', handleUpdateProductVisibility],
   ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],
@@ -17703,6 +18214,25 @@ const routes: [string, string, Handler][] = [
   // User Favorites
   ['GET', '/api/user/favorites', handleGetUserFavorites],
   ['PUT', '/api/user/favorites', handlePutUserFavorites],
+
+  // Personal cellar (stock spine step 4) — location-less, person-owned stock.
+  ['GET',    '/api/me/cellar', handleListCellar],
+  ['POST',   '/api/me/cellar', handleCreateCellarItem],
+  ['PUT',    '/api/me/cellar/:id', handleUpdateCellarItem],
+  ['DELETE', '/api/me/cellar/:id', handleDeleteCellarItem],
+  ['POST',   '/api/me/cellar/:id/request-placement', handleRequestCellarPlacement],
+  ['POST',   '/api/me/cellar/:id/cancel-placement', handleCancelCellarPlacement],
+  // The move — location-owner side (owner-tier, scoped to the active account).
+  ['GET',    '/api/cellar-placements', handleListCellarPlacements],
+  ['POST',   '/api/cellar-placements/:id/approve', handleApproveCellarPlacement],
+  ['POST',   '/api/cellar-placements/:id/decline', handleDeclineCellarPlacement],
+
+  // Standalone public shelf (stock spine step 5).
+  ['GET',    '/api/me/shelf', handleGetMyShelf],
+  ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
+  ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
+  ['POST',   '/api/me/cellar/:id/unpublish-shelf', handleUnpublishFromShelf],
+  ['GET',    '/api/shelf/:slug', handleGetPublicShelf],          // PUBLIC, no auth
 
   // Teaware Collection
   ['GET', '/api/admin/teaware', handleGetTeawareCollection],

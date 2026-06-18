@@ -879,6 +879,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return;
     }
 
+    if (field === 'shownInShop') {
+      // Stock spine step 2: the location-owner curation gate has its own
+      // owner-tier-gated endpoint, separate from the per-domain product update.
+      // Optimistic local state is already applied above.
+      setSavingCount(c => c + 1);
+      try {
+        await api.products.updateShown(id, Boolean(value));
+        setLastSavedAt(Date.now());
+      } catch (err: any) {
+        showToast(`Update failed: ${err.message}`, 'error');
+        onRefresh();
+        if (options?.throwOnError) throw err;
+      } finally {
+        setSavingCount(c => Math.max(0, c - 1));
+      }
+      return;
+    }
+
     const dbPayload = buildProductUpdatePayload(field, value);
     if (!dbPayload) return; // Unsupported field for quick edit
 

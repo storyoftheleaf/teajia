@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, NotePencil } from '@phosphor-icons/react';
+import { BowlSteam, CalendarBlank, Heart, Tray, ArrowsLeftRight, Wrench, Path, BookOpen, Compass, Package, NotePencil } from '@phosphor-icons/react';
 
 interface LaunchpadTile {
   id: string;
@@ -41,6 +41,7 @@ interface LaunchpadViewProps {
   onClose: () => void;
   onOpenJournal: () => void;
   onOpenEvents: () => void;
+  onOpenCellar: () => void;
   onOpenLocationSwitcher: () => void;
   onSignOut: () => void;
 }
@@ -145,6 +146,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
   onClose,
   onOpenJournal,
   onOpenEvents,
+  onOpenCellar,
   onOpenLocationSwitcher,
   onSignOut,
 }) => {
@@ -193,6 +195,15 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         : 'no favorites yet',
       icon: <Heart {...ICON_PROPS} />,
       onClick: () => { onClose(); navigate('/account/journey?tab=collection'); },
+    },
+    {
+      // Stock spine step 4: the personal cellar — tea the user actually owns,
+      // with a quantity. Private; distinct from "remember" (favorited shop teas).
+      id: 'cellar',
+      verb: 'cellar',
+      hint: 'tea you own',
+      icon: <Package {...ICON_PROPS} />,
+      onClick: onOpenCellar,
     },
     {
       id: 'discover',

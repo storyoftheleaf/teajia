@@ -94,6 +94,7 @@ const BriefingPage = lazy(() => import('./pages/BriefingPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));
 const TableCardPage = lazy(() => import('./pages/TableCardPage'));
+const ShelfPage = lazy(() => import('./pages/ShelfPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
 const ForYourSpacePage = lazy(() => import('./pages/ForYourSpacePage'));
 const SpacesPage = lazy(() => import('./pages/SpacesPage'));
@@ -947,6 +948,8 @@ const AppContent = () => {
                 <Route path="/join" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
                 <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TableCardPage /></Suspense></ErrorBoundary>} />
+                {/* Stock spine step 5 — standalone public shelf. /u/ avoids the /t/:token collision. */}
+                <Route path="/u/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShelfPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>
                     <Suspense fallback={<SectionSkeleton variant="grid" />}>
