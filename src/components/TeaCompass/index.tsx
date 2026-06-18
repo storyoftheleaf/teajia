@@ -621,10 +621,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
         {/* Row 2 — capture type (Tea / Teaware / Samples). Only relevant
             inside Source, so it appears only there; Library and Ledger
-            collapse to the single Row 1, keeping their header clean. */}
+            collapse to the single Row 1, keeping their header clean. The
+            session draft strip is NOT here — it scrolls with the page
+            content below, so the header holds at two sticky rows. */}
         {mode === 'sourcing' && (
-          <div className="flex items-center h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture type">
-            <div className="inline-flex max-w-full flex-nowrap items-center gap-4 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center min-h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture type">
+            <div className="flex flex-wrap items-center gap-4">
               {([
                 { id: 'tea', label: 'Tea' },
                 { id: 'teaware', label: 'Teaware' },
@@ -695,92 +697,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </div>
           )}
 
-          {/* Session chips strip — pinned below header in sourcing mode.
-              "+ New" and "Batch" anchor the LEFT edge as session-level
-              controls (separated from the entry chips by a hairline
-              divider) so the user always reaches for them in the same
-              spot. They use rounded-md tiles, not pills — same big tap
-              target, less of the floating-pill feel. */}
-          {mode === 'sourcing' && captureOption !== 'samples' && (
-            <div className="shrink-0 flex flex-wrap items-center gap-1.5 px-3 py-2 border-b border-tea-border">
-              {/* Compact + icon-only — "New" label dropped to free up
-                  horizontal room for entry chips. The plus glyph is the
-                  universal "add" affordance, and the title/aria-label
-                  preserve the meaning for screen readers and tooltips. */}
-              <button
-                type="button"
-                onClick={() => handleNewCapture()}
-                aria-label="Start a new entry"
-                title="Start a new entry"
-                className="tap-target shrink-0 inline-flex h-9 w-10 items-center justify-center rounded-md text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-              >
-                <Plus size={14} />
-              </button>
-              {/* Batch — text-only, no icon. Same visual weight as the
-                  entry chips so the strip reads as one consistent row. */}
-              <button
-                type="button"
-                onClick={() => setBatchMode((v) => !v)}
-                aria-pressed={batchMode}
-                aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
-                title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
-                className={`tap-target whitespace-nowrap inline-flex items-center px-3 py-1.5 rounded-md text-ui-12 transition-colors shrink-0 ${
-                  batchMode
-                    ? 'bg-tea-accent-sub text-tea-text'
-                    : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-                }`}
-              >
-                Batch
-              </button>
-
-              {sessionEntries.length > 0 && (
-                <div className="w-px h-5 bg-tea-border shrink-0 mx-0.5" aria-hidden />
-              )}
-
-              {sessionEntries.map((entry) => {
-                const isActive = entry.id === activeEntryId;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => handleSelectEntry(entry.id)}
-                    className={`group relative flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-md text-ui-12 transition-colors shrink-0 ${
-                      isActive
-                        ? 'bg-tea-accent-sub text-tea-text'
-                        : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-                    }`}
-                  >
-                    {/* Active session = solid gold pill. Differentiated
-                        from the page-tab gold underline so a user can tell
-                        the active entry chip from a tab indicator. */}
-                    {isActive && <Check size={11} strokeWidth={3} className="text-tea-gold" />}
-                    {entry.name || 'Untitled'}
-                    <span
-                      role="button"
-                      aria-label="Remove"
-                      onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
-                      className={`transition-opacity ${
-                        isActive ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
-                      }`}
-                    >
-                      <X size={9} />
-                    </span>
-                  </button>
-                );
-              })}
-
-              {/* Sync indicator anchored to the right of the session
-                  strip — sits next to the working entries instead of in
-                  the page header, so save state is communicated where
-                  the user is doing the saving. ml-auto pushes it to the
-                  trailing edge regardless of how many session chips are
-                  in the row. */}
-              <div className="ml-auto pl-2 self-center">
-                <SyncIndicator />
-              </div>
-            </div>
-          )}
-
           {/* Content area. Action bar lived here historically; it's now
               distributed across the page (Batch/Share in the header strip,
               Want/Buy/Sample/Taste/Done inside the form), so the scroll
@@ -789,7 +705,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             ref={scrollContainerRef}
             className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
               mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
-            } ${mode === 'sourcing' ? 'pb-nav-gap' : 'pb-3'}`}
+            } ${
+              mode === 'sourcing'
+                // Tea/Teaware capture cards carry their own bottom-nav
+                // clearance inside the warm shell (so the surface extends
+                // below the footer); only the Samples panel needs the outer
+                // container to reserve nav space.
+                ? (captureOption === 'samples' ? 'pb-nav' : '')
+                : 'pb-3'
+            }`}
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -809,6 +733,74 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <SampleCartPanel />
                   ) : (
                     <>
+                      {/* Session draft strip — + / Batch / Untitled chips.
+                          Lives inside the scroll region (NOT a sticky bar) so
+                          it scrolls away with the page, and WRAPS to new lines
+                          rather than scrolling horizontally — horizontal scroll
+                          is never used in this build. */}
+                      <div className="flex flex-wrap items-center gap-1 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => handleNewCapture()}
+                          aria-label="Start a new entry"
+                          title="Start a new entry"
+                          className="tap-target shrink-0 inline-flex h-8 w-9 items-center justify-center rounded-md text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBatchMode((v) => !v)}
+                          aria-pressed={batchMode}
+                          aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
+                          title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
+                          className={`tap-target whitespace-nowrap inline-flex items-center px-2.5 py-1 rounded-md text-ui-12 transition-colors shrink-0 ${
+                            batchMode
+                              ? 'bg-tea-accent-sub text-tea-text'
+                              : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+                          }`}
+                        >
+                          Batch
+                        </button>
+
+                        {sessionEntries.length > 0 && (
+                          <div className="w-px h-5 bg-tea-border shrink-0 mx-0.5" aria-hidden />
+                        )}
+
+                        {sessionEntries.map((entry) => {
+                          const isActive = entry.id === activeEntryId;
+                          return (
+                            <button
+                              key={entry.id}
+                              type="button"
+                              onClick={() => handleSelectEntry(entry.id)}
+                              className={`group relative flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-md text-ui-12 transition-colors shrink-0 ${
+                                isActive
+                                  ? 'bg-tea-accent-sub text-tea-text'
+                                  : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+                              }`}
+                            >
+                              {isActive && <Check size={11} strokeWidth={3} className="text-tea-gold" />}
+                              {entry.name || 'Untitled'}
+                              <span
+                                role="button"
+                                aria-label="Remove"
+                                onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
+                                className={`transition-opacity ${
+                                  isActive ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
+                                }`}
+                              >
+                                <X size={9} />
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        <div className="ml-auto pl-2 self-center shrink-0">
+                          <SyncIndicator />
+                        </div>
+                      </div>
+
                       {/* Batch mode row — rapid-fire entry for vendor tables */}
                       {batchMode && (
                         <BatchCaptureRow />

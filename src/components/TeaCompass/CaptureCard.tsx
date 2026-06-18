@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, FlaskConical, Minus, Plus, Share2, ShoppingCart, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
@@ -177,30 +177,32 @@ const SectionDivider: React.FC<{ label: string; ornament?: boolean }> = ({ label
 );
 
 /** Inline status mark — Want/Buy/Sample/Taste tile inside the form.
- *  Transparent bg at rest; gold-tint border + accent-sub when active.
- *  Tile height (76px min) and icon size (18px) are tuned to read as a
- *  primary action row, not a secondary status chip. */
+ *  Text-only (no icons): a label plus one quiet helper line that says
+ *  what the action does, so the four are legible on first encounter.
+ *  Transparent bg at rest; gold-tint border + accent-sub when active. */
 const EntryMark: React.FC<{
-  icon: React.ReactNode;
   label: string;
+  hint: string;
   active: boolean;
   onClick: () => void;
   ariaLabel?: string;
-}> = ({ icon, label, active, onClick, ariaLabel }) => (
+}> = ({ label, hint, active, onClick, ariaLabel }) => (
   <button
     type="button"
     onClick={onClick}
     aria-pressed={active}
     aria-label={ariaLabel || label}
-    className={`group relative flex flex-col items-start justify-start gap-1 min-h-[76px] px-3 py-3 rounded-md border text-left transition-colors ${
+    className={`group relative flex flex-col items-start justify-center gap-0.5 min-h-[64px] px-3 py-2.5 rounded-md border text-left transition-colors ${
       active
         ? 'bg-tea-accent-sub border-tea-gold/30 text-tea-text'
         : 'bg-transparent border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
     }`}
   >
-    <span className={`pointer-events-none flex items-center gap-2 font-display text-ui-15 ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
-      <span className={`shrink-0 ${active ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{icon}</span>
-      <span>{label}</span>
+    <span className={`pointer-events-none font-display text-ui-15 ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+      {label}
+    </span>
+    <span className="pointer-events-none text-ui-11 leading-snug text-tea-text-dim">
+      {hint}
     </span>
   </button>
 );
@@ -704,6 +706,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const shellClass = 'surface-warm relative px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
+  // Mobile shell carries an even top/bottom buffer INSIDE the warm surface so
+  // the surface-warm gradient + grain extend past the Done footer with the
+  // same standard breath as the top — not the oversized bottom-nav gap, which
+  // left a dark void below where the warm gradient had already faded out. The
+  // bottom nav is a floating centered pill, so content scrolls clear of it
+  // rather than needing 80px reserved underneath.
+  const mobileShellClass = `${shellClass} pt-1 pb-6`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
@@ -988,7 +997,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
 
     return (
-      <div className={shellClass}>
+      <div className={mobileShellClass}>
 
         {/* "Source" header — vendor + photos read as a single header card
             with a faint gold inner glow and a subtle hairline between the
@@ -1372,8 +1381,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           return (
             <div className="lg:hidden">
               <EntryMark
-                icon={isWantTeaware ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
                 label={isWantTeaware ? 'Wanted' : 'Want'}
+                hint={isWantTeaware ? 'On your wishlist' : 'Save to your wishlist'}
                 active={isWantTeaware}
                 onClick={() => update({ status: isWantTeaware ? 'noted' : 'want' })}
               />
@@ -1387,23 +1396,23 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         {(() => {
           const ready = !!entry.name?.trim() || (entry.photos.length > 0 && !!entry.vendorName?.trim());
           return (
-            <div className="flex items-stretch gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1">
               {onShare && (
                 <button
                   type="button"
                   onClick={onShare}
-                  className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
+                  className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
                   aria-label="Share this entry"
                   title="Share this entry"
                 >
-                  <Share2 size={18} strokeWidth={1.75} />
+                  Share
                 </button>
               )}
               <button
                 type="button"
                 onClick={handleCommit}
                 disabled={!ready}
-                className="flex-1 py-3 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-16 shadow-lg shadow-tea-gold/10 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Done, commit this entry"
               >
                 Done
@@ -1458,7 +1467,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
   // ── Tea card layout ────────────────────────
   return (
-    <div className={shellClass}>
+    <div className={mobileShellClass}>
       {/* ← Library back link — shown when navigated from Library */}
       {onReturnToLibrary && (
         <button
@@ -1886,20 +1895,20 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           first-class control surface (not a status chip strip). */}
       <div className="lg:hidden grid grid-cols-2 gap-2">
         <EntryMark
-          icon={<Droplets size={18} strokeWidth={1.5} />}
           label={hasTasting ? 'Tasted' : 'Taste'}
+          hint={hasTasting ? 'Tasting recorded' : 'Record a tasting'}
           active={!!hasTasting}
           onClick={openTastingOverlay}
         />
         <EntryMark
-          icon={isWant ? <BookmarkCheck size={18} /> : <BookmarkPlus size={18} />}
           label={isWant ? 'Wanted' : 'Want'}
+          hint={isWant ? 'On your wishlist' : 'Save to your wishlist'}
           active={isWant}
           onClick={() => update({ status: isWant ? 'noted' : 'want' })}
         />
         <EntryMark
-          icon={<ShoppingCart size={18} />}
           label="Buy"
+          hint="Add to your inventory"
           active={showBuyPicker}
           onClick={() => {
             const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
@@ -1908,8 +1917,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           }}
         />
         <EntryMark
-          icon={<FlaskConical size={18} strokeWidth={1.5} />}
           label={sampleCartHas ? 'Listed' : 'Sample'}
+          hint={sampleCartHas ? 'In your sample queue' : 'Queue as a sample'}
           active={sampleCartHas}
           onClick={() => {
             if (sampleCartHas) {
@@ -1939,23 +1948,23 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       {(() => {
         const ready = !!entry.name?.trim() || (entry.photos.length > 0 && !!entry.vendorName?.trim());
         return (
-          <div className="lg:hidden flex items-stretch gap-2 mt-1">
+          <div className="lg:hidden flex items-center gap-2 mt-1">
             {onShare && (
               <button
                 type="button"
                 onClick={onShare}
-                className="shrink-0 inline-flex w-12 items-center justify-center rounded-md border border-tea-border text-tea-text-sec transition-colors hover:border-tea-gold/30 hover:bg-tea-accent-sub hover:text-tea-text"
+                className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
                 aria-label="Share this entry"
                 title="Share this entry"
               >
-                <Share2 size={18} strokeWidth={1.75} />
+                Share
               </button>
             )}
             <button
               type="button"
               onClick={handleCommit}
               disabled={!ready}
-              className="flex-1 py-3 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-16 shadow-lg shadow-tea-gold/10 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Done, commit this entry"
             >
               Done

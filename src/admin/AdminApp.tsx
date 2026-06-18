@@ -71,7 +71,6 @@ import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardView } from './components/DashboardView';
 import { NoMembershipGate } from './components/NoMembershipGate';
-import { AccountSwitcher } from './components/AccountSwitcher';
 import { AccountSettingsView } from './views/AccountSettingsView';
 import { StoreLaunchPlaybookView } from './views/StoreLaunchPlaybookView';
 import { PlatformAdminView } from './views/PlatformAdminView';
@@ -338,7 +337,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnIntake = location.pathname.includes('/admin/intake');
   const isOnHome = location.pathname === '/admin/' || location.pathname === '/admin/compass';
-  const isOnCompass = location.pathname.includes('/admin/compass');
 
   // React Query Hooks — only fetch when authenticated to avoid 401 errors on initial load
   const isLoggedIn = isAuthenticated || isDevAdmin;
@@ -509,17 +507,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-gold/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
 
-      {/* Admin top bar — the account you're working in. Platform owners and
-          anyone in more than one tea house get the switcher here; tapping it
-          switches the whole admin into another store (e.g. Teajia Australia).
-          Single-account staff don't see it (nothing to switch to). */}
-      {(isPlatformOwner || memberships.length > 1) && (
-        <div className="flex-none flex items-center justify-end px-3 md:px-6 py-1.5 border-b border-tea-border bg-tea-surface/60">
-          <div className="w-[220px] max-w-[60vw]">
-            <AccountSwitcher direction="down" />
-          </div>
-        </div>
-      )}
+      {/* Account / location switching lives inside Your Table (AccountPanel),
+          not in a sticky admin bar — see AccountSwitcherChip there. The old
+          top switcher bar was removed so no admin screen carries it. */}
 
       {isOperatingAs && (
         <OperatingAsBanner

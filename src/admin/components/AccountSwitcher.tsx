@@ -101,12 +101,14 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false, direction = 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-tea-elevated/40 hover:bg-tea-elevated/70 transition-colors text-left focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+        className={`flex items-center rounded-md bg-tea-elevated/40 hover:bg-tea-elevated/70 transition-colors text-left focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none ${
+          compact ? 'gap-1.5 px-1.5 py-1' : 'w-full gap-2 px-3 py-2'
+        }`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Switch account"
       >
-        <div className="w-7 h-7 rounded-md bg-tea-gold-lt flex items-center justify-center shrink-0">
+        <div className={`rounded-md bg-tea-gold-lt flex items-center justify-center shrink-0 ${compact ? 'w-6 h-6' : 'w-7 h-7'}`}>
           {active?.logo_url ? (
             <img
               src={active.logo_url}
@@ -142,7 +144,7 @@ export const AccountSwitcher: React.FC<Props> = ({ compact = false, direction = 
       {open && (
         <div
           role="listbox"
-          className={`absolute left-0 right-0 ${
+          className={`absolute ${compact ? 'right-0' : 'left-0 right-0'} ${
             direction === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
           } bg-tea-surface rounded-xl shadow-2xl overflow-hidden z-priority border border-tea-border min-w-[220px]`}
         >
