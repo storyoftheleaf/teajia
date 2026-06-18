@@ -145,3 +145,15 @@ test('share — the magazine SharePanel opens from the colophon in the immersive
 
   expect(errors.filter((e) => !e.includes('favicon') && !/40[13]/.test(e))).toEqual([]);
 });
+
+test('immersive reader is chrome-less but carries a back control', async ({ page }) => {
+  await page.goto('/article/the-rock-remembers');
+  await expect(page.getByTestId('immersive-article')).toBeVisible();
+
+  // The full-bleed immersive reader suppresses the app bottom tab bar...
+  await expect(page.getByTestId('bottom-tab-bar')).toHaveCount(0);
+
+  // ...and instead carries its own minimal back control so the read is never a trap.
+  const back = page.getByTestId('immersive-back');
+  await expect(back).toBeVisible();
+});
