@@ -277,7 +277,9 @@ export const AccentSwatches: React.FC<{ accent: string; setAccent: (a: string) =
     style={{
       position: 'fixed',
       right: 'clamp(14px,3vw,22px)',
-      bottom: 'clamp(14px,3vw,22px)',
+      // Sit above the floating bottom tab bar (now kept visible on Read pages)
+      // so the accent swatches never collide with it.
+      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)',
       zIndex: 30,
       display: 'flex',
       alignItems: 'center',
