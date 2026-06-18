@@ -97,6 +97,11 @@
 
 ## Future
 
+### Cross-network tea curation (inter-exchangeability)
+
+- [ ] **Curate across networks** — let an operator curate teas drawn from multiple networks/accounts together in one Compass view, with the right visibility and ownership rules _(you · deep)_
+  Today a Compass entry belongs to the single account you're operating as. The ask is to mix teas sourced from different networks into one curated set, which is a data + permissions question (whose catalog, whose ledger, who can see the shared set, how an entry references a tea owned by another account) — not a UI tweak. Done when the ownership/visibility model is decided and an operator can assemble and view a set spanning more than one network. Deferred from the 2026-06-18 Compass action-button redesign session.
+
 ### Mood & Flavor Taxonomy System
 
 - [ ] **Mood/flavor system** — build a connected mood and flavor tagging system for every tea _(agent · deep)_
@@ -141,6 +146,21 @@
   Network operators need a path from sourced stock to their own shelves with wholesale pricing. Done when an operator can move a product from sourcing through to a listed shelf item via the pipeline. → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
 - [ ] **Operator onboarding** — build operator onboarding, operator public pages, and the network directory _(agent · deep)_
   New operators need a way to join, present a public storefront, and be discoverable in the network. Done when an operator can onboard, publish a public page, and appear in the directory. → Plan: [docs/ROADMAP.md](docs/ROADMAP.md)
+
+### The stock spine — movement, locations, sellers, personal collections (locked 2026-06-18)
+
+Build in order; each step sits on the one before it. The whole model is specced in [docs/MULTI_STORE_PLAN.md](docs/MULTI_STORE_PLAN.md) (the "Movement / Locations / Sellers / Personal Collections" section). The locations layer and Adrian-as-master switching already work; these four are what's left.
+
+- [ ] **1. Give every piece of stock an owner** — record which person a stock row belongs to, defaulting to the location itself so nothing changes on screen yet _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
+  The foundation the other three sit on. Today a tea belongs to a location but not to a person; this makes "whose tea is this" a real fact on every row. Done when every stock row carries an owner and existing teas all read as owned by their location with no visible change.
+- [ ] **2. Let a location owner curate which sellers' tea shows** — several people can hold their own tea in one location, and the owner chooses which of it appears in that location's shop _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
+  Being in stock and being shown become two separate switches, with the location owner controlling "show / don't show". Done when a second person's tea can exist in Bali and the Bali owner can show or hide each of their teas in the shop, one storefront, no marketplace.
+- [ ] **3. Build the all-locations master view** — one overview where Adrian sees every location's stock at once, each tea labelled by where it lives _(band: agent-runnable)_ _(effort: moderate)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
+  The movement as a lens: read-only, operator-only, never a counter a customer buys from. Done when Adrian sees a single list spanning all locations with a location note per row, and steps into a location to actually change stock.
+- [ ] **4. Let regular app users keep their own collection** — a home user records the tea they personally own, private by default and tied to no location _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
+  The private floor of the same stock spine: same row-ownership as a seller, with selling switched off. Becomes sellable only if the user joins a location and that owner shows it, so a collector can grow into a seller without starting over. Done when a logged-in user can add tea they own with a quantity, kept private and synced to their account.
+- [ ] **5. Let a standalone seller open their own public tea link** — a person not on any location's team can make their own collection public at their own page, with Adrian's permission _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
+  The top of the spine: a personal shelf with selling switched on, reachable at its own link, without joining Bali. The buyer deals with that seller directly (WhatsApp, like every Teajia order) so Teajia never holds the money. Done when Adrian can grant a user permission to publish their collection at their own page and a visitor can reach it and start a direct order.
 
 ## Operational notes (not TODOs: context for future-you)
 

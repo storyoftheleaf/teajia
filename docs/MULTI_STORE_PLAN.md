@@ -192,3 +192,55 @@ VALUES ('acc_<id>', '<slug>', '<Display Name>', '<City>', '<Country>', '<Timezon
 ## Protecting Adrian's Sources (explicit)
 
 When a user authenticated to `acc_teajia_australia` calls `GET /api/customers`, the worker filters by `account_id = 'acc_teajia_australia'` and never returns rows from other accounts. The same enforcement applies to products, vendors (`customers` with the `vendor` tag), compass entries, stock ledger, invoices, and teaware. The only cross-account data flow is through `tea_reviews` (opt-in per-review via the `visibility` field) and the public network directory (`accounts` table, public fields only). Vendor protection is structural, not advisory.
+
+---
+
+# Movement / Locations / Sellers / Personal Collections — the spine (locked 2026-06-18)
+
+This section supersedes the earlier two-layer framing where "account = store". The model is now three layers over **one stock spine**: every piece of tea in the system is a row owned by a person, and four things vary — whether it's tied to a location, whether the location owner shows it, whether it's for sale, and who can see it. Collector, seller, location, and movement are all views of that single spine.
+
+## The three layers
+
+1. **The movement** — Adrian's master lens. It is the platform-owner context, not a separate store and not a stock-holder. It sees every location's stock at once, each row labelled by where it lives, and lets Adrian step into any location to operate. It sells nothing itself. (Earlier idea of a separate "movement account that holds shared stock" is rejected — it would recreate the tangle.)
+
+2. **A location** — a real place (Bali, Australia, a future warehouse). It owns physical reality: stock, orders, fulfillment, walk-in and online customers. A location can sell **in person and online**; online is just the location shipping instead of handing tea over the counter, so web sales are never blocked. A warehouse is just a location with no walk-in storefront — the model already holds it, so it needs no special design now.
+
+3. **Sellers inside a location** — several people can hold their own stock under one location's roof. Every stock row records whose it is. The **location owner curates** which seller stock actually appears in that location's shop: being in stock and being shown are two separate switches, and the owner controls "show / don't show". One storefront per location (not a marketplace of competing sellers); customers see one curated Bali shop, not a list of vendors.
+
+## Personal collections = the private floor of the same spine
+
+A regular app user managing their own tea at home is the **same row-ownership as a seller, with selling turned off**. Personal stock is **private by default and tied to no location**. It only becomes sellable when the person joins a location AND that location's owner shows it. This means the path from "I just track my collection" to "I sell at a Teajia location" is natural, not a rebuild — the collector keeps their rows and the owner starts curating them. This realises VISION.md's "platform for tea makers/collectors to manage their own collections, not just a shop."
+
+## The load-bearing rules (do not break)
+
+- **One order belongs to one location** that fills it. No cross-location fulfillment until it is built as its own deliberate project. The aggregate movement view is a mirror Adrian looks into, never a counter a customer buys from.
+- **The movement holds no stock and no storefront.** Its only jobs: show everything, step into a location. If it ever grows a cart, prices, or orders, it has drifted into being a location — stop.
+- **Stock-exists and stock-shown are separate.** A row being owned/in-stock never implies it is visible or for sale. Location-owner curation is the gate.
+- **Private by default.** A personal user's stock is theirs alone and location-less until they join a location and the owner shows it. No accidental exposure.
+- **Cross-border shipping is deferred.** One location shipping another location's stock is a later project, not part of this spine.
+
+## What exists vs. what's new
+
+- **Already built:** the location layer (accounts, members/roles, per-location stock, per-location storefronts at `/store/:slug` + `au.teajia.com`), Adrian-as-platform-owner switching into any location, cross-account source protection.
+- **New piece 1 — the all-locations master view:** an operator-only, read-only inventory list spanning every location, each row labelled by location. To change stock, step into that location. (No customer-facing aggregate.)
+- **New piece 2 — seller-owned stock + curation:** stock rows carry an owner (a member); the location owner has a show/hide control over which owned rows appear in the shop; per-owner filtering/rollup.
+- **New piece 3 — personal collections:** the private, location-less, not-for-sale floor of the same stock model; becomes sellable only via join-a-location + owner-shows-it.
+- **No work needed to "separate the movement":** Adrian's platform-owner view simply *is* the movement.
+
+## Deferred (named, not built)
+
+- Cross-location / cross-border fulfillment (one location shipping another's stock).
+- Per-seller payouts / money splits (sellers help run one shared location shop; money is manual until a real marketplace need appears).
+- Seller-as-own-sub-storefront (the marketplace shape) — only if a seller eventually needs their own front door.
+
+## The standalone seller — a public personal shelf (added 2026-06-18)
+
+A fifth layer sits at the top of the same spine: a person who is **not a member of any location** can still sell their own tea, through their **own link**, with Adrian's permission. This is a personal collection (the private floor) with selling switched on and made public at its own page (e.g. `/t/<their-slug>`) — without belonging to Bali or any location.
+
+How it stays clean (and why it does NOT reopen the marketplace):
+- The order is **between the buyer and that seller directly** — same WhatsApp-conversation model as every Teajia order. Teajia does not take the money or hold the order.
+- The seller **fulfills and is paid themselves.** There is no location owner standing behind the order, and there is no payout/split for Adrian to run. That is the whole point of "their own link, not inside Bali."
+- **Going public requires a permission Adrian grants.** Private-by-default still holds; a personal shelf only becomes a public link when permission is given.
+- It is the natural **collector-to-public-seller** growth path: a private shelf flips public without needing a shop or a location membership.
+
+Rejected alternatives: making them a hidden Bali member (that is step 2, and Adrian explicitly wants "not listed on Bali"); a full marketplace where Teajia takes the order and pays them out (that is the deferred marketplace — real payments + splits, not built).

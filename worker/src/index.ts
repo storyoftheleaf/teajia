@@ -812,6 +812,7 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   sold_out_at:           'sold_out_at',
   tasting:               'tasting',
   tasting_source:        'tasting_source',
+  owner_user_id:         'owner_user_id',   // stock spine step 1 — NULL = location-owned
 };
 
 // Build mirror statements for a product update. Pass the SAME body the
@@ -947,8 +948,9 @@ function buildProductMirrorInserts(
       show_wisdom, is_custom_wisdom,
       status, sold_out_at,
       tasting, tasting_source,
+      owner_user_id,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -961,6 +963,7 @@ function buildProductMirrorInserts(
     body.show_wisdom ?? 1, body.is_custom_wisdom ?? 0,
     listingStatus, body.sold_out_at ?? null,
     body.tasting ?? '{}', body.tasting_source ?? null,
+    body.owner_user_id ?? null,
     productId
   );
 
@@ -2060,6 +2063,10 @@ const handleCreateProduct: Handler = async (request, env) => {
   }
 
   body.account_id = accountId;
+  // Stock spine step 1: stamp the creating user as the stock owner unless the
+  // caller already specified one. NULL stays "owned by the location"; here a
+  // real authenticated creator is cleanly on ctx.userId, so record it.
+  if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
   const id = crypto.randomUUID();
   const cols = Object.keys(body);
   const placeholders = cols.map(() => '?').join(', ');
