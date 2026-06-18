@@ -1190,7 +1190,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return (
         <th
           aria-sort={ariaSort}
-          className={`relative font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
+          className={`relative font-sans text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
         >
           <button
             type="button"
@@ -1203,7 +1203,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {sortEntry ? (
                 <>
                   {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-readgold" /> : <ArrowDown size={10} className="ml-1 text-tea-readgold" />}
-                  {showBadge && <span className="ml-0.5 text-ui-9 text-tea-readgold font-bold">{sortIndex + 1}</span>}
+                  {showBadge && (
+                    <span
+                      className="ml-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full bg-tea-readgold/15 text-ui-9 text-tea-readgold font-bold leading-none tabular-nums"
+                      title={`Sort priority ${sortIndex + 1} of ${inventorySortConfig.length}`}
+                      aria-label={`sort priority ${sortIndex + 1}`}
+                    >
+                      {sortIndex + 1}
+                    </span>
+                  )}
                 </>
               ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-dim ml-1 transition-opacity" />}
              </span>
@@ -1648,8 +1656,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
-      {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
-      <div className={`md:hidden sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
+      {/* --- MERGED VIEWS + CONTROLS BAR (mobile) ---
+          NOT sticky — this band scrolls UP and away with the list so only the
+          column-header row (the table thead, sticky inside its own scroll box)
+          stays pinned. Keeping the tabs+controls permanently pinned spent ~90px
+          of the first phone screen before any tea was visible; letting it scroll
+          reclaims that height. The backdrop-blur is kept for the brief moment it
+          overlaps the rail slide-in. */}
+      <div className={`md:hidden bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         {/* Shift the whole bar clear of the action rail when it slides in from the
             right, matching the rail's 200ms slide so the tabs/sort row are never
             painted over. Mirrors the desktop toolbar's paddingRight treatment. */}
@@ -1657,7 +1671,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           className="flex flex-col border-b border-tea-border transition-[padding-right] duration-200"
           style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}
         >
-        <div className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar">
+        <div
+          className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar"
+          style={{
+            // Soft right-edge fade so it's visually clear the tab row scrolls
+            // past the viewport edge (the scrollbar is hidden). Masks only the
+            // last 20px; harmless when the tabs already fit.
+            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent 100%)',
+            maskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent 100%)',
+          }}
+        >
           {/* View tabs — all visible, horizontally scrollable */}
           {(() => {
             const defaultOrder = activeDefaultViews.map(v => v.id);
@@ -1715,7 +1738,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {hasMore && (
                   <button
                     onClick={() => setViewTabsExpanded(!viewTabsExpanded)}
-                    className={`tap-target w-7 h-7 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                    className={`tap-target w-9 h-9 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                     title={viewTabsExpanded ? 'Show fewer views' : 'Show all views'}
                     aria-label={viewTabsExpanded ? 'Show fewer inventory views' : 'Show all inventory views'}
                   >
@@ -1727,121 +1750,126 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           })()}
         </div>
 
-        {/* Row 2: controls — price toggle + group + sort */}
-        <div className="flex items-center px-2 py-1 gap-0 border-t border-tea-border">
-          <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim/50 px-1 mr-1">
-            {VIEW_FILTER_LABELS[filterType] || filterType} · {processedProducts.length}
-          </span>
-          <div className="ml-auto flex items-center gap-0">
+        {/* Row 2: controls — price toggle + group + sort. Text labels sit beside
+            each glyph (house rule: text over icon-only); the count moved to the
+            stock-history strip so it is stated once. Group/Sort use AnchoredMenu
+            so the panels follow their trigger when this (now-scrolling) band
+            moves, instead of floating at a fixed viewport offset. */}
+        <div className="flex items-center px-2 py-1 gap-1 border-t border-tea-border">
+          {inventoryGroupBy && (
+            <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim/60 px-1 mr-1 truncate">
+              Grouped
+            </span>
+          )}
+          <div className="ml-auto flex items-center gap-1">
             <button
               onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
-              className={`tap-target w-8 h-8 flex items-center justify-center rounded-md transition-colors ${priceMode === 'cost' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className="tap-target h-8 px-2 inline-flex items-center gap-1.5 rounded-md transition-colors text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface"
               title={`Showing ${priceMode} prices — tap to switch`}
               aria-label={`Showing ${priceMode} prices, switch price mode`}
             >
               {priceMode === 'retail' ? <Tag size={14} /> : <Receipt size={14} />}
+              {priceMode === 'retail' ? 'Retail' : 'Cost'}
             </button>
-            <div className="relative">
-              <button
-                onClick={() => { setShowMobileGroupBy(!showMobileGroupBy); setShowMobileSort(false); setShowOptions(false); }}
-                className={`tap-target w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                aria-label="Group inventory"
-                aria-expanded={showMobileGroupBy}
-              >
-                <Layers size={14} />
-              </button>
-              {/* Group-by dropdown rendered outside backdrop-blur container below */}
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileGroupBy(false); setShowOptions(false); }}
-                className={`tap-target w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                aria-label="Sort inventory"
-                aria-expanded={showMobileSort}
-              >
-                <ArrowUpDown size={14} />
-              </button>
-              {/* Sort dropdown rendered outside backdrop-blur container below */}
-            </div>
+            <AnchoredMenu
+              align="right"
+              width={176}
+              role="listbox"
+              open={showMobileGroupBy}
+              onOpenChange={(o) => { setShowMobileGroupBy(o); if (o) { setShowMobileSort(false); setShowOptions(false); } }}
+              trigger={(props) => (
+                <button
+                  {...props}
+                  className={`tap-target h-8 px-2 inline-flex items-center gap-1.5 rounded-md transition-colors text-ui-11 uppercase tracking-[0.08em] ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-text bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                  aria-label="Group inventory"
+                >
+                  <Layers size={14} /> Group
+                </button>
+              )}
+            >
+              {(close) => GROUPBY_OPTIONS.map(opt => {
+                const isActive = (inventoryGroupBy || '') === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => { setInventoryGroupBy(opt.value || null); close(); }}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-ui-13 transition-colors ${isActive ? 'text-tea-gold font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                  >
+                    <span>{opt.label}</span>
+                    {isActive && <Check size={14} />}
+                  </button>
+                );
+              })}
+            </AnchoredMenu>
+            <AnchoredMenu
+              align="right"
+              width={280}
+              role="listbox"
+              className="px-1 py-2"
+              open={showMobileSort}
+              onOpenChange={(o) => { setShowMobileSort(o); if (o) { setShowMobileGroupBy(false); setShowOptions(false); } }}
+              trigger={(props) => (
+                <button
+                  {...props}
+                  className={`tap-target h-8 px-2 inline-flex items-center gap-1.5 rounded-md transition-colors text-ui-11 uppercase tracking-[0.08em] ${showMobileSort ? 'text-tea-text bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                  aria-label="Sort inventory"
+                >
+                  <ArrowUpDown size={14} /> Sort
+                </button>
+              )}
+            >
+              {(close) => (
+                <div className="grid grid-cols-2 gap-0.5">
+                  {[
+                    { key: 'type', label: 'Type' },
+                    { key: 'productName', label: 'Name' },
+                    { key: 'stockGrams', label: 'Stock' },
+                    { key: 'pricePerGramUSD', label: 'Price/g' },
+                    { key: 'costAmount', label: 'Cost' },
+                    { key: 'costPerGramUSD', label: 'Cost/g' },
+                    { key: 'year', label: 'Year' },
+                    { key: 'originRegion', label: 'Origin' },
+                    { key: 'vendor', label: 'Source' },
+                  ].map(opt => {
+                    const current = inventorySortConfig[0];
+                    const isActive = current?.key === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => {
+                          if (isActive) {
+                            setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                          } else {
+                            setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
+                          }
+                          close();
+                        }}
+                        className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && (
+                          <span className="flex items-center">
+                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </AnchoredMenu>
           </div>
         </div>
         </div>
       </div>
 
-      {/* --- MOBILE GROUP-BY DROPDOWN (outside backdrop-blur container) --- */}
-      <div className="md:hidden">
-            {showMobileGroupBy && (
-              <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMobileGroupBy(false)} />
-              <div className="fixed right-12 top-[82px] w-40 max-w-[calc(100vw-4rem)] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
-                {GROUPBY_OPTIONS.map(opt => {
-                  const isActive = (inventoryGroupBy || '') === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setInventoryGroupBy(opt.value || null);
-                        setShowMobileGroupBy(false);
-                      }}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-ui-13 transition-colors ${isActive ? 'text-tea-gold font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                    >
-                      <span>{opt.label}</span>
-                      {isActive && <Check size={14} />}
-                    </button>
-                  );
-                })}
-              </div>
-              </>
-            )}
-      </div>
-
-      {/* --- MOBILE SORT DROPDOWN (outside backdrop-blur container) --- */}
-      <div className="md:hidden">
-            {showMobileSort && (
-              <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-              <div className="fixed right-2 top-[82px] w-[calc(100vw-16px)] max-w-[280px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2 px-1" role="menu">
-                <div className="grid grid-cols-2 gap-0.5">
-                {[
-                  { key: 'type', label: 'Type' },
-                  { key: 'productName', label: 'Name' },
-                  { key: 'stockGrams', label: 'Stock' },
-                  { key: 'pricePerGramUSD', label: 'Price/g' },
-                  { key: 'costAmount', label: 'Cost' },
-                  { key: 'costPerGramUSD', label: 'Cost/g' },
-                  { key: 'year', label: 'Year' },
-                  { key: 'originRegion', label: 'Origin' },
-                  { key: 'vendor', label: 'Source' },
-                ].map(opt => {
-                  const current = inventorySortConfig[0];
-                  const isActive = current?.key === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      onClick={() => {
-                        if (isActive) {
-                          setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
-                        } else {
-                          setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
-                        }
-                        setShowMobileSort(false);
-                      }}
-                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                    >
-                      <span>{opt.label}</span>
-                      {isActive && (
-                        <span className="flex items-center">
-                          {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-                </div>
-              </div>
-              </>
-            )}
-      </div>
+      {/* Group-by and Sort dropdowns moved INTO the controls row as AnchoredMenu
+          (so they track their trigger when the band scrolls). The old detached
+          fixed top-[82px] blocks were removed. */}
 
       {/* --- MOBILE OPTIONS SHEET (outside backdrop-blur container) --- */}
       <div className="md:hidden">
@@ -2606,36 +2634,40 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               maxHeight: 'calc(100dvh - 100px)',
             } : undefined}
           >
-          {/* Top strip — stock-history link + active-view label (left) + item
-              counter (right). It lives INSIDE the scroll box (above the table) so
-              it scrolls UP and away as the list scrolls, leaving only the column
-              header row pinned. */}
+          {/* Top strip — the orienting line: which view + how many (left), with
+              stock-history demoted to a quiet trailing link (right) rather than a
+              loud leading verb. It lives INSIDE the scroll box (above the table)
+              so it scrolls UP and away as the list scrolls, leaving only the
+              column header row pinned — this is the single statement of "what am
+              I looking at," so the count is not repeated in the controls band. */}
           {processedProducts.length > 0 && (
             <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
-              <div className="flex items-center gap-3 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = panelProduct ?? processedProducts[0];
-                    if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
-                  }}
-                  className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5 shrink-0"
-                >
-                  <History size={12} aria-hidden="true" /> View stock history
-                </button>
-                {VIEW_FILTER_LABELS[filterType] && (() => {
+              <div className="flex items-baseline gap-2 min-w-0">
+                {(() => {
                   const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
                   const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
+                  const label = VIEW_FILTER_LABELS[filterType] || filterType;
                   return (
-                    <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-dim truncate">
-                      <span className="text-tea-text-dim">·</span>
-                      {IconComp && <IconComp size={12} className="text-tea-text-dim shrink-0" />}
-                      <span className="truncate">{VIEW_FILTER_LABELS[filterType]}</span>
+                    <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec truncate">
+                      {IconComp && <IconComp size={12} className="text-tea-text-sec shrink-0" />}
+                      <span className="truncate">{label}</span>
                     </span>
                   );
                 })()}
+                <span className="label-caps text-tea-text-dim tabular-nums shrink-0">
+                  · {processedProducts.length} items
+                </span>
               </div>
-              <span className="label-caps text-tea-text-dim tabular-nums shrink-0">{processedProducts.length} items</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = panelProduct ?? processedProducts[0];
+                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
+                }}
+                className="text-ui-10 tracking-caps font-sans text-tea-text-dim hover:text-tea-text-sec transition-colors inline-flex items-center gap-1 shrink-0"
+              >
+                <History size={11} aria-hidden="true" /> Stock history
+              </button>
             </div>
           )}
           {/* --- GROUPED VIEW --- */}
