@@ -117,7 +117,7 @@ test('immersive article renders the stack and does not error', async ({ page }) 
   expect(errors.filter((e) => !e.includes('favicon') && !/40[13]/.test(e))).toEqual([]);
 });
 
-test('AR.6 — share-card opens from the colophon, renders, and switches format', async ({ page }) => {
+test('share — the magazine SharePanel opens from the colophon in the immersive reader', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -125,40 +125,21 @@ test('AR.6 — share-card opens from the colophon, renders, and switches format'
   await page.goto('/article/the-rock-remembers');
   await expect(page.getByTestId('immersive-article')).toBeVisible();
 
-  // Open the share-card generator from the closing colophon pill.
+  // Open the share sheet from the closing colophon pill. The immersive reader
+  // now uses the mature magazine SharePanel (4:5 poster + full destination set),
+  // ported in over the thinner AR.6 card.
   const shareBtn = page.getByTestId('colophon-share');
   await shareBtn.scrollIntoViewIfNeeded();
   await shareBtn.click();
 
-  const modal = page.getByTestId('immersive-share-card');
-  await expect(modal).toBeVisible();
+  const panel = page.getByTestId('share-panel');
+  await expect(panel).toBeVisible();
 
-  // A card image is generated (canvas -> PNG blob -> object URL on the <img>).
-  const img = page.getByTestId('share-card-image');
-  await expect(img).toBeVisible();
-  const firstSrc = await img.getAttribute('src');
-  expect(firstSrc).toMatch(/^blob:/);
-
-  // The three format tabs exist; switching to 9:16 re-renders a new card.
-  await expect(page.getByTestId('share-format-4x5')).toHaveAttribute('aria-pressed', 'true');
-  await page.getByTestId('share-format-9x16').click();
-  await expect(page.getByTestId('share-format-9x16')).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(async () => {
-    const s = await img.getAttribute('src');
-    return s && s.startsWith('blob:') && s !== firstSrc;
-  }, { timeout: 5000 }).toBeTruthy();
-
-  // 1:1 also renders.
-  await page.getByTestId('share-format-1x1').click();
-  await expect(page.getByTestId('share-format-1x1')).toHaveAttribute('aria-pressed', 'true');
-  await expect(img).toBeVisible();
-
-  // Moment picker offers the cover plus the quote and stat moments.
-  await expect(page.getByRole('button', { name: 'Cover', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Quote 1', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Stat 1', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Quote 1', exact: true }).click();
-  await expect(img).toBeVisible();
+  // Article-scope poster preview renders, and the destination set is present.
+  await expect(panel.getByText('The article', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Save image', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Instagram', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Copy link', { exact: true })).toBeVisible();
 
   await page.screenshot({ path: `test-results/share-card-${test.info().project.name}.png` });
 

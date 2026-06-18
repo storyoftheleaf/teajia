@@ -543,6 +543,7 @@ export function SharePanel({ page, article, onClose }: SharePanelProps) {
       onClick={onClose}
       role="dialog"
       aria-label="Share article"
+      data-testid="share-panel"
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(10,7,4,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
     >
       <div
