@@ -13,7 +13,7 @@ import {
 const moreLinks = [
   { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
   { to: '/read/before-the-mist', kicker: 'Field Notes · N°04', title: 'Before the Mist Burns Away', blurb: 'A photo-essay from a Yunnan spring harvest.' },
-  { to: '/read/leaf-to-liquor', kicker: 'The Craft of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
+  { to: '/read/leaf-to-liquor', kicker: 'The Art of Tea · N°01', title: 'From Leaf to Liquor', blurb: 'How a single leaf becomes the six colours of tea.' },
 ];
 
 const qa = (q: string, body: React.ReactNode) => ({ q, body });

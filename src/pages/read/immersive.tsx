@@ -278,14 +278,14 @@ export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
 // kept as a no-op so the existing call sites compile unchanged; nothing renders.
 export const AccentSwatches: React.FC<{ accent: string; setAccent: (a: string) => void }> = () => null;
 
-// ─── "More from The Craft of Tea" footer ─────────────────────────────────────
+// ─── "More from The Art of Tea" footer ─────────────────────────────────────
 export type MoreLink = { to: string; kicker: string; title: string; blurb: string };
 
 export const MoreFooter: React.FC<{ links: MoreLink[] }> = ({ links }) => (
   <footer style={{ borderTop: '1px solid rgba(168,135,77,0.14)', padding: 'clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px)' }}>
     <div style={{ maxWidth: 1180, margin: '0 auto' }}>
       <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
-        More from The Craft of Tea
+        More from The Art of Tea
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 'clamp(14px,2vw,22px)' }}>
         {links.map((l) => (

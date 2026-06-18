@@ -1,5 +1,5 @@
 /**
- * The Craft of Tea — Read-section index.
+ * The Art of Tea — Read-section index.
  * A quiet cover-card landing for the four immersive long-reads, in the same
  * espresso-and-gold register. Each card is a full link into its article.
  */
@@ -129,7 +129,7 @@ const ReadIndex: React.FC = () => {
 
   return (
     <ImmersiveRoot rootRef={rootRef}>
-      <Helmet><title>The Craft of Tea · Read · Teajia</title></Helmet>
+      <Helmet><title>The Art of Tea · Read · Teajia</title></Helmet>
 
       {/* NAV */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '13px clamp(18px,4vw,40px)', background: 'rgba(20,16,11,0.72)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid rgba(168,135,77,0.12)' }}>
@@ -137,7 +137,7 @@ const ReadIndex: React.FC = () => {
           <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 19, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.ink }}>Teajia</span>
           <span style={{ fontFamily: F.mono, fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>/ Read</span>
         </div>
-        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>The Craft of Tea</span>
+        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>The Art of Tea</span>
         <ProgressTrack progress={progress} />
       </nav>
 
@@ -148,7 +148,7 @@ const ReadIndex: React.FC = () => {
           {/* masthead — gold rule + italic eyebrow, in the Magazine register */}
           <div aria-hidden="true" style={{ width: 30, height: 1, background: C.gold, opacity: 0.55, margin: '0 auto 18px' }} />
           <div style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 16, letterSpacing: '0.04em', color: C.gold, marginBottom: 22 }}>The Reading Room</div>
-          <h1 style={{ fontFamily: F.display, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(46px,9vw,100px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>The Craft of Tea</h1>
+          <h1 style={{ fontFamily: F.display, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(46px,9vw,100px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>The Art of Tea</h1>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2.2vw,21px)', lineHeight: 1.5, color: C.taupe, margin: '26px auto 0', maxWidth: 520 }}>
             Long, slow reads on the people and the patience behind the cup. Each one a magazine you wish would never end.
           </p>
