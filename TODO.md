@@ -10,7 +10,7 @@
 - [ ] Confirm which of the two duplicate database setup files is live in production and delete the loser (needs a logged-in check against the live database) _(band: you-required)_ _(effort: quick)_
 - [ ] Turn on the inventory-integrity safeguards (written but not yet switched on — review first), and run the read-only reconciliation check against production (last attempt failed on a stale commit, so pull latest first) _(band: you-required)_ _(effort: moderate)_
 - [ ] Decide the open home-button fix request — merge or close it _(band: you-required)_ _(effort: quick)_
-- [ ] Decide the Australia shop work (au.teajia.com plus the account switcher) — three commits built but never submitted; submit or fold in _(band: you-required)_ _(effort: moderate)_
+- [x] Australia shop (au.teajia.com plus the account switcher) — already shipped to main via PR #235; the parked note thought it was unsubmitted _(done, verified 2026-06-18)_
 
 ### Curate
 
@@ -32,8 +32,7 @@
 
 - [ ] **Rewrite guide copy** — replace the first-draft walk-through steps and role descriptions in the owner feature guide _(you · moderate)_
   The current text was drafted from the code; the real procedures and the value each user type gets need Adrian's own wording. Done when each walk-through and role description reads in Adrian's voice and matches the actual flow.
-- [ ] **Test walk dock** — eyeball the walk-with-me dock on a real device _(you · quick)_
-  It's build-verified but never screenshotted. Done when the dock is confirmed to stay pinned across pages on a real device and logging a problem feels quick.
+- [x] **Test walk dock** — eyeballed the walk-with-me dock on a real device _(done 2026-06-14)_
 - [ ] **Per-role test marks** — let walk-through steps be marked works/broken per user type, not just overall _(agent · moderate)_
   Tie the role layer to the testing layer so the guide can show "fine for Owner, confusing for Member." Done when a step's status can be recorded separately for each user type.
 - [ ] **PDF import decision** — decide whether to build real PDF order import via AI extraction _(you · deep)_
@@ -120,7 +119,7 @@
 
 - [ ] **Mood/flavor system** — build a connected mood and flavor tagging system for every tea _(agent · deep)_
   A shared taxonomy lets teas be tagged and then filtered by mood and flavor across the catalog. Done when the tagging schema and filter UI are built and a tea can be tagged and found by mood/flavor. → Plan: [mood-flavor-taxonomy.md](todo/plans/mood-flavor-taxonomy.md)
-- [ ] **Seed + test tags** — seed mood/flavor tags on Adrian's teas and walk the filter loop end-to-end before tagging all 139 _(you · moderate)_
+- [ ] **Seed + test tags** — seed mood/flavor tags on Adrian's teas and walk the filter loop end-to-end before tagging all 139 _(you · moderate)_ _(status: in-flight)_
   A pilot pass validates the taxonomy and filter before the full 139-product effort. Done when a sample of teas is tagged and the filter loop is verified working end-to-end. → Plan: [docs/TODO.md](docs/TODO.md)
 
 ### Pending from Development Sprint (April 2026)
