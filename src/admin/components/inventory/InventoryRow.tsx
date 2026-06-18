@@ -19,6 +19,8 @@ export interface InventoryRowProps {
   splitView: boolean;
   /** Mobile horizontal-swipe mode — pins the Product column to the left edge. */
   stickyFirstCol?: boolean;
+  /** Mobile swipe table left-aligns every column (numbers included). */
+  alignLeft?: boolean;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -44,7 +46,7 @@ export interface InventoryRowProps {
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, stickyFirstCol, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, alignLeft, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
@@ -81,6 +83,12 @@ function InventoryRowBase(props: InventoryRowProps) {
   // matches product.year — never touch a trailing number that isn't the vintage.
   const displayName = stripMatchingYear(product.productName, product.year);
 
+  // On the mobile swipe table numbers left-align (under their header) instead of
+  // flush-right. These helpers swap the alignment classes / GhostInput align so
+  // every numeric cell follows the same flag without per-cell branching.
+  const numCellAlign = alignLeft ? 'text-left' : 'text-right';
+  const numInputAlign: 'left' | 'right' = alignLeft ? 'left' : 'right';
+
   const renderCell = (colKey: string, colIndex: number) => {
     const fr = focusedCol === colIndex ? 'ring-1 ring-tea-gold/50 rounded' : '';
     switch (colKey) {
@@ -91,24 +99,38 @@ function InventoryRowBase(props: InventoryRowProps) {
         // the page bg) plus a right-edge shadow that signals "more →". The name
         // itself is dialled back from the bold/large desktop treatment to a
         // calmer weight so the pinned column stops shouting.
-        const nameWeightCls = stickyFirstCol
+        // Unified name treatment: the calmer 15px weight is used on BOTH phone
+        // and desktop (alignLeft is set in both) so the two surfaces read the
+        // same. The old larger 17px desktop name only applies to legacy non-
+        // unified layouts (none currently, but kept as the fallback).
+        const nameWeightCls = (stickyFirstCol || alignLeft)
           ? 'font-display text-ui-15 leading-snug truncate font-normal'
           : 'font-display text-ui-17 leading-snug truncate font-medium';
+        // The pinned column sits ON TOP of the card surface as the rest of the
+        // row swipes beneath it, so its opaque background must MATCH the card
+        // (tea-surface) — using tea-bg here made the Product column read as a
+        // lighter slab against a darker data band, the over-separated look we're
+        // removing. Selected/panel rows still get a gold-tinted surface mix.
         const stickyNameBg = isPanelOpen
-          ? 'color-mix(in srgb, var(--tea-gold) 16%, rgb(var(--tea-bg-rgb)))'
+          ? 'color-mix(in srgb, var(--tea-gold) 16%, var(--tea-surface))'
           : isSelected
-            ? 'color-mix(in srgb, var(--tea-gold) 18%, rgb(var(--tea-bg-rgb)))'
-            : 'rgb(var(--tea-bg-rgb))';
+            ? 'color-mix(in srgb, var(--tea-gold) 18%, var(--tea-surface))'
+            : 'var(--tea-surface)';
+        // No divider and no shadow between the pinned column and the swipe area —
+        // the matching surface background is enough; any line or gradient read as
+        // an unwanted hard separation.
         const stickyNameCls = stickyFirstCol
-          ? 'sticky left-0 z-[1] shadow-[6px_0_8px_-6px_rgba(0,0,0,0.45)]'
+          ? 'sticky left-0 z-[1]'
           : '';
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
-        const subtitle = product.givenName
-          ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
-          : product.form
-            ? product.form
-            : ' ';
+        const houseName = product.givenName?.trim() || 'Unnamed';
+        const subtitle = (
+          <>
+            {product.year && <span className="num opacity-80 mr-1">{product.year}</span>}
+            <span>{houseName}</span>
+          </>
+        );
         return (
           <td
             key={colKey}
@@ -161,6 +183,13 @@ function InventoryRowBase(props: InventoryRowProps) {
             : <span>{product.year || '—'}</span>}
         </td>
       );
+      case 'form': return (
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
+          {isEditMode
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Leaf form" value={product.form || ''} onSave={(val) => onProductUpdate(product.id, 'form', val)} className="font-sans text-ui-13 text-tea-text-sec truncate" />
+            : <span className="truncate block">{product.form || '—'}</span>}
+        </td>
+      );
       case 'originRegion': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
           {isEditMode
@@ -170,27 +199,27 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'stockGrams': {
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${stockTone}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${stockTone}`}>
             {/* Stock is the gram quantity, editable inline — type a new value
                 directly in the cell. The history clock and recount-flag icons
                 were removed: stock history opens from the column-header link,
                 and the recount flag lives in the side action bar / edit panel.
                 The number now gets the full column width so it never clips. */}
             <div className="block" onClick={(e) => e.stopPropagation()}>
-              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align="right" className={`num text-ui-13 w-full ${stockTone}`} />
+              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align={numInputAlign} className={`num text-ui-13 w-full ${stockTone}`} />
             </div>
           </td>
         );
       }
       case 'costAmount': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Cost amount" value={product.costAmount} onSave={(val) => onProductUpdate(product.id, 'costAmount', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
             : <span>{product.costAmount > 0 ? product.costAmount.toLocaleString() : '—'}</span>}
         </td>
       );
       case 'costPerGramUSD': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           <span>{product.costPerGramUSD > 0 ? fmtNum(product.costPerGramUSD) : '—'}</span>
         </td>
       );
@@ -200,9 +229,9 @@ function InventoryRowBase(props: InventoryRowProps) {
         // selected row is what should stand out, not a per-row price flag.
         const overrideTone = product.fixedRetailPriceUSD != null && !isSold ? 'text-tea-gold-lt' : numTone;
         return (
-          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${overrideTone}`}>
+          <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${overrideTone}`}>
             {isEditMode
-              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align="right" className={`num text-ui-13 ${overrideTone}`} />
+              ? <GhostInput id={ghostId(colIndex)} ariaLabel="Retail price per gram (USD)" value={sellingPrice?.toFixed(2)} onSave={(val) => onProductUpdate(product.id, 'fixedRetailPriceUSD', val ? Number(val) : null)} type="number" align={numInputAlign} className={`num text-ui-13 ${overrideTone}`} />
               : <span>{sellingPrice != null ? fmtNum(sellingPrice) : '—'}</span>}
           </td>
         );
@@ -222,16 +251,16 @@ function InventoryRowBase(props: InventoryRowProps) {
         </td>
       );
       case 'capacityMl': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Capacity (ml)" value={product.capacityMl || ''} onSave={(val) => onProductUpdate(product.id, 'capacityMl', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
             : <span>{product.capacityMl ? `${product.capacityMl}ml` : '—'}</span>}
         </td>
       );
       case 'quantityUnits': return (
-        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-right num align-middle overflow-hidden ${fr} ${numTone}`}>
+        <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
           {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" align="right" className={`num text-ui-13 ${numTone}`} />
+            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
             : <span>{product.quantityUnits ?? '—'}</span>}
         </td>
       );
@@ -338,6 +367,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.splitViewCols === next.splitViewCols &&
   prev.splitView === next.splitView &&
   prev.stickyFirstCol === next.stickyFirstCol &&
+  prev.alignLeft === next.alignLeft &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
   prev.isDropdownOpen === next.isDropdownOpen

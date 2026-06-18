@@ -178,7 +178,7 @@ export function normalizeType(raw: unknown): string {
   return m || 'Misc';
 }
 
-const VALID_FORMS = ['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
+const VALID_FORMS = ['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
 export function normalizeForm(raw: unknown): string | null {
   const v = String(raw ?? '').toLowerCase().trim();
   return VALID_FORMS.find((f) => f.toLowerCase() === v) || null;
@@ -297,7 +297,7 @@ const FORM_RULES: { form: string; kw: string[] }[] = [
   { form: 'Rolled', kw: ['rolled', 'curled'] },
   { form: 'Powder', kw: ['powder', 'matcha', 'ground'] },
   { form: 'Bag', kw: ['tea bag', 'teabag', 'sachet'] },
-  { form: 'Loose Leaf', kw: ['loose leaf', 'loose-leaf', 'maocha', 'mao cha'] },
+  { form: 'Loose', kw: ['loose leaf', 'loose-leaf', 'maocha', 'mao cha'] },
 ];
 export function detectForm(...names: string[]): string {
   const hay = names.filter(Boolean).join(' ').toLowerCase();
@@ -313,7 +313,7 @@ export function detectForm(...names: string[]): string {
 // × unit count; tea uses a per-form size × piece count. Starting points only —
 // the user edits each one.
 const TEAWARE_SIZE: Record<string, number> = { pot: 100, cup: 15, tray: 120, storage: 60, accessory: 8, decorative: 40 };
-const FORM_SIZE: Record<string, number> = { Cake: 30, Brick: 28, Tuo: 12, Ball: 5, Bag: 2, Rolled: 12, 'Loose Leaf': 15, Powder: 8 };
+const FORM_SIZE: Record<string, number> = { Cake: 30, Brick: 28, Tuo: 12, Ball: 5, Bag: 2, Rolled: 12, 'Loose': 15, Powder: 8 };
 export function defaultSize(it: { type: string; teawareCategory: string; form?: string | null; quantityPurchased: number; stockGrams: number; quantityUnits: number }): number {
   if (it.type === 'Teaware') return (TEAWARE_SIZE[it.teawareCategory] || 40) * (it.quantityUnits || 1);
   const base = (it.form && FORM_SIZE[it.form]) || 15;

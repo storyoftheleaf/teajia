@@ -33,6 +33,10 @@
 
 - [ ] **Findable add-product** — make adding products discoverable on the Stock screen, then template the fix across admin _(agent · deep)_
   Import is buried in an overflow menu while New is prominent, the menu is duplicated and drifted, and the empty state never tells a new operator how to add their first product. Done when both add paths are clearly surfaced, the menu is de-duplicated, and the empty state guides a first product. → Plan: [stock-discoverability.md](todo/plans/stock-discoverability.md)
+- [ ] **Currency near the price columns** — decide whether to move the inventory currency selector (USD) next to the Retail/Cost columns _(you · moderate)_
+  Today the currency lives in the global admin header, far from the price it governs. Moving it closer reads more clearly, but it's a shared control used by ~20 admin views, so relocating it into the inventory chrome is a layout call with blast radius. Done when Adrian decides to move it (and it ships) or to leave it global.
+- [ ] **Inventory view glyphs** — reconsider the Selling-globe and Alerts-triangle icons on the inventory view tabs _(you · quick)_
+  The Alerts triangle reads as an error state even when it's just a low-stock filter, and the globe doesn't obviously mean "selling." Done when Adrian picks clearer glyphs or drops them to text labels.
 
 ### Magazine / Journal Reader
 

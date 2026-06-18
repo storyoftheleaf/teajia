@@ -45,6 +45,8 @@ import {
   DEFAULT_TEA_VIEWS,
   DEFAULT_TEAWARE_VIEWS,
   GROUPBY_OPTIONS,
+  MOBILE_TEA_ALL_ORDER,
+  TEA_COLUMN_DEFS,
   VIEW_FILTER_LABELS,
   VIEW_ICON_MAP,
 } from './inventory/config';
@@ -111,6 +113,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // not on every unrelated store update (cart, account, etc.)
   const {
     inventoryColumns, toggleInventoryColumn, setInventoryColumns,
+    inventoryMobileColWidths, setInventoryMobileColWidth,
     savedViews, activeViewId, saveView, deleteView, setActiveView,
     inventoryGroupBy, setInventoryGroupBy,
     inventorySortConfig, setInventorySortConfig,
@@ -122,6 +125,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     inventoryColumns: s.inventoryColumns,
     toggleInventoryColumn: s.toggleInventoryColumn,
     setInventoryColumns: s.setInventoryColumns,
+    inventoryMobileColWidths: s.inventoryMobileColWidths,
+    setInventoryMobileColWidth: s.setInventoryMobileColWidth,
     savedViews: s.savedViews,
     activeViewId: s.activeViewId,
     saveView: s.saveView,
@@ -455,6 +460,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // anchored to it; the action rail replaced the drawer but the ref is harmless).
   const tableWrapperRef = useRef<HTMLDivElement>(null);
 
+  // Mobile column-resize drag state. We track the active drag in a ref (no
+  // re-render per pointer move) and write the new width straight to the store,
+  // which is the single source `mobileColPxWidth` reads from. On release the
+  // width is already persisted (the store is `partialize`d), so it survives
+  // reload. Only the header cells carry a handle (see SortHeader); body rows
+  // never resize.
+  const colResizeRef = useRef<{ key: string; startX: number; startWidth: number; pointerId: number } | null>(null);
+
   // Modals
   const [qrProduct, setQrProduct] = useState<Product | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -570,32 +583,82 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // turns off and the compact split columns take over.
   const mobileHScroll = isMobile && !splitView;
 
+  // The inventory table now reads the SAME on phone and desktop: same column
+  // order, same left-alignment, same tight spacing, same font size, same
+  // fixed-px column widths that hug the data to the left. Desktop keeps only its
+  // extra card buffer (gutter + border + rounded corners) and the page-level
+  // vertical scroll; it does NOT get the mobile bounded-height scroll box or the
+  // pinned first column (those exist only because a phone is narrow). So:
+  //   mobileHScroll  → mobile-only structure (bounded scroll box, sticky column)
+  //   unifiedLayout  → shared look (order, alignment, tightness, font, px widths)
+  const unifiedLayout = !splitView;
+
   // Per-column pixel widths for the swipeable mobile table. Product is the
   // pinned anchor; numeric columns stay tight; text columns get a little more.
+  // Tight by default: every column is sized to hug its content so the data
+  // nests hard to the left and reads as a dense block, not a spread. Long text
+  // columns (origin, vendor) are allowed to truncate a little rather than
+  // reserve width for the longest possible value. The user can drag any column
+  // wider; these are just the snug starting widths.
   const MOBILE_COL_PX: Record<string, number> = {
-    productName: 172,
-    type: 84,
-    year: 60,
-    originRegion: 124,
-    stockGrams: 72,
-    verified: 60,
-    costAmount: 76,
-    costPerGramUSD: 76,
-    pricePerGramUSD: 80,
-    teawareCategory: 124,
-    material: 124,
-    capacityMl: 84,
-    quantityUnits: 64,
-    vendor: 130,
+    productName: 158,
+    type: 62,
+    year: 48,
+    originRegion: 96,
+    stockGrams: 48,
+    verified: 52,
+    costAmount: 48,
+    costPerGramUSD: 48,
+    pricePerGramUSD: 48,
+    teawareCategory: 96,
+    material: 96,
+    capacityMl: 60,
+    quantityUnits: 48,
+    vendor: 96,
+    form: 62,
   };
-  const mobileColPxWidth = (key: string) => MOBILE_COL_PX[key] ?? 90;
+  // A drag-resized width (persisted in the store) wins over the default; absent
+  // keys fall back to MOBILE_COL_PX. Never below MIN so a column can't vanish.
+  const MIN_MOBILE_COL_PX = 44;
+  const mobileColPxWidth = (key: string) => {
+    const stored = inventoryMobileColWidths[key];
+    const base = typeof stored === 'number' ? stored : (MOBILE_COL_PX[key] ?? 90);
+    return Math.max(MIN_MOBILE_COL_PX, base);
+  };
 
   // Mobile keeps every visible column (swipe to reach them); only the panel's
   // compact split view still trims down, since it shares the screen on desktop.
-  const renderCols = useMemo(
-    () => (isMobile && splitView ? splitViewCols : visibleCols),
-    [isMobile, splitView, splitViewCols, visibleCols],
-  );
+  //
+  // For the mobile All view we also REORDER and inject Source (vendor): the swipe
+  // table reads Product (pinned) → Year → Type → Stock → Cost → Source → Origin,
+  // the order Adrian wants the eye to meet first. Source isn't in the desktop All
+  // view's columns, so we pull its ColDef from TEA_COLUMN_DEFS only here. Desktop
+  // and every non-All view keep their natural visibleCols order untouched.
+  const renderCols = useMemo(() => {
+    if (isMobile && splitView) return splitViewCols;
+    if (unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
+      const byKey = new Map<string, ColDef>(visibleCols.map(c => [c.key, c]));
+      // Source (vendor) and Leaf (form) aren't in the desktop All view's columns,
+      // so pull their ColDefs from TEA_COLUMN_DEFS to show them on the mobile swipe.
+      for (const key of ['vendor', 'form']) {
+        const def = TEA_COLUMN_DEFS.find(c => c.key === key);
+        if (def) byKey.set(key, def);
+      }
+      const ordered: ColDef[] = [];
+      // Listed keys first, in the requested order (skip any the price-mode
+      // toggle has hidden, e.g. Cost when in retail mode).
+      for (const key of MOBILE_TEA_ALL_ORDER) {
+        const col = byKey.get(key);
+        if (col) { ordered.push(col); byKey.delete(key); }
+      }
+      // Any remaining visible columns keep their natural order after these.
+      for (const col of visibleCols) {
+        if (byKey.has(col.key)) ordered.push(col);
+      }
+      return ordered;
+    }
+    return visibleCols;
+  }, [isMobile, splitView, splitViewCols, visibleCols, unifiedLayout, inventoryCategory, filterType]);
   const renderSplitCols = useMemo(
     () => splitViewCols,
     [splitViewCols],
@@ -606,11 +669,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // table render paths (grouped header, grouped body, flat) in lockstep.
   const mobileTableMinWidth = useMemo(
     () => renderCols.reduce((sum, c) => sum + mobileColPxWidth(c.key), 0),
-    [renderCols],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [renderCols, inventoryMobileColWidths],
   );
-  const mobileTableStyle = mobileHScroll ? { minWidth: mobileTableMinWidth } : undefined;
+  // Both phone and desktop now use the fixed-px hug so the data nests left and
+  // the columns sit as close together as they do on mobile. (minWidth forces the
+  // overflow that the mobile scroll box scrolls; on desktop the card is wider
+  // than the sum, so the columns simply sit left with empty space to the right.)
+  const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
   const renderColEl = (col: ColDef) =>
-    mobileHScroll
+    unifiedLayout
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
       : <col key={col.key} className={col.defaultWidth} />;
 
@@ -1120,23 +1188,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const RIGHT_ALIGN_KEYS = new Set([
     'stockGrams', 'pricePerGramUSD', 'costAmount', 'costPerGramUSD', 'capacityMl', 'quantityUnits',
   ]);
-  const SortHeader = ({ colKey, label, align: alignProp, sticky }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center', sticky?: boolean }) => {
-      const align: 'left' | 'right' | 'center' = alignProp ?? (RIGHT_ALIGN_KEYS.has(colKey as string) ? 'right' : 'left');
+  const SortHeader = ({ colKey, label, align: alignProp, sticky, forceLeft, resizable }: { colKey: keyof Product, label: string, align?: 'left' | 'right' | 'center', sticky?: boolean, forceLeft?: boolean, resizable?: boolean }) => {
+      // On the mobile swipe table every column reads left-aligned (Adrian's call:
+      // numbers sit under their header, not flush-right across a gap). forceLeft
+      // overrides the numeric right-align that desktop still uses.
+      const align: 'left' | 'right' | 'center' = forceLeft ? 'left' : (alignProp ?? (RIGHT_ALIGN_KEYS.has(colKey as string) ? 'right' : 'left'));
       const sortIndex = inventorySortConfig.findIndex(s => s.key === colKey);
       const sortEntry = sortIndex >= 0 ? inventorySortConfig[sortIndex] : null;
       const showBadge = inventorySortConfig.length > 1 && sortEntry;
       const ariaSort = sortEntry ? (sortEntry.direction === 'asc' ? 'ascending' : 'descending') : 'none';
       // The pinned Product header sits at the cross of the two sticky axes
       // (top from the sticky thead, left from this), so it needs a solid bg and
-      // a z above its sibling header cells, plus the same right-edge shadow the
-      // body cells use to signal there's more to swipe to.
+      // a z above its sibling header cells. Background matches the surface card
+      // (not tea-bg); no divider or shadow so the pinned column blends instead
+      // of reading as a separate slab.
       const stickyCls = sticky
-        ? 'sticky left-0 z-[21] bg-tea-bg shadow-[6px_0_8px_-6px_rgba(0,0,0,0.45)]'
+        ? 'sticky left-0 z-[21] bg-tea-surface'
         : '';
       return (
         <th
           aria-sort={ariaSort}
-          className={`font-sans text-ui-11 uppercase tracking-caps text-tea-text-sec font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
+          className={`relative font-sans text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
         >
           <button
             type="button"
@@ -1149,11 +1221,61 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               {sortEntry ? (
                 <>
                   {sortEntry.direction === 'asc' ? <ArrowUp size={10} className="ml-1 text-tea-readgold" /> : <ArrowDown size={10} className="ml-1 text-tea-readgold" />}
-                  {showBadge && <span className="ml-0.5 text-ui-9 text-tea-readgold font-bold">{sortIndex + 1}</span>}
+                  {showBadge && (
+                    <span
+                      className="ml-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full bg-tea-readgold/15 text-ui-9 text-tea-readgold font-bold leading-none tabular-nums"
+                      title={`Sort priority ${sortIndex + 1} of ${inventorySortConfig.length}`}
+                      aria-label={`sort priority ${sortIndex + 1}`}
+                    >
+                      {sortIndex + 1}
+                    </span>
+                  )}
                 </>
               ) : <ArrowUpDown size={10} className="opacity-0 group-hover:opacity-100 text-tea-text-dim ml-1 transition-opacity" />}
              </span>
           </button>
+          {/* Mobile-only drag-to-resize handle on the column's right edge. Pointer
+              events cover touch and mouse; stopPropagation keeps a drag off the
+              sort button so tapping the label still sorts. The live width is
+              written to the store (which mobileColPxWidth reads) and is already
+              persisted on release. */}
+          {resizable && (
+            <span
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={`Resize ${label} column`}
+              className="absolute top-0 right-0 h-full w-4 cursor-col-resize touch-none select-none flex items-center justify-center group/resize"
+              onClick={(e) => { e.stopPropagation(); }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                colResizeRef.current = {
+                  key: colKey as string,
+                  startX: e.clientX,
+                  startWidth: mobileColPxWidth(colKey as string),
+                  pointerId: e.pointerId,
+                };
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                const drag = colResizeRef.current;
+                if (!drag || drag.pointerId !== e.pointerId) return;
+                e.stopPropagation();
+                const next = Math.max(MIN_MOBILE_COL_PX, drag.startWidth + (e.clientX - drag.startX));
+                setInventoryMobileColWidth(drag.key, next);
+              }}
+              onPointerUp={(e) => {
+                if (!colResizeRef.current || colResizeRef.current.pointerId !== e.pointerId) return;
+                e.stopPropagation();
+                try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* no-op */ }
+                colResizeRef.current = null;
+              }}
+              onPointerCancel={() => { colResizeRef.current = null; }}
+            >
+              {/* Thin visible grip line, brighter on hover/drag. */}
+              <span className="block h-4 w-px bg-tea-border group-hover/resize:bg-tea-gold/50" />
+            </span>
+          )}
         </th>
       );
   };
@@ -1552,8 +1674,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
-      {/* --- MERGED VIEWS + CONTROLS BAR (mobile) --- */}
-      <div className={`md:hidden sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
+      {/* --- MERGED VIEWS + CONTROLS BAR (mobile) ---
+          NOT sticky — this band scrolls UP and away with the list so only the
+          column-header row (the table thead, sticky inside its own scroll box)
+          stays pinned. Keeping the tabs+controls permanently pinned spent ~90px
+          of the first phone screen before any tea was visible; letting it scroll
+          reclaims that height. The backdrop-blur is kept for the brief moment it
+          overlaps the rail slide-in. */}
+      <div className={`md:hidden bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
         {/* Shift the whole bar clear of the action rail when it slides in from the
             right, matching the rail's 200ms slide so the tabs/sort row are never
             painted over. Mirrors the desktop toolbar's paddingRight treatment. */}
@@ -1561,7 +1689,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           className="flex flex-col border-b border-tea-border transition-[padding-right] duration-200"
           style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}
         >
-        <div className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar">
+        <div
+          className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar"
+          style={{
+            // Soft right-edge fade so it's visually clear the tab row scrolls
+            // past the viewport edge (the scrollbar is hidden). Masks only the
+            // last 20px; harmless when the tabs already fit.
+            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent 100%)',
+            maskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent 100%)',
+          }}
+        >
           {/* View tabs — all visible, horizontally scrollable */}
           {(() => {
             const defaultOrder = activeDefaultViews.map(v => v.id);
@@ -1619,7 +1756,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 {hasMore && (
                   <button
                     onClick={() => setViewTabsExpanded(!viewTabsExpanded)}
-                    className={`tap-target w-7 h-7 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                    className={`tap-target w-9 h-9 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
                     title={viewTabsExpanded ? 'Show fewer views' : 'Show all views'}
                     aria-label={viewTabsExpanded ? 'Show fewer inventory views' : 'Show all inventory views'}
                   >
@@ -1631,121 +1768,126 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           })()}
         </div>
 
-        {/* Row 2: controls — price toggle + group + sort */}
-        <div className="flex items-center px-2 py-1 gap-0 border-t border-tea-border">
-          <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim/50 px-1 mr-1">
-            {VIEW_FILTER_LABELS[filterType] || filterType} · {processedProducts.length}
-          </span>
-          <div className="ml-auto flex items-center gap-0">
+        {/* Row 2: controls — price toggle + group + sort. Text labels sit beside
+            each glyph (house rule: text over icon-only); the count moved to the
+            stock-history strip so it is stated once. Group/Sort use AnchoredMenu
+            so the panels follow their trigger when this (now-scrolling) band
+            moves, instead of floating at a fixed viewport offset. */}
+        <div className="flex items-center px-2 py-1 gap-1 border-t border-tea-border">
+          {inventoryGroupBy && (
+            <span className="text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim/60 px-1 mr-1 truncate">
+              Grouped
+            </span>
+          )}
+          <div className="ml-auto flex items-center gap-1">
             <button
               onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')}
-              className={`tap-target w-8 h-8 flex items-center justify-center rounded-md transition-colors ${priceMode === 'cost' ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+              className="tap-target h-8 px-2 inline-flex items-center gap-1.5 rounded-md transition-colors text-ui-11 uppercase tracking-[0.08em] text-tea-text-sec hover:text-tea-text hover:bg-tea-surface"
               title={`Showing ${priceMode} prices — tap to switch`}
               aria-label={`Showing ${priceMode} prices, switch price mode`}
             >
               {priceMode === 'retail' ? <Tag size={14} /> : <Receipt size={14} />}
+              {priceMode === 'retail' ? 'Retail' : 'Cost'}
             </button>
-            <div className="relative">
-              <button
-                onClick={() => { setShowMobileGroupBy(!showMobileGroupBy); setShowMobileSort(false); setShowOptions(false); }}
-                className={`tap-target w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                aria-label="Group inventory"
-                aria-expanded={showMobileGroupBy}
-              >
-                <Layers size={14} />
-              </button>
-              {/* Group-by dropdown rendered outside backdrop-blur container below */}
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => { setShowMobileSort(!showMobileSort); setShowMobileGroupBy(false); setShowOptions(false); }}
-                className={`tap-target w-8 h-8 flex items-center justify-center transition-colors rounded-md ${showMobileSort ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                aria-label="Sort inventory"
-                aria-expanded={showMobileSort}
-              >
-                <ArrowUpDown size={14} />
-              </button>
-              {/* Sort dropdown rendered outside backdrop-blur container below */}
-            </div>
+            <AnchoredMenu
+              align="right"
+              width={176}
+              role="listbox"
+              open={showMobileGroupBy}
+              onOpenChange={(o) => { setShowMobileGroupBy(o); if (o) { setShowMobileSort(false); setShowOptions(false); } }}
+              trigger={(props) => (
+                <button
+                  {...props}
+                  className={`tap-target h-8 px-2 inline-flex items-center gap-1.5 rounded-md transition-colors text-ui-11 uppercase tracking-[0.08em] ${showMobileGroupBy || inventoryGroupBy ? 'text-tea-text bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                  aria-label="Group inventory"
+                >
+                  <Layers size={14} /> Group
+                </button>
+              )}
+            >
+              {(close) => GROUPBY_OPTIONS.map(opt => {
+                const isActive = (inventoryGroupBy || '') === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => { setInventoryGroupBy(opt.value || null); close(); }}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-ui-13 transition-colors ${isActive ? 'text-tea-gold font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                  >
+                    <span>{opt.label}</span>
+                    {isActive && <Check size={14} />}
+                  </button>
+                );
+              })}
+            </AnchoredMenu>
+            <AnchoredMenu
+              align="right"
+              width={280}
+              role="listbox"
+              className="px-1 py-2"
+              open={showMobileSort}
+              onOpenChange={(o) => { setShowMobileSort(o); if (o) { setShowMobileGroupBy(false); setShowOptions(false); } }}
+              trigger={(props) => (
+                <button
+                  {...props}
+                  className={`tap-target h-8 px-2 inline-flex items-center gap-1.5 rounded-md transition-colors text-ui-11 uppercase tracking-[0.08em] ${showMobileSort ? 'text-tea-text bg-tea-surface' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
+                  aria-label="Sort inventory"
+                >
+                  <ArrowUpDown size={14} /> Sort
+                </button>
+              )}
+            >
+              {(close) => (
+                <div className="grid grid-cols-2 gap-0.5">
+                  {[
+                    { key: 'type', label: 'Type' },
+                    { key: 'productName', label: 'Name' },
+                    { key: 'stockGrams', label: 'Stock' },
+                    { key: 'pricePerGramUSD', label: 'Price/g' },
+                    { key: 'costAmount', label: 'Cost' },
+                    { key: 'costPerGramUSD', label: 'Cost/g' },
+                    { key: 'year', label: 'Year' },
+                    { key: 'originRegion', label: 'Origin' },
+                    { key: 'vendor', label: 'Source' },
+                  ].map(opt => {
+                    const current = inventorySortConfig[0];
+                    const isActive = current?.key === opt.key;
+                    return (
+                      <button
+                        key={opt.key}
+                        role="option"
+                        aria-selected={isActive}
+                        onClick={() => {
+                          if (isActive) {
+                            setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+                          } else {
+                            setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
+                          }
+                          close();
+                        }}
+                        className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && (
+                          <span className="flex items-center">
+                            {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </AnchoredMenu>
           </div>
         </div>
         </div>
       </div>
 
-      {/* --- MOBILE GROUP-BY DROPDOWN (outside backdrop-blur container) --- */}
-      <div className="md:hidden">
-            {showMobileGroupBy && (
-              <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMobileGroupBy(false)} />
-              <div className="fixed right-12 top-[82px] w-40 max-w-[calc(100vw-4rem)] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-1" role="menu">
-                {GROUPBY_OPTIONS.map(opt => {
-                  const isActive = (inventoryGroupBy || '') === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setInventoryGroupBy(opt.value || null);
-                        setShowMobileGroupBy(false);
-                      }}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-ui-13 transition-colors ${isActive ? 'text-tea-gold font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                    >
-                      <span>{opt.label}</span>
-                      {isActive && <Check size={14} />}
-                    </button>
-                  );
-                })}
-              </div>
-              </>
-            )}
-      </div>
-
-      {/* --- MOBILE SORT DROPDOWN (outside backdrop-blur container) --- */}
-      <div className="md:hidden">
-            {showMobileSort && (
-              <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowMobileSort(false)} />
-              <div className="fixed right-2 top-[82px] w-[calc(100vw-16px)] max-w-[280px] bg-tea-surface border border-tea-border shadow-2xl rounded-xl z-popover py-2 px-1" role="menu">
-                <div className="grid grid-cols-2 gap-0.5">
-                {[
-                  { key: 'type', label: 'Type' },
-                  { key: 'productName', label: 'Name' },
-                  { key: 'stockGrams', label: 'Stock' },
-                  { key: 'pricePerGramUSD', label: 'Price/g' },
-                  { key: 'costAmount', label: 'Cost' },
-                  { key: 'costPerGramUSD', label: 'Cost/g' },
-                  { key: 'year', label: 'Year' },
-                  { key: 'originRegion', label: 'Origin' },
-                  { key: 'vendor', label: 'Source' },
-                ].map(opt => {
-                  const current = inventorySortConfig[0];
-                  const isActive = current?.key === opt.key;
-                  return (
-                    <button
-                      key={opt.key}
-                      onClick={() => {
-                        if (isActive) {
-                          setInventorySortConfig([{ key: opt.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
-                        } else {
-                          setInventorySortConfig([{ key: opt.key, direction: 'asc' }]);
-                        }
-                        setShowMobileSort(false);
-                      }}
-                      className={`flex items-center justify-between gap-1 px-2.5 py-2 rounded-xl text-ui-12 transition-colors ${isActive ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40 font-medium' : 'text-tea-text-sec active:bg-tea-bg'}`}
-                    >
-                      <span>{opt.label}</span>
-                      {isActive && (
-                        <span className="flex items-center">
-                          {current.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-                </div>
-              </div>
-              </>
-            )}
-      </div>
+      {/* Group-by and Sort dropdowns moved INTO the controls row as AnchoredMenu
+          (so they track their trigger when the band scrolls). The old detached
+          fixed top-[82px] blocks were removed. */}
 
       {/* --- MOBILE OPTIONS SHEET (outside backdrop-blur container) --- */}
       <div className="md:hidden">
@@ -2224,7 +2366,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg pt-3 pb-nav-gap transition-all duration-300"
+        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg pt-0 md:pt-3 pb-nav-gap transition-all duration-300"
         style={{ marginRight: contentRightMargin }}
         onScroll={(e) => {
           if (filterType === 'Pending') return;
@@ -2488,57 +2630,76 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             bordered card containing top strip → headers → rows → bottom strip.
             Renders at all widths now; on mobile, long-press a row to select and open
             the right-edge InventoryActionRail (same as desktop). */}
-        {filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-3 md:px-4 lg:px-6">
-          <div className="bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
+        {/* On a phone this data-heavy table goes edge-to-edge: no side gutter, no
+            card border, no rounding (those only chrome a narrow column on a small
+            screen and steal width). Desktop keeps the bordered card. */}
+        {filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
+          <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-hidden">
 
-          {/* Top strip — canonical: stock-history link + active-view label (left) + item counter (right). */}
+          {/* On mobile this wrapper owns BOTH scroll axes: a bounded height plus
+              overflow-auto makes it the vertical scroller too, so the table's
+              `sticky top-0` thead pins to THIS box (not the distant page scroller,
+              which clips it). The same box anchors the `sticky left-0` Product
+              column, so both axes resolve here and the header row stays visible
+              while the list scrolls. Desktop is an inert pass-through div. */}
+          <div
+            className={mobileHScroll ? 'overflow-auto overscroll-contain custom-scrollbar' : ''}
+            style={mobileHScroll ? {
+              // Fill from just under the sticky toolbar down to the bottom edge,
+              // so the list runs the full screen. The floating bottom nav sits
+              // OVER this box, so the inner table adds pb-nav clearance (below) to
+              // let the last rows scroll out from behind it.
+              maxHeight: 'calc(100dvh - 100px)',
+            } : undefined}
+          >
+          {/* Top strip — the orienting line: which view + how many (left), with
+              stock-history demoted to a quiet trailing link (right) rather than a
+              loud leading verb. It lives INSIDE the scroll box (above the table)
+              so it scrolls UP and away as the list scrolls, leaving only the
+              column header row pinned — this is the single statement of "what am
+              I looking at," so the count is not repeated in the controls band. */}
           {processedProducts.length > 0 && (
             <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
-              <div className="flex items-center gap-3 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = panelProduct ?? processedProducts[0];
-                    if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
-                  }}
-                  className="text-ui-11 uppercase tracking-caps font-sans text-tea-text-sec hover:text-tea-text transition-colors inline-flex items-center gap-1.5 shrink-0"
-                >
-                  <History size={12} aria-hidden="true" /> View stock history
-                </button>
-                {VIEW_FILTER_LABELS[filterType] && (() => {
+              <div className="flex items-baseline gap-2 min-w-0">
+                {(() => {
                   const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
                   const IconComp = activeView?.icon ? VIEW_ICON_MAP[activeView.icon] : null;
+                  const label = VIEW_FILTER_LABELS[filterType] || filterType;
                   return (
-                    <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-dim truncate">
-                      <span className="text-tea-text-dim">·</span>
-                      {IconComp && <IconComp size={12} className="text-tea-text-dim shrink-0" />}
-                      <span className="truncate">{VIEW_FILTER_LABELS[filterType]}</span>
+                    <span className="inline-flex items-center gap-1.5 label-caps text-tea-text-sec truncate">
+                      {IconComp && <IconComp size={12} className="text-tea-text-sec shrink-0" />}
+                      <span className="truncate">{label}</span>
                     </span>
                   );
                 })()}
+                <span className="label-caps text-tea-text-dim tabular-nums shrink-0">
+                  · {processedProducts.length} items
+                </span>
               </div>
-              <span className="label-caps text-tea-text-dim tabular-nums shrink-0">{processedProducts.length} items</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = panelProduct ?? processedProducts[0];
+                  if (target) setStockHistoryProduct({ id: target.id, name: target.givenName || target.productName });
+                }}
+                className="text-ui-10 tracking-caps font-sans text-tea-text-dim hover:text-tea-text-sec transition-colors inline-flex items-center gap-1 shrink-0"
+              >
+                <History size={11} aria-hidden="true" /> Stock history
+              </button>
             </div>
           )}
-
-          {/* On mobile the table is wider than the screen so this wrapper scrolls
-              it sideways (the Product column is pinned via `sticky left-0` on its
-              cells, which reference THIS scroll box). It lives inside the card so
-              the card chrome and the top/bottom strips stay full-width. On
-              desktop it is an inert pass-through div. */}
-          <div className={mobileHScroll ? 'overflow-x-auto overscroll-x-contain custom-scrollbar' : ''}>
           {/* --- GROUPED VIEW --- */}
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className="w-full table-fixed border-collapse" style={mobileTableStyle}>
+              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
                     {renderCols.map((col, i) => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
                     ))}
                   </tr>
                 </thead>
@@ -2564,7 +2725,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className="w-full table-fixed border-collapse" style={mobileTableStyle}>
+                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2587,6 +2748,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   stickyFirstCol={mobileHScroll}
+                                  alignLeft={unifiedLayout}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
                                   isDropdownOpen={rowDropdownId === product.id}
@@ -2628,7 +2790,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className="w-full table-fixed border-collapse" style={mobileTableStyle}>
+            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2638,7 +2800,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </colgroup>
 
                 {/* Canonical header — auto-aligned: numerics right, others left. */}
-                <thead className="sticky top-0 z-sticky bg-tea-bg/95 backdrop-blur-sm">
+                <thead className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
                     <tr>
                         {splitView ? (
                           renderSplitCols.map(col => (
@@ -2646,7 +2808,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))
                         ) : (
                           renderCols.map((col, i) => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
                           ))
                         )}
                     </tr>
@@ -2667,6 +2829,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
                               stickyFirstCol={mobileHScroll}
+                              alignLeft={unifiedLayout}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
                               isDropdownOpen={rowDropdownId === product.id}
@@ -2702,10 +2865,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </tbody>
             </table>
           )}
-          </div>
 
           {/* Canonical bottom strip — counter + (placeholder for) load-more. The data
-              source is already virtualized, so we simply restate the total. */}
+              source is already virtualized, so we simply restate the total. Lives
+              INSIDE the scroll box so it travels with the list. */}
           {processedProducts.length > 0 && (
             <div className="px-5 py-3 border-t border-tea-border flex items-center justify-between bg-tea-surface">
               <span className="font-serif text-ui-13 text-tea-text-dim tabular-nums">
@@ -2716,6 +2879,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               )}
             </div>
           )}
+
+          {/* Mobile: the bottom nav floats OVER this box, so add its clearance
+              inside the scroller — the last rows scroll out from behind the nav
+              instead of being trapped underneath it. Resets to 0 on desktop. */}
+          {mobileHScroll && <div className="pb-nav-gap" aria-hidden="true" />}
+          </div>
 
           {processedProducts.length === 0 && (
             <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">

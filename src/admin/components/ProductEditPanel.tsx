@@ -1389,7 +1389,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                       <GhostSelect variant="bordered" ariaLabel="Type" value={product.type} onSave={(val) => handleUpdate(product.id, 'type', val)} options={['Green', 'Yellow', 'White', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Misc']} />
                     </FieldCell>
                     <FieldCell label="Form">
-                      <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
+                      <GhostSelect variant="bordered" ariaLabel="Form" value={product.form || ''} onSave={(val) => handleUpdate(product.id, 'form', val)} options={['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other']} />
                     </FieldCell>
                   </>
                 )}

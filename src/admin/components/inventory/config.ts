@@ -46,8 +46,20 @@ export const TEA_COLUMN_DEFS = [
   { key: 'verified', label: 'Verified', defaultWidth: 'w-[7%]' },
   { key: 'costAmount', label: 'Cost', defaultWidth: 'w-[8%]' },
   { key: 'costPerGramUSD', label: 'Cost/g', defaultWidth: 'w-[8%]' },
-  { key: 'pricePerGramUSD', label: 'Retail/g', defaultWidth: 'w-[8%]' },
+  { key: 'pricePerGramUSD', label: 'Retail', defaultWidth: 'w-[8%]' },
+  { key: 'vendor', label: 'Source', defaultWidth: 'w-[12%]' },
+  { key: 'form', label: 'Leaf', defaultWidth: 'w-[10%]' },
 ] as const satisfies readonly ColDef[];
+
+// On a phone the default All view scrolls sideways, so column ORDER is what the
+// eye meets first as it swipes. Adrian's priority for that first read:
+// Product (pinned) → Year → Type → Stock → Cost → Source → Origin. This order is
+// applied ONLY to the mobile swipe table for the All view; desktop keeps the
+// TEA_COLUMN_DEFS order above. Keys not listed here fall back to their natural
+// position after these.
+export const MOBILE_TEA_ALL_ORDER: readonly string[] = [
+  'productName', 'stockGrams', 'pricePerGramUSD', 'type', 'costAmount', 'vendor', 'originRegion', 'form', 'year',
+];
 
 export const TEAWARE_COLUMN_DEFS = [
   { key: 'productName', label: 'Product', defaultWidth: 'w-[28%]', alwaysVisible: true },
@@ -74,7 +86,7 @@ export const DEFAULT_TEA_VIEWS: InventoryViewConfig[] = [
     id: 'default-all',
     name: 'All',
     icon: null,
-    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD'],
+    columns: ['productName', 'type', 'year', 'originRegion', 'stockGrams', 'costAmount', 'pricePerGramUSD', 'vendor', 'form'],
     sortConfig: [{ key: 'type', direction: 'asc' }],
     filterType: 'All',
     groupBy: null,

@@ -1,6 +1,6 @@
 export type ProductType = 'Green' | 'Yellow' | 'White' | 'Oolong' | 'Red' | 'Dark' | 'Sheng' | 'Shou' | 'Herbal' | 'Teaware' | 'Misc' | 'MISSING_TYPE';
 
-export type TeaForm = 'Loose Leaf' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball' | 'Powder' | 'Bag' | 'Other';
+export type TeaForm = 'Loose' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball' | 'Powder' | 'Bag' | 'Other';
 
 export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'AUD' | 'UNK';
 
@@ -9,7 +9,7 @@ import type { TastingData } from '../types';
 export interface Product {
   id: string;
   type: ProductType;
-  form?: TeaForm; // Physical form: Loose Leaf, Cake, Tuo, Brick, etc.
+  form?: TeaForm; // Physical form: Loose, Cake, Tuo, Brick, etc.
   givenName: string;
   chineseName?: string;
   productName: string; // The botanical/cultivar name
