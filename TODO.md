@@ -2,6 +2,16 @@
 
 ## Soon
 
+### Session cleanup follow-ups (rescued from a parked snapshot, 2026-06-17)
+
+- [ ] Ship verification-code delivery so sign-in verification actually works — it's effectively off until codes can be sent _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] Build the per-order detail page (order history links to it but the page is still missing) _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] Extend tenant-isolation coverage beyond the customers read path _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] Confirm which of the two duplicate database setup files is live in production and delete the loser (needs a logged-in check against the live database) _(band: you-required)_ _(effort: quick)_
+- [ ] Turn on the inventory-integrity safeguards (written but not yet switched on — review first), and run the read-only reconciliation check against production (last attempt failed on a stale commit, so pull latest first) _(band: you-required)_ _(effort: moderate)_
+- [ ] Decide the open home-button fix request — merge or close it _(band: you-required)_ _(effort: quick)_
+- [ ] Decide the Australia shop work (au.teajia.com plus the account switcher) — three commits built but never submitted; submit or fold in _(band: you-required)_ _(effort: moderate)_
+
 ### Curate
 
 - [ ] Restyle the Curate capture screen into the Teajia editorial language (structure stays, skin changes) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-capture-restyle.md](todo/plans/curate-capture-restyle.md)
