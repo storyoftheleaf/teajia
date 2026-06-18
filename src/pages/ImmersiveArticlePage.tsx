@@ -7,7 +7,7 @@ import { api } from '../lib/api';
 import type { DbArticle } from '../types';
 import { ReadingProgress } from '../components/immersive/ReadingProgress';
 import { renderBlock } from '../components/immersive/sections';
-import { ImmersiveShareCard } from '../components/immersive/ImmersiveShareCard';
+import { SharePanel } from '../components/article/SharePanel';
 import '../styles/reader-animations.css';
 
 export default function ImmersiveArticlePage() {
@@ -29,7 +29,7 @@ export default function ImmersiveArticlePage() {
       <article className="pb-nav-gap">
         {article.blocks.map((block, i) => renderBlock(block, i, { onShare: () => setShareOpen(true) }))}
       </article>
-      {shareOpen && <ImmersiveShareCard article={article} onClose={() => setShareOpen(false)} />}
+      {shareOpen && <SharePanel page={null} article={article} onClose={() => setShareOpen(false)} />}
     </div>
   );
 }
