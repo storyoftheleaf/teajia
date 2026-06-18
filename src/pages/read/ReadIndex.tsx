@@ -3,13 +3,13 @@
  * A quiet cover-card landing for the four immersive long-reads, in the same
  * espresso-and-gold register. Each card is a full link into its article.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import type { DbArticle } from '../../types';
-import { C, F, ImmersiveRoot, ProgressTrack, AccentSwatches, useReadingProgress, useImmersiveChrome, useReveals, grainCss, ACCENTS } from './immersive';
+import { C, F, ImmersiveRoot, ProgressTrack, useReadingProgress, useImmersiveChrome, useReveals, grainCss, ACCENTS } from './immersive';
 
 type Piece = {
   to: string;
@@ -19,6 +19,16 @@ type Piece = {
   blurb: string;
   art: React.ReactNode; // small SVG/typographic plate
 };
+
+// The rest of the site, surfaced inside Read as a quiet explore row. Labels are
+// curated (e.g. "Sessions", not the route's "events"); routes match the site nav.
+const EXPLORE: { label: string; to: string }[] = [
+  { label: 'Craft', to: '/craft' },
+  { label: 'Advise', to: '/advise' },
+  { label: 'Shop', to: '/shop' },
+  { label: 'Sessions', to: '/events' },
+  { label: 'About', to: '/about' },
+];
 
 const pieces: Piece[] = [
   {
@@ -78,8 +88,8 @@ const pieces: Piece[] = [
 ];
 
 const ReadIndex: React.FC = () => {
-  const [accent, setAccent] = useState<string>(ACCENTS[0]);
-  useImmersiveChrome(accent);
+  // Read stays on the gold accent (the colour picker was retired).
+  useImmersiveChrome(ACCENTS[0]);
 
   // Published articles authored in the editor, shown in the same card register
   // as the four hand-built showcases so Read reads as one collection. They link
@@ -111,17 +121,33 @@ const ReadIndex: React.FC = () => {
         <ProgressTrack progress={progress} />
       </nav>
 
-      <AccentSwatches accent={accent} setAccent={setAccent} />
-
       {/* HERO */}
       <header style={{ position: 'relative', padding: 'clamp(64px,11vw,150px) clamp(24px,6vw,72px) clamp(40px,6vw,72px)', overflow: 'hidden', textAlign: 'center' }}>
         <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-54%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(54vw,520px)', lineHeight: 1, color: 'rgba(168,135,77,0.045)', pointerEvents: 'none', userSelect: 'none' }}>讀</div>
         <div style={{ position: 'relative', maxWidth: 760, margin: '0 auto' }}>
-          <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>The Reading Room</div>
+          {/* masthead — gold rule + italic eyebrow, in the Magazine register */}
+          <div aria-hidden="true" style={{ width: 30, height: 1, background: C.gold, opacity: 0.55, margin: '0 auto 18px' }} />
+          <div style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 16, letterSpacing: '0.04em', color: C.gold, marginBottom: 22 }}>The Reading Room</div>
           <h1 style={{ fontFamily: F.display, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(46px,9vw,100px)', lineHeight: 0.98, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>The Craft of Tea</h1>
           <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2.2vw,21px)', lineHeight: 1.5, color: C.taupe, margin: '26px auto 0', maxWidth: 520 }}>
             Long, slow reads on the people and the patience behind the cup. Each one a magazine you wish would never end.
           </p>
+
+          {/* explore row — the rest of the site, in the museum-caption register */}
+          <nav aria-label="Explore Teajia" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'baseline', gap: '0 18px', margin: 'clamp(34px,5vw,52px) auto 0', maxWidth: 560 }}>
+            {EXPLORE.map((e, i) => (
+              <React.Fragment key={e.to}>
+                {i > 0 && <span aria-hidden="true" style={{ width: 1, height: 11, background: 'rgba(168,135,77,0.28)', alignSelf: 'center' }} />}
+                <Link
+                  to={e.to}
+                  className="tj-explore-link"
+                  style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 16, letterSpacing: '0.02em', color: C.taupe, textDecoration: 'none', padding: '6px 0', whiteSpace: 'nowrap' }}
+                >
+                  {e.label}
+                </Link>
+              </React.Fragment>
+            ))}
+          </nav>
         </div>
       </header>
 
