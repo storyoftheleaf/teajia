@@ -32,8 +32,8 @@ const EXPLORE: { label: string; to: string }[] = [
 
 const pieces: Piece[] = [
   {
-    to: '/read/leaf-to-liquor', no: 'N°01', kind: 'The Craft of Tea', title: 'From Leaf to Liquor',
-    blurb: 'How a single leaf becomes the six colours of tea — read it five ways.',
+    to: '/read/leaf-to-liquor/manuscript', no: 'N°01', kind: 'Template · Manuscript', title: 'From Leaf to Liquor',
+    blurb: 'The manuscript template — drop caps, marginalia, the long classic read.',
     art: (
       <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
         <g fill="none" stroke="rgba(168,135,77,0.4)" strokeWidth="1.1">
@@ -45,6 +45,26 @@ const pieces: Piece[] = [
       </svg>
     ),
   },
+  // The other four templates of the same piece — each its own article-link.
+  ...([
+    { key: 'gallery', label: 'Gallery', blurb: 'The gallery template — image-led, plates and captions carry the read.' },
+    { key: 'folio', label: 'Folio', blurb: 'The folio template — data and meters, a measured technical layout.' },
+    { key: 'thread', label: 'Thread', blurb: 'The thread template — a single drawn line threads the story down the page.' },
+    { key: 'reverie', label: 'Reverie', blurb: 'The reverie template — one idea per screen, slow and spacious.' },
+  ] as const).map((t) => ({
+    to: `/read/leaf-to-liquor/${t.key}`, no: 'N°01', kind: `Template · ${t.label}`, title: 'From Leaf to Liquor',
+    blurb: t.blurb,
+    art: (
+      <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <g fill="none" stroke="rgba(168,135,77,0.4)" strokeWidth="1.1">
+          <path d="M160 40 C 128 80, 128 150, 160 180 C 192 150, 192 80, 160 40 Z" />
+          <line x1="160" y1="56" x2="160" y2="170" />
+          <path d="M160 90 C 144 98, 136 108, 132 122" /><path d="M160 124 C 178 132, 186 144, 190 158" />
+        </g>
+        <circle cx="160" cy="34" r="3.4" fill={C.gold} />
+      </svg>
+    ),
+  })),
   {
     to: '/read/rock-remembers', no: 'N°02', kind: 'Conversations over Tea', title: 'The Rock Remembers',
     blurb: 'A Wuyi rock-tea roaster on fire, patience and lineage.',

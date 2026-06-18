@@ -830,6 +830,9 @@ const AppContent = () => {
                 <Route path="/read/leaf-to-liquor" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LeafToLiquor /></Suspense></ErrorBoundary>
                 } />
+                <Route path="/read/leaf-to-liquor/:template" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LeafToLiquor /></Suspense></ErrorBoundary>
+                } />
                 <Route path="/read/rock-remembers" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><RockRemembers /></Suspense></ErrorBoundary>
                 } />
