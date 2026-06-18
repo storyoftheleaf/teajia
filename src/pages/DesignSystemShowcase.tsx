@@ -1484,19 +1484,19 @@ type InvRow = {
 
 const INV_ROWS: InvRow[] = [
   { name: 'Te Quan Yin', type: '', dot: 'Dark', year: '1983', origin: '', grams: '111', price: '1.90', starred: true, hidden: true },
-  { name: 'Oolong', type: 'Loose Leaf', dot: 'Dark', year: '1983', origin: 'Zhudong, Taiwan', grams: '118', price: '0.04' },
+  { name: 'Oolong', type: 'Loose', dot: 'Dark', year: '1983', origin: 'Zhudong, Taiwan', grams: '118', price: '0.04' },
   { name: 'Phoenix Mountain', type: '', dot: 'Dark', year: '2012', origin: '', grams: '230', price: '1.55', editing: true, qty: 1 },
   { name: 'Aged Sour Citrus 1983', type: 'Other', dot: 'Dark', year: '1983', origin: '', grams: '54', price: '1.55', lowStock: true },
-  { name: 'Aged Liu Bao 1960', type: 'Loose Leaf', dot: 'Dark', year: '1960', origin: 'Guangxi', grams: '250', price: '2.79' },
+  { name: 'Aged Liu Bao 1960', type: 'Loose', dot: 'Dark', year: '1960', origin: 'Guangxi', grams: '250', price: '2.79' },
   { name: 'Aged Liu An 1985', type: 'Basket', dot: 'Dark', year: '1985', origin: 'Qimen, Anhui', grams: '330', price: '1.59' },
   { name: "Ya'an Kang Brick 1980", type: 'Brick', dot: 'Dark', year: '1980', origin: "Ya'an, Sichuan", grams: '0g', price: '1.86', starred: true, hidden: true, pill: 'hidden' },
   { name: 'Yiwu Mushroom', type: 'Other', dot: 'Dark', year: '–', origin: 'Yiwu, Yunnan', grams: '0g', price: '3.83', sold: true },
-  { name: 'Wild Ancha', type: 'Loose Leaf', dot: 'Dark', year: '2023', origin: 'Anhua, Hunan', grams: '0g', price: '1.21', sold: true },
-  { name: 'Wild Ancha', type: 'Loose Leaf', dot: 'Dark', year: '2024', origin: 'Anhua, Hunan', grams: '0g', price: '5.42', sold: true },
-  { name: 'Anhua Yi Ji 2015', type: 'Loose Leaf', dot: 'Dark', year: '2015', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
-  { name: 'Anhua Huangye 2024', type: 'Loose Leaf', dot: 'Dark', year: '2024', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
-  { name: 'Anhua Huangye 2022', type: 'Loose Leaf', dot: 'Dark', year: '2022', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
-  { name: 'Anhua Yi Ji 2020', type: 'Loose Leaf', dot: 'Dark', year: '2020', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
+  { name: 'Wild Ancha', type: 'Loose', dot: 'Dark', year: '2023', origin: 'Anhua, Hunan', grams: '0g', price: '1.21', sold: true },
+  { name: 'Wild Ancha', type: 'Loose', dot: 'Dark', year: '2024', origin: 'Anhua, Hunan', grams: '0g', price: '5.42', sold: true },
+  { name: 'Anhua Yi Ji 2015', type: 'Loose', dot: 'Dark', year: '2015', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
+  { name: 'Anhua Huangye 2024', type: 'Loose', dot: 'Dark', year: '2024', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
+  { name: 'Anhua Huangye 2022', type: 'Loose', dot: 'Dark', year: '2022', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
+  { name: 'Anhua Yi Ji 2020', type: 'Loose', dot: 'Dark', year: '2020', origin: 'Anhua, Hunan', grams: '0g', price: '0.00', sold: true },
 ];
 
 function InventoryListSection() {

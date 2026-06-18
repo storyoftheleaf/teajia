@@ -1057,7 +1057,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   className={selectStyle}
                 >
                   <option value="" className="bg-tea-surface text-tea-text">— unset —</option>
-                  {['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
+                  {['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
                     <option key={f} value={f} className="bg-tea-surface text-tea-text">{f}</option>
                   ))}
                 </select>

@@ -314,7 +314,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         }
 
         // Validate form against known values
-        const validForms = ['Loose Leaf', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
+        const validForms = ['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'];
         const matchedForm = validForms.find(f => f.toLowerCase() === (r.form || '').toLowerCase());
         const hasWisdom = !!(r.lore || r.tastingNotes || r.mood || r.experience);
 
