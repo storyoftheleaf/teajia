@@ -23,6 +23,8 @@ export interface PlatformUser {
   username?: string | null;
   platform_role: PlatformRole;
   created_at: string;
+  shelf_enabled?: boolean;   // stock spine step 5 — public shelf granted
+  shelf_slug?: string | null;
   memberships: { account_id: string; role: string }[];
 }
 
@@ -90,6 +92,33 @@ export interface CellarItem {
 export interface CellarPlacementRequest extends CellarItem {
   ownerName?: string | null;
   ownerEmail?: string | null;
+}
+
+// Stock spine step 5 — the seller's own shelf settings (grant state + identity).
+export interface ShelfSettings {
+  enabled: boolean;
+  slug: string | null;
+  title: string | null;
+  whatsapp: string | null;
+}
+
+// One item on a public shelf — public-safe fields only.
+export interface PublicShelfItem {
+  id: string;
+  name: string;
+  type: string | null;
+  year: number | null;
+  origin: string | null;
+  grams: number;
+  image_url: string | null;
+}
+
+export interface PublicShelf {
+  slug: string;
+  title: string | null;
+  seller_name: string | null;
+  whatsapp: string | null;
+  items: PublicShelfItem[];
 }
 
 export interface PurchaseOrder {
@@ -2450,6 +2479,13 @@ export const api = {
         body: JSON.stringify({ platform_role }),
       });
     },
+    // Stock spine step 5 — grant/revoke a user's public shelf and set its slug.
+    grantShelf: async (userId: string, data: { enabled: boolean; slug?: string }): Promise<{ ok: boolean; enabled: boolean; slug: string | null }> => {
+      return authedFetch(`${API_URL}/api/platform/users/${userId}/shelf`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
     listAccounts: async (): Promise<{ accounts: PlatformAccount[] }> => {
       return authedFetch(`${API_URL}/api/platform/accounts`)
     },
@@ -2796,6 +2832,27 @@ export const api = {
     },
     declinePlacement: async (id: string): Promise<{ ok: boolean }> => {
       return authedFetch(`${API_URL}/api/cellar-placements/${id}/decline`, { method: 'POST' });
+    },
+    // Stock spine step 5 — the standalone public shelf.
+    getShelf: async (): Promise<ShelfSettings> => {
+      return authedFetch(`${API_URL}/api/me/shelf`);
+    },
+    updateShelf: async (data: { title?: string; whatsapp?: string }): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/shelf`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    publishToShelf: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/publish-shelf`, { method: 'POST' });
+    },
+    unpublishFromShelf: async (id: string): Promise<{ ok: boolean }> => {
+      return authedFetch(`${API_URL}/api/me/cellar/${id}/unpublish-shelf`, { method: 'POST' });
+    },
+  },
+
+  // Stock spine step 5 — PUBLIC standalone shelf (no auth).
+  shelf: {
+    getPublic: async (slug: string): Promise<PublicShelf> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/shelf/${encodeURIComponent(slug)}`);
+      return handleResponse(res);
     },
   },
 

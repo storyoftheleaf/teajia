@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, Trash2, MapPin, X, Loader2 } from 'lucide-react';
+import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink } from 'lucide-react';
 import { api, type CellarItem } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 
@@ -37,7 +37,27 @@ export const CellarView: React.FC<CellarViewProps> = () => {
   });
   const items = data?.items ?? [];
 
+  // Step 5 — shelf grant + identity. Only present once Adrian grants the shelf.
+  const { data: shelf } = useQuery({
+    queryKey: ['cellar-shelf'],
+    queryFn: () => api.cellar.getShelf(),
+    staleTime: 1000 * 60,
+  });
+  const shelfEnabled = !!shelf?.enabled;
+  const [whatsapp, setWhatsapp] = useState('');
+  useEffect(() => { if (shelf) setWhatsapp(shelf.whatsapp ?? ''); }, [shelf]);
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ['cellar'] });
+
+  const saveShelfMut = useMutation({
+    mutationFn: (payload: { whatsapp: string }) => api.cellar.updateShelf(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cellar-shelf'] }),
+  });
+  const shelfToggleMut = useMutation({
+    mutationFn: ({ id, on }: { id: string; on: boolean }) =>
+      on ? api.cellar.publishToShelf(id) : api.cellar.unpublishFromShelf(id),
+    onSuccess: invalidate,
+  });
 
   const createMut = useMutation({
     mutationFn: (payload: { name: string; grams: number }) => api.cellar.create(payload),
@@ -74,6 +94,44 @@ export const CellarView: React.FC<CellarViewProps> = () => {
         Tea you personally own, kept private. Add what's on your shelf with a weight —
         only you can see it.
       </p>
+
+      {/* Step 5 — public shelf. Appears only once Adrian grants it. */}
+      {shelfEnabled && shelf?.slug && (
+        <div className="bg-tea-surface border border-tea-border rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Store size={14} className="text-tea-gold" />
+            <span className="text-ui-13 text-tea-text">Your public shelf</span>
+            <a
+              href={`/u/${shelf.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto inline-flex items-center gap-1 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              /u/{shelf.slug} <ExternalLink size={11} />
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="tel"
+              inputMode="tel"
+              value={whatsapp}
+              onChange={e => setWhatsapp(e.target.value)}
+              placeholder="WhatsApp number for orders"
+              className="flex-1 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-13 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+            />
+            <button
+              onClick={() => saveShelfMut.mutate({ whatsapp })}
+              disabled={saveShelfMut.isPending || whatsapp === (shelf.whatsapp ?? '')}
+              className="text-ui-13 text-tea-gold disabled:opacity-50"
+            >
+              Save
+            </button>
+          </div>
+          <p className="text-ui-11 text-tea-text-dim">
+            Toggle a private item onto your shelf below. Buyers order you directly over WhatsApp.
+          </p>
+        </div>
+      )}
 
       {/* Add form */}
       {adding ? (
@@ -209,6 +267,16 @@ export const CellarView: React.FC<CellarViewProps> = () => {
                     className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
                   >
                     Cancel request
+                  </button>
+                )}
+
+                {/* Step 5 — shelf toggle, only for private items once granted. */}
+                {shelfEnabled && item.placementStatus === 'private' && (
+                  <button
+                    onClick={() => shelfToggleMut.mutate({ id: item.id, on: !item.shelfPublished })}
+                    className={`inline-flex items-center gap-1 text-ui-12 transition-colors ${item.shelfPublished ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}
+                  >
+                    <Store size={12} /> {item.shelfPublished ? 'On shelf' : 'Add to shelf'}
                   </button>
                 )}
               </div>

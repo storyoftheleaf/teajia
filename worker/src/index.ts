@@ -7980,6 +7980,165 @@ const handleDeclineCellarPlacement: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
+// ── Standalone public shelf (stock spine step 5) ────────────────────────────
+//
+// The top of the spine: a person publishes their private cellar (step 4) at
+// their own link /u/<slug>, with Adrian's permission. Private-by-default holds —
+// public requires the platform-owner grant (users.shelf_enabled). The buyer
+// deals with the seller directly over WhatsApp; Teajia never takes the order or
+// holds the money. Shelf-first: tea + a direct order, nothing else.
+
+function normalizeShelfSlug(raw: string): string {
+  return String(raw).toLowerCase().trim()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+// GET /api/me/shelf — the caller's shelf settings (grant state + identity).
+const handleGetMyShelf: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const row = await env.DB.prepare(
+    'SELECT shelf_enabled, shelf_slug, shelf_title, shelf_whatsapp FROM users WHERE id = ?'
+  ).bind(userId).first() as any;
+  if (!row) return json({ error: 'Not found' }, 404);
+  return json({
+    enabled: !!row.shelf_enabled,
+    slug: row.shelf_slug ?? null,
+    title: row.shelf_title ?? null,
+    whatsapp: row.shelf_whatsapp ?? null,
+  });
+};
+
+// PUT /api/me/shelf — the seller sets their shelf title + WhatsApp. Only once
+// the platform owner has granted the shelf (shelf_enabled).
+const handleUpdateMyShelf: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const row = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
+  if (!row) return json({ error: 'Not found' }, 404);
+  if (!row.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
+  const body = await request.json() as { title?: string; whatsapp?: string };
+  await env.DB.prepare(
+    'UPDATE users SET shelf_title = ?, shelf_whatsapp = ? WHERE id = ?'
+  ).bind(
+    body.title?.trim() || null,
+    body.whatsapp ? String(body.whatsapp).replace(/[^\d]/g, '') || null : null,
+    userId,
+  ).run();
+  return json({ ok: true });
+};
+
+// POST /api/me/cellar/:id/publish-shelf — put a private cellar item on the
+// caller's public shelf. Shelf publishes location-less stock only; a placed
+// item belongs to a location, not the standalone shelf.
+const handlePublishToShelf: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const user = await env.DB.prepare('SELECT shelf_enabled FROM users WHERE id = ?').bind(userId).first() as any;
+  if (!user?.shelf_enabled) return json({ error: 'Shelf not enabled for this account' }, 403);
+  const item = await env.DB.prepare(
+    'SELECT owner_user_id, placement_status FROM personal_cellar_items WHERE id = ?'
+  ).bind(params.id).first() as any;
+  if (!item) return json({ error: 'Not found' }, 404);
+  if (item.owner_user_id !== userId) return json({ error: 'Forbidden' }, 403);
+  if (item.placement_status !== 'private') {
+    return json({ error: 'Only location-less items can go on your shelf' }, 409);
+  }
+  await env.DB.prepare(
+    "UPDATE personal_cellar_items SET shelf_published = 1, updated_at = datetime('now') WHERE id = ? AND owner_user_id = ?"
+  ).bind(params.id, userId).run();
+  return json({ ok: true });
+};
+
+// POST /api/me/cellar/:id/unpublish-shelf — take an item off the shelf.
+const handleUnpublishFromShelf: Handler = async (request, env, params) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const userId = authedUserId(request);
+  if (!userId) return json({ error: 'Invalid token' }, 401);
+  const res = await env.DB.prepare(
+    "UPDATE personal_cellar_items SET shelf_published = 0, updated_at = datetime('now') WHERE id = ? AND owner_user_id = ?"
+  ).bind(params.id, userId).run();
+  if (!res.meta.changes) return json({ error: 'Not found' }, 404);
+  return json({ ok: true });
+};
+
+// GET /api/shelf/:slug — PUBLIC, no auth. The seller's shelf: published items +
+// a direct WhatsApp contact. Public-safe fields only (no cost, no vendor).
+const handleGetPublicShelf: Handler = async (_request, env, params) => {
+  const slug = normalizeShelfSlug(params.slug);
+  if (!slug) return json({ error: 'Not found' }, 404);
+  const seller = await env.DB.prepare(
+    'SELECT id, name, shelf_enabled, shelf_title, shelf_whatsapp FROM users WHERE shelf_slug = ?'
+  ).bind(slug).first() as any;
+  if (!seller || !seller.shelf_enabled) return json({ error: 'Shelf not found' }, 404);
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, type, year, origin, grams, image_url
+       FROM personal_cellar_items
+      WHERE owner_user_id = ? AND shelf_published = 1 AND placement_status = 'private'
+      ORDER BY created_at DESC`
+  ).bind(seller.id).all();
+  return cachedJson({
+    slug,
+    title: seller.shelf_title ?? null,
+    seller_name: seller.name ?? null,
+    whatsapp: seller.shelf_whatsapp ?? null,
+    items: (results as any[]).map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type ?? null,
+      year: r.year ?? null,
+      origin: r.origin ?? null,
+      grams: Number(r.grams) || 0,
+      image_url: r.image_url ?? null,
+    })),
+  }, 30);
+};
+
+// PUT /api/platform/users/:id/shelf — platform-owner grant. Turns a user's
+// public shelf on/off and assigns its slug. Private-by-default: the shelf does
+// not exist until granted here.
+const handleGrantShelf: Handler = async (request, env, params) => {
+  const authErr = await requirePlatformOwner(request, env);
+  if (authErr) return authErr;
+  const body = await request.json() as { enabled?: boolean; slug?: string };
+  const user = await env.DB.prepare('SELECT id, username, shelf_slug FROM users WHERE id = ?').bind(params.id).first() as any;
+  if (!user) return json({ error: 'User not found' }, 404);
+
+  const enabled = body.enabled ? 1 : 0;
+  // Resolve the slug: explicit > existing > username. Required to enable.
+  let slug = body.slug ? normalizeShelfSlug(body.slug) : (user.shelf_slug ?? (user.username ? normalizeShelfSlug(user.username) : null));
+  if (enabled && !slug) {
+    return json({ error: 'A slug is required to enable a shelf' }, 400);
+  }
+  if (slug) {
+    const clash = await env.DB.prepare(
+      'SELECT id FROM users WHERE shelf_slug = ? AND id != ?'
+    ).bind(slug, params.id).first();
+    if (clash) return json({ error: 'That shelf link is taken' }, 409);
+  }
+  await env.DB.prepare(
+    'UPDATE users SET shelf_enabled = ?, shelf_slug = ? WHERE id = ?'
+  ).bind(enabled, slug, params.id).run();
+
+  const actorClaims = parseToken(isAuthed(request)!);
+  await logPlatformAction(
+    env, 'shelf.grant_changed',
+    actorClaims?.sub ?? 'unknown', actorClaims?.email ?? '',
+    'user', params.id, { enabled: !!enabled, slug },
+  );
+
+  return json({ ok: true, enabled: !!enabled, slug });
+};
+
 // ── Teaware Collection ──
 
 const handleGetTeawareCollection: Handler = async (request, env) => {
@@ -11415,6 +11574,7 @@ const handlePlatformListUsers: Handler = async (request, env) => {
 
   const { results } = await env.DB.prepare(
     `SELECT u.id, u.email, u.name, u.username, u.platform_role, u.created_at,
+            u.shelf_enabled, u.shelf_slug,
             GROUP_CONCAT(am.account_id || ':' || am.role) as memberships_raw
      FROM users u
      LEFT JOIN account_members am ON am.user_id = u.id AND am.status = 'active'
@@ -11434,6 +11594,8 @@ const handlePlatformListUsers: Handler = async (request, env) => {
     username: u.username,
     platform_role: u.platform_role ?? null,
     created_at: u.created_at,
+    shelf_enabled: !!u.shelf_enabled,
+    shelf_slug: u.shelf_slug ?? null,
     memberships: u.memberships_raw
       ? u.memberships_raw.split(',').map((s: string) => {
           const [account_id, role] = s.split(':');
@@ -17742,6 +17904,7 @@ const routes: [string, string, Handler][] = [
   // Platform admin
   ['GET',  '/api/platform/users', handlePlatformListUsers],
   ['PUT',  '/api/platform/users/:id/platform-role', handlePlatformSetUserRole],
+  ['PUT',  '/api/platform/users/:id/shelf', handleGrantShelf],
   ['POST', '/api/platform/users/:id/resend-invite', handlePlatformResendInvite],
   ['GET',  '/api/platform/accounts', handlePlatformListAccounts],
   ['GET',  '/api/platform/all-stock', handlePlatformAllStock],
@@ -18063,6 +18226,13 @@ const routes: [string, string, Handler][] = [
   ['GET',    '/api/cellar-placements', handleListCellarPlacements],
   ['POST',   '/api/cellar-placements/:id/approve', handleApproveCellarPlacement],
   ['POST',   '/api/cellar-placements/:id/decline', handleDeclineCellarPlacement],
+
+  // Standalone public shelf (stock spine step 5).
+  ['GET',    '/api/me/shelf', handleGetMyShelf],
+  ['PUT',    '/api/me/shelf', handleUpdateMyShelf],
+  ['POST',   '/api/me/cellar/:id/publish-shelf', handlePublishToShelf],
+  ['POST',   '/api/me/cellar/:id/unpublish-shelf', handleUnpublishFromShelf],
+  ['GET',    '/api/shelf/:slug', handleGetPublicShelf],          // PUBLIC, no auth
 
   // Teaware Collection
   ['GET', '/api/admin/teaware', handleGetTeawareCollection],

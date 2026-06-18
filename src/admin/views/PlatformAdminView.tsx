@@ -150,6 +150,27 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
     } finally { setBusy(null); }
   };
 
+  // Stock spine step 5 — grant or revoke a user's public shelf.
+  const handleToggleShelf = async (user: PlatformUser) => {
+    setBusy(`shelf-${user.id}`);
+    try {
+      if (user.shelf_enabled) {
+        await api.platform.grantShelf(user.id, { enabled: false });
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, shelf_enabled: false } : u));
+        showToast(`Shelf revoked from ${user.email}`, 'success');
+      } else {
+        const suggested = user.username || (user.email.split('@')[0] ?? '');
+        const slug = window.prompt('Shelf link — /u/<slug>', suggested);
+        if (!slug) { setBusy(null); return; }
+        const res = await api.platform.grantShelf(user.id, { enabled: true, slug });
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, shelf_enabled: true, shelf_slug: res.slug } : u));
+        showToast(`Shelf granted — /u/${res.slug}`, 'success');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update shelf', 'error');
+    } finally { setBusy(null); }
+  };
+
   const handleResendInvite = async (user: PlatformUser) => {
     setBusy(`invite-${user.id}`);
     try {
@@ -229,6 +250,14 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                     title="Grants platform-wide admin access — not account-level"
                   />
                 )
+              )}
+              {isPlatformOwner && (
+                <button type="button" onClick={() => handleToggleShelf(user)} disabled={busy === `shelf-${user.id}`}
+                  className={`${user.shelf_enabled ? 'pill pill-active' : 'pill'} flex items-center gap-1`}
+                  title={user.shelf_enabled ? `Public shelf at /u/${user.shelf_slug} — click to revoke` : 'Grant a public shelf'}>
+                  {busy === `shelf-${user.id}` ? <Loader2 size={10} className="animate-spin" /> : <Store size={10} />}
+                  Shelf
+                </button>
               )}
               <button type="button" onClick={() => handleResendInvite(user)} disabled={busy === `invite-${user.id}`}
                 className="pill flex items-center gap-1" title="Resend invite">
