@@ -690,28 +690,17 @@ const AppContent = () => {
   // recipients who aren't logged in. Public collection links (/c/:slug) belong here
   // too: a sent link should be a clean single-purpose page, not the full app shell.
   const isFocusedShareRoute = location.pathname.startsWith('/share/') || location.pathname.startsWith('/c/');
-  // Immersive Read-section long-reads are full-bleed editorial experiences with
-  // their own sticky nav, reading-progress bar and accent control. They must
-  // escape the app's content padding and the floating bottom tab bar (which
-  // would otherwise overlap the bottom-right accent swatches).
+  // The four hand-built Read long-reads (/read and /read/*) are full-bleed
+  // editorial experiences with their own sticky nav, reading-progress bar and
+  // bottom-right accent control. They escape the app's content padding and the
+  // floating bottom tab bar (which would otherwise overlap those accent swatches).
   //
-  // The DB-driven immersive reader at /article/:slug (chosen by the article's
-  // layout_template) is the same kind of full-bleed read, so it must escape the
-  // same chrome. We read the article from the shared react-query cache (same key
-  // ArticleRouteSwitch uses, so no extra fetch) and subscribe via useQuery so the
-  // flag flips the moment the article resolves to immersive.
-  const articleSlugMatch = location.pathname.match(/^\/article\/([^/]+)/);
-  const articleSlug = articleSlugMatch?.[1];
-  const { data: routeArticle } = useQuery<DbArticle>({
-    queryKey: ['article', articleSlug],
-    queryFn: () => api.articles.getBySlug(articleSlug as string),
-    enabled: !!articleSlug,
-  });
-  const isImmersiveArticle = !!routeArticle && getArticleRenderMode(routeArticle) === 'immersive_scroll';
+  // The DB-driven immersive reader at /article/:slug intentionally KEEPS the
+  // bottom tab bar: it's where authored articles open and a reader there should
+  // be able to navigate the rest of the app. (It carries no corner accent
+  // controls, so there's nothing for the bar to overlap.)
   const isImmersiveRead =
-    location.pathname === '/read' ||
-    location.pathname.startsWith('/read/') ||
-    isImmersiveArticle;
+    location.pathname === '/read' || location.pathname.startsWith('/read/');
 
   // LeftSidebar only mounts on admin routes now, so its useEffect that sets
   // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so
