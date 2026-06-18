@@ -146,8 +146,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     },
   });
 
+  // The "Read" tab lands on /read (the unified Read section: editor articles +
+  // the hand-built showcases), NOT the legacy /magazine listing. The optional
+  // `path` overrides the section→path routing for exactly this case; the tab
+  // still highlights as the MAGAZINE section so the active state is unchanged.
   const leftSections = [
-    { id: 'MAGAZINE' as Section, label: 'Read' },
+    { id: 'MAGAZINE' as Section, label: 'Read', path: '/read' },
     { id: 'LEARN' as Section, label: 'Craft' },
   ];
 
@@ -156,8 +160,12 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     { id: 'SHOP' as Section, label: 'Shop' },
   ];
 
-  const renderTabButton = (section: { id: Section; label: string }, index: number) => {
-    const isActive = !isOnAdmin && activeSection === section.id;
+  const renderTabButton = (section: { id: Section; label: string; path?: string }, index: number) => {
+    // A path-override tab (Read → /read) is active when on that path; otherwise
+    // fall back to the section match.
+    const isActive = !isOnAdmin && (
+      section.path ? location.pathname.startsWith(section.path) : activeSection === section.id
+    );
 
     return (
       <motion.button
@@ -168,6 +176,15 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         onClick={() => {
           if ('vibrate' in navigator) { navigator.vibrate?.(10); }
           onSearchClose?.();
+          if (section.path) {
+            if (location.pathname.startsWith(section.path)) {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+              onAccountClose?.();
+              navigate(section.path);
+            }
+            return;
+          }
           if (section.id === activeSection) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
