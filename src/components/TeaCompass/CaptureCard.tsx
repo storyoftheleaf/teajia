@@ -720,11 +720,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // Mobile shell flows the warm surface (gradient + grain) PAST the Done footer
   // and BEHIND the floating bottom-nav pill, rather than stopping short above
   // it. The earlier flat pb-6 ended the surface in a hard line that read as
-  // "cut off early"; pb-nav-gap-lg carries the surface under the nav with a
-  // generous 2rem of flow at the bottom (and resets to standard on lg+, where
-  // there is no bottom nav). A slightly larger top buffer mirrors that breath
-  // up top so the card opens and closes with the same softened rhythm.
-  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
+  // "cut off early". The base is pb-nav-gap-lg (2rem + nav + safe-area); the
+  // arbitrary override adds 30px more so there's a touch of extra scroll past
+  // the end of the card. Both reset to a flat 2rem on lg+, where there is no
+  // bottom nav. A slightly larger top buffer mirrors that breath up top so the
+  // card opens and closes with the same softened rhythm.
+  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg [padding-bottom:calc(2rem+80px+30px+env(safe-area-inset-bottom,0px))] lg:[padding-bottom:2rem]`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
