@@ -2528,7 +2528,7 @@ export default function ArticlePage() {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (e.key === 'Escape') {
         if (showShare) { setShowShare(false); return; }
-        navigate('/magazine');
+        navigate('/read');
         return;
       }
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); scrollTo(Math.min(total - 1, current + 1)); }
@@ -2563,7 +2563,7 @@ export default function ArticlePage() {
           This article may have been removed, or the link is incorrect.
         </p>
         <button
-          onClick={() => navigate('/magazine')}
+          onClick={() => navigate('/read')}
           style={{
             fontFamily: T.body,
             fontSize: 14,
@@ -2658,7 +2658,7 @@ export default function ArticlePage() {
           }}
         >
           <button
-            onClick={() => navigate('/magazine')}
+            onClick={() => navigate('/read')}
             aria-label="Back to journal"
             style={{
               display: 'flex',

@@ -170,11 +170,11 @@ export const StaffView: React.FC<StaffViewProps> = ({
         <div className="w-8 h-px bg-tea-gold/40 mt-2 mb-3.5 ml-[22px]" aria-hidden="true" />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button
-            onClick={() => go('/magazine')}
+            onClick={() => go('/read')}
             className="font-display text-ui-15 text-tea-text-sec hover:text-tea-text py-1 -my-1 transition-colors"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            Magazine
+            Read
           </button>
           <span className="text-tea-text-dim" aria-hidden="true">·</span>
           <button

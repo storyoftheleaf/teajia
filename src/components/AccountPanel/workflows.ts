@@ -44,13 +44,13 @@ export const MEMBER_MEMORY_LINKS: AccountWorkflowLink[] = [
   { id: 'saved', label: 'Saved', route: '/account/saved', category: 'memory', status: 'wired' },
   { id: 'history', label: 'History', route: '/account/history', category: 'memory', status: 'wired' },
   { id: 'find-table', label: 'Find a Table', route: '/find-a-table', category: 'continue', status: 'wired' },
-  { id: 'magazine', label: 'Magazine', route: '/magazine', category: 'continue', status: 'wired' },
+  { id: 'magazine', label: 'Read', route: '/read', category: 'continue', status: 'wired' },
   { id: 'settings', label: 'Settings', route: '/account/settings', category: 'account', status: 'wired' },
 ];
 
 export const READER_EXPLORE_LINKS: AccountWorkflowLink[] = [
   { id: 'discover', label: 'Discover your tea', route: '/discover', category: 'continue', status: 'wired' },
-  { id: 'magazine', label: 'The Magazine', route: '/magazine', category: 'continue', status: 'wired' },
+  { id: 'magazine', label: 'Read', route: '/read', category: 'continue', status: 'wired' },
   { id: 'shop', label: 'Shop', route: '/shop', category: 'continue', status: 'wired' },
   { id: 'find-table', label: 'Find a Table', route: '/find-a-table', category: 'continue', status: 'wired' },
 ];

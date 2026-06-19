@@ -9,7 +9,7 @@ interface Props {
 
 export const NoMembershipGate: React.FC<Props> = ({ onLogout }) => {
   const publicLinks = [
-    { label: 'Magazine', href: '/magazine', icon: <BookOpen size={14} strokeWidth={1.5} /> },
+    { label: 'Read', href: '/read', icon: <BookOpen size={14} strokeWidth={1.5} /> },
     { label: 'Find a Table', href: '/find-a-table', icon: <Search size={14} strokeWidth={1.5} /> },
     { label: 'Shop', href: '/shop', icon: <ShoppingBag size={14} strokeWidth={1.5} /> },
   ];

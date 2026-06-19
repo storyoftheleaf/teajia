@@ -235,7 +235,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         // existing openArticle CustomEvent that App.tsx listens for — same
         // contract used by AlcoveCard's "From the journal" links.
         action: () => {
-          navigate('/magazine');
+          navigate('/read');
           window.dispatchEvent(new CustomEvent('openArticle', { detail: { story } }));
           onClose();
         },
@@ -251,7 +251,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
         subtitle: a.subtitle || a.excerpt?.slice(0, 80) || '',
         category: 'Article',
         image: a.hero_image,
-        action: () => navigateAndClose(`/magazine/${encodeURIComponent(a.slug)}`),
+        action: () => navigateAndClose(`/article/${encodeURIComponent(a.slug)}`),
       };
     });
 
