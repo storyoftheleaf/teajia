@@ -21,7 +21,7 @@ export default function ImmersiveArticlePage() {
   // history first (preserves where the reader came from), magazine as fallback.
   const goBack = () => {
     if (window.history.length > 1) navigate(-1);
-    else navigate('/magazine');
+    else navigate('/read');
   };
   const { data: article, isLoading, isError } = useQuery<DbArticle>({
     queryKey: ['article', slug],

@@ -800,7 +800,11 @@ const AppContent = () => {
                   </ErrorBoundary>
                   )
                 } />
-                <Route path="/magazine" element={
+                {/* Magazine + the old Stories are archived off the live experience
+                    (the Read section replaced them). Kept fully working at this
+                    tucked-away URL — nothing links here — so it can be revisited
+                    or restored later. Do not re-link without intent. */}
+                <Route path="/magazine-archive" element={
                   <ErrorBoundary>
                     <MagazineTabbed
                       stories={publishedStories}
