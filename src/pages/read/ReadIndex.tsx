@@ -30,6 +30,21 @@ const EXPLORE: { label: string; to: string }[] = [
   { label: 'About', to: '/about' },
 ];
 
+// The database still holds demo/seed articles (stock watermelon + lime-drink
+// photos, placeholder copy) that must never show in Read. Filter them out by
+// their known seed titles until they're cleaned from the database. Anything not
+// on this denylist is treated as a real, listable article.
+const SEED_ARTICLE_TITLES = new Set([
+  'Into the Wuyi Mountains',
+  'Laoshan Green',
+  'A Conversation with Master Lin',
+  'Tea in the Kitchen',
+  'Origin Story',
+]);
+function isRealArticle(a: { title?: string }): boolean {
+  return !!a.title && !SEED_ARTICLE_TITLES.has(a.title.trim());
+}
+
 const pieces: Piece[] = [
   {
     to: '/read/leaf-to-liquor/manuscript', no: 'N°01', kind: 'Template · Manuscript', title: 'From Leaf to Liquor',
@@ -163,8 +178,11 @@ const ReadIndex: React.FC = () => {
             </Link>
           ))}
 
-          {/* Editor-authored articles, in the same card register. */}
-          {(published ?? []).map((a) => (
+          {/* Editor-authored articles, in the same card register. Only REAL
+              articles are listed — the demo/seed rows still in the database
+              (watermelon photos, "Origin Story", etc.) are filtered out so they
+              never show in Read. Remove the filter once real articles exist. */}
+          {(published ?? []).filter(isRealArticle).map((a) => (
             <Link
               key={a.id}
               to={`/article/${a.slug}`}
