@@ -65,46 +65,11 @@ const pieces: Piece[] = [
       </svg>
     ),
   })),
-  {
-    to: '/read/rock-remembers', no: 'N°02', kind: 'Conversations over Tea', title: 'The Rock Remembers',
-    blurb: 'A Wuyi rock-tea roaster on fire, patience and lineage.',
-    art: (
-      <>
-        <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 110, color: 'rgba(168,135,77,0.1)' }}>陈</div>
-        <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-          <path d="M0 150 L70 70 L130 130 L190 60 L320 140 L320 200 L0 200 Z" fill="rgba(168,135,77,0.06)" stroke="rgba(168,135,77,0.3)" strokeWidth="1" />
-        </svg>
-      </>
-    ),
-  },
-  {
-    to: '/read/earth-water-fire', no: 'N°03', kind: 'Conversations over Tea', title: 'Earth, Water, Fire',
-    blurb: 'A Jingdezhen potter on the vessels that hold the tea.',
-    art: (
-      <>
-        <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 110, color: 'rgba(168,135,77,0.1)' }}>林</div>
-        <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-          <g fill="none" stroke="rgba(150,180,180,0.34)" strokeWidth="1.2">
-            <ellipse cx="160" cy="118" rx="60" ry="13" /><path d="M100 118 C103 150, 130 168, 160 170 C190 168, 217 150, 220 118" />
-            <ellipse cx="160" cy="100" rx="46" ry="10" stroke="rgba(168,135,77,0.4)" />
-          </g>
-        </svg>
-      </>
-    ),
-  },
-  {
-    to: '/read/before-the-mist', no: 'N°04', kind: 'Field Notes', title: 'Before the Mist Burns Away',
-    blurb: 'A photo-essay from a Yunnan spring harvest, first light to first cup.',
-    art: (
-      <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-        <g fill="none" stroke="rgba(168,135,77,0.22)" strokeWidth="1.2">
-          <path d="M-10 110 C 80 92, 200 100, 330 86" /><path d="M-10 134 C 90 112, 210 122, 330 106" />
-          <path d="M-10 160 C 80 134, 220 146, 330 128" />
-        </g>
-        <g fill="rgba(168,135,77,0.5)"><circle cx="90" cy="118" r="2.6" /><circle cx="170" cy="130" r="2.6" /><circle cx="240" cy="120" r="2.6" /></g>
-      </svg>
-    ),
-  },
+  // The three hand-built showcase stories (Rock Remembers, Earth Water Fire,
+  // Before the Mist) were removed from the Read display — they carried the old
+  // magazine's built picture-art. Their pages stay alive at their /read/* URLs;
+  // they're just no longer listed here. The Leaf-to-Liquor template cards above
+  // and the published editor articles below are what Read shows now.
 ];
 
 const ReadIndex: React.FC = () => {
