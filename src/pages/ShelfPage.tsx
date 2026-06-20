@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Package, MessageCircle } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
 import { api, type PublicShelfItem } from '../lib/api';
 
 // Stock spine step 5 — the standalone public shelf at /u/<slug>. A person's
@@ -60,48 +60,53 @@ const ShelfPage: React.FC = () => {
         </header>
 
         {data.items.length === 0 ? (
-          <div className="flex flex-col items-center text-center py-16 text-tea-text-sec">
-            <Package size={28} className="text-tea-text-dim mb-2" />
-            <p className="text-ui-14">Nothing on the shelf yet.</p>
-          </div>
+          <p className="text-ui-14 italic text-tea-text-sec py-12">
+            {data.seller_name ? `${data.seller_name} is` : 'This shelf is'} setting the shelf. Check back soon.
+          </p>
         ) : (
-          <ul className="space-y-3">
-            {data.items.map(item => (
-              <li
+          /* One section per tea — an editorial spread, not a card list.
+             Full-width letterbox photo on top, prose below, hairline between. */
+          <div>
+            {data.items.map((item, i) => (
+              <section
                 key={item.id}
-                className="flex items-center gap-4 bg-tea-surface border border-tea-border rounded-xl p-4"
+                className={i > 0 ? 'mt-16 pt-16 border-t border-tea-border' : ''}
               >
                 {item.image_url ? (
                   <img
                     src={item.image_url}
                     alt={item.name}
-                    className="w-16 h-16 rounded-xl object-cover shrink-0"
+                    className="w-full aspect-[16/9] object-cover mb-5"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-xl bg-tea-elevated flex items-center justify-center shrink-0">
-                    <Package size={20} className="text-tea-text-dim" />
+                  <div className="w-full aspect-[16/9] bg-tea-elevated flex items-center justify-center mb-5">
+                    <Package size={28} className="text-tea-text-dim" />
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-ui-15 text-tea-text truncate">{item.name}</div>
-                  <div className="text-ui-12 text-tea-text-dim mt-0.5">
-                    {[item.type, item.origin, item.year].filter(Boolean).join(' · ') || '—'}
-                  </div>
-                  {item.grams > 0 && (
-                    <div className="text-ui-12 text-tea-text-sec mt-0.5">{Math.round(item.grams)}g available</div>
+
+                <h2 className="font-display text-2xl text-tea-text">{item.name}</h2>
+                <p className="text-ui-13 text-tea-text-dim mt-1">
+                  {[item.type, item.origin, item.year].filter(Boolean).join(' · ') || '—'}
+                </p>
+
+                <div className="flex items-baseline justify-between mt-5">
+                  {item.grams > 0 ? (
+                    <p className="font-mono text-ui-13 text-tea-text-sec">{Math.round(item.grams)}g available</p>
+                  ) : (
+                    <p className="text-ui-13 italic text-tea-text-sec">Ask about availability</p>
                   )}
+                  <a
+                    href={waLink(data.whatsapp, item, data.seller_name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group text-ui-14 text-tea-text-sec hover:text-tea-gold transition-colors"
+                  >
+                    Order <span className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+                  </a>
                 </div>
-                <a
-                  href={waLink(data.whatsapp, item, data.seller_name)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-tea-gold text-tea-bg rounded-md px-3 py-2 text-ui-13 font-medium shrink-0"
-                >
-                  <MessageCircle size={14} /> Order
-                </a>
-              </li>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>
