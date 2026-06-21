@@ -60,32 +60,46 @@ interface CarryFormProps {
 }
 
 const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarried, onCancel }) => {
-  // Suggested retail: derived from buyer's wholesale per gram (in their currency) + margin.
-  // wholesale = retail × margin_pct/100, so retail = wholesale / (margin_pct/100).
-  // Then ×100 for the per-100g display.
-  const suggestedRetail = useMemo(() => {
-    if (profile.wholesale_price_per_gram_caller == null || !profile.wholesale_margin_pct_for_caller) return null;
-    const marginFraction = profile.wholesale_margin_pct_for_caller / 100;
-    return Math.round((profile.wholesale_price_per_gram_caller / marginFraction) * 100);
-  }, [profile.wholesale_price_per_gram_caller, profile.wholesale_margin_pct_for_caller]);
+  // Default retail: the curator's own retail price (per 100g) in their currency.
+  // The carry endpoint converts whatever amount+currency we submit to USD, and the
+  // storefront re-displays it in this store's currency — so submitting the curator's
+  // retail in the curator's currency lands the new listing at the same price Adrian
+  // sells it for, with this store free to adjust afterward.
+  const curatorRetailPer100g = useMemo(() => {
+    if (profile.retail_price_per_gram_curator == null) return null;
+    return Math.round(profile.retail_price_per_gram_curator * 100);
+  }, [profile.retail_price_per_gram_curator]);
+
+  // Currency the prefilled price is expressed in: the curator's, when we have their
+  // retail to default from. Falls back to this store's currency otherwise.
+  const defaultCurrency = curatorRetailPer100g != null && profile.retail_currency
+    ? profile.retail_currency
+    : callerCurrency;
 
   const [stockGrams, setStockGrams] = useState('');
-  const [retailPrice, setRetailPrice] = useState(suggestedRetail?.toString() ?? '');
+  const [retailPrice, setRetailPrice] = useState(curatorRetailPer100g?.toString() ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = !busy && stockGrams.trim() !== '' && Number(stockGrams) > 0
-    && retailPrice.trim() !== '' && Number(retailPrice) > 0;
+  // Price is optional: blank falls back to the curator's retail. Only block on a
+  // value that's been typed and is non-positive.
+  const priceIsValid = retailPrice.trim() === ''
+    ? curatorRetailPer100g != null
+    : Number(retailPrice) > 0;
+  const canSubmit = !busy && stockGrams.trim() !== '' && Number(stockGrams) > 0 && priceIsValid;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setBusy(true);
     setError(null);
     try {
+      // Blank price → carry at the curator's retail in the curator's currency.
+      const usingDefault = retailPrice.trim() === '';
+      const amount = usingDefault ? curatorRetailPer100g! : Number(retailPrice);
       const result = await api.network.carryProfile(profile.id, {
         initial_stock_grams: Number(stockGrams),
-        initial_price_amount: Number(retailPrice),
-        initial_price_currency: callerCurrency,
+        initial_price_amount: amount,
+        initial_price_currency: defaultCurrency,
       });
       onCarried(result.listing_id, profile.name);
     } catch (err: any) {
@@ -117,31 +131,33 @@ const CarryForm: React.FC<CarryFormProps> = ({ profile, callerCurrency, onCarrie
         </label>
       </div>
 
-      {/* Retail price field */}
+      {/* Retail price field — prefilled to the curator's retail; optional to change */}
       <div>
         <label className="flex items-baseline justify-between gap-4">
-          <span className="text-tea-text-sec text-ui-13 w-44 shrink-0">Your retail price</span>
+          <span className="text-tea-text-sec text-ui-13 w-44 shrink-0">Retail price</span>
           <div className="flex items-baseline gap-2 flex-1">
-            <span className="text-tea-text-sec text-ui-13 font-mono shrink-0">{callerCurrency}</span>
+            <span className="text-tea-text-sec text-ui-13 font-mono shrink-0">{defaultCurrency}</span>
             <input
               type="number"
               min="0"
               step="1"
               value={retailPrice}
               onChange={e => setRetailPrice(e.target.value)}
-              placeholder="0"
+              placeholder={curatorRetailPer100g?.toString() ?? '0'}
               className="w-24 bg-transparent border-b border-tea-border focus:border-tea-gold outline-none text-tea-text font-mono text-ui-14 py-1 text-right transition-colors"
             />
             <span className="text-tea-text-sec text-ui-13">/100g</span>
           </div>
         </label>
-        {/* Suggested price helper */}
-        {suggestedRetail != null && (
+        {/* Defaulting helper */}
+        {curatorRetailPer100g != null ? (
           <p className="text-tea-text-sec italic text-ui-12 leading-[1.6] mt-2 pl-0 md:pl-48">
-            Suggested {callerCurrency} {suggestedRetail.toLocaleString()} — Adrian's{' '}
-            {profile.retail_price_per_gram_curator != null && profile.retail_currency
-              ? `${profile.retail_currency} ${(profile.retail_price_per_gram_curator * 100).toLocaleString()}/100g × FX`
-              : 'retail × FX'}
+            Defaults to Adrian's price. Leave it to match; change it to set your own. Shown in
+            this store's currency in the shop.
+          </p>
+        ) : (
+          <p className="text-tea-text-sec italic text-ui-12 leading-[1.6] mt-2 pl-0 md:pl-48">
+            No reference price for this tea yet — set your retail price.
           </p>
         )}
       </div>
