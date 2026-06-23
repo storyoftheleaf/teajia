@@ -442,7 +442,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   isActive={isActive}
                   onClick={() => {
                     if (item.path) {
-                      if (currentPath.startsWith(item.path)) {
+                      // Only scroll-in-place when already on the index page
+                      // itself (e.g. /read). On a sub-path article (/read/...
+                      // or /article/...) let the <Link> navigate back to the
+                      // index so "Read" returns to the Read homepage.
+                      if (currentPath === item.path) {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
                       return; // <Link> handles navigation when not already there
