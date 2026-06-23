@@ -183,7 +183,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // ── Nav data ──────────────────────────────────────────────────────────────
 
   const browseItems: NavItem[] = [
-    { id: 'MAGAZINE',  label: 'Read',    icon: <Icons.Magazine  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'MAGAZINE'  as Section },
+    // Read lands on /read (the unified Read section), NOT the archived
+    // /magazine-archive listing. `path` overrides the section→view routing
+    // exactly like the BottomTabBar "Read" tab; it still highlights as the
+    // MAGAZINE section so the active state matches the tab bar.
+    { id: 'MAGAZINE',  label: 'Read',    icon: <Icons.Magazine  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'MAGAZINE'  as Section, path: '/read' },
     { id: 'LEARN',     label: 'Craft',   icon: <Icons.School    className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'LEARN'     as Section },
     { id: 'OFFERINGS', label: 'Advise',  icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
     { id: 'SHOP',      label: 'Shop',    icon: <Icons.Bag       className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'SHOP'      as Section },
@@ -425,23 +429,36 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           )}
           <nav className={`flex flex-col ${collapsed ? 'pt-3 pb-3 px-1.5' : 'pb-3 px-3'} gap-0.5`}>
-            {browseItems.map((item, index) => (
-              <NavButton
-                key={item.id}
-                item={item}
-                isActive={!isAdminRoute && activeSection === item.section}
-                onClick={() => {
-                  if (!item.section) return;
-                  if (!isAdminRoute && item.section === activeSection) {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return;
-                  }
-                  onNavigate(item.section);
-                }}
-                delay={index * 40}
-                collapsed={collapsed}
-              />
-            ))}
+            {browseItems.map((item, index) => {
+              // A path-override item (Read → /read) is active when on that path
+              // and navigates there; section items switch the section view.
+              const isActive = !isAdminRoute && (
+                item.path ? currentPath.startsWith(item.path) : activeSection === item.section
+              );
+              return (
+                <NavButton
+                  key={item.id}
+                  item={item}
+                  isActive={isActive}
+                  onClick={() => {
+                    if (item.path) {
+                      if (currentPath.startsWith(item.path)) {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                      return; // <Link> handles navigation when not already there
+                    }
+                    if (!item.section) return;
+                    if (!isAdminRoute && item.section === activeSection) {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      return;
+                    }
+                    onNavigate(item.section);
+                  }}
+                  delay={index * 40}
+                  collapsed={collapsed}
+                />
+              );
+            })}
 
             {/* Cart — lives adjacent to Shop, separated by a thin rule */}
             <div className="mt-1 pt-1 border-t border-tea-border">
