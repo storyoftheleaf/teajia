@@ -1,88 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LogoEmblem } from '../Logos';
-import { EmailCapture } from '../EmailCapture';
-
-type FooterLink = { label: string; to?: string; href?: string };
-
-const COLUMNS: { heading: string; links: FooterLink[] }[] = [
-  {
-    heading: 'Explore',
-    links: [
-      { label: 'Read', to: '/read' },
-      { label: 'Craft', to: '/craft' },
-      { label: 'Shop', to: '/shop' },
-      { label: 'Advise', to: '/advise' },
-    ],
-  },
-  {
-    heading: 'Learn',
-    links: [
-      { label: 'Courses', to: '/learn' },
-      { label: 'About', to: '/about' },
-    ],
-  },
-  {
-    heading: 'Visit',
-    links: [
-      { label: 'For Your Space', to: '/for-your-space' },
-      { label: 'Tea Spaces', to: '/spaces' },
-      { label: 'Store Playbook', to: '/stores/playbook' },
-    ],
-  },
-  {
-    heading: 'Connect',
-    links: [
-      { label: 'Instagram', href: 'https://instagram.com/teajia.journal' },
-      { label: 'Contact', href: 'mailto:hello@teajia.com' },
-    ],
-  },
-];
-
-const linkClass =
-  'text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors duration-300';
-const linkStyle = { fontFamily: 'var(--font-body)' } as const;
-
-function FooterLinkItem({ link }: { link: FooterLink }) {
-  if (link.to) {
-    return (
-      <Link to={link.to} className={linkClass} style={linkStyle}>
-        {link.label}
-      </Link>
-    );
-  }
-  return (
-    <a
-      href={link.href}
-      target={link.href?.startsWith('http') ? '_blank' : undefined}
-      rel={link.href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-      className={linkClass}
-      style={linkStyle}
-    >
-      {link.label}
-    </a>
-  );
-}
 
 export default function Footer() {
   return (
-    <footer className="mt-16 border-t border-tea-border bg-tea-surface">
-      {/* Newsletter band — the one action a footer should carry */}
-      <div className="border-b border-tea-border">
-        <div className="max-w-screen-lg mx-auto px-6 py-10 md:py-12">
-          <EmailCapture
-            heading="Stay close to the leaf"
-            subtitle="Monthly tea insights, seasonal picks, and first access to rare releases."
-            className="max-w-2xl"
-          />
-        </div>
-      </div>
-
-      {/* Link grid */}
-      <div className="max-w-screen-lg mx-auto px-6 pt-12 pb-8">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-[1.4fr_repeat(4,1fr)] sm:gap-x-10">
+    <footer className="mt-16 border-t border-tea-border">
+      <div className="max-w-screen-lg mx-auto px-6 pt-10 pb-6">
+        {/* Top row — brand + nav */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-8 sm:gap-12 mb-10">
           {/* Brand column */}
-          <div className="col-span-2 sm:col-span-1 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:max-w-[260px]">
             <div className="flex items-center gap-2.5">
               <LogoEmblem size={22} color="var(--tea-gold)" />
               <span
@@ -93,7 +20,7 @@ export default function Footer() {
               </span>
             </div>
             <p
-              className="text-ui-13 text-tea-text-sec leading-relaxed max-w-[240px]"
+              className="text-ui-13 text-tea-text-dim leading-relaxed"
               style={{ fontFamily: 'var(--font-body)' }}
             >
               Fine tea and teaware. Every culture brings wisdom to the table.
@@ -101,23 +28,41 @@ export default function Footer() {
           </div>
 
           {/* Navigation columns */}
-          {COLUMNS.map((col) => (
-            <nav key={col.heading} className="flex flex-col gap-2.5" aria-label={col.heading}>
-              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim font-sans font-semibold mb-1">
-                {col.heading}
-              </span>
-              {col.links.map((link) => (
-                <FooterLinkItem key={link.label} link={link} />
-              ))}
-            </nav>
-          ))}
+          <div className="flex gap-12 sm:gap-16">
+            <div className="flex flex-col gap-2.5">
+              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim/70 font-sans font-semibold mb-1">Explore</span>
+              <Link to="/read" className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Read</Link>
+              <Link to="/craft" className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Craft</Link>
+              <Link to="/shop" className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Shop</Link>
+              <Link to="/learn" className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Learn</Link>
+              <Link to="/advise" className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>Advise</Link>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <span className="text-ui-10 uppercase tracking-[0.2em] text-tea-text-dim/70 font-sans font-semibold mb-1">Connect</span>
+              <a
+                href="https://instagram.com/teajia.journal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Instagram
+              </a>
+              <a
+                href="mailto:hello@teajia.com"
+                className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Contact
+              </a>
+              <Link to="/about" className="text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300" style={{ fontFamily: 'var(--font-body)' }}>About</Link>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Base row — copyright + quiet utility */}
-      <div className="border-t border-tea-border">
-        <div className="max-w-screen-lg mx-auto px-6 flex items-center justify-between pt-5 pb-nav-gap md:pb-4">
-          <span className="text-ui-12 text-tea-text-sec/70 font-sans tracking-wide">
+        {/* Bottom row — copyright */}
+        <div className="flex items-center justify-between border-t border-tea-border pt-5 pb-nav-gap md:pb-2">
+          <span className="text-ui-12 text-tea-text-dim/70 font-sans tracking-wide">
             &copy; {new Date().getFullYear()} Teajia
           </span>
           <Link

@@ -14,6 +14,7 @@ import { Helmet } from 'react-helmet-async';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
+import { getTokenClaims } from '../../lib/api';
 import type { DbArticle } from '../../types';
 import {
   C, F, ImmersiveRoot, ProgressTrack,
@@ -297,10 +298,24 @@ const ROOM_RESPONSIVE_STYLE = `
 const ReadIndex: React.FC = () => {
   useImmersiveChrome(ACCENTS[0]);
 
-  // Owner login gate — real auth, never a toggle.
-  const isAdmin = useAppStore((s) =>
-    s.platformRole === 'platform_owner' || s.platformRole === 'platform_admin' || s.isDevAdmin,
-  );
+  // Owner login gate — real auth, never a toggle. Read the signed-in role
+  // straight from the stored token's claims: this works on the standalone Read
+  // page (which doesn't run the admin login flow, so the store's platformRole
+  // isn't populated here) and has no hydration-timing race. The dev-admin
+  // toggle stays as a fallback for local development.
+  const isDevAdmin = useAppStore((s) => s.isDevAdmin);
+  const isAdmin = React.useMemo(() => {
+    const claims = getTokenClaims();
+    const role = claims?.role;
+    const platformRole = claims?.platform_role;
+    return (
+      role === 'owner' ||
+      role === 'admin' ||
+      platformRole === 'platform_owner' ||
+      platformRole === 'platform_admin' ||
+      isDevAdmin
+    );
+  }, [isDevAdmin]);
 
   // Published articles from the DB — machinery kept from original ReadIndex.
   // The primary content surface is now the curated 14-piece index, but the
