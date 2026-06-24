@@ -33,10 +33,21 @@ function isRealArticle(a: { title?: string }): boolean {
   return !!a.title && !SEED_ARTICLE_TITLES.has(a.title.trim());
 }
 
+// Spell small counts as words for the editorial masthead ("Three pieces"),
+// falling back to digits past the curated set.
+const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen'];
+function numberWord(n: number): string {
+  const w = NUMBER_WORDS[n];
+  return w ? w.charAt(0).toUpperCase() + w.slice(1) : String(n);
+}
+
 // ── Curated contents index data ──────────────────────────────────────────────
 // Faithfully converted from the design's groups() controller method.
 // Hrefs repointed to real /read/* routes (all design-file refs removed).
-type IndexItem = { n: string; rubric: string; title: string; dek: string; href: string };
+// `live` is the publish gate. A visitor sees only `live: true` pieces; the
+// owner sees every piece (drafts dimmed + tagged). Flip a piece live by adding
+// `live: true` to its row below — that one change publishes it. Nothing else.
+type IndexItem = { n: string; rubric: string; title: string; dek: string; href: string; live?: boolean };
 type IndexGroup = { label: string; glyph: string; items: IndexItem[] };
 
 const INDEX_GROUPS: IndexGroup[] = [
@@ -44,10 +55,10 @@ const INDEX_GROUPS: IndexGroup[] = [
     label: 'The interactive issue',
     glyph: '◇',
     items: [
-      { n: 'N°05', rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual' },
-      { n: 'N°06', rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas' },
+      { n: 'N°05', rubric: 'Ritual',    title: 'Seven Steeps',           dek: 'The same leaves, brewed seven ways, scroll to pour.',          href: '/read/ritual', live: true },
+      { n: 'N°06', rubric: 'Geography', title: 'A Map of Mountains',     dek: 'An interactive atlas of China’s tea terroir.',             href: '/read/atlas', live: true },
       { n: 'N°07', rubric: 'History',   title: 'Ten Thousand Mornings',  dek: 'Five thousand years of tea, along one moving line.',           href: '/read/history' },
-      { n: 'N°08', rubric: 'Tasting',   title: 'The Vocabulary of Taste',dek: 'A turning flavour wheel and a tasting radar.',                 href: '/read/tasting' },
+      { n: 'N°08', rubric: 'Tasting',   title: 'The Vocabulary of Taste',dek: 'A turning flavour wheel and a tasting radar.',                 href: '/read/tasting', live: true },
     ],
   },
   {
@@ -81,7 +92,8 @@ const INDEX_GROUPS: IndexGroup[] = [
 
 // ── Index row component ──────────────────────────────────────────────────────
 // Mirrors the design's inline onmouseover/onmouseout handlers with React state.
-const IndexRow: React.FC<{ item: IndexItem }> = ({ item }) => {
+// `draft` = shown to the owner but not yet live: dimmed, carries a Draft tag.
+const IndexRow: React.FC<{ item: IndexItem; draft?: boolean }> = ({ item, draft }) => {
   const [hovered, setHovered] = useState(false);
   return (
     <Link
@@ -95,7 +107,8 @@ const IndexRow: React.FC<{ item: IndexItem }> = ({ item }) => {
         borderBottom: '1px solid rgba(168,135,77,0.10)',
         textDecoration: 'none',
         color: 'inherit',
-        transition: 'padding-left 240ms',
+        opacity: draft ? 0.5 : 1,
+        transition: 'padding-left 240ms, opacity 240ms',
       }}
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
@@ -111,33 +124,47 @@ const IndexRow: React.FC<{ item: IndexItem }> = ({ item }) => {
           {item.dek}
         </span>
       </span>
-      <span style={{ fontFamily: F.ui, fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap', paddingTop: 6 }}>
-        {item.rubric}
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, paddingTop: 6 }}>
+        <span style={{ fontFamily: F.ui, fontSize: 9, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, whiteSpace: 'nowrap' }}>
+          {item.rubric}
+        </span>
+        {draft && (
+          <span style={{ fontFamily: F.mono, fontSize: 8.5, letterSpacing: '0.16em', textTransform: 'uppercase', color: C.gold, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 2, padding: '1px 5px', whiteSpace: 'nowrap' }}>
+            Draft
+          </span>
+        )}
       </span>
     </Link>
   );
 };
 
 // ── Group block component ────────────────────────────────────────────────────
-const GroupBlock: React.FC<{ group: IndexGroup }> = ({ group }) => (
-  <div style={{ marginTop: 38 }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
-      <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 24, color: C.gold, lineHeight: 1 }}>
-        {group.glyph}
-      </span>
-      <span style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#9e8f76' }}>
-        {group.label}
-      </span>
-      <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.14)' }} />
-      <span style={{ fontFamily: F.mono, fontSize: 10, color: C.dim }}>
-        {String(group.items.length).padStart(2, '0')}
-      </span>
+// `isAdmin` decides the audience: the owner sees every row (drafts dimmed +
+// tagged); a visitor sees only live rows. A group with no visible rows for the
+// current audience renders nothing.
+const GroupBlock: React.FC<{ group: IndexGroup; isAdmin: boolean }> = ({ group, isAdmin }) => {
+  const visible = isAdmin ? group.items : group.items.filter((it) => it.live);
+  if (visible.length === 0) return null;
+  return (
+    <div style={{ marginTop: 38 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
+        <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 24, color: C.gold, lineHeight: 1 }}>
+          {group.glyph}
+        </span>
+        <span style={{ fontFamily: F.ui, fontSize: 9.5, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: '#9e8f76' }}>
+          {group.label}
+        </span>
+        <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.14)' }} />
+        <span style={{ fontFamily: F.mono, fontSize: 10, color: C.dim }}>
+          {String(visible.length).padStart(2, '0')}
+        </span>
+      </div>
+      {visible.map((item) => (
+        <IndexRow key={item.href} item={item} draft={isAdmin && !item.live} />
+      ))}
     </div>
-    {group.items.map((item) => (
-      <IndexRow key={item.href} item={item} />
-    ))}
-  </div>
-);
+  );
+};
 
 // ── Lead cover (hover handled inline via React state) ────────────────────────
 const LeadCover: React.FC = () => {
@@ -291,7 +318,17 @@ const ReadIndex: React.FC = () => {
   void published;
   void isRealArticle;
 
-  const rootRef = useReveals([]);
+  // How many pieces the current audience can see. A visitor counts only live
+  // pieces; the owner counts all of them. Drives the masthead + contents labels.
+  const allItems = INDEX_GROUPS.flatMap((g) => g.items);
+  const liveCount = allItems.filter((it) => it.live).length;
+  const shownCount = isAdmin ? allItems.length : liveCount;
+  const piecesLabel = `${numberWord(shownCount)} ${shownCount === 1 ? 'piece' : 'pieces'}`;
+  // Is the piece at this route published (live) yet? Used to gate the feature
+  // covers for visitors while the owner always sees the full designed rail.
+  const isLive = (href: string) => allItems.some((it) => it.href === href && it.live);
+
+  const rootRef = useReveals([isAdmin]);
   const progress = useReadingProgress();
 
   return (
@@ -315,7 +352,7 @@ const ReadIndex: React.FC = () => {
           <div aria-hidden="true" style={{ position: 'absolute', top: '-12%', right: '-2%', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(46vw,440px)', lineHeight: 1, color: 'rgba(168,135,77,0.05)', pointerEvents: 'none', userSelect: 'none' }}>茶</div>
           <div style={{ position: 'relative', maxWidth: 760 }}>
             <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 26 }}>
-              A reading room · fourteen pieces
+              A reading room · {piecesLabel.toLowerCase()}
             </div>
             <h1 style={{ fontFamily: F.display, fontWeight: 500, fontSize: 'clamp(54px,10vw,124px)', lineHeight: 0.92, letterSpacing: '0.01em', color: '#f3ead9', margin: 0 }}>
               The Art{' '}
@@ -346,22 +383,33 @@ const ReadIndex: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 8 }}>
               <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim }}>Contents</span>
               <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.18)' }} />
-              <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>Fourteen pieces</span>
+              <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.1em', color: C.dim }}>{piecesLabel}</span>
             </div>
             {INDEX_GROUPS.map((group) => (
-              <GroupBlock key={group.label} group={group} />
+              <GroupBlock key={group.label} group={group} isAdmin={isAdmin} />
             ))}
+            {/* Public empty state — only when a visitor has no live pieces yet. */}
+            {!isAdmin && liveCount === 0 && (
+              <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 18, lineHeight: 1.55, color: C.dim, margin: '38px 2px 0', maxWidth: 460 }}>
+                The first pieces are being set in type. Come back soon, the kettle is on.
+              </p>
+            )}
           </section>
 
-          {/* RIGHT: COVER RAIL (sticky) */}
-          <aside className="tj-rail" style={{ position: 'sticky', top: 88 }}>
+          {/* RIGHT: COVER RAIL (sticky). The featured covers are the owner's
+              "This Issue" picks. A visitor only sees a featured cover if its
+              piece is live; the owner always sees the full designed rail. When
+              a visitor has no live featured pieces, the rail hides entirely so
+              the page never shows a broken or empty feature. */}
+          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (isAdmin || isLive('/read/leaf-to-liquor') || isLive('/read/legend') || isLive('/read/tea-house')) ? 'block' : 'none' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim, marginBottom: 18 }}>
               This issue
             </div>
 
-            <LeadCover />
+            {(isAdmin || isLive('/read/leaf-to-liquor')) && <LeadCover />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
+              {(isAdmin || isLive('/read/legend')) && (
               <SecondaryCover
                 to="/read/legend"
                 kicker="Legend · N°13"
@@ -376,6 +424,8 @@ const ReadIndex: React.FC = () => {
                   </g>
                 }
               />
+              )}
+              {(isAdmin || isLive('/read/tea-house')) && (
               <SecondaryCover
                 to="/read/tea-house"
                 kicker="A Tea House · N°09"
@@ -390,6 +440,7 @@ const ReadIndex: React.FC = () => {
                   </g>
                 }
               />
+              )}
             </div>
 
             <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 16, lineHeight: 1.5, color: C.dim, margin: '22px 2px 0' }}>
