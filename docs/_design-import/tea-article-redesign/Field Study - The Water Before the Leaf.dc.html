@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#14100b; }
+  ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+  @keyframes tjFloat{ 0%,100%{ transform:translate(-50%,0); } 50%{ transform:translate(-50%,7px); } }
+  @keyframes tjRipple{ 0%{ transform:scale(0.5); opacity:0.5; } 100%{ transform:scale(1.5); opacity:0; } }
+</style>
+</helmet>
+
+<div style="position:relative; background:#14100b; color:#ede4d4; font-family:'Lora',Georgia,serif; overflow-x:clip; min-height:100vh;">
+
+  <div aria-hidden="true" style="position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:170px;"></div>
+
+  <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px clamp(18px,4vw,40px); background:rgba(20,16,11,0.6); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(168,135,77,0.12);">
+    <a href="Index - The Craft of Tea.dc.html" style="display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit;">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:18px; letter-spacing:0.14em; text-transform:uppercase; color:#ede4d4;">Teajia</span>
+    </a>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; white-space:nowrap;">Field Study &middot; N&deg;12</span>
+    <div style="position:absolute; left:0; bottom:0; height:2px; width:100%; background:rgba(168,135,77,0.08);">
+      <div id="tj-progress" style="height:100%; width:0%; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); transition:width 90ms linear;"></div>
+    </div>
+  </nav>
+
+  <article style="position:relative; z-index:1;">
+
+    <!-- COVER full-bleed -->
+    <header style="position:relative; min-height:94vh; display:flex; flex-direction:column; justify-content:flex-end; overflow:hidden;">
+      <div aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(180deg,#15201f 0%,#16140f 55%,#14100b 100%);"></div>
+      <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 60% 44% at 50% 26%, rgba(120,160,160,0.22), transparent 60%);"></div>
+      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%;">
+        <g fill="none" stroke="rgba(150,180,180,0.16)" stroke-width="1.1"><ellipse cx="600" cy="300" rx="120" ry="30"/><ellipse cx="600" cy="300" rx="230" ry="58"/><ellipse cx="600" cy="300" rx="360" ry="92"/><ellipse cx="600" cy="300" rx="510" ry="130"/><ellipse cx="600" cy="300" rx="680" ry="172" stroke="rgba(150,180,180,0.08)"/></g>
+        <g fill="none" stroke="rgba(168,135,77,0.1)" stroke-width="1"><path d="M-50 560 C 320 532, 760 544, 1260 512"/><path d="M-50 612 C 300 584, 800 596, 1260 560"/></g>
+      </svg>
+      <div aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(0deg, rgba(20,16,11,0.86), transparent 44%);"></div>
+      <div style="position:relative; z-index:1; padding:0 clamp(24px,6vw,84px) clamp(48px,9vw,110px); max-width:1000px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.36em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:24px;">A Field Study &mdash; the other half of the cup</div>
+        <h1 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(46px,8.4vw,112px); line-height:0.98; letter-spacing:-0.015em; color:#f3ead9; margin:0;">The Water <span style="font-style:italic; color:var(--tj-gold,#a8874d);">Before the Leaf</span></h1>
+        <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(16px,2.1vw,21px); line-height:1.5; color:#cdc0a8; margin:24px 0 0; max-width:540px;">A cup of tea is more than ninety-nine parts water. We obsess over the one part leaf and forget the rest. This is a study of the part we forget.</p>
+      </div>
+      <div aria-hidden="true" style="position:absolute; bottom:28px; left:50%; animation:tjFloat 3.4s ease-in-out infinite;"><svg width="13" height="20" viewBox="0 0 13 20" fill="none"><path d="M6.5 1v17M1 12.5l5.5 5.5 5.5-5.5" stroke="#a8874d" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </header>
+
+    <!-- STANDFIRST -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px);">
+      <p style="font-family:'Lora',serif; font-size:clamp(18px,2.2vw,22px); line-height:1.74; color:#ede4d4; margin:0;">
+        <span style="float:left; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:5em; line-height:0.78; color:var(--tj-gold,#a8874d); margin:8px 16px -4px 0;">L</span>&ugrave; Y&ugrave;, who wrote the first book on tea twelve centuries ago, devoted an entire chapter not to leaves but to <em style="font-style:italic; color:#f3ead9;">water</em>. He ranked the rivers of China by name. He sent men to fetch from particular bends of particular streams. To him the leaf was only half the craft; the water was the other, quieter half &mdash; the half that does the actual carrying. We have mostly forgotten this. The tap, we assume, is the tap. It is not.
+      </p>
+    </section>
+
+    <!-- SECTION I + inline plate -->
+    <section style="max-width:1100px; margin:0 auto; padding:clamp(20px,4vw,40px) clamp(20px,5vw,40px);">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin-bottom:clamp(28px,4vw,40px); max-width:680px; margin-left:auto; margin-right:auto;">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">I</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">The forgotten ingredient</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:clamp(24px,4vw,52px); align-items:center;">
+        <div data-reveal>
+          <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0 0 18px;">Water is not a neutral vehicle. It arrives carrying its own dissolved cargo &mdash; calcium, magnesium, chlorine, the faint sweetness or flatness of where it has been. Brew the same leaf in two waters and you will not get the same tea twice. A bright spring green can turn dull and grey in hard tap water; a delicate white can be flattened to nothing by chlorine.</p>
+          <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0;">The old masters understood the water as a frame, and the tea as the picture. The wrong frame ruins even a masterpiece.</p>
+        </div>
+        <figure data-reveal style="margin:0;">
+          <div style="position:relative; aspect-ratio:4/5; border:1px solid rgba(168,135,77,0.2); border-radius:3px; overflow:hidden; background:linear-gradient(160deg,#1a2422,#14100b 80%);">
+            <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 60% 40% at 50% 24%, rgba(140,175,170,0.2), transparent 60%);"></div>
+            <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%;">
+              <g fill="none" stroke="rgba(150,180,180,0.4)" stroke-width="1.2"><path d="M160 40 C 150 110, 150 150, 168 200 C 150 250, 150 300, 160 360"/><path d="M120 120 C 150 140, 180 140, 200 120"/><path d="M118 220 C 150 244, 188 244, 210 220"/></g>
+              <g fill="none" stroke="rgba(150,180,180,0.22)" stroke-width="1"><path d="M40 300 C 130 286, 200 286, 290 300"/><path d="M30 332 C 130 318, 210 318, 300 332"/><path d="M40 362 C 130 348, 200 348, 290 362"/></g>
+            </svg>
+            <div style="position:absolute; left:14px; bottom:12px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--tj-gold,#a8874d);">Plate I &mdash; the source</div>
+          </div>
+          <figcaption style="font-family:'Lora',serif; font-style:italic; font-size:13px; line-height:1.5; color:#80735f; margin-top:12px;">A mountain spring &mdash; for Lu Yu, the finest water of all, soft and alive.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- PULL QUOTE -->
+    <section data-reveal style="max-width:900px; margin:0 auto; padding:clamp(50px,8vw,104px) 24px; text-align:center;">
+      <blockquote style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(28px,4.8vw,54px); line-height:1.18; color:#f3ead9; margin:0 auto; max-width:840px;">&ldquo;Mountain water is best, river water middling, well water the least.&rdquo;</blockquote>
+      <p style="font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:500; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin:30px 0 0;">L&ugrave; Y&ugrave; &middot; The Classic of Tea, c. 760</p>
+    </section>
+
+    <!-- SECTION II — the ranking -->
+    <section style="max-width:680px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">II</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">A ranking of waters</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0 0 30px;">The classical hierarchy is simple, and surprisingly close to what modern chemistry would tell you. Soft, living water from high ground &mdash; low in minerals, high in oxygen &mdash; lets a tea speak. Heavy, still, mineral-laden water muffles it.</p>
+      <div data-reveal style="display:flex; flex-direction:column; gap:0; margin-bottom:clamp(20px,4vw,40px);">
+        <div style="display:flex; align-items:baseline; gap:16px; padding:18px 0; border-top:1px solid rgba(168,135,77,0.18);"><span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d); width:28px; flex:none;">01</span><span style="font-family:'Cormorant Garamond',serif; font-size:24px; color:#ede4d4; width:clamp(120px,30%,180px); flex:none;">Mountain spring</span><span style="font-family:'Lora',serif; font-style:italic; font-size:14px; line-height:1.5; color:#80735f;">Soft, oxygenated, alive. The ideal.</span></div>
+        <div style="display:flex; align-items:baseline; gap:16px; padding:18px 0; border-top:1px solid rgba(168,135,77,0.1);"><span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d); width:28px; flex:none;">02</span><span style="font-family:'Cormorant Garamond',serif; font-size:24px; color:#ede4d4; width:clamp(120px,30%,180px); flex:none;">River water</span><span style="font-family:'Lora',serif; font-style:italic; font-size:14px; line-height:1.5; color:#80735f;">Drawn from the slow middle, away from the banks.</span></div>
+        <div style="display:flex; align-items:baseline; gap:16px; padding:18px 0; border-top:1px solid rgba(168,135,77,0.1); border-bottom:1px solid rgba(168,135,77,0.18);"><span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d); width:28px; flex:none;">03</span><span style="font-family:'Cormorant Garamond',serif; font-size:24px; color:#ede4d4; width:clamp(120px,30%,180px); flex:none;">Well water</span><span style="font-family:'Lora',serif; font-style:italic; font-size:14px; line-height:1.5; color:#80735f;">Still and hard &mdash; usable, but the last resort.</span></div>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0;">Few of us live beside a mountain spring. But the principle survives the move to the kitchen: a soft, low-mineral water &mdash; filtered, or a gentle bottled spring &mdash; will almost always pour you a better cup than the tap.</p>
+    </section>
+
+    <!-- FULL-BLEED — THE BOIL -->
+    <section style="padding:clamp(40px,7vw,90px) 0;">
+      <figure data-reveal style="margin:0;">
+        <div style="position:relative; padding:clamp(40px,6vw,80px) clamp(20px,5vw,56px); border-top:1px solid rgba(168,135,77,0.16); border-bottom:1px solid rgba(168,135,77,0.16); background:linear-gradient(180deg,#181d1c,#14100b);">
+          <div style="max-width:1080px; margin:0 auto;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:10px;">Plate II &mdash; reading the boil</div>
+            <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(28px,4.6vw,48px); line-height:1.06; color:#f3ead9; margin:0 0 12px;">The four stages of boiling water</h2>
+            <p style="font-family:'Lora',serif; font-size:clamp(15px,1.9vw,17px); line-height:1.7; color:#cdc0a8; margin:0 0 clamp(34px,5vw,52px); max-width:660px;">Long before thermometers, tea masters read temperature by the <em style="font-style:italic; color:#ede4d4;">look</em> of the water &mdash; naming each stage of the boil for the bubbles it threw. The names are still the most useful guide there is.</p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr)); gap:clamp(16px,2.4vw,28px);">
+              <figure style="margin:0;">
+                <div style="position:relative; aspect-ratio:3/4; border:1px solid rgba(168,135,77,0.18); border-radius:3px; overflow:hidden; background:linear-gradient(180deg,#1a2120,#14100b);">
+                  <svg viewBox="0 0 160 213" preserveAspectRatio="xMidYMid meet" style="position:absolute; inset:0; width:100%; height:100%;"><g fill="rgba(150,180,180,0.6)"><circle cx="62" cy="168" r="2"/><circle cx="86" cy="176" r="1.6"/><circle cx="74" cy="184" r="1.8"/><circle cx="98" cy="166" r="1.5"/></g><path d="M44 120 h72" stroke="rgba(168,135,77,0.3)" stroke-width="1"/></svg>
+                  <div style="position:absolute; left:12px; bottom:10px; font-family:'Noto Serif SC',serif; font-size:16px; color:#cdc0a8;">蟹眼</div>
+                </div>
+                <figcaption style="margin-top:12px;"><div style="font-family:'Cormorant Garamond',serif; font-size:19px; color:#ede4d4;">Crab eyes</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--tj-gold,#a8874d); margin:4px 0;">~75&ndash;80&deg;C</div><div style="font-family:'Lora',serif; font-style:italic; font-size:12.5px; line-height:1.5; color:#80735f;">First tiny beads. Right for delicate greens.</div></figcaption>
+              </figure>
+              <figure style="margin:0;">
+                <div style="position:relative; aspect-ratio:3/4; border:1px solid rgba(168,135,77,0.18); border-radius:3px; overflow:hidden; background:linear-gradient(180deg,#1a2120,#14100b);">
+                  <svg viewBox="0 0 160 213" preserveAspectRatio="xMidYMid meet" style="position:absolute; inset:0; width:100%; height:100%;"><g fill="rgba(150,180,180,0.65)"><circle cx="58" cy="166" r="3.4"/><circle cx="86" cy="172" r="3"/><circle cx="100" cy="160" r="2.6"/><circle cx="70" cy="184" r="2.8"/></g><path d="M44 116 h72" stroke="rgba(168,135,77,0.3)" stroke-width="1"/></svg>
+                  <div style="position:absolute; left:12px; bottom:10px; font-family:'Noto Serif SC',serif; font-size:16px; color:#cdc0a8;">鱼眼</div>
+                </div>
+                <figcaption style="margin-top:12px;"><div style="font-family:'Cormorant Garamond',serif; font-size:19px; color:#ede4d4;">Fish eyes</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--tj-gold,#a8874d); margin:4px 0;">~80&ndash;85&deg;C</div><div style="font-family:'Lora',serif; font-style:italic; font-size:12.5px; line-height:1.5; color:#80735f;">Larger, steady bubbles. Whites and yellows.</div></figcaption>
+              </figure>
+              <figure style="margin:0;">
+                <div style="position:relative; aspect-ratio:3/4; border:1px solid rgba(168,135,77,0.18); border-radius:3px; overflow:hidden; background:linear-gradient(180deg,#1a2120,#14100b);">
+                  <svg viewBox="0 0 160 213" preserveAspectRatio="xMidYMid meet" style="position:absolute; inset:0; width:100%; height:100%;"><g fill="rgba(150,180,180,0.7)"><circle cx="62" cy="180" r="2.4"/><circle cx="62" cy="166" r="2.4"/><circle cx="62" cy="150" r="2.2"/><circle cx="92" cy="184" r="2.4"/><circle cx="92" cy="168" r="2.2"/><circle cx="92" cy="152" r="2"/></g><path d="M44 120 h72" stroke="rgba(168,135,77,0.3)" stroke-width="1"/></svg>
+                  <div style="position:absolute; left:12px; bottom:10px; font-family:'Noto Serif SC',serif; font-size:16px; color:#cdc0a8;">連珠</div>
+                </div>
+                <figcaption style="margin-top:12px;"><div style="font-family:'Cormorant Garamond',serif; font-size:19px; color:#ede4d4;">String of pearls</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--tj-gold,#a8874d); margin:4px 0;">~90&deg;C</div><div style="font-family:'Lora',serif; font-style:italic; font-size:12.5px; line-height:1.5; color:#80735f;">Ropes of bubbles rising. Oolongs.</div></figcaption>
+              </figure>
+              <figure style="margin:0;">
+                <div style="position:relative; aspect-ratio:3/4; border:1px solid rgba(168,135,77,0.18); border-radius:3px; overflow:hidden; background:linear-gradient(180deg,#211a14,#14100b);">
+                  <svg viewBox="0 0 160 213" preserveAspectRatio="xMidYMid meet" style="position:absolute; inset:0; width:100%; height:100%;"><g fill="rgba(200,150,90,0.55)"><circle cx="52" cy="176" r="3"/><circle cx="72" cy="160" r="3.6"/><circle cx="92" cy="178" r="3.2"/><circle cx="108" cy="158" r="2.8"/><circle cx="64" cy="146" r="2.6"/><circle cx="98" cy="142" r="2.4"/></g><path d="M40 150 C 60 138, 100 138, 120 150" fill="none" stroke="rgba(200,150,90,0.4)" stroke-width="1.2"/></svg>
+                  <div style="position:absolute; left:12px; bottom:10px; font-family:'Noto Serif SC',serif; font-size:16px; color:#cdc0a8;">騰波</div>
+                </div>
+                <figcaption style="margin-top:12px;"><div style="font-family:'Cormorant Garamond',serif; font-size:19px; color:#ede4d4;">Raging waves</div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--tj-gold,#a8874d); margin:4px 0;">100&deg;C</div><div style="font-family:'Lora',serif; font-style:italic; font-size:12.5px; line-height:1.5; color:#80735f;">A rolling boil. Reds, dark teas, rock oolong.</div></figcaption>
+              </figure>
+            </div>
+            <p style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; line-height:1.6; color:#80735f; margin:clamp(28px,4vw,40px) 0 0; max-width:680px;">Lu Yu warned against the &ldquo;old man&rsquo;s water&rdquo; &mdash; water boiled too long and too hard, gone flat and lifeless. Bring it just to the stage your tea wants, and no further.</p>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <!-- SECTION III — hard & soft -->
+    <section style="max-width:680px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">III</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Hard, soft &amp; the minerals between</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0 0 22px;">&ldquo;Hardness&rdquo; is mostly dissolved calcium and magnesium. A little is good &mdash; pure distilled water tastes hollow, and brews a strangely empty tea, because some minerals are needed to pull flavour from the leaf. Too much, and the calcium binds with the tea&rsquo;s compounds, dulling the colour and throwing that grey scum across the surface of a cup of black tea.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0;">The sweet spot is a soft-to-medium water &mdash; enough minerals to carry, not enough to smother. Chlorine, meanwhile, has no business near good tea: let tap water stand uncovered overnight, or filter it, and the worst of it leaves.</p>
+    </section>
+
+    <!-- SECTION IV — temperature table -->
+    <section data-reveal style="max-width:760px; margin:0 auto; padding:clamp(40px,6vw,72px) 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:16px; border-bottom:1px solid rgba(168,135,77,0.18); margin-bottom:4px;">
+        <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(24px,3vw,34px); color:#f3ead9; margin:0;">Water, by tea</h2>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f;">A rough guide</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.2fr 0.8fr 2fr;">
+        <div style="display:contents; font-family:'Plus Jakarta Sans',sans-serif;"><div style="padding:14px 0 12px; font-size:9.5px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f;">Tea</div><div style="padding:14px 0 12px; font-size:9.5px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f;">Temp</div><div style="padding:14px 0 12px; font-size:9.5px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f;">Why</div></div>
+        <div style="grid-column:1/-1; height:1px; background:rgba(168,135,77,0.18);"></div>
+        <div style="display:contents;"><div style="padding:16px 0; display:flex; align-items:center; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#859F85;"></span><span style="font-family:'Cormorant Garamond',serif; font-size:18px; color:#ede4d4;">Green</span></div><div style="padding:16px 0; align-self:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d);">75&ndash;80&deg;</div><div style="padding:16px 0; align-self:center; font-family:'Lora',serif; font-size:13.5px; color:#80735f; line-height:1.5;">Hot water scorches the leaf and turns it bitter.</div></div>
+        <div style="grid-column:1/-1; height:1px; background:rgba(168,135,77,0.09);"></div>
+        <div style="display:contents;"><div style="padding:16px 0; display:flex; align-items:center; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#D6D3CD;"></span><span style="font-family:'Cormorant Garamond',serif; font-size:18px; color:#ede4d4;">White / Yellow</span></div><div style="padding:16px 0; align-self:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d);">80&ndash;85&deg;</div><div style="padding:16px 0; align-self:center; font-family:'Lora',serif; font-size:13.5px; color:#80735f; line-height:1.5;">Gentle heat for gentle, downy leaves.</div></div>
+        <div style="grid-column:1/-1; height:1px; background:rgba(168,135,77,0.09);"></div>
+        <div style="display:contents;"><div style="padding:16px 0; display:flex; align-items:center; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#C4A484;"></span><span style="font-family:'Cormorant Garamond',serif; font-size:18px; color:#ede4d4;">Oolong</span></div><div style="padding:16px 0; align-self:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d);">90&ndash;95&deg;</div><div style="padding:16px 0; align-self:center; font-family:'Lora',serif; font-size:13.5px; color:#80735f; line-height:1.5;">Hot enough to lift its complex aromatics.</div></div>
+        <div style="grid-column:1/-1; height:1px; background:rgba(168,135,77,0.09);"></div>
+        <div style="display:contents;"><div style="padding:16px 0; display:flex; align-items:center; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#A67B70;"></span><span style="font-family:'Cormorant Garamond',serif; font-size:18px; color:#ede4d4;">Red / Dark</span></div><div style="padding:16px 0; align-self:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--tj-gold,#a8874d);">95&ndash;100&deg;</div><div style="padding:16px 0; align-self:center; font-family:'Lora',serif; font-size:13.5px; color:#80735f; line-height:1.5;">Robust leaves want a full, rolling boil.</div></div>
+        <div style="grid-column:1/-1; height:1px; background:rgba(168,135,77,0.18);"></div>
+      </div>
+    </section>
+
+    <!-- CLOSING -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px);">
+      <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(17px,2.1vw,20px); line-height:1.72; color:#cdc0a8; margin:0;">Change your water before you change your tea. It is the cheapest and most dramatic improvement a drinker can make &mdash; and the one almost no one thinks to try. The leaf gets all the attention. The water does most of the work.</p>
+      <div style="margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:#80735f; line-height:2;">A Field Study by Teajia &nbsp;&middot;&nbsp; N&deg;12</div>
+    </section>
+
+    <!-- MORE -->
+    <footer style="border-top:1px solid rgba(168,135,77,0.14); padding:clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px);">
+      <div style="max-width:1180px; margin:0 auto;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.24em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">More from The Craft of Tea</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:clamp(14px,2vw,22px);">
+          <a href="Legend - The Immortals Cliff.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b); transition:border-color 240ms;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Legend &middot; N&deg;13</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">The Immortals&rsquo; Cliff</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">The Da Hong Pao mother trees of Wuyi.</div></a>
+          <a href="Craft - The Pot That Remembers.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b); transition:border-color 240ms;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">The Craft &middot; N&deg;14</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">The Pot That Remembers</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">Yixing purple clay, and pots that age with you.</div></a>
+          <a href="Ritual - Seven Steeps.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b); transition:border-color 240ms;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">The Ritual &middot; N&deg;05</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Seven Steeps</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">The same leaves, brewed seven ways.</div></a>
+        </div>
+      </div>
+    </footer>
+
+  </article>
+</div>
+</x-dc>
+</body>
+</html>

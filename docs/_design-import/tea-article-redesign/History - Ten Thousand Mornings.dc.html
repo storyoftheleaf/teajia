@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#14100b; }
+  ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+  @keyframes tjFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
+  @keyframes tjNudge{ 0%,100%{ transform:translateX(0); } 50%{ transform:translateX(6px); } }
+  #tj-rail{ scrollbar-width:none; }
+  #tj-rail::-webkit-scrollbar{ display:none; }
+</style>
+</helmet>
+
+<div style="position:relative; background:#14100b; color:#ede4d4; font-family:'Lora',Georgia,serif; overflow-x:clip; min-height:100vh;">
+
+  <div aria-hidden="true" style="position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:170px;"></div>
+
+  <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px clamp(18px,4vw,40px); background:rgba(20,16,11,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(168,135,77,0.12);">
+    <a href="Tea Article.dc.html" style="display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit;">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:18px; letter-spacing:0.14em; text-transform:uppercase; color:#ede4d4;">Teajia</span>
+    </a>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; white-space:nowrap;">History &middot; N&deg;07</span>
+    <div style="position:absolute; left:0; bottom:0; height:2px; width:100%; background:rgba(168,135,77,0.08);">
+      <div id="tj-progress" style="height:100%; width:0%; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); transition:width 90ms linear;"></div>
+    </div>
+  </nav>
+
+  <article style="position:relative; z-index:1;">
+
+    <!-- COVER -->
+    <header style="position:relative; min-height:72vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:clamp(40px,7vw,84px) 24px clamp(28px,5vw,52px); overflow:hidden;">
+      <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 72% 56% at 50% 30%, rgba(168,135,77,0.12), transparent 62%);"></div>
+      <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-54%); font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(54vw,520px); line-height:1; color:rgba(168,135,77,0.05); pointer-events:none; user-select:none;">史</div>
+      <div style="position:relative; max-width:840px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.42em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:28px;">A History of Tea &nbsp;·&nbsp; N&deg;07</div>
+        <h1 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(44px,8.4vw,104px); line-height:0.98; letter-spacing:-0.015em; color:#f3ead9; margin:0;">Ten Thousand <span style="font-style:italic; color:var(--tj-gold,#a8874d);">Mornings</span></h1>
+        <div aria-hidden="true" style="width:54px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.6; margin:30px auto;"></div>
+        <p style="font-family:'Lora',serif; font-style:italic; font-weight:400; font-size:clamp(16px,2.3vw,21px); line-height:1.5; color:#cdc0a8; margin:0 auto; max-width:560px;">From an accident under a tree to the cup in your hand — nearly five thousand years of tea, told along a single line. Travel it from left to right.</p>
+      </div>
+    </header>
+
+    <!-- STANDFIRST -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(32px,5vw,60px) 24px clamp(20px,4vw,36px);">
+      <p style="font-family:'Lora',serif; font-size:clamp(18px,2.2vw,22px); line-height:1.74; color:#ede4d4; margin:0;">
+        <span style="float:left; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:5em; line-height:0.78; color:var(--tj-gold,#a8874d); margin:8px 16px -4px 0;">N</span>o other drink has been with us so long, or changed its costume so often. Tea has been medicine, currency, a court's obsession, an empire's habit, and the cause of more than one revolution. Yet the leaf never changed — only the way each age chose to meet it. Here is that long morning, hour by hour.
+      </p>
+    </section>
+
+    <!-- HORIZONTAL TIMELINE -->
+    <section style="padding:clamp(20px,3vw,32px) 0 clamp(30px,5vw,56px);">
+      <div style="max-width:1180px; margin:0 auto; padding:0 clamp(20px,5vw,40px) 18px; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:18px;">
+          <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:28px; color:var(--tj-gold,#a8874d); line-height:1;">&rarr;</span>
+          <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Drag, swipe, or use the arrows</span>
+        </div>
+        <div id="tj-ribbon" style="display:flex; align-items:center; gap:clamp(8px,1.5vw,16px); flex-wrap:wrap;">
+          <button data-era="0" style="background:none; border:none; cursor:pointer; padding:4px 0; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#cdc0a8; transition:color 240ms;">Myth</button>
+          <span aria-hidden="true" style="color:rgba(168,135,77,0.3);">&middot;</span>
+          <button data-era="1" style="background:none; border:none; cursor:pointer; padding:4px 0; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#cdc0a8; transition:color 240ms;">Tang</button>
+          <span aria-hidden="true" style="color:rgba(168,135,77,0.3);">&middot;</span>
+          <button data-era="2" style="background:none; border:none; cursor:pointer; padding:4px 0; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#cdc0a8; transition:color 240ms;">Song</button>
+          <span aria-hidden="true" style="color:rgba(168,135,77,0.3);">&middot;</span>
+          <button data-era="3" style="background:none; border:none; cursor:pointer; padding:4px 0; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#cdc0a8; transition:color 240ms;">Ming</button>
+          <span aria-hidden="true" style="color:rgba(168,135,77,0.3);">&middot;</span>
+          <button data-era="4" style="background:none; border:none; cursor:pointer; padding:4px 0; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#cdc0a8; transition:color 240ms;">Qing</button>
+          <span aria-hidden="true" style="color:rgba(168,135,77,0.3);">&middot;</span>
+          <button data-era="5" style="background:none; border:none; cursor:pointer; padding:4px 0; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#cdc0a8; transition:color 240ms;">Today</button>
+        </div>
+      </div>
+
+      <div style="position:relative;">
+        <div id="tj-rail" style="overflow-x:auto; overflow-y:hidden; scroll-snap-type:x proximity; cursor:grab; -webkit-overflow-scrolling:touch;">
+          <div id="tj-track" style="position:relative; display:flex; width:max-content; height:clamp(580px,82vh,720px); border-top:1px solid rgba(168,135,77,0.14); border-bottom:1px solid rgba(168,135,77,0.14); background:linear-gradient(180deg,#161109,#14100b);">
+            <div aria-hidden="true" style="position:absolute; left:0; right:0; top:74%; height:1px; background:rgba(168,135,77,0.18);"></div>
+            <div id="tj-spinefill" aria-hidden="true" style="position:absolute; left:0; top:74%; height:1px; width:0; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); box-shadow:0 0 9px rgba(168,135,77,0.5);"></div>
+
+            <!-- ERA 0 -->
+            <div data-era-panel="0" style="position:relative; flex:none; width:clamp(360px,86vw,760px); height:100%; padding:clamp(36px,5vw,72px) clamp(28px,5vw,64px); scroll-snap-align:center; overflow:hidden;">
+              <div data-era-char aria-hidden="true" style="position:absolute; right:6%; top:6%; font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(38vw,300px); line-height:1; color:rgba(168,135,77,0.055); pointer-events:none;">神</div>
+              <div style="position:relative; max-width:460px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:16px;">c. 2737 BCE &middot; Myth</div>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(30px,4.6vw,52px); line-height:1.04; color:#f3ead9; margin:0 0 20px;">A leaf, by accident</h2>
+                <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.78; color:#cdc0a8; margin:0; max-width:42ch;">The legend says the herbalist-emperor Shénnóng was boiling water beneath a wild tree when a few leaves drifted into his pot. He drank, felt clear and revived — and tea entered the world as a happy accident, and a medicine.</p>
+              </div>
+              <div style="position:absolute; left:clamp(28px,5vw,64px); top:74%; transform:translateY(-50%); display:flex; align-items:center; gap:12px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:var(--tj-gold,#a8874d); box-shadow:0 0 0 4px rgba(168,135,77,0.16);"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#cdc0a8;">∞ — the beginning</span>
+              </div>
+            </div>
+
+            <!-- ERA 1 -->
+            <div data-era-panel="1" style="position:relative; flex:none; width:clamp(360px,86vw,760px); height:100%; padding:clamp(36px,5vw,72px) clamp(28px,5vw,64px); scroll-snap-align:center; overflow:hidden;">
+              <div data-era-char aria-hidden="true" style="position:absolute; right:6%; top:6%; font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(38vw,300px); line-height:1; color:rgba(168,135,77,0.055); pointer-events:none;">唐</div>
+              <div style="position:relative; max-width:460px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:16px;">618–907 &middot; Tang Dynasty</div>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(30px,4.6vw,52px); line-height:1.04; color:#f3ead9; margin:0 0 20px;">Tea becomes an art</h2>
+                <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.78; color:#cdc0a8; margin:0; max-width:42ch;">In a golden age, the scholar Lù Yù writes the <em style="font-style:italic; color:#ede4d4;">Chá Jīng</em> — the Classic of Tea, the first book ever devoted to it. Tea is pressed into cakes, roasted, ground fine, and simmered with care. A drink becomes a discipline.</p>
+              </div>
+              <div style="position:absolute; left:clamp(28px,5vw,64px); top:74%; transform:translateY(-50%); display:flex; align-items:center; gap:12px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:var(--tj-gold,#a8874d); box-shadow:0 0 0 4px rgba(168,135,77,0.16);"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#cdc0a8;">c. 760 — the Classic of Tea</span>
+              </div>
+            </div>
+
+            <!-- ERA 2 -->
+            <div data-era-panel="2" style="position:relative; flex:none; width:clamp(360px,86vw,760px); height:100%; padding:clamp(36px,5vw,72px) clamp(28px,5vw,64px); scroll-snap-align:center; overflow:hidden;">
+              <div data-era-char aria-hidden="true" style="position:absolute; right:6%; top:6%; font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(38vw,300px); line-height:1; color:rgba(168,135,77,0.055); pointer-events:none;">宋</div>
+              <div style="position:relative; max-width:460px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:16px;">960–1279 &middot; Song Dynasty</div>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(30px,4.6vw,52px); line-height:1.04; color:#f3ead9; margin:0 0 20px;">The whisked cup</h2>
+                <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.78; color:#cdc0a8; margin:0; max-width:42ch;">At court, tea is ground to powder and whisked to a snowy froth — <em style="font-style:italic; color:#ede4d4;">diǎnchá</em>. Connoisseurs hold tea-battles, judging the foam's colour and how long it clings. This refined powdered art will cross the sea and become Japan's matcha.</p>
+              </div>
+              <div style="position:absolute; left:clamp(28px,5vw,64px); top:74%; transform:translateY(-50%); display:flex; align-items:center; gap:12px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:var(--tj-gold,#a8874d); box-shadow:0 0 0 4px rgba(168,135,77,0.16);"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#cdc0a8;">whisked tea &amp; tea-battles</span>
+              </div>
+            </div>
+
+            <!-- ERA 3 -->
+            <div data-era-panel="3" style="position:relative; flex:none; width:clamp(360px,86vw,760px); height:100%; padding:clamp(36px,5vw,72px) clamp(28px,5vw,64px); scroll-snap-align:center; overflow:hidden;">
+              <div data-era-char aria-hidden="true" style="position:absolute; right:6%; top:6%; font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(38vw,300px); line-height:1; color:rgba(168,135,77,0.055); pointer-events:none;">明</div>
+              <div style="position:relative; max-width:460px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:16px;">1368–1644 &middot; Ming Dynasty</div>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(30px,4.6vw,52px); line-height:1.04; color:#f3ead9; margin:0 0 20px;">The leaf set loose</h2>
+                <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.78; color:#cdc0a8; margin:0; max-width:42ch;">In 1391 the Hongwu Emperor abolishes the labour-heavy compressed tribute cakes. Whole loose leaves, simply steeped in hot water, take their place — and the teapot is born. This, in essence, is the tea we still drink today.</p>
+              </div>
+              <div style="position:absolute; left:clamp(28px,5vw,64px); top:74%; transform:translateY(-50%); display:flex; align-items:center; gap:12px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:var(--tj-gold,#a8874d); box-shadow:0 0 0 4px rgba(168,135,77,0.16);"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#cdc0a8;">1391 — loose leaf &amp; the teapot</span>
+              </div>
+            </div>
+
+            <!-- ERA 4 -->
+            <div data-era-panel="4" style="position:relative; flex:none; width:clamp(360px,86vw,760px); height:100%; padding:clamp(36px,5vw,72px) clamp(28px,5vw,64px); scroll-snap-align:center; overflow:hidden;">
+              <div data-era-char aria-hidden="true" style="position:absolute; right:6%; top:6%; font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(38vw,300px); line-height:1; color:rgba(168,135,77,0.055); pointer-events:none;">清</div>
+              <div style="position:relative; max-width:460px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:16px;">1644–1912 &middot; Qing &amp; the World</div>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(30px,4.6vw,52px); line-height:1.04; color:#f3ead9; margin:0 0 20px;">Tea sets sail</h2>
+                <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.78; color:#cdc0a8; margin:0; max-width:42ch;">Through the port of Canton, tea floods the world — it fills English cups, funds empires, helps spark a revolt in a Boston harbour, and sends clippers racing home with the season's first crop. Oolong and refined red teas come of age. The leaf becomes the world's drink.</p>
+              </div>
+              <div style="position:absolute; left:clamp(28px,5vw,64px); top:74%; transform:translateY(-50%); display:flex; align-items:center; gap:12px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:var(--tj-gold,#a8874d); box-shadow:0 0 0 4px rgba(168,135,77,0.16);"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#cdc0a8;">the age of the clippers</span>
+              </div>
+            </div>
+
+            <!-- ERA 5 -->
+            <div data-era-panel="5" style="position:relative; flex:none; width:clamp(360px,86vw,760px); height:100%; padding:clamp(36px,5vw,72px) clamp(28px,5vw,64px); scroll-snap-align:center; overflow:hidden;">
+              <div data-era-char aria-hidden="true" style="position:absolute; right:6%; top:6%; font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(38vw,300px); line-height:1; color:rgba(168,135,77,0.06); pointer-events:none;">今</div>
+              <div style="position:relative; max-width:460px;">
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.28em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:16px;">Now &middot; The Slow Return</div>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(30px,4.6vw,52px); line-height:1.04; color:#f3ead9; margin:0 0 20px;">The leaf comes home</h2>
+                <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.78; color:#cdc0a8; margin:0; max-width:42ch;">After a century of teabags and hurry, a counter-current. Gongfu brewing revives; drinkers prize single mountains and single seasons again, and relearn the patience the Tang scholars would have recognised. Five thousand years on, the morning begins once more.</p>
+              </div>
+              <div style="position:absolute; left:clamp(28px,5vw,64px); top:74%; transform:translateY(-50%); display:flex; align-items:center; gap:12px;">
+                <span style="width:14px; height:14px; border-radius:50%; background:var(--tj-gold-lt,#c6a667); box-shadow:0 0 0 4px rgba(168,135,77,0.2), 0 0 14px rgba(168,135,77,0.5);"></span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#cdc0a8;">today — your cup</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- arrows -->
+        <button id="tj-prev" aria-label="Earlier" style="position:absolute; left:clamp(8px,2vw,20px); top:calc(74% + 1px); transform:translateY(-50%); z-index:4; width:44px; height:44px; border-radius:50%; border:1px solid rgba(168,135,77,0.3); background:rgba(20,16,11,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:opacity 240ms, border-color 240ms;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="#a8874d" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="tj-next" aria-label="Later" style="position:absolute; right:clamp(8px,2vw,20px); top:calc(74% + 1px); transform:translateY(-50%); z-index:4; width:44px; height:44px; border-radius:50%; border:1px solid rgba(168,135,77,0.3); background:rgba(20,16,11,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:opacity 240ms, border-color 240ms;">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="animation:tjNudge 2.6s ease-in-out infinite;"><path d="M5 2l5 5-5 5" stroke="#a8874d" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- PULL QUOTE -->
+    <section data-reveal style="max-width:900px; margin:0 auto; padding:clamp(50px,8vw,104px) 24px; text-align:center;">
+      <blockquote style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(28px,4.8vw,54px); line-height:1.18; color:#f3ead9; margin:0 auto; max-width:860px;">"Every age believed it had found the right way to drink tea. Every age was right — for its morning."</blockquote>
+      <div aria-hidden="true" style="width:40px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.5; margin:34px auto 0;"></div>
+    </section>
+
+    <!-- THREE WAYS -->
+    <section style="max-width:1040px; margin:0 auto; padding:clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px);">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin-bottom:34px;">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">三</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Three ways to drink the same leaf</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:clamp(18px,3vw,28px);">
+        <div data-reveal style="border:1px solid rgba(168,135,77,0.16); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(22px,3vw,30px);">
+          <div style="font-family:'Noto Serif SC',serif; font-size:26px; color:var(--tj-gold,#a8874d); margin-bottom:14px;">煮</div>
+          <h3 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:24px; color:#f3ead9; margin:0 0 6px;">Boiled &middot; Tang</h3>
+          <p style="font-family:'Lora',serif; font-size:14px; line-height:1.6; color:#80735f; margin:0;">Cakes roasted, ground, and simmered — sometimes with salt. Tea as a warm, savoury brew.</p>
+        </div>
+        <div data-reveal style="border:1px solid rgba(168,135,77,0.16); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(22px,3vw,30px);">
+          <div style="font-family:'Noto Serif SC',serif; font-size:26px; color:var(--tj-gold,#a8874d); margin-bottom:14px;">點</div>
+          <h3 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:24px; color:#f3ead9; margin:0 0 6px;">Whisked &middot; Song</h3>
+          <p style="font-family:'Lora',serif; font-size:14px; line-height:1.6; color:#80735f; margin:0;">Powder beaten with water to a bright froth. The ancestor of matcha, lost in China, kept in Japan.</p>
+        </div>
+        <div data-reveal style="border:1px solid rgba(168,135,77,0.16); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(22px,3vw,30px);">
+          <div style="font-family:'Noto Serif SC',serif; font-size:26px; color:var(--tj-gold,#a8874d); margin-bottom:14px;">泡</div>
+          <h3 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:24px; color:#f3ead9; margin:0 0 6px;">Steeped &middot; Ming → now</h3>
+          <p style="font-family:'Lora',serif; font-size:14px; line-height:1.6; color:#80735f; margin:0;">Whole leaves loose in hot water. The simplest method — and the one that finally conquered the world.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLOSING -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px);">
+      <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(17px,2.1vw,20px); line-height:1.72; color:#cdc0a8; margin:0;">The line runs on past us, of course — some future age will find its own way to meet the leaf. But this much has held for fifty centuries: someone heats water, waits, and is, for a moment, restored. Tea is the oldest morning we still keep.</p>
+      <div style="margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:#80735f; line-height:2;">Words by Teajia &nbsp;·&nbsp; A History of Tea &nbsp;·&nbsp; N°07</div>
+    </section>
+
+    <!-- MORE -->
+    <footer style="border-top:1px solid rgba(168,135,77,0.14); padding:clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px);">
+      <div style="max-width:1180px; margin:0 auto;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.24em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">More from The Craft of Tea</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:clamp(14px,2vw,22px);">
+          <a href="/read/tasting" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Tasting · N°08</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">The Vocabulary of Taste</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">A turning wheel of everything a cup can say.</div></a>
+          <a href="/read/atlas" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Geography · N°06</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">A Map of Mountains</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">An atlas of where the great teas are born.</div></a>
+          <a href="/read/ritual" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">The Ritual · N°05</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Seven Steeps</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">The same leaves, brewed seven ways.</div></a>
+        </div>
+      </div>
+    </footer>
+
+  </article>
+</div>
+</x-dc>
+</body>
+</html>
