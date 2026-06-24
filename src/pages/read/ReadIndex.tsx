@@ -306,11 +306,18 @@ const ReadIndex: React.FC = () => {
   const isDevAdmin = useAppStore((s) => s.isDevAdmin);
   const isAdmin = React.useMemo(() => {
     const claims = getTokenClaims();
-    const role = claims?.role;
+    // Top-level `role` is the legacy field; current JWTs carry the real role
+    // inside `memberships[].role`, so check both. Any owner/admin membership
+    // (or platform owner/admin) unlocks the drafts.
+    const topRole = claims?.role;
     const platformRole = claims?.platform_role;
+    const memberRole = (claims?.memberships ?? []).some(
+      (m) => m.role === 'owner',
+    );
     return (
-      role === 'owner' ||
-      role === 'admin' ||
+      topRole === 'owner' ||
+      topRole === 'admin' ||
+      memberRole ||
       platformRole === 'platform_owner' ||
       platformRole === 'platform_admin' ||
       isDevAdmin
