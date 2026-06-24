@@ -149,8 +149,13 @@ export function useImmersiveChrome(accent: string) {
   useEffect(() => {
     const prevBg = document.body.style.background;
     const prevHtmlBg = document.documentElement.style.background;
+    const prevOverscroll = document.documentElement.style.overscrollBehaviorY;
     document.body.style.background = C.bg;
     document.documentElement.style.background = C.bg;
+    // Stop the browser's native pull-to-refresh from firing when a reader drags
+    // down from the top of the article. These are document-scrolled long-reads;
+    // the overscroll should do nothing, not reload the page.
+    document.documentElement.style.overscrollBehaviorY = 'contain';
     applyAccent(accent);
 
     const style = document.createElement('style');
@@ -174,6 +179,7 @@ export function useImmersiveChrome(accent: string) {
     return () => {
       document.body.style.background = prevBg;
       document.documentElement.style.background = prevHtmlBg;
+      document.documentElement.style.overscrollBehaviorY = prevOverscroll;
       clearAccent();
       style.remove();
     };

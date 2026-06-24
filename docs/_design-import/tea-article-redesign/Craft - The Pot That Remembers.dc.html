@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#14100b; }
+  ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+  @keyframes tjFloat{ 0%,100%{ transform:translate(-50%,0); } 50%{ transform:translate(-50%,7px); } }
+</style>
+</helmet>
+
+<div style="position:relative; background:#14100b; color:#ede4d4; font-family:'Lora',Georgia,serif; overflow-x:clip; min-height:100vh;">
+
+  <div aria-hidden="true" style="position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:170px;"></div>
+
+  <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px clamp(18px,4vw,40px); background:rgba(20,16,11,0.6); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(168,135,77,0.12);">
+    <a href="Index - The Craft of Tea.dc.html" style="display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit;">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:18px; letter-spacing:0.14em; text-transform:uppercase; color:#ede4d4;">Teajia</span>
+    </a>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; white-space:nowrap;">The Craft · N°14</span>
+    <div style="position:absolute; left:0; bottom:0; height:2px; width:100%; background:rgba(168,135,77,0.08);">
+      <div id="tj-progress" style="height:100%; width:0%; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); transition:width 90ms linear;"></div>
+    </div>
+  </nav>
+
+  <article style="position:relative; z-index:1;">
+
+    <!-- COVER -->
+    <header style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); align-items:stretch; border-bottom:1px solid rgba(168,135,77,0.14); min-height:90vh;">
+      <div style="position:relative; order:2; display:flex; flex-direction:column; justify-content:center; padding:clamp(36px,6vw,84px) clamp(24px,5vw,72px);">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.34em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">The Craft · Yixing, Jiangsu</div>
+        <h1 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(44px,6.6vw,90px); line-height:1.0; letter-spacing:-0.015em; color:#f3ead9; margin:0;">The Pot That<br><span style="font-style:italic; color:var(--tj-gold,#a8874d);">Remembers</span></h1>
+        <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(16px,2vw,20px); line-height:1.5; color:#cdc0a8; margin:24px 0 0; max-width:440px;">A small unglazed teapot from a single town in China drinks in every tea it brews — until, years later, it can make tea from hot water alone.</p>
+        <div style="margin-top:clamp(30px,5vw,46px); padding-top:24px; border-top:1px solid rgba(168,135,77,0.16); font-family:'Noto Serif SC',serif; font-size:22px; color:#cdc0a8;">紫砂壺 <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10.5px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f;">— zǐshā hú, the purple-sand pot</span></div>
+      </div>
+      <div style="position:relative; order:1; overflow:hidden; min-height:48vh; background:linear-gradient(155deg,#2a1d14 0%,#14100b 80%);">
+        <div aria-hidden="true" style="position:absolute; inset:0; opacity:0.08; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:150px;"></div>
+        <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 60% 50% at 50% 44%, rgba(176,106,60,0.2), transparent 64%);"></div>
+        <svg viewBox="0 0 420 420" preserveAspectRatio="xMidYMid meet" style="position:absolute; inset:0; width:100%; height:100%;">
+          <g fill="none" stroke="rgba(176,120,72,0.5)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+            <path d="M150 232 C 150 286, 186 314, 232 314 C 278 314, 314 286, 314 232 C 314 210, 300 196, 232 194 C 164 196, 150 210, 150 232 Z"/>
+            <path d="M168 206 C 180 192, 284 192, 296 206"/>
+            <ellipse cx="232" cy="196" rx="42" ry="11"/>
+            <path d="M232 185 L232 196"/><circle cx="232" cy="180" r="6"/>
+            <path d="M150 236 C 120 232, 104 244, 96 262 C 108 256, 128 256, 146 254" />
+            <path d="M314 224 C 344 222, 356 240, 352 268 C 340 256, 326 250, 312 250"/>
+          </g>
+          <g fill="none" stroke="rgba(168,135,77,0.2)" stroke-width="1"><ellipse cx="232" cy="324" rx="70" ry="12"/></g>
+        </svg>
+        <div style="position:absolute; left:clamp(18px,3vw,28px); bottom:clamp(18px,3vw,26px); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f;">A xishi pot — unglazed zisha</div>
+      </div>
+    </header>
+
+    <!-- STANDFIRST -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(56px,9vw,116px) 24px clamp(28px,5vw,52px);">
+      <p style="font-family:'Lora',serif; font-size:clamp(18px,2.2vw,22px); line-height:1.74; color:#ede4d4; margin:0;">
+        <span style="float:left; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:5em; line-height:0.78; color:var(--tj-gold,#a8874d); margin:8px 16px -4px 0;">M</span>ost teapots are inert — glazed, sealed, forgetful. The little pots of Yixing are the opposite. Thrown from a rare unglazed stoneware called <span style="font-family:'Noto Serif SC',serif; color:#cdc0a8;">紫砂</span>, zǐshā or "purple sand," they are faintly <em style="font-style:italic; color:#f3ead9;">porous</em> — riddled with microscopic pockets that, over years, drink in the oils and aromatics of the tea they hold. A Yixing pot does not just brew your tea. It remembers it.
+      </p>
+    </section>
+
+    <!-- I — the clay -->
+    <section style="max-width:1100px; margin:0 auto; padding:clamp(20px,4vw,40px) clamp(20px,5vw,40px);">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin-bottom:clamp(28px,4vw,40px); max-width:680px; margin-left:auto; margin-right:auto;">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">I</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Purple sand</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:clamp(24px,4vw,52px); align-items:center;">
+        <div data-reveal>
+          <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0 0 18px;">The ore comes from one place on earth: the hills around Yixing, in Jiangsu, where it is mined in seams, weathered in the open air for seasons, then ground and aged for years before a maker will touch it. Fired without glaze, it sets to a stoneware that rings like a low bell and feels like warm skin.</p>
+          <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0;">Its colour depends on the seam. Three are classic — the deep brown-purple of <em style="font-style:italic; color:#ede4d4;">zini</em>, the orange-red of <em style="font-style:italic; color:#ede4d4;">zhuni</em>, the pale buff of <em style="font-style:italic; color:#ede4d4;">duanni</em> — and a maker reads each one like a painter reads pigment.</p>
+        </div>
+        <figure data-reveal style="margin:0;">
+          <div style="position:relative; aspect-ratio:4/5; border:1px solid rgba(168,135,77,0.2); border-radius:3px; overflow:hidden; background:linear-gradient(160deg,#2c1f14,#14100b 82%);">
+            <div aria-hidden="true" style="position:absolute; inset:0; opacity:0.1; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:90px;"></div>
+            <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 60% 50% at 46% 40%, rgba(176,106,60,0.26), transparent 64%);"></div>
+            <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%;"><g fill="none" stroke="rgba(176,120,72,0.3)" stroke-width="1"><path d="M40 150 C 120 138, 200 142, 280 150"/><path d="M44 200 C 130 188, 210 192, 286 200"/><path d="M40 252 C 120 240, 200 244, 280 252"/></g><g fill="rgba(176,120,72,0.4)"><circle cx="120" cy="174" r="2"/><circle cx="210" cy="226" r="2.2"/><circle cx="96" cy="232" r="1.8"/><circle cx="230" cy="176" r="1.6"/></g></svg>
+            <div style="position:absolute; left:14px; bottom:12px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--tj-gold,#a8874d);">Plate I — the raw ore</div>
+          </div>
+          <figcaption style="font-family:'Lora',serif; font-style:italic; font-size:13px; line-height:1.5; color:#80735f; margin-top:12px;">Zisha ore, weathered and aged for years before it is worked.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- THREE CLAYS -->
+    <section data-reveal style="max-width:1040px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px;">
+      <div style="display:flex; align-items:center; gap:18px; margin-bottom:clamp(28px,4vw,40px);">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">三</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Three clays</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:clamp(18px,3vw,28px);">
+        <div style="border:1px solid rgba(168,135,77,0.16); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(22px,3vw,30px);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;"><span style="width:30px; height:30px; border-radius:50%; background:#6e5040; box-shadow:inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 6px rgba(255,255,255,0.12), 0 0 0 1px rgba(168,135,77,0.25);"></span><div><div style="font-family:'Cormorant Garamond',serif; font-size:23px; color:#ede4d4; line-height:1;">Zini</div><div style="font-family:'Noto Serif SC',serif; font-size:13px; color:#80735f;">紫泥</div></div></div>
+          <p style="font-family:'Lora',serif; font-size:14px; line-height:1.6; color:#80735f; margin:0;">Deep brown-purple, the workhorse. Even, forgiving, the most common — a fine all-round pot for darker teas.</p>
+        </div>
+        <div style="border:1px solid rgba(168,135,77,0.16); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(22px,3vw,30px);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;"><span style="width:30px; height:30px; border-radius:50%; background:#a8553a; box-shadow:inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 6px rgba(255,255,255,0.14), 0 0 0 1px rgba(168,135,77,0.25);"></span><div><div style="font-family:'Cormorant Garamond',serif; font-size:23px; color:#ede4d4; line-height:1;">Zhuni</div><div style="font-family:'Noto Serif SC',serif; font-size:13px; color:#80735f;">朱泥</div></div></div>
+          <p style="font-family:'Lora',serif; font-size:14px; line-height:1.6; color:#80735f; margin:0;">Bright orange-red, rare and high-shrinkage. Rings clear and high; prized by gongfu brewers for fragrant oolongs.</p>
+        </div>
+        <div style="border:1px solid rgba(168,135,77,0.16); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(22px,3vw,30px);">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;"><span style="width:30px; height:30px; border-radius:50%; background:#b89a64; box-shadow:inset 0 -4px 8px rgba(0,0,0,0.3), inset 0 4px 6px rgba(255,255,255,0.16), 0 0 0 1px rgba(168,135,77,0.25);"></span><div><div style="font-family:'Cormorant Garamond',serif; font-size:23px; color:#ede4d4; line-height:1;">Duanni</div><div style="font-family:'Noto Serif SC',serif; font-size:13px; color:#80735f;">段泥</div></div></div>
+          <p style="font-family:'Lora',serif; font-size:14px; line-height:1.6; color:#80735f; margin:0;">Pale sandy beige, often speckled. Cooler and gentler in the cup — a quiet choice for greens and lighter teas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PULL QUOTE -->
+    <section data-reveal style="max-width:900px; margin:0 auto; padding:clamp(50px,8vw,104px) 24px; text-align:center;">
+      <blockquote style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(28px,4.8vw,54px); line-height:1.18; color:#f3ead9; margin:0 auto; max-width:840px;">"One pot, one tea. A Yixing pot is a diary you are not allowed to overwrite."</blockquote>
+      <div aria-hidden="true" style="width:40px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.5; margin:34px auto 0;"></div>
+    </section>
+
+    <!-- II — the seasoning -->
+    <section style="max-width:680px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">II</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Seasoning a pot</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0 0 22px;">Because the clay drinks in flavour, you give a Yixing pot a single job. One pot for rock oolong; one for aged Pu'er; one for fragrant green. Mix teas in a single pot and you muddy them both. Keep faith with one, and something remarkable happens: the pot slowly seasons, its pores filling with the memory of that exact tea.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0;">Brewers speak, only half in jest, of pots so well seasoned that after decades you could pour in nothing but hot water and still draw out a ghost of tea. The pot has become an instrument tuned to one note — and it plays that note better every year.</p>
+    </section>
+
+    <!-- III — the patina -->
+    <section style="max-width:1100px; margin:0 auto; padding:clamp(40px,6vw,72px) clamp(20px,5vw,40px) clamp(20px,4vw,40px);">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin-bottom:clamp(28px,4vw,40px); max-width:680px; margin-left:auto; margin-right:auto;">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">III</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">The patina of years</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:clamp(24px,4vw,52px); align-items:center;">
+        <figure data-reveal style="margin:0; order:2;">
+          <div style="position:relative; aspect-ratio:4/5; border:1px solid rgba(168,135,77,0.2); border-radius:3px; overflow:hidden; background:radial-gradient(ellipse 64% 56% at 50% 44%, rgba(176,106,60,0.22), transparent 64%), linear-gradient(160deg,#241a12,#14100b);">
+            <svg viewBox="0 0 320 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style="position:absolute; inset:0; width:100%; height:100%;">
+              <g fill="none" stroke="rgba(200,150,96,0.6)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+                <path d="M104 214 C 104 270, 142 300, 190 300 C 238 300, 276 270, 276 214 C 276 192, 262 178, 190 176 C 118 178, 104 192, 104 214 Z"/>
+                <ellipse cx="190" cy="178" rx="40" ry="10"/><circle cx="190" cy="162" r="6"/><path d="M190 168 L190 178"/>
+                <path d="M104 218 C 76 214, 62 226, 56 244 C 70 238, 88 238, 102 236"/>
+                <path d="M276 206 C 304 204, 316 222, 312 248 C 300 236, 286 232, 274 232"/>
+              </g>
+              <g fill="rgba(255,225,180,0.18)"><ellipse cx="166" cy="206" rx="22" ry="34"/></g>
+            </svg>
+            <div style="position:absolute; left:14px; bottom:12px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.18em; text-transform:uppercase; color:var(--tj-gold,#a8874d);">Plate II — baojiang, the sheen</div>
+          </div>
+          <figcaption style="font-family:'Lora',serif; font-style:italic; font-size:13px; line-height:1.5; color:#80735f; margin-top:12px;">A pot polished by years of tea and handling to a soft, deep glow.</figcaption>
+        </figure>
+        <div data-reveal style="order:1;">
+          <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0 0 18px;">A used pot earns a patina the Chinese call <span style="font-family:'Noto Serif SC',serif; color:#cdc0a8;">包浆</span>, bāojiāng — a low, lacquer-like sheen raised not by polish but by tea and touch. After each session the pot is rinsed with hot water, never soap, and wiped with a soft cloth. Over years the surface deepens and warms, the way a wooden bannister does under a thousand hands.</p>
+          <p style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.8; color:#cdc0a8; margin:0;">This is why these pots are handed down. A grandmother's seasoned pot is not just an object; it is the compressed record of ten thousand cups, still faintly flavouring the next one. You do not inherit the pot. You inherit the tea inside its walls.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FACT FILE -->
+    <section data-reveal style="max-width:1040px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px;">
+      <div style="border:1px solid rgba(168,135,77,0.2); border-radius:4px; background:linear-gradient(160deg,#1d1810,#15110b); padding:clamp(24px,4vw,40px);">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.22em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:24px;">Living with a Yixing pot</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:22px 36px;">
+          <div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#80735f; margin-bottom:8px;">From</div><div style="font-family:'Lora',serif; font-size:15px; color:#ede4d4;">Yixing, Jiangsu</div></div>
+          <div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#80735f; margin-bottom:8px;">Material</div><div style="font-family:'Lora',serif; font-size:15px; color:#ede4d4;">Unglazed zisha stoneware</div></div>
+          <div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#80735f; margin-bottom:8px;">Rule</div><div style="font-family:'Lora',serif; font-size:15px; color:#ede4d4;">One pot, one tea</div></div>
+          <div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#80735f; margin-bottom:8px;">Never</div><div style="font-family:'Lora',serif; font-size:15px; color:#ede4d4;">Soap. Only hot water</div></div>
+          <div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#80735f; margin-bottom:8px;">Rewards</div><div style="font-family:'Lora',serif; font-size:15px; color:#ede4d4;">Patience, over years</div></div>
+          <div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#80735f; margin-bottom:8px;">Becomes</div><div style="font-family:'Lora',serif; font-size:15px; color:#ede4d4;">An heirloom</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLOSING -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px);">
+      <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(17px,2.1vw,20px); line-height:1.72; color:#cdc0a8; margin:0;">In a world of objects designed to forget — wiped clean, reset, replaced — the Yixing pot insists on the opposite. It keeps everything. It asks for one tea, a little ritual, and a great deal of time, and in return it gives you something almost no other vessel can: a memory you can drink. Choose your pot, and your tea, with care. You may be choosing for your grandchildren.</p>
+      <div style="margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:#80735f; line-height:2;">The Craft of Tea by Teajia &nbsp;·&nbsp; N°14</div>
+    </section>
+
+    <!-- MORE -->
+    <footer style="border-top:1px solid rgba(168,135,77,0.14); padding:clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px);">
+      <div style="max-width:1180px; margin:0 auto;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.24em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">More from The Craft of Tea</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:clamp(14px,2vw,22px);">
+          <a href="/read/earth-water-fire" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Conversation · N°03</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Earth, Water, Fire</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">A Jingdezhen potter on the vessels of tea.</div></a>
+          <a href="/read/legend" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Legend · N°13</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">The Immortals' Cliff</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">The Da Hong Pao mother trees of Wuyi.</div></a>
+          <a href="/read/leaf-to-liquor" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">The Craft of Tea</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">All Fourteen Pieces</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">Back to the full contents.</div></a>
+        </div>
+      </div>
+    </footer>
+
+  </article>
+</div>
+</x-dc>
+</body>
+</html>

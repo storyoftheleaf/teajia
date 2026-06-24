@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#14100b; }
+  ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+  @keyframes tjFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
+</style>
+</helmet>
+
+<div style="position:relative; background:#14100b; color:#ede4d4; font-family:'Lora',Georgia,serif; overflow-x:clip; min-height:100vh;">
+
+  <div aria-hidden="true" style="position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:170px;"></div>
+
+  <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px clamp(18px,4vw,40px); background:rgba(20,16,11,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(168,135,77,0.12);">
+    <a href="Tea Article.dc.html" style="display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit;">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:18px; letter-spacing:0.14em; text-transform:uppercase; color:#ede4d4;">Teajia</span>
+    </a>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; white-space:nowrap;">Essay · N°10</span>
+    <div style="position:absolute; left:0; bottom:0; height:2px; width:100%; background:rgba(168,135,77,0.08);">
+      <div id="tj-progress" style="height:100%; width:0%; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); transition:width 90ms linear;"></div>
+    </div>
+  </nav>
+
+  <article style="position:relative; z-index:1;">
+
+    <!-- COVER -->
+    <header style="position:relative; min-height:84vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:clamp(40px,8vw,90px) 24px; overflow:hidden;">
+      <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 70% 55% at 50% 32%, rgba(168,135,77,0.12), transparent 62%);"></div>
+      <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-54%); font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(58vw,560px); line-height:1; color:rgba(168,135,77,0.05); pointer-events:none; user-select:none;">回</div>
+      <div style="position:relative; max-width:760px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.42em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:30px;">First Person &nbsp;·&nbsp; N°10</div>
+        <h1 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(46px,8.4vw,104px); line-height:0.99; letter-spacing:-0.015em; color:#f3ead9; margin:0;">The Long Way <span style="font-style:italic; color:var(--tj-gold,#a8874d);">to the Cup</span></h1>
+        <div aria-hidden="true" style="width:54px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.6; margin:30px auto;"></div>
+        <p style="font-family:'Lora',serif; font-style:italic; font-weight:400; font-size:clamp(16px,2.3vw,21px); line-height:1.5; color:#cdc0a8; margin:0 auto; max-width:520px;">I was born into a country of tea, and it took me thirty years and a journey to the other side of the world to taste it.</p>
+        <div style="margin-top:32px; font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:500; letter-spacing:0.2em; text-transform:uppercase; color:#80735f;">By Mei <span style="font-family:'Noto Serif SC',serif; text-transform:none; color:#cdc0a8;">梅</span></div>
+      </div>
+    </header>
+
+    <!-- STANDFIRST -->
+    <section data-reveal style="max-width:660px; margin:0 auto; padding:clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px);">
+      <p style="font-family:'Lora',serif; font-size:clamp(18px,2.2vw,22px); line-height:1.76; color:#ede4d4; margin:0;">
+        <span style="float:left; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:5em; line-height:0.78; color:var(--tj-gold,#a8874d); margin:8px 16px -4px 0;">T</span>here is a Chinese word for the sweetness that arrives <em style="font-style:italic; color:#f3ead9;">after</em> a sip — once the cup is down and you think the taste is gone. <span style="font-family:'Noto Serif SC',serif; color:#cdc0a8;">回甘</span>, huí gān: the returning sweetness. I have come to think my whole life with tea has been one long huí gān — a flavour I only learned to notice long after I'd swallowed it.
+      </p>
+    </section>
+
+    <!-- I -->
+    <section style="max-width:660px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(40px,6vw,72px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Noto Serif SC',serif; font-weight:400; font-size:26px; color:var(--tj-gold,#a8874d); line-height:1;">七歲</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">A mainland kitchen, age seven</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0 0 22px;">I left the mainland when I was seven. The last morning, my grandmother poured tea the way she always did — from a dented metal pot into small cups with no handles, the leaves left loose to swim. I drank mine too fast, the way children do, already thinking about the aeroplane. I did not know it was the last cup at that table. I did not know a cup could be a last anything.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0;">For years I remembered nothing about the tea itself — not the type, not the taste. Only the steam on the cold window, and her hands. It would take me three decades to understand that the tea had been the whole point, and I had swallowed it without looking.</p>
+    </section>
+
+    <!-- PULL QUOTE -->
+    <section data-reveal style="max-width:900px; margin:0 auto; padding:clamp(48px,8vw,100px) 24px; text-align:center;">
+      <blockquote style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(26px,4.4vw,50px); line-height:1.2; color:#f3ead9; margin:0 auto; max-width:820px;">"I was raised in tea the way a fish is raised in water — so surrounded by it I never once saw it."</blockquote>
+      <div aria-hidden="true" style="width:40px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.5; margin:34px auto 0;"></div>
+    </section>
+
+    <!-- II -->
+    <section style="max-width:660px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Noto Serif SC',serif; font-weight:400; font-size:26px; color:var(--tj-gold,#a8874d); line-height:1;">香港</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Hong Kong, the in-between years</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0 0 22px;">Hong Kong runs on tea the way other cities run on traffic. Milk tea the colour of teak, pulled through a cloth sock in the cha chaan teng downstairs. Bottomless pots of bo lei at dim sum, slammed down and forgotten. Gongfu sets that came out only when an uncle wanted to show off. Tea was everywhere, and so it was nowhere — it was just the weather of being alive there.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0;">I drank litres of it and tasted none of it. If you had asked me then whether I liked tea, I would have laughed. It was like being asked whether I liked air.</p>
+    </section>
+
+    <!-- III -->
+    <section style="max-width:660px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(40px,6vw,72px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Noto Serif SC',serif; font-weight:400; font-size:24px; color:var(--tj-gold,#a8874d); line-height:1; letter-spacing:0.05em;">Bali</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">The room that slowed down</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0 0 22px;">I went to Bali to get away from everything, including, I thought, my own past. Instead I found a low room of dark jackfruit wood, where a man I'd never met sat me down and brewed, without hurry, for an hour. Tiny cup after tiny cup. He barely spoke. He just kept pouring, and waiting, and watching my face — the way, I realised much later, my grandmother had watched mine.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0 0 22px;">Somewhere around the fourth steep, something in me went quiet that had not been quiet in years. I tasted it — actually tasted it, the orchid and the warm stone and the long sweet finish climbing back up — and I started, embarrassingly, to cry. I was thirty-one years old and I was tasting tea, on purpose, for the first time.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0;">It was not the tea that undid me. It was the slowness. No one had ever given me an hour to taste anything.</p>
+    </section>
+
+    <!-- PULL QUOTE -->
+    <section data-reveal style="max-width:900px; margin:0 auto; padding:clamp(48px,8vw,100px) 24px; text-align:center;">
+      <blockquote style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(26px,4.4vw,50px); line-height:1.2; color:#f3ead9; margin:0 auto; max-width:820px;">"I had to travel three thousand miles from my heritage to finally arrive at it."</blockquote>
+      <div aria-hidden="true" style="width:40px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.5; margin:34px auto 0;"></div>
+    </section>
+
+    <!-- IV -->
+    <section style="max-width:660px; margin:0 auto; padding:0 24px;">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin:clamp(20px,4vw,40px) 0 clamp(28px,4vw,40px);">
+        <span style="font-family:'Noto Serif SC',serif; font-weight:400; font-size:26px; color:var(--tj-gold,#a8874d); line-height:1;">現在</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Now, a beginner again</span>
+      </div>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0 0 22px;">These days I am learning my own inheritance backwards, from the outside in. I can finally name what I'm drinking — the rock teas, the spring greens, the aged dark cakes that taste of forest floor. I am learning the words I should have grown up with: huí gān, yán yùn, the patience to wait for the third steep. I am, at thirty-something, a complete beginner. It is the happiest I have been.</p>
+      <p data-reveal style="font-family:'Lora',serif; font-size:clamp(16px,2vw,18px); line-height:1.84; color:#cdc0a8; margin:0;">I think often of my grandmother's dented pot. I understand now that she wasn't making a drink. She was making a moment, and handing it to a child too young to keep it. I have spent my adult life learning to receive it — and lately, in a quiet room I am building far from where any of this began, learning to hand it on.</p>
+    </section>
+
+    <!-- THREE CUPS -->
+    <section data-reveal style="max-width:920px; margin:0 auto; padding:clamp(50px,8vw,104px) 24px clamp(30px,5vw,56px);">
+      <div style="display:flex; align-items:center; gap:18px; margin-bottom:clamp(30px,4vw,44px);">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">回</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">Three cups</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:clamp(24px,4vw,44px);">
+        <figure style="margin:0; text-align:center;">
+          <div style="width:clamp(70px,14vw,96px); height:clamp(70px,14vw,96px); margin:0 auto 18px; border-radius:50%; background:#e9d9a8; box-shadow:0 0 0 1px rgba(168,135,77,0.3), inset 0 -7px 14px rgba(0,0,0,0.22), inset 0 6px 10px rgba(255,255,255,0.25);"></div>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:21px; color:#ede4d4; margin-bottom:6px;">The cup I didn't drink</div>
+          <p style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; line-height:1.55; color:#80735f; margin:0;">My grandmother's table. Swallowed in a hurry, at seven.</p>
+        </figure>
+        <figure style="margin:0; text-align:center;">
+          <div style="width:clamp(70px,14vw,96px); height:clamp(70px,14vw,96px); margin:0 auto 18px; border-radius:50%; background:#cf9f49; box-shadow:0 0 0 1px rgba(168,135,77,0.3), inset 0 -7px 14px rgba(0,0,0,0.26), inset 0 6px 10px rgba(255,255,255,0.22);"></div>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:21px; color:#ede4d4; margin-bottom:6px;">The cup that woke me</div>
+          <p style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; line-height:1.55; color:#80735f; margin:0;">A dark room in Bali. The fourth steep, at thirty-one.</p>
+        </figure>
+        <figure style="margin:0; text-align:center;">
+          <div style="width:clamp(70px,14vw,96px); height:clamp(70px,14vw,96px); margin:0 auto 18px; border-radius:50%; background:#8f6741; box-shadow:0 0 0 1px rgba(168,135,77,0.3), inset 0 -7px 14px rgba(0,0,0,0.3), inset 0 6px 10px rgba(255,255,255,0.16);"></div>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:21px; color:#ede4d4; margin-bottom:6px;">The cup I'm learning</div>
+          <p style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; line-height:1.55; color:#80735f; margin:0;">My own, now. Poured slowly, and finally tasted.</p>
+        </figure>
+      </div>
+    </section>
+
+    <!-- CLOSING -->
+    <section data-reveal style="max-width:660px; margin:0 auto; padding:clamp(30px,5vw,56px) 24px clamp(40px,6vw,72px); text-align:center;">
+      <p style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(22px,3.4vw,32px); line-height:1.36; color:#ede4d4; margin:0;">The sweetness comes back, if you wait for it. It just took mine a very long way around.</p>
+      <div style="margin-top:42px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:#80735f; line-height:2;">By Mei &nbsp;·&nbsp; First Person &nbsp;·&nbsp; N°10</div>
+    </section>
+
+    <!-- MORE -->
+    <footer style="border-top:1px solid rgba(168,135,77,0.14); padding:clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px);">
+      <div style="max-width:1180px; margin:0 auto;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.24em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">More from The Craft of Tea</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:clamp(14px,2vw,22px);">
+          <a href="Field Notes - Two Rooms in Bali.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Field Notes · N°11</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Two Rooms in Bali</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">Jackfruit wood, charcoal, and slow bonsai light.</div></a>
+          <a href="A Tea House - Quiet Hours.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">A Tea House · N°09</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Quiet Hours</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">The Melbourne room Mei went on to build.</div></a>
+          <a href="Atlas - A Map of Mountains.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b);"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Geography · N°06</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">A Map of Mountains</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">Where the teas she's learning come from.</div></a>
+        </div>
+      </div>
+    </footer>
+
+  </article>
+</div>
+</x-dc>
+</body>
+</html>

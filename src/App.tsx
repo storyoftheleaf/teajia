@@ -108,6 +108,17 @@ const LeafToLiquor = lazy(() => import('./pages/read/LeafToLiquor'));
 const RockRemembers = lazy(() => import('./pages/read/RockRemembers'));
 const EarthWaterFire = lazy(() => import('./pages/read/EarthWaterFire'));
 const BeforeTheMist = lazy(() => import('./pages/read/BeforeTheMist'));
+// The 10 new Read templates ported from the Tea Article Redesign design project.
+const AtlasMapOfMountains = lazy(() => import('./pages/read/AtlasMapOfMountains'));
+const CraftPotThatRemembers = lazy(() => import('./pages/read/CraftPotThatRemembers'));
+const EssayLongWayToCup = lazy(() => import('./pages/read/EssayLongWayToCup'));
+const FieldNotesTwoRoomsBali = lazy(() => import('./pages/read/FieldNotesTwoRoomsBali'));
+const FieldStudyWaterBeforeLeaf = lazy(() => import('./pages/read/FieldStudyWaterBeforeLeaf'));
+const HistoryTenThousandMornings = lazy(() => import('./pages/read/HistoryTenThousandMornings'));
+const LegendImmortalsCliff = lazy(() => import('./pages/read/LegendImmortalsCliff'));
+const RitualSevenSteeps = lazy(() => import('./pages/read/RitualSevenSteeps'));
+const TastingVocabularyOfTaste = lazy(() => import('./pages/read/TastingVocabularyOfTaste'));
+const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
@@ -221,6 +232,13 @@ const AppContent = () => {
   const showAdminBar = false;
 
   const queryClient = useQueryClient();
+  const location = useLocation();
+  // The immersive Read long-reads (/read and /read/*) scroll the document
+  // normally; pull-to-refresh must stay OFF there or a downward read-scroll
+  // from the top gets mistaken for a pull gesture (the page refreshes and the
+  // article won't scroll). Computed before the hook so it can gate the listeners.
+  const isImmersiveReadRoute =
+    location.pathname === '/read' || location.pathname.startsWith('/read/');
   // Pull-to-refresh: re-fetch inventory + invalidate active server queries so
   // public pages (Shop, Magazine, Events) reflect any updates made elsewhere.
   // The hook awaits this promise before hiding the indicator.
@@ -229,9 +247,8 @@ const AppContent = () => {
       refetchInventory(),
       queryClient.invalidateQueries(),
     ]);
-  });
+  }, { enabled: !isImmersiveReadRoute });
 
-  const location = useLocation();
   const navigate = useNavigate();
   const activeSection = pathToSection(location.pathname);
 
@@ -699,8 +716,7 @@ const AppContent = () => {
   // bottom tab bar: it's where authored articles open and a reader there should
   // be able to navigate the rest of the app. (It carries no corner accent
   // controls, so there's nothing for the bar to overlap.)
-  const isImmersiveRead =
-    location.pathname === '/read' || location.pathname.startsWith('/read/');
+  const isImmersiveRead = isImmersiveReadRoute;
 
   // LeftSidebar only mounts on admin routes now, so its useEffect that sets
   // --teajia-sidebar-w doesn't fire on public routes — reset to 0px here so
@@ -724,7 +740,7 @@ const AppContent = () => {
 
 
       {/* Pull to Refresh Indicator */}
-      {!isFocusedShareRoute && <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />}
+      {!isFocusedShareRoute && !isImmersiveRead && <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />}
 
       {/* Desktop nav: LeftSidebar for admin tool palette; public/editorial
           routes use the same floating BottomTabBar that mobile uses (now
@@ -845,6 +861,37 @@ const AppContent = () => {
                 } />
                 <Route path="/read/before-the-mist" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><BeforeTheMist /></Suspense></ErrorBoundary>
+                } />
+                {/* The 10 templates ported from the Tea Article Redesign design project. */}
+                <Route path="/read/atlas" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/craft" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/essay" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/field-notes" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/field-study" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/history" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/legend" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/ritual" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/tasting" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/tea-house" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/craft" element={
                   <ErrorBoundary>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#14100b; }
+  ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+  @keyframes tjFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
+</style>
+</helmet>
+
+<div style="position:relative; background:#14100b; color:#ede4d4; font-family:'Lora',Georgia,serif; overflow-x:clip; min-height:100vh;">
+
+  <div aria-hidden="true" style="position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:170px;"></div>
+
+  <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px clamp(18px,4vw,40px); background:rgba(20,16,11,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(168,135,77,0.12);">
+    <a href="Tea Article.dc.html" style="display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit;">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:18px; letter-spacing:0.14em; text-transform:uppercase; color:#ede4d4;">Teajia</span>
+    </a>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; white-space:nowrap;">Tasting · N°08</span>
+    <div style="position:absolute; left:0; bottom:0; height:2px; width:100%; background:rgba(168,135,77,0.08);">
+      <div id="tj-progress" style="height:100%; width:0%; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); transition:width 90ms linear;"></div>
+    </div>
+  </nav>
+
+  <article style="position:relative; z-index:1;">
+
+    <!-- COVER -->
+    <header style="position:relative; min-height:74vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:clamp(40px,7vw,84px) 24px clamp(28px,5vw,52px); overflow:hidden;">
+      <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 72% 56% at 50% 32%, rgba(168,135,77,0.12), transparent 62%);"></div>
+      <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-54%); font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(54vw,520px); line-height:1; color:rgba(168,135,77,0.05); pointer-events:none; user-select:none;">味</div>
+      <div style="position:relative; max-width:840px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.42em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:28px;">The Language of Tea &nbsp;·&nbsp; N°08</div>
+        <h1 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(42px,8vw,100px); line-height:0.99; letter-spacing:-0.015em; color:#f3ead9; margin:0;">The Vocabulary <span style="font-style:italic; color:var(--tj-gold,#a8874d);">of Taste</span></h1>
+        <div aria-hidden="true" style="width:54px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.6; margin:30px auto;"></div>
+        <p style="font-family:'Lora',serif; font-style:italic; font-weight:400; font-size:clamp(16px,2.3vw,21px); line-height:1.5; color:#cdc0a8; margin:0 auto; max-width:560px;">Tea says far more than "tea." A turning wheel of the words tasters reach for — from orchid to wet stone — and how a single cup maps across them.</p>
+      </div>
+    </header>
+
+    <!-- STANDFIRST -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(32px,5vw,60px) 24px clamp(28px,5vw,48px);">
+      <p style="font-family:'Lora',serif; font-size:clamp(18px,2.2vw,22px); line-height:1.74; color:#ede4d4; margin:0;">
+        <span style="float:left; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:5em; line-height:0.78; color:var(--tj-gold,#a8874d); margin:8px 16px -4px 0;">T</span>he hardest part of tea is not tasting it — it is finding the words. The mouth knows long before the mind can name it. A flavour wheel is a borrowed vocabulary: a way to turn a wordless impression into "orchid," "wet stone," "toasted rice." Turn the wheel below, and let the cup teach you its language.
+      </p>
+    </section>
+
+    <!-- THE WHEEL -->
+    <section style="max-width:1200px; margin:0 auto; padding:clamp(10px,3vw,28px) clamp(16px,4vw,40px) clamp(30px,5vw,56px);">
+      <div style="display:flex; flex-wrap:wrap; gap:clamp(24px,4vw,56px); align-items:center; justify-content:center;">
+        <div style="position:relative; flex:1 1 360px; min-width:300px; max-width:540px; aspect-ratio:1/1;">
+          <svg id="tj-wheel" viewBox="0 0 440 440" style="position:absolute; inset:0; width:100%; height:100%;"></svg>
+          <div id="tj-hub" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:38%; height:38%; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;">
+            <div id="tj-hub-cn" style="font-family:'Noto Serif SC',serif; font-weight:200; font-size:clamp(30px,7vw,52px); line-height:1; color:var(--tj-gold,#a8874d);">花</div>
+            <div id="tj-hub-en" style="font-family:'Cormorant Garamond',serif; font-size:clamp(18px,3vw,24px); color:#f3ead9; margin-top:6px;">Floral</div>
+          </div>
+        </div>
+        <aside id="tj-fam" style="flex:1 1 300px; min-width:280px; max-width:420px;">
+          <!-- filled by JS -->
+        </aside>
+      </div>
+      <p id="tj-wheelhint" style="font-family:'Plus Jakarta Sans',sans-serif; font-size:9.5px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f; text-align:center; margin:clamp(20px,3vw,32px) 0 0; transition:opacity 500ms;">Hover or tap a petal of the wheel</p>
+    </section>
+
+    <!-- PULL QUOTE -->
+    <section data-reveal style="max-width:900px; margin:0 auto; padding:clamp(50px,8vw,104px) 24px; text-align:center;">
+      <blockquote style="font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:400; font-size:clamp(28px,4.8vw,54px); line-height:1.18; color:#f3ead9; margin:0 auto; max-width:860px;">"To name a flavour is to notice it twice — once on the tongue, and once in the mind."</blockquote>
+      <div aria-hidden="true" style="width:40px; height:1px; background:var(--tj-gold,#a8874d); opacity:0.5; margin:34px auto 0;"></div>
+    </section>
+
+    <!-- THE RADAR -->
+    <section style="max-width:1040px; margin:0 auto; padding:clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px);">
+      <div data-reveal style="display:flex; align-items:center; gap:18px; margin-bottom:30px;">
+        <span style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:30px; color:var(--tj-gold,#a8874d); line-height:1;">◎</span>
+        <span style="flex:1; height:1px; background:rgba(168,135,77,0.22);"></span>
+        <span style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.24em; text-transform:uppercase; color:#80735f;">A cup, mapped</span>
+      </div>
+      <div id="tj-radarwrap" style="display:flex; flex-wrap:wrap; gap:clamp(24px,4vw,56px); align-items:center;">
+        <div style="position:relative; flex:1 1 300px; min-width:280px; max-width:420px; aspect-ratio:1/1;">
+          <svg id="tj-radar" viewBox="0 0 360 360" style="position:absolute; inset:0; width:100%; height:100%;"></svg>
+        </div>
+        <div style="flex:1 1 280px; min-width:260px;">
+          <div id="tj-radar-tabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px;">
+            <button data-tea="rougui" style="background:none; border:1px solid var(--tj-gold,#a8874d); border-radius:40px; cursor:pointer; padding:8px 16px; font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; color:#14100b; background-color:var(--tj-gold,#a8874d); transition:all 240ms;">Rou Gui</button>
+            <button data-tea="silver" style="background:none; border:1px solid rgba(168,135,77,0.3); border-radius:40px; cursor:pointer; padding:8px 16px; font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; color:#cdc0a8; transition:all 240ms;">Silver Needle</button>
+            <button data-tea="puer" style="background:none; border:1px solid rgba(168,135,77,0.3); border-radius:40px; cursor:pointer; padding:8px 16px; font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; color:#cdc0a8; transition:all 240ms;">Aged Pu'er</button>
+          </div>
+          <div style="font-family:'Noto Serif SC',serif; font-size:22px; color:#cdc0a8; margin-bottom:4px;" id="tj-radar-cn">肉桂</div>
+          <h3 id="tj-radar-name" style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(26px,3.4vw,38px); color:#f3ead9; margin:0 0 12px;">Rou Gui</h3>
+          <p id="tj-radar-desc" style="font-family:'Lora',serif; font-style:italic; font-size:clamp(15px,1.8vw,17px); line-height:1.66; color:#cdc0a8; margin:0;">A Wuyi rock oolong: roast and cinnamon up front, orchid behind, and that long mineral "rock rhyme" that defines the cliffs.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLOSING -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(20px,4vw,40px) 24px clamp(40px,6vw,72px);">
+      <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(17px,2.1vw,20px); line-height:1.72; color:#cdc0a8; margin:0;">No two drinkers taste quite the same cup, and no wheel can hold every word. But a shared vocabulary lets us point at the same fleeting thing and say, "there — that." The wheel is only a beginning. The fluency is yours to drink into being.</p>
+      <div style="margin-top:40px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:#80735f; line-height:2;">Words by Teajia &nbsp;·&nbsp; The Language of Tea &nbsp;·&nbsp; N°08</div>
+    </section>
+
+    <!-- MORE -->
+    <footer style="border-top:1px solid rgba(168,135,77,0.14); padding:clamp(40px,6vw,72px) clamp(20px,5vw,56px) clamp(64px,9vw,110px);">
+      <div style="max-width:1180px; margin:0 auto;">
+        <div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.24em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">More from The Craft of Tea</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:clamp(14px,2vw,22px);">
+          <a href="Ritual - Seven Steeps.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b); transition:border-color 240ms;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">The Ritual · N°05</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Seven Steeps</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">The same leaves, brewed seven ways.</div></a>
+          <a href="Atlas - A Map of Mountains.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b); transition:border-color 240ms;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">Geography · N°06</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">A Map of Mountains</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">An atlas of where the great teas are born.</div></a>
+          <a href="History - Ten Thousand Mornings.dc.html" style="text-decoration:none; color:inherit; border:1px solid rgba(168,135,77,0.16); border-radius:4px; padding:24px; background:linear-gradient(160deg,#1b160f,#15110b); transition:border-color 240ms;"><div style="font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; margin-bottom:12px;">History · N°07</div><div style="font-family:'Cormorant Garamond',serif; font-size:25px; color:#ede4d4; line-height:1.1;">Ten Thousand Mornings</div><div style="font-family:'Lora',serif; font-style:italic; font-size:13.5px; color:#80735f; margin-top:8px;">Five thousand years of tea, along one line.</div></a>
+        </div>
+      </div>
+    </footer>
+
+  </article>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#14100b; }
+  ::selection{ background:rgba(168,135,77,0.28); color:#f3ead9; }
+  @keyframes tjFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
+</style>
+</helmet>
+
+<div style="position:relative; background:#14100b; color:#ede4d4; font-family:'Lora',Georgia,serif; overflow-x:clip; min-height:100vh;">
+
+  <div aria-hidden="true" style="position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.05; mix-blend-mode:overlay; background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E&quot;); background-size:170px;"></div>
+
+  <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px clamp(18px,4vw,40px); background:rgba(20,16,11,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(168,135,77,0.12);">
+    <a href="Tea Article.dc.html" style="display:flex; align-items:center; gap:9px; text-decoration:none; color:inherit;">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M9.5 3.5L5 7.5l4.5 4" stroke="#a8874d" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family:'Cormorant Garamond',serif; font-weight:600; font-size:18px; letter-spacing:0.14em; text-transform:uppercase; color:#ede4d4;">Teajia</span>
+    </a>
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f; white-space:nowrap;">A Tea House · N°09</span>
+    <div style="position:absolute; left:0; bottom:0; height:2px; width:100%; background:rgba(168,135,77,0.08);">
+      <div id="tj-progress" style="height:100%; width:0%; background:linear-gradient(90deg,var(--tj-gold,#a8874d),var(--tj-gold-lt,#c6a667)); transition:width 90ms linear;"></div>
+    </div>
+  </nav>
+
+  <article style="position:relative; z-index:1;">
+
+    <!-- COVER -->
+    <header style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); align-items:stretch; border-bottom:1px solid rgba(168,135,77,0.14); min-height:90vh;">
+      <div style="position:relative; order:2; display:flex; flex-direction:column; justify-content:center; padding:clamp(36px,6vw,84px) clamp(24px,5vw,72px);">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.34em; text-transform:uppercase; color:var(--tj-gold,#a8874d); margin-bottom:26px;">A Tea House · Brunswick, Melbourne</div>
+        <h1 style="font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(46px,7vw,92px); line-height:0.98; letter-spacing:-0.015em; color:#f3ead9; margin:0;">Quiet <span style="font-style:italic; color:var(--tj-gold,#a8874d);">Hours</span></h1>
+        <p style="font-family:'Lora',serif; font-style:italic; font-size:clamp(16px,2vw,20px); line-height:1.5; color:#cdc0a8; margin:24px 0 0; max-width:460px;">How a homesick cup and a stack of reclaimed timber became a tea house at the far end of the world — told by the two people who made it.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:26px 40px; margin-top:clamp(30px,5vw,46px); padding-top:24px; border-top:1px solid rgba(168,135,77,0.16);">
+          <div style="display:flex; align-items:flex-start; gap:12px;">
+            <span style="width:9px; height:9px; border-radius:50%; background:var(--tj-gold,#a8874d); margin-top:7px; flex:none;"></span>
+            <div><div style="font-family:'Cormorant Garamond',serif; font-size:23px; color:#ede4d4; line-height:1;">Mei <span style="font-family:'Noto Serif SC',serif; color:#cdc0a8; font-size:18px;">梅</span></div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f; margin-top:7px;">Founder &amp; host</div></div>
+          </div>
+          <div style="display:flex; align-items:flex-start; gap:12px;">
+            <span style="width:9px; height:9px; border-radius:50%; background:#8f9aa0; margin-top:7px; flex:none;"></span>
+            <div><div style="font-family:'Cormorant Garamond',serif; font-size:23px; color:#ede4d4; line-height:1;">Tom Hale</div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:#80735f; margin-top:7px;">Builder &amp; joiner</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="position:relative; order:1; overflow:hidden; min-height:48vh; background:linear-gradient(155deg,#241d14 0%,#14100b 80%);">
+        <div aria-hidden="true" style="position:absolute; inset:0; opacity:0.08; mix-blend-mode:overlay; background-size:150px;"></div>
+        <div aria-hidden="true" style="position:absolute; inset:0; background:radial-gradient(ellipse 64% 50% at 50% 36%, rgba(168,135,77,0.14), transparent 64%);"></div>
+        <div aria-hidden="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-54%); font-family:'Noto Serif SC',serif; font-weight:200; font-size:min(40vw,320px); line-height:1; color:rgba(168,135,77,0.06);">茶</div>
+        <svg viewBox="0 0 420 420" preserveAspectRatio="xMidYMid meet" style="position:absolute; inset:0; width:100%; height:100%;">
+          <g fill="none" stroke="rgba(168,135,77,0.34)" stroke-width="1.2"><ellipse cx="150" cy="232" rx="62" ry="13"/><path d="M92 232 C96 280, 122 300, 150 300 C178 300, 204 280, 208 232"/><ellipse cx="150" cy="214" rx="48" ry="10" stroke="rgba(168,135,77,0.24)"/></g>
+          <g fill="none" stroke="rgba(150,180,180,0.3)" stroke-width="1.2"><rect x="232" y="206" width="118" height="34" rx="6"/><path d="M246 206 L264 178 L300 178"/><line x1="252" y1="240" x2="252" y2="252"/><line x1="330" y1="240" x2="330" y2="252"/><path d="M250 224 L300 224" stroke="rgba(150,180,180,0.5)"/></g>
+        </svg>
+        <div style="position:absolute; left:clamp(18px,3vw,28px); bottom:clamp(18px,3vw,26px); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#80735f;">The bowl &amp; the plane</div>
+      </div>
+    </header>
+
+    <!-- STANDFIRST -->
+    <section data-reveal style="max-width:680px; margin:0 auto; padding:clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px);">
+      <p style="font-family:'Lora',serif; font-size:clamp(18px,2.2vw,22px); line-height:1.74; color:#ede4d4; margin:0;">
+        <span style="float:left; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:5em; line-height:0.78; color:var(--tj-gold,#a8874d); margin:8px 16px -4px 0;">O</span>n a wide grey street in Brunswick, between a tyre shop and a bakery, there is a doorway most people walk straight past. Inside, the noise of Melbourne falls away. This is Quiet Hours — a tea house that began, improbably, with a homesick woman, a year in Bali, and a builder who had never finished a pot of tea in his life. I came to ask how a room gets made. It turns out it takes two very different people, talking past each other in the most productive way.
+      </p>
+    </section>
+
+  </article>
+</div>
+</x-dc>
+</body>
+</html>

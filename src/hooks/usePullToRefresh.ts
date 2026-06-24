@@ -12,7 +12,16 @@ const RESISTANCE = 0.4;
 
 type RefreshFn = () => void | Promise<void>;
 
-export const usePullToRefresh = (onRefresh?: RefreshFn) => {
+interface PullToRefreshOptions {
+  // When false, the hook binds no touch listeners at all. Used to switch
+  // pull-to-refresh OFF on the immersive Read long-reads, where the gesture
+  // was being mistaken for a normal downward read-scroll and triggering a
+  // full refresh instead of letting the article scroll.
+  enabled?: boolean;
+}
+
+export const usePullToRefresh = (onRefresh?: RefreshFn, options: PullToRefreshOptions = {}) => {
+  const { enabled = true } = options;
   const [state, setState] = useState<PullToRefreshState>({
     pullDistance: 0,
     isRefreshing: false,
@@ -81,6 +90,7 @@ export const usePullToRefresh = (onRefresh?: RefreshFn) => {
   }, [state.isPulling, state.pullDistance, finish]);
 
   useEffect(() => {
+    if (!enabled) return;
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -90,7 +100,7 @@ export const usePullToRefresh = (onRefresh?: RefreshFn) => {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   const progress = Math.min(state.pullDistance / PULL_THRESHOLD, 1);
 
