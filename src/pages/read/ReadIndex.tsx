@@ -16,6 +16,7 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { getTokenClaims } from '../../lib/api';
 import type { DbArticle } from '../../types';
+import Footer from '../../components/shared/Footer';
 import {
   C, F, ImmersiveRoot, ProgressTrack,
   useReadingProgress, useImmersiveChrome, useReveals,
@@ -496,16 +497,8 @@ const ReadIndex: React.FC = () => {
           </section>
         )}
 
-        {/* COLOPHON */}
-        <footer style={{ borderTop: '1px solid rgba(168,135,77,0.14)', padding: 'clamp(44px,6vw,76px) clamp(24px,5vw,56px) clamp(64px,9vw,110px)', textAlign: 'center' }}>
-          <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 38, fontWeight: 200, color: C.gold, opacity: 0.7, marginBottom: 24 }}>茶</div>
-          <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 'clamp(18px,2.4vw,24px)', lineHeight: 1.5, color: '#cdc0a8', margin: '0 auto', maxWidth: 560 }}>
-            To learn tea is to learn where to stop. The rest, the leaf will teach you.
-          </p>
-          <div style={{ marginTop: 30, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Teajia · Read · The Art of Tea
-          </div>
-        </footer>
+        {/* Shared colophon-style footer (replaces the page-local colophon) */}
+        <Footer />
 
       </article>
     </ImmersiveRoot>
