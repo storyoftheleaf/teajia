@@ -2,6 +2,11 @@
 
 ## Soon
 
+### Advise
+
+- [ ] Build the Advise portfolio (the "Selected projects" preview + full Projects grid + project detail pages) before showing it _(band: you-required)_ _(effort: deep)_
+  Hidden on the Advise main page as of 2026-06-24 — the projects data is placeholder, not real work yet. Restore by flipping `portfolioEnabled` to `true` and un-commenting the `<ProjectsPreview />` block in [AdvisePage.tsx](src/components/AdvisePage.tsx). Real project content lives in [adviseProjects.ts](src/data/adviseProjects.ts). Done when the projects are real and Adrian wants them shown.
+
 ### Session cleanup follow-ups (rescued from a parked snapshot, 2026-06-17)
 
 - [ ] Ship verification-code delivery so sign-in verification actually works — it's effectively off until codes can be sent _(band: agent-runnable)_ _(effort: moderate)_

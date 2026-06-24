@@ -205,7 +205,10 @@ export const ImmersiveRoot: React.FC<{ children: React.ReactNode; rootRef?: Reac
       background: C.bg,
       color: C.ink,
       fontFamily: F.body,
-      overflowX: 'hidden',
+      // `clip` (not `hidden`) contains horizontal overflow WITHOUT making this a
+      // scroll container — `overflow-x: hidden` silently kills `position: sticky`
+      // for every descendant (e.g. the Reading Room's cover rail). Same visual.
+      overflowX: 'clip',
       minHeight: '100vh',
     }}
   >

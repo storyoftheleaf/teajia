@@ -99,8 +99,12 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
 
   const selectedProject = selectedProjectId ? adviseProjects.find(p => p.id === selectedProjectId) : null;
 
+  // Portfolio is not built yet — the projects sub-views are hidden. Any old /advise?v=projects
+  // or ?v=project-detail link falls back to the main page. See TODO.md (Advise portfolio).
+  const portfolioEnabled = false;
+
   // Sub-views
-  if (currentView === 'projects') {
+  if (portfolioEnabled && currentView === 'projects') {
     return (
       <div className="w-full animate-[fadeIn_0.6s_ease-out]">
         <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
@@ -112,7 +116,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
     );
   }
 
-  if (currentView === 'project-detail' && selectedProject) {
+  if (portfolioEnabled && currentView === 'project-detail' && selectedProject) {
     return (
       <div className="w-full animate-[fadeIn_0.6s_ease-out]">
         <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
@@ -214,11 +218,8 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
         {/* warm divider */}
         <div className="divider-warm my-16 md:my-20" />
 
-        {/* 3. PORTFOLIO */}
-        <ProjectsPreview
-          onSelectProject={(id) => navigateTo('project-detail', id)}
-          onViewAll={() => navigateTo('projects')}
-        />
+        {/* 3. PORTFOLIO — hidden until the portfolio is built. See TODO.md (Advise portfolio).
+            Restore <ProjectsPreview onSelectProject={(id) => navigateTo('project-detail', id)} onViewAll={() => navigateTo('projects')} /> here when ready. */}
 
         {/* 4. TESTIMONIAL — separated by whitespace alone, not a divider */}
         <Testimonial />

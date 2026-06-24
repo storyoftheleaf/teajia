@@ -66,31 +66,12 @@
       }
       #root { min-height: 100dvh; }
     </style>
-    <!-- Fonts: preconnect hints -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Self-hosted fonts (China-reachable; no Google Fonts dependency).
+         Built from Google Fonts woff2 into /public/fonts by scripts/build-fonts.mjs.
+         Latin + latin-ext subsets for the four critical families; Noto Serif SC and
+         Ma Shan Zheng are text-subsetted to the Chinese glyphs the site actually uses. -->
     <link rel="preconnect" href="https://teajia-api.lightcodes.workers.dev" crossorigin>
-    <!-- Critical fonts: Cormorant Garamond (display), Lora (body), Plus Jakarta Sans (UI/captions), IBM Plex Mono (data) -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
-    <!-- Noto Serif SC: subsetted to Chinese tea terms only (avoids loading the full 10MB+ CJK font) -->
-    <!-- Trailing block (陈…肉桂) covers the immersive Read-section long-reads (names, process verbs, watermarks). -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;400;700&text=茶普洱龙井碧螺春铁观音白毫银针正山小种大红袍武夷岩茶黄山毛峰西湖龙井白牡丹寿眉陈林玉珍采萎凋氧干燥冲泡息止讀一芽二叶肉桂&display=swap">
-    <!-- Deferred fonts: calligraphy (decorative, not critical path) -->
-    <script>
-      (function() {
-        function loadDeferredFonts() {
-          var link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = 'https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap';
-          document.head.appendChild(link);
-        }
-        if (document.readyState === 'complete') {
-          loadDeferredFonts();
-        } else {
-          window.addEventListener('load', loadDeferredFonts);
-        }
-      })();
-    </script>
+    <link rel="stylesheet" href="/fonts/fonts.css">
 </head>
   <body class="bg-tea-bg text-tea-text font-sans" style="scrollbar-gutter: stable; -webkit-font-smoothing: antialiased;">
     <!-- Skip to main content link for keyboard/screen reader users -->

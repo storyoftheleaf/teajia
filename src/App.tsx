@@ -728,7 +728,7 @@ const AppContent = () => {
   }, [isAdminRoute, isFocusedShareRoute]);
 
   return (
-    <div className={`${isAdminRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-tea-bg overflow-x-hidden font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
+    <div className={`${isAdminRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh overflow-x-clip'} bg-tea-bg text-tea-text relative selection:bg-tea-gold selection:text-tea-bg font-serif flex flex-col lg:flex-row transition-colors duration-300 pt-[env(safe-area-inset-top)]`}>
 
       <div className="texture-overlay"></div>
       <div className="fixed inset-0 bg-gradient-radial from-transparent via-tea-bg/40 to-tea-surface/90 pointer-events-none z-0"></div>
