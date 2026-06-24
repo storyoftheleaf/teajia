@@ -3,20 +3,11 @@ import { Link } from 'react-router-dom';
 import { LogoEmblem } from '../Logos';
 
 /**
- * Colophon-style site footer — matches the Read section's closing block.
- * Self-contained palette/fonts so it renders identically on every page.
+ * Site footer — matches the Craft / Learn closing register: a warm divider,
+ * then an inset panel holding the emblem, the editorial line, and a
+ * divider-flanked wordmark. Nav + colophon sit quietly below the panel.
+ * Uses shared tea tokens + utility classes so it reads identically everywhere.
  */
-const C = {
-  bg: '#14100b',
-  taupe: '#cdc0a8',
-  dim: '#80735f',
-  hair: 'rgba(168,135,77,0.14)',
-} as const;
-const F = {
-  display: "'Cormorant Garamond',serif",
-  mono: "'IBM Plex Mono',monospace",
-} as const;
-
 const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Read', to: '/read' },
   { label: 'Craft', to: '/craft' },
@@ -28,30 +19,17 @@ const links: { label: string; to?: string; href?: string }[] = [
   { label: 'Contact', href: 'mailto:hello@teajia.com' },
 ];
 
-const linkStyle: React.CSSProperties = {
-  fontFamily: F.mono,
-  fontSize: 11,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase',
-  color: C.dim,
-  textDecoration: 'none',
-  transition: 'color 240ms',
-};
+const linkClass =
+  'text-ui-11 uppercase tracking-[0.1em] font-sans text-tea-text-sec hover:text-tea-text transition-colors duration-200';
 
 function FooterLink({ label, to, href }: { label: string; to?: string; href?: string }) {
-  const onEnter = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = C.taupe; };
-  const onLeave = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = C.dim; };
-  if (to) {
-    return <Link to={to} style={linkStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>{label}</Link>;
-  }
+  if (to) return <Link to={to} className={linkClass}>{label}</Link>;
   return (
     <a
       href={href}
       target={href?.startsWith('http') ? '_blank' : undefined}
       rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-      style={linkStyle}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
+      className={linkClass}
     >
       {label}
     </a>
@@ -61,60 +39,63 @@ function FooterLink({ label, to, href }: { label: string; to?: string; href?: st
 export default function Footer() {
   return (
     <footer
+      className="pb-32 md:pb-24 lg:pb-10"
       style={{
-        background: C.bg,
-        borderTop: `1px solid ${C.hair}`,
-        padding: 'clamp(44px,6vw,72px) clamp(24px,5vw,56px) clamp(28px,4vw,40px)',
-        textAlign: 'center',
+        paddingLeft: 'clamp(24px,5vw,56px)',
+        paddingRight: 'clamp(24px,5vw,56px)',
+        paddingTop: 'clamp(32px,5vw,56px)',
       }}
     >
-      {/* Circle emblem — muted, no gold highlight */}
-      <div style={{ marginBottom: 24, opacity: 0.7, display: 'flex', justifyContent: 'center' }}>
-        <LogoEmblem size={38} color={C.taupe} />
-      </div>
+      <div className="max-w-3xl mx-auto">
+        <div className="divider-warm mb-10" />
 
-      {/* Editorial line */}
-      <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 'clamp(18px,2.4vw,24px)', lineHeight: 1.5, color: C.taupe, margin: '0 auto', maxWidth: 560 }}>
-        Every culture brings wisdom to the table.
-      </p>
+        {/* Inset panel — the Craft-style closing block */}
+        <div className="inset-panel" style={{ padding: 'clamp(32px,5vw,56px)' }}>
+          <div className="text-center max-w-md mx-auto">
+            {/* Circle emblem — muted */}
+            <div className="flex justify-center mb-6" style={{ opacity: 0.7 }}>
+              <LogoEmblem size={38} color="var(--tea-text-sec)" />
+            </div>
 
-      {/* Mono breadcrumb */}
-      <div style={{ marginTop: 30, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-        Teajia &middot; Fine Tea &amp; Teaware
-      </div>
+            {/* Editorial line */}
+            <p
+              className="text-tea-text/80 leading-[1.6] mb-0"
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontStyle: 'italic',
+                fontSize: 'clamp(18px,2.4vw,24px)',
+              }}
+            >
+              Every culture brings wisdom to the table.
+            </p>
 
-      {/* Link row */}
-      <nav
-        aria-label="Footer"
-        style={{
-          marginTop: 'clamp(32px,5vw,48px)',
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: '12px 22px',
-        }}
-      >
-        {links.map((l) => <FooterLink key={l.label} {...l} />)}
-      </nav>
+            {/* Divider-flanked wordmark */}
+            <div className="mt-8 flex items-center justify-center gap-2.5">
+              <div className="w-6 h-px bg-tea-gold/15" />
+              <span className="text-ui-9 font-sans uppercase tracking-[0.25em] text-tea-text-dim">
+                Teajia &middot; Fine Tea &amp; Teaware
+              </span>
+              <div className="w-6 h-px bg-tea-gold/15" />
+            </div>
+          </div>
+        </div>
 
-      {/* Base — copyright + admin */}
-      <div
-        className="pb-nav-gap md:pb-0"
-        style={{
-          marginTop: 'clamp(32px,5vw,48px)',
-          paddingTop: 20,
-          borderTop: `1px solid ${C.hair}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}
-      >
-        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.14em', color: C.dim }}>
-          &copy; {new Date().getFullYear()} Teajia
-        </span>
-        <FooterLink label="Admin" to="/admin" />
+        {/* Nav links */}
+        <nav
+          aria-label="Footer"
+          className="flex flex-wrap justify-center gap-x-6 gap-y-3"
+          style={{ marginTop: 'clamp(28px,4vw,40px)' }}
+        >
+          {links.map((l) => <FooterLink key={l.label} {...l} />)}
+        </nav>
+
+        {/* Colophon base — copyright + admin */}
+        <div className="mt-8 pt-5 flex items-center justify-between flex-wrap gap-3 border-t border-tea-border">
+          <span className="text-ui-10 font-sans tracking-[0.14em] text-tea-text-dim">
+            &copy; {new Date().getFullYear()} Teajia
+          </span>
+          <FooterLink label="Admin" to="/admin" />
+        </div>
       </div>
     </footer>
   );

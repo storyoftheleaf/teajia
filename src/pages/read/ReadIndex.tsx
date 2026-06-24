@@ -16,7 +16,6 @@ import { api } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { getTokenClaims } from '../../lib/api';
 import type { DbArticle } from '../../types';
-import Footer from '../../components/shared/Footer';
 import {
   C, F, ImmersiveRoot, ProgressTrack,
   useReadingProgress, useImmersiveChrome, useReveals,
@@ -497,8 +496,8 @@ const ReadIndex: React.FC = () => {
           </section>
         )}
 
-        {/* Shared colophon-style footer (replaces the page-local colophon) */}
-        <Footer />
+        {/* Footer is rendered globally by App.tsx for all browse pages — no
+            page-local footer here, or it double-renders. */}
 
       </article>
     </ImmersiveRoot>

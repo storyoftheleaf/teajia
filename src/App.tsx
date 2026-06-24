@@ -1060,11 +1060,9 @@ const AppContent = () => {
           </AnimatePresence>
       </main>
 
-      {/* Global Footer — hidden on Home */}
+      {/* Global Footer — hidden on Home. Full-bleed; clearance lives inside Footer. */}
       {viewState === 'BROWSE' && activeSection !== 'HOME' && (
-        <div className="px-4 md:px-6 lg:px-10 max-w-[1400px] mx-auto w-full pb-32 md:pb-24 lg:pb-8">
-          <Footer />
-        </div>
+        <Footer />
       )}
       </>
       )}
