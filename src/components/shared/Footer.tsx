@@ -61,7 +61,7 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: 'var(--tea-bg)',
+        background: '#14100b',
         borderTop: `1px solid ${C.hair}`,
         padding: 'clamp(44px,6vw,72px) clamp(24px,5vw,56px) clamp(28px,4vw,40px)',
         textAlign: 'center',
