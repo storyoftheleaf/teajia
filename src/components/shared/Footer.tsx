@@ -1,58 +1,121 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LogoEmblem } from '../Logos';
 
-const linkClass =
-  'text-ui-12 sm:text-ui-13 text-tea-text-dim hover:text-tea-text-sec transition-colors duration-300';
-const linkStyle = { fontFamily: 'var(--font-body)' } as const;
+/**
+ * Colophon-style site footer — matches the Read section's closing block.
+ * Self-contained palette/fonts so it renders identically on every page,
+ * independent of the immersive module or the tea-* Tailwind tokens.
+ */
+const C = {
+  taupe: '#cdc0a8',
+  dim: '#80735f',
+  gold: 'var(--tj-gold,#a8874d)',
+  hair: 'rgba(168,135,77,0.14)',
+} as const;
+const F = {
+  display: "'Cormorant Garamond',serif",
+  body: "'Lora',Georgia,serif",
+  mono: "'IBM Plex Mono',monospace",
+  cn: "'Noto Serif SC',serif",
+} as const;
+
+const links: { label: string; to?: string; href?: string }[] = [
+  { label: 'Read', to: '/read' },
+  { label: 'Craft', to: '/craft' },
+  { label: 'Shop', to: '/shop' },
+  { label: 'Learn', to: '/learn' },
+  { label: 'Advise', to: '/advise' },
+  { label: 'About', to: '/about' },
+  { label: 'Instagram', href: 'https://instagram.com/teajia.journal' },
+  { label: 'Contact', href: 'mailto:hello@teajia.com' },
+];
+
+const linkStyle: React.CSSProperties = {
+  fontFamily: F.mono,
+  fontSize: 11,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: C.dim,
+  textDecoration: 'none',
+  transition: 'color 240ms',
+};
+
+function FooterLink({ label, to, href }: { label: string; to?: string; href?: string }) {
+  const onEnter = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = C.taupe; };
+  const onLeave = (e: React.MouseEvent<HTMLElement>) => { e.currentTarget.style.color = C.dim; };
+  if (to) {
+    return <Link to={to} style={linkStyle} onMouseEnter={onEnter} onMouseLeave={onLeave}>{label}</Link>;
+  }
+  return (
+    <a
+      href={href}
+      target={href?.startsWith('http') ? '_blank' : undefined}
+      rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+      style={linkStyle}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+    >
+      {label}
+    </a>
+  );
+}
 
 export default function Footer() {
   return (
-    <footer className="mt-10 border-t border-tea-border">
-      <div className="relative max-w-screen-lg mx-auto px-6 pt-9 pb-4 overflow-hidden">
-        {/* Faint emblem watermark — depth without weight */}
-        <div className="pointer-events-none absolute -right-6 -top-4 opacity-[0.04] hidden sm:block" aria-hidden="true">
-          <LogoEmblem size={160} color="var(--tea-gold)" />
-        </div>
+    <footer
+      style={{
+        borderTop: `1px solid ${C.hair}`,
+        padding: 'clamp(44px,6vw,72px) clamp(24px,5vw,56px) clamp(28px,4vw,40px)',
+        textAlign: 'center',
+      }}
+    >
+      {/* 茶 emblem */}
+      <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 38, fontWeight: 200, color: C.gold, opacity: 0.7, marginBottom: 24 }}>
+        茶
+      </div>
 
-        {/* Editorial closing line — the soft landing, in the homepage voice */}
-        <p
-          className="text-center sm:text-left text-ui-15 sm:text-ui-16 italic text-tea-text-sec leading-relaxed max-w-[420px] mx-auto sm:mx-0"
-          style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.02em' }}
-        >
-          Every culture brings wisdom to the table.
-        </p>
+      {/* Editorial line */}
+      <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 'clamp(18px,2.4vw,24px)', lineHeight: 1.5, color: C.taupe, margin: '0 auto', maxWidth: 560 }}>
+        Every culture brings wisdom to the table.
+      </p>
 
-        {/* Thin inline link row */}
-        <nav
-          className="mt-7 flex flex-wrap justify-center sm:justify-start gap-x-5 gap-y-2"
-          aria-label="Footer"
-        >
-          <Link to="/read" className={linkClass} style={linkStyle}>Read</Link>
-          <Link to="/craft" className={linkClass} style={linkStyle}>Craft</Link>
-          <Link to="/shop" className={linkClass} style={linkStyle}>Shop</Link>
-          <Link to="/learn" className={linkClass} style={linkStyle}>Learn</Link>
-          <Link to="/advise" className={linkClass} style={linkStyle}>Advise</Link>
-          <Link to="/about" className={linkClass} style={linkStyle}>About</Link>
-          <a href="https://instagram.com/teajia.journal" target="_blank" rel="noopener noreferrer" className={linkClass} style={linkStyle}>Instagram</a>
-          <a href="mailto:hello@teajia.com" className={linkClass} style={linkStyle}>Contact</a>
-        </nav>
+      {/* Mono breadcrumb */}
+      <div style={{ marginTop: 30, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
+        Teajia · Fine Tea &amp; Teaware
+      </div>
 
-        {/* Base — emblem + copyright + admin */}
-        <div className="mt-7 flex items-center justify-between border-t border-tea-border pt-4 pb-nav-gap md:pb-2">
-          <div className="flex items-center gap-2">
-            <LogoEmblem size={16} color="var(--tea-gold)" />
-            <span className="text-ui-11 text-tea-text-dim/70 font-sans tracking-wide">
-              &copy; {new Date().getFullYear()} Teajia
-            </span>
-          </div>
-          <Link
-            to="/admin"
-            className="tap-target text-ui-11 text-tea-text-dim/70 hover:text-tea-text-sec tracking-wide transition-colors duration-300 font-sans"
-          >
-            Admin
-          </Link>
-        </div>
+      {/* Link row */}
+      <nav
+        aria-label="Footer"
+        style={{
+          marginTop: 'clamp(32px,5vw,48px)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: '12px 22px',
+        }}
+      >
+        {links.map((l) => <FooterLink key={l.label} {...l} />)}
+      </nav>
+
+      {/* Base — copyright + admin */}
+      <div
+        className="pb-nav-gap md:pb-0"
+        style={{
+          marginTop: 'clamp(32px,5vw,48px)',
+          paddingTop: 20,
+          borderTop: `1px solid ${C.hair}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <span style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.14em', color: C.dim }}>
+          &copy; {new Date().getFullYear()} Teajia
+        </span>
+        <FooterLink label="Admin" to="/admin" />
       </div>
     </footer>
   );
