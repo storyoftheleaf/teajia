@@ -3037,6 +3037,38 @@ export const api = {
     },
   },
 
+  // Inline-editable story content for hand-built Read pages: per-field text +
+  // photo overrides, a draft the owner edits freely, publish to go live, and a
+  // version history for one-click undo. Public read returns published content.
+  storyContent: {
+    get: async (slug: string, state: 'published' | 'draft' = 'published'): Promise<any> => {
+      if (state === 'draft') {
+        return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}?state=draft`);
+      }
+      const res = await fetchWithTimeout(`${API_URL}/api/story-content/${encodeURIComponent(slug)}`);
+      return handleResponse(res);
+    },
+    saveDraft: async (slug: string, content: any): Promise<{ ok: true }> => {
+      return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/draft`, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      });
+    },
+    publish: async (slug: string): Promise<{ ok: true }> => {
+      return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/publish`, {
+        method: 'POST',
+      });
+    },
+    versions: async (slug: string): Promise<{ id: string; label: string | null; created_at: string }[]> => {
+      return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/versions`);
+    },
+    restore: async (slug: string, versionId: string): Promise<{ ok: true; content: any }> => {
+      return authedFetch(`${API_URL}/api/story-content/${encodeURIComponent(slug)}/restore/${encodeURIComponent(versionId)}`, {
+        method: 'POST',
+      });
+    },
+  },
+
   people: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/people`);

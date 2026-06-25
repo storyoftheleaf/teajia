@@ -5646,6 +5646,105 @@ const handleDeleteStoryPhoto: Handler = async (request, env, params) => {
   return json({ ok: true });
 };
 
+// ── Story content (inline editing: text + photos + draft/publish + history) ──
+// Public read returns the PUBLISHED content. The owner can additionally read the
+// DRAFT (?state=draft) and save it freely; publishing promotes draft -> live and
+// snapshots a version for one-click undo.
+
+// GET /api/story-content/:slug?state=published|draft
+const handleGetStoryContent: Handler = async (request, env, params) => {
+  const url = new URL(request.url);
+  const wantDraft = url.searchParams.get('state') === 'draft';
+  // Draft is owner-only; published is public.
+  if (wantDraft) {
+    const authErr = await requireAdmin(request, env);
+    if (authErr) return authErr;
+  }
+  const state = wantDraft ? 'draft' : 'published';
+  const row = await env.DB.prepare(
+    `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = ?`
+  ).bind(BALI_ACCOUNT_ID, params.slug, state).first() as { content?: string } | null;
+  let content: any = {};
+  if (row?.content) { try { content = JSON.parse(row.content); } catch { content = {}; } }
+  return json(content);
+};
+
+// PUT /api/story-content/:slug/draft — save the owner's in-progress edits.
+const handleSaveStoryDraft: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { content?: any } | null;
+  if (!body || typeof body.content !== 'object') return json({ error: 'content required' }, 400);
+  await env.DB.prepare(
+    `INSERT INTO story_content (id, account_id, story_slug, state, content, updated_at)
+     VALUES (?, ?, ?, 'draft', ?, datetime('now'))
+     ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
+       content = excluded.content, updated_at = datetime('now')`
+  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, JSON.stringify(body.content)).run();
+  return json({ ok: true });
+};
+
+// POST /api/story-content/:slug/publish — promote draft -> published + snapshot.
+const handlePublishStory: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const draft = await env.DB.prepare(
+    `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = 'draft'`
+  ).bind(BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
+  const content = draft?.content || '{}';
+  // Snapshot the OUTGOING published state for undo, then publish the draft.
+  const prev = await env.DB.prepare(
+    `SELECT content FROM story_content WHERE account_id = ? AND story_slug = ? AND state = 'published'`
+  ).bind(BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
+  if (prev?.content) {
+    await env.DB.prepare(
+      `INSERT INTO story_content_versions (id, account_id, story_slug, content, label)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, prev.content, 'before publish').run();
+    // Keep only the newest 20 snapshots per story.
+    await env.DB.prepare(
+      `DELETE FROM story_content_versions WHERE account_id = ? AND story_slug = ? AND id NOT IN (
+         SELECT id FROM story_content_versions WHERE account_id = ? AND story_slug = ?
+         ORDER BY created_at DESC LIMIT 20)`
+    ).bind(BALI_ACCOUNT_ID, params.slug, BALI_ACCOUNT_ID, params.slug).run();
+  }
+  await env.DB.prepare(
+    `INSERT INTO story_content (id, account_id, story_slug, state, content, updated_at)
+     VALUES (?, ?, ?, 'published', ?, datetime('now'))
+     ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
+       content = excluded.content, updated_at = datetime('now')`
+  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, content).run();
+  return json({ ok: true });
+};
+
+// GET /api/story-content/:slug/versions — list snapshots (owner only).
+const handleListStoryVersions: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const rows = await env.DB.prepare(
+    `SELECT id, label, created_at FROM story_content_versions
+     WHERE account_id = ? AND story_slug = ? ORDER BY created_at DESC LIMIT 20`
+  ).bind(BALI_ACCOUNT_ID, params.slug).all();
+  return json(rows.results);
+};
+
+// POST /api/story-content/:slug/restore/:versionId — roll a snapshot into draft.
+const handleRestoreStoryVersion: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const v = await env.DB.prepare(
+    `SELECT content FROM story_content_versions WHERE id = ? AND account_id = ? AND story_slug = ?`
+  ).bind(params.versionId, BALI_ACCOUNT_ID, params.slug).first() as { content?: string } | null;
+  if (!v?.content) return json({ error: 'Version not found' }, 404);
+  await env.DB.prepare(
+    `INSERT INTO story_content (id, account_id, story_slug, state, content, updated_at)
+     VALUES (?, ?, ?, 'draft', ?, datetime('now'))
+     ON CONFLICT(account_id, story_slug, state) DO UPDATE SET
+       content = excluded.content, updated_at = datetime('now')`
+  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, v.content).run();
+  return json({ ok: true, content: JSON.parse(v.content) });
+};
+
 // ── POST /api/products/:id/enhance-image ──
 // Sends the current product image at the requested slot to OpenAI's image
 // edit endpoint (gpt-image-1) using the *account's* BYOK API key. The result
@@ -18163,6 +18262,13 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/story-photos/:slug', handleGetStoryPhotos],
   ['PUT', '/api/story-photos/:slug/:slot', handlePutStoryPhoto],
   ['DELETE', '/api/story-photos/:slug/:slot', handleDeleteStoryPhoto],
+
+  // Story content (inline text + photos, draft/publish, version history)
+  ['GET', '/api/story-content/:slug', handleGetStoryContent],
+  ['PUT', '/api/story-content/:slug/draft', handleSaveStoryDraft],
+  ['POST', '/api/story-content/:slug/publish', handlePublishStory],
+  ['GET', '/api/story-content/:slug/versions', handleListStoryVersions],
+  ['POST', '/api/story-content/:slug/restore/:versionId', handleRestoreStoryVersion],
 
   // AI
   ['POST', '/api/extract-from-image', handleExtractFromImage],
