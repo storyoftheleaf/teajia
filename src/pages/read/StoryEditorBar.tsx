@@ -9,23 +9,28 @@
 import React, { useState } from 'react';
 import { useStoryEdit } from './storyEdit';
 
-const barWrap: React.CSSProperties = {
+// When NOT editing: a single discreet pill tucked in the bottom-left, so the
+// page reads exactly like a visitor's while you show it to people.
+// When editing: the pill expands into the full toolbar (still bottom-anchored,
+// clear of the article's top nav).
+const barWrap = (editing: boolean): React.CSSProperties => ({
   position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
+  left: 'clamp(12px,3vw,24px)',
+  bottom: 'clamp(12px,3vw,24px)',
   zIndex: 200,
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'center',
+  alignItems: 'flex-start',
   gap: 8,
-  padding: '10px clamp(12px,3vw,28px)',
-  background: 'rgba(20,16,11,0.96)',
-  borderBottom: '1px solid rgba(168,135,77,0.3)',
-  backdropFilter: 'blur(10px)',
-  WebkitBackdropFilter: 'blur(10px)',
+  maxWidth: 'min(94vw, 720px)',
+  padding: editing ? '10px 12px' : 0,
+  background: editing ? 'rgba(20,16,11,0.94)' : 'transparent',
+  border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
+  borderRadius: 6,
+  backdropFilter: editing ? 'blur(10px)' : 'none',
+  WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
   fontFamily: "'IBM Plex Mono',monospace",
-};
+});
 
 const pill = (active = false): React.CSSProperties => ({
   fontFamily: "'IBM Plex Mono',monospace",
@@ -64,9 +69,40 @@ const StoryEditorBar: React.FC = () => {
     setShowGaps(false);
   };
 
+  // Not editing: just a faint, low-key trigger that stays out of the way.
+  if (!editing) {
+    return (
+      <div style={barWrap(false)}>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          style={{
+            fontFamily: "'IBM Plex Mono',monospace",
+            fontSize: 10,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            padding: '7px 12px',
+            borderRadius: 3,
+            border: '1px solid rgba(168,135,77,0.25)',
+            background: 'rgba(20,16,11,0.55)',
+            color: 'rgba(205,192,168,0.75)',
+            cursor: 'pointer',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+          }}
+          onMouseOver={(e) => { (e.currentTarget as HTMLElement).style.color = '#f3ead9'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(168,135,77,0.6)'; }}
+          onMouseOut={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(205,192,168,0.75)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(168,135,77,0.25)'; }}
+          title="Owner editing"
+        >
+          edit
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={barWrap}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+    <div style={barWrap(true)}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
         <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginRight: 4 }}>
           Owner ·
         </span>

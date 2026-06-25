@@ -230,13 +230,17 @@ export const EditableText: React.FC<{
       onKeyDown={(e: React.KeyboardEvent) => {
         if (!multiline && e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); }
       }}
+      onFocus={(e: React.FocusEvent) => { (e.currentTarget as HTMLElement).style.outline = '1px dashed rgba(168,135,77,0.7)'; }}
+      onMouseOver={(e: React.MouseEvent) => { const el = e.currentTarget as HTMLElement; if (document.activeElement !== el) el.style.outline = '1px dashed rgba(168,135,77,0.35)'; }}
+      onMouseOut={(e: React.MouseEvent) => { const el = e.currentTarget as HTMLElement; if (document.activeElement !== el) el.style.outline = '1px dashed rgba(168,135,77,0)'; }}
       style={{
         ...style,
-        outline: '1px dashed rgba(168,135,77,0.55)',
+        outline: '1px dashed rgba(168,135,77,0)',
         outlineOffset: 4,
         borderRadius: 2,
         cursor: 'text',
         minWidth: 24,
+        transition: 'outline-color 140ms',
       }}
       title="Click to edit"
     >
