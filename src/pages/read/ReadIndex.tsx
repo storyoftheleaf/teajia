@@ -69,6 +69,7 @@ const INDEX_GROUPS: IndexGroup[] = [
       { n: 'N°02', rubric: 'Conversation', title: 'The Rock Remembers', dek: 'A Wuyi roaster on fire, patience and lineage.',               href: '/read/rock-remembers' },
       { n: 'N°03', rubric: 'Conversation', title: 'Earth, Water, Fire', dek: 'A Jingdezhen potter on the vessels that hold tea.',           href: '/read/earth-water-fire' },
       { n: 'N°09', rubric: 'A Tea House',  title: 'Quiet Hours',        dek: 'Building a Melbourne tea house, told in two voices.',         href: '/read/tea-house' },
+      { n: 'N°15', rubric: 'The Craft',    title: 'Porcelain and Tea',  dek: 'Shangyin Qiwu on repair, patience and mending what we love.', href: '/read/porcelain-and-tea', live: true },
     ],
   },
   {

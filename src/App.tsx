@@ -119,6 +119,7 @@ const LegendImmortalsCliff = lazy(() => import('./pages/read/LegendImmortalsClif
 const RitualSevenSteeps = lazy(() => import('./pages/read/RitualSevenSteeps'));
 const TastingVocabularyOfTaste = lazy(() => import('./pages/read/TastingVocabularyOfTaste'));
 const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'));
+const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
@@ -868,6 +869,9 @@ const AppContent = () => {
                 } />
                 <Route path="/read/craft" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/read/porcelain-and-tea" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/essay" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
