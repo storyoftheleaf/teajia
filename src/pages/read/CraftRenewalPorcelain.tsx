@@ -15,6 +15,9 @@ import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
   useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
+import EditablePhoto from './EditablePhoto';
+
+const STORY_SLUG = 'porcelain-and-tea';
 
 const moreLinks = [
   { to: '/read/earth-water-fire', kicker: 'Conversation · N°03', title: 'Earth, Water, Fire', blurb: 'A Jingdezhen potter on the vessels that hold the tea.' },
@@ -28,39 +31,6 @@ const plateLabel: React.CSSProperties = { position: 'absolute', left: 14, bottom
 const briefK: React.CSSProperties = { fontFamily: F.ui, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.dim };
 const briefV: React.CSSProperties = { fontFamily: F.body, fontSize: 15, color: C.ink, textAlign: 'right' };
 const colophon: React.CSSProperties = { marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 };
-
-// ── Photo frame ──────────────────────────────────────────────────────────────
-// Drop a real image URL into `src` and it fills the frame. Empty `src` shows a
-// captioned placeholder with the same proportions, so layout never shifts.
-const PhotoPlate: React.FC<{
-  src?: string;
-  alt: string;
-  label: string;
-  caption: string;
-  aspect?: string;
-  glow?: string;
-}> = ({ src, alt, label, caption, aspect = '4/5', glow }) => (
-  <figure style={{ margin: 0 }}>
-    <div style={{
-      position: 'relative',
-      aspectRatio: aspect,
-      border: '1px solid rgba(168,135,77,0.2)',
-      borderRadius: 3,
-      overflow: 'hidden',
-      background: glow
-        ? `linear-gradient(160deg,#23252a,#120e09), ${glow}`
-        : 'linear-gradient(160deg,#23252a,#120e09)',
-    }}>
-      {src ? (
-        <img src={src} alt={alt} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-      ) : (
-        <div aria-hidden="true" style={grainCss('0.8', 120)} />
-      )}
-      <div style={plateLabel}>{label}</div>
-    </div>
-    <figcaption style={cap}>{caption}</figcaption>
-  </figure>
-);
 
 // ── Section block (first-person prose, numeral + label) ──────────────────────
 const Movement: React.FC<{ numeral: string; label: string; children: React.ReactNode }> = ({ numeral, label, children }) => (
@@ -86,9 +56,6 @@ const CraftRenewalPorcelain: React.FC = () => {
   const rootRef = useReveals([]);
   const progress = useReadingProgress();
 
-  // PHOTO SLOT — portrait. Set to a real image URL to fill the cover.
-  const portraitSrc = '';
-
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Shangyin Qiwu · Porcelain and Tea · Teajia</title></Helmet>
@@ -113,18 +80,22 @@ const CraftRenewalPorcelain: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* COVER PORTRAIT — drop a real photo into portraitSrc above */}
+          {/* COVER PORTRAIT — drag a real photo in (owner), pan/zoom, save */}
           <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#23252a 0%,#14100b 80%)' }}>
-            {portraitSrc ? (
-              <img src={portraitSrc} alt="Shangyin Qiwu at his repair table" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <>
-                <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
-                <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 32%, rgba(150,180,180,0.12), transparent 64%)' }} />
-                <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgba(168,135,77,0.07)' }}>缘</div>
-              </>
-            )}
-            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait — at the repair table</div>
+            <EditablePhoto
+              storySlug={STORY_SLUG}
+              slot="portrait"
+              alt="Shangyin Qiwu at his repair table"
+              fill
+              placeholder={
+                <>
+                  <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
+                  <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 32%, rgba(150,180,180,0.12), transparent 64%)' }} />
+                  <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgba(168,135,77,0.07)' }}>缘</div>
+                </>
+              }
+            />
+            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim, pointerEvents: 'none' }}>Portrait — at the repair table</div>
           </div>
         </header>
 
@@ -161,9 +132,9 @@ const CraftRenewalPorcelain: React.FC = () => {
         {/* PHOTO ESSAY — three plates. Drop real photo URLs into each src. */}
         <section data-reveal style={{ padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,56px) clamp(40px,6vw,72px)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(14px,2.4vw,26px)', maxWidth: 1180, margin: '0 auto' }}>
-            <PhotoPlate src="" alt="A broken piece before repair" label="Plate I" caption="Nine out of ten old things are incomplete. But those marks are history." />
-            <PhotoPlate src="" alt="Hands at the repair, the seam of gold" label="Plate II" caption="The line of repair, drawn slowly by hand." glow="radial-gradient(ellipse 60% 50% at 50% 64%, rgba(200,160,70,0.18), transparent 65%)" />
-            <PhotoPlate src="" alt="The mended piece back on the tea table" label="Plate III" caption="Repaired and displayed: oh, it can still be used, and it is beautiful." />
+            <EditablePhoto storySlug={STORY_SLUG} slot="plate-1" alt="A broken piece before repair" label="Plate I" caption="Nine out of ten old things are incomplete. But those marks are history." placeholder={<div aria-hidden="true" style={grainCss('0.8', 120)} />} />
+            <EditablePhoto storySlug={STORY_SLUG} slot="plate-2" alt="Hands at the repair, the seam of gold" label="Plate II" caption="The line of repair, drawn slowly by hand." placeholderBg="linear-gradient(160deg,#23252a,#120e09), radial-gradient(ellipse 60% 50% at 50% 64%, rgba(200,160,70,0.18), transparent 65%)" placeholder={<div aria-hidden="true" style={grainCss('0.8', 120)} />} />
+            <EditablePhoto storySlug={STORY_SLUG} slot="plate-3" alt="The mended piece back on the tea table" label="Plate III" caption="Repaired and displayed: oh, it can still be used, and it is beautiful." placeholder={<div aria-hidden="true" style={grainCss('0.8', 120)} />} />
           </div>
         </section>
 

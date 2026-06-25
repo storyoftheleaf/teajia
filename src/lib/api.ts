@@ -3012,6 +3012,31 @@ export const api = {
     },
   },
 
+  // Photos for hand-built Read story pages: a real image + pan/zoom crop per
+  // named frame. Public read; admin-gated write (uses the same upload pipeline).
+  storyPhotos: {
+    get: async (slug: string): Promise<Record<string, { url: string; crop: { scale: number; x: number; y: number } }>> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/story-photos/${encodeURIComponent(slug)}`);
+      return handleResponse(res);
+    },
+    put: async (
+      slug: string,
+      slot: string,
+      image_url: string,
+      crop: { scale: number; x: number; y: number },
+    ): Promise<{ ok: true }> => {
+      return authedFetch(`${API_URL}/api/story-photos/${encodeURIComponent(slug)}/${encodeURIComponent(slot)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ image_url, crop }),
+      });
+    },
+    remove: async (slug: string, slot: string): Promise<{ ok: true }> => {
+      return authedFetch(`${API_URL}/api/story-photos/${encodeURIComponent(slug)}/${encodeURIComponent(slot)}`, {
+        method: 'DELETE',
+      });
+    },
+  },
+
   people: {
     list: async () => {
       const res = await fetchWithTimeout(`${API_URL}/api/people`);

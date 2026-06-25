@@ -5598,6 +5598,54 @@ const handleUploadImage: Handler = async (request, env) => {
   return json({ url: publicUrl, key }, 201);
 };
 
+// ── Story photos ──
+// A real image + crop position for each named photo frame in a hand-built Read
+// story page. Lets the owner drag a photo into a frame and pan/zoom it, while
+// the bespoke page layout stays in code. Public read; admin-only write.
+
+// GET /api/story-photos/:slug — all photos for one story, keyed by frame slot.
+const handleGetStoryPhotos: Handler = async (request, env, params) => {
+  const rows = await env.DB.prepare(
+    `SELECT frame_slot, image_url, crop FROM story_photos
+     WHERE account_id = ? AND story_slug = ?`
+  ).bind(BALI_ACCOUNT_ID, params.slug).all();
+  const out: Record<string, { url: string; crop: any }> = {};
+  for (const r of rows.results as any[]) {
+    let crop: any = { scale: 1, x: 0.5, y: 0.5 };
+    try { crop = JSON.parse(r.crop); } catch { /* default */ }
+    out[r.frame_slot] = { url: r.image_url, crop };
+  }
+  return json(out);
+};
+
+// PUT /api/story-photos/:slug/:slot — set/replace one frame's photo + crop.
+const handlePutStoryPhoto: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as
+    | { image_url?: string; crop?: { scale: number; x: number; y: number } }
+    | null;
+  if (!body || !body.image_url) return json({ error: 'image_url required' }, 400);
+  const crop = JSON.stringify(body.crop ?? { scale: 1, x: 0.5, y: 0.5 });
+  await env.DB.prepare(
+    `INSERT INTO story_photos (id, account_id, story_slug, frame_slot, image_url, crop)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(account_id, story_slug, frame_slot) DO UPDATE SET
+       image_url = excluded.image_url, crop = excluded.crop, updated_at = datetime('now')`
+  ).bind(crypto.randomUUID(), BALI_ACCOUNT_ID, params.slug, params.slot, body.image_url, crop).run();
+  return json({ ok: true });
+};
+
+// DELETE /api/story-photos/:slug/:slot — clear a frame back to placeholder.
+const handleDeleteStoryPhoto: Handler = async (request, env, params) => {
+  const authErr = await requireAdmin(request, env);
+  if (authErr) return authErr;
+  await env.DB.prepare(
+    `DELETE FROM story_photos WHERE account_id = ? AND story_slug = ? AND frame_slot = ?`
+  ).bind(BALI_ACCOUNT_ID, params.slug, params.slot).run();
+  return json({ ok: true });
+};
+
 // ── POST /api/products/:id/enhance-image ──
 // Sends the current product image at the requested slot to OpenAI's image
 // edit endpoint (gpt-image-1) using the *account's* BYOK API key. The result
@@ -18110,6 +18158,11 @@ const routes: [string, string, Handler][] = [
 
   // Image Upload
   ['POST', '/api/upload-image', handleUploadImage],
+
+  // Story photos (hand-built Read pages: drag-drop + crop per frame)
+  ['GET', '/api/story-photos/:slug', handleGetStoryPhotos],
+  ['PUT', '/api/story-photos/:slug/:slot', handlePutStoryPhoto],
+  ['DELETE', '/api/story-photos/:slug/:slot', handleDeleteStoryPhoto],
 
   // AI
   ['POST', '/api/extract-from-image', handleExtractFromImage],
