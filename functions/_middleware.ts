@@ -100,14 +100,6 @@ const WORKER_API = 'https://teajia-api.lightcodes.workers.dev';
 const CRAWLER_RE =
   /(facebookexternalhit|twitterbot|slackbot|discordbot|whatsapp|telegrambot|linkedinbot|pinterest|googlebot|bingbot|applebot|google-inspectiontool|redditbot|skypeuripreview|ia_archiver|embedly|quora link preview|vkshare|w3c_validator)/i;
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 async function articleMeta(slug: string): Promise<Meta | null> {
   try {
     const res = await fetch(`${WORKER_API}/api/articles/${encodeURIComponent(slug)}`, {
@@ -129,7 +121,7 @@ async function articleMeta(slug: string): Promise<Meta | null> {
 }
 
 class HeadRewriter {
-  constructor(private meta: Meta) {}
+  constructor(private meta: Meta, private path: string) {}
   // Overwrite the existing tags in place rather than appending duplicates.
   element(el: Element) {
     const tag = el.tagName;
@@ -137,6 +129,11 @@ class HeadRewriter {
     const img = m.image || DEFAULT_IMAGE;
     if (tag === 'title') {
       el.setInnerContent(m.title);
+    } else if (tag === 'link') {
+      // index.html ships one canonical pointing at the homepage; repoint it.
+      if (el.getAttribute('rel') === 'canonical') {
+        el.setAttribute('href', `${SITE}${this.path === '/' ? '' : this.path}`);
+      }
     } else if (tag === 'meta') {
       const prop = el.getAttribute('property');
       const name = el.getAttribute('name');
@@ -144,26 +141,16 @@ class HeadRewriter {
       else if (prop === 'og:description' || name === 'description' || name === 'twitter:description')
         el.setAttribute('content', m.description);
       else if (prop === 'og:image' || name === 'twitter:image') el.setAttribute('content', img);
+      else if (prop === 'og:url') el.setAttribute('content', `${SITE}${this.path === '/' ? '' : this.path}`);
     }
-  }
-}
-
-// Append a canonical link for the page (index.html has none). Only this is
-// added; every other tag (title, description, og:*, twitter:*) already exists
-// in the shell and is overwritten in place above, so nothing is duplicated.
-class CanonicalAppender {
-  constructor(private path: string) {}
-  element(el: Element) {
-    el.append(`\n<link rel="canonical" href="${SITE}${escapeHtml(this.path)}" data-edge-seo>`, {
-      html: true,
-    });
   }
 }
 
 export const onRequest: PagesFunction = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
-  const path = url.pathname.replace(/\/+$/, '') || '/read';
+  // Normalize trailing slashes but keep "/" as the homepage (not "/read").
+  const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/+$/, '');
 
   // Only consider GET navigations to HTML; let assets/api pass straight through.
   if (request.method !== 'GET') return next();
@@ -186,9 +173,10 @@ export const onRequest: PagesFunction = async (context) => {
   const ct = response.headers.get('content-type') || '';
   if (!ct.includes('text/html')) return response;
 
+  const rw = new HeadRewriter(meta, path);
   return new HTMLRewriter()
-    .on('title', new HeadRewriter(meta))
-    .on('meta', new HeadRewriter(meta))
-    .on('head', new CanonicalAppender(path))
+    .on('title', rw)
+    .on('meta', rw)
+    .on('link', rw)
     .transform(response);
 };
