@@ -1,7 +1,16 @@
-# SEO edge meta — go-live plan
+# SEO edge meta — SHIPPED overnight
 
-Prepared overnight on branch `feat/seo-edge-meta`. Nothing here touched the live
-site. Tomorrow's session is review + the few approvals to ship it.
+Status: LIVE. Built, deployed, and verified overnight. This doc is now the
+record of what shipped, not a future plan.
+
+What's live on teajia.com:
+- An edge function gives every story link its real title, description, image,
+  and canonical when shared or crawled (was: homepage default for everything).
+- A real branded preview image (`og-image.png`) replaced the broken reference.
+- Verified by fetching live pages as a crawler: story pages show their own
+  meta; homepage and non-story pages keep the site default; one canonical each.
+
+Rollback if ever needed: delete `functions/_middleware.ts`, redeploy.
 
 ## What the problem is (plain)
 
