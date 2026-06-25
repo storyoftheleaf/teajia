@@ -173,7 +173,7 @@ const LeadCover: React.FC = () => {
   const [hovered, setHovered] = useState(false);
   return (
     <Link
-      to="/read/leaf-to-liquor"
+      to="/read/porcelain-and-tea"
       style={{
         position: 'relative',
         display: 'flex',
@@ -184,13 +184,13 @@ const LeadCover: React.FC = () => {
         overflow: 'hidden',
         textDecoration: 'none',
         color: 'inherit',
-        background: 'linear-gradient(158deg,#3a2a18 0%,#241810 56%,#14100b 100%)',
+        background: 'linear-gradient(158deg,#2a2620 0%,#1c1810 56%,#14100b 100%)',
         transition: 'border-color 240ms',
       }}
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
     >
-      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 56% at 60% 28%, rgba(190,140,70,0.26), transparent 64%)' }} />
+      <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 64% 56% at 60% 28%, rgba(150,180,180,0.20), transparent 64%)' }} />
       <svg viewBox="0 0 420 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.55 }}>
         <g fill="none" stroke="rgba(168,135,77,0.26)" strokeWidth="1">
           <path d="M-20 110 C 120 84, 240 96, 460 56" />
@@ -208,14 +208,14 @@ const LeadCover: React.FC = () => {
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(20,16,11,0.92), transparent 52%)' }} />
       <div style={{ position: 'relative', padding: 'clamp(24px,3vw,32px)' }}>
         <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.gold, marginBottom: 14 }}>
-          The Lead · N°01 · in five readings
+          The Lead · N°15 · Conversations over tea
         </div>
         <div style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(34px,4.4vw,46px)', lineHeight: 0.98, color: '#f3ead9' }}>
-          From Leaf{' '}
-          <span style={{ fontStyle: 'italic', color: C.gold }}>to Liquor</span>
+          Porcelain{' '}
+          <span style={{ fontStyle: 'italic', color: C.gold }}>and Tea</span>
         </div>
         <div style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 14, lineHeight: 1.5, color: '#cdc0a8', marginTop: 14, maxWidth: 330 }}>
-          How a single leaf becomes the six colours of tea, told five different ways, from manuscript to reverie.
+          A porcelain restorer on repair, patience, and how mending what we love mends us in return.
         </div>
       </div>
     </Link>
@@ -424,12 +424,12 @@ const ReadIndex: React.FC = () => {
               piece is live; the owner always sees the full designed rail. When
               a visitor has no live featured pieces, the rail hides entirely so
               the page never shows a broken or empty feature. */}
-          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (isAdmin || isLive('/read/leaf-to-liquor') || isLive('/read/legend') || isLive('/read/tea-house')) ? 'block' : 'none' }}>
+          <aside className="tj-rail" style={{ position: 'sticky', top: 88, display: (isAdmin || isLive('/read/porcelain-and-tea') || isLive('/read/legend') || isLive('/read/tea-house')) ? 'block' : 'none' }}>
             <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.dim, marginBottom: 18 }}>
               This issue
             </div>
 
-            {(isAdmin || isLive('/read/leaf-to-liquor')) && <LeadCover />}
+            {(isAdmin || isLive('/read/porcelain-and-tea')) && <LeadCover />}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
               {(isAdmin || isLive('/read/legend')) && (

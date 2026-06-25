@@ -1,13 +1,19 @@
 /**
  * Shangyin Qiwu — Porcelain and Tea, N°15
  * A porcelain restorer on repair, patience, and mending what we love.
- * First-person, built to match the immersive Read story pages.
+ * The only real interview in the issue. Built on the Earth, Water, Fire
+ * conversation frame (split cover, standfirst, movements, photo plates,
+ * fact file) so it can carry real photographs.
+ *
+ * PHOTO SLOTS: each <PhotoPlate> and the cover portrait hold an `src`. Drop a
+ * real image URL into the marked `src=""` props below and the frame fills;
+ * leave it empty and a captioned placeholder shows. No layout change either way.
  */
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
   C, F, ImmersiveRoot, ImmersiveNav, AccentSwatches, MoreFooter,
-  useReveals, useReadingProgress, useImmersiveChrome, ACCENTS,
+  useReveals, useReadingProgress, useImmersiveChrome, grainCss, ACCENTS,
 } from './immersive';
 
 const moreLinks = [
@@ -16,271 +22,205 @@ const moreLinks = [
   { to: '/read/rock-remembers', kicker: 'Conversation · N°02', title: 'The Rock Remembers', blurb: 'A Wuyi roaster on fire, patience and lineage.' },
 ];
 
-// ─── Shared sub-styles ───────────────────────────────────────────────────────
-const pBody: React.CSSProperties = {
-  fontFamily: F.body,
-  fontSize: 'clamp(16px,2vw,18px)',
-  lineHeight: 1.84,
-  color: C.taupe,
-  margin: '0 0 22px',
-};
+const pBody: React.CSSProperties = { fontFamily: F.body, fontSize: 'clamp(16px,2vw,18px)', lineHeight: 1.8, color: C.taupe, margin: '0 0 16px' };
+const cap: React.CSSProperties = { fontFamily: F.body, fontStyle: 'italic', fontSize: 13, lineHeight: 1.5, color: C.dim, marginTop: 12 };
+const plateLabel: React.CSSProperties = { position: 'absolute', left: 14, bottom: 12, fontFamily: F.mono, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.gold };
+const briefK: React.CSSProperties = { fontFamily: F.ui, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase', color: C.dim };
+const briefV: React.CSSProperties = { fontFamily: F.body, fontSize: 15, color: C.ink, textAlign: 'right' };
+const colophon: React.CSSProperties = { marginTop: 40, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 };
 
-// ─── Section divider (Chinese numeral + label) ───────────────────────────────
-const SectionDivider: React.FC<{ numeral: string; label: string; marginTop?: string }> = ({
-  numeral,
-  label,
-  marginTop = 'clamp(40px,6vw,72px)',
-}) => (
-  <div
-    data-reveal
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 18,
-      margin: `${marginTop} 0 clamp(28px,4vw,40px)`,
-    }}
-  >
-    <span style={{ fontFamily: F.cn, fontWeight: 400, fontSize: 26, color: C.gold, lineHeight: 1 }}>{numeral}</span>
-    <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
-    <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
-  </div>
+// ── Photo frame ──────────────────────────────────────────────────────────────
+// Drop a real image URL into `src` and it fills the frame. Empty `src` shows a
+// captioned placeholder with the same proportions, so layout never shifts.
+const PhotoPlate: React.FC<{
+  src?: string;
+  alt: string;
+  label: string;
+  caption: string;
+  aspect?: string;
+  glow?: string;
+}> = ({ src, alt, label, caption, aspect = '4/5', glow }) => (
+  <figure style={{ margin: 0 }}>
+    <div style={{
+      position: 'relative',
+      aspectRatio: aspect,
+      border: '1px solid rgba(168,135,77,0.2)',
+      borderRadius: 3,
+      overflow: 'hidden',
+      background: glow
+        ? `linear-gradient(160deg,#23252a,#120e09), ${glow}`
+        : 'linear-gradient(160deg,#23252a,#120e09)',
+    }}>
+      {src ? (
+        <img src={src} alt={alt} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <div aria-hidden="true" style={grainCss('0.8', 120)} />
+      )}
+      <div style={plateLabel}>{label}</div>
+    </div>
+    <figcaption style={cap}>{caption}</figcaption>
+  </figure>
 );
 
-const PullQuote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(48px,8vw,100px) 24px', textAlign: 'center' }}>
-    <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,4.4vw,50px)', lineHeight: 1.2, color: C.cream, margin: '0 auto', maxWidth: 820 }}>
-      {children}
-    </blockquote>
-    <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
+// ── Section block (first-person prose, numeral + label) ──────────────────────
+const Movement: React.FC<{ numeral: string; label: string; children: React.ReactNode }> = ({ numeral, label, children }) => (
+  <section style={{ maxWidth: 680, margin: '0 auto', padding: '0 24px' }}>
+    <div data-reveal style={{ display: 'flex', alignItems: 'center', gap: 18, margin: 'clamp(34px,5vw,56px) 0 clamp(30px,4vw,44px)' }}>
+      <span style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 30, color: C.gold, lineHeight: 1 }}>{numeral}</span>
+      <span style={{ flex: 1, height: 1, background: 'rgba(168,135,77,0.22)' }} />
+      <span style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 500, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim }}>{label}</span>
+    </div>
+    <div data-reveal>{children}</div>
   </section>
 );
 
-// ─── Component ───────────────────────────────────────────────────────────────
+const SubHead: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p data-reveal style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 500, fontSize: 'clamp(19px,2.4vw,24px)', lineHeight: 1.34, color: C.warm, margin: 'clamp(28px,4vw,40px) 0 16px' }}>
+    {children}
+  </p>
+);
+
 const CraftRenewalPorcelain: React.FC = () => {
   const [accent, setAccent] = useState<string>(ACCENTS[0]);
   useImmersiveChrome(accent);
   const rootRef = useReveals([]);
   const progress = useReadingProgress();
 
+  // PHOTO SLOT — portrait. Set to a real image URL to fill the cover.
+  const portraitSrc = '';
+
   return (
     <ImmersiveRoot rootRef={rootRef}>
       <Helmet><title>Shangyin Qiwu · Porcelain and Tea · Teajia</title></Helmet>
-      <ImmersiveNav eyebrow="The Craft · N°15" progress={progress} />
+      <ImmersiveNav eyebrow="Conversations · N°15" progress={progress} />
       <AccentSwatches accent={accent} setAccent={setAccent} />
 
       <article style={{ position: 'relative', zIndex: 1 }}>
-
-        {/* ── COVER ─────────────────────────────────────────────────────── */}
-        <header style={{
-          position: 'relative',
-          minHeight: '84vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textAlign: 'center',
-          padding: 'clamp(40px,8vw,90px) 24px',
-          overflow: 'hidden',
-        }}>
-          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 55% at 50% 32%, rgba(168,135,77,0.12), transparent 62%)' }} />
-          <div aria-hidden="true" style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%,-54%)',
-            fontFamily: F.cn,
-            fontWeight: 200,
-            fontSize: 'min(58vw,560px)',
-            lineHeight: 1,
-            color: 'rgba(168,135,77,0.05)',
-            pointerEvents: 'none',
-            userSelect: 'none',
-          }}>缘</div>
-
-          <div style={{ position: 'relative', maxWidth: 760 }}>
-            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.42em', textTransform: 'uppercase', color: C.gold, marginBottom: 30 }}>
-              The Craft &nbsp;·&nbsp; N°15
-            </div>
-            <h1 style={{
-              fontFamily: F.display,
-              fontWeight: 400,
-              fontSize: 'clamp(46px,8.4vw,104px)',
-              lineHeight: 0.99,
-              letterSpacing: '-0.015em',
-              color: C.cream,
-              margin: 0,
-            }}>
-              Shangyin Qiwu{' '}
-              <span style={{ fontStyle: 'italic', color: C.gold }}>Porcelain and Tea</span>
+        {/* COVER — split portrait + title */}
+        <header style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,360px),1fr))', alignItems: 'stretch', borderBottom: '1px solid rgba(168,135,77,0.14)', minHeight: '90vh' }}>
+          <div style={{ position: 'relative', order: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(36px,6vw,84px) clamp(24px,5vw,72px)' }}>
+            <div style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: '0.34em', textTransform: 'uppercase', color: C.gold, marginBottom: 28 }}>Conversations over Tea</div>
+            <h1 style={{ fontFamily: F.display, fontWeight: 400, fontSize: 'clamp(44px,6.6vw,88px)', lineHeight: 1.0, letterSpacing: '-0.015em', color: C.cream, margin: 0 }}>
+              Porcelain<br /><span style={{ fontStyle: 'italic', color: C.gold }}>and Tea</span>
             </h1>
-            <div aria-hidden="true" style={{ width: 54, height: 1, background: C.gold, opacity: 0.6, margin: '30px auto' }} />
-            <p style={{
-              fontFamily: F.body,
-              fontStyle: 'italic',
-              fontWeight: 400,
-              fontSize: 'clamp(17px,2.4vw,21px)',
-              lineHeight: 1.6,
-              color: C.taupe,
-              maxWidth: 560,
-              margin: '0 auto',
-            }}>
+            <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(16px,2vw,20px)', lineHeight: 1.5, color: C.taupe, margin: '26px 0 0', maxWidth: 440 }}>
               He was holding a broken porcelain lid, studying its crack as if it were a map. A conversation about tea that became a meditation on how we mend what we love.
             </p>
-            <div style={{ marginTop: 34, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-              Interview by Adrian Rasmussen &nbsp;·&nbsp; China
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 'clamp(30px,5vw,46px)', paddingTop: 24, borderTop: '1px solid rgba(168,135,77,0.16)' }}>
+              <div>
+                <div style={{ fontFamily: F.display, fontSize: 24, color: C.ink, lineHeight: 1 }}>Shangyin Qiwu <span style={{ fontFamily: F.cn, color: C.taupe, fontSize: 20 }}>尚隐器物</span></div>
+                <div style={{ fontFamily: F.ui, fontSize: 10.5, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.dim, marginTop: 8 }}>Porcelain restorer · China</div>
+              </div>
             </div>
+          </div>
+          {/* COVER PORTRAIT — drop a real photo into portraitSrc above */}
+          <div style={{ position: 'relative', order: 1, overflow: 'hidden', minHeight: '48vh', background: 'linear-gradient(155deg,#23252a 0%,#14100b 80%)' }}>
+            {portraitSrc ? (
+              <img src={portraitSrc} alt="Shangyin Qiwu at his repair table" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <>
+                <div aria-hidden="true" style={{ ...grainCss('0.8', 150), opacity: 0.08 }} />
+                <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 50% 32%, rgba(150,180,180,0.12), transparent 64%)' }} />
+                <div aria-hidden="true" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontFamily: F.cn, fontWeight: 200, fontSize: 'min(38vw,300px)', lineHeight: 1, color: 'rgba(168,135,77,0.07)' }}>缘</div>
+              </>
+            )}
+            <div style={{ position: 'absolute', left: 'clamp(18px,3vw,28px)', bottom: 'clamp(18px,3vw,26px)', fontFamily: F.mono, fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.dim }}>Portrait — at the repair table</div>
           </div>
         </header>
 
-        {/* ── INTRODUCTION (Interviewer's Voice) ────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="序" label="Introduction" marginTop="clamp(20px,4vw,40px)" />
-          <p data-reveal style={pBody}>
-            When I first met Shangyin Qiwu, he was holding a broken porcelain lid, studying its crack as if it were a map. He spoke softly, more about time than repair, more about patience than porcelain.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            This story began as a conversation about tea, but it became a meditation on how we mend what we love.
+        {/* STANDFIRST */}
+        <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(56px,9vw,116px) 24px clamp(20px,4vw,44px)' }}>
+          <p style={{ fontFamily: F.body, fontSize: 'clamp(18px,2.2vw,22px)', lineHeight: 1.74, color: C.ink, margin: 0 }}>
+            <span style={{ float: 'left', fontFamily: F.display, fontWeight: 600, fontSize: '5em', lineHeight: 0.78, color: C.gold, margin: '8px 16px -4px 0' }}>W</span>
+            hen I first met Shangyin Qiwu, he was holding a broken porcelain lid, studying its crack as if it were a map. He spoke softly, more about time than repair, more about patience than porcelain. This story began as a conversation about tea, but it became a meditation on how we mend what we love.
           </p>
         </section>
 
-        {/* ── I — What Brought Me Here ──────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="一" label="What Brought Me Here" />
-          <p data-reveal style={pBody}>
-            I like collecting things. Because of tea, I collect utensils. Many old utensils have some damage. Nine out of ten old things are incomplete, but those marks are history.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            When I repair them, they can return to our lives again. Some are a hundred years old, some a thousand. It is wonderful that they can meet you after so long and continue to live on our tea tables today.
-          </p>
+        {/* MOVEMENT I — Collecting & repair */}
+        <Movement numeral="I" label="What Brought Me Here">
+          <p style={pBody}>I like collecting things. Because of tea, I collect utensils. Many old utensils have some damage. Nine out of ten old things are incomplete, but those marks are history.</p>
+          <p style={pBody}>When I repair them, they can return to our lives again. Some are a hundred years old, some a thousand. It is wonderful that they can meet you after so long and continue to live on our tea tables today.</p>
+
+          <SubHead>Why I repair</SubHead>
+          <p style={pBody}>It is not about inspiration. My love for these utensils naturally makes me find ways for them to be better passed on and used. Whether someone likes old or new, coffee or tea, everyone has different preferences.</p>
+          <p style={pBody}>We can only do what we love in the present, and through that meet friends who feel the same. Old utensils carry history and culture. By touching them, I can sense the state of the people who created them.</p>
+
+          <SubHead>The line of repair</SubHead>
+          <p style={pBody}>This feeling is subtle. It is probably fate. <span style={{ fontFamily: F.cn, color: C.gold }}>缘分</span> First I mastered this repair technique, and then I came to love ancient ceramics.</p>
+          <p style={{ ...pBody, margin: 0 }}>Repair has existed for thousands of years. In the past, people cherished things more. Many utensils that were damaged still show traces of repair. It was a common skill. Now life is easy. People can buy anything quickly, and this knowledge has almost disappeared.</p>
+        </Movement>
+
+        {/* PULL QUOTE */}
+        <section data-reveal style={{ maxWidth: 900, margin: '0 auto', padding: 'clamp(50px,8vw,104px) 24px', textAlign: 'center' }}>
+          <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(28px,4.8vw,54px)', lineHeight: 1.18, color: C.cream, margin: '0 auto', maxWidth: 840 }}>
+            "When we repair objects, we are also repairing ourselves."
+          </blockquote>
+          <div aria-hidden="true" style={{ width: 40, height: 1, background: C.gold, opacity: 0.5, margin: '34px auto 0' }} />
         </section>
 
-        {/* ── II — Why I Repair ─────────────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="二" label="Why I Repair" />
-          <p data-reveal style={pBody}>
-            It is not about inspiration. My love for these utensils naturally makes me find ways for them to be better passed on and used. Whether someone likes old or new, coffee or tea, everyone has different preferences.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            We can only do what we love in the present, and through that meet friends who feel the same. Old utensils carry history and culture. By touching them, I can sense the state of the people who created them.
-          </p>
+        {/* PHOTO ESSAY — three plates. Drop real photo URLs into each src. */}
+        <section data-reveal style={{ padding: 'clamp(20px,4vw,40px) clamp(20px,5vw,56px) clamp(40px,6vw,72px)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))', gap: 'clamp(14px,2.4vw,26px)', maxWidth: 1180, margin: '0 auto' }}>
+            <PhotoPlate src="" alt="A broken piece before repair" label="Plate I" caption="Nine out of ten old things are incomplete. But those marks are history." />
+            <PhotoPlate src="" alt="Hands at the repair, the seam of gold" label="Plate II" caption="The line of repair, drawn slowly by hand." glow="radial-gradient(ellipse 60% 50% at 50% 64%, rgba(200,160,70,0.18), transparent 65%)" />
+            <PhotoPlate src="" alt="The mended piece back on the tea table" label="Plate III" caption="Repaired and displayed: oh, it can still be used, and it is beautiful." />
+          </div>
         </section>
 
-        {/* ── III — The Line of Repair ──────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="三" label="The Line of Repair" />
-          <p data-reveal style={pBody}>
-            This feeling is subtle. It is probably fate. <span style={{ fontFamily: F.cn, color: C.gold }}>缘分</span> First I mastered this repair technique, and then I came to love ancient ceramics.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            Repair has existed for thousands of years. In the past, people cherished things more. Many utensils that were damaged still show traces of repair. It was a common skill. Now life is easy. People can buy anything quickly, and this knowledge has almost disappeared.
-          </p>
+        {/* MOVEMENT II — Slowness & taste */}
+        <Movement numeral="II" label="Clay, Fire, and Patience">
+          <p style={pBody}>I bring my repaired pieces to exhibitions and markets so that more people can understand the connection between ancient objects and modern life. I also share them on platforms such as Douyin and Xiaohongshu. When people see something damaged, they do not know what it can be used for. After I repair it and display it, they discover, <span style={{ fontStyle: 'italic', color: C.warm }}>Oh, it can still be used, and it is beautiful.</span></p>
+
+          <SubHead>Clay, fire, and patience</SubHead>
+          <p style={pBody}>For teacups and teapots from older times, the clay was often better. They were fired with wood. The temperature and transformation of wood firing create layers and richness that electric firing cannot. Perhaps that kind of clay no longer exists.</p>
+          <p style={pBody}>People today move fast. They want things finished quickly. I slow it down. Restoration cannot be rushed. It takes time to polish, time to feel, time to make something good. It is about slowing down a bit and devoting more energy to the thing itself. Whether it is a utensil or a type of tea, it needs more time to express itself better.</p>
+
+          <SubHead>Old teaware and taste</SubHead>
+          <p style={{ ...pBody, margin: 0 }}>For old utensils, the clay and firing affect how tea tastes. The body of the cup breathes differently, and the texture of the surface softens the water. That is why many people pursue old utensils and old cups. They make the tea feel rounder, calmer, and they carry the quiet of time.</p>
+        </Movement>
+
+        {/* PULL QUOTE + FACT FILE */}
+        <section data-reveal style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(30px,5vw,56px) 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 'clamp(28px,5vw,56px)', alignItems: 'center' }}>
+            <blockquote style={{ fontFamily: F.display, fontStyle: 'italic', fontWeight: 400, fontSize: 'clamp(26px,3.6vw,42px)', lineHeight: 1.2, color: C.cream, margin: 0 }}>
+              "We all have shortcomings. We identify, adjust, and solve them, just like restoration."
+            </blockquote>
+            <div style={{ border: '1px solid rgba(168,135,77,0.2)', borderRadius: 4, background: 'linear-gradient(160deg,#1d1810,#15110b)', padding: 'clamp(24px,3vw,34px)' }}>
+              <div style={{ fontFamily: F.ui, fontSize: 10, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.gold, marginBottom: 20 }}>In Brief</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+                {[['Subject', 'Shangyin Qiwu'], ['Craft', 'Porcelain restoration · lacquer'], ['Place', 'China']].map(([k, v]) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingBottom: 13, borderBottom: '1px solid rgba(168,135,77,0.1)' }}>
+                    <span style={briefK}>{k}</span><span style={briefV}>{v}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                  <span style={briefK}>Carries</span><span style={briefV}>History &amp; continuity</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* ── PULL QUOTE 1 ──────────────────────────────────────────────── */}
-        <PullQuote>"When we repair objects, we are also repairing ourselves."</PullQuote>
+        {/* MOVEMENT III — Repair, tea, and the future */}
+        <Movement numeral="III" label="Repair and Life">
+          <p style={pBody}>Focusing on one utensil, one matter, has made my life steadier and more relaxed. I no longer chase speed, which used to make me impetuous. Friends who use these restored objects say they feel calm when holding them. They begin to think, <span style={{ fontStyle: 'italic', color: C.warm }}>I should spend more time on the things in front of me.</span></p>
+          <p style={pBody}>A broken object is like life. Life cannot be perfect, and neither can objects. When we repair objects, we are also repairing ourselves. Life is not afraid of difficulties. When we face them, we find ways to repair and then embrace a new state of being.</p>
 
-        {/* ── IV — Showing People the Value ─────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="四" label="Showing People the Value" />
-          <p data-reveal style={pBody}>
-            I bring my repaired pieces to exhibitions and markets so that more people can understand the connection between ancient objects and modern life. I also share them on platforms such as Douyin and Xiaohongshu.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            When people see something damaged, they do not know what it can be used for. After I repair it and display it, they discover, <span style={{ fontStyle: 'italic', color: C.warm }}>Oh, it can still be used, and it is beautiful.</span>
-          </p>
-        </section>
+          <SubHead>Tea and spirit</SubHead>
+          <p style={pBody}>Tea is an indispensable spiritual food. Like a craft, it helps me focus on the present moment. Tea is like an invisible language. We can sit together because of it, even from different countries. Maybe we talk about tea, maybe not, but it connects us.</p>
+          <p style={pBody}>This leaf absorbs the essence of heaven and earth. It embodies the five elements and the eight trigrams. It gathers the energy of the East in China. Such energy concentrated in one leaf and radiating outward is extraordinary. Tea shows harmony between nature and heart. For me, tea is both a spiritual practice and a way of living.</p>
 
-        {/* ── V — Clay, Fire, and Patience ──────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="五" label="Clay, Fire, and Patience" />
-          <p data-reveal style={pBody}>
-            For teacups and teapots from older times, the clay was often better. They were fired with wood. The temperature and transformation of wood firing create layers and richness that electric firing cannot. Perhaps that kind of clay no longer exists.
-          </p>
-          <p data-reveal style={pBody}>
-            People today move fast. They want things finished quickly. I slow it down. Restoration cannot be rushed. It takes time to polish, time to feel, time to make something good.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            It is about slowing down a bit and devoting more energy to the thing itself. Whether it is a utensil or a type of tea, it needs more time to express itself better.
-          </p>
-        </section>
+          <SubHead>Work and future</SubHead>
+          <p style={pBody}>My company is called Shangyin Qiwu. What I do is related to lacquer. The name is simply a nickname. The challenge for an artist is bridging ideals and reality. We cannot talk about ideals apart from life, nor can we just focus on life without mentioning ideals. The bridge between the two is the economic base.</p>
+          <p style={{ ...pBody, margin: 0 }}>Now I try to balance both. I do what I love while allowing the work to sustain itself. I plan to turn these skills into courses so that more people can learn and help this craft endure. We must first set our lives in order. With a better life, we have better energy to share something truly meaningful.</p>
+        </Movement>
 
-        {/* ── VI — Old Teaware and Taste ────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="六" label="Old Teaware and Taste" />
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            For old utensils, the clay and firing affect how tea tastes. The body of the cup breathes differently, and the texture of the surface softens the water. That is why many people pursue old utensils and old cups. They make the tea feel rounder, calmer, and they carry the quiet of time.
-          </p>
-        </section>
-
-        {/* ── VII — What the Work Cultivates ────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="七" label="What the Work Cultivates" />
-          <p data-reveal style={pBody}>
-            Focusing on one utensil, one matter, has made my life steadier and more relaxed. I no longer chase speed, which used to make me impetuous.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            Friends who use these restored objects say they feel calm when holding them. They begin to think, <span style={{ fontStyle: 'italic', color: C.warm }}>I should spend more time on the things in front of me.</span>
-          </p>
-        </section>
-
-        {/* ── VIII — Repair and Life ────────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="八" label="Repair and Life" />
-          <p data-reveal style={pBody}>
-            A broken object is like life. Life cannot be perfect, and neither can objects. When we repair objects, we are also repairing ourselves.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            We all have shortcomings. We identify, adjust, and solve them, just like restoration. Life is not afraid of difficulties. When we face them, we find ways to repair and then embrace a new state of being.
-          </p>
-        </section>
-
-        {/* ── PULL QUOTE 2 ──────────────────────────────────────────────── */}
-        <PullQuote>"The world is tattered, but we are still mending it."</PullQuote>
-
-        {/* ── IX — Tea and Spirit ───────────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="九" label="Tea and Spirit" />
-          <p data-reveal style={pBody}>
-            Tea is an indispensable spiritual food. Like a craft, it helps me focus on the present moment. Tea is like an invisible language. We can sit together because of it, even from different countries. Maybe we talk about tea, maybe not, but it connects us.
-          </p>
-          <p data-reveal style={pBody}>
-            It plays many roles. It is a beverage, a gift, and a medium of communication. We sit around a tea table and talk about many things. This leaf absorbs the essence of heaven and earth. It embodies the five elements and the eight trigrams. It gathers the energy of the East in China.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            Such energy concentrated in one leaf and radiating outward is extraordinary. This thing called tea is interesting. It can be generous, and it can also be private. Tea shows harmony between nature and heart. For me, tea is both a spiritual practice and a way of living.
-          </p>
-        </section>
-
-        {/* ── X — Work and Future ───────────────────────────────────────── */}
-        <section style={{ maxWidth: 660, margin: '0 auto', padding: '0 24px' }}>
-          <SectionDivider numeral="十" label="Work and Future" />
-          <p data-reveal style={pBody}>
-            My company is called Shangyin Qiwu. What I do is related to lacquer. The name is simply a nickname. The challenge for an artist is bridging ideals and reality. In pursuing perfection, we invest time, energy, and money, but sometimes fail to connect it with life.
-          </p>
-          <p data-reveal style={pBody}>
-            We cannot talk about ideals apart from life, nor can we just focus on life without mentioning ideals. The bridge between the two is the economic base. Now I try to balance both. I do what I love while allowing the work to sustain itself.
-          </p>
-          <p data-reveal style={{ ...pBody, margin: 0 }}>
-            I plan to turn these skills into courses so that more people can learn and help this craft endure. When we receive fair rewards for our effort, the work becomes meaningful and selfless. We must first set our lives in order. With a better life, we have better energy to share something truly meaningful.
-          </p>
-        </section>
-
-        {/* ── CLOSING (Interviewer's Voice) ─────────────────────────────── */}
-        <section data-reveal style={{ maxWidth: 660, margin: '0 auto', padding: 'clamp(40px,7vw,80px) 24px clamp(40px,6vw,72px)', textAlign: 'center' }}>
-          <p style={{
-            fontFamily: F.display,
-            fontStyle: 'italic',
-            fontWeight: 400,
-            fontSize: 'clamp(22px,3.4vw,32px)',
-            lineHeight: 1.36,
-            color: C.ink,
-            margin: 0,
-          }}>
+        {/* CLOSING */}
+        <section data-reveal style={{ maxWidth: 680, margin: '0 auto', padding: 'clamp(40px,6vw,72px) 24px' }}>
+          <p style={{ fontFamily: F.body, fontStyle: 'italic', fontSize: 'clamp(17px,2.1vw,20px)', lineHeight: 1.72, color: C.taupe, margin: 0 }}>
             When we finished tea, he said simply, "The world is tattered, but we are still mending it." I left his studio thinking about the quiet work of hands. Not to fix, but to understand.
           </p>
-          <div style={{ marginTop: 42, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Interview by Adrian Rasmussen &nbsp;·&nbsp; The Craft &nbsp;·&nbsp; N°15
-          </div>
+          <div style={colophon}>Interview by Adrian Rasmussen &nbsp;·&nbsp; Conversations over Tea &nbsp;·&nbsp; N°15</div>
         </section>
 
         <MoreFooter links={moreLinks} />
