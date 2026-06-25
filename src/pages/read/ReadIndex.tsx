@@ -69,6 +69,7 @@ const INDEX_GROUPS: IndexGroup[] = [
       { n: 'N°02', rubric: 'Conversation', title: 'The Rock Remembers', dek: 'A Wuyi roaster on fire, patience and lineage.',               href: '/read/rock-remembers' },
       { n: 'N°03', rubric: 'Conversation', title: 'Earth, Water, Fire', dek: 'A Jingdezhen potter on the vessels that hold tea.',           href: '/read/earth-water-fire' },
       { n: 'N°09', rubric: 'A Tea House',  title: 'Quiet Hours',        dek: 'Building a Melbourne tea house, told in two voices.',         href: '/read/tea-house' },
+      { n: 'N°15', rubric: 'The Craft',    title: 'Porcelain and Tea',  dek: 'Shangyin Qiwu on repair, patience and mending what we love.', href: '/read/porcelain-and-tea', live: true },
     ],
   },
   {
@@ -496,16 +497,8 @@ const ReadIndex: React.FC = () => {
           </section>
         )}
 
-        {/* COLOPHON */}
-        <footer style={{ borderTop: '1px solid rgba(168,135,77,0.14)', padding: 'clamp(44px,6vw,76px) clamp(24px,5vw,56px) clamp(64px,9vw,110px)', textAlign: 'center' }}>
-          <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 38, fontWeight: 200, color: C.gold, opacity: 0.7, marginBottom: 24 }}>茶</div>
-          <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 'clamp(18px,2.4vw,24px)', lineHeight: 1.5, color: '#cdc0a8', margin: '0 auto', maxWidth: 560 }}>
-            To learn tea is to learn where to stop. The rest, the leaf will teach you.
-          </p>
-          <div style={{ marginTop: 30, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-            Teajia · Read · The Art of Tea
-          </div>
-        </footer>
+        {/* Footer is rendered globally by App.tsx for all browse pages — no
+            page-local footer here, or it double-renders. */}
 
       </article>
     </ImmersiveRoot>

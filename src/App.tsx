@@ -119,6 +119,7 @@ const LegendImmortalsCliff = lazy(() => import('./pages/read/LegendImmortalsClif
 const RitualSevenSteeps = lazy(() => import('./pages/read/RitualSevenSteeps'));
 const TastingVocabularyOfTaste = lazy(() => import('./pages/read/TastingVocabularyOfTaste'));
 const TeaHouseQuietHours = lazy(() => import('./pages/read/TeaHouseQuietHours'));
+const CraftRenewalPorcelain = lazy(() => import('./pages/read/CraftRenewalPorcelain'));
 const PublicCollectionPage = lazy(() => import('./pages/PublicCollectionPage'));
 const ContributorProfilePage = lazy(() => import('./pages/ContributorProfilePage'));
 const ContributorsIndexPage = lazy(() => import('./pages/ContributorsIndexPage'));
@@ -869,6 +870,9 @@ const AppContent = () => {
                 <Route path="/read/craft" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
                 } />
+                <Route path="/read/porcelain-and-tea" element={
+                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
+                } />
                 <Route path="/read/essay" element={
                   <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
                 } />
@@ -1060,11 +1064,9 @@ const AppContent = () => {
           </AnimatePresence>
       </main>
 
-      {/* Global Footer — hidden on Home */}
+      {/* Global Footer — hidden on Home. Full-bleed; clearance lives inside Footer. */}
       {viewState === 'BROWSE' && activeSection !== 'HOME' && (
-        <div className="px-4 md:px-6 lg:px-10 max-w-[1400px] mx-auto w-full pb-32 md:pb-24 lg:pb-8">
-          <Footer />
-        </div>
+        <Footer />
       )}
       </>
       )}

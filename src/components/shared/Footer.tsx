@@ -1,22 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { LogoEmblem } from '../Logos';
 
 /**
  * Colophon-style site footer — matches the Read section's closing block.
- * Self-contained palette/fonts so it renders identically on every page,
- * independent of the immersive module or the tea-* Tailwind tokens.
+ * Self-contained palette/fonts so it renders identically on every page.
  */
 const C = {
   taupe: '#cdc0a8',
   dim: '#80735f',
-  gold: 'var(--tj-gold,#a8874d)',
   hair: 'rgba(168,135,77,0.14)',
 } as const;
 const F = {
   display: "'Cormorant Garamond',serif",
-  body: "'Lora',Georgia,serif",
   mono: "'IBM Plex Mono',monospace",
-  cn: "'Noto Serif SC',serif",
 } as const;
 
 const links: { label: string; to?: string; href?: string }[] = [
@@ -64,25 +61,21 @@ export default function Footer() {
   return (
     <footer
       style={{
+        background: '#14100b',
         borderTop: `1px solid ${C.hair}`,
         padding: 'clamp(44px,6vw,72px) clamp(24px,5vw,56px) clamp(28px,4vw,40px)',
         textAlign: 'center',
       }}
     >
-      {/* 茶 emblem */}
-      <div aria-hidden="true" style={{ fontFamily: F.cn, fontSize: 38, fontWeight: 200, color: C.gold, opacity: 0.7, marginBottom: 24 }}>
-        茶
+      {/* Circle emblem — muted, no gold highlight */}
+      <div style={{ marginBottom: 24, opacity: 0.7, display: 'flex', justifyContent: 'center' }}>
+        <LogoEmblem size={38} color={C.taupe} />
       </div>
 
       {/* Editorial line */}
       <p style={{ fontFamily: F.display, fontStyle: 'italic', fontSize: 'clamp(18px,2.4vw,24px)', lineHeight: 1.5, color: C.taupe, margin: '0 auto', maxWidth: 560 }}>
         Every culture brings wisdom to the table.
       </p>
-
-      {/* Mono breadcrumb */}
-      <div style={{ marginTop: 30, fontFamily: F.mono, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.dim, lineHeight: 2 }}>
-        Teajia · Fine Tea &amp; Teaware
-      </div>
 
       {/* Link row */}
       <nav

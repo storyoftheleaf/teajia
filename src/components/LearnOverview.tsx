@@ -590,7 +590,15 @@ export const LearnOverview: React.FC<LearnOverviewProps> = ({
       >
         <div className="divider-warm mb-10" />
 
-        <div className="inset-panel" style={{ padding: 'clamp(28px, 4vw, 48px)' }}>
+        <div
+          className="inset-panel"
+          style={{
+            padding: 'clamp(28px, 4vw, 48px)',
+            // Darker than the default warm text-overlay so the panel reads as a
+            // recessed well, not a muddy lighter box against the page.
+            background: 'rgb(0 0 0 / 0.22)',
+          }}
+        >
           <div className="text-center max-w-sm mx-auto">
             <p className="text-ui-15 md:text-ui-17 text-tea-text/70 leading-[1.85] mb-5" style={{ fontFamily: 'var(--font-body)' }}>
               This archive grows with every session, every conversation, every cup.
