@@ -16,7 +16,8 @@
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
-import { api, getTokenClaims } from '../../lib/api';
+import { api } from '../../lib/api';
+import { useAppStore, selectIsOwnerTier } from '../../lib/store';
 
 // ── content shape ────────────────────────────────────────────────────────────
 export interface PhotoVal { url: string; crop: { scale: number; x: number; y: number } }
@@ -63,15 +64,13 @@ export function useStoryEdit(): Ctx {
   return c;
 }
 
-function detectOwner(): boolean {
-  const claims = getTokenClaims();
-  if (!claims) return false;
-  if (claims.role === 'owner' || claims.role === 'admin') return true;
-  return (claims.memberships ?? []).some((m: any) => m.role === 'owner' || m.role === 'admin');
-}
-
 export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNode }> = ({ slug, children }) => {
-  const isOwner = useMemo(detectOwner, []);
+  // Use the app's authoritative top-admin selector (reads live store state:
+  // platform_owner / platform_admin / active-account owner), plus the localhost
+  // dev-admin flag. This is the same gate the rest of the admin surface uses.
+  const isOwner = useAppStore(
+    (s) => selectIsOwnerTier(s) || s.isDevAdmin,
+  );
   const [editing, setEditing] = useState(false);
   const [previewVisitor, setPreviewVisitor] = useState(false);
   const [published, setPublished] = useState<StoryContent>({});

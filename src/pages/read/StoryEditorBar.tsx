@@ -11,13 +11,19 @@ import { useStoryEdit } from './storyEdit';
 
 const barWrap: React.CSSProperties = {
   position: 'fixed',
-  right: 'clamp(12px,3vw,28px)',
-  bottom: 'clamp(12px,3vw,28px)',
-  zIndex: 60,
+  top: 0,
+  left: 0,
+  right: 0,
+  zIndex: 200,
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'flex-end',
-  gap: 10,
+  alignItems: 'center',
+  gap: 8,
+  padding: '10px clamp(12px,3vw,28px)',
+  background: 'rgba(20,16,11,0.96)',
+  borderBottom: '1px solid rgba(168,135,77,0.3)',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
   fontFamily: "'IBM Plex Mono',monospace",
 };
 
@@ -60,41 +66,10 @@ const StoryEditorBar: React.FC = () => {
 
   return (
     <div style={barWrap}>
-      {showHistory && (
-        <div style={{ width: 260, maxHeight: 320, overflowY: 'auto', padding: 12, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 4, background: 'rgba(20,16,11,0.97)' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginBottom: 10 }}>Undo to a past version</div>
-          {versions.length === 0 && (
-            <div style={{ fontSize: 11, color: '#80735f', lineHeight: 1.5 }}>No past versions yet. They appear here each time you publish.</div>
-          )}
-          {versions.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              onClick={async () => { await restore(v.id); setShowHistory(false); }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11 }}
-            >
-              {new Date(v.created_at + 'Z').toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              <span style={{ color: '#80735f' }}> · restore</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {showGaps && editing && (
-        <div style={{ width: 260, padding: 12, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 4, background: 'rgba(20,16,11,0.97)' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginBottom: 10 }}>What still needs a photo</div>
-          {emptyFrames.length === 0 ? (
-            <div style={{ fontSize: 11, color: '#80735f' }}>Every frame has a photo. Nicely done.</div>
-          ) : emptyFrames.map((f) => (
-            <button key={f.slot} type="button" onClick={() => jumpTo(f.slot)}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11 }}>
-              {f.label}<span style={{ color: '#80735f' }}> · jump</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginRight: 4 }}>
+          Owner ·
+        </span>
         {editing && (
           <span style={{ fontSize: 10, letterSpacing: '0.06em', color: dirty || saving ? '#bfa06a' : '#80735f', background: 'rgba(20,16,11,0.92)', padding: '6px 10px', borderRadius: 3, border: '1px solid rgba(168,135,77,0.2)' }}>
             {status}
@@ -142,6 +117,40 @@ const StoryEditorBar: React.FC = () => {
           {editing ? 'done editing' : 'edit story'}
         </button>
       </div>
+
+      {showHistory && (
+        <div style={{ width: 280, maxHeight: 320, overflowY: 'auto', padding: 12, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 4, background: 'rgba(20,16,11,0.97)' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginBottom: 10 }}>Undo to a past version</div>
+          {versions.length === 0 && (
+            <div style={{ fontSize: 11, color: '#80735f', lineHeight: 1.5 }}>No past versions yet. They appear here each time you publish.</div>
+          )}
+          {versions.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={async () => { await restore(v.id); setShowHistory(false); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11 }}
+            >
+              {new Date(v.created_at + 'Z').toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              <span style={{ color: '#80735f' }}> · restore</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {showGaps && editing && (
+        <div style={{ width: 280, padding: 12, border: '1px solid rgba(168,135,77,0.4)', borderRadius: 4, background: 'rgba(20,16,11,0.97)' }}>
+          <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d', marginBottom: 10 }}>What still needs a photo</div>
+          {emptyFrames.length === 0 ? (
+            <div style={{ fontSize: 11, color: '#80735f' }}>Every frame has a photo. Nicely done.</div>
+          ) : emptyFrames.map((f) => (
+            <button key={f.slot} type="button" onClick={() => jumpTo(f.slot)}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 6px', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(168,135,77,0.12)', color: '#cdc0a8', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11 }}>
+              {f.label}<span style={{ color: '#80735f' }}> · jump</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
