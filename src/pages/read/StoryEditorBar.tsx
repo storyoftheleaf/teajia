@@ -13,14 +13,17 @@ import { useStoryEdit } from './storyEdit';
 // page reads exactly like a visitor's while you show it to people.
 // When editing: the pill expands into the full toolbar (still bottom-anchored,
 // clear of the article's top nav).
+// Anchored top-right, clear of both the article's own header chrome and the
+// site's full-width bottom nav. When not editing it is a single faint pill so
+// the page reads like a visitor's; editing expands the toolbar downward.
 const barWrap = (editing: boolean): React.CSSProperties => ({
   position: 'fixed',
-  left: 'clamp(12px,3vw,24px)',
-  bottom: 'clamp(12px,3vw,24px)',
+  right: 'clamp(10px,2.5vw,20px)',
+  top: 'clamp(64px,9vh,84px)',
   zIndex: 200,
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'flex-start',
+  alignItems: 'flex-end',
   gap: 8,
   maxWidth: 'min(94vw, 720px)',
   padding: editing ? '10px 12px' : 0,
