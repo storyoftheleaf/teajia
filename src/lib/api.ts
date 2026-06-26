@@ -1181,11 +1181,16 @@ export const api = {
     const formData = new FormData();
     const filename = options?.filename ?? (file instanceof File ? file.name : 'photo.jpg');
     formData.append('file', file, filename);
-    const token = getToken();
+    // Use the same headers authedFetch sends (Authorization + X-Teajia-Account),
+    // but NOT Content-Type — the browser sets the multipart boundary itself.
+    const headers = authHeaders();
     return new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_URL}/api/upload-image`);
-      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      for (const [k, v] of Object.entries(headers)) {
+        if (k.toLowerCase() === 'content-type') continue;
+        xhr.setRequestHeader(k, v);
+      }
       xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -1194,6 +1199,8 @@ export const api = {
         } else reject(new Error(`upload failed: ${xhr.status}`));
       };
       xhr.onerror = () => reject(new Error('network error'));
+      xhr.ontimeout = () => reject(new Error('upload timed out'));
+      xhr.timeout = 60000; // never hang forever on a flaky phone connection
       xhr.send(formData);
     });
   },
