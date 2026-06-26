@@ -78,13 +78,13 @@ const PlateRow: React.FC<{ initial: PlateDef[] }> = ({ initial }) => {
                 <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#80735f', cursor: 'grab' }}>
                   ⠿ drag to reorder
                 </span>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => move(i, i - 1)} disabled={i === 0}
-                    style={{ background: 'transparent', border: 'none', color: i === 0 ? '#3a342a' : '#a8874d', cursor: i === 0 ? 'default' : 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12 }}>‹</button>
-                  <button type="button" onClick={() => move(i, i + 1)} disabled={i === defs.length - 1}
-                    style={{ background: 'transparent', border: 'none', color: i === defs.length - 1 ? '#3a342a' : '#a8874d', cursor: i === defs.length - 1 ? 'default' : 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12 }}>›</button>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button type="button" aria-label="Move left" onClick={() => move(i, i - 1)} disabled={i === 0}
+                    style={{ minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: i === 0 ? '#3a342a' : '#a8874d', cursor: i === 0 ? 'default' : 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 18 }}>‹</button>
+                  <button type="button" aria-label="Move right" onClick={() => move(i, i + 1)} disabled={i === defs.length - 1}
+                    style={{ minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: i === defs.length - 1 ? '#3a342a' : '#a8874d', cursor: i === defs.length - 1 ? 'default' : 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 18 }}>›</button>
                   <button type="button" onClick={() => removePlate(p.slot)}
-                    style={{ background: 'transparent', border: 'none', color: '#80735f', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase' }}>remove</button>
+                    style={{ minHeight: 40, padding: '0 8px', background: 'transparent', border: 'none', color: '#80735f', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>remove</button>
                 </div>
               </div>
             )}

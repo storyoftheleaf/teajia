@@ -54,6 +54,8 @@ interface Ctx {
   frames: { slot: string; label: string }[];
   // every image url ever used on this story, for reuse-from-library
   usedImages: string[];
+  // mobile bottom edit-sheet: open it for a given field
+  openSheet: (field: string, value: string, multiline: boolean, label?: string) => void;
 }
 
 const StoryEditCtx = createContext<Ctx | null>(null);
@@ -80,7 +82,21 @@ export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNo
   const [saving, setSaving] = useState(false);
   const [versions, setVersions] = useState<{ id: string; label: string | null; created_at: string }[]>([]);
   const [frames, setFrames] = useState<{ slot: string; label: string }[]>([]);
+  const [sheet, setSheet] = useState<{ field: string; value: string; multiline: boolean; label?: string } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openSheet = useCallback((field: string, value: string, multiline: boolean, label?: string) => {
+    setSheet({ field, value, multiline, label });
+  }, []);
+
+  // Guard against losing edits if the phone backgrounds or the tab closes while
+  // there are unsaved changes (#19).
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const registerFrame = useCallback((slot: string, label: string) => {
     setFrames((f) => (f.some((x) => x.slot === slot) ? f.map((x) => (x.slot === slot ? { slot, label } : x)) : [...f, { slot, label }]));
@@ -191,14 +207,71 @@ export const StoryEditProvider: React.FC<{ slug: string; children: React.ReactNo
       ...Object.values(published.photos || {}).map((p) => p.url),
       ...Object.values(draft.photos || {}).map((p) => p.url),
     ])),
+    openSheet,
   };
 
-  return <StoryEditCtx.Provider value={value}>{children}</StoryEditCtx.Provider>;
+  return (
+    <StoryEditCtx.Provider value={value}>
+      {children}
+      {sheet && (
+        <EditSheet
+          field={sheet.field}
+          initial={sheet.value}
+          multiline={sheet.multiline}
+          label={sheet.label}
+          onSave={(t) => { setText(sheet.field, t); setSheet(null); }}
+          onClose={() => setSheet(null)}
+        />
+      )}
+    </StoryEditCtx.Provider>
+  );
+};
+
+// Touch-first device test (no hover; cramped inline editing). On these the
+// bottom EditSheet replaces inline contentEditable.
+const IS_TOUCH = typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator.maxTouchPoints ?? 0) > 0);
+
+// ── EditSheet ────────────────────────────────────────────────────────────────
+// A roomy bottom sheet for editing one field on a phone: a large textarea above
+// the keyboard with a Done bar. Avoids the cramped in-page caret and the
+// keyboard hiding the text being edited.
+const EditSheet: React.FC<{
+  field: string;
+  initial: string;
+  multiline: boolean;
+  label?: string;
+  onSave: (t: string) => void;
+  onClose: () => void;
+}> = ({ initial, multiline, label, onSave, onClose }) => {
+  const [val, setVal] = useState(initial);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { taRef.current?.focus(); }, []);
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(10,8,5,0.55)' }} />
+      <div style={{ position: 'relative', background: '#15110b', borderTop: '1px solid rgba(168,135,77,0.35)', borderTopLeftRadius: 14, borderTopRightRadius: 14, padding: 14, paddingBottom: 'max(14px, env(safe-area-inset-bottom))', maxHeight: '72vh', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#a8874d' }}>{label || 'Edit text'}</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={onClose} style={{ minHeight: 44, padding: '0 14px', background: 'transparent', border: '1px solid rgba(168,135,77,0.3)', borderRadius: 4, color: '#cdc0a8', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, cursor: 'pointer' }}>cancel</button>
+            <button type="button" onClick={() => onSave(val.trimEnd())} style={{ minHeight: 44, padding: '0 18px', background: '#a8874d', border: 'none', borderRadius: 4, color: '#14100b', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, letterSpacing: '0.06em', cursor: 'pointer' }}>done</button>
+          </div>
+        </div>
+        <textarea
+          ref={taRef}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          rows={multiline ? 6 : 2}
+          style={{ width: '100%', resize: 'none', background: '#1d1810', border: '1px solid rgba(168,135,77,0.25)', borderRadius: 6, color: '#f3ead9', fontFamily: "'Lora',Georgia,serif", fontSize: 17, lineHeight: 1.5, padding: 12, outline: 'none' }}
+        />
+      </div>
+    </div>
+  );
 };
 
 // ── EditableText ─────────────────────────────────────────────────────────────
-// Renders the field's text; for the owner in edit mode it becomes click-to-edit
-// in place (contentEditable), saving on blur. `as` picks the element/style host.
+// Renders the field's text. On desktop the owner edits in place (contentEditable);
+// on touch, tapping opens the roomy bottom EditSheet instead.
 export const EditableText: React.FC<{
   field: string;
   children: string; // the coded default
@@ -207,7 +280,7 @@ export const EditableText: React.FC<{
   className?: string;
   multiline?: boolean;
 }> = ({ field, children, as = 'span', style, className, multiline }) => {
-  const { isOwner, editing, previewVisitor, text, setText } = useStoryEdit();
+  const { isOwner, editing, previewVisitor, text, setText, openSheet } = useStoryEdit();
   const Tag = as as any;
   const value = text(field, children);
   const liveEdit = isOwner && editing && !previewVisitor;
@@ -215,6 +288,19 @@ export const EditableText: React.FC<{
 
   if (!liveEdit) {
     return <Tag style={style} className={className}>{value}</Tag>;
+  }
+
+  // Touch: tap opens the bottom sheet rather than cramped inline editing.
+  if (IS_TOUCH) {
+    return (
+      <Tag
+        className={className}
+        onClick={() => openSheet(field, value, !!multiline, field)}
+        style={{ ...style, outline: '1px dashed rgba(168,135,77,0.4)', outlineOffset: 3, borderRadius: 2, cursor: 'pointer', minWidth: 24 }}
+      >
+        {value}
+      </Tag>
+    );
   }
 
   return (

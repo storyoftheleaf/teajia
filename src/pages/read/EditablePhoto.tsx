@@ -14,8 +14,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import { useStoryEdit, type PhotoVal } from './storyEdit';
+import { shrinkImage, isTouch } from './imageUtils';
 
 const DEFAULT_CROP = { scale: 1, x: 0.5, y: 0.5 };
+const TOUCH = isTouch();
 
 interface Props {
   slot: string;
@@ -38,10 +40,14 @@ const EditablePhoto: React.FC<Props> = ({
   const liveEdit = isOwner && editing && !previewVisitor;
   const photo: PhotoVal | undefined = photos[slot];
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1 during upload
+  const [uploadError, setUploadError] = useState(false);
+  const [lastFile, setLastFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [focusing, setFocusing] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
+  const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
 
   // Register this frame so the editor bar's "what needs a photo" list knows it.
   useEffect(() => {
@@ -52,13 +58,25 @@ const EditablePhoto: React.FC<Props> = ({
 
   const upload = useCallback(async (file: File) => {
     if (!file.type.startsWith('image/')) return;
+    setLastFile(file);
+    setUploadError(false);
     setBusy(true);
+    setProgress(0.02);
     try {
-      const url = await api.uploadImage(file, { filename: file.name || 'photo.jpg' });
+      // Shrink a big phone photo before sending so cell-data uploads are fast.
+      const small = await shrinkImage(file);
+      const url = await api.uploadImageProgress(small, (p) => setProgress(Math.max(0.05, p)), { filename: small.name || 'photo.jpg' });
       setPhoto(slot, { url, crop: { ...DEFAULT_CROP } });
-    } catch { /* leave frame unchanged */ }
-    finally { setBusy(false); }
+      setProgress(1);
+    } catch {
+      setUploadError(true);
+    } finally {
+      setBusy(false);
+      setTimeout(() => setProgress(0), 600);
+    }
   }, [slot, setPhoto]);
+
+  const retryUpload = useCallback(() => { if (lastFile) upload(lastFile); }, [lastFile, upload]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -92,6 +110,32 @@ const EditablePhoto: React.FC<Props> = ({
     setPhoto(slot, { ...photo, crop: { ...photo.crop, scale: Math.min(3, Math.max(1, scale)) } });
   };
 
+  // Tap anywhere on the photo to place the focal point there (touch-friendly,
+  // no precise dragging needed). Ignored if the tap was a pinch.
+  const tapFocal = useCallback((e: React.PointerEvent) => {
+    if (!liveEdit || !photo || pinchRef.current) return;
+    // Don't hijack a tap on the dot itself (it has its own drag handler).
+    if ((e.target as HTMLElement).dataset.focalDot) return;
+    moveFocal(e.clientX, e.clientY);
+  }, [liveEdit, photo, moveFocal]);
+
+  // Pinch-to-zoom on touch.
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!liveEdit || !photo || e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    pinchRef.current = { startDist: dist, startScale: photo.crop.scale };
+  }, [liveEdit, photo]);
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!pinchRef.current || e.touches.length !== 2 || !photo) return;
+    e.preventDefault();
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const next = pinchRef.current.startScale * (dist / pinchRef.current.startDist);
+    setScale(next);
+  }, [photo]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onTouchEnd = useCallback(() => { pinchRef.current = null; }, []);
+
   // Global pointer move while dragging the focal dot.
   useEffect(() => {
     if (!focusing) return;
@@ -111,6 +155,10 @@ const EditablePhoto: React.FC<Props> = ({
         data-frame-slot={slot}
         tabIndex={liveEdit ? 0 : -1}
         onPaste={onPaste}
+        onPointerUp={tapFocal}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         onDragOver={(e) => { if (!liveEdit) return; e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
@@ -123,6 +171,7 @@ const EditablePhoto: React.FC<Props> = ({
           overflow: 'hidden',
           background: photo ? '#14100b' : placeholderBg,
           outline: 'none',
+          touchAction: liveEdit && photo ? 'none' : 'auto',
         }}
       >
         {photo ? (
@@ -148,39 +197,70 @@ const EditablePhoto: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Focal dot — drag to set the crop center (owner, editing, has photo) */}
+        {/* Focal dot — drag OR tap the photo to set the crop center. Bigger
+            touch grab area; the visible ring stays small. */}
         {liveEdit && photo && (
           <div
-            onPointerDown={(e) => { e.preventDefault(); setFocusing(true); }}
+            data-focal-dot="1"
+            onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setFocusing(true); }}
             style={{
               position: 'absolute',
               left: `${photo.crop.x * 100}%`,
               top: `${photo.crop.y * 100}%`,
-              width: 22, height: 22, marginLeft: -11, marginTop: -11,
+              width: TOUCH ? 44 : 26, height: TOUCH ? 44 : 26,
+              marginLeft: TOUCH ? -22 : -13, marginTop: TOUCH ? -22 : -13,
               borderRadius: '50%',
               border: '2px solid #f3ead9',
               boxShadow: '0 0 0 2px rgba(20,16,11,0.6), 0 0 8px rgba(0,0,0,0.5)',
-              background: 'rgba(168,135,77,0.35)',
+              background: 'rgba(168,135,77,0.4)',
               cursor: 'grab',
               touchAction: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
-            title="Drag to set the focal point"
-          />
-        )}
-
-        {/* Owner hint / dropzone label */}
-        {liveEdit && (
-          <div style={{ position: 'absolute', top: 8, right: 8, fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#cdc0a8', background: 'rgba(20,16,11,0.72)', padding: '4px 8px', borderRadius: 2, pointerEvents: 'none' }}>
-            {busy ? 'uploading' : photo ? 'drag focus · paste to replace' : 'drop / paste / pick'}
+            title="Drag or tap the photo to set the focal point"
+          >
+            <span data-focal-dot="1" style={{ width: 6, height: 6, borderRadius: '50%', background: '#f3ead9' }} />
           </div>
         )}
 
-        {/* Click-to-pick file input when empty */}
+        {/* Upload progress bar */}
+        {liveEdit && busy && (
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, background: 'rgba(168,135,77,0.18)', zIndex: 6 }}>
+            <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: '#a8874d', transition: 'width 160ms' }} />
+          </div>
+        )}
+
+        {/* Upload error + retry */}
+        {liveEdit && uploadError && !busy && (
+          <button type="button" onClick={retryUpload}
+            style={{ position: 'absolute', inset: 0, zIndex: 7, background: 'rgba(20,16,11,0.85)', border: 'none', color: '#f3ead9', cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, letterSpacing: '0.08em' }}>
+            upload failed · tap to retry
+          </button>
+        )}
+
+        {/* Owner hint / dropzone label */}
+        {liveEdit && !busy && !uploadError && (
+          <div style={{ position: 'absolute', top: 8, right: 8, fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#cdc0a8', background: 'rgba(20,16,11,0.72)', padding: '4px 8px', borderRadius: 2, pointerEvents: 'none' }}>
+            {photo ? (TOUCH ? 'tap to set focus' : 'drag focus · paste') : (TOUCH ? 'add a photo' : 'drop / paste / pick')}
+          </div>
+        )}
+
+        {/* Empty frame: take a photo (camera) + choose from library/files */}
         {liveEdit && !photo && !showLibrary && (
-          <label style={{ position: 'absolute', inset: 0, cursor: 'pointer' }} aria-label="Choose a photo">
-            <input type="file" accept="image/*" style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
-          </label>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 12 }}>
+            {TOUCH && (
+              <label style={{ minWidth: 160, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,135,77,0.5)', borderRadius: 4, color: '#f3ead9', background: 'rgba(168,135,77,0.18)', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                take a photo
+                <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
+              </label>
+            )}
+            <label style={{ minWidth: 160, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(168,135,77,0.35)', borderRadius: 4, color: '#cdc0a8', background: 'rgba(20,16,11,0.5)', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              {TOUCH ? 'choose from photos' : 'drop, paste, or choose'}
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); }} />
+            </label>
+          </div>
         )}
 
         {/* Reuse a photo already used elsewhere on this story */}

@@ -6,41 +6,62 @@
  * toggle, Publish (go live), and an Undo panel listing past published versions
  * to roll back to. Text-only labels, no icons, matches the brand.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStoryEdit } from './storyEdit';
 
-// When NOT editing: a single discreet pill tucked in the bottom-left, so the
-// page reads exactly like a visitor's while you show it to people.
-// When editing: the pill expands into the full toolbar (still bottom-anchored,
-// clear of the article's top nav).
-// Anchored top-right, clear of both the article's own header chrome and the
-// site's full-width bottom nav. When not editing it is a single faint pill so
-// the page reads like a visitor's; editing expands the toolbar downward.
-const barWrap = (editing: boolean): React.CSSProperties => ({
-  position: 'fixed',
-  right: 'clamp(10px,2.5vw,20px)',
-  top: 'clamp(64px,9vh,84px)',
-  zIndex: 200,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-end',
-  gap: 8,
-  maxWidth: 'min(94vw, 720px)',
-  padding: editing ? '10px 12px' : 0,
-  background: editing ? 'rgba(20,16,11,0.94)' : 'transparent',
-  border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
-  borderRadius: 6,
-  backdropFilter: editing ? 'blur(10px)' : 'none',
-  WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
-  fontFamily: "'IBM Plex Mono',monospace",
-});
+const IS_TOUCH = typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator.maxTouchPoints ?? 0) > 0);
+
+// Desktop: a faint top-right pill that expands downward when editing.
+// Touch: the toolbar anchors to the BOTTOM (thumb reach), above the safe area,
+// and the not-editing trigger sits bottom-right clear of the site nav.
+const barWrap = (editing: boolean): React.CSSProperties => {
+  if (IS_TOUCH) {
+    return {
+      position: 'fixed',
+      left: editing ? 8 : 'auto',
+      right: 8,
+      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)', // clear the site bottom nav
+      zIndex: 200,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: editing ? 'stretch' : 'flex-end',
+      gap: 8,
+      padding: editing ? '10px 10px' : 0,
+      background: editing ? 'rgba(20,16,11,0.96)' : 'transparent',
+      border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
+      borderRadius: 10,
+      backdropFilter: editing ? 'blur(10px)' : 'none',
+      WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
+      fontFamily: "'IBM Plex Mono',monospace",
+    };
+  }
+  return {
+    position: 'fixed',
+    right: 'clamp(10px,2.5vw,20px)',
+    top: 'clamp(64px,9vh,84px)',
+    zIndex: 200,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 8,
+    maxWidth: 'min(94vw, 720px)',
+    padding: editing ? '10px 12px' : 0,
+    background: editing ? 'rgba(20,16,11,0.94)' : 'transparent',
+    border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
+    borderRadius: 6,
+    backdropFilter: editing ? 'blur(10px)' : 'none',
+    WebkitBackdropFilter: editing ? 'blur(10px)' : 'none',
+    fontFamily: "'IBM Plex Mono',monospace",
+  };
+};
 
 const pill = (active = false): React.CSSProperties => ({
   fontFamily: "'IBM Plex Mono',monospace",
-  fontSize: 11,
+  fontSize: IS_TOUCH ? 12 : 11,
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
-  padding: '8px 14px',
+  padding: IS_TOUCH ? '11px 16px' : '8px 14px',
+  minHeight: IS_TOUCH ? 44 : undefined,
   borderRadius: 3,
   border: '1px solid rgba(168,135,77,0.4)',
   background: active ? '#a8874d' : 'rgba(20,16,11,0.92)',
@@ -58,6 +79,13 @@ const StoryEditorBar: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showGaps, setShowGaps] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   if (!isOwner) return null;
 
@@ -142,7 +170,7 @@ const StoryEditorBar: React.FC = () => {
             type="button"
             style={{ ...pill(false), borderColor: 'rgba(168,135,77,0.7)', color: '#f3ead9' }}
             disabled={publishing}
-            onClick={async () => { setPublishing(true); try { await publish(); } finally { setPublishing(false); } }}
+            onClick={async () => { setPublishing(true); try { await publish(); setToast('Published. Live now.'); } catch { setToast('Publish failed. Try again.'); } finally { setPublishing(false); } }}
           >
             {publishing ? 'publishing…' : 'publish'}
           </button>
@@ -188,6 +216,12 @@ const StoryEditorBar: React.FC = () => {
               {f.label}<span style={{ color: '#80735f' }}> · jump</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {toast && (
+        <div style={{ alignSelf: IS_TOUCH ? 'stretch' : 'flex-end', textAlign: 'center', padding: '10px 14px', borderRadius: 4, background: 'rgba(168,135,77,0.95)', color: '#14100b', fontFamily: "'IBM Plex Mono',monospace", fontSize: 12, letterSpacing: '0.06em' }}>
+          {toast}
         </div>
       )}
     </div>

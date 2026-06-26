@@ -1170,6 +1170,34 @@ export const api = {
     return data.url as string;
   },
 
+  // Same upload, but reports real progress (0..1) via XHR so a phone on cell
+  // data shows a live bar instead of a silent wait. Falls back to uploadImage
+  // semantics on error.
+  uploadImageProgress: async (
+    file: File | Blob,
+    onProgress: (p: number) => void,
+    options?: { filename?: string },
+  ): Promise<string> => {
+    const formData = new FormData();
+    const filename = options?.filename ?? (file instanceof File ? file.name : 'photo.jpg');
+    formData.append('file', file, filename);
+    const token = getToken();
+    return new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API_URL}/api/upload-image`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText).url as string); }
+          catch { reject(new Error('bad upload response')); }
+        } else reject(new Error(`upload failed: ${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error('network error'));
+      xhr.send(formData);
+    });
+  },
+
   events: {
     // Admin endpoints
     listAdmin: async () => {
