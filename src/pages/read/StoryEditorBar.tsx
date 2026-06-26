@@ -16,16 +16,20 @@ const IS_TOUCH = typeof window !== 'undefined' && (('ontouchstart' in window) ||
 // and the not-editing trigger sits bottom-right clear of the site nav.
 const barWrap = (editing: boolean): React.CSSProperties => {
   if (IS_TOUCH) {
+    // Anchor TOP (under the article header), not bottom: the site's bottom nav
+    // bar is tall and the edit pill must never land on it.
     return {
       position: 'fixed',
       left: editing ? 8 : 'auto',
       right: 8,
-      bottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)', // clear the site bottom nav
+      top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
       zIndex: 200,
       display: 'flex',
       flexDirection: 'column',
       alignItems: editing ? 'stretch' : 'flex-end',
       gap: 8,
+      maxHeight: '76vh',
+      overflowY: 'auto',
       padding: editing ? '10px 10px' : 0,
       background: editing ? 'rgba(20,16,11,0.96)' : 'transparent',
       border: editing ? '1px solid rgba(168,135,77,0.3)' : 'none',
