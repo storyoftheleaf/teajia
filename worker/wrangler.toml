@@ -19,6 +19,16 @@ workers_dev = true
 pattern = "api.teajia.com"
 custom_domain = true
 
+# Non-secret public config. Safe as [vars] — these are NOT secrets, so they
+# don't trigger the shadowing problem described below.
+#   OAUTH_REDIRECT_ORIGIN — host used to build the Google OAuth redirect_uri.
+#   Pinned to the China-reachable custom domain so the redirect_uri stays
+#   registered/reachable even when the worker is hit via *.workers.dev. This
+#   exact value + "/api/auth/google/callback" MUST be listed under "Authorized
+#   redirect URIs" on the Google Cloud console OAuth client.
+[vars]
+OAUTH_REDIRECT_ORIGIN = "https://api.teajia.com"
+
 # Secrets (set via `wrangler secret put`, never committed):
 #   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  — Google OAuth (local dev reads them from worker/.dev.vars)
 #   JWT_SECRET, ADMIN_PASSWORD_HASH         — auth
