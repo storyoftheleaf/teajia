@@ -39,6 +39,11 @@ interface TeaCompassState {
   syncError: boolean;
   setSyncError: (failed: boolean) => void;
 
+  // Tombstones — ids deleted locally whose server delete hasn't been confirmed.
+  // Hydrate filters these out so a still-on-server row can't reappear before the
+  // delete lands (the "I deleted it and it came back" bug), and retries the delete.
+  deletedIds: string[];
+
   // Pricing formula — shipping rate used in retail preview (same currency as entry cost)
   shippingRatePerKg: number;
   setShippingRatePerKg: (rate: number) => void;
@@ -127,6 +132,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       currentSessionId: null,
       lastCaptureAt: null,
       syncError: false,
+      deletedIds: [],
       shippingRatePerKg: 0,
       customEras: [],
 
@@ -172,6 +178,11 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           pendingEntries: state.pendingEntries.filter((e) => e.id !== id),
           sessionEntryIds: state.sessionEntryIds.filter((sid) => sid !== id),
           activeEntryId: state.activeEntryId === id ? null : state.activeEntryId,
+          // Tombstone a committed entry so hydrate won't re-add the still-on-server
+          // row before the delete confirms. Cleared the moment the delete succeeds.
+          deletedIds: existed && !state.deletedIds.includes(id)
+            ? [...state.deletedIds, id]
+            : state.deletedIds,
         }));
         // ...then delete it on the server. Without this the row reappears from
         // D1 on the next sync/refresh — the bug that made "Clean up" and the
@@ -184,8 +195,8 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           // server, so flag it: otherwise the row silently reappears on next
           // hydrate and the delete looks like it "didn't take".
           void api.compass.remove(id)
-            .then(() => set({ syncError: false }))
-            .catch(() => set({ syncError: true }));
+            .then(() => set((s) => ({ syncError: false, deletedIds: s.deletedIds.filter((d) => d !== id) })))
+            .catch(() => set({ syncError: true })); // keep the tombstone — hydrate retries
         }
       },
 
@@ -304,6 +315,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         lastCaptureAt: state.lastCaptureAt,
         shippingRatePerKg: state.shippingRatePerKg,
         customEras: state.customEras,
+        deletedIds: state.deletedIds, // survive reloads so a pending delete still wins
         // pendingEntries, activeEntryId, sessionEntryIds are intentionally NOT persisted
       }),
     }

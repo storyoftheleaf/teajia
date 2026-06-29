@@ -44,26 +44,34 @@ function vendorInitials(name: string | undefined): string {
 }
 
 /** Gradient avatar swatch — canonical from §19 showcase */
-const VendorAvatar: React.FC<{ name: string; size?: number; className?: string }> = ({
+const VendorAvatar: React.FC<{ name: string; size?: number; className?: string; photo?: string }> = ({
   name,
   size = 40,
   className = '',
+  photo,
 }) => (
   <div
     className={`relative rounded-full overflow-hidden border border-tea-border flex-shrink-0 ${className}`}
     style={{ width: size, height: size }}
   >
-    <div
-      className="absolute inset-0"
-      style={{ background: 'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)' }}
-      aria-hidden="true"
-    />
-    <div
-      className="absolute inset-0 flex items-center justify-center font-display text-tea-bg/90"
-      style={{ fontSize: Math.max(10, Math.round(size * 0.32)), letterSpacing: '0.04em' }}
-    >
-      {vendorInitials(name)}
-    </div>
+    {photo ? (
+      // Show the vendor's actual storefront / business-card photo when we have one.
+      <img src={photo} alt={name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+    ) : (
+      <>
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)' }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 flex items-center justify-center font-display text-tea-bg/90"
+          style={{ fontSize: Math.max(10, Math.round(size * 0.32)), letterSpacing: '0.04em' }}
+        >
+          {vendorInitials(name)}
+        </div>
+      </>
+    )}
   </div>
 );
 
@@ -1200,7 +1208,7 @@ export const SourcesView = () => {
                     className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors active:bg-tea-accent-sub ${isExpanded ? 'bg-tea-accent-sub' : ''}`}
                     onClick={() => setExpandedCardId(isExpanded ? null : source.id)}
                   >
-                    <VendorAvatar name={source.name} size={36} />
+                    <VendorAvatar name={source.name} photo={source.storefront_photo || source.business_card_photo} size={36} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-display text-ui-15 text-tea-text truncate">{source.name}</span>
@@ -1454,7 +1462,7 @@ export const SourcesView = () => {
 
             {/* Identity card — canonical from §19 */}
             <div className="px-5 py-5 border-b border-tea-border flex items-start gap-4 flex-shrink-0">
-              <VendorAvatar name={panelSource.name} size={48} />
+              <VendorAvatar name={panelSource.name} photo={panelSource.storefront_photo || panelSource.business_card_photo} size={48} />
               <div className="flex-1 min-w-0">
                 <h3 className="h3 truncate">{panelSource.name}</h3>
                 {panelSource.email && (

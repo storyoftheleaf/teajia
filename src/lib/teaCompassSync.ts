@@ -129,11 +129,17 @@ export async function hydrateCompassEntries(): Promise<void> {
 
   try {
     const data = await api.compass.list();
-    const serverEntries: TeaCompassEntry[] = (data.entries || []).map(toCamelCase);
+    const rawServerIds = new Set<string>((data.entries || []).map((r: any) => r.id));
 
     const store = useTeaCompassStore.getState();
-    const localEntries = store.entries;
-    const localById = new Map(localEntries.map(e => [e.id, e]));
+    // Tombstoned ids: locally deleted but not yet confirmed gone on the server.
+    // Drop them from BOTH the server set and local state so a not-yet-deleted
+    // row can't reappear here (the "I deleted it and it came back" bug).
+    const deleted = new Set(store.deletedIds);
+    const serverEntries: TeaCompassEntry[] = (data.entries || [])
+      .map(toCamelCase)
+      .filter((e: TeaCompassEntry) => !deleted.has(e.id));
+    const localEntries = store.entries.filter(e => !deleted.has(e.id));
 
     const merged: TeaCompassEntry[] = [];
     const seenIds = new Set<string>();
@@ -163,6 +169,23 @@ export async function hydrateCompassEntries(): Promise<void> {
 
     // Reaching the server clears any stale "couldn't save" flag.
     useTeaCompassStore.setState({ entries: merged, syncError: false });
+
+    // Reconcile tombstones: a tombstoned id the server no longer has is confirmed
+    // gone — forget it. One it still has means an earlier delete didn't land —
+    // retry it, and forget it only once that retry succeeds.
+    if (store.deletedIds.length > 0) {
+      const confirmedGone = store.deletedIds.filter(id => !rawServerIds.has(id));
+      if (confirmedGone.length) {
+        useTeaCompassStore.setState(s => ({
+          deletedIds: s.deletedIds.filter(id => !confirmedGone.includes(id)),
+        }));
+      }
+      for (const id of store.deletedIds.filter(id => rawServerIds.has(id))) {
+        api.compass.remove(id)
+          .then(() => useTeaCompassStore.setState(s => ({ deletedIds: s.deletedIds.filter(d => d !== id) })))
+          .catch(() => { /* still unreachable — keep tombstone, retry next hydrate */ });
+      }
+    }
   } catch (err) {
     // Offline or error — local data is fine
     console.warn('[TeaCompass] Hydration failed:', err);

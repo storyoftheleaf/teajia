@@ -159,6 +159,12 @@ export interface Customer {
   relationshipKinds?: ContactRelationshipKind[];
   notes?: string;
   source?: string;
+  // Vendor storefront + location (added migration 097). Returned by the customer
+  // list/get as snake_case; used for the Sources thumbnail and map link.
+  business_card_photo?: string;
+  storefront_photo?: string;
+  latitude?: number;
+  longitude?: number;
   createdAt: string;
   updatedAt: string;
   userId?: string;
