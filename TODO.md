@@ -20,6 +20,8 @@
 ### Curate
 
 - [ ] Restyle the Curate capture screen into the Teajia editorial language (structure stays, skin changes) _(band: agent-runnable)_ _(effort: deep)_ → Plan: [curate-capture-restyle.md](todo/plans/curate-capture-restyle.md)
+- [ ] Make Curate deletes survive being offline — queue a failed delete and re-fire it on reconnect, so a row deleted on a blocked network doesn't reappear on reload (the syncError flag now warns, but the delete itself still can't retry) _(band: agent-runnable)_ _(effort: moderate)_
+- [ ] After api.teajia.com is live, confirm voice transcription works from China — the browser→worker leg is fixed by the domain, but the worker→Groq leg is untested from there; add a fallback or save raw audio if Groq is unreachable _(band: you-required)_ _(effort: quick)_
 
 ### MCP: Voice & Agent
 
