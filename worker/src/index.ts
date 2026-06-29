@@ -24,6 +24,15 @@ interface Env {
   // redirects must target the app, not the worker. Defaults to the production
   // site when unset. Override per-env via wrangler vars/secrets.
   APP_URL?: string;
+  // Origin used to build the Google OAuth `redirect_uri`. It must EXACTLY match
+  // one of the "Authorized redirect URIs" on the Google Cloud console OAuth
+  // client, AND be reachable by the user's browser. In mainland China the
+  // *.workers.dev host is blocked, so production pins this to the China-reachable
+  // custom domain (https://api.teajia.com) so the redirect_uri stays correct
+  // even if the worker is reached via workers.dev. Defaults to the inbound
+  // request origin when unset (correct for local dev on localhost).
+  // → Register `${OAUTH_REDIRECT_ORIGIN}/api/auth/google/callback` in Google Cloud.
+  OAUTH_REDIRECT_ORIGIN?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
   ENABLE_DEV_ADMIN?: string;
   // Optional — set to 'true' to echo verification codes in /api/verify/request
@@ -1781,7 +1790,11 @@ const handleGoogleAuth: Handler = async (request, env) => {
   // account panel passes ?return=/ so customers come back to the site.
   const rawReturn = url.searchParams.get('return') || '/admin';
   const returnPath = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin';
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  // Pin the redirect_uri to the China-reachable, Google-registered host. Using
+  // the raw inbound `origin` means a request that arrives via *.workers.dev (or
+  // any preview host) would send an unregistered redirect_uri → Google returns
+  // "Error 400: redirect_uri_mismatch". OAUTH_REDIRECT_ORIGIN keeps it stable.
+  const redirectUri = `${(env.OAUTH_REDIRECT_ORIGIN || origin).replace(/\/$/, '')}/api/auth/google/callback`;
   const state = await signOAuthState(env.JWT_SECRET, returnPath);
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
@@ -1816,7 +1829,9 @@ const handleGoogleCallback: Handler = async (request, env) => {
   const sep = returnPath.includes('?') ? '&' : '?';
   const errRedirect = (e: string) => Response.redirect(`${appOrigin}${returnPath}${sep}oauth_error=${e}`, 302);
 
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  // Must be byte-for-byte identical to the redirect_uri sent in handleGoogleAuth
+  // (Google rejects the token exchange otherwise), so resolve it the same way.
+  const redirectUri = `${(env.OAUTH_REDIRECT_ORIGIN || origin).replace(/\/$/, '')}/api/auth/google/callback`;
   const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

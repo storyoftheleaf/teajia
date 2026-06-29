@@ -441,23 +441,48 @@ function maybeScheduleBackgroundRefresh() {
  *  We rewrite all of those into a single clear message so the sign-in form
  *  (and every other call-site) shows something the user can act on.
  */
+// Transient network failures surface as a `fetch` TypeError (DNS hiccup, TLS
+// reset, momentary offline). In mainland China the most common cause is the
+// GFW resetting a Cloudflare connection mid-handshake — a single dropped packet
+// that an immediate retry sails right past. Without a retry, that one reset
+// became a hard "couldn't reach the server" even though the API was up (this is
+// exactly what made sign-in fail on Chinese networks). Retry network errors a
+// couple of times with short backoff before surfacing the friendly message.
+// HTTP errors (4xx/5xx) are NOT retried — they come back as a resolved Response,
+// never a thrown TypeError, so they skip this path entirely.
+const NETWORK_RETRY_DELAYS_MS = [400, 1200];
+
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } catch (err: any) {
-    if (err?.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
+  let lastErr: any;
+  for (let attempt = 0; attempt <= NETWORK_RETRY_DELAYS_MS.length; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } catch (err: any) {
+      lastErr = err;
+      // Our own timeout aborts share the AbortError name. A timed-out request
+      // is unlikely to fare better on an immediate retry, so surface it.
+      if (err?.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      const isNetworkError = err?.name === 'TypeError';
+      if (isNetworkError && attempt < NETWORK_RETRY_DELAYS_MS.length) {
+        clearTimeout(timeoutId);
+        await new Promise(resolve => setTimeout(resolve, NETWORK_RETRY_DELAYS_MS[attempt]));
+        continue;
+      }
+      dispatchNetworkError();
+      if (isNetworkError) {
+        throw new Error("Couldn't reach the server. Check your connection and try again.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    dispatchNetworkError();
-    if (err?.name === 'TypeError') {
-      throw new Error("Couldn't reach the server. Check your connection and try again.");
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeoutId);
   }
+  // Loop only exits via return/throw above; this satisfies the type checker.
+  throw lastErr;
 }
 
 /** Custom event name dispatched when a 401 response indicates session expiry. */
