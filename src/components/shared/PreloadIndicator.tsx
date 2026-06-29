@@ -7,18 +7,22 @@ export const PreloadIndicator: React.FC = () => {
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
+    // Single hide-timer, not a fresh setTimeout every 200ms tick. The old code
+    // scheduled a new fade-out on every idle tick, so stale timers could fire
+    // mid-load and flicker the bar. Now we arm the hide once and cancel it the
+    // moment loading resumes.
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
     const interval = setInterval(() => {
-      const state = getPreloadState();
-      const count = state.pendingUrls.size;
+      const count = getPreloadState().pendingUrls.size;
       setPendingCount(count);
       if (count > 0) {
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
         setVisible(true);
-      } else {
-        // Fade out after loading finishes
-        setTimeout(() => setVisible(false), 800);
+      } else if (!hideTimer) {
+        hideTimer = setTimeout(() => { setVisible(false); hideTimer = null; }, 800);
       }
     }, 200);
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); if (hideTimer) clearTimeout(hideTimer); };
   }, [getPreloadState]);
 
   if (!visible) return null;

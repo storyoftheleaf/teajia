@@ -3,17 +3,25 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspens
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 
-// Reload once on stale chunk hash (happens after a new deployment)
+// Recover from a stale chunk hash (happens after a new deployment) by reloading
+// once. The previous version returned a forever-pending promise on the SECOND
+// failure, which left the loader spinning on screen permanently — the "stuck
+// refresh" glitch. Now we reload at most once per 10s, and if a load still fails
+// after that, we rethrow so the nearest ErrorBoundary shows a real message
+// (with a reload affordance) instead of an endless spinner.
 function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
   factory: () => Promise<T>
 ): React.LazyExoticComponent<T['default']> {
   return lazy(() =>
-    factory().catch(() => {
-      if (!sessionStorage.getItem('chunkReloaded')) {
-        sessionStorage.setItem('chunkReloaded', '1');
+    factory().catch((err) => {
+      const last = Number(sessionStorage.getItem('chunkReloadAt') || '0');
+      const now = Date.now();
+      if (now - last > 10_000) {
+        sessionStorage.setItem('chunkReloadAt', String(now));
         window.location.reload();
+        return new Promise<T>(() => {}); // page is reloading; brief suspend is fine
       }
-      return new Promise<T>(() => {}); // suspend forever while reloading
+      throw err; // already tried a reload — surface to the ErrorBoundary, don't hang
     })
   );
 }
@@ -163,7 +171,7 @@ import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
-import { SectionSkeleton } from './components/shared/SectionSkeleton';
+import { EmblemLoader } from './components/shared/EmblemLoader';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
 import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
@@ -765,7 +773,7 @@ const AppContent = () => {
       } transition-[margin,max-width] duration-300`}>
 
       {isAdminRoute ? (
-        <Suspense fallback={<SectionSkeleton variant="list" />}>
+        <Suspense fallback={<EmblemLoader />}>
           <Routes>
             <Route path="/admin/*" element={
               <AdminApp
@@ -786,7 +794,7 @@ const AppContent = () => {
                 <Route path="/" element={
                   hostStoreSlug ? (
                     <ErrorBoundary>
-                      <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                      <Suspense fallback={<EmblemLoader />}>
                         <Storefront
                           slug={hostStoreSlug}
                           onAddToCart={handleAddToCart}
@@ -839,63 +847,63 @@ const AppContent = () => {
                 } />
                 <Route path="/article/:slug" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <ArticleRouteSwitch />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 {/* Immersive long-reads — espresso + gold scrolling articles for the Read section. */}
                 <Route path="/read" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ReadIndex /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ReadIndex /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/leaf-to-liquor" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LeafToLiquor /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LeafToLiquor /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/leaf-to-liquor/:template" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LeafToLiquor /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LeafToLiquor /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/rock-remembers" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><RockRemembers /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RockRemembers /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/earth-water-fire" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EarthWaterFire /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EarthWaterFire /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/before-the-mist" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><BeforeTheMist /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><BeforeTheMist /></Suspense></ErrorBoundary>
                 } />
                 {/* The 10 templates ported from the Tea Article Redesign design project. */}
                 <Route path="/read/atlas" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><AtlasMapOfMountains /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/craft" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftPotThatRemembers /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/porcelain-and-tea" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CraftRenewalPorcelain /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/essay" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><EssayLongWayToCup /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/field-notes" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldNotesTwoRoomsBali /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/field-study" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><FieldStudyWaterBeforeLeaf /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/history" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><HistoryTenThousandMornings /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/legend" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><LegendImmortalsCliff /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/ritual" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><RitualSevenSteeps /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/tasting" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TastingVocabularyOfTaste /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/read/tea-house" element={
-                  <ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><TeaHouseQuietHours /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/craft" element={
                   <ErrorBoundary>
@@ -906,7 +914,7 @@ const AppContent = () => {
                 <Route path="/learn" element={<Navigate to="/craft" replace />} />
                 <Route path="/shop" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
                         <Shop teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
                       </div>
@@ -915,7 +923,7 @@ const AppContent = () => {
                 } />
                 <Route path="/shop/product/:id" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <div className="w-full animate-[fadeIn_0.5s_ease-out]">
                         <ShopProductLoader teaInventory={teaInventory} teawareInventory={teawareInventory} onAddToCart={handleAddToCart} cartItemCount={cart.length} onCartClick={handleOpenCart} onAccountClick={handleOpenAccount} isLoading={inventoryLoading} isError={inventoryError} error={inventoryErrorObj} onRetry={refetchInventory} />
                       </div>
@@ -931,35 +939,35 @@ const AppContent = () => {
                 <Route path="/consult" element={<Navigate to="/advise" replace />} />
                 <Route path="/for-your-space" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <ForYourSpacePage />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/spaces" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <SpacesPage />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/start" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="grid" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <StartHerePage />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/discover" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="grid" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <DiscoverPage />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/store-launch-playbook" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <StoreLaunchPlaybookPage />
                     </Suspense>
                   </ErrorBoundary>
@@ -967,56 +975,56 @@ const AppContent = () => {
                 <Route path="/stores/playbook" element={<Navigate to="/store-launch-playbook" replace />} />
                 <Route path="/collection" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <SharedCollection />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
-                <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><McpPage /></Suspense></ErrorBoundary>} />
+                <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
                 {/* /compass is admin-only at /admin/compass — public route removed.
                     Members use /account/journal for tasting; Compass is sourcing + ledger only. */}
                 <Route path="/compass" element={<Navigate to="/account/journal" replace />} />
                 <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
-                <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><JournalPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CollectionPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
-                <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignInPage /></Suspense></ErrorBoundary>} />
-                <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SignUpPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/saved" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SavedStoriesPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/history" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><ReadingHistoryPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><BriefingPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
+                <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
+                <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignUpPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/saved" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SavedStoriesPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/history" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ReadingHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/tabs" element={<ErrorBoundary><Suspense fallback={null}><TabStyleDemo /></Suspense></ErrorBoundary>} />
                 <Route path="/design/palette-preview" element={<ErrorBoundary><Suspense fallback={null}><PalettePreviewPage /></Suspense></ErrorBoundary>} />
                 <Route path="/design/article-editor" element={<ErrorBoundary><Suspense fallback={null}><ArticleEditorHarness /></Suspense></ErrorBoundary>} />
                 <Route path="/design/system" element={<ErrorBoundary><Suspense fallback={null}><DesignSystemShowcase /></Suspense></ErrorBoundary>} />
-                <Route path="/events" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><EventsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventLanding /></Suspense></ErrorBoundary>} />
-                <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><EventRecapPage /></Suspense></ErrorBoundary>} />
-                <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestManagement /></Suspense></ErrorBoundary>} />
-                <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><OrderStatusPage /></Suspense></ErrorBoundary>} />
-                <Route path="/reset-password" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ResetPasswordPage /></Suspense></ErrorBoundary>} />
-                <Route path="/journey" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JourneyPage /></Suspense></ErrorBoundary>} />
-                <Route path="/passport/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><PassportPage /></Suspense></ErrorBoundary>} />
-                <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
-                <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SamplePage /></Suspense></ErrorBoundary>} />
-                <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShareCardPage /></Suspense></ErrorBoundary>} />
-                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
-                <Route path="/me" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="list" />}><CenterPage /></Suspense></ErrorBoundary>} />
-                <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><SessionPage /></Suspense></ErrorBoundary>} />
-                <Route path="/join" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
-                <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><JoinPage /></Suspense></ErrorBoundary>} />
-                <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><TableCardPage /></Suspense></ErrorBoundary>} />
+                <Route path="/events" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventsPage /></Suspense></ErrorBoundary>} />
+                <Route path="/event/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventLanding /></Suspense></ErrorBoundary>} />
+                <Route path="/event/:slug/recap" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><EventRecapPage /></Suspense></ErrorBoundary>} />
+                <Route path="/m/:magicToken" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestManagement /></Suspense></ErrorBoundary>} />
+                <Route path="/order/:ref" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderStatusPage /></Suspense></ErrorBoundary>} />
+                <Route path="/reset-password" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ResetPasswordPage /></Suspense></ErrorBoundary>} />
+                <Route path="/journey" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JourneyPage /></Suspense></ErrorBoundary>} />
+                <Route path="/passport/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PassportPage /></Suspense></ErrorBoundary>} />
+                <Route path="/invite/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><GuestInviteClaimPage /></Suspense></ErrorBoundary>} />
+                <Route path="/s/:sampleId" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SamplePage /></Suspense></ErrorBoundary>} />
+                <Route path="/share/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ShareCardPage /></Suspense></ErrorBoundary>} />
+                <Route path="/c/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><PublicCollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/me" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CenterPage /></Suspense></ErrorBoundary>} />
+                <Route path="/session/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SessionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/join" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
+                <Route path="/join/:code" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JoinPage /></Suspense></ErrorBoundary>} />
+                <Route path="/t/:token" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><TableCardPage /></Suspense></ErrorBoundary>} />
                 {/* Stock spine step 5 — standalone public shelf. /u/ avoids the /t/:token collision. */}
-                <Route path="/u/:slug" element={<ErrorBoundary><Suspense fallback={<SectionSkeleton variant="hero" />}><ShelfPage /></Suspense></ErrorBoundary>} />
+                <Route path="/u/:slug" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ShelfPage /></Suspense></ErrorBoundary>} />
                 <Route path="/find-a-table" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="grid" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <FindATable />
                     </Suspense>
                   </ErrorBoundary>
@@ -1025,7 +1033,7 @@ const AppContent = () => {
                 <Route path="/community" element={<Navigate to="/find-a-table" replace />} />
                 <Route path="/store/:slug" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <Storefront
                         onAddToCart={handleAddToCart}
                         onCartClick={handleOpenCart}
@@ -1037,14 +1045,14 @@ const AppContent = () => {
                 } />
                 <Route path="/people/:slug" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="hero" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <ContributorProfilePage />
                     </Suspense>
                   </ErrorBoundary>
                 } />
                 <Route path="/people" element={
                   <ErrorBoundary>
-                    <Suspense fallback={<SectionSkeleton variant="list" />}>
+                    <Suspense fallback={<EmblemLoader />}>
                       <ContributorsIndexPage />
                     </Suspense>
                   </ErrorBoundary>
@@ -1077,7 +1085,7 @@ const AppContent = () => {
 
       {viewState === 'READER' && selectedStory && (
          <ImagePreloaderProvider>
-           <Suspense fallback={<SectionSkeleton variant="grid" />}>
+           <Suspense fallback={<EmblemLoader />}>
              <Reader
                story={selectedStory}
                onBack={handleBackToBrowse}
@@ -1095,7 +1103,7 @@ const AppContent = () => {
       )}
 
       {viewState === 'STORY_VIEW' && selectedStory && (
-         <Suspense fallback={<SectionSkeleton variant="grid" />}>
+         <Suspense fallback={<EmblemLoader />}>
            <MediaViewer
               story={selectedStory}
               onBack={handleBackToBrowse}
@@ -1107,7 +1115,7 @@ const AppContent = () => {
       )}
 
       {viewState === 'PHOTO_ESSAY' && selectedStory && (
-         <Suspense fallback={<SectionSkeleton variant="grid" />}>
+         <Suspense fallback={<EmblemLoader />}>
            <VisualFeatureViewer
               story={selectedStory}
               onBack={handleBackToBrowse}
