@@ -326,6 +326,9 @@ export const SourcesView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Customer | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  // "Needs info" filter — show only vendors started but not yet connected (no
+  // way to reach them). Lets a vendor captured in person be finished later.
+  const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false);
 
   const [pendingDeleteSource, setPendingDeleteSource] = useState<Customer | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -366,6 +369,11 @@ export const SourcesView = () => {
       .map(c => ({ ...c, teaCount: teaCountMap[c.id] || 0 }));
   }, [customers, teaCountMap]);
 
+  // A vendor "needs info" when there's no way to reach it yet — the signature of
+  // one started in person (a name, maybe a photo) but not finished.
+  const isIncomplete = useCallback((s: SourceRow) => !s.email && !s.phone && !s.whatsapp, []);
+  const incompleteCount = useMemo(() => allSources.filter(isIncomplete).length, [allSources, isIncomplete]);
+
   // Get products for a specific source by vendor name
   const getSourceProducts = useCallback((sourceName: string) => {
     const nameLower = sourceName.toLowerCase();
@@ -386,6 +394,11 @@ export const SourcesView = () => {
     // Search
     if (searchQuery) {
       result = fuse.search(searchQuery).map(r => r.item);
+    }
+
+    // "Needs info" filter
+    if (showOnlyIncomplete) {
+      result = result.filter(isIncomplete);
     }
 
     // Multi-level Sort
@@ -410,7 +423,7 @@ export const SourcesView = () => {
       }
       return 0;
     });
-  }, [allSources, searchQuery, sortConfig, fuse]);
+  }, [allSources, searchQuery, sortConfig, fuse, showOnlyIncomplete, isIncomplete]);
 
   // Grouped data
   const groupedSources = useMemo(() => {
@@ -629,6 +642,9 @@ export const SourcesView = () => {
                 <span className="text-sm font-serif text-tea-text tracking-wide group-hover:text-tea-gold transition-colors truncate">
                   {source.name}
                 </span>
+              )}
+              {isIncomplete(source) && (
+                <span className="mt-0.5 text-ui-9 text-tea-gold/80 uppercase tracking-[0.08em]">Needs info</span>
               )}
             </div>
           </td>
@@ -885,6 +901,17 @@ export const SourcesView = () => {
             {processedSources.length}
           </span>
 
+          {incompleteCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowOnlyIncomplete(v => !v)}
+              className={`shrink-0 ml-1.5 px-2 h-6 rounded-md text-ui-10 font-medium tabular-nums transition-colors ${showOnlyIncomplete ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-gold/[0.07] text-tea-gold/80'}`}
+              aria-pressed={showOnlyIncomplete}
+            >
+              {incompleteCount} need info
+            </button>
+          )}
+
           <div className="flex-1" />
 
           {/* Search */}
@@ -1007,6 +1034,18 @@ export const SourcesView = () => {
           <span className="label-caps text-tea-text-dim shrink-0">
             {isEditMode ? 'CLICK CELLS TO EDIT' : `${processedSources.length} VENDORS`}
           </span>
+
+          {incompleteCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowOnlyIncomplete(v => !v)}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md text-ui-11 font-medium tabular-nums transition-colors ${showOnlyIncomplete ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-gold/[0.07] text-tea-gold/80 hover:bg-tea-gold/[0.12]'}`}
+              aria-pressed={showOnlyIncomplete}
+              title="Vendors with no contact yet — tap to show only these"
+            >
+              {incompleteCount} need info
+            </button>
+          )}
 
           <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
@@ -1163,7 +1202,12 @@ export const SourcesView = () => {
                   >
                     <VendorAvatar name={source.name} size={36} />
                     <div className="flex-1 min-w-0">
-                      <div className="font-display text-ui-15 text-tea-text truncate">{source.name}</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-display text-ui-15 text-tea-text truncate">{source.name}</span>
+                        {isIncomplete(source) && (
+                          <span className="shrink-0 px-1.5 py-0.5 rounded bg-tea-gold/[0.1] text-tea-gold/90 text-ui-9 uppercase tracking-[0.06em]">Needs info</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 text-ui-12 text-tea-text-dim mt-0.5">
                         {source.company && <span className="truncate">{source.company}</span>}
                         {source.company && source.country && <span className="opacity-40">·</span>}
