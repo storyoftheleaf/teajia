@@ -2,6 +2,12 @@ name = "teajia-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
+# Keep the *.workers.dev host alive alongside the custom domain. Adding a
+# [[routes]] block makes wrangler disable workers.dev by default, which would
+# break the live site (it still points at workers.dev until VITE_API_URL is
+# switched). Both hosts must serve during the cutover.
+workers_dev = true
+
 # Custom domain for the API. The default *.workers.dev host is blocked in
 # mainland China, so all writes (photo upload, transcription, compass sync)
 # silently fail there. Serving the API from the teajia.com zone — which IS
