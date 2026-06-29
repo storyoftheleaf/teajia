@@ -21,13 +21,15 @@ import { BottomSheet, SheetOption } from '../shared/BottomSheet';
  * integer.
  */
 
+// Yuan (CNY) and Yen (JPY) share the ¥ glyph in real life, so we prefix them
+// (CN¥ / JP¥) to keep the sourcing price selector unambiguous at a glance.
 const CURRENCY_LABELS: Record<Currency, string> = {
   NT: 'NT$',
   USD: '$',
-  Yuan: '¥',
+  Yuan: 'CN¥',
   MYR: 'RM',
   IDR: 'Rp',
-  JPY: '¥',
+  JPY: 'JP¥',
   HKD: 'HK$',
   AUD: 'A$',
   UNK: '?',

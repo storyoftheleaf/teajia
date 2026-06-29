@@ -102,17 +102,22 @@ export async function syncCompassEntries(): Promise<number> {
       store.updateEntry(entry.id, { synced: true });
       // updateEntry sets synced=false, so we need to force it back
     }
-    // Direct state update to set synced=true without triggering the synced=false logic
+    // Direct state update to set synced=true without triggering the synced=false logic.
+    // Also clear any prior sync-error flag — we just reached the server.
     useTeaCompassStore.setState((state) => ({
       entries: state.entries.map(e =>
         unsynced.some(u => u.id === e.id) ? { ...e, synced: true } : e
       ),
+      syncError: false,
     }));
 
     return result.synced;
   } catch (err) {
-    // Offline or error — do NOT mark entries as synced; they will retry next cycle
+    // Offline or error — do NOT mark entries as synced; they will retry next cycle.
+    // Flag it so the UI can say "couldn't save" rather than leaving the user to
+    // assume a local-only change persisted.
     console.warn('[TeaCompass] Sync failed:', err);
+    useTeaCompassStore.setState({ syncError: true });
     return 0;
   }
 }
@@ -156,7 +161,8 @@ export async function hydrateCompassEntries(): Promise<void> {
     // Sort by createdAt DESC
     merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    useTeaCompassStore.setState({ entries: merged });
+    // Reaching the server clears any stale "couldn't save" flag.
+    useTeaCompassStore.setState({ entries: merged, syncError: false });
   } catch (err) {
     // Offline or error — local data is fine
     console.warn('[TeaCompass] Hydration failed:', err);

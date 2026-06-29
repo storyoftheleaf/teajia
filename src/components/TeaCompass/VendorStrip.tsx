@@ -10,6 +10,42 @@ import { compressImage } from '../../lib/imageCompressor';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { VendorDetails } from './types';
 
+/* ── Location parsing ───────────────────────────────────────
+ * Pull WGS-84 coordinates out of a pasted map link OR a plain "lat, lng"
+ * string. Lets a shop's location be recorded by pasting from whatever map
+ * app works locally — Google Maps is blocked in mainland China, so we can't
+ * assume it. Handles Google / Apple / OSM / Amap links and bare pairs. */
+export function parseLatLng(raw: string): { lat: number; lng: number } | null {
+  if (!raw) return null;
+  let s = raw.trim();
+  try { s = decodeURIComponent(s); } catch { /* leave as-is if not encoded */ }
+  const ok = (lat: number, lng: number) =>
+    Number.isFinite(lat) && Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+
+  // Amap puts longitude first: position=LNG,LAT — check before generic lat,lng.
+  const amap = s.match(/position=(-?\d+\.\d+),(-?\d+\.\d+)/i);
+  if (amap) { const lng = parseFloat(amap[1]), lat = parseFloat(amap[2]); if (ok(lat, lng)) return { lat, lng }; }
+
+  // Google place URLs encode the pin as !3dLAT!4dLNG.
+  const g3d = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (g3d) { const lat = parseFloat(g3d[1]), lng = parseFloat(g3d[2]); if (ok(lat, lng)) return { lat, lng }; }
+
+  // OSM share links: mlat=LAT ... mlon=LNG.
+  const osm = s.match(/mlat=(-?\d+\.\d+)[^]*?mlon=(-?\d+\.\d+)/i);
+  if (osm) { const lat = parseFloat(osm[1]), lng = parseFloat(osm[2]); if (ok(lat, lng)) return { lat, lng }; }
+
+  // Common LAT,LNG carriers: @lat,lng or q=/ll=/sll=/center=/coordinate=lat,lng.
+  const kv = s.match(/(?:[?&](?:q|ll|sll|center|coordinate)=|@)(-?\d+\.\d+),\s*(-?\d+\.\d+)/i);
+  if (kv) { const lat = parseFloat(kv[1]), lng = parseFloat(kv[2]); if (ok(lat, lng)) return { lat, lng }; }
+
+  // Bare "lat, lng" pair anywhere (last resort).
+  const bare = s.match(/(-?\d{1,2}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/);
+  if (bare) { const lat = parseFloat(bare[1]), lng = parseFloat(bare[2]); if (ok(lat, lng)) return { lat, lng }; }
+
+  return null;
+}
+
 /* ── Types ──────────────────────────────────────────────── */
 
 interface Vendor {
@@ -131,6 +167,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [creatingNew, setCreatingNew] = useState(false);
   const [newName, setNewName] = useState('');
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [locInput, setLocInput] = useState('');
+  const [locError, setLocError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const newNameRef = useRef<HTMLInputElement>(null);
@@ -298,6 +336,20 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  // Parse a pasted map link / coordinate pair and store it. Clears on success;
+  // flags an error so the field can say "couldn't read that link" on failure.
+  const commitLocation = () => {
+    if (!locInput.trim()) { setLocError(false); return; }
+    const parsed = parseLatLng(locInput);
+    if (parsed) {
+      onDetailsChange({ ...vendorDetails, lat: parsed.lat, lng: parsed.lng });
+      setLocInput('');
+      setLocError(false);
+    } else {
+      setLocError(true);
+    }
   };
 
   // Close contact menu on outside click
@@ -695,8 +747,10 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                       <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.lat != null && vendorDetails?.lng != null && (
+                      // OpenStreetMap rather than Google Maps — Google is blocked in
+                      // mainland China, so its link is dead exactly where this gets used.
                       <a
-                        href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                        href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-gold transition-colors"
@@ -711,6 +765,24 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
 
                 {/* Contact fields */}
                 <div className="space-y-1.5">
+                  {/* Location — paste a map link or coordinates from any maps app.
+                      Works without Google Maps (blocked in China); the GPS pin
+                      button elsewhere remains the at-the-shop shortcut. */}
+                  <div className="flex items-center gap-2">
+                    <MapPin size={14} className="text-tea-text-dim shrink-0" />
+                    <input
+                      type="text"
+                      value={locInput}
+                      onChange={(e) => { setLocInput(e.target.value); if (locError) setLocError(false); }}
+                      onBlur={commitLocation}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitLocation(); } }}
+                      placeholder="Paste map link or 'lat, lng'"
+                      className="flex-1 input-warm text-base rounded-md px-3 py-2 placeholder:text-tea-text-dim outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
+                    />
+                  </div>
+                  {locError && (
+                    <p className="text-ui-11 text-tea-error pl-6">Couldn't read coordinates from that — try a "lat, lng" pair.</p>
+                  )}
                   <div className="flex items-center gap-2">
                     <Phone size={14} className="text-tea-text-dim shrink-0" />
                     <input

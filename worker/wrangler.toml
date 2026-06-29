@@ -2,6 +2,17 @@ name = "teajia-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
+# Custom domain for the API. The default *.workers.dev host is blocked in
+# mainland China, so all writes (photo upload, transcription, compass sync)
+# silently fail there. Serving the API from the teajia.com zone — which IS
+# reachable in China, since the site loads — fixes that. `custom_domain = true`
+# provisions the DNS record + TLS cert on `wrangler deploy`, provided the
+# teajia.com zone lives on this Cloudflare account. The *.workers.dev host
+# keeps working in parallel, so this is a safe, additive cutover.
+[[routes]]
+pattern = "api.teajia.com"
+custom_domain = true
+
 # Secrets (set via `wrangler secret put`, never committed):
 #   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  — Google OAuth (local dev reads them from worker/.dev.vars)
 #   JWT_SECRET, ADMIN_PASSWORD_HASH         — auth

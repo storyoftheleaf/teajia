@@ -17,6 +17,7 @@ import { syncCompassEntries } from '../../lib/teaCompassSync';
  */
 export const SyncIndicator: React.FC = () => {
   const unsyncedCount = useTeaCompassStore((s) => s.entries.filter(e => !e.synced).length);
+  const syncError = useTeaCompassStore((s) => s.syncError);
   const [syncing, setSyncing] = useState(false);
   const [showSavedFlash, setShowSavedFlash] = useState(false);
 
@@ -34,8 +35,8 @@ export const SyncIndicator: React.FC = () => {
 
   const isPending = unsyncedCount > 0;
 
-  // Quiet path — fully synced and not flashing the just-saved confirmation.
-  if (!isPending && !syncing && !showSavedFlash) return null;
+  // Quiet path — fully synced, no error, and not flashing the just-saved confirmation.
+  if (!isPending && !syncing && !showSavedFlash && !syncError) return null;
 
   if (syncing) {
     return (
@@ -58,6 +59,25 @@ export const SyncIndicator: React.FC = () => {
         <Cloud size={12} />
         <span>Saved</span>
       </div>
+    );
+  }
+
+  // Couldn't reach the server — say so plainly and offer a retry. Takes priority
+  // over the neutral "unsaved" count so the user knows it's a connection problem,
+  // not just work pending. This is the signal that was missing when changes
+  // silently failed to save (e.g. on a blocked network).
+  if (syncError) {
+    return (
+      <button
+        type="button"
+        onClick={handleSync}
+        className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-error/[0.10] text-tea-error border border-tea-error/30 hover:bg-tea-error/[0.16] transition-colors text-ui-11 font-medium"
+        aria-label="Couldn't save to the server — tap to retry"
+        title="Couldn't reach the server — tap to retry"
+      >
+        <CloudOff size={12} strokeWidth={1.75} />
+        <span>Not saved — retry</span>
+      </button>
     );
   }
 

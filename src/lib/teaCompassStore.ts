@@ -33,6 +33,12 @@ interface TeaCompassState {
   currentSessionId: string | null;
   lastCaptureAt: number | null;
 
+  // Sync health — true when the most recent server write (entry sync OR delete)
+  // failed to reach D1. Lets the UI say "couldn't save, check connection" instead
+  // of silently pretending a local-only change persisted (the China/offline trap).
+  syncError: boolean;
+  setSyncError: (failed: boolean) => void;
+
   // Pricing formula — shipping rate used in retail preview (same currency as entry cost)
   shippingRatePerKg: number;
   setShippingRatePerKg: (rate: number) => void;
@@ -120,8 +126,11 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       browseLayout: 'list',
       currentSessionId: null,
       lastCaptureAt: null,
+      syncError: false,
       shippingRatePerKg: 0,
       customEras: [],
+
+      setSyncError: (failed) => set({ syncError: failed }),
 
       setShippingRatePerKg: (rate) => set({ shippingRatePerKg: rate }),
 
@@ -170,7 +179,13 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         // entry: a row that never reached D1 just no-ops the DELETE (the
         // worker's WHERE clause matches nothing), which is harmless.
         if (existed && hasToken()) {
-          void api.compass.remove(id).catch(() => { /* already gone or offline — local removal stands */ });
+          // A row that never reached D1 no-ops the DELETE harmlessly (WHERE matches
+          // nothing → 200). A thrown error means we genuinely couldn't reach the
+          // server, so flag it: otherwise the row silently reappears on next
+          // hydrate and the delete looks like it "didn't take".
+          void api.compass.remove(id)
+            .then(() => set({ syncError: false }))
+            .catch(() => set({ syncError: true }));
         }
       },
 

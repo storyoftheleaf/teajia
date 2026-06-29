@@ -269,8 +269,9 @@ function sourceStatus(source: SourceRow): { variant: StatusPillVariant; label: s
 }
 
 // ── Currency formatting ──
+// CN¥ / JP¥ rather than a bare ¥ so Yuan and Yen never read as the same currency.
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', UNK: '',
+  USD: '$', NT: 'NT$', Yuan: 'CN¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', UNK: '',
 };
 
 function fmtPrice(amount: number, cur: string): string {

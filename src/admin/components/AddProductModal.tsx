@@ -920,7 +920,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                       <option value="NT" className="bg-tea-surface text-tea-text">NT</option>
                       <option value="Yuan" className="bg-tea-surface text-tea-text">Yuan (CNY)</option>
                       <option value="IDR" className="bg-tea-surface text-tea-text">IDR</option>
-                      <option value="JPY" className="bg-tea-surface text-tea-text">JPY</option>
+                      <option value="JPY" className="bg-tea-surface text-tea-text">Yen (JPY)</option>
                       <option value="MYR" className="bg-tea-surface text-tea-text">MYR</option>
                     </select>
                     <input

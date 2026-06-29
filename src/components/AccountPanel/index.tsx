@@ -37,8 +37,8 @@ interface AccountPanelProps {
 const CURRENCY_OPTIONS: { code: Currency; label: string; symbol: string }[] = [
   { code: 'USD', label: 'US Dollar', symbol: '$' },
   { code: 'NT', label: 'Taiwan Dollar', symbol: 'NT$' },
-  { code: 'Yuan', label: 'Chinese Yuan', symbol: '¥' },
-  { code: 'JPY', label: 'Japanese Yen', symbol: '¥' },
+  { code: 'Yuan', label: 'Chinese Yuan', symbol: 'CN¥' },
+  { code: 'JPY', label: 'Japanese Yen', symbol: 'JP¥' },
   { code: 'MYR', label: 'Malaysian Ringgit', symbol: 'RM' },
   { code: 'IDR', label: 'Indonesian Rupiah', symbol: 'Rp' },
   { code: 'AUD', label: 'Australian Dollar', symbol: 'A$' },
