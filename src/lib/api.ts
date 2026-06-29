@@ -146,12 +146,18 @@ export interface PurchaseOrderItem {
 
 import { useAppStore } from './store';
 
-// Production always talks to the custom domain api.teajia.com. The default
-// *.workers.dev host is blocked in mainland China, so anything pointed at it
-// silently fails there (photo upload, transcription, compass sync). Dev still
-// honors VITE_API_URL so local work can target a local worker or workers.dev.
+// Production talks to the API on the app's OWN origin (teajia.com /
+// www.teajia.com), NOT a dedicated api.* host. The custom domain api.teajia.com
+// — like *.workers.dev — is blocked/reset by the Great Firewall, so anything
+// pointed at it silently fails in mainland China (sign-in, photo upload,
+// transcription, compass sync) even though the site itself loads fine. The
+// `teajia.com/api/*` path is served by a Cloudflare Pages Function
+// (functions/api/[[path]].ts) that forwards to the Worker edge-side, so calls
+// ride the one hostname that stays reachable in China. Using the live origin
+// (rather than a bare '') keeps API_URL truthy so the "Continue with Google"
+// surfaces still render. Dev honors VITE_API_URL to target a local/workers.dev API.
 export const API_URL = import.meta.env.PROD
-  ? 'https://api.teajia.com'
+  ? (typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com')
   : (import.meta.env.VITE_API_URL || '');
 const REQUEST_TIMEOUT_MS = 30_000;
 

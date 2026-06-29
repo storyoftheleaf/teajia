@@ -28,9 +28,18 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+          // Never serve the SPA shell for API paths — they must always hit the
+          // network (and the edge proxy / Worker), including the Google OAuth
+          // top-level navigation to /api/auth/google.
+          navigateFallbackDenylist: [/^\/api\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/teajia-api\.lightcodes\.workers\.dev\/api\//,
+              // Same-origin API reads (the app now calls /api/* on its own
+              // origin via the China-reachable Pages proxy). NetworkFirst lets
+              // a jumpy/firewalled GET fall back to the last-good response
+              // instead of failing outright. POSTs (login etc.) are never
+              // cached by Workbox, so auth always goes to the network.
+              urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-cache',

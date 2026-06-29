@@ -7,7 +7,10 @@ import type { Account, PublicProduct, PublicProductType, InventoryItem } from '.
 import type { TeaEvent } from '../types/events';
 import { publicProductToInventoryItem } from './adapters';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+// In production, call the API on the app's own origin (relative paths) so it
+// rides the China-reachable hostname via the Pages Function proxy — see the
+// note in src/lib/api.ts. Dev still targets VITE_API_URL.
+const API_URL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || '');
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
