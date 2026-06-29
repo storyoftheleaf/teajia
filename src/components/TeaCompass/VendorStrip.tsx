@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, X, Plus, Camera, Check, Phone,
   MessageCircle, ExternalLink,
-  Contact, Image, Link,
+  Contact, Image, Link, Loader2, AlertCircle,
 } from 'lucide-react';
 import { api, hasToken } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -169,6 +169,9 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const [geoState, setGeoState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [locInput, setLocInput] = useState('');
   const [locError, setLocError] = useState(false);
+  // Photo upload feedback — which photo is uploading, and whether the last try failed.
+  const [photoUploading, setPhotoUploading] = useState<null | 'businessCardUrl' | 'storefrontUrl'>(null);
+  const [photoError, setPhotoError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const newNameRef = useRef<HTMLInputElement>(null);
@@ -386,34 +389,36 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    setPhotoError(false);
+    setPhotoUploading(key);
     try {
       const compressed = await compressImage(file, 1200, 0.7);
       const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile);
-      if (imageUrl) {
-        // For storefront photos, auto-capture GPS if we don't already have coordinates
-        if (key === 'storefrontUrl' && vendorDetails?.lat == null && navigator.geolocation) {
+      if (!imageUrl) throw new Error('upload returned no url');
+      // For storefront photos, auto-capture GPS if we don't already have coordinates.
+      // Awaited so the "uploading" state stays until the photo is actually stored.
+      if (key === 'storefrontUrl' && vendorDetails?.lat == null && navigator.geolocation) {
+        await new Promise<void>((resolve) => {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
-              onDetailsChange({
-                ...vendorDetails,
-                [key]: imageUrl,
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-              });
+              onDetailsChange({ ...vendorDetails, [key]: imageUrl, lat: pos.coords.latitude, lng: pos.coords.longitude });
+              resolve();
             },
-            () => {
-              // GPS failed — still save the photo
-              updateDetail(key, imageUrl);
-            },
+            () => { updateDetail(key, imageUrl); resolve(); }, // GPS failed — still save the photo
             { enableHighAccuracy: true, timeout: 10000 }
           );
-        } else {
-          updateDetail(key, imageUrl);
-        }
+        });
+      } else {
+        updateDetail(key, imageUrl);
       }
-    } catch { /* ignore */ }
-    setContactMenuOpen(false);
+    } catch {
+      // No longer silent — the user needs to know the photo didn't save (the China
+      // network trap was masking exactly this). Menu stays open so they can retry.
+      setPhotoError(true);
+    } finally {
+      setPhotoUploading(null);
+    }
   };
 
   const hasDetails = vendorDetails && (
@@ -458,21 +463,37 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   <button
                     type="button"
                     onClick={() => businessCardRef.current?.click()}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                    disabled={photoUploading != null}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors disabled:opacity-60"
                   >
                     <Camera size={14} strokeWidth={1.5} />
-                    <span className="text-ui-13">{vendorDetails?.businessCardUrl ? 'Update business card' : 'Business card'}</span>
-                    {vendorDetails?.businessCardUrl && <Check size={12} className="ml-auto text-tea-gold" />}
+                    <span className="text-ui-13">{photoUploading === 'businessCardUrl' ? 'Uploading…' : vendorDetails?.businessCardUrl ? 'Update business card' : 'Business card'}</span>
+                    {photoUploading === 'businessCardUrl' ? (
+                      <Loader2 size={14} className="ml-auto animate-spin text-tea-gold" />
+                    ) : vendorDetails?.businessCardUrl ? (
+                      <img src={vendorDetails.businessCardUrl} alt="Business card" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
+                    ) : null}
                   </button>
                   <button
                     type="button"
                     onClick={() => storefrontRef.current?.click()}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
+                    disabled={photoUploading != null}
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors disabled:opacity-60"
                   >
                     <Image size={14} strokeWidth={1.5} />
-                    <span className="text-ui-13">{vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
-                    {vendorDetails?.storefrontUrl && <Check size={12} className="ml-auto text-tea-gold" />}
+                    <span className="text-ui-13">{photoUploading === 'storefrontUrl' ? 'Uploading…' : vendorDetails?.storefrontUrl ? 'Update storefront' : 'Storefront photo'}</span>
+                    {photoUploading === 'storefrontUrl' ? (
+                      <Loader2 size={14} className="ml-auto animate-spin text-tea-gold" />
+                    ) : vendorDetails?.storefrontUrl ? (
+                      <img src={vendorDetails.storefrontUrl} alt="Storefront" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
+                    ) : null}
                   </button>
+                  {photoError && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 text-ui-11 text-tea-error">
+                      <AlertCircle size={12} />
+                      <span>Photo didn't save — check your connection and try again.</span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => { handleGeoPin(); setContactMenuOpen(false); }}
