@@ -9,7 +9,7 @@ Font.register({
 });
 
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
-  USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
+  USD: '$', NT: 'NT$', Yuan: 'CN¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', AUD: 'A$', UNK: '',
 };
 
 function fmtPrice(amount: number, currency: Currency): string {

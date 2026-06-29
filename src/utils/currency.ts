@@ -15,11 +15,11 @@ export const DEFAULT_EXCHANGE_RATES: Record<CostCurrency, number> = {
 export const CURRENCY_SYMBOLS: Record<CostCurrency, string> = {
   USD: '$',
   IDR: 'Rp',
-  CNY: '¥',
+  CNY: 'CN¥',
   TWD: 'NT$',
   MYR: 'RM',
   HKD: 'HK$',
-  JPY: '¥',
+  JPY: 'JP¥',
 };
 
 export const CURRENCY_NAMES: Record<CostCurrency, string> = {

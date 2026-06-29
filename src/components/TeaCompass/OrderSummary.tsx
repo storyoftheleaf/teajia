@@ -17,9 +17,9 @@ interface OrderSummaryProps {
 const CURRENCY_SYMBOLS: Record<Currency, string> = {
   USD: '$',
   NT: 'NT$',
-  Yuan: '¥',
+  Yuan: 'CN¥',
   IDR: 'Rp',
-  JPY: '¥',
+  JPY: 'JP¥',
   MYR: 'RM',
   HKD: 'HK$',
   AUD: 'A$',

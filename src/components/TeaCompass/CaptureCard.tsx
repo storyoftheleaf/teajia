@@ -81,7 +81,7 @@ const TEA_TYPE_DESCRIPTIONS: Record<string, string> = {
 };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  NT: 'NT$', USD: '$', Yuan: '¥', MYR: 'RM', IDR: 'Rp', JPY: '¥', HKD: 'HK$', UNK: '?',
+  NT: 'NT$', USD: '$', Yuan: 'CN¥', MYR: 'RM', IDR: 'Rp', JPY: 'JP¥', HKD: 'HK$', UNK: '?',
 };
 
 /** Retail price preview: shows cost/g and projected retail/g using 3× formula */

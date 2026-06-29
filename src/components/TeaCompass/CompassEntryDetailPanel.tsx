@@ -39,7 +39,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
     const perGram = entry.pricePerUnitGrams;
     if (!perGram || !entry.priceAmount) return null;
     const symbols: Record<string, string> = {
-      USD: '$', NT: 'NT$', Yuan: '¥', IDR: 'Rp', JPY: '¥', MYR: 'RM', HKD: 'HK$', UNK: '',
+      USD: '$', NT: 'NT$', Yuan: 'CN¥', IDR: 'Rp', JPY: 'JP¥', MYR: 'RM', HKD: 'HK$', UNK: '',
     };
     const symbol = symbols[entry.priceCurrency] || '';
     const val = entry.priceAmount / perGram;
