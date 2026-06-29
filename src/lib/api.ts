@@ -146,7 +146,13 @@ export interface PurchaseOrderItem {
 
 import { useAppStore } from './store';
 
-export const API_URL = import.meta.env.VITE_API_URL || '';
+// Production always talks to the custom domain api.teajia.com. The default
+// *.workers.dev host is blocked in mainland China, so anything pointed at it
+// silently fails there (photo upload, transcription, compass sync). Dev still
+// honors VITE_API_URL so local work can target a local worker or workers.dev.
+export const API_URL = import.meta.env.PROD
+  ? 'https://api.teajia.com'
+  : (import.meta.env.VITE_API_URL || '');
 const REQUEST_TIMEOUT_MS = 30_000;
 
 // Public base URL for share links (collection links sent to recipients). These

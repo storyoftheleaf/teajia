@@ -17,7 +17,10 @@ import { useWalkthrough } from '../lib/walkthroughStore';
  * /api/admin/feature-status. Admin-only at the route; owner-only at the tile.
  */
 
-const API = 'https://teajia-api.lightcodes.workers.dev';
+// Prod uses api.teajia.com (workers.dev is blocked in China); dev honors the env var.
+const API = import.meta.env.PROD
+  ? 'https://api.teajia.com'
+  : (import.meta.env.VITE_API_URL || 'https://teajia-api.lightcodes.workers.dev');
 
 type Step = {
   text: string;        // the instruction

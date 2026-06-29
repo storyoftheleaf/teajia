@@ -2,7 +2,10 @@ import React from 'react';
 import { ArrowRight, KeyRound, LockKeyhole, MessagesSquare, ServerCog, ShieldCheck } from 'lucide-react';
 import { TYPOGRAPHY_CLASSES } from '../designTokens';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'https://teajia-api.lightcodes.workers.dev').replace(/\/+$/, '');
+// Prod uses api.teajia.com (workers.dev is blocked in China); dev honors the env var.
+const API_URL = (import.meta.env.PROD
+  ? 'https://api.teajia.com'
+  : (import.meta.env.VITE_API_URL || 'https://teajia-api.lightcodes.workers.dev')).replace(/\/+$/, '');
 const MCP_URL = `${API_URL}/mcp`;
 
 const TOOL_GROUPS = [
