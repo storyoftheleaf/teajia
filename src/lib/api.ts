@@ -443,18 +443,37 @@ function maybeScheduleBackgroundRefresh() {
  */
 // Transient network failures surface as a `fetch` TypeError (DNS hiccup, TLS
 // reset, momentary offline). In mainland China the most common cause is the
-// GFW resetting a Cloudflare connection mid-handshake — a single dropped packet
-// that an immediate retry sails right past. Without a retry, that one reset
-// became a hard "couldn't reach the server" even though the API was up (this is
-// exactly what made sign-in fail on Chinese networks). Retry network errors a
-// couple of times with short backoff before surfacing the friendly message.
+// GFW resetting a Cloudflare connection mid-handshake — the API is reachable
+// only in short, jumpy windows. A single-shot request (or one fast retry) lands
+// in a block window and turns into a hard "couldn't reach the server" even
+// though the server is up. So we retry network errors several times with
+// exponential backoff + jitter, and — when the browser reports itself offline —
+// wait for the `online` event so the request fires the instant the connection
+// returns instead of burning the attempt on a guaranteed failure.
 // HTTP errors (4xx/5xx) are NOT retried — they come back as a resolved Response,
 // never a thrown TypeError, so they skip this path entirely.
-const NETWORK_RETRY_DELAYS_MS = [400, 1200];
+const NETWORK_RETRY_BACKOFF_MS = [600, 1800, 4000, 7000];
+
+/** Resolve once the browser reports it's back online, or after `maxMs` elapses. */
+function waitForReconnect(maxMs: number): Promise<void> {
+  if (typeof window === 'undefined' || navigator.onLine !== false) return Promise.resolve();
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener('online', finish);
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(finish, maxMs);
+    window.addEventListener('online', finish);
+  });
+}
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
   let lastErr: any;
-  for (let attempt = 0; attempt <= NETWORK_RETRY_DELAYS_MS.length; attempt++) {
+  for (let attempt = 0; attempt <= NETWORK_RETRY_BACKOFF_MS.length; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
@@ -467,9 +486,17 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
         throw new Error('Request timed out. Please try again.');
       }
       const isNetworkError = err?.name === 'TypeError';
-      if (isNetworkError && attempt < NETWORK_RETRY_DELAYS_MS.length) {
+      if (isNetworkError && attempt < NETWORK_RETRY_BACKOFF_MS.length) {
         clearTimeout(timeoutId);
-        await new Promise(resolve => setTimeout(resolve, NETWORK_RETRY_DELAYS_MS[attempt]));
+        const base = NETWORK_RETRY_BACKOFF_MS[attempt];
+        const delay = Math.round(base * (0.7 + Math.random() * 0.6)); // ±30% jitter
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+          // Flat offline: wait (capped) for the connection to return, then
+          // retry immediately rather than sleeping through a dead window.
+          await waitForReconnect(Math.max(delay, 10_000));
+        } else {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
         continue;
       }
       dispatchNetworkError();
