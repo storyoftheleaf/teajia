@@ -20,6 +20,26 @@ interface PullToRefreshOptions {
   enabled?: boolean;
 }
 
+/** Walk up from the touch target to the element that will actually consume a
+ *  downward drag. The old check looked ONLY at window.scrollY — but the admin
+ *  shell is a fixed-height layout (`h-screen overflow-hidden`) where the
+ *  document NEVER scrolls, so window.scrollY was always 0 and every drag
+ *  inside an internal list (Compass Library, inventory, …) armed the pull
+ *  gesture: the emblem circle appeared mid-screen and hung for up to 4s of
+ *  forced refetch. Now a pull only arms when the nearest scrollable ancestor
+ *  is genuinely at its top. */
+function pullConsumer(target: EventTarget | null): { el: Element | null; atTop: boolean } {
+  let el = target instanceof Element ? target : null;
+  while (el) {
+    const oy = getComputedStyle(el).overflowY;
+    if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && el.scrollHeight > el.clientHeight + 1) {
+      return { el, atTop: el.scrollTop <= 0 };
+    }
+    el = el.parentElement;
+  }
+  return { el: null, atTop: window.scrollY <= 0 };
+}
+
 export const usePullToRefresh = (onRefresh?: RefreshFn, options: PullToRefreshOptions = {}) => {
   const { enabled = true } = options;
   const [state, setState] = useState<PullToRefreshState>({
@@ -30,13 +50,17 @@ export const usePullToRefresh = (onRefresh?: RefreshFn, options: PullToRefreshOp
 
   const touchStartY = useRef(0);
   const isAtTop = useRef(false);
+  // The scroll container that owns the current gesture (null = document).
+  const scrollerRef = useRef<Element | null>(null);
   // Hold the latest callback in a ref so handlers don't need to re-bind on every
   // render of the consuming component (refetch fns from React Query are unstable).
   const onRefreshRef = useRef<RefreshFn | undefined>(onRefresh);
   useEffect(() => { onRefreshRef.current = onRefresh; }, [onRefresh]);
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
-    if (window.scrollY <= 0) {
+    const { el, atTop } = pullConsumer(e.target);
+    scrollerRef.current = el;
+    if (atTop) {
       touchStartY.current = e.touches[0].clientY;
       isAtTop.current = true;
     } else {
@@ -46,7 +70,10 @@ export const usePullToRefresh = (onRefresh?: RefreshFn, options: PullToRefreshOp
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isAtTop.current || state.isRefreshing) return;
-    if (window.scrollY > 0) {
+    const scrolled = scrollerRef.current
+      ? scrollerRef.current.scrollTop > 0
+      : window.scrollY > 0;
+    if (scrolled) {
       isAtTop.current = false;
       setState(prev => ({ ...prev, pullDistance: 0, isPulling: false }));
       return;
