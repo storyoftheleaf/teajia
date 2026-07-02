@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
           // Never serve the SPA shell for API paths — they must always hit the
           // network (and the edge proxy / Worker), including the Google OAuth
           // top-level navigation to /api/auth/google.
-          navigateFallbackDenylist: [/^\/api\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/],
+          navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/],
           runtimeCaching: [
             {
               // Same-origin API reads (the app now calls /api/* on its own
@@ -48,6 +48,18 @@ export default defineConfig(({ mode }) => {
             },
             {
               urlPattern: /^https:\/\/media\.teajia\.co\//,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'media-cache',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+            {
+              // Same-origin media proxy (China-reachable path for R2 uploads —
+              // see functions/media/[[path]].ts). Objects are immutable, so
+              // CacheFirst: once a photo lands it never re-fetches, which also
+              // papers over GFW flakiness on revisits.
+              urlPattern: ({ url }) => url.pathname.startsWith('/media/'),
               handler: 'CacheFirst',
               options: {
                 cacheName: 'media-cache',

@@ -18,6 +18,8 @@ export interface CommitResult {
  */
 export function useCommitAndPromote() {
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const addPendingPromotion = useTeaCompassStore((s) => s.addPendingPromotion);
+  const removePendingPromotion = useTeaCompassStore((s) => s.removePendingPromotion);
   const [busy, setBusy] = useState(false);
   const [lastResult, setLastResult] = useState<CommitResult | null>(null);
 
@@ -38,10 +40,16 @@ export function useCommitAndPromote() {
         // Mirror the link locally so a re-promote click would no-op via
         // the worker's idempotency.
         updateEntry(entryId, { draftProductId: id, synced: false });
+        removePendingPromotion(entryId);
         const result: CommitResult = { promoted: !alreadyPromoted, productId: id };
         setLastResult(result);
         return result;
       } catch (err) {
+        // Queue for the sync heartbeat — the tea is safe locally and the
+        // promote retries until the draft exists. Without this, a promote
+        // that hit a dead connection window was silently dropped and the
+        // entry never reached /admin/capture.
+        addPendingPromotion(entryId);
         const result: CommitResult = {
           promoted: false,
           promotionError: err instanceof Error ? err.message : 'Promotion failed',
@@ -52,7 +60,7 @@ export function useCommitAndPromote() {
         setBusy(false);
       }
     },
-    [updateEntry],
+    [updateEntry, addPendingPromotion, removePendingPromotion],
   );
 
   return { commitAndPromote, busy, lastResult };
