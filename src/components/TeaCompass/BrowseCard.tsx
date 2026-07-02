@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -105,6 +106,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const [expanded, setExpanded] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -170,12 +172,17 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
     if (!file) return;
     e.target.value = '';
     setPhotoUploading(true);
+    setPhotoFailed(false);
     try {
       const compressed = await compressImage(file);
       const compressedFile = new File([compressed], 'photo.jpg', { type: 'image/jpeg' });
-      const imageUrl = await api.uploadImage(compressedFile).catch(() => null);
-      if (imageUrl) updateEntry(entry.id, { photos: [...entry.photos, imageUrl] });
-    } catch { /* silently fail */ } finally { setPhotoUploading(false); }
+      const imageUrl = await api.uploadImage(compressedFile);
+      if (!imageUrl) throw new Error('no url');
+      updateEntry(entry.id, { photos: [...entry.photos, imageUrl] });
+    } catch {
+      // Not silent — on a flaky connection the user must know to retap.
+      setPhotoFailed(true);
+    } finally { setPhotoUploading(false); }
   }, [entry.id, entry.photos, updateEntry]);
 
   const hasName = entry.name.trim().length > 0;
@@ -236,7 +243,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 aria-label="View photos"
               >
                 <img
-                  src={validPhotos[0]}
+                  src={mediaUrl(validPhotos[0])}
                   alt=""
                   onError={() => setThumbFailed(true)}
                   className="w-14 h-14 rounded-md object-cover"
@@ -370,7 +377,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                       className="shrink-0"
                       aria-label={`View photo ${i + 1}`}
                     >
-                      <img src={url} alt="" className="w-24 h-24 rounded-md object-cover" loading="lazy" />
+                      <img src={mediaUrl(url)} alt="" className="w-24 h-24 rounded-md object-cover" loading="lazy" />
                     </button>
                   ))}
                   <button
@@ -382,8 +389,11 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     {photoUploading
                       ? <Loader2 size={11} className="animate-spin" />
                       : <Camera size={11} />}
-                    {!photoUploading && <span>Add photo</span>}
+                    {!photoUploading && <span>{photoFailed ? 'Retry photo' : 'Add photo'}</span>}
                   </button>
+                  {photoFailed && !photoUploading && (
+                    <span className="shrink-0 self-center text-ui-10 text-tea-error">Didn't save — tap to retry</span>
+                  )}
                   <input
                     ref={photoInputRef}
                     type="file"
@@ -704,7 +714,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={validPhotos[lightboxIndex]}
+            src={mediaUrl(validPhotos[lightboxIndex])}
             alt={`Photo ${lightboxIndex + 1}`}
             className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}

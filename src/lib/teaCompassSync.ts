@@ -210,6 +210,30 @@ export async function hydrateCompassEntries(): Promise<void> {
     const merged: TeaCompassEntry[] = [];
     const seenIds = new Set<string>();
 
+    // Fields that live ONLY on this device — the compass tables have no
+    // columns for them (see migration 082's "localStorage-only" note), so a
+    // server row never carries them. Naively replacing a synced local entry
+    // with the server row wiped them all on every app start: vendor details
+    // vanished, sample verdicts reset, tasting history disappeared from the
+    // Library. Carry them over from the local copy whenever the server
+    // version wins the merge.
+    const CLIENT_ONLY_FIELDS = [
+      'vendorDetails', 'tastingHistory', 'isSample', 'sampleSetId',
+      'sampleGrams', 'sampleVerdict', 'sampleWouldBuy', 'tasteOrder',
+    ] as const;
+    const withClientFields = (server: TeaCompassEntry, local: TeaCompassEntry): TeaCompassEntry => {
+      const out: any = { ...server };
+      for (const field of CLIENT_ONLY_FIELDS) {
+        const val = (local as any)[field];
+        if (val !== undefined && out[field] === undefined) out[field] = val;
+      }
+      // teaKey IS a server column, but the bulk-sync handler historically
+      // dropped it, so old server rows carry null. Never let a null server
+      // value erase a real local key — notes are anchored by it.
+      if (out.teaKey == null && local.teaKey != null) out.teaKey = local.teaKey;
+      return out as TeaCompassEntry;
+    };
+
     // Local unsynced entries take priority
     for (const local of localEntries) {
       seenIds.add(local.id);
@@ -217,9 +241,10 @@ export async function hydrateCompassEntries(): Promise<void> {
         // Local change not yet pushed — keep local version
         merged.push(local);
       } else {
-        // Synced locally — prefer server version if it exists (may have newer data)
+        // Synced locally — prefer server version if it exists (may have newer
+        // data), but preserve this device's client-only fields.
         const server = serverEntries.find(s => s.id === local.id);
-        merged.push(server || local);
+        merged.push(server ? withClientFields(server, local) : local);
       }
     }
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
@@ -922,7 +923,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               <div className="flex items-start gap-2 shrink-0">
                                 {meta.photo && (
                                   <img
-                                    src={meta.photo}
+                                    src={mediaUrl(meta.photo)}
                                     alt={meta.name}
                                     className="w-12 h-12 rounded-md object-cover border border-tea-border"
                                   />
@@ -1313,7 +1314,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 <div className="flex items-start gap-2 shrink-0">
                                   {meta.photo && (
                                     <img
-                                      src={meta.photo}
+                                      src={mediaUrl(meta.photo)}
                                       alt={meta.name}
                                       className="w-12 h-12 rounded-md object-cover border border-tea-border"
                                     />

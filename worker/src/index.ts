@@ -4512,7 +4512,7 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
   if (Array.isArray(body.contacts)) body.contacts = JSON.stringify(body.contacts);
 
-  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','instagram','wechat','whatsapp','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
+  const CUSTOMER_ALLOWED_COLS = new Set(['name','email','phone','notes','tags','address','city','country','source','vip','preferred_currency','instagram','wechat','whatsapp','line','referred_by','type','company','contacts','business_card_photo','storefront_photo','latitude','longitude']);
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -8836,6 +8836,11 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
     'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
     'draft_product_id', 'created_at', 'updated_at',
+    // tea_key (migration 022) and source_entry_id (071) were missing here even
+    // though the single-create handler writes tea_key — bulk sync (the main
+    // write path) nulled tea_key on every INSERT OR REPLACE, orphaning notes
+    // anchored to it and breaking cross-account review pooling.
+    'tea_key', 'source_entry_id',
   ];
   const placeholders = allCols.map(() => '?').join(', ');
   const colNames = allCols.join(', ');

@@ -1,4 +1,5 @@
 import React from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { ArrowRight, BookmarkCheck, BookmarkPlus, Store, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
@@ -146,7 +147,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
               {validPhotos.map((url, i) => (
                 <img
                   key={i}
-                  src={url}
+                  src={mediaUrl(url)}
                   alt={`Photo ${i + 1}`}
                   className="w-full aspect-[4/3] object-cover rounded-xl"
                   loading="lazy"

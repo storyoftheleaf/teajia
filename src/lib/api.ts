@@ -621,8 +621,21 @@ async function handleResponse(res: Response) {
  * The retry is not recursive — on 401 the second attempt goes straight to
  * handleResponse, which throws if the fresh token is also rejected.
  */
+/** Auth headers adjusted for the request body. FormData bodies MUST NOT carry
+ *  our default `Content-Type: application/json` — with an explicit header the
+ *  browser can't append the multipart boundary, and the worker hard-rejects
+ *  non-multipart uploads with 400. This single header bug broke every
+ *  `api.uploadImage` call (photo capture, vendor photos, teaware, ledger). */
+function authHeadersFor(body: BodyInit | null | undefined): Record<string, string> {
+  const headers = authHeaders();
+  if (typeof FormData !== 'undefined' && body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
+  return headers;
+}
+
 async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
-  const opts: ApiRequestInit = { ...init, headers: authHeaders() };
+  const opts: ApiRequestInit = { ...init, headers: authHeadersFor(init.body) };
   const res = await fetchWithTimeout(url, opts);
 
   if (res.status === 401 && hasToken()) {
@@ -642,7 +655,7 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
         // The second call goes straight to handleResponse; there is no further
         // retry (the retry itself throws on 401, which surfaces SESSION_EXPIRED
         // correctly if the fresh token is also rejected).
-        const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeaders() });
+        const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeadersFor(init.body) });
         return handleResponse(retryRes);
       }
       if (refreshResult === 'rejected') {
@@ -983,9 +996,12 @@ export const api = {
       });
     },
     update: async (id: string, data: Record<string, any>) => {
+      // PUT by id — idempotent, safe to retry through a GFW timeout (vendor
+      // photo/location saves from the Compass ride this).
       return authedFetch(`${API_URL}/api/customers/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
+        retryTimeouts: true,
       });
     },
     delete: async (id: string) => {
@@ -1221,32 +1237,24 @@ export const api = {
     // Callers that already uploaded the photo themselves set skipUpload so
     // the extract endpoint doesn't write a duplicate R2 object.
     if (opts?.skipUpload) formData.append('skip_upload', '1');
-    const token = localStorage.getItem('teajia_token');
-    const res = await fetchWithTimeout(`${API_URL}/api/extract-from-image`, {
+    // authedFetch: full header set (Authorization + X-Teajia-Account, no
+    // Content-Type on FormData) + 401-refresh retry. The old hand-rolled
+    // version read localStorage directly (missed sessionStorage tokens) and
+    // sent no account header, so the R2 write could land without account scope.
+    return authedFetch(`${API_URL}/api/extract-from-image`, {
       method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
       body: formData,
     });
-    return handleResponse(res);
   },
 
   transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
-    // Note: we don't preemptively clear the token here — handleResponse
-    // silently refreshes on 401 and only clears on refresh failure.
-    const token = getToken();
-    const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
+    return authedFetch(`${API_URL}/api/transcribe`, {
       method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
       body: formData,
     });
-    return handleResponse(res);
   },
 
   uploadImage: async (

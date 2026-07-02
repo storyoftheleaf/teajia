@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, ThumbsUp, Minus, ThumbsDown, X, BookmarkPlus, Check } from 'lucide-react';
@@ -116,7 +117,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
                   >
                     <div className="flex gap-3 px-3 pt-2.5 pb-2">
                       {photo ? (
-                        <img src={photo} alt="" className="w-12 h-12 rounded-md object-cover shrink-0" />
+                        <img src={mediaUrl(photo)} alt="" className="w-12 h-12 rounded-md object-cover shrink-0" />
                       ) : typeColor ? (
                         <div
                           className="w-12 h-12 rounded-md shrink-0 flex items-center justify-center text-ui-9 font-semibold uppercase tracking-[0.1em]"

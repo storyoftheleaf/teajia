@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, Trash2, Edit3, Loader2, ChevronDown, ChevronUp,
@@ -56,7 +57,7 @@ const VendorAvatar: React.FC<{ name: string; size?: number; className?: string; 
   >
     {photo ? (
       // Show the vendor's actual storefront / business-card photo when we have one.
-      <img src={photo} alt={name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+      <img src={mediaUrl(photo)} alt={name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
     ) : (
       <>
         <div
@@ -1584,7 +1585,7 @@ export const SourcesView = () => {
                                     onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(p.id)}`)}
                                     className="text-tea-text hover:text-tea-gold transition-colors flex items-center gap-1.5"
                                   >
-                                    {p.image_url && <img src={p.image_url} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" loading="lazy" />}
+                                    {p.image_url && <img src={mediaUrl(p.image_url)} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0" loading="lazy" />}
                                     <span className="truncate">{p.given_name || p.product_name}</span>
                                     <ExternalLink size={9} className="text-tea-text-sec flex-shrink-0" />
                                   </button>
@@ -1759,7 +1760,7 @@ export const SourcesView = () => {
                                 {tx.photos && tx.photos.length > 0 && (
                                   <div className="flex gap-1.5 mt-2">
                                     {tx.photos.slice(0, 4).map((url, i) => (
-                                      <img key={i} src={url} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" loading="lazy" />
+                                      <img key={i} src={mediaUrl(url)} alt="" className="w-10 h-10 rounded object-cover border border-tea-border" loading="lazy" />
                                     ))}
                                     {tx.photos.length > 4 && (
                                       <div className="w-10 h-10 rounded bg-tea-surface flex items-center justify-center text-ui-10 text-tea-text-dim border border-tea-border">
@@ -1809,13 +1810,13 @@ export const SourcesView = () => {
                             {vendorDetails.storefrontUrl && (
                               <div className="flex-1">
                                 <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Storefront</div>
-                                <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
+                                <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                             {vendorDetails.businessCardUrl && (
                               <div className="flex-1">
                                 <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Business Card</div>
-                                <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
+                                <img src={mediaUrl(vendorDetails.businessCardUrl)} alt="Business card" className="w-full h-24 rounded-xl object-cover border border-tea-border" loading="lazy" />
                               </div>
                             )}
                           </div>
@@ -1841,8 +1842,10 @@ export const SourcesView = () => {
                         {vendorDetails.lat != null && vendorDetails.lng != null && (
                           <div>
                             <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Location</div>
+                            {/* OpenStreetMap, not Google Maps — Google is blocked in
+                                mainland China, exactly where vendor pins get used. */}
                             <a
-                              href={`https://maps.google.com/?q=${vendorDetails.lat},${vendorDetails.lng}`}
+                              href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1.5 text-xs text-tea-gold hover:text-tea-text transition-colors"
@@ -1868,7 +1871,7 @@ export const SourcesView = () => {
                             className="w-full flex items-center gap-2 py-1.5 text-xs rounded-md hover:bg-tea-surface/50 transition-colors text-left -mx-1 px-1"
                           >
                             {entry.photos?.[0] && (
-                              <img src={entry.photos[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
+                              <img src={mediaUrl(entry.photos[0])} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="text-tea-text truncate font-serif">
@@ -2117,7 +2120,7 @@ export const SourcesView = () => {
                         {wants.map((e) => (
                           <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
                             {e.photos?.[0] && (
-                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
+                              <img src={mediaUrl(e.photos[0])} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
                             )}
                             <div className="flex-1 min-w-0">
                               <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>
@@ -2137,7 +2140,7 @@ export const SourcesView = () => {
                         {logged.map((e) => (
                           <div key={e.id} className="flex items-center gap-2 py-1 text-xs">
                             {e.photos?.[0] && (
-                              <img src={e.photos[0]} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
+                              <img src={mediaUrl(e.photos[0])} alt="" className="w-5 h-5 rounded object-cover flex-shrink-0 border border-tea-border" loading="lazy" />
                             )}
                             <div className="flex-1 min-w-0">
                               <span className="text-tea-text font-serif truncate block">{e.chineseName || e.name || 'Unnamed'}</span>

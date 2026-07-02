@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, X, Plus, Camera, Check, Phone,
@@ -124,7 +125,7 @@ const PhotoButton: React.FC<{
       />
       {url ? (
         <img
-          src={url}
+          src={mediaUrl(url)}
           alt={label}
           className="w-10 h-10 rounded object-cover shrink-0"
         />
@@ -278,11 +279,27 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     }
   };
 
-  const handleCreateVendor = () => {
+  const handleCreateVendor = async () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    handleSelectVendor(undefined, trimmed);
     setNewName('');
+    // Create a real customer record NOW, tagged vendor — without an id the
+    // debounced details save below is guarded off, so a vendor typed fresh at
+    // a fair had NO server home: their storefront photo/location lived only in
+    // client-only entry state. Selection happens immediately (capture never
+    // waits on the network); the id is attached when the create lands.
+    handleSelectVendor(undefined, trimmed);
+    if (!hasToken()) return;
+    try {
+      const { id } = await api.customers.create({ name: trimmed, tags: 'vendor', source: 'compass' });
+      if (id) {
+        setVendors((prev) => [{ id, name: trimmed, tags: 'vendor' }, ...prev]);
+        onVendorSelect(id, trimmed);
+      }
+    } catch {
+      // Offline — vendor stays name-only. Details are preserved on the entry
+      // (client-only fields survive hydrate) and can be re-linked later.
+    }
   };
 
   const updateDetail = useCallback(
@@ -292,8 +309,42 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
     [vendorDetails, onDetailsChange]
   );
 
+  // Load vendor details from the customer record when the capture card mounts
+  // with a vendor already linked (e.g. after a reload). Previously details only
+  // loaded on an explicit re-pick from the vendor list, so a saved storefront
+  // photo/location looked "gone" until the vendor was selected again.
+  const detailsLoadedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!vendorId || !hasToken()) return;
+    if (detailsLoadedForRef.current === vendorId) return;
+    detailsLoadedForRef.current = vendorId;
+    const hasAny = vendorDetails && Object.values(vendorDetails).some((v) => v != null);
+    if (hasAny) return; // local details win — don't clobber unsaved edits
+    api.customers.get(vendorId).then((customer: any) => {
+      if (!customer) return;
+      const loaded: VendorDetails = {};
+      if (customer.business_card_photo) loaded.businessCardUrl = customer.business_card_photo;
+      if (customer.storefront_photo) loaded.storefrontUrl = customer.storefront_photo;
+      if (customer.latitude != null) loaded.lat = customer.latitude;
+      if (customer.longitude != null) loaded.lng = customer.longitude;
+      if (customer.phone) loaded.phone = customer.phone;
+      if (customer.whatsapp) loaded.whatsapp = customer.whatsapp;
+      if (customer.wechat) loaded.wechat = customer.wechat;
+      if (customer.line) loaded.line = customer.line;
+      if (Object.values(loaded).some((v) => v != null)) {
+        onDetailsChange({ ...loaded, ...vendorDetails });
+      }
+    }).catch(() => { /* offline — local state stands */ });
+  }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Debounced save of vendor details to customers API
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Latest pending save + dirty flag, so unmount can FLUSH instead of dropping
+  // it — typing a location and closing the card within 2s used to discard the
+  // save silently.
+  const pendingSaveRef = useRef<(() => void) | null>(null);
+  const saveDirtyRef = useRef(false);
+  const [saveError, setSaveError] = useState(false);
   useEffect(() => {
     if (!vendorId || !hasToken() || !vendorDetails) return;
     const hasInfo = vendorDetails.businessCardUrl || vendorDetails.storefrontUrl ||
@@ -301,8 +352,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       vendorDetails.whatsapp || vendorDetails.wechat || vendorDetails.line;
     if (!hasInfo) return;
 
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
+    const doSave = () => {
+      saveDirtyRef.current = false;
       const payload: Record<string, any> = {};
       if (vendorDetails.businessCardUrl) payload.business_card_photo = vendorDetails.businessCardUrl;
       if (vendorDetails.storefrontUrl) payload.storefront_photo = vendorDetails.storefrontUrl;
@@ -312,13 +363,25 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       if (vendorDetails.whatsapp) payload.whatsapp = vendorDetails.whatsapp;
       if (vendorDetails.wechat) payload.wechat = vendorDetails.wechat;
       if (vendorDetails.line) payload.line = vendorDetails.line;
-      api.customers.update(vendorId, payload).catch(() => {});
-    }, 2000);
+      api.customers.update(vendorId, payload)
+        .then(() => setSaveError(false))
+        .catch(() => setSaveError(true)); // no longer silent
+    };
+
+    saveDirtyRef.current = true;
+    pendingSaveRef.current = doSave;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(doSave, 2000);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [vendorId, vendorDetails]);
+
+  // Unmount flush — fire any still-pending save instead of dropping it.
+  useEffect(() => () => {
+    if (saveDirtyRef.current && pendingSaveRef.current) pendingSaveRef.current();
+  }, []);
 
   const handleGeoPin = () => {
     if (!navigator.geolocation) return;
@@ -471,7 +534,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     {photoUploading === 'businessCardUrl' ? (
                       <Loader2 size={14} className="ml-auto animate-spin text-tea-gold" />
                     ) : vendorDetails?.businessCardUrl ? (
-                      <img src={vendorDetails.businessCardUrl} alt="Business card" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
+                      <img src={mediaUrl(vendorDetails.businessCardUrl)} alt="Business card" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
                     ) : null}
                   </button>
                   <button
@@ -485,7 +548,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     {photoUploading === 'storefrontUrl' ? (
                       <Loader2 size={14} className="ml-auto animate-spin text-tea-gold" />
                     ) : vendorDetails?.storefrontUrl ? (
-                      <img src={vendorDetails.storefrontUrl} alt="Storefront" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
+                      <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
                     ) : null}
                   </button>
                   {photoError && (
@@ -758,14 +821,20 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
               className="overflow-hidden"
             >
               <div className="pt-2 pb-1 space-y-3">
+                {saveError && (
+                  <p className="flex items-center gap-1.5 text-ui-11 text-tea-error">
+                    <AlertCircle size={12} />
+                    Details didn't reach the server — kept on this phone, retrying as you edit.
+                  </p>
+                )}
                 {/* Photos & location summary (if any) */}
                 {(vendorDetails?.businessCardUrl || vendorDetails?.storefrontUrl || vendorDetails?.lat != null) && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {vendorDetails?.businessCardUrl && (
-                      <img src={vendorDetails.businessCardUrl} alt="Business card" className="w-10 h-10 rounded object-cover" loading="lazy" />
+                      <img src={mediaUrl(vendorDetails.businessCardUrl)} alt="Business card" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.storefrontUrl && (
-                      <img src={vendorDetails.storefrontUrl} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
+                      <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
                     {vendorDetails?.lat != null && vendorDetails?.lng != null && (
                       // OpenStreetMap rather than Google Maps — Google is blocked in
