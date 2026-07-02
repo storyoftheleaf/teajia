@@ -5,7 +5,10 @@ import { InvoiceDisplayItem, ExchangeRate, Currency } from '../types';
 // Register a font that supports nice typography
 Font.register({
   family: 'Plus Jakarta Sans',
-  src: 'https://fonts.gstatic.com/s/plusjakartasans/v8/LDIbaomQNQcsA88c7O9yZ4KMCoOg4IA6-91aHEjcWuA_qU79TR_V.ttf'
+  // Self-hosted (converted from the repo's woff2 by fontTools) — the old
+  // fonts.gstatic.com URL is blocked in mainland China, which killed PDF
+  // generation exactly where the ledger gets used.
+  src: '/fonts/PlusJakartaSans-Regular.ttf'
 });
 
 export type InvoiceTemplateStyle = 'classic' | 'compact' | 'detailed';

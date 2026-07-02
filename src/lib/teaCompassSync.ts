@@ -83,15 +83,78 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   return result as TeaCompassEntry;
 }
 
+// ── Pending-work helpers ──
+
+/** True while anything still needs to reach the server — unsynced entries,
+ *  unconfirmed deletes, or unretried draft promotions. Drives the retry
+ *  heartbeat in useCompassSync. */
+export function compassHasPendingWork(): boolean {
+  const s = useTeaCompassStore.getState();
+  return s.deletedIds.length > 0
+    || s.pendingPromotions.length > 0
+    || s.entries.some(e => !e.synced);
+}
+
+/** Retry promote-to-draft for entries whose promotion failed at commit time.
+ *  Runs after entry sync so the worker can see the entry. Promotion is
+ *  idempotent server-side (returns the existing draft), so retries are safe. */
+async function retryPendingPromotions(): Promise<void> {
+  if (!hasToken()) return;
+  const store = useTeaCompassStore.getState();
+  for (const id of store.pendingPromotions) {
+    // Entry deleted since — nothing left to promote.
+    if (!store.entries.some(e => e.id === id)) {
+      useTeaCompassStore.getState().removePendingPromotion(id);
+      continue;
+    }
+    try {
+      const { id: productId } = await api.compass.promote(id);
+      useTeaCompassStore.getState().updateEntry(id, { draftProductId: productId, synced: false });
+      useTeaCompassStore.getState().removePendingPromotion(id);
+    } catch {
+      /* still unreachable — keep queued, next heartbeat retries */
+    }
+  }
+}
+
+/** Retry server deletes for tombstoned ids (deletes whose DELETE call failed —
+ *  the "I deleted it and it came back" bug on flaky connections). Each id is
+ *  cleared only once its delete confirms; failures keep the tombstone for the
+ *  next cycle. Previously this only ran on app-start hydrate, so a delete that
+ *  timed out stayed pending until the next full reload. */
+export async function retryPendingDeletes(): Promise<void> {
+  if (!hasToken()) return;
+  const { deletedIds } = useTeaCompassStore.getState();
+  for (const id of deletedIds) {
+    try {
+      await api.compass.remove(id);
+      useTeaCompassStore.setState(s => ({
+        deletedIds: s.deletedIds.filter(d => d !== id),
+        syncError: false,
+      }));
+    } catch {
+      useTeaCompassStore.setState({ syncError: true });
+    }
+  }
+}
+
 // ── Sync unsynced entries to D1 ──
 
 export async function syncCompassEntries(): Promise<number> {
   if (!hasToken()) return 0;
 
+  // Deletes ride every sync cycle, not just hydrate — a failed delete must
+  // not wait for the next app reload to retry.
+  await retryPendingDeletes();
+
   const store = useTeaCompassStore.getState();
   const unsynced = store.entries.filter(e => !e.synced);
 
-  if (unsynced.length === 0) return 0;
+  if (unsynced.length === 0) {
+    // Nothing to push, but a failed promote may still be queued.
+    await retryPendingPromotions();
+    return 0;
+  }
 
   try {
     const payload = unsynced.map(toSnakeCase);
@@ -110,6 +173,9 @@ export async function syncCompassEntries(): Promise<number> {
       ),
       syncError: false,
     }));
+
+    // Entries are on the server now — safe to retry any queued promotions.
+    await retryPendingPromotions();
 
     return result.synced;
   } catch (err) {
@@ -144,6 +210,30 @@ export async function hydrateCompassEntries(): Promise<void> {
     const merged: TeaCompassEntry[] = [];
     const seenIds = new Set<string>();
 
+    // Fields that live ONLY on this device — the compass tables have no
+    // columns for them (see migration 082's "localStorage-only" note), so a
+    // server row never carries them. Naively replacing a synced local entry
+    // with the server row wiped them all on every app start: vendor details
+    // vanished, sample verdicts reset, tasting history disappeared from the
+    // Library. Carry them over from the local copy whenever the server
+    // version wins the merge.
+    const CLIENT_ONLY_FIELDS = [
+      'vendorDetails', 'tastingHistory', 'isSample', 'sampleSetId',
+      'sampleGrams', 'sampleVerdict', 'sampleWouldBuy', 'tasteOrder',
+    ] as const;
+    const withClientFields = (server: TeaCompassEntry, local: TeaCompassEntry): TeaCompassEntry => {
+      const out: any = { ...server };
+      for (const field of CLIENT_ONLY_FIELDS) {
+        const val = (local as any)[field];
+        if (val !== undefined && out[field] === undefined) out[field] = val;
+      }
+      // teaKey IS a server column, but the bulk-sync handler historically
+      // dropped it, so old server rows carry null. Never let a null server
+      // value erase a real local key — notes are anchored by it.
+      if (out.teaKey == null && local.teaKey != null) out.teaKey = local.teaKey;
+      return out as TeaCompassEntry;
+    };
+
     // Local unsynced entries take priority
     for (const local of localEntries) {
       seenIds.add(local.id);
@@ -151,9 +241,10 @@ export async function hydrateCompassEntries(): Promise<void> {
         // Local change not yet pushed — keep local version
         merged.push(local);
       } else {
-        // Synced locally — prefer server version if it exists (may have newer data)
+        // Synced locally — prefer server version if it exists (may have newer
+        // data), but preserve this device's client-only fields.
         const server = serverEntries.find(s => s.id === local.id);
-        merged.push(server || local);
+        merged.push(server ? withClientFields(server, local) : local);
       }
     }
 

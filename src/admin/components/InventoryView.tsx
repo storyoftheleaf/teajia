@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
@@ -2581,7 +2582,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   >
                     {product.imageUrl ? (
                       <div className="aspect-square overflow-hidden">
-                        <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
+                        <img src={mediaUrl(product.imageUrl)} alt={product.productName} className="w-full h-full object-cover transition-transform duration-300" loading="lazy" />
                       </div>
                     ) : (
                       <div className="aspect-square flex items-center justify-center" style={{ backgroundColor: `${dotColor}15` }}>

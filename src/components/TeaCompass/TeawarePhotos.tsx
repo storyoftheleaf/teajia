@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { Camera, Plus, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -59,7 +60,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
           {photos.map((url, i) => (
             <div key={i} className="relative shrink-0 group">
               <img
-                src={url}
+                src={mediaUrl(url)}
                 alt={`Photo ${i + 1}`}
                 className="w-20 h-20 rounded-xl object-cover cursor-pointer"
                 onClick={() => setViewingIndex(viewingIndex === i ? null : i)}
@@ -113,7 +114,7 @@ export const TeawarePhotos: React.FC<TeawarePhotosProps> = ({ photos, onPhotosCh
           onClick={() => setViewingIndex(null)}
         >
           <img
-            src={photos[viewingIndex]}
+            src={mediaUrl(photos[viewingIndex])}
             alt={`Preview ${viewingIndex + 1}`}
             className="w-full h-auto max-h-64 object-contain bg-tea-bg rounded-xl"
           />

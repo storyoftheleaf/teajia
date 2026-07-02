@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -197,7 +198,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
             {photos.map((url, i) => (
               <div key={i} className="relative shrink-0">
                 <img
-                  src={url}
+                  src={mediaUrl(url)}
                   alt={`Photo ${i + 1}`}
                   className="w-16 h-16 rounded-xl object-cover cursor-pointer"
                   onClick={() => setViewerIndex(i)}
@@ -270,7 +271,7 @@ const TransactionPhotos: React.FC<{ txId: string; photos: string[] }> = ({ txId,
 
             {/* Image */}
             <img
-              src={photos[viewerIndex]}
+              src={mediaUrl(photos[viewerIndex])}
               alt={`Photo ${viewerIndex + 1}`}
               className="max-w-full max-h-[80vh] object-contain rounded-xl"
               onClick={(e) => e.stopPropagation()}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
@@ -107,12 +108,23 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // capture itself stays friction-free.
   const { commitAndPromote, busy: promoting, lastResult: promoteResult } = useCommitAndPromote();
   const [justPromoted, setJustPromoted] = useState(false);
+  // Promote hit a dead connection — the entry is queued and the sync
+  // heartbeat will keep retrying. Tell the user instead of staying silent
+  // (the old behavior looked like the capture vanished).
+  const [promoteQueued, setPromoteQueued] = useState(false);
 
   useEffect(() => {
-    if (!promoteResult?.promoted) return;
-    setJustPromoted(true);
-    const t = setTimeout(() => setJustPromoted(false), 2200);
-    return () => clearTimeout(t);
+    if (!promoteResult) return;
+    if (promoteResult.promoted) {
+      setJustPromoted(true);
+      const t = setTimeout(() => setJustPromoted(false), 2200);
+      return () => clearTimeout(t);
+    }
+    if (promoteResult.promotionError) {
+      setPromoteQueued(true);
+      const t = setTimeout(() => setPromoteQueued(false), 6000);
+      return () => clearTimeout(t);
+    }
   }, [promoteResult]);
 
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
@@ -911,7 +923,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               <div className="flex items-start gap-2 shrink-0">
                                 {meta.photo && (
                                   <img
-                                    src={meta.photo}
+                                    src={mediaUrl(meta.photo)}
                                     alt={meta.name}
                                     className="w-12 h-12 rounded-md object-cover border border-tea-border"
                                   />
@@ -1302,7 +1314,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                                 <div className="flex items-start gap-2 shrink-0">
                                   {meta.photo && (
                                     <img
-                                      src={meta.photo}
+                                      src={mediaUrl(meta.photo)}
                                       alt={meta.name}
                                       className="w-12 h-12 rounded-md object-cover border border-tea-border"
                                     />
@@ -1577,6 +1589,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <div className="flex items-center justify-end px-3 py-1.5 bg-tea-bg border-b border-tea-border">
                     <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
                       <Check size={11} /> Added to drafts
+                    </span>
+                  </div>
+                )}
+                {showCaptureActionBar && promoteQueued && !justPromoted && (
+                  <div className="flex items-center justify-end px-3 py-1.5 bg-tea-bg border-b border-tea-border">
+                    <span className="text-ui-11 text-tea-text-sec">
+                      Saved on this phone — drafts will update when the connection returns
                     </span>
                   </div>
                 )}

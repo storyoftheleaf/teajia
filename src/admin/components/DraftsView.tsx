@@ -34,6 +34,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterMode>('all');
   const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   const draftProducts = useMemo(() => products.filter(p => p.status === 'Draft'), [products]);
   const toReview = useMemo(() => draftProducts.filter(p => !isReadyToApprove(p)), [draftProducts]);
@@ -50,16 +51,20 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
   const bulkApprove = async () => {
     if (readyToApprove.length === 0 || approving) return;
     setApproving(true);
-    try {
-      await Promise.all(
-        readyToApprove.map(p => api.products.updateByDomain(p.id, { status: 'Active' }))
-      );
-      onDraftCreated();
-    } catch (err) {
-      console.error('Bulk approve failed:', err);
-    } finally {
-      setApproving(false);
+    setApproveError(null);
+    // allSettled, not all — with Promise.all one flaky request aborted the
+    // whole batch silently: some drafts activated server-side while the UI
+    // still showed them as drafts (and no refetch fired, so the list lied).
+    const results = await Promise.allSettled(
+      readyToApprove.map(p => api.products.updateByDomain(p.id, { status: 'Active' }))
+    );
+    const failed = results.filter(r => r.status === 'rejected').length;
+    if (failed > 0) {
+      setApproveError(`${failed} of ${results.length} didn't go through — check your connection and approve again.`);
     }
+    // Always refetch: partial successes must show as Active immediately.
+    onDraftCreated();
+    setApproving(false);
   };
 
   return (
@@ -105,6 +110,9 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
               <><ArrowRight size={11} /> Activate {readyToApprove.length}</>
             )}
           </button>
+        )}
+        {approveError && (
+          <span className="text-ui-11 text-tea-error truncate">{approveError}</span>
         )}
 
         {/* Bulk intake handoff — load many files / photos at once */}

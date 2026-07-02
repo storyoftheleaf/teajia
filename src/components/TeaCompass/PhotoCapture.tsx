@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
 import { Camera, Check, ChevronLeft, ChevronRight, Edit3, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -216,8 +217,24 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     if (videoElRef.current) startCamera(videoElRef.current);
   };
 
+  // Upload failed at scan time but we still hold the frame as a data URL —
+  // re-upload in the background and attach the photo when it lands. Previously
+  // "Apply to form" filled the fields and silently dropped the photo whenever
+  // the upload leg lost the race against a flaky connection.
+  const retryUploadFromDataUrl = (dataUrl: string) => {
+    void (async () => {
+      try {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+        const url = await api.uploadImage(file);
+        if (url) onPhotoTaken(url);
+      } catch { /* connection still down — fields are applied, photo lost this round */ }
+    })();
+  };
+
   const handleApply = () => {
     if (capturedImageUrl) onPhotoTaken(capturedImageUrl);
+    else if (capturedDataUrl) retryUploadFromDataUrl(capturedDataUrl);
     if (extractedPreview) onExtracted(extractedPreview);
     closeScanner();
     setJustExtracted(true);
@@ -229,6 +246,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const handleUsePhotoOnly = () => {
     if (capturedImageUrl) {
       onPhotoTaken(capturedImageUrl);
+      setJustExtracted(true);
+    } else if (capturedDataUrl) {
+      retryUploadFromDataUrl(capturedDataUrl);
       setJustExtracted(true);
     }
     closeScanner();
@@ -472,7 +492,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <p className="text-ui-12 text-tea-text-dim">
               {capturedImageUrl
                 ? 'No problem — the photo is saved. Keep it as-is, or retake for a cleaner read.'
-                : 'Try moving closer, better lighting, or a flatter angle.'}
+                : capturedDataUrl
+                  ? "The photo hasn't reached the server yet — you can still keep it; it uploads in the background."
+                  : 'Try moving closer, better lighting, or a flatter angle.'}
             </p>
             <div className="flex gap-2">
               <button
@@ -483,8 +505,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <RefreshCw size={13} />
                 {capturedImageUrl ? 'Retake' : 'Try again'}
               </button>
-              {/* The frame already uploaded — let a photo-only capture stand. */}
-              {capturedImageUrl && (
+              {/* Uploaded — or still local with a background retry — either way
+                  a photo-only capture can stand. */}
+              {(capturedImageUrl || capturedDataUrl) && (
                 <button
                   type="button"
                   onClick={handleUsePhotoOnly}
@@ -549,7 +572,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
-            src={allPhotos[lightboxIndex]}
+            src={mediaUrl(allPhotos[lightboxIndex])}
             alt={`Photo ${lightboxIndex + 1}`}
             className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -606,7 +629,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             title="Tap for options"
           >
             <img
-              src={url}
+              src={mediaUrl(url)}
               alt={`Photo ${i + 1}`}
               className="w-full h-full object-cover pointer-events-none"
             />

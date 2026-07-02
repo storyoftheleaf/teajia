@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTeaCompassStore } from '../lib/teaCompassStore';
-import { hydrateCompassEntries, syncCompassEntries } from '../lib/teaCompassSync';
+import { hydrateCompassEntries, syncCompassEntries, compassHasPendingWork } from '../lib/teaCompassSync';
 import { hasToken } from '../lib/api';
 
 /**
@@ -71,5 +71,30 @@ export function useCompassSync(isAuthenticated: boolean) {
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
+  }, [isAuthenticated]);
+
+  // Retry heartbeat — the 'online' event never fires on a GFW-style connection
+  // that stays "up" but times out, so a failed save/delete used to sit pending
+  // until the user happened to edit something else. While ANY work is pending
+  // (unsynced entries or unconfirmed deletes), retry every 30s and immediately
+  // when the tab regains focus (phone unlocked between tastings at a fair).
+  // No-ops entirely when everything is synced.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const retryIfPending = () => {
+      if (hasToken() && compassHasPendingWork()) {
+        syncCompassEntries().catch(() => {});
+      }
+    };
+    const interval = setInterval(retryIfPending, 30_000);
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') retryIfPending();
+    };
+    document.addEventListener('visibilitychange', handleVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisible);
+    };
   }, [isAuthenticated]);
 }

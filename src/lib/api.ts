@@ -460,6 +460,22 @@ function maybeScheduleBackgroundRefresh() {
 // never a thrown TypeError, so they skip this path entirely.
 const NETWORK_RETRY_BACKOFF_MS = [600, 1800, 4000, 7000];
 
+// The GFW's other failure mode is a BLACKHOLED connection: no reset, the
+// request just hangs until our own abort fires. Those aborts used to surface
+// immediately as "Request timed out" with no second chance — the dominant
+// failure Adrian hit in China. Idempotent calls (GET/HEAD automatically, plus
+// writes that opt in via `retryTimeouts`, e.g. compass sync/delete which are
+// INSERT OR REPLACE / DELETE-by-id on the worker) now get a shorter
+// per-attempt budget and up to two fresh connections instead of one 30s hang.
+// Non-idempotent writes keep the old single-shot behavior — a timed-out
+// request may still have reached the server, and e.g. invoice creation must
+// not double-fire.
+const TIMEOUT_RETRY_MAX = 2;
+const TIMEOUT_RETRY_ATTEMPT_MS = 15_000;
+
+/** RequestInit + our retry opt-in. The extra key is ignored by fetch(). */
+export interface ApiRequestInit extends RequestInit { retryTimeouts?: boolean }
+
 /** Resolve once the browser reports it's back online, or after `maxMs` elapses. */
 function waitForReconnect(maxMs: number): Promise<void> {
   if (typeof window === 'undefined' || navigator.onLine !== false) return Promise.resolve();
@@ -477,23 +493,37 @@ function waitForReconnect(maxMs: number): Promise<void> {
   });
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Promise<Response> {
+  const method = (options.method || 'GET').toUpperCase();
+  const retryTimeouts = options.retryTimeouts ?? (method === 'GET' || method === 'HEAD');
+  // When timeouts are retryable, fail each attempt fast and try a fresh
+  // connection; a blackholed socket never recovers by waiting longer.
+  const attemptTimeoutMs = retryTimeouts ? TIMEOUT_RETRY_ATTEMPT_MS : REQUEST_TIMEOUT_MS;
+  let timeoutRetries = 0;
   let lastErr: any;
   for (let attempt = 0; attempt <= NETWORK_RETRY_BACKOFF_MS.length; attempt++) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
     try {
       return await fetch(url, { ...options, signal: controller.signal });
     } catch (err: any) {
       lastErr = err;
-      // Our own timeout aborts share the AbortError name. A timed-out request
-      // is unlikely to fare better on an immediate retry, so surface it.
-      if (err?.name === 'AbortError') {
+      // Our own timeout aborts share the AbortError name.
+      const isTimeout = err?.name === 'AbortError';
+      if (isTimeout && (!retryTimeouts || timeoutRetries >= TIMEOUT_RETRY_MAX)) {
+        dispatchNetworkError();
         throw new Error('Request timed out. Please try again.');
       }
       const isNetworkError = err?.name === 'TypeError';
-      if (isNetworkError && attempt < NETWORK_RETRY_BACKOFF_MS.length) {
+      if ((isNetworkError || isTimeout) && attempt < NETWORK_RETRY_BACKOFF_MS.length) {
         clearTimeout(timeoutId);
+        if (isTimeout) {
+          // The old connection already burned 15s — retry near-immediately on
+          // a fresh one rather than adding backoff on top.
+          timeoutRetries++;
+          await new Promise(resolve => setTimeout(resolve, 300));
+          continue;
+        }
         const base = NETWORK_RETRY_BACKOFF_MS[attempt];
         const delay = Math.round(base * (0.7 + Math.random() * 0.6)); // ±30% jitter
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -506,6 +536,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
         continue;
       }
       dispatchNetworkError();
+      if (isTimeout) {
+        throw new Error('Request timed out. Please try again.');
+      }
       if (isNetworkError) {
         throw new Error("Couldn't reach the server. Check your connection and try again.");
       }
@@ -588,8 +621,21 @@ async function handleResponse(res: Response) {
  * The retry is not recursive — on 401 the second attempt goes straight to
  * handleResponse, which throws if the fresh token is also rejected.
  */
-async function authedFetch(url: string, init: RequestInit = {}): Promise<any> {
-  const opts: RequestInit = { ...init, headers: authHeaders() };
+/** Auth headers adjusted for the request body. FormData bodies MUST NOT carry
+ *  our default `Content-Type: application/json` — with an explicit header the
+ *  browser can't append the multipart boundary, and the worker hard-rejects
+ *  non-multipart uploads with 400. This single header bug broke every
+ *  `api.uploadImage` call (photo capture, vendor photos, teaware, ledger). */
+function authHeadersFor(body: BodyInit | null | undefined): Record<string, string> {
+  const headers = authHeaders();
+  if (typeof FormData !== 'undefined' && body instanceof FormData) {
+    delete headers['Content-Type'];
+  }
+  return headers;
+}
+
+async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
+  const opts: ApiRequestInit = { ...init, headers: authHeadersFor(init.body) };
   const res = await fetchWithTimeout(url, opts);
 
   if (res.status === 401 && hasToken()) {
@@ -609,7 +655,7 @@ async function authedFetch(url: string, init: RequestInit = {}): Promise<any> {
         // The second call goes straight to handleResponse; there is no further
         // retry (the retry itself throws on 401, which surfaces SESSION_EXPIRED
         // correctly if the fresh token is also rejected).
-        const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeaders() });
+        const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeadersFor(init.body) });
         return handleResponse(retryRes);
       }
       if (refreshResult === 'rejected') {
@@ -950,9 +996,12 @@ export const api = {
       });
     },
     update: async (id: string, data: Record<string, any>) => {
+      // PUT by id — idempotent, safe to retry through a GFW timeout (vendor
+      // photo/location saves from the Compass ride this).
       return authedFetch(`${API_URL}/api/customers/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
+        retryTimeouts: true,
       });
     },
     delete: async (id: string) => {
@@ -1188,32 +1237,24 @@ export const api = {
     // Callers that already uploaded the photo themselves set skipUpload so
     // the extract endpoint doesn't write a duplicate R2 object.
     if (opts?.skipUpload) formData.append('skip_upload', '1');
-    const token = localStorage.getItem('teajia_token');
-    const res = await fetchWithTimeout(`${API_URL}/api/extract-from-image`, {
+    // authedFetch: full header set (Authorization + X-Teajia-Account, no
+    // Content-Type on FormData) + 401-refresh retry. The old hand-rolled
+    // version read localStorage directly (missed sessionStorage tokens) and
+    // sent no account header, so the R2 write could land without account scope.
+    return authedFetch(`${API_URL}/api/extract-from-image`, {
       method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
       body: formData,
     });
-    return handleResponse(res);
   },
 
   transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
-    // Note: we don't preemptively clear the token here — handleResponse
-    // silently refreshes on 401 and only clears on refresh failure.
-    const token = getToken();
-    const res = await fetchWithTimeout(`${API_URL}/api/transcribe`, {
+    return authedFetch(`${API_URL}/api/transcribe`, {
       method: 'POST',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
       body: formData,
     });
-    return handleResponse(res);
   },
 
   uploadImage: async (
@@ -1247,8 +1288,13 @@ export const api = {
     formData.append('file', file, filename);
     // Use the same headers authedFetch sends (Authorization + X-Teajia-Account),
     // but NOT Content-Type — the browser sets the multipart boundary itself.
-    const headers = authHeaders();
-    return new Promise<string>((resolve, reject) => {
+    // Network-level failures (timeout / connection reset) retry on a fresh
+    // connection up to 2 extra times — on GFW-style jumpy links the first
+    // attempt often dies mid-stream while an immediate retry lands. HTTP
+    // errors (4xx/5xx) are real answers from the server and do NOT retry.
+    // Each attempt creates at most one R2 object, so a duplicate is harmless.
+    const attemptUpload = () => new Promise<string>((resolve, reject) => {
+      const headers = authHeaders();
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${API_URL}/api/upload-image`);
       for (const [k, v] of Object.entries(headers)) {
@@ -1260,13 +1306,25 @@ export const api = {
         if (xhr.status >= 200 && xhr.status < 300) {
           try { resolve(JSON.parse(xhr.responseText).url as string); }
           catch { reject(new Error('bad upload response')); }
-        } else reject(new Error(`upload failed: ${xhr.status}`));
+        } else reject(Object.assign(new Error(`upload failed: ${xhr.status}`), { permanent: true }));
       };
       xhr.onerror = () => reject(new Error('network error'));
       xhr.ontimeout = () => reject(new Error('upload timed out'));
       xhr.timeout = 60000; // never hang forever on a flaky phone connection
       xhr.send(formData);
     });
+    let lastErr: any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await attemptUpload();
+      } catch (err: any) {
+        lastErr = err;
+        if (err?.permanent) throw err;
+        onProgress(0); // reset the bar so the retry doesn't look stuck at 90%
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+    }
+    throw lastErr;
   },
 
   events: {
@@ -1725,20 +1783,26 @@ export const api = {
       });
     },
     update: async (id: string, updates: Record<string, any>) => {
+      // PUT by id — idempotent, safe to retry through a GFW timeout.
       return authedFetch(`${API_URL}/api/compass/entries/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
+        retryTimeouts: true,
       });
     },
     remove: async (id: string) => {
+      // DELETE by id — idempotent, safe to retry through a GFW timeout.
       return authedFetch(`${API_URL}/api/compass/entries/${id}`, {
         method: 'DELETE',
+        retryTimeouts: true,
       });
     },
     sync: async (entries: Record<string, any>[]) => {
+      // Worker uses INSERT OR REPLACE keyed by entry id — idempotent.
       return authedFetch(`${API_URL}/api/compass/sync`, {
         method: 'POST',
         body: JSON.stringify({ entries }),
+        retryTimeouts: true,
       });
     },
     /** Promote a compass entry to a Draft product in the active account.
@@ -1746,6 +1810,7 @@ export const api = {
     promote: async (entryId: string): Promise<{ id: string; product: Record<string, any>; alreadyPromoted: boolean }> => {
       return authedFetch(`${API_URL}/api/compass/entries/${entryId}/promote`, {
         method: 'POST',
+        retryTimeouts: true,
       });
     },
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */

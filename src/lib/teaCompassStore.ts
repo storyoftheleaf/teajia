@@ -44,6 +44,14 @@ interface TeaCompassState {
   // delete lands (the "I deleted it and it came back" bug), and retries the delete.
   deletedIds: string[];
 
+  // Entries whose promote-to-draft call failed (offline/timeout at commit time).
+  // The sync heartbeat retries these until the draft exists — previously a
+  // failed promotion was silent and the tea just never appeared in
+  // /admin/capture. Persisted so a page reload doesn't lose the intent.
+  pendingPromotions: string[];
+  addPendingPromotion: (id: string) => void;
+  removePendingPromotion: (id: string) => void;
+
   // Pricing formula — shipping rate used in retail preview (same currency as entry cost)
   shippingRatePerKg: number;
   setShippingRatePerKg: (rate: number) => void;
@@ -133,10 +141,19 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       lastCaptureAt: null,
       syncError: false,
       deletedIds: [],
+      pendingPromotions: [],
       shippingRatePerKg: 0,
       customEras: [],
 
       setSyncError: (failed) => set({ syncError: failed }),
+
+      addPendingPromotion: (id) =>
+        set((s) => (s.pendingPromotions.includes(id)
+          ? s
+          : { pendingPromotions: [...s.pendingPromotions, id] })),
+
+      removePendingPromotion: (id) =>
+        set((s) => ({ pendingPromotions: s.pendingPromotions.filter((p) => p !== id) })),
 
       setShippingRatePerKg: (rate) => set({ shippingRatePerKg: rate }),
 
@@ -177,6 +194,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           entries: state.entries.filter((e) => e.id !== id),
           pendingEntries: state.pendingEntries.filter((e) => e.id !== id),
           sessionEntryIds: state.sessionEntryIds.filter((sid) => sid !== id),
+          pendingPromotions: state.pendingPromotions.filter((p) => p !== id),
           activeEntryId: state.activeEntryId === id ? null : state.activeEntryId,
           // Tombstone a committed entry so hydrate won't re-add the still-on-server
           // row before the delete confirms. Cleared the moment the delete succeeds.
@@ -316,6 +334,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         shippingRatePerKg: state.shippingRatePerKg,
         customEras: state.customEras,
         deletedIds: state.deletedIds, // survive reloads so a pending delete still wins
+        pendingPromotions: state.pendingPromotions, // survive reloads so a failed promote still retries
         // pendingEntries, activeEntryId, sessionEntryIds are intentionally NOT persisted
       }),
     }
