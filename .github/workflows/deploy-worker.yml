@@ -48,6 +48,56 @@ jobs:
       - name: Worker tests
         run: npm run test:worker
 
+      # ── One-off tracker reconcile for 097 (safe to remove after it has run) ──
+      # 097's four customer columns were applied to the remote DB out-of-band
+      # on 2026-06-29, so `d1 migrations apply` has failed with "duplicate
+      # column name: business_card_photo" on EVERY deploy since — which means
+      # the deploy step below never ran and the production worker went stale.
+      # These steps make the columns idempotent (each ALTER tolerated
+      # individually — it only fails when the column already exists) and then
+      # mark 097 as applied in the tracker so the strict step below stops
+      # tripping on it. The strict no-continue-on-error policy still guards
+      # every migration from 098 onward.
+      - name: Reconcile 097 — business_card_photo
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: d1 execute teajia-db --remote --command "ALTER TABLE customers ADD COLUMN business_card_photo TEXT"
+      - name: Reconcile 097 — storefront_photo
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: d1 execute teajia-db --remote --command "ALTER TABLE customers ADD COLUMN storefront_photo TEXT"
+      - name: Reconcile 097 — latitude
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: d1 execute teajia-db --remote --command "ALTER TABLE customers ADD COLUMN latitude REAL"
+      - name: Reconcile 097 — longitude
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: d1 execute teajia-db --remote --command "ALTER TABLE customers ADD COLUMN longitude REAL"
+      - name: Mark 097 as applied in the migrations tracker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: d1 execute teajia-db --remote --command "INSERT INTO d1_migrations (name) SELECT '097_vendor_photos_location.sql' WHERE NOT EXISTS (SELECT 1 FROM d1_migrations WHERE name = '097_vendor_photos_location.sql')"
+
       # Migrations apply on every worker deploy. This step must NOT swallow
       # failures: a silent `continue-on-error` is what let 076 + 080 drift out
       # of prod undetected (the d1_migrations tracker fell out of sync while the
