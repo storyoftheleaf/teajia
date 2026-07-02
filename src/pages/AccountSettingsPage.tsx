@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { api, setToken } from '../lib/api';
@@ -52,6 +52,15 @@ export default function AccountSettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
+  // Google-linked accounts have no password yet — the form becomes "Set
+  // password" (no current-password field). Default true so an existing
+  // password is never changeable without the current one while /me loads.
+  const [hasPassword, setHasPassword] = useState(true);
+  useEffect(() => {
+    api.auth.me()
+      .then((me: any) => { if (typeof me?.has_password === 'boolean') setHasPassword(me.has_password); })
+      .catch(() => { /* keep the safe default */ });
+  }, []);
 
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
@@ -121,6 +130,7 @@ export default function AccountSettingsPage() {
       setNewPassword('');
       setConfirmNewPassword('');
       setPasswordSaved(true);
+      setHasPassword(true);
       setTimeout(() => setPasswordSaved(false), 3000);
     } catch (err: unknown) {
       setPasswordError((err as Error)?.message || 'Failed to change password.');
@@ -307,23 +317,29 @@ export default function AccountSettingsPage() {
 
       <div className="border-t border-tea-border" />
 
-      {/* Change Password */}
+      {/* Change / Set Password */}
       <section className="space-y-4">
         <div>
-          <h2 className="h3">Change password</h2>
-          <p className="text-ui-12 text-tea-text-dim mt-1">Update your account password.</p>
+          <h2 className="h3">{hasPassword ? 'Change password' : 'Set a password'}</h2>
+          <p className="text-ui-12 text-tea-text-dim mt-1">
+            {hasPassword
+              ? 'Update your account password.'
+              : 'Your account signs in with Google. Set a password to also sign in with email — useful where Google is unreachable.'}
+          </p>
         </div>
         <form onSubmit={handleChangePassword} className="space-y-3">
-          <div>
-            <label className={labelClass}>Current password</label>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={e => setCurrentPassword(e.target.value)}
-              className={inputClass}
-              required
-            />
-          </div>
+          {hasPassword && (
+            <div>
+              <label className={labelClass}>Current password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                className={inputClass}
+                required
+              />
+            </div>
+          )}
           <div>
             <label className={labelClass}>New password</label>
             <input
@@ -346,7 +362,7 @@ export default function AccountSettingsPage() {
             />
           </div>
           <FormError error={passwordError} />
-          {passwordSaved && <p className="text-ui-13 text-tea-green">Password updated.</p>}
+          {passwordSaved && <p className="text-ui-13 text-tea-green">{hasPassword ? 'Password updated.' : 'Password set — you can now sign in with email + password.'}</p>}
           <div className="flex justify-between pt-2">
             <button
               type="button"
@@ -355,7 +371,7 @@ export default function AccountSettingsPage() {
             >
               Cancel
             </button>
-            <PrimarySubmit label="Update password" loading={passwordLoading} />
+            <PrimarySubmit label={hasPassword ? 'Update password' : 'Set password'} loading={passwordLoading} />
           </div>
         </form>
       </section>

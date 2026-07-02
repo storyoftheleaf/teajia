@@ -1376,9 +1376,16 @@ const handleGetMe: Handler = async (request, env) => {
 
   // Try to fetch fresh user data from DB
   try {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections FROM users WHERE id = ?').bind(claims.sub).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, can_create_collections, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
     if (user) {
-      return json({ ...user, ...(refreshedToken ? { refreshed_token: refreshedToken } : {}) });
+      // Never expose the hash itself — only whether one exists, so the
+      // settings UI can offer "Set password" to Google-linked accounts.
+      const { password_hash, ...safe } = user as Record<string, unknown>;
+      return json({
+        ...safe,
+        has_password: typeof password_hash === 'string' && (password_hash as string).length > 0,
+        ...(refreshedToken ? { refreshed_token: refreshedToken } : {}),
+      });
     }
   } catch {}
 
@@ -1454,19 +1461,29 @@ const handleChangePassword: Handler = async (request, env) => {
   if (!claims) return json({ error: 'Invalid token' }, 401);
 
   const { currentPassword, newPassword } = await request.json() as { currentPassword?: string; newPassword?: string };
-  if (!currentPassword || !newPassword) return json({ error: 'Current and new password required' }, 400);
+  if (!newPassword) return json({ error: 'New password required' }, 400);
   if (newPassword.length < 6) return json({ error: 'New password must be at least 6 characters' }, 400);
 
   const user = await env.DB.prepare('SELECT id, password_hash FROM users WHERE id = ?').bind(claims.sub).first();
   if (!user) return json({ error: 'User not found' }, 404);
 
-  const { verified: currentVerified } = await verifyPasswordHash(currentPassword, user.password_hash as string);
-  if (!currentVerified) return json({ error: 'Current password is incorrect' }, 403);
+  // Google-linked accounts start with NO password_hash. Requiring the current
+  // password unconditionally locked those users out twice over: they can't
+  // password-login ("Invalid credentials") and they couldn't SET a first
+  // password either, because there is no current password to verify. When no
+  // password exists yet, possession of a valid signed-in session is the
+  // identity proof — same trust level as the reset-email flow.
+  const hasExisting = typeof user.password_hash === 'string' && (user.password_hash as string).length > 0;
+  if (hasExisting) {
+    if (!currentPassword) return json({ error: 'Current password required' }, 400);
+    const { verified: currentVerified } = await verifyPasswordHash(currentPassword, user.password_hash as string);
+    if (!currentVerified) return json({ error: 'Current password is incorrect' }, 403);
+  }
 
   const newHash = await hashPasswordPBKDF2(newPassword);
   await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, claims.sub).run();
 
-  return json({ ok: true, message: 'Password changed successfully' });
+  return json({ ok: true, message: hasExisting ? 'Password changed successfully' : 'Password set successfully' });
 };
 
 // ── Delete Account ──
