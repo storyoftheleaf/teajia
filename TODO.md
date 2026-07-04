@@ -171,7 +171,7 @@
 
 Build in order; each step sits on the one before it. The whole model is specced in [docs/MULTI_STORE_PLAN.md](docs/MULTI_STORE_PLAN.md) (the "Movement / Locations / Sellers / Personal Collections" section). The locations layer and Adrian-as-master switching already work.
 
-**All five steps shipped.** Steps 2–5 landed on branch `claude/affectionate-clarke-mpx6t8` (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record.
+**All five steps code-complete** on branch `claude/affectionate-clarke-mpx6t8` / PR #239 (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record. All flows — including the step-4 "move" (request → owner review on `/admin/access` → placement) — are wired end-to-end. Remaining before merge is verification, not code: run the mobile suite and confirm the migrations apply. See the follow-ups below.
 
 - [x] **1. Give every piece of stock an owner** — record which person a stock row belongs to, defaulting to the location itself so nothing changes on screen yet _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
   The foundation the other three sit on. Today a tea belongs to a location but not to a person; this makes "whose tea is this" a real fact on every row. Done when every stock row carries an owner and existing teas all read as owned by their location with no visible change.
@@ -183,6 +183,20 @@ Build in order; each step sits on the one before it. The whole model is specced 
   The private floor of the same stock spine: same row-ownership as a seller, with selling switched off. Becomes sellable only if the user joins a location and that owner shows it, so a collector can grow into a seller without starting over. Done when a logged-in user can add tea they own with a quantity, kept private and synced to their account.
 - [x] **5. Let a standalone seller open their own public tea link** — a person not on any location's team can make their own collection public at their own page, with Adrian's permission _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
   The top of the spine: a personal shelf with selling switched on, reachable at its own link, without joining Bali. The buyer deals with that seller directly (WhatsApp, like every Teajia order) so Teajia never holds the money. Done when Adrian can grant a user permission to publish their collection at their own page and a visitor can reach it and start a direct order.
+
+#### Stock spine — remaining before / after merging PR #239
+
+Must-do before the "move" (step 4) is usable, and before merge:
+
+- [x] **Build the location-owner placement-review UI.** _(band: agent-runnable)_ Done: `PlacementRequests` component surfaces pending requests on the Access view (`/admin/access`), owner-tier only, renders nothing when empty. Approve lands the tea as held stock (`is_public=0`, `shown_in_shop=0`) owned by the requester and refreshes inventory; decline returns it to the member's cellar.
+- [ ] **Run `npm run test:mobile` against a real browser.** _(band: you-required)_ Mandatory per CLAUDE.md — PR #239 touches `AccountPanel` + routing — and it never ran in the build env (no Chromium binary). Verified there only via `tsc` (root + worker), `lint:colors`, and a production build.
+- [ ] **Confirm migrations 092–094 apply on deploy to prod D1.** _(band: you-required)_ They were renumbered from 091–093 after `091_form_loose_rename` landed on main; order matters (092 → 093 → 094) and each is the single source of its columns — do not edit older migrations.
+
+Smaller follow-ups:
+
+- [x] **Wire cellar item edit in `CellarView`.** _(band: agent-runnable)_ Done: inline edit (name + grams) on private cellar items via `api.cellar.update`.
+- [x] **Add a shelf-title field in `CellarView`.** _(band: agent-runnable)_ Done: shelf banner now has a title input; save sends `{ title, whatsapp }`.
+- [x] **Close the bulk-create mirror gap (pre-existing).** _(band: agent-runnable)_ Done: `handleBulkCreateProducts` now emits the `tea_profiles` + `product_listings` mirror inserts (via `buildProductMirrorInserts`), matching the single-create path.
 
 ## Operational notes (not TODOs: context for future-you)
 
