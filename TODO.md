@@ -171,7 +171,7 @@
 
 Build in order; each step sits on the one before it. The whole model is specced in [docs/MULTI_STORE_PLAN.md](docs/MULTI_STORE_PLAN.md) (the "Movement / Locations / Sellers / Personal Collections" section). The locations layer and Adrian-as-master switching already work.
 
-**All five steps code-complete** on branch `claude/affectionate-clarke-mpx6t8` / PR #239 (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record. Steps 2, 3, 5 and the private cellar are usable end-to-end; the step-4 "move" (placement) is API-complete but has no owner-facing UI yet — see the follow-ups below before calling step 4 done.
+**All five steps code-complete** on branch `claude/affectionate-clarke-mpx6t8` / PR #239 (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record. All flows — including the step-4 "move" (request → owner review on `/admin/access` → placement) — are wired end-to-end. Remaining before merge is verification, not code: run the mobile suite and confirm the migrations apply. See the follow-ups below.
 
 - [x] **1. Give every piece of stock an owner** — record which person a stock row belongs to, defaulting to the location itself so nothing changes on screen yet _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
   The foundation the other three sit on. Today a tea belongs to a location but not to a person; this makes "whose tea is this" a real fact on every row. Done when every stock row carries an owner and existing teas all read as owned by their location with no visible change.
@@ -188,7 +188,7 @@ Build in order; each step sits on the one before it. The whole model is specced 
 
 Must-do before the "move" (step 4) is usable, and before merge:
 
-- [ ] **Build the location-owner placement-review UI.** _(band: agent-runnable)_ The move is API-complete but has no admin screen — a location owner can't see or approve a member's placement request. Endpoints exist (`GET /api/cellar-placements`, `.../:id/approve`, `.../:id/decline`) and are wired in `api.cellar.listPlacements/approvePlacement/declinePlacement`; nothing consumes them. Suggested home: an owner-tier panel in the inventory/team area. Approve lands the tea as held stock (`is_public=0`, `shown_in_shop=0`) owned by the requester.
+- [x] **Build the location-owner placement-review UI.** _(band: agent-runnable)_ Done: `PlacementRequests` component surfaces pending requests on the Access view (`/admin/access`), owner-tier only, renders nothing when empty. Approve lands the tea as held stock (`is_public=0`, `shown_in_shop=0`) owned by the requester and refreshes inventory; decline returns it to the member's cellar.
 - [ ] **Run `npm run test:mobile` against a real browser.** _(band: you-required)_ Mandatory per CLAUDE.md — PR #239 touches `AccountPanel` + routing — and it never ran in the build env (no Chromium binary). Verified there only via `tsc` (root + worker), `lint:colors`, and a production build.
 - [ ] **Confirm migrations 092–094 apply on deploy to prod D1.** _(band: you-required)_ They were renumbered from 091–093 after `091_form_loose_rename` landed on main; order matters (092 → 093 → 094) and each is the single source of its columns — do not edit older migrations.
 

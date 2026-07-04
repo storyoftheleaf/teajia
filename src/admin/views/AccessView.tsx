@@ -5,6 +5,7 @@ import { useAppStore, selectIsOwnerTier } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import { ALL_BUNDLES, BUNDLE_DESCRIPTIONS, BUNDLE_LABELS } from '../../types';
 import type { AccountMember, Bundle } from '../../types';
+import { PlacementRequests } from '../components/PlacementRequests';
 
 // Members & Access — Location Owner / Tea Master view at /admin/access.
 // Per docs/NETWORK_ROLLOUT_PLAN.md §6-9 and docs/NETWORK_UI_BRIEF.md
@@ -473,6 +474,10 @@ export const AccessView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Stock spine step 4 — pending placement requests from members (owner-tier
+          only; renders nothing when there are none). */}
+      {isOwnerTier && <PlacementRequests accountId={activeAccountId} />}
 
       {/* Owners group */}
       {owners.length > 0 && (
