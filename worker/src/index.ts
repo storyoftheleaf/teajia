@@ -2227,6 +2227,10 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
         .bind(id, ...cols.map(c => body[c] ?? null))
     );
+    // Mirror to tea_profiles + product_listings, same as the single-create path,
+    // so bulk-imported tea behaves identically (partner catalog browse, per-account
+    // listing fields, owner/shown_in_shop). No-op for teaware.
+    toInsert.push(...buildProductMirrorInserts(env, id, accountId, body));
     // Opening stock becomes a PURCHASE_RECEIPT intake event, stamped with the import's
     // batch — so a bulk-imported order is batch-filterable and leaves an audit trace.
     const openingStock = Number(body.stock_grams ?? body.quantity_units ?? 0);

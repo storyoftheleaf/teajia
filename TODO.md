@@ -192,11 +192,11 @@ Must-do before the "move" (step 4) is usable, and before merge:
 - [ ] **Run `npm run test:mobile` against a real browser.** _(band: you-required)_ Mandatory per CLAUDE.md — PR #239 touches `AccountPanel` + routing — and it never ran in the build env (no Chromium binary). Verified there only via `tsc` (root + worker), `lint:colors`, and a production build.
 - [ ] **Confirm migrations 092–094 apply on deploy to prod D1.** _(band: you-required)_ They were renumbered from 091–093 after `091_form_loose_rename` landed on main; order matters (092 → 093 → 094) and each is the single source of its columns — do not edit older migrations.
 
-Smaller follow-ups (not blocking the model):
+Smaller follow-ups:
 
-- [ ] **Wire cellar item edit in `CellarView`.** _(band: agent-runnable)_ `PUT /api/me/cellar/:id` + `api.cellar.update` exist; the UI only does add / delete. Add inline edit of name/grams/notes.
-- [ ] **Add a shelf-title field in `CellarView`.** _(band: agent-runnable)_ `PUT /api/me/shelf` accepts `{ title, whatsapp }` but the UI only sends `whatsapp`. Let sellers name their shelf (still shelf-first — no bio).
-- [ ] **Close the bulk-create mirror gap (pre-existing).** _(band: agent-runnable)_ `handleBulkCreateProducts` writes `owner_user_id`/`shown_in_shop` to `products` but skips the `product_listings` mirror (unlike `handleCreateProduct`), so bulk-imported seller stock behaves differently.
+- [x] **Wire cellar item edit in `CellarView`.** _(band: agent-runnable)_ Done: inline edit (name + grams) on private cellar items via `api.cellar.update`.
+- [x] **Add a shelf-title field in `CellarView`.** _(band: agent-runnable)_ Done: shelf banner now has a title input; save sends `{ title, whatsapp }`.
+- [x] **Close the bulk-create mirror gap (pre-existing).** _(band: agent-runnable)_ Done: `handleBulkCreateProducts` now emits the `tea_profiles` + `product_listings` mirror inserts (via `buildProductMirrorInserts`), matching the single-create path.
 
 ## Operational notes (not TODOs: context for future-you)
 

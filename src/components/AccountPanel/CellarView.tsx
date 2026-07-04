@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink } from 'lucide-react';
+import { Package, Plus, Trash2, MapPin, X, Loader2, Store, ExternalLink, Pencil, Check } from 'lucide-react';
 import { api, type CellarItem } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 
@@ -30,6 +30,11 @@ export const CellarView: React.FC<CellarViewProps> = () => {
   const [adding, setAdding] = useState(false);
   const [placingId, setPlacingId] = useState<string | null>(null);
 
+  // Inline edit of an existing item (name + grams).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editGrams, setEditGrams] = useState('');
+
   const { data, isLoading } = useQuery({
     queryKey: ['cellar'],
     queryFn: () => api.cellar.list(),
@@ -45,12 +50,18 @@ export const CellarView: React.FC<CellarViewProps> = () => {
   });
   const shelfEnabled = !!shelf?.enabled;
   const [whatsapp, setWhatsapp] = useState('');
-  useEffect(() => { if (shelf) setWhatsapp(shelf.whatsapp ?? ''); }, [shelf]);
+  const [shelfTitle, setShelfTitle] = useState('');
+  useEffect(() => {
+    if (shelf) { setWhatsapp(shelf.whatsapp ?? ''); setShelfTitle(shelf.title ?? ''); }
+  }, [shelf]);
+  const shelfDirty = shelfEnabled && shelf
+    ? (whatsapp !== (shelf.whatsapp ?? '') || shelfTitle !== (shelf.title ?? ''))
+    : false;
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['cellar'] });
 
   const saveShelfMut = useMutation({
-    mutationFn: (payload: { whatsapp: string }) => api.cellar.updateShelf(payload),
+    mutationFn: (payload: { title: string; whatsapp: string }) => api.cellar.updateShelf(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cellar-shelf'] }),
   });
   const shelfToggleMut = useMutation({
@@ -67,6 +78,10 @@ export const CellarView: React.FC<CellarViewProps> = () => {
     mutationFn: (id: string) => api.cellar.remove(id),
     onSuccess: invalidate,
   });
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name?: string; grams?: number } }) => api.cellar.update(id, data),
+    onSuccess: () => { setEditingId(null); invalidate(); },
+  });
   const requestMut = useMutation({
     mutationFn: ({ id, accountId }: { id: string; accountId: string }) => api.cellar.requestPlacement(id, accountId),
     onSuccess: () => { setPlacingId(null); invalidate(); },
@@ -81,6 +96,18 @@ export const CellarView: React.FC<CellarViewProps> = () => {
     if (!trimmed) return;
     const g = Number(grams);
     createMut.mutate({ name: trimmed, grams: Number.isFinite(g) && g > 0 ? g : 0 });
+  };
+
+  const startEdit = (item: CellarItem) => {
+    setEditingId(item.id);
+    setEditName(item.name);
+    setEditGrams(String(Math.round(item.grams)));
+  };
+  const submitEdit = (id: string) => {
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    const g = Number(editGrams);
+    updateMut.mutate({ id, data: { name: trimmed, grams: Number.isFinite(g) && g >= 0 ? g : 0 } });
   };
 
   const accountName = (id: string | null | undefined): string =>
@@ -110,6 +137,13 @@ export const CellarView: React.FC<CellarViewProps> = () => {
               /u/{shelf.slug} <ExternalLink size={11} />
             </a>
           </div>
+          <input
+            type="text"
+            value={shelfTitle}
+            onChange={e => setShelfTitle(e.target.value)}
+            placeholder="Shelf title (optional)"
+            className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-13 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+          />
           <div className="flex items-center gap-2">
             <input
               type="tel"
@@ -120,8 +154,8 @@ export const CellarView: React.FC<CellarViewProps> = () => {
               className="flex-1 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-13 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
             />
             <button
-              onClick={() => saveShelfMut.mutate({ whatsapp })}
-              disabled={saveShelfMut.isPending || whatsapp === (shelf.whatsapp ?? '')}
+              onClick={() => saveShelfMut.mutate({ title: shelfTitle, whatsapp })}
+              disabled={saveShelfMut.isPending || !shelfDirty}
               className="text-ui-13 text-tea-gold disabled:opacity-50"
             >
               Save
@@ -196,6 +230,41 @@ export const CellarView: React.FC<CellarViewProps> = () => {
         <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden">
           {items.map(item => (
             <li key={item.id} className="px-4 py-3">
+              {editingId === item.id ? (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    autoFocus
+                    className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      value={editGrams}
+                      onChange={e => setEditGrams(e.target.value)}
+                      className="w-24 bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
+                    />
+                    <span className="text-ui-12 text-tea-text-dim">grams</span>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="ml-auto text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => submitEdit(item.id)}
+                      disabled={!editName.trim() || updateMut.isPending}
+                      className="inline-flex items-center gap-1 bg-tea-gold text-tea-bg rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+                    >
+                      {updateMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-ui-14 text-tea-text truncate">{item.name}</div>
@@ -206,18 +275,29 @@ export const CellarView: React.FC<CellarViewProps> = () => {
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-ui-13 text-tea-text-sec tabular-nums">{Math.round(item.grams)}g</span>
                   {item.placementStatus === 'private' && (
-                    <button
-                      onClick={() => removeMut.mutate(item.id)}
-                      aria-label="Remove from cellar"
-                      className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => startEdit(item)}
+                        aria-label="Edit item"
+                        className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => removeMut.mutate(item.id)}
+                        aria-label="Remove from cellar"
+                        className="text-tea-text-sec hover:text-tea-text transition-colors tap-target"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
+              )}
 
-              {/* Placement (the move) */}
+              {/* Placement (the move) — hidden while editing this item */}
+              {editingId !== item.id && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span
                   className={`text-ui-10 px-1.5 py-0.5 rounded ${item.placementStatus === 'private' ? 'text-tea-text-dim' : 'text-tea-gold'}`}
@@ -280,6 +360,7 @@ export const CellarView: React.FC<CellarViewProps> = () => {
                   </button>
                 )}
               </div>
+              )}
             </li>
           ))}
         </ul>
