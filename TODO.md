@@ -171,7 +171,7 @@
 
 Build in order; each step sits on the one before it. The whole model is specced in [docs/MULTI_STORE_PLAN.md](docs/MULTI_STORE_PLAN.md) (the "Movement / Locations / Sellers / Personal Collections" section). The locations layer and Adrian-as-master switching already work.
 
-**All five steps shipped.** Steps 2–5 landed on branch `claude/affectionate-clarke-mpx6t8` (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record.
+**All five steps code-complete** on branch `claude/affectionate-clarke-mpx6t8` / PR #239 (migrations 092–094); step 1 shipped earlier (migration 090). See [stock-spine.md](todo/plans/stock-spine.md) for the execution record. Steps 2, 3, 5 and the private cellar are usable end-to-end; the step-4 "move" (placement) is API-complete but has no owner-facing UI yet — see the follow-ups below before calling step 4 done.
 
 - [x] **1. Give every piece of stock an owner** — record which person a stock row belongs to, defaulting to the location itself so nothing changes on screen yet _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
   The foundation the other three sit on. Today a tea belongs to a location but not to a person; this makes "whose tea is this" a real fact on every row. Done when every stock row carries an owner and existing teas all read as owned by their location with no visible change.
@@ -183,6 +183,20 @@ Build in order; each step sits on the one before it. The whole model is specced 
   The private floor of the same stock spine: same row-ownership as a seller, with selling switched off. Becomes sellable only if the user joins a location and that owner shows it, so a collector can grow into a seller without starting over. Done when a logged-in user can add tea they own with a quantity, kept private and synced to their account.
 - [x] **5. Let a standalone seller open their own public tea link** — a person not on any location's team can make their own collection public at their own page, with Adrian's permission _(band: agent-runnable)_ _(effort: deep)_ → Plan: [stock-spine.md](todo/plans/stock-spine.md)
   The top of the spine: a personal shelf with selling switched on, reachable at its own link, without joining Bali. The buyer deals with that seller directly (WhatsApp, like every Teajia order) so Teajia never holds the money. Done when Adrian can grant a user permission to publish their collection at their own page and a visitor can reach it and start a direct order.
+
+#### Stock spine — remaining before / after merging PR #239
+
+Must-do before the "move" (step 4) is usable, and before merge:
+
+- [ ] **Build the location-owner placement-review UI.** _(band: agent-runnable)_ The move is API-complete but has no admin screen — a location owner can't see or approve a member's placement request. Endpoints exist (`GET /api/cellar-placements`, `.../:id/approve`, `.../:id/decline`) and are wired in `api.cellar.listPlacements/approvePlacement/declinePlacement`; nothing consumes them. Suggested home: an owner-tier panel in the inventory/team area. Approve lands the tea as held stock (`is_public=0`, `shown_in_shop=0`) owned by the requester.
+- [ ] **Run `npm run test:mobile` against a real browser.** _(band: you-required)_ Mandatory per CLAUDE.md — PR #239 touches `AccountPanel` + routing — and it never ran in the build env (no Chromium binary). Verified there only via `tsc` (root + worker), `lint:colors`, and a production build.
+- [ ] **Confirm migrations 092–094 apply on deploy to prod D1.** _(band: you-required)_ They were renumbered from 091–093 after `091_form_loose_rename` landed on main; order matters (092 → 093 → 094) and each is the single source of its columns — do not edit older migrations.
+
+Smaller follow-ups (not blocking the model):
+
+- [ ] **Wire cellar item edit in `CellarView`.** _(band: agent-runnable)_ `PUT /api/me/cellar/:id` + `api.cellar.update` exist; the UI only does add / delete. Add inline edit of name/grams/notes.
+- [ ] **Add a shelf-title field in `CellarView`.** _(band: agent-runnable)_ `PUT /api/me/shelf` accepts `{ title, whatsapp }` but the UI only sends `whatsapp`. Let sellers name their shelf (still shelf-first — no bio).
+- [ ] **Close the bulk-create mirror gap (pre-existing).** _(band: agent-runnable)_ `handleBulkCreateProducts` writes `owner_user_id`/`shown_in_shop` to `products` but skips the `product_listings` mirror (unlike `handleCreateProduct`), so bulk-imported seller stock behaves differently.
 
 ## Operational notes (not TODOs: context for future-you)
 
