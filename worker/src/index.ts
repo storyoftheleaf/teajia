@@ -18644,6 +18644,35 @@ export default {
       return new Response(null, { status: 204, headers });
     }
 
+    // Same-origin media serving, straight from the R2 binding. Uploaded photos
+    // are stored as canonical `https://media.teajia.co/<key>` URLs, but that
+    // bucket domain no longer resolves (it was removed / never re-provisioned),
+    // so every image on the site broke. The frontend now rewrites those URLs to
+    // `/api/media/<key>` (src/lib/mediaUrl.ts) and this reads the object from the
+    // MEDIA_BUCKET binding — no external hostname to provision, and it rides the
+    // one origin that already works in mainland China. Keys contain slashes, so
+    // this is handled here rather than through the segment-matched route table.
+    if (url.pathname.startsWith('/api/media/')) {
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return cors(new Response('Method not allowed', { status: 405 }), corsOrigin);
+      }
+      if (!env.MEDIA_BUCKET) {
+        return cors(new Response('Media bucket not configured', { status: 503 }), corsOrigin);
+      }
+      let key = url.pathname.slice('/api/media/'.length);
+      try { key = decodeURIComponent(key); } catch { /* use raw key */ }
+      if (!key) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      const obj = await env.MEDIA_BUCKET.get(key);
+      if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      const headers = new Headers();
+      obj.writeHttpMetadata(headers);
+      headers.set('etag', obj.httpEtag);
+      // Objects are immutable (UUID/slot-keyed) — cache hard at edge + browser.
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+      const body = request.method === 'HEAD' ? null : obj.body;
+      return cors(new Response(body, { headers }), corsOrigin);
+    }
+
     // MCP server lives outside the regular route table — it speaks JSON-RPC 2.0
     // and uses its own bearer-token auth (mcp_tokens), not the JWT/X-Teajia-Account
     // pair. Handle GET (health) and POST (RPC) here; other methods 405.
