@@ -6,7 +6,7 @@ deploy: https://teajia.com
 deploy_project: teajiafinal (Cloudflare Pages, auto-deploys from git on push to main; serves teajia.com + www.teajia.com). NOTE: teajia.pages.dev is a stale/abandoned project — do NOT deploy there or link it.
 family: tea
 supersedes: [tea-dev-inital, teajia-grid]
-last_reviewed: 2026-06-26
+last_reviewed: 2026-07-08
 ---
 
 # Teajia — flagship e-commerce + content platform
