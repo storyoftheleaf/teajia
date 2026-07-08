@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, X, Plus, Camera, Check, Phone,
+  MapPin, X, Plus, Check, Phone,
   MessageCircle, ExternalLink,
   Contact, Image, Link, Loader2, AlertCircle,
 } from 'lucide-react';
@@ -75,78 +75,6 @@ const PANEL_ANIMATE = { height: 'auto' as const, opacity: 1 };
 const PANEL_EXIT = { height: 0, opacity: 0 };
 const PANEL_TRANSITION = { duration: 0.2, ease: [0.32, 0.72, 0, 1] as const };
 
-type UploadState = 'idle' | 'loading' | 'done';
-
-/* ── Photo button (reusable) ────────────────────────────── */
-
-const PhotoButton: React.FC<{
-  label: string;
-  url?: string;
-  onCapture: (url: string) => void;
-}> = ({ label, url, onCapture }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [state, setState] = useState<UploadState>('idle');
-
-  useEffect(() => {
-    if (state !== 'done') return;
-    const t = setTimeout(() => setState('idle'), 1500);
-    return () => clearTimeout(t);
-  }, [state]);
-
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    setState('loading');
-    try {
-      const compressed = await compressImage(file, 1200, 0.7);
-      const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
-      const imageUrl = await api.uploadImage(compressedFile);
-      if (imageUrl) {
-        onCapture(imageUrl);
-        setState('done');
-      } else {
-        setState('idle');
-      }
-    } catch {
-      setState('idle');
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleFile}
-        className="hidden"
-      />
-      {url ? (
-        <img
-          src={mediaUrl(url)}
-          alt={label}
-          className="w-10 h-10 rounded object-cover shrink-0"
-        />
-      ) : null}
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={state === 'loading'}
-        className={`flex items-center gap-1.5 text-ui-11 px-2 py-1 rounded-md bg-tea-surface transition-colors shrink-0 ${
-          state === 'loading' ? 'animate-pulse text-tea-text-dim' :
-          state === 'done' ? 'text-tea-gold' :
-          'text-tea-text-dim hover:text-tea-text-sec'
-        }`}
-      >
-        {state === 'done' ? <Check size={12} /> : <Camera size={12} strokeWidth={1.5} />}
-        <span>{url ? `Update ${label.toLowerCase()}` : label}</span>
-      </button>
-    </div>
-  );
-};
-
 /* ── Main component ─────────────────────────────────────── */
 
 export const VendorStrip: React.FC<VendorStripProps> = ({
@@ -179,7 +107,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
   const searchRef = useRef<HTMLInputElement>(null);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
   const contactMenuRef = useRef<HTMLDivElement>(null);
-  const businessCardRef = useRef<HTMLInputElement>(null);
   const storefrontRef = useRef<HTMLInputElement>(null);
 
   // Feature 28: linked customer suggestion
@@ -459,21 +386,18 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
       const compressedFile = new File([compressed], 'vendor-photo.jpg', { type: 'image/jpeg' });
       const imageUrl = await api.uploadImage(compressedFile);
       if (!imageUrl) throw new Error('upload returned no url');
-      // For storefront photos, auto-capture GPS if we don't already have coordinates.
-      // Awaited so the "uploading" state stays until the photo is actually stored.
+      // Save the photo FIRST, always — never gate it behind the GPS lookup.
+      // (The old code awaited getCurrentPosition, so a slow/denied/ignored
+      //  location prompt swallowed the photo and it "never showed".)
+      updateDetail(key, imageUrl);
+      // For storefront photos, try to enrich with GPS in the background. The
+      // photo is already stored; coordinates just merge in if they arrive.
       if (key === 'storefrontUrl' && vendorDetails?.lat == null && navigator.geolocation) {
-        await new Promise<void>((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              onDetailsChange({ ...vendorDetails, [key]: imageUrl, lat: pos.coords.latitude, lng: pos.coords.longitude });
-              resolve();
-            },
-            () => { updateDetail(key, imageUrl); resolve(); }, // GPS failed — still save the photo
-            { enableHighAccuracy: true, timeout: 10000 }
-          );
-        });
-      } else {
-        updateDetail(key, imageUrl);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => onDetailsChange({ ...vendorDetails, [key]: imageUrl, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => { /* GPS denied/slow — photo already saved, no-op */ },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
       }
     } catch {
       // No longer silent — the user needs to know the photo didn't save (the China
@@ -492,6 +416,12 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
 
   return (
     <div className="space-y-0">
+      {/* Hidden storefront file input — mounted at top level so the inline
+          thumbnail can trigger it whether or not the contact menu is open.
+          No camera lock: the shop photo can come from gallery or camera. */}
+      <input ref={storefrontRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => handleContactFileChange(e, 'storefrontUrl')} />
+
       {/* ── Strip row ── */}
       <div className="flex items-center gap-2 text-sm text-tea-text-sec py-1">
         {/* Contact button */}
@@ -517,26 +447,6 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 transition={{ duration: 0.15 }}
                 className="absolute top-full left-0 mt-1 z-20 bg-tea-surface rounded-xl p-1.5 shadow-lg border border-tea-border min-w-[180px]"
               >
-                {/* Hidden file inputs */}
-                  <input ref={businessCardRef} type="file" accept="image/*" capture="environment" className="hidden"
-                    onChange={(e) => handleContactFileChange(e, 'businessCardUrl')} />
-                  <input ref={storefrontRef} type="file" accept="image/*" capture="environment" className="hidden"
-                    onChange={(e) => handleContactFileChange(e, 'storefrontUrl')} />
-
-                  <button
-                    type="button"
-                    onClick={() => businessCardRef.current?.click()}
-                    disabled={photoUploading != null}
-                    className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors disabled:opacity-60"
-                  >
-                    <Camera size={14} strokeWidth={1.5} />
-                    <span className="text-ui-13">{photoUploading === 'businessCardUrl' ? 'Uploading…' : vendorDetails?.businessCardUrl ? 'Update business card' : 'Business card'}</span>
-                    {photoUploading === 'businessCardUrl' ? (
-                      <Loader2 size={14} className="ml-auto animate-spin text-tea-gold" />
-                    ) : vendorDetails?.businessCardUrl ? (
-                      <img src={mediaUrl(vendorDetails.businessCardUrl)} alt="Business card" className="ml-auto w-7 h-7 rounded object-cover border border-tea-border" loading="lazy" />
-                    ) : null}
-                  </button>
                   <button
                     type="button"
                     onClick={() => storefrontRef.current?.click()}
@@ -573,7 +483,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-md text-left text-tea-text-sec hover:bg-tea-bg hover:text-tea-text transition-colors"
                   >
                     <Phone size={14} strokeWidth={1.5} />
-                    <span className="text-ui-13">Contact details</span>
+                    <span className="text-ui-13">{(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) ? 'Contact details' : 'Add contact link'}</span>
                     {(vendorDetails?.phone || vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line) && (
                       <Check size={12} className="ml-auto text-tea-gold" />
                     )}
@@ -582,6 +492,23 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
             )}
           </AnimatePresence>
         </div>}
+        {/* Storefront photo — shown inline so it's actually visible once added,
+            not hidden inside the contact menu. Tap to update. */}
+        {vendorDetails?.storefrontUrl && (
+          <button
+            type="button"
+            onClick={() => storefrontRef.current?.click()}
+            className="shrink-0"
+            aria-label="Update storefront photo"
+          >
+            <img
+              src={mediaUrl(vendorDetails.storefrontUrl)}
+              alt="Storefront"
+              className="w-9 h-9 rounded-md object-cover border border-tea-border"
+              loading="lazy"
+            />
+          </button>
+        )}
         {vendorName ? (
           <>
             <button
@@ -616,7 +543,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 if (e.key === 'Escape') { setSearchOpen(false); setSearchQuery(''); }
               }}
               placeholder="Select vendor..."
-              className="w-full bg-transparent text-tea-text-dim text-sm py-1 outline-none placeholder:text-tea-text-dim"
+              className="w-full input-warm text-base rounded-md px-3 py-2.5 outline-none placeholder:text-tea-text-dim focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg"
             />
             <AnimatePresence>
               {searchOpen && (
@@ -828,11 +755,8 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   </p>
                 )}
                 {/* Photos & location summary (if any) */}
-                {(vendorDetails?.businessCardUrl || vendorDetails?.storefrontUrl || vendorDetails?.lat != null) && (
+                {(vendorDetails?.storefrontUrl || vendorDetails?.lat != null) && (
                   <div className="flex items-center gap-2 flex-wrap">
-                    {vendorDetails?.businessCardUrl && (
-                      <img src={mediaUrl(vendorDetails.businessCardUrl)} alt="Business card" className="w-10 h-10 rounded object-cover" loading="lazy" />
-                    )}
                     {vendorDetails?.storefrontUrl && (
                       <img src={mediaUrl(vendorDetails.storefrontUrl)} alt="Storefront" className="w-10 h-10 rounded object-cover" loading="lazy" />
                     )}
@@ -848,6 +772,50 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                         <MapPin size={12} />
                         <span className="num">{vendorDetails.lat.toFixed(4)}, {vendorDetails.lng.toFixed(4)}</span>
                         <ExternalLink size={11} />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Tappable contact links — open the vendor in WhatsApp / phone /
+                    LINE, or copy the WeChat ID (WeChat has no reliable web link).
+                    This is what "link to contact" means: one tap to reach them. */}
+                {(vendorDetails?.whatsapp || vendorDetails?.wechat || vendorDetails?.line || vendorDetails?.phone) && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {vendorDetails?.whatsapp && (
+                      <a
+                        href={`https://wa.me/${vendorDetails.whatsapp.replace(/[^\d]/g, '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 hover:bg-tea-gold/[0.14] transition-colors"
+                      >
+                        <MessageCircle size={11} /> WhatsApp
+                      </a>
+                    )}
+                    {vendorDetails?.wechat && (
+                      <button
+                        type="button"
+                        onClick={() => { navigator.clipboard?.writeText(vendorDetails.wechat!); }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 hover:bg-tea-gold/[0.14] transition-colors"
+                        title="Copy WeChat ID"
+                      >
+                        <MessageCircle size={11} /> WeChat
+                      </button>
+                    )}
+                    {vendorDetails?.line && (
+                      <a
+                        href={`https://line.me/ti/p/~${vendorDetails.line.replace(/^[@~]/, '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 hover:bg-tea-gold/[0.14] transition-colors"
+                      >
+                        <MessageCircle size={11} /> LINE
+                      </a>
+                    )}
+                    {vendorDetails?.phone && (
+                      <a
+                        href={`tel:${vendorDetails.phone.replace(/[^\d+]/g, '')}`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-tea-gold/[0.08] text-tea-gold text-ui-11 hover:bg-tea-gold/[0.14] transition-colors"
+                      >
+                        <Phone size={11} /> Call
                       </a>
                     )}
                   </div>
