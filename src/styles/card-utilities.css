@@ -2348,6 +2348,64 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
+   Gram Slider: stepped preset slider (Curate capture form; reused by the
+   quick-sale sheet). Non-linear presets indexed by position, not a
+   continuous range; see src/components/TeaCompass/GramSlider.tsx for the
+   interaction logic. These classes are purely structural; fill/thumb/label
+   colors are applied via Tailwind token classes at the call site so they
+   stay theme-adaptive per COLOR_RULES.md.
+   ============================================ */
+.gram-slider-track {
+  position: relative;
+  height: 44px;
+  min-height: 44px;
+  width: 100%;
+  border-radius: 0.5rem;
+  background: var(--tea-elevated);
+  cursor: pointer;
+  outline: none;
+  overflow: hidden;
+}
+.gram-slider-track:focus-visible {
+  box-shadow: 0 0 0 2px var(--tea-gold);
+}
+.gram-slider-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  border-radius: 0.5rem;
+  transition: width 120ms ease-out;
+  pointer-events: none;
+}
+.gram-slider-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: left 120ms ease-out;
+  pointer-events: none;
+}
+.gram-slider-labels {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.gram-slider-label {
+  /* left offset is set inline as a % of track width (index / (len-1));
+     the component also sets an inline transform so the first/last labels
+     anchor inward from the edge instead of overflowing the track. */
+  position: absolute;
+  padding-inline: 10px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  transition: color 120ms ease-out;
+}
+
+/* ============================================
    Bottom Nav Clearance Utilities
    The mobile bottom nav is a floating capsule:
    52px tall, lifted 12px above safe-area-inset-bottom, with 16px side margins.

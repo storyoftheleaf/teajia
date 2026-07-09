@@ -3,6 +3,7 @@ import { ChevronDown, Minus, Plus } from 'lucide-react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { GramSlider } from './GramSlider';
 
 /**
  * PricingRow — the shared "what does this cost and how much of it"
@@ -197,29 +198,21 @@ export const PricingRow: React.FC<PricingRowProps> = ({
         )}
       </div>
 
-      {/* Grams-mode only — gram presets below the main row. The Form
-          chip moved up to share the top row, so this row is now JUST
-          the preset shortcuts. Skipped entirely for count mode. */}
+      {/* Grams-mode only: stepped gram-preset slider below the main row.
+          The Form chip moved up to share the top row, so this row is now
+          JUST the preset shortcut. Skipped entirely for count mode.
+          Fully controlled off unit.pricePerUnitGrams/unit.form, so it
+          reacts automatically when CaptureCard resets grams to the new
+          form's default (see CaptureCard.handleFormSelect). */}
       {unit.mode === 'grams' && (() => {
         const presets = unit.form ? GRAM_PRESETS[unit.form] : GRAM_PRESETS.Loose;
         if (presets.length === 0) return null;
         return (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {presets.map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => unit.onGramsChange(g)}
-                className={`tap-target py-1.5 px-2.5 rounded-md text-ui-11 tabular-nums transition-colors ${
-                  unit.pricePerUnitGrams === g
-                    ? 'bg-tea-accent-sub text-tea-text'
-                    : 'text-tea-text-sec hover:text-tea-text'
-                }`}
-              >
-                {g}g
-              </button>
-            ))}
-          </div>
+          <GramSlider
+            presets={presets}
+            value={unit.pricePerUnitGrams}
+            onChange={(g) => unit.onGramsChange(g)}
+          />
         );
       })()}
 

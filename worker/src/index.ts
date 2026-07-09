@@ -5881,59 +5881,14 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
 };
 
 // ── Extract Product Info from Image (Gemini Flash) ──
-const handleExtractFromImage: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+// Vision model used for tea-label extraction when Claude is the active provider.
+// Kept as a named constant so a future model bump is a one-line change.
+const EXTRACT_VISION_MODEL = 'claude-sonnet-5';
 
-  if (!env.GEMINI_API_KEY) {
-    return json({ error: 'GEMINI_API_KEY not configured' }, 503);
-  }
-
-  const contentType = request.headers.get('Content-Type') || '';
-  if (!contentType.includes('multipart/form-data')) {
-    return json({ error: 'Expected multipart/form-data' }, 400);
-  }
-
-  const formData = await request.formData();
-  const file = formData.get('file') as File | null;
-  if (!file) return json({ error: 'No image provided' }, 400);
-
-  // Convert image to base64 for Gemini
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  const mimeType = file.type || 'image/jpeg';
-
-  // Also upload to R2 so the draft product has an image (account-partitioned).
-  // Skipped when the caller already uploaded the photo via /api/upload-image.
-  const skipUpload = formData.get('skip_upload') === '1';
-  let imageUrl = '';
-  if (env.MEDIA_BUCKET && !skipUpload) {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
-    await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
-      httpMetadata: { contentType: mimeType },
-    });
-    imageUrl = `https://media.teajia.co/${key}`;
-  }
-
-  // Call Gemini Flash to extract product info from the image
-  const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              inlineData: {
-                mimeType,
-                data: base64,
-              },
-            },
-            {
-              text: `You are a tea product data extractor. Analyze this image of a tea product (package, label, menu listing, or price tag) and extract as much information as possible.
+// Shared extraction instructions: the same contract both providers must honor.
+// Field names here are load-bearing: PhotoCapture.tsx (parseExtractResult) and
+// intakeMapping.ts (extractedToStaged) key off these exact names.
+const EXTRACT_IMAGE_PROMPT = `You are a tea product data extractor. Analyze this image of a tea product (package, label, menu listing, or price tag) and extract as much information as possible.
 
 Return ONLY a valid JSON object with these fields (omit any you can't determine):
 {
@@ -5959,35 +5914,130 @@ Important:
 - For costAmount, extract the numeric price if visible
 - For quantityPurchased, extract grams/weight if visible (always in grams)
 - If you see a price like "NT$300" set costAmount=300 and costCurrency="NT"
-- Return ONLY the JSON object, no markdown formatting or explanation`,
-            },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 1024,
-        },
-      }),
-    }
-  );
+- Return ONLY the JSON object, no markdown formatting or explanation`;
 
-  if (!geminiRes.ok) {
-    const errText = await geminiRes.text();
-    // Log the upstream detail; do not echo it back to the client.
-    console.error(`extract-from-image upstream error: ${geminiRes.status} — ${errText}`);
-    return json({ error: `Gemini API error: ${geminiRes.status}` }, 502);
+const handleExtractFromImage: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
+  // Gemini only if Claude isn't configured. Both keys missing is a hard 503;
+  // there is no vision provider to call.
+  const useClaude = !!env.ANTHROPIC_API_KEY;
+  const useGemini = !useClaude && !!env.GEMINI_API_KEY;
+  if (!useClaude && !useGemini) {
+    return json({ error: 'no_ai_provider' }, 503);
   }
 
-  const geminiData = await geminiRes.json() as any;
-  const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const contentType = request.headers.get('Content-Type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
 
-  // Parse the JSON from Gemini's response (strip markdown fences if present)
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No image provided' }, 400);
+
+  // Convert image to base64 for the vision model
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const mimeType = file.type || 'image/jpeg';
+
+  // Also upload to R2 so the draft product has an image (account-partitioned).
+  // Skipped when the caller already uploaded the photo via /api/upload-image.
+  const skipUpload = formData.get('skip_upload') === '1';
+  let imageUrl = '';
+  if (env.MEDIA_BUCKET && !skipUpload) {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
+    await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
+      httpMetadata: { contentType: mimeType },
+    });
+    imageUrl = `https://media.teajia.co/${key}`;
+  }
+
+  let rawText = '';
+
+  if (useClaude) {
+    // Claude Messages API via plain fetch, no SDK (keep the worker bundle lean).
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: EXTRACT_VISION_MODEL,
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mimeType, data: base64 },
+            },
+            { type: 'text', text: EXTRACT_IMAGE_PROMPT },
+          ],
+        }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      // Log the upstream detail; do not echo it back to the client.
+      console.error(`extract-from-image Claude upstream error: ${claudeRes.status}: ${errText}`);
+      return json({ error: 'provider_error' }, 502);
+    }
+
+    const claudeData = await claudeRes.json() as any;
+    rawText = claudeData?.content?.find((b: any) => b.type === 'text')?.text || '';
+  } else {
+    // Call Gemini Flash to extract product info from the image
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64,
+                },
+              },
+              { text: EXTRACT_IMAGE_PROMPT },
+            ],
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 1024,
+          },
+        }),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      // Log the upstream detail; do not echo it back to the client.
+      console.error(`extract-from-image Gemini upstream error: ${geminiRes.status}: ${errText}`);
+      return json({ error: 'provider_error' }, 502);
+    }
+
+    const geminiData = await geminiRes.json() as any;
+    rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  // Parse the JSON from the model's response (strip markdown fences if present)
   let extracted: Record<string, any> = {};
   try {
     const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     extracted = JSON.parse(jsonStr);
   } catch {
-    return json({ error: 'Failed to parse Gemini response', raw: rawText }, 500);
+    return json({ error: 'extract_failed' }, 502);
   }
 
   // Attach the uploaded image URL

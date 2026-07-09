@@ -48,21 +48,28 @@ function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   if (r.form) data.form = r.form;
   if (r.year) data.year = typeof r.year === 'number' ? r.year : parseInt(r.year, 10) || undefined;
   if (r.season) data.season = r.season;
-  if (r.region || r.originRegion || r.origin_region) data.region = r.region || r.originRegion || r.origin_region;
-  if (r.price || r.priceAmount || r.price_amount) {
-    const pv = r.price || r.priceAmount || r.price_amount;
-    data.price = typeof pv === 'number' ? pv : parseFloat(pv) || undefined;
+  // Region first, falling back to country when no specific region is on the label.
+  if (r.region || r.originRegion || r.origin_region || r.originCountry || r.origin_country)
+    data.region = r.region || r.originRegion || r.origin_region || r.originCountry || r.origin_country;
+  // Price: the worker/Gemini contract returns `costAmount`; earlier keys kept for compat.
+  // Guard against 0 — the model emits 0 when no price is visible, which must not auto-fill.
+  const priceRaw = r.price ?? r.priceAmount ?? r.price_amount ?? r.costAmount ?? r.cost_amount;
+  if (priceRaw !== undefined && priceRaw !== null && priceRaw !== '' && priceRaw !== 0) {
+    data.price = typeof priceRaw === 'number' ? priceRaw : parseFloat(priceRaw) || undefined;
   }
-  if (r.grams || r.weight) {
-    const gv = r.grams || r.weight;
-    data.grams = typeof gv === 'number' ? gv : parseFloat(gv) || undefined;
+  // Grams: the worker/Gemini contract returns `quantityPurchased` (always grams).
+  const gramsRaw = r.grams ?? r.weight ?? r.quantityPurchased ?? r.quantity_purchased;
+  if (gramsRaw !== undefined && gramsRaw !== null && gramsRaw !== '' && gramsRaw !== 0) {
+    data.grams = typeof gramsRaw === 'number' ? gramsRaw : parseFloat(gramsRaw) || undefined;
   }
   const extras: string[] = [];
   if (r.awards) extras.push(`Awards: ${r.awards}`);
   if (r.elevation || r.altitude) extras.push(`Elevation: ${r.elevation || r.altitude}`);
   if (r.farm || r.garden) extras.push(`Farm: ${r.farm || r.garden}`);
+  if (r.productName || r.product_name) extras.push(`Cultivar: ${r.productName || r.product_name}`);
   if (r.vendor) extras.push(`Vendor: ${r.vendor}`);
   if (r.description) extras.push(r.description);
+  if (r.notes) extras.push(r.notes);
   if (extras.length > 0) data.extraNotes = extras.join(' · ');
   return data;
 }
