@@ -1625,8 +1625,15 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </BottomSheet>
 
 
-        {/* Year + Region */}
+        {/* Region + Year (year sits to the right of origin) */}
         <div className="flex items-center gap-2">
+          <AutocompleteInput
+            value={entry.originRegion || ''}
+            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+            suggestions={availableRegions}
+            placeholder="Origin"
+            className={`w-full ${fieldClass}`}
+          />
           <input
             type="number"
             inputMode="numeric"
@@ -1639,13 +1646,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             }}
             className={`w-20 shrink-0 tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-          />
-          <AutocompleteInput
-            value={entry.originRegion || ''}
-            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
-            suggestions={availableRegions}
-            placeholder="Origin"
-            className={`w-full ${fieldClass}`}
           />
         </div>
 
