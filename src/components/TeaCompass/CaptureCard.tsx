@@ -123,7 +123,7 @@ function RetailPricePreview({
                 setEditingShipping(false);
               }
             }}
-            className="w-16 bg-tea-elevated text-tea-text text-ui-11 px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="w-16 bg-transparent text-tea-text text-ui-11 px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-tea-text-dim">/kg</span>
         </span>
@@ -1564,10 +1564,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="mt-1 px-1 font-sans text-ui-13 font-medium transition-opacity hover:opacity-80"
+            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-13 font-medium transition-opacity hover:opacity-80"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
             {entry.type || <span className="text-tea-text-sec font-normal text-ui-12">+ Type</span>}
+            <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
 
