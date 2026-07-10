@@ -1,0 +1,21 @@
+# Conductor workspace scripts — shared across every workspace on this repo.
+# The Run / Setup tabs in Conductor read these. Docs: https://conductor.build/docs
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+# Runs once when Conductor creates a new workspace (fresh git checkout).
+setup = "npm install"
+
+# Let several workspaces run their preview at the same time — each gets its own
+# $CONDUCTOR_PORT instead of fighting over the single fixed dev port (7777).
+run_mode = "concurrent"
+
+# Default Run action: the Vite dev server.
+# - Binds the port Conductor assigns this workspace ($CONDUCTOR_PORT), falling
+#   back to 7777 when run outside Conductor.
+# - Uses the existing .env.local (VITE_API_URL already points at the deployed
+#   API), so the preview shows real data without a local worker running.
+[scripts.run.web]
+command = "npx vite --port ${CONDUCTOR_PORT:-7777}"
+icon = "play"
+default = true
