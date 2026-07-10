@@ -2,28 +2,50 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { clearStaleAppCaches } from './lib/recoverFromChunkError';
 
-// Recover from a stale chunk hash (happens after a new deployment) by reloading
-// once. The previous version returned a forever-pending promise on the SECOND
-// failure, which left the loader spinning on screen permanently — the "stuck
-// refresh" glitch. Now we reload at most once per 10s, and if a load still fails
-// after that, we rethrow so the nearest ErrorBoundary shows a real message
-// (with a reload affordance) instead of an endless spinner.
+// Recover from a failed chunk load. Two distinct failure modes are handled:
+//
+//  1. Transient fetch failure — the chunk exists on the server but the download
+//     didn't complete (a jumpy / firewalled connection dropping a large file
+//     mid-flight; the admin bundle is the biggest chunk in the build). Here a
+//     plain retry of the SAME import usually succeeds, so we retry a few times
+//     with backoff before doing anything drastic. No page reload, no lost state.
+//
+//  2. Stale chunk hash — a new deployment replaced the hashed filenames and the
+//     currently-running page (or a stale service-worker precache) still points
+//     at a name that no longer exists. Retrying the same URL can't fix that, so
+//     after the retries are exhausted we drop any stale caches and reload once.
+//
+// Reload is capped at once per 10s; if a load still fails after that we rethrow
+// so the nearest ErrorBoundary shows a real message (with a reload affordance)
+// instead of an endless spinner.
 function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
   factory: () => Promise<T>
 ): React.LazyExoticComponent<T['default']> {
-  return lazy(() =>
-    factory().catch((err) => {
-      const last = Number(sessionStorage.getItem('chunkReloadAt') || '0');
-      const now = Date.now();
-      if (now - last > 10_000) {
-        sessionStorage.setItem('chunkReloadAt', String(now));
-        window.location.reload();
-        return new Promise<T>(() => {}); // page is reloading; brief suspend is fine
+  return lazy(async () => {
+    const delays = [400, 1200, 2500]; // ms of backoff between fetch retries
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await factory();
+      } catch (err) {
+        if (attempt < delays.length) {
+          await new Promise((r) => setTimeout(r, delays[attempt]));
+          continue; // transient blip — retry the same import
+        }
+        // Retries exhausted. Assume a stale hash and reload once per 10s.
+        const last = Number(sessionStorage.getItem('chunkReloadAt') || '0');
+        const now = Date.now();
+        if (now - last > 10_000) {
+          sessionStorage.setItem('chunkReloadAt', String(now));
+          await clearStaleAppCaches();
+          window.location.reload();
+          return new Promise<T>(() => {}); // page is reloading; brief suspend is fine
+        }
+        throw err; // already tried a reload — surface to the ErrorBoundary, don't hang
       }
-      throw err; // already tried a reload — surface to the ErrorBoundary, don't hang
-    })
-  );
+    }
+  });
 }
 
 const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));

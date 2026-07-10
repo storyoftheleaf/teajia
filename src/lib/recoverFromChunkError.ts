@@ -1,0 +1,36 @@
+// Shared recovery for a broken/stale app load. A new deployment rotates the
+// hashed chunk filenames; a stale service-worker precache or an already-open
+// page can keep pointing at names that no longer exist, so a plain reload just
+// re-serves the same broken assets. Purging the Workbox precache and refreshing
+// the service worker first makes the reload actually pull the current build.
+//
+// Best-effort throughout: any failure falls through to a plain reload, which is
+// still better than leaving the user stuck on the error screen.
+export async function clearStaleAppCaches(): Promise<void> {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.update().catch(() => {})));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      // Only the Workbox precache holds hashed app chunks; leave the api/media/
+      // font runtime caches alone so offline reads survive.
+      await Promise.all(
+        keys
+          .filter((k) => k.includes('precache') || k.includes('workbox'))
+          .map((k) => caches.delete(k))
+      );
+    }
+  } catch {
+    // ignore — the caller reloads regardless
+  }
+}
+
+// Purge stale caches, then hard-reload. Used by the "Reload Application"
+// affordance so pressing it genuinely recovers instead of re-serving the
+// broken chunk.
+export async function recoverAndReload(): Promise<void> {
+  await clearStaleAppCaches();
+  window.location.reload();
+}
