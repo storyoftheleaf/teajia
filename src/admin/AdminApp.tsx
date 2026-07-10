@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ChevronDown, AlertTriangle, Search, X as XIcon, MoreHorizontal, MapPin, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
+import { EmblemLoader } from '../components/shared/EmblemLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -64,12 +65,16 @@ import { selectHasBundle } from '../lib/store';
 // Import Components
 import { TeaTable } from './components/TeaTable';
 import { TeawareCatalog } from './components/TeawareCatalog';
-import { InventoryView } from './components/InventoryView';
+// Code-split (Wave 1): the three heaviest admin surfaces load on demand so the
+// admin shell isn't gated on a single ~1.8 MB download. Their route elements
+// are wrapped in Suspense via PageTransition below. Dashboard going lazy also
+// evicts recharts from the shell chunk. See docs/ADMIN_CODE_SPLIT_PLAN.md.
+const InventoryView = lazy(() => import('./components/InventoryView').then((m) => ({ default: m.InventoryView })));
 import { CartPanel } from '../components/shared/CartPanel';
 import { ToastProvider, useToast } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { DashboardView } from './components/DashboardView';
+const DashboardView = lazy(() => import('./components/DashboardView').then((m) => ({ default: m.DashboardView })));
 import { NoMembershipGate } from './components/NoMembershipGate';
 import { AccountSettingsView } from './views/AccountSettingsView';
 import { StoreLaunchPlaybookView } from './views/StoreLaunchPlaybookView';
@@ -88,11 +93,14 @@ import { VenueManager } from './components/VenueManager';
 import { PeopleView } from './components/PeopleView';
 import { CustomerProfilePage } from './components/CustomerProfilePage';
 import { ActivityView } from './components/ActivityView';
-import { DraftsView } from './components/DraftsView';
+// DraftsView (capture route) statically imports InventoryView, so it must also
+// be lazy — otherwise InventoryView is pulled back into the shell chunk through
+// it. Both then share a single on-demand InventoryView chunk.
+const DraftsView = lazy(() => import('./components/DraftsView').then((m) => ({ default: m.DraftsView })));
 import { IntakeWorkspace } from './views/IntakeWorkspace';
 import { CatalogView } from './views/CatalogView';
 import { PurchaseOrdersPage } from './views/PurchaseOrdersPage';
-import { TeaCompass } from '../components/TeaCompass';
+const TeaCompass = lazy(() => import('../components/TeaCompass'));
 import type { CompassMode } from '../components/TeaCompass';
 import { VendorProfileView } from './views/VendorProfileView';
 import { ProductStoryView } from './views/ProductStoryView';
@@ -151,6 +159,15 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   );
 };
 
+// Suspense fallback for lazy route views. MUST carry `h-full` — it sits inside
+// the InventoryView height chain (CLAUDE.md), and a fallback without a definite
+// height collapses the inventory scroll container to 0px during the load frame.
+const ViewFallback = () => (
+  <div className="h-full flex items-center justify-center">
+    <EmblemLoader />
+  </div>
+);
+
 const PageTransition = ({ children }: { children: React.ReactNode }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
@@ -159,7 +176,7 @@ const PageTransition = ({ children }: { children: React.ReactNode }) => (
     transition={{ duration: 0.3, ease: "easeOut" }}
     className="h-full"
   >
-    {children}
+    <Suspense fallback={<ViewFallback />}>{children}</Suspense>
   </motion.div>
 );
 
