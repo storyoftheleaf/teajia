@@ -70,6 +70,10 @@ interface TeaCompassState {
   // Session
   startNewCapture: (category?: CompassCategory) => string; // returns new entry ID
   commitEntry: (id: string) => void; // finalize entry: if has content → moves to entries; else discards
+  // Mint a fresh capture run (sessionId). Subsequent captures group under the
+  // new id instead of continuing the previous sitting. Uses the existing
+  // currentSessionId/lastCaptureAt fields; no new data model.
+  startNewRun: () => void;
 
   // Vendor
   setLastVendor: (vendorId: string | null, vendorName: string | null) => void;
@@ -245,6 +249,10 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           lastCaptureAt: now,
         }));
         return entry.id;
+      },
+
+      startNewRun: () => {
+        set({ currentSessionId: crypto.randomUUID(), lastCaptureAt: Date.now() });
       },
 
       commitEntry: (id) => {
