@@ -1,20 +1,16 @@
 import React, { useCallback, useRef, useState } from 'react';
 
 /**
- * GramSlider: a CONTINUOUS grams slider. The value can be any amount between
- * the smallest and largest preset — you slide freely and can rest between the
- * marked amounts. The presets are magnetic *guides*: drag near one and it
- * gently snaps (soft snap); drag away and you keep the in-between value
- * (rounded to 5g). This is the difference the operator asked for — a hard snap
- * would only ever let you land on the presets.
+ * GramSlider: a CONTINUOUS grams slider styled as a precision gauge. The value
+ * can be any amount between the smallest and largest preset — you slide freely
+ * and can rest between the marked amounts. The presets are magnetic *guides*:
+ * drag near one and it gently snaps (soft snap); drag away and you keep the
+ * in-between value (rounded to 5g).
  *
- * Fully controlled off `value`. The paired number input shows the exact grams,
- * so the slider itself carries only small preset guide labels. The labels sit
- * INSIDE the bar (positioned by value, anchored inward at the ends) so the bar
- * stays a single compact 44px control rather than growing a second row. The
- * fill and thumb are deliberately quiet (subtle neutral tint, slim marker) and
- * painted below the labels so a number is always legible, even directly under
- * the thumb or fill edge.
+ * Fully controlled off `value`. Visuals: a fine engraved rail with an aged-
+ * bronze fill, preset notches, the preset numbers on a scale beneath, and a
+ * polished bronze knob that lifts and haloes on grab with a live value bubble.
+ * All craft lives in the `.gram-slider-*` CSS; this file owns the interaction.
  */
 
 export interface GramSliderProps {
@@ -110,13 +106,17 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
   });
 
   const pct = fraction * 100;
-  const settle = dragging ? 'none' : 'left 200ms cubic-bezier(0.22, 1, 0.36, 1)';
   const fillSettle = dragging ? 'none' : 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)';
+  // While dragging the knob follows the finger (no left transition); on release
+  // it eases to the settled value. Transform/shadow always transition so the
+  // grab "lift" is smooth.
+  const knobTransition = dragging
+    ? 'transform 160ms ease, box-shadow 160ms ease'
+    : 'left 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms ease, box-shadow 160ms ease';
 
   return (
     <div className={className}>
       <div
-        ref={trackRef}
         role="slider"
         tabIndex={0}
         aria-label="Grams"
@@ -129,53 +129,67 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onKeyDown={handleKeyDown}
-        className="gram-slider-track touch-none"
+        className="gram-slider"
       >
-        {/* Faint tick marks at each preset so the magnetic stops are visible
-            without competing with the numbers rendered on top. */}
-        {presets.map((p) => (
-          <span
-            key={`tick-${p}`}
-            className="gram-slider-tickmark"
-            style={{ left: `${((p - min) / range) * 100}%` }}
-            aria-hidden
-          />
-        ))}
-        <div
-          className={`gram-slider-fill ${isSet ? 'gram-slider-fill-on' : 'gram-slider-fill-off'}`}
-          style={{ width: `${pct}%`, transition: fillSettle }}
-          aria-hidden
-        />
-        <div
-          className={`gram-slider-thumb ${isSet ? 'gram-slider-thumb-on' : 'gram-slider-thumb-off'}`}
-          style={{ left: `${pct}%`, transition: settle }}
-          aria-hidden
-        />
+        <div ref={trackRef} className="gram-slider-inner">
+          {/* Engraved rail with the aged-bronze fill and preset notches. */}
+          <div className="gram-slider-rail">
+            <div
+              className="gram-slider-rail-fill"
+              style={{ width: `${pct}%`, transition: fillSettle }}
+              aria-hidden
+            />
+            {presets.map((p) => (
+              <span
+                key={`tick-${p}`}
+                className="gram-slider-tick"
+                style={{ left: `${((p - min) / range) * 100}%` }}
+                aria-hidden
+              />
+            ))}
+          </div>
 
-        {/* Preset guide numbers — INSIDE the bar, on top of the fill and
-            thumb so they stay legible no matter where the fill/thumb sit.
-            Positioned by value; the first/last labels nudge inward from the
-            track edges so they never clip against the rounded corners. */}
-        {labels.map(({ p, pct: lpct }, i) => (
-          <span
-            key={p}
-            className={`gram-slider-label font-sans text-ui-11 tabular-nums ${
-              isPreset && value === p ? 'text-tea-gold font-medium' : 'text-tea-text-sec'
-            }`}
-            style={{
-              left: `${lpct}%`,
-              transform:
-                i === 0
-                  ? 'translate(8px, -50%)'
-                  : i === labels.length - 1
-                  ? 'translate(calc(-100% - 8px), -50%)'
-                  : 'translate(-50%, -50%)',
-            }}
+          {/* Live value bubble — fades in above the knob while dragging. */}
+          <div
+            className={`gram-slider-bubble ${dragging ? 'is-shown' : ''}`}
+            style={{ left: `${pct}%` }}
             aria-hidden
           >
-            {p}
-          </span>
-        ))}
+            {current}
+            <span className="gram-slider-bubble-unit">g</span>
+          </div>
+
+          {/* Polished bronze knob (grey until a value is set). */}
+          <div
+            className={`gram-slider-knob ${dragging ? 'is-dragging' : ''} ${isSet ? '' : 'is-unset'}`}
+            style={{ left: `${pct}%`, transition: knobTransition }}
+            aria-hidden
+          />
+
+          {/* Preset numbers on a clean scale beneath the rail. */}
+          <div className="gram-slider-scale">
+            {labels.map(({ p, pct: lpct }, i) => (
+              <span
+                key={p}
+                className={`gram-slider-num font-sans text-ui-11 tabular-nums ${
+                  isPreset && value === p ? 'text-tea-gold font-medium' : 'text-tea-text-sec'
+                }`}
+                style={{
+                  left: `${lpct}%`,
+                  transform:
+                    i === 0
+                      ? 'translateX(0)'
+                      : i === labels.length - 1
+                      ? 'translateX(-100%)'
+                      : 'translateX(-50%)',
+                }}
+                aria-hidden
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

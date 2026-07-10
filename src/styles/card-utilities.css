@@ -2351,93 +2351,134 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 /* ============================================
-   Gram Slider: stepped preset slider (Curate capture form; reused by the
-   quick-sale sheet). Non-linear presets indexed by position, not a
-   continuous range; see src/components/TeaCompass/GramSlider.tsx for the
-   interaction logic. These classes are purely structural; fill/thumb/label
-   colors are applied via Tailwind token classes at the call site so they
-   stay theme-adaptive per COLOR_RULES.md.
+   Gram Slider — a precision gauge for the Curate capture form (reused by the
+   quick-sale sheet). Continuous value with soft magnetic snap to presets; see
+   src/components/TeaCompass/GramSlider.tsx for interaction logic.
 
-   Visual intent: the numbers live INSIDE the 44px bar (no separate label
-   row), and stay legible above everything else. The fill and thumb are
-   deliberately quiet — a subtle neutral tint and a slim position marker,
-   not a bright gold block or a fat knob — so they read as a progress
-   indicator rather than the star of the control.
+   Craft: a fine engraved rail with an aged-bronze fill, preset notches, the
+   preset numbers on a clean scale beneath, and a polished bronze knob that
+   lifts + haloes when grabbed. A live value bubble floats above the knob while
+   dragging. Same 44px footprint as before. Colors are aged-bronze tokens only.
    ============================================ */
-.gram-slider-track {
+.gram-slider {
   position: relative;
   height: 44px;
-  min-height: 44px;
   width: 100%;
-  border-radius: 0.625rem;
-  /* A real bar: a recessed trough with a soft inner edge so its full extent
-     reads, tall but quiet. */
-  background: var(--tea-elevated);
-  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.08),
-              inset 0 1px 2px rgb(0 0 0 / 0.18);
+  padding: 0 10px;          /* keeps the knob inside the control at both ends */
   cursor: pointer;
   outline: none;
-  overflow: hidden;
+  touch-action: none;
 }
-.gram-slider-track:focus-visible {
-  box-shadow: 0 0 0 2px var(--tea-gold);
+.gram-slider-inner {
+  position: relative;
+  height: 100%;
+  width: 100%;
 }
-.gram-slider-fill {
+/* Rail — a fine engraved groove in the upper band. */
+.gram-slider-rail {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(var(--tea-text-rgb) / 0.10);
+  box-shadow: inset 0 1px 1.5px rgb(0 0 0 / 0.28);
+}
+/* Filled portion — aged bronze, a warm gradient with a soft glow. */
+.gram-slider-rail-fill {
   position: absolute;
   inset-block: 0;
   left: 0;
-  border-radius: 0.625rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    rgb(var(--tea-gold-rgb) / 0.55) 0%,
+    rgb(var(--tea-gold-rgb) / 0.9) 100%);
+  box-shadow: 0 0 6px rgb(var(--tea-gold-rgb) / 0.22);
   pointer-events: none;
-  z-index: 1;
 }
-/* Filled portion — a quiet neutral tint (not gold) so it reads as progress
-   without covering the numbers or shouting for attention. */
-.gram-slider-fill-on {
-  background: rgb(var(--tea-text-rgb) / 0.07);
-}
-.gram-slider-fill-off {
-  background: rgb(var(--tea-text-rgb) / 0.04);
-}
-/* Faint tick at each preset — shows the magnetic stops without shouting. */
-.gram-slider-tickmark {
+/* Preset notches straddling the rail. */
+.gram-slider-tick {
   position: absolute;
   top: 50%;
-  width: 2px;
-  height: 10px;
+  width: 1.5px;
+  height: 9px;
   transform: translate(-50%, -50%);
   border-radius: 1px;
-  background: rgb(var(--tea-gold-rgb) / 0.14);
+  background: rgb(var(--tea-text-rgb) / 0.16);
   pointer-events: none;
-  z-index: 0;
 }
-/* Handle — a slim, muted position marker (not a knob). It sits below the
-   labels in z-order, so a number directly over the thumb stays readable. */
-.gram-slider-thumb {
+/* Knob — a polished bronze dial sitting above the rail. */
+.gram-slider-knob {
   position: absolute;
-  top: 9px;
-  bottom: 9px;
-  width: 3px;
+  top: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 50% 34%,
+    rgb(var(--tea-gold-lt-rgb) / 1) 0%,
+    var(--tea-gold) 62%,
+    rgb(var(--tea-gold-rgb) / 0.85) 100%);
+  box-shadow:
+    inset 0 1px 0.5px rgb(var(--tea-gold-lt-rgb) / 0.7),
+    inset 0 -1px 1px rgb(0 0 0 / 0.25),
+    0 2px 5px rgb(0 0 0 / 0.45);
   pointer-events: none;
   z-index: 2;
 }
-.gram-slider-thumb-on {
-  background: rgb(var(--tea-gold-rgb) / 0.45);
+.gram-slider-knob.is-dragging {
+  transform: translate(-50%, -50%) scale(1.18);
+  box-shadow:
+    inset 0 1px 0.5px rgb(var(--tea-gold-lt-rgb) / 0.7),
+    inset 0 -1px 1px rgb(0 0 0 / 0.25),
+    0 3px 9px rgb(0 0 0 / 0.5),
+    0 0 0 7px rgb(var(--tea-gold-rgb) / 0.10);
 }
-.gram-slider-thumb-off {
-  background: rgb(var(--tea-text-sec-rgb) / 0.35);
+/* Before a value is set, the knob is a quiet grey dial, not bronze. */
+.gram-slider-knob.is-unset {
+  background: radial-gradient(circle at 50% 34%,
+    rgb(var(--tea-text-sec-rgb) / 0.85) 0%,
+    rgb(var(--tea-text-sec-rgb) / 0.55) 100%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
 }
-/* Preset guide labels — INSIDE the bar, vertically centered, always on top
-   (highest z-index) so the fill and thumb never make them illegible. */
-.gram-slider-label {
+.gram-slider:focus-visible .gram-slider-knob {
+  box-shadow: 0 0 0 3px rgb(var(--tea-gold-rgb) / 0.4), 0 2px 5px rgb(0 0 0 / 0.45);
+}
+/* Live value bubble — appears above the knob while dragging. */
+.gram-slider-bubble {
   position: absolute;
-  top: 50%;
-  white-space: nowrap;
+  top: -2px;
+  transform: translate(-50%, -100%);
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--tea-elevated);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35), inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.18);
+  color: var(--tea-text);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+  z-index: 4;
+}
+.gram-slider-bubble.is-shown { opacity: 1; }
+.gram-slider-bubble-unit { color: var(--tea-text-dim); margin-left: 1px; }
+/* Preset numbers on a clean scale beneath the rail. */
+.gram-slider-scale {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 14px;
+}
+.gram-slider-num {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
   transition: color 120ms ease-out;
   pointer-events: none;
-  z-index: 3;
 }
 
 /* ============================================
