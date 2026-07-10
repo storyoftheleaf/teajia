@@ -258,20 +258,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // as a proper bottom sheet).
   const [vendorOpen, setVendorOpen] = useState(false);
 
-  // "More detail" expander: notes, tasting profile, sell price and the other
-  // rarely-used fields. Collapsed by default; sticky for the session so one
-  // open keeps it open across a burst of captures.
-  const [moreOpen, setMoreOpen] = useState(() => {
-    try { return sessionStorage.getItem('teajia-capture-more-open') === '1'; } catch { return false; }
-  });
-  const toggleMore = () => {
-    setMoreOpen((v) => {
-      const next = !v;
-      try { sessionStorage.setItem('teajia-capture-more-open', next ? '1' : '0'); } catch { /* private mode */ }
-      return next;
-    });
-  };
-
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
   const [justAddedToLedger, setJustAddedToLedger] = useState(false);
@@ -1751,21 +1737,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       </AnimatePresence>
 
 
-      {/* ─── More detail: one quiet expander for everything that is not part
-          of the in-shop burst (notes, tasting profile, sell price, storage).
-          Collapsed by default; open state persists for the session. ─── */}
-      <button
-        type="button"
-        onClick={toggleMore}
-        aria-expanded={moreOpen}
-        className="tap-target flex items-center gap-1.5 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
-      >
-        <ChevronDown size={13} className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-        {moreOpen ? 'Less detail' : 'More detail'}
-      </button>
+      {/* These sections render inline, always visible — Adrian uses them
+          regularly (tasting profile, notes, intent, storage, sell price) and
+          asked that they never sit behind a second tap. ─── */}
 
-      {moreOpen && (
-      <>
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       {hasTasting && entry.tasting && (
         <>
@@ -1882,8 +1857,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         >
           Share this entry
         </button>
-      )}
-      </>
       )}
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
