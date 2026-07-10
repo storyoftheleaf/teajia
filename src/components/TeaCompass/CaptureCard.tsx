@@ -175,7 +175,7 @@ const EntryMark: React.FC<{
         : 'bg-transparent border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
     }`}
   >
-    <span className={`pointer-events-none font-display text-ui-15 ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+    <span className={`pointer-events-none font-sans font-medium text-base ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
       {label}
     </span>
     <span className="pointer-events-none text-ui-11 leading-snug text-tea-text-dim">
@@ -710,10 +710,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   // Tea name reads in the display serif, a step larger than the other
   // fields (17px keeps the iOS 16px anti-zoom floor).
-  const nameFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 font-display text-ui-17 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
+  const nameFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 font-display text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
-    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
+    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base border border-tea-border transition-colors ${
       selected
         ? 'text-tea-text font-medium bg-tea-accent-sub'
         : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1101,7 +1101,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   setMaterialPopoverOpen(true);
                   setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
                 }}
-                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors ${
                   entry.material
                     ? 'text-tea-text font-medium bg-tea-accent-sub'
                     : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1119,7 +1119,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={() => setClaySheetOpen(true)}
-                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
+                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-base font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
                   aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
                 >
                   <span
@@ -1160,7 +1160,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setEraSheetOpen(true)}
-              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
+              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors tabular-nums ${
                 entry.era
                   ? 'text-tea-text font-medium bg-tea-accent-sub'
                   : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1240,7 +1240,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-11 font-medium disabled:opacity-40 transition-opacity"
                   >
                     Add
                   </button>
@@ -1347,8 +1347,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     </div>
                     <div className="w-full min-w-0">
                       <div
-                        className={`text-base truncate ${sel ? 'text-tea-gold font-semibold' : 'text-tea-text font-medium'}`}
-                        style={{ fontFamily: 'var(--font-display)' }}
+                        className={`font-sans text-base truncate ${sel ? 'text-tea-gold font-medium' : 'text-tea-text font-medium'}`}
                       >
                         {clay.label}
                       </div>
@@ -1422,7 +1421,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 type="button"
                 onClick={handleCommit}
                 disabled={!ready}
-                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-sans font-medium tracking-[0.06em] text-base transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Done, commit this entry"
               >
                 Done
@@ -1564,10 +1563,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-13 font-medium transition-opacity hover:opacity-80"
+            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium transition-opacity hover:opacity-80"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            {entry.type || <span className="text-tea-text-sec font-normal text-ui-12">+ Type</span>}
+            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11">+ Type</span>}
             <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
@@ -1736,7 +1735,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="font-sans text-ui-11 text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
-              <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+              <span className="font-sans text-ui-11 text-tea-gold tabular-nums font-medium">
                 {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
               </span>
             </div>
@@ -1750,11 +1749,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                     onClick={() => handleQualityChange(v)}
                     role="radio"
                     aria-checked={isSelected}
-                    className={`flex-1 py-2.5 text-ui-12 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                    className={`font-sans tabular-nums flex-1 py-2.5 text-ui-11 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
                       isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                     }${i < 9 ? ' weight-seg-div' : ''}`}
                     style={{
-                      fontFamily: 'var(--font-mono)',
                       background: isSelected
                         ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
                         : 'transparent',
@@ -1856,7 +1854,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         type="number"
                         value={buyingQty}
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-11 text-center text-tea-text text-sm font-semibold bg-transparent border-none outline-none"
+                        className="w-11 text-center text-tea-text text-base font-normal bg-transparent border-none outline-none"
                       />
                       <span className="text-tea-text-dim text-ui-11">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
@@ -1871,11 +1869,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                     </button>
                   </div>
                   {totalPrice != null ? (
-                    <span className="text-tea-text-dim text-xs">
+                    <span className="text-tea-text-dim text-ui-11">
                       = <span className="text-tea-text-sec font-medium">{totalPrice.toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : entry.priceAmount && unitBased ? (
-                    <span className="text-tea-text-dim text-xs">
+                    <span className="text-tea-text-dim text-ui-11">
                       = <span className="text-tea-text-sec font-medium">{(buyingQty * entry.priceAmount).toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : null}
@@ -1888,7 +1886,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-ui-10 tabular-nums transition-colors ${
+                        className={`py-0.5 px-2 rounded text-ui-11 tabular-nums transition-colors ${
                           buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1901,7 +1899,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                 <button
                   type="button"
                   onClick={handleAddToLedger}
-                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-medium text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>
@@ -1915,7 +1913,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-gold/15 text-tea-gold text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-gold/15 text-tea-gold text-base font-medium"
             >
               <Check size={16} />
               Added to Ledger

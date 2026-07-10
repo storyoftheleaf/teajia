@@ -170,7 +170,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             >
               <Minus size={12} />
             </button>
-            <span className="text-tea-text text-base font-semibold tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
+            <span className="text-tea-text text-base font-medium tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
               {unit.quantity}
             </span>
             <span
