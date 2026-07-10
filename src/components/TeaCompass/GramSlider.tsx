@@ -9,8 +9,12 @@ import React, { useCallback, useRef, useState } from 'react';
  * would only ever let you land on the presets.
  *
  * Fully controlled off `value`. The paired number input shows the exact grams,
- * so the slider itself carries only small preset guide labels, placed BELOW the
- * bar so the handle never covers a number.
+ * so the slider itself carries only small preset guide labels. The labels sit
+ * INSIDE the bar (positioned by value, anchored inward at the ends) so the bar
+ * stays a single compact 44px control rather than growing a second row. The
+ * fill and thumb are deliberately quiet (subtle neutral tint, slim marker) and
+ * painted below the labels so a number is always legible, even directly under
+ * the thumb or fill edge.
  */
 
 export interface GramSliderProps {
@@ -92,8 +96,8 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
     onChange(Math.min(max, Math.max(min, next)));
   };
 
-  // Guide labels below the bar, positioned by value. Drop any that would crowd
-  // the previous one so the row stays legible even when presets bunch up.
+  // Guide labels inside the bar, positioned by value. Drop any that would
+  // crowd the previous one so they stay legible even when presets bunch up.
   const labels: { p: number; pct: number }[] = [];
   let lastPct = -Infinity;
   presets.forEach((p, i) => {
@@ -127,7 +131,8 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
         onKeyDown={handleKeyDown}
         className="gram-slider-track touch-none"
       >
-        {/* Tick marks at each preset so the magnetic stops are visible. */}
+        {/* Faint tick marks at each preset so the magnetic stops are visible
+            without competing with the numbers rendered on top. */}
         {presets.map((p) => (
           <span
             key={`tick-${p}`}
@@ -146,20 +151,25 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
           style={{ left: `${pct}%`, transition: settle }}
           aria-hidden
         />
-      </div>
 
-      {/* Preset guide labels, below the bar so the handle never covers them. */}
-      <div className="gram-slider-ticks">
+        {/* Preset guide numbers — INSIDE the bar, on top of the fill and
+            thumb so they stay legible no matter where the fill/thumb sit.
+            Positioned by value; the first/last labels nudge inward from the
+            track edges so they never clip against the rounded corners. */}
         {labels.map(({ p, pct: lpct }, i) => (
           <span
             key={p}
-            className={`gram-slider-tick text-ui-10 ${
+            className={`gram-slider-label text-ui-10 ${
               isPreset && value === p ? 'text-tea-gold font-medium' : 'text-tea-text-sec'
             }`}
             style={{
               left: `${lpct}%`,
               transform:
-                i === 0 ? 'translateX(0)' : i === labels.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
+                i === 0
+                  ? 'translate(8px, -50%)'
+                  : i === labels.length - 1
+                  ? 'translate(calc(-100% - 8px), -50%)'
+                  : 'translate(-50%, -50%)',
             }}
             aria-hidden
           >

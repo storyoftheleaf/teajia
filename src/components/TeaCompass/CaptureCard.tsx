@@ -1588,16 +1588,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </button>
         </div>
 
-        {/* Photo-first reassurance — when there's a photo or a source but no
-            name yet, the entry is already complete enough to save. Signals the
-            name is optional rather than a missing required field. */}
-        {!entry.name.trim() && (entry.photos.length > 0 || !!entry.vendorName) && (
-          <p className="flex items-center gap-1.5 text-ui-11 text-tea-gold/70">
-            <Check size={11} strokeWidth={2.5} />
-            Photo + source is enough — name optional.
-          </p>
-        )}
-
         {/* Type — bottom sheet. Each tea type carries a one-line description
             and a colour dot taken from the type chip palette so the picker
             doubles as a quick reference. */}

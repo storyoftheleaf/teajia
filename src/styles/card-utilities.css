@@ -2354,6 +2354,12 @@ input[type="number"]::-webkit-outer-spin-button {
    interaction logic. These classes are purely structural; fill/thumb/label
    colors are applied via Tailwind token classes at the call site so they
    stay theme-adaptive per COLOR_RULES.md.
+
+   Visual intent: the numbers live INSIDE the 44px bar (no separate label
+   row), and stay legible above everything else. The fill and thumb are
+   deliberately quiet — a subtle neutral tint and a slim position marker,
+   not a bright gold block or a fat knob — so they read as a progress
+   indicator rather than the star of the control.
    ============================================ */
 .gram-slider-track {
   position: relative;
@@ -2379,18 +2385,15 @@ input[type="number"]::-webkit-outer-spin-button {
   left: 0;
   border-radius: 0.625rem;
   pointer-events: none;
+  z-index: 1;
 }
-/* Filled portion — a subtle warm gradient so the bar is legible without
-   shouting. Brighter while the value sits on a stop / is being dragged. */
+/* Filled portion — a quiet neutral tint (not gold) so it reads as progress
+   without covering the numbers or shouting for attention. */
 .gram-slider-fill-on {
-  background: linear-gradient(90deg,
-    rgb(var(--tea-gold-rgb) / 0.10) 0%,
-    rgb(var(--tea-gold-rgb) / 0.20) 100%);
+  background: rgb(var(--tea-text-rgb) / 0.07);
 }
 .gram-slider-fill-off {
-  background: linear-gradient(90deg,
-    rgb(var(--tea-gold-rgb) / 0.04) 0%,
-    rgb(var(--tea-gold-rgb) / 0.08) 100%);
+  background: rgb(var(--tea-text-rgb) / 0.04);
 }
 /* Faint tick at each preset — shows the magnetic stops without shouting. */
 .gram-slider-tickmark {
@@ -2400,42 +2403,38 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 10px;
   transform: translate(-50%, -50%);
   border-radius: 1px;
-  background: rgb(var(--tea-gold-rgb) / 0.22);
+  background: rgb(var(--tea-gold-rgb) / 0.14);
   pointer-events: none;
+  z-index: 0;
 }
-/* Handle — a clear grabbable knob that rides the bar. Taller than it is wide so
-   it reads as a slider grip, gold, lifted with a soft shadow. It sits ABOVE the
-   labels (which live in their own row below the bar), so it never covers a
-   number. */
+/* Handle — a slim, muted position marker (not a knob). It sits below the
+   labels in z-order, so a number directly over the thumb stays readable. */
 .gram-slider-thumb {
   position: absolute;
-  top: 5px;
-  bottom: 5px;
-  width: 12px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
   border-radius: 999px;
   transform: translateX(-50%);
   pointer-events: none;
+  z-index: 2;
 }
 .gram-slider-thumb-on {
-  background: var(--tea-gold);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(0 0 0 / 0.12);
+  background: rgb(var(--tea-gold-rgb) / 0.45);
 }
 .gram-slider-thumb-off {
-  background: var(--tea-text-sec);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  background: rgb(var(--tea-text-sec-rgb) / 0.35);
 }
-/* Preset guide labels, in their own row beneath the bar. */
-.gram-slider-ticks {
-  position: relative;
-  height: 15px;
-  margin-top: 5px;
-}
-.gram-slider-tick {
+/* Preset guide labels — INSIDE the bar, vertically centered, always on top
+   (highest z-index) so the fill and thumb never make them illegible. */
+.gram-slider-label {
   position: absolute;
-  top: 0;
+  top: 50%;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   transition: color 120ms ease-out;
+  pointer-events: none;
+  z-index: 3;
 }
 
 /* ============================================
