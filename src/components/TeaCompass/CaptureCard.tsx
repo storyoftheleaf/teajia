@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
@@ -213,7 +213,7 @@ const EntryMark: React.FC<{
   </button>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, batchMode, onToggleBatchMode }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -257,6 +257,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // the VendorStrip itself stays collapsed until asked for (1b re-houses it
   // as a proper bottom sheet).
   const [vendorOpen, setVendorOpen] = useState(false);
+
+  // One-tap Chinese-name generation (the operator can't type hanzi).
+  const [generatingChinese, setGeneratingChinese] = useState(false);
 
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
@@ -727,15 +730,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const shellClass = 'surface-warm relative px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
-  // Mobile shell flows the warm surface (gradient + grain) PAST the Done footer
-  // and BEHIND the floating bottom-nav pill, rather than stopping short above
-  // it. The earlier flat pb-6 ended the surface in a hard line that read as
-  // "cut off early". The base is pb-nav-gap-lg (2rem + nav + safe-area); the
-  // arbitrary override adds 30px more so there's a touch of extra scroll past
-  // the end of the card. Both reset to a flat 2rem on lg+, where there is no
-  // bottom nav. A slightly larger top buffer mirrors that breath up top so the
-  // card opens and closes with the same softened rhythm.
-  const mobileShellClass = `${shellClass} pt-3 pb-nav-verdict`;
+  // Mobile shell flows the warm surface PAST the inline Done and BEHIND the
+  // floating bottom-nav pill. pb-nav-gap-lg gives 2rem + nav + safe-area so the
+  // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
+  // no bottom nav.
+  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   // Tea name reads in the display serif, a step larger than the other
@@ -938,6 +937,29 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     update({ tasting: newTasting });
   };
 
+  // Ask the AI to fill the Chinese name from the tea's name + context. Known
+  // teas fill on their own (variety map / autocomplete / label scan); this is
+  // the fallback so the operator never has to type hanzi. Result is written to
+  // the field for review, never committed silently.
+  const handleGenerateChineseName = async () => {
+    if (!entry.name?.trim() || generatingChinese) return;
+    setGeneratingChinese(true);
+    try {
+      const res = await api.generateChineseName({
+        name: entry.name.trim(),
+        type: entry.type,
+        originRegion: entry.originRegion,
+        year: entry.year,
+      });
+      const cn = (res as { chineseName?: string })?.chineseName?.trim();
+      if (cn) update({ chineseName: cn });
+    } catch {
+      // Offline or no provider — leave the field as-is; the operator can retry.
+    } finally {
+      setGeneratingChinese(false);
+    }
+  };
+
   // ── Teaware card layout ──────────────────────────────────────────────
   if (isTeaware) {
     const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
@@ -1062,7 +1084,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               onPhotoReplaced={handlePhotoReplaced}
               photos={entry.photos}
               onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-              variant="hero"
+              variant="strip"
             />
           </div>
         </div>
@@ -1415,9 +1437,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           );
         })()}
 
-        {/* Action footer — Share + Done colocated. Same pattern as the
-            tea variant so both forms have the share affordance in the
-            commit area instead of the page header. */}
+        {/* Action footer — Done. Share lives in the Library, not at capture. */}
         {(() => {
           // Done is enabled whenever the entry holds anything worth keeping —
           // a name, a photo, notes, or tasting data — matching exactly what
@@ -1426,17 +1446,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           const ready = entryHasContent(entry);
           return (
             <div className="flex items-center gap-2 mt-1">
-              {onShare && (
-                <button
-                  type="button"
-                  onClick={onShare}
-                  className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-                  aria-label="Share this entry"
-                  title="Share this entry"
-                >
-                  Share
-                </button>
-              )}
               <button
                 type="button"
                 onClick={handleCommit}
@@ -1539,8 +1548,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </div>
         )}
 
-        {/* Photo hero: the camera tile is the dominant element. Capture,
-            scan and camera-roll actions all live on the tile itself. */}
+        {/* Photo strip: a compact row of thumbnails plus scan + camera, not a
+            dominant tile. The details are the focus; the photo is supporting
+            evidence you can add a few of. Scanning a label still fills the
+            fields (including the Chinese name when it's printed). */}
         <div className="mt-3">
           <PhotoCapture
             onExtracted={handleExtracted}
@@ -1548,17 +1559,9 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-            variant="hero"
+            variant="strip"
           />
         </div>
-        {/* Nudge a second angle once the first shot lands: a bag label plus
-            the dry leaves (or brewed cup) makes a photo-only capture far more
-            identifiable later. */}
-        {entry.photos.length === 1 && (
-          <p className="mt-1.5 text-ui-11 text-tea-text-dim">
-            Add a second shot, the dry leaves or the brewed cup.
-          </p>
-        )}
       </div>
 
       {/* ─── IDENTITY ─── */}
@@ -1584,16 +1587,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             <ChevronDown size={14} />
           </button>
         </div>
-
-        {/* Chinese name: one quiet borderless input directly under the name,
-            so the bilingual identity reads as a pair rather than a form row. */}
-        <input
-          type="text"
-          value={entry.chineseName || ''}
-          onChange={(e) => update({ chineseName: e.target.value || undefined })}
-          placeholder="中文名 · Chinese name"
-          className="w-full bg-transparent px-1 text-base text-tea-text placeholder:text-tea-text-dim focus:outline-none"
-        />
 
         {/* Photo-first reassurance — when there's a photo or a source but no
             name yet, the entry is already complete enough to save. Signals the
@@ -1670,6 +1663,30 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             className={`w-20 shrink-0 tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
+        </div>
+
+        {/* Chinese name — under Origin. Fills automatically from known teas and
+            from label scans; the Suggest button asks the AI to write it from
+            the name + origin, since the operator won't type hanzi. */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={entry.chineseName || ''}
+            onChange={(e) => update({ chineseName: e.target.value || undefined })}
+            placeholder="中文名 · Chinese name"
+            className={`flex-1 min-w-0 ${fieldClass}`}
+          />
+          <button
+            type="button"
+            onClick={handleGenerateChineseName}
+            disabled={!entry.name?.trim() || generatingChinese}
+            className="tap-target shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-surface text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text disabled:opacity-40 transition-colors"
+            aria-label="Suggest Chinese name"
+            title="Suggest Chinese name"
+          >
+            {generatingChinese ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} strokeWidth={1.5} />}
+            <span>Suggest</span>
+          </button>
         </div>
 
 
@@ -1828,36 +1845,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </>
       )}
 
-      {/* Sell price: intended retail per gram; flows through to inventory. */}
-      <div className="flex items-center gap-2">
-        <span className="shrink-0 text-ui-12 text-tea-text-sec">Sell price</span>
-        <input
-          type="number"
-          inputMode="decimal"
-          placeholder="0"
-          value={entry.sellPrice ?? ''}
-          onChange={(e) => {
-            const v = e.target.value;
-            update({ sellPrice: v === '' ? undefined : Number(v) });
-          }}
-          className={`w-24 text-right tabular-nums ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-        />
-        <span className="shrink-0 text-ui-11 text-tea-text-dim">
-          {CURRENCY_SYMBOLS[entry.priceCurrency] || entry.priceCurrency}/g
-        </span>
-      </div>
-
-      {/* Share moved here from the old footer; the verdict row stays the
-          decision surface. Desktop keeps its bar button. */}
-      {onShare && (
-        <button
-          type="button"
-          onClick={onShare}
-          className="lg:hidden tap-target inline-flex items-center px-1 py-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
-        >
-          Share this entry
-        </button>
-      )}
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
       <div className="space-y-2">
@@ -1966,10 +1953,9 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </AnimatePresence>
       </div>
 
-      {/* Verdict row: fixed above the bottom nav so a decision (or none,
-          which saves as a plain capture) is one thumb-reach away. Buy left
-          this footer deliberately; ordering happens in Runs later. Done is
-          enabled by a photo OR a name, the promised saveable minimum. */}
+      {/* Verdict + Done: inline at the end of the card (part of the scroll),
+          not a fixed bar stacked over the app nav. A decision, or none — which
+          saves as a plain capture. Done is enabled by a photo OR a name. */}
       <CaptureVerdictRow
         tasted={!!hasTasting}
         onTasted={openTastingOverlay}

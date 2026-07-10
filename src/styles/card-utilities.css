@@ -2360,8 +2360,12 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 44px;
   min-height: 44px;
   width: 100%;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
+  /* A real bar: a recessed trough with a soft inner edge so its full extent
+     reads, tall but quiet. */
   background: var(--tea-elevated);
+  box-shadow: inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.08),
+              inset 0 1px 2px rgb(0 0 0 / 0.18);
   cursor: pointer;
   outline: none;
   overflow: hidden;
@@ -2373,19 +2377,39 @@ input[type="number"]::-webkit-outer-spin-button {
   position: absolute;
   inset-block: 0;
   left: 0;
-  border-radius: 0.5rem;
-  transition: width 120ms ease-out;
+  border-radius: 0.625rem;
   pointer-events: none;
+}
+/* Filled portion — a subtle warm gradient so the bar is legible without
+   shouting. Brighter while the value sits on a stop / is being dragged. */
+.gram-slider-fill-on {
+  background: linear-gradient(90deg,
+    rgb(var(--tea-gold-rgb) / 0.10) 0%,
+    rgb(var(--tea-gold-rgb) / 0.20) 100%);
+}
+.gram-slider-fill-off {
+  background: linear-gradient(90deg,
+    rgb(var(--tea-gold-rgb) / 0.04) 0%,
+    rgb(var(--tea-gold-rgb) / 0.08) 100%);
 }
 .gram-slider-thumb {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  width: 3px;
-  border-radius: 2px;
+  top: 6px;
+  bottom: 6px;
+  width: 6px;
+  border-radius: 999px;
   transform: translateX(-50%);
-  transition: left 120ms ease-out;
   pointer-events: none;
+}
+/* Handle — a slim rounded pill, gold when active, with a soft lift so it reads
+   as a grabbable handle rather than a hairline. */
+.gram-slider-thumb-on {
+  background: var(--tea-gold);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3), 0 0 0 3px rgb(var(--tea-gold-rgb) / 0.12);
+}
+.gram-slider-thumb-off {
+  background: var(--tea-text-dim);
+  opacity: 0.6;
 }
 .gram-slider-labels {
   position: absolute;
