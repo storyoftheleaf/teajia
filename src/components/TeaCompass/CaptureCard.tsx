@@ -1479,7 +1479,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
   // Tea name — the hero. Large display serif, still just a bottom hairline.
   // This is the ONE serif element in the capture form — everything else
   // below is font-sans so the form reads as one typographic system.
-  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-display text-ui-26 font-normal text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-sans text-ui-20 font-medium text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
 
   // ── Tea card layout ────────────────────────
   return (
