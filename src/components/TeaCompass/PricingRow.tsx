@@ -92,7 +92,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           - count mode: [Currency + Price flex-1] [− qty + ct]
             — counter stays a compact pill on the right since there's
             no form picker to balance it. */}
-      <div className="flex items-stretch gap-3">
+      <div className="flex items-stretch gap-4">
         <div className={`flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
           <select
             value={priceCurrency}

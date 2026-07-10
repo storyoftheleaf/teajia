@@ -708,9 +708,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
-  // Tea name reads in the display serif, a step larger than the other
-  // fields (17px keeps the iOS 16px anti-zoom floor).
-  const nameFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 font-display text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
     `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base border border-tea-border transition-colors ${
@@ -1548,7 +1545,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           screen; Type demotes to a small colored text tag beneath it (color
           carries meaning, no swatch/box) so the picker vs. typed contrast
           starts right here. ─── */}
-      <div className="space-y-3 pt-1">
+      <div className="space-y-5 pt-1">
         <div>
           <AutocompleteInput
             value={entry.name}
@@ -1563,10 +1560,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium transition-opacity hover:opacity-80"
+            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium uppercase transition-opacity hover:opacity-80"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11">+ Type</span>}
+            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11 uppercase">+ Type</span>}
             <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
@@ -1610,7 +1607,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
 
         {/* Region + Year (year sits to the right of origin) — underline fields */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-baseline gap-4">
           <AutocompleteInput
             value={entry.originRegion || ''}
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
@@ -1628,7 +1625,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className={`w-16 shrink-0 tabular-nums text-center ${underlineFieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+            className={`w-24 shrink-0 tabular-nums text-center ${underlineFieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
         </div>
@@ -1636,7 +1633,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         {/* Chinese name — under Origin. Fills automatically from known teas and
             from label scans; the Suggest button asks the AI to write it from
             the name + origin, since the operator won't type hanzi. */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-baseline gap-4">
           <input
             type="text"
             value={entry.chineseName || ''}
@@ -1657,9 +1654,9 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </button>
         </div>
 
-        {/* Larger gap before Pricing — whitespace does the grouping the gold
-            divider used to do. */}
-        <div className="pt-6 space-y-2">
+        {/* Pricing — same space-y-5 rhythm as the rows above; the retail
+            preview line stays tucked close under the pricing row itself. */}
+        <div className="space-y-2">
           <PricingRow
             priceAmount={entry.priceAmount}
             priceCurrency={entry.priceCurrency}

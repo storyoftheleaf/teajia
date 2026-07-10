@@ -855,7 +855,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // one contained unit instead of loose buttons floating on the page.
   const stripRow = (
     <>
-      <div className={`field-recessed bg-tea-elevated rounded-xl p-1.5 flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : ''}`}>
+      <div className={`field-recessed bg-tea-elevated rounded-xl p-1.5 inline-flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : 'w-fit'}`}>
         {validPhotos.map((url, i) => (
           <button
             key={url}
