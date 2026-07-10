@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { ChevronDown, Minus, Plus } from 'lucide-react';
+import { Check, ChevronDown, Minus, Plus } from 'lucide-react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { BottomSheet } from '../shared/BottomSheet';
 import { GramSlider } from './GramSlider';
 
 /**
@@ -34,15 +34,6 @@ const CURRENCY_LABELS: Record<Currency, string> = {
   HKD: 'HK$',
   AUD: 'A$',
   UNK: '?',
-};
-
-const FORM_HINTS: Record<TeaForm, string> = {
-  Loose: 'Loose leaf · the standard',
-  Cake: 'Compressed disc · puerh + heicha',
-  Brick: 'Compressed rectangle',
-  Tuo: 'Compressed bowl',
-  Ball: 'Hand-rolled balls',
-  Bag: 'Tea bag',
 };
 
 const noSpinnerStyle: React.CSSProperties = { MozAppearance: 'textfield' };
@@ -216,7 +207,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
         );
       })()}
 
-      {/* Form picker — bottom sheet with one-line hints per option. */}
+      {/* Form picker — compact 2-column grid, name only. */}
       {unit.mode === 'grams' && unit.onFormChange && (
         <BottomSheet
           open={formSheetOpen}
@@ -224,16 +215,25 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           title="Form"
           description="What shape is this tea?"
         >
-          <div className="flex flex-col gap-0.5 px-1">
-            {TEA_FORMS.map((f) => (
-              <SheetOption
-                key={f}
-                label={f}
-                hint={FORM_HINTS[f]}
-                selected={unit.form === f}
-                onSelect={() => { unit.onFormChange?.(f); setFormSheetOpen(false); }}
-              />
-            ))}
+          <div className="grid grid-cols-2 gap-2 px-1">
+            {TEA_FORMS.map((f) => {
+              const selected = unit.form === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => { unit.onFormChange?.(f); setFormSheetOpen(false); }}
+                  className={`flex min-h-[52px] items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
+                    selected
+                      ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                      : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+                  }`}
+                >
+                  <span className="min-w-0 flex-1 truncate text-ui-13 font-medium">{f}</span>
+                  {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
+                </button>
+              );
+            })}
           </div>
         </BottomSheet>
       )}

@@ -72,19 +72,6 @@ interface CaptureCardProps {
 
 const EMPTY_TASTING: TastingData = {};
 
-/** One-line descriptions shown next to each type in the picker, for beginners */
-const TEA_TYPE_DESCRIPTIONS: Record<string, string> = {
-  Green:  'Unoxidized · grassy, fresh, vegetal',
-  White:  'Minimal processing · delicate, floral',
-  Yellow: 'Rare, slow-dried · mellow, honeyed',
-  Oolong: 'Partially oxidized · floral to roasted',
-  Red:    'Fully oxidized (called "black" in West)',
-  Dark:   'Aged & fermented heicha (non-puerh)',
-  Sheng:  'Raw puerh · young or aged',
-  Shou:   'Ripe puerh · fermented, earthy',
-  Herbal: 'Flowers, roots & tisanes (no tea leaf)',
-};
-
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NT: 'NT$', USD: '$', Yuan: 'CN¥', MYR: 'RM', IDR: 'Rp', JPY: 'JP¥', HKD: 'HK$', UNK: '?',
 };
@@ -1590,7 +1577,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           title="Tea type"
           description="What kind of tea is this?"
         >
-          <div className="grid grid-cols-1 gap-2 px-1 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2 px-1">
             {TEA_TYPES.map((type) => {
               const chipStyle = getTypeChipStyle(type);
               const selected = entry.type === type;
@@ -1599,24 +1586,19 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                   key={type}
                   type="button"
                   onClick={() => handleTypeSelect(type)}
-                  className={`flex min-h-[76px] items-start gap-3 rounded-md border px-3 py-3 text-left transition-colors ${
+                  className={`flex min-h-[52px] items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
                     selected
                       ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                       : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                   }`}
                 >
                   <span
-                    className="mt-1 block h-3 w-3 rounded-full shrink-0"
+                    className="block h-3 w-3 rounded-full shrink-0"
                     style={{ backgroundColor: chipStyle.text }}
                     aria-hidden
                   />
-                  <span className="min-w-0">
-                    <span className="block text-ui-13 font-medium">{type}</span>
-                    <span className="mt-1 block text-ui-11 leading-[1.35] text-tea-text-sec">
-                      {TEA_TYPE_DESCRIPTIONS[type]}
-                    </span>
-                  </span>
-                  {selected && <Check size={13} className="ml-auto mt-0.5 shrink-0 text-tea-gold" />}
+                  <span className="min-w-0 flex-1 truncate text-ui-13 font-medium">{type}</span>
+                  {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );
             })}
