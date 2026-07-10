@@ -1388,6 +1388,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
+          sans
         />
 
         {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
@@ -1789,6 +1790,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           teaKey={entry.teaKey ?? undefined}
           compact
           hideTastingArtifacts
+          sans
         />
       </div>
 

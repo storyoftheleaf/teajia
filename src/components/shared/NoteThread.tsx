@@ -99,7 +99,8 @@ const NoteCard: React.FC<{
   note: Note;
   showAuthor: boolean;
   currentAuthorId: string;
-}> = ({ note, showAuthor, currentAuthorId }) => {
+  noteFont: string;
+}> = ({ note, showAuthor, currentAuthorId, noteFont }) => {
   const { updateNote, removeNote } = useNotesStore();
   const { addTasting } = useAppStore();
   const [editing, setEditing] = useState(false);
@@ -209,7 +210,7 @@ const NoteCard: React.FC<{
             onKeyDown={handleKeyDown}
             rows={2}
             className="w-full bg-transparent text-ui-13 text-tea-text resize-none outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/40 rounded px-1 -mx-1"
-            style={{ fontFamily: 'var(--font-body)' }}
+            style={{ fontFamily: noteFont }}
           />
         ) : (
           <p
@@ -217,7 +218,7 @@ const NoteCard: React.FC<{
             className={`text-ui-13 text-tea-text leading-relaxed whitespace-pre-wrap ${
               isOwn && !isTasting ? 'cursor-text hover:text-tea-text' : ''
             }`}
-            style={{ fontFamily: 'var(--font-body)' }}
+            style={{ fontFamily: noteFont }}
           >
             {note.text}
           </p>
@@ -282,6 +283,10 @@ interface NoteThreadProps {
   /** Bigger textarea + mic — used in teaware capture where the notes field
    *  was reported as too cramped to engage with on mobile. */
   larger?: boolean;
+  /** Render note text in the sans UI face instead of the body serif — used
+   *  on the capture card so the notes field matches the form's sans system
+   *  (elsewhere, e.g. tasting sessions, notes stay in the prose serif). */
+  sans?: boolean;
 }
 
 type RecState = 'idle' | 'recording' | 'transcribing';
@@ -294,7 +299,9 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   hideMic = false,
   hideTastingArtifacts = false,
   larger = false,
+  sans = false,
 }) => {
+  const noteFont = sans ? 'var(--font-sans)' : 'var(--font-body)';
   const textareaRows = larger ? 3 : compact ? 1 : 2;
   const inputPad = larger ? 'px-4 py-3.5' : 'px-3 py-2.5';
   const inputText = larger ? 'text-ui-14' : 'text-ui-13';
@@ -448,6 +455,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
                 note={note}
                 showAuthor={multipleAuthors}
                 currentAuthorId={authorId}
+                noteFont={noteFont}
               />
             ))}
           </AnimatePresence>
@@ -464,7 +472,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
             placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions, vendor story, anything worth keeping…'}
             rows={textareaRows}
             className={`flex-1 ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
-            style={{ fontFamily: 'var(--font-body)' }}
+            style={{ fontFamily: noteFont }}
           />
         ) : (
           <div className={`flex-1 flex items-center ${inputPad}`}>
@@ -472,7 +480,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
               animate={{ opacity: [1, 0.4, 1] }}
               transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
               className={`${inputText} text-tea-gold/70`}
-              style={{ fontFamily: 'var(--font-body)' }}
+              style={{ fontFamily: noteFont }}
             >
               Recording…
             </motion.span>
@@ -511,7 +519,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       </div>
 
       {error && (
-        <p className="text-ui-11 text-tea-error" style={{ fontFamily: 'var(--font-body)' }}>{error}</p>
+        <p className="text-ui-11 text-tea-error" style={{ fontFamily: noteFont }}>{error}</p>
       )}
     </div>
   );
