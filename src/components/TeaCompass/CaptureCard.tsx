@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
-import { TEA_TYPE_COLORS } from '../../designTokens';
+import { TEA_TYPE_COLORS, TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
@@ -72,19 +72,6 @@ interface CaptureCardProps {
 
 const EMPTY_TASTING: TastingData = {};
 
-/** One-line descriptions shown next to each type in the picker, for beginners */
-const TEA_TYPE_DESCRIPTIONS: Record<string, string> = {
-  Green:  'Unoxidized · grassy, fresh, vegetal',
-  White:  'Minimal processing · delicate, floral',
-  Yellow: 'Rare, slow-dried · mellow, honeyed',
-  Oolong: 'Partially oxidized · floral to roasted',
-  Red:    'Fully oxidized (called "black" in West)',
-  Dark:   'Aged & fermented heicha (non-puerh)',
-  Sheng:  'Raw puerh · young or aged',
-  Shou:   'Ripe puerh · fermented, earthy',
-  Herbal: 'Flowers, roots & tisanes (no tea leaf)',
-};
-
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NT: 'NT$', USD: '$', Yuan: 'CN¥', MYR: 'RM', IDR: 'Rp', JPY: 'JP¥', HKD: 'HK$', UNK: '?',
 };
@@ -136,7 +123,7 @@ function RetailPricePreview({
                 setEditingShipping(false);
               }
             }}
-            className="w-16 bg-tea-elevated text-tea-text text-ui-11 px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="w-16 bg-transparent text-tea-text text-ui-11 px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-tea-text-dim">/kg</span>
         </span>
@@ -159,27 +146,11 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-/** The brand's editorial eyebrow — Cormorant italic small-caps in gold.
- *  Borrowed from the magazine card eyebrow so the section markers read in the
- *  same museum-caption register as the rest of the brand, not as form labels. */
-const CAPTURE_EYEBROW_STYLE: React.CSSProperties = {
-  fontFamily: 'var(--font-display)',
-  fontSize: 13,
-  fontStyle: 'italic',
-  fontWeight: 500,
-  fontVariant: 'all-small-caps',
-  letterSpacing: '0.08em',
-  color: 'var(--tea-gold)',
-};
-
-/** Section eyebrow divider — warm gold hairline + small-caps gold label.
- *  `ornament` adds a single centered gold dot (use sparingly, once). */
-const SectionDivider: React.FC<{ label: string; ornament?: boolean }> = ({ label, ornament }) => (
-  <div className="flex items-center gap-3 pt-2">
-    <div className={`relative flex-1 divider-warm${ornament ? ' divider-ornament' : ''}`} />
-    <span style={CAPTURE_EYEBROW_STYLE} className="shrink-0">{label}</span>
-    <div className="flex-1 divider-warm" />
-  </div>
+/** Quiet section eyebrow — replaces the retired gold hairline SectionDivider.
+ *  Groups content by whitespace, not by a gold rule; used sparingly (Notes
+ *  always; Profile only when tasting data exists) so gold stays scarce. */
+const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
+  <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
 );
 
 /** Inline status mark — Want/Buy/Sample/Taste tile inside the form.
@@ -204,7 +175,7 @@ const EntryMark: React.FC<{
         : 'bg-transparent border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
     }`}
   >
-    <span className={`pointer-events-none font-display text-ui-15 ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+    <span className={`pointer-events-none font-sans font-medium text-base ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
       {label}
     </span>
     <span className="pointer-events-none text-ui-11 leading-snug text-tea-text-dim">
@@ -213,7 +184,7 @@ const EntryMark: React.FC<{
   </button>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, batchMode, onToggleBatchMode }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -257,6 +228,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // the VendorStrip itself stays collapsed until asked for (1b re-houses it
   // as a proper bottom sheet).
   const [vendorOpen, setVendorOpen] = useState(false);
+
+  // One-tap Chinese-name generation (the operator can't type hanzi).
+  const [generatingChinese, setGeneratingChinese] = useState(false);
 
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
@@ -727,23 +701,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const shellClass = 'surface-warm relative px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
-  // Mobile shell flows the warm surface (gradient + grain) PAST the Done footer
-  // and BEHIND the floating bottom-nav pill, rather than stopping short above
-  // it. The earlier flat pb-6 ended the surface in a hard line that read as
-  // "cut off early". The base is pb-nav-gap-lg (2rem + nav + safe-area); the
-  // arbitrary override adds 30px more so there's a touch of extra scroll past
-  // the end of the card. Both reset to a flat 2rem on lg+, where there is no
-  // bottom nav. A slightly larger top buffer mirrors that breath up top so the
-  // card opens and closes with the same softened rhythm.
-  const mobileShellClass = `${shellClass} pt-3 pb-nav-verdict`;
+  // Mobile shell flows the warm surface PAST the inline Done and BEHIND the
+  // floating bottom-nav pill. pb-nav-gap-lg gives 2rem + nav + safe-area so the
+  // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
+  // no bottom nav.
+  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
-  // Tea name reads in the display serif, a step larger than the other
-  // fields (17px keeps the iOS 16px anti-zoom floor).
-  const nameFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 font-display text-ui-17 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
-    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
+    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base border border-tea-border transition-colors ${
       selected
         ? 'text-tea-text font-medium bg-tea-accent-sub'
         : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -938,6 +905,29 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     update({ tasting: newTasting });
   };
 
+  // Ask the AI to fill the Chinese name from the tea's name + context. Known
+  // teas fill on their own (variety map / autocomplete / label scan); this is
+  // the fallback so the operator never has to type hanzi. Result is written to
+  // the field for review, never committed silently.
+  const handleGenerateChineseName = async () => {
+    if (!entry.name?.trim() || generatingChinese) return;
+    setGeneratingChinese(true);
+    try {
+      const res = await api.generateChineseName({
+        name: entry.name.trim(),
+        type: entry.type,
+        originRegion: entry.originRegion,
+        year: entry.year,
+      });
+      const cn = (res as { chineseName?: string })?.chineseName?.trim();
+      if (cn) update({ chineseName: cn });
+    } catch {
+      // Offline or no provider — leave the field as-is; the operator can retry.
+    } finally {
+      setGeneratingChinese(false);
+    }
+  };
+
   // ── Teaware card layout ──────────────────────────────────────────────
   if (isTeaware) {
     const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
@@ -1062,7 +1052,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               onPhotoReplaced={handlePhotoReplaced}
               photos={entry.photos}
               onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-              variant="hero"
+              variant="strip"
             />
           </div>
         </div>
@@ -1108,7 +1098,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   setMaterialPopoverOpen(true);
                   setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
                 }}
-                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors ${
                   entry.material
                     ? 'text-tea-text font-medium bg-tea-accent-sub'
                     : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1126,7 +1116,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={() => setClaySheetOpen(true)}
-                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
+                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-base font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
                   aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
                 >
                   <span
@@ -1167,7 +1157,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setEraSheetOpen(true)}
-              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
+              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors tabular-nums ${
                 entry.era
                   ? 'text-tea-text font-medium bg-tea-accent-sub'
                   : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1247,7 +1237,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-11 font-medium disabled:opacity-40 transition-opacity"
                   >
                     Add
                   </button>
@@ -1354,8 +1344,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     </div>
                     <div className="w-full min-w-0">
                       <div
-                        className={`text-base truncate ${sel ? 'text-tea-gold font-semibold' : 'text-tea-text font-medium'}`}
-                        style={{ fontFamily: 'var(--font-display)' }}
+                        className={`font-sans text-base truncate ${sel ? 'text-tea-gold font-medium' : 'text-tea-text font-medium'}`}
                       >
                         {clay.label}
                       </div>
@@ -1395,6 +1384,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
+          sans
         />
 
         {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
@@ -1415,9 +1405,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           );
         })()}
 
-        {/* Action footer — Share + Done colocated. Same pattern as the
-            tea variant so both forms have the share affordance in the
-            commit area instead of the page header. */}
+        {/* Action footer — Done. Share lives in the Library, not at capture. */}
         {(() => {
           // Done is enabled whenever the entry holds anything worth keeping —
           // a name, a photo, notes, or tasting data — matching exactly what
@@ -1426,22 +1414,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           const ready = entryHasContent(entry);
           return (
             <div className="flex items-center gap-2 mt-1">
-              {onShare && (
-                <button
-                  type="button"
-                  onClick={onShare}
-                  className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-                  aria-label="Share this entry"
-                  title="Share this entry"
-                >
-                  Share
-                </button>
-              )}
               <button
                 type="button"
                 onClick={handleCommit}
                 disabled={!ready}
-                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-sans font-medium tracking-[0.06em] text-base transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Done, commit this entry"
               >
                 Done
@@ -1495,6 +1472,15 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
     }, 800);
   };
 
+  // Underline fields — TEA layout only. Typed identity/pricing fields lose
+  // their boxes; only pickers (Type, Form) stay chips, so "picked" reads
+  // differently from "typed" (the wayfinding contrast the redesign relies on).
+  const underlineFieldClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 font-sans text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  // Tea name — the hero. Large display serif, still just a bottom hairline.
+  // This is the ONE serif element in the capture form — everything else
+  // below is font-sans so the form reads as one typographic system.
+  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-sans text-ui-20 font-medium text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+
   // ── Tea card layout ────────────────────────
   return (
     <div className={mobileShellClass}>
@@ -1539,8 +1525,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </div>
         )}
 
-        {/* Photo hero: the camera tile is the dominant element. Capture,
-            scan and camera-roll actions all live on the tile itself. */}
+        {/* Photo strip: a compact row of thumbnails plus scan + camera, not a
+            dominant tile. The details are the focus; the photo is supporting
+            evidence you can add a few of. Scanning a label still fills the
+            fields (including the Chinese name when it's printed). */}
         <div className="mt-3">
           <PhotoCapture
             onExtracted={handleExtracted}
@@ -1548,29 +1536,23 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-            variant="hero"
+            variant="strip"
           />
         </div>
-        {/* Nudge a second angle once the first shot lands: a bag label plus
-            the dry leaves (or brewed cup) makes a photo-only capture far more
-            identifiable later. */}
-        {entry.photos.length === 1 && (
-          <p className="mt-1.5 text-ui-11 text-tea-text-dim">
-            Add a second shot, the dry leaves or the brewed cup.
-          </p>
-        )}
       </div>
 
-      {/* ─── IDENTITY ─── */}
-      <SectionDivider label="Tea" />
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
+      {/* ─── IDENTITY — the hero. Tea name is the one dominant element on the
+          screen; Type demotes to a small colored text tag beneath it (color
+          carries meaning, no swatch/box) so the picker vs. typed contrast
+          starts right here. ─── */}
+      <div className="space-y-5 pt-1">
+        <div>
           <AutocompleteInput
             value={entry.name}
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder={entry.type ? `${entry.type} name (e.g., Tieguanyin, Bingdao…)` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
-            className={`w-full min-w-0 ${nameFieldClass}`}
+            className={`w-full ${nameHeadlineClass}`}
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
             hintSuggestions={hintSuggestions}
@@ -1578,32 +1560,13 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-surface text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors"
+            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium uppercase transition-opacity hover:opacity-80"
+            style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            <span>{entry.type || 'Type'}</span>
-            <ChevronDown size={14} />
+            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11 uppercase">+ Type</span>}
+            <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
-
-        {/* Chinese name: one quiet borderless input directly under the name,
-            so the bilingual identity reads as a pair rather than a form row. */}
-        <input
-          type="text"
-          value={entry.chineseName || ''}
-          onChange={(e) => update({ chineseName: e.target.value || undefined })}
-          placeholder="中文名 · Chinese name"
-          className="w-full bg-transparent px-1 text-base text-tea-text placeholder:text-tea-text-dim focus:outline-none"
-        />
-
-        {/* Photo-first reassurance — when there's a photo or a source but no
-            name yet, the entry is already complete enough to save. Signals the
-            name is optional rather than a missing required field. */}
-        {!entry.name.trim() && (entry.photos.length > 0 || !!entry.vendorName) && (
-          <p className="flex items-center gap-1.5 text-ui-11 text-tea-gold/70">
-            <Check size={11} strokeWidth={2.5} />
-            Photo + source is enough — name optional.
-          </p>
-        )}
 
         {/* Type — bottom sheet. Each tea type carries a one-line description
             and a colour dot taken from the type chip palette so the picker
@@ -1614,7 +1577,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           title="Tea type"
           description="What kind of tea is this?"
         >
-          <div className="grid grid-cols-1 gap-2 px-1 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2 px-1">
             {TEA_TYPES.map((type) => {
               const chipStyle = getTypeChipStyle(type);
               const selected = entry.type === type;
@@ -1623,24 +1586,19 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                   key={type}
                   type="button"
                   onClick={() => handleTypeSelect(type)}
-                  className={`flex min-h-[76px] items-start gap-3 rounded-md border px-3 py-3 text-left transition-colors ${
+                  className={`flex min-h-[52px] items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
                     selected
                       ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                       : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                   }`}
                 >
                   <span
-                    className="mt-1 block h-3 w-3 rounded-full shrink-0"
+                    className="block h-3 w-3 rounded-full shrink-0"
                     style={{ backgroundColor: chipStyle.text }}
                     aria-hidden
                   />
-                  <span className="min-w-0">
-                    <span className="block text-ui-13 font-medium">{type}</span>
-                    <span className="mt-1 block text-ui-11 leading-[1.35] text-tea-text-sec">
-                      {TEA_TYPE_DESCRIPTIONS[type]}
-                    </span>
-                  </span>
-                  {selected && <Check size={13} className="ml-auto mt-0.5 shrink-0 text-tea-gold" />}
+                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{type}</span>
+                  {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );
             })}
@@ -1648,14 +1606,14 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </BottomSheet>
 
 
-        {/* Region + Year (year sits to the right of origin) */}
-        <div className="flex items-center gap-2">
+        {/* Region + Year (year sits to the right of origin) — underline fields */}
+        <div className="flex items-baseline gap-4">
           <AutocompleteInput
             value={entry.originRegion || ''}
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
             suggestions={availableRegions}
             placeholder="Origin"
-            className={`w-full ${fieldClass}`}
+            className={`w-full ${underlineFieldClass}`}
           />
           <input
             type="number"
@@ -1667,38 +1625,63 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className={`w-20 shrink-0 tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+            className={`w-24 shrink-0 tabular-nums text-center ${underlineFieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
         </div>
 
-
-        <SectionDivider label="Pricing" />
-
-        <PricingRow
-          priceAmount={entry.priceAmount}
-          priceCurrency={entry.priceCurrency}
-          onPriceChange={(priceAmount) => update({ priceAmount })}
-          onCurrencyChange={handleCurrencyChange}
-          unit={{
-            mode: 'grams',
-            pricePerUnitGrams: entry.pricePerUnitGrams,
-            onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
-            form: entry.form,
-            onFormChange: handleFormSelect,
-          }}
-        />
-
-        {/* Retail price preview — only for tea with cost + grams entered */}
-        {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
-          <RetailPricePreview
-            costAmount={entry.priceAmount}
-            grams={entry.pricePerUnitGrams}
-            currency={entry.priceCurrency}
-            shippingRatePerKg={shippingRatePerKg}
-            onShippingRateChange={setShippingRatePerKg}
+        {/* Chinese name — under Origin. Fills automatically from known teas and
+            from label scans; the Suggest button asks the AI to write it from
+            the name + origin, since the operator won't type hanzi. */}
+        <div className="flex items-baseline gap-4">
+          <input
+            type="text"
+            value={entry.chineseName || ''}
+            onChange={(e) => update({ chineseName: e.target.value || undefined })}
+            placeholder="中文名 · Chinese name"
+            className={`flex-1 min-w-0 ${underlineFieldClass}`}
           />
-        )}
+          <button
+            type="button"
+            onClick={handleGenerateChineseName}
+            disabled={!entry.name?.trim() || generatingChinese}
+            className="pill-quiet pill-quiet-on tap-target font-sans shrink-0 disabled:opacity-40"
+            aria-label="Suggest Chinese name"
+            title="Suggest Chinese name"
+          >
+            {generatingChinese ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} strokeWidth={1.5} />}
+            <span>Suggest</span>
+          </button>
+        </div>
+
+        {/* Pricing — same space-y-5 rhythm as the rows above; the retail
+            preview line stays tucked close under the pricing row itself. */}
+        <div className="space-y-2">
+          <PricingRow
+            priceAmount={entry.priceAmount}
+            priceCurrency={entry.priceCurrency}
+            onPriceChange={(priceAmount) => update({ priceAmount })}
+            onCurrencyChange={handleCurrencyChange}
+            unit={{
+              mode: 'grams',
+              pricePerUnitGrams: entry.pricePerUnitGrams,
+              onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
+              form: entry.form,
+              onFormChange: handleFormSelect,
+            }}
+          />
+
+          {/* Retail price preview — only for tea with cost + grams entered */}
+          {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
+            <RetailPricePreview
+              costAmount={entry.priceAmount}
+              grams={entry.pricePerUnitGrams}
+              currency={entry.priceCurrency}
+              shippingRatePerKg={shippingRatePerKg}
+              onShippingRateChange={setShippingRatePerKg}
+            />
+          )}
+        </div>
       </div>
 
       {/* Duplicate nudge */}
@@ -1743,69 +1726,69 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       {hasTasting && entry.tasting && (
-        <>
-          <SectionDivider label="Profile" />
-          <div className="space-y-2.5">
-            {/* Quality 1–10 — same segment toggle as TastingSession */}
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
-                <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
-                  {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
-                </span>
-              </div>
-              <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
-                {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
-                  const isSelected = entry.tasting!.quality === v;
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => handleQualityChange(v)}
-                      role="radio"
-                      aria-checked={isSelected}
-                      className={`flex-1 py-2.5 text-ui-12 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
-                        isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                      }${i < 9 ? ' weight-seg-div' : ''}`}
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        background: isSelected
-                          ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
-                          : 'transparent',
-                      }}
-                    >
-                      {v}
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="pt-6 space-y-2.5">
+          <QuietEyebrow label="Profile" />
+          {/* Quality 1–10 — same segment toggle as TastingSession */}
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-sans text-ui-11 text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
+              <span className="font-sans text-ui-11 text-tea-gold tabular-nums font-medium">
+                {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
+              </span>
             </div>
-            {/* Brewing metadata */}
-            {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
-              <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
-                {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
-                {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
-                {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
-              </div>
-            )}
-            {/* Tag cloud */}
-            <TastingProfileStrip
-              value={entry.tasting}
-              onRemove={handleTastingStripRemove}
-              variant="cloud"
-            />
+            <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
+              {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
+                const isSelected = entry.tasting!.quality === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => handleQualityChange(v)}
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`font-sans tabular-nums flex-1 py-2.5 text-ui-11 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                      isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                    }${i < 9 ? ' weight-seg-div' : ''}`}
+                    style={{
+                      background: isSelected
+                        ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
+                        : 'transparent',
+                    }}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </>
+          {/* Brewing metadata */}
+          {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
+            <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
+              {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
+              {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
+              {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
+            </div>
+          )}
+          {/* Tag cloud */}
+          <TastingProfileStrip
+            value={entry.tasting}
+            onRemove={handleTastingStripRemove}
+            variant="cloud"
+          />
+        </div>
       )}
 
       {/* ─── Notes zone ─── */}
-      <SectionDivider label="Notes" ornament />
-      <NoteThread
-        compassEntryId={entry.id}
-        teaKey={entry.teaKey ?? undefined}
-        compact
-        hideTastingArtifacts
-      />
+      <div className="pt-6 space-y-2">
+        <QuietEyebrow label="Notes" />
+        <NoteThread
+          compassEntryId={entry.id}
+          teaKey={entry.teaKey ?? undefined}
+          compact
+          hideTastingArtifacts
+          sans
+        />
+      </div>
 
       <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
 
@@ -1828,36 +1811,6 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </>
       )}
 
-      {/* Sell price: intended retail per gram; flows through to inventory. */}
-      <div className="flex items-center gap-2">
-        <span className="shrink-0 text-ui-12 text-tea-text-sec">Sell price</span>
-        <input
-          type="number"
-          inputMode="decimal"
-          placeholder="0"
-          value={entry.sellPrice ?? ''}
-          onChange={(e) => {
-            const v = e.target.value;
-            update({ sellPrice: v === '' ? undefined : Number(v) });
-          }}
-          className={`w-24 text-right tabular-nums ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-        />
-        <span className="shrink-0 text-ui-11 text-tea-text-dim">
-          {CURRENCY_SYMBOLS[entry.priceCurrency] || entry.priceCurrency}/g
-        </span>
-      </div>
-
-      {/* Share moved here from the old footer; the verdict row stays the
-          decision surface. Desktop keeps its bar button. */}
-      {onShare && (
-        <button
-          type="button"
-          onClick={onShare}
-          className="lg:hidden tap-target inline-flex items-center px-1 py-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
-        >
-          Share this entry
-        </button>
-      )}
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
       <div className="space-y-2">
@@ -1898,7 +1851,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         type="number"
                         value={buyingQty}
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-11 text-center text-tea-text text-sm font-semibold bg-transparent border-none outline-none"
+                        className="w-11 text-center text-tea-text text-base font-normal bg-transparent border-none outline-none"
                       />
                       <span className="text-tea-text-dim text-ui-11">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
@@ -1913,11 +1866,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                     </button>
                   </div>
                   {totalPrice != null ? (
-                    <span className="text-tea-text-dim text-xs">
+                    <span className="text-tea-text-dim text-ui-11">
                       = <span className="text-tea-text-sec font-medium">{totalPrice.toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : entry.priceAmount && unitBased ? (
-                    <span className="text-tea-text-dim text-xs">
+                    <span className="text-tea-text-dim text-ui-11">
                       = <span className="text-tea-text-sec font-medium">{(buyingQty * entry.priceAmount).toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : null}
@@ -1930,7 +1883,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-ui-10 tabular-nums transition-colors ${
+                        className={`py-0.5 px-2 rounded text-ui-11 tabular-nums transition-colors ${
                           buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -1943,7 +1896,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                 <button
                   type="button"
                   onClick={handleAddToLedger}
-                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-medium text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>
@@ -1957,7 +1910,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-gold/15 text-tea-gold text-sm font-medium"
+              className="flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-gold/15 text-tea-gold text-base font-medium"
             >
               <Check size={16} />
               Added to Ledger
@@ -1966,10 +1919,9 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </AnimatePresence>
       </div>
 
-      {/* Verdict row: fixed above the bottom nav so a decision (or none,
-          which saves as a plain capture) is one thumb-reach away. Buy left
-          this footer deliberately; ordering happens in Runs later. Done is
-          enabled by a photo OR a name, the promised saveable minimum. */}
+      {/* Verdict + Done: inline at the end of the card (part of the scroll),
+          not a fixed bar stacked over the app nav. A decision, or none — which
+          saves as a plain capture. Done is enabled by a photo OR a name. */}
       <CaptureVerdictRow
         tasted={!!hasTasting}
         onTasted={openTastingOverlay}

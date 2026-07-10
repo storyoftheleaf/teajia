@@ -5370,6 +5370,87 @@ const handleGenerateWisdom: Handler = async (request, env) => {
   return json(toolUse.input);
 };
 
+// ── AI Chinese Name Generation ──
+// The operator captures teas in the field and cannot type Chinese. Known teas
+// auto-fill their hanzi from the local variety map and from label scans; this
+// endpoint is the one-tap fallback for everything else, returning traditional
+// characters from the tea's English name + context. Always reviewed before it
+// is saved.
+const handleGenerateChineseName: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  if (!env.ANTHROPIC_API_KEY) {
+    return json({ error: 'no_ai_provider' }, 503);
+  }
+
+  const { name, type, originRegion, year } = (await request.json()) as {
+    name?: string;
+    type?: string;
+    originRegion?: string;
+    year?: number;
+  };
+  if (!name || !name.trim()) return json({ error: 'name required' }, 400);
+
+  const context = [
+    `Tea name (English / romanized): ${name.trim()}`,
+    type ? `Type: ${type}` : '',
+    originRegion ? `Origin: ${originRegion}` : '',
+    year ? `Year: ${year}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-5',
+      max_tokens: 256,
+      messages: [
+        {
+          role: 'user',
+          content: `Give the traditional Chinese (繁體) name a tea vendor would print on this tea's label. If the romanized name maps to a well-known tea, use its canonical characters. If uncertain, give your best transliteration rather than inventing a fanciful name.\n\n${context}`,
+        },
+      ],
+      tools: [
+        {
+          name: 'chinese_name',
+          description: "Return the tea's name in traditional Chinese characters.",
+          input_schema: {
+            type: 'object',
+            properties: {
+              chineseName: {
+                type: 'string',
+                description: 'The tea name in traditional Chinese characters. Empty string if it genuinely cannot be determined.',
+              },
+              confident: {
+                type: 'boolean',
+                description: 'True for a recognized tea with a canonical name; false for a best-effort transliteration.',
+              },
+            },
+            required: ['chineseName'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'chinese_name' },
+    }),
+  });
+
+  if (!claudeRes.ok) {
+    return json({ error: `Claude API error: ${claudeRes.status}` }, 502);
+  }
+  const claudeData = (await claudeRes.json()) as any;
+  const toolUse = claudeData.content?.find((b: any) => b.type === 'tool_use');
+  if (!toolUse) return json({ error: 'no_output' }, 500);
+  return json(toolUse.input);
+};
+
 // ── Audio Transcription (Groq Whisper) ──
 const handleTranscribe: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -18364,6 +18445,7 @@ const routes: [string, string, Handler][] = [
   // AI
   ['POST', '/api/extract-from-image', handleExtractFromImage],
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
+  ['POST', '/api/generate-chinese-name', handleGenerateChineseName],
   ['POST', '/api/transcribe', handleTranscribe],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 

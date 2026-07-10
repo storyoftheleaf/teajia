@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { ChevronDown, Minus, Plus } from 'lucide-react';
+import { Check, ChevronDown, Minus, Plus } from 'lucide-react';
 import type { Currency } from '../../admin/types';
 import { GRAM_PRESETS, TEA_FORMS, type TeaForm } from './types';
-import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { BottomSheet } from '../shared/BottomSheet';
 import { GramSlider } from './GramSlider';
 
 /**
@@ -34,15 +34,6 @@ const CURRENCY_LABELS: Record<Currency, string> = {
   HKD: 'HK$',
   AUD: 'A$',
   UNK: '?',
-};
-
-const FORM_HINTS: Record<TeaForm, string> = {
-  Loose: 'Loose leaf · the standard',
-  Cake: 'Compressed disc · puerh + heicha',
-  Brick: 'Compressed rectangle',
-  Tuo: 'Compressed bowl',
-  Ball: 'Hand-rolled balls',
-  Bag: 'Tea bag',
 };
 
 const noSpinnerStyle: React.CSSProperties = { MozAppearance: 'textfield' };
@@ -78,7 +69,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
   unit,
 }) => {
   const [formSheetOpen, setFormSheetOpen] = useState(false);
-  const inputShellClass = 'field-recessed bg-tea-surface rounded-md border border-tea-border focus-within:border-tea-gold/40';
+  // Underline shell — matches the identity fields above (CaptureCard's
+  // underlineFieldClass): bottom hairline only, no fill, warms to gold on
+  // focus. focus-within so the hairline lights up whether the currency
+  // <select> or the price <input> inside it has focus.
+  const underlineShellClass = 'bg-transparent border-0 border-b border-tea-border focus-within:border-tea-gold transition-colors';
 
   const handlePriceInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,12 +92,12 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           - count mode: [Currency + Price flex-1] [− qty + ct]
             — counter stays a compact pill on the right since there's
             no form picker to balance it. */}
-      <div className="flex items-stretch gap-2">
-        <div className={`${unit.mode === 'grams' ? 'flex-1' : 'flex-1'} min-w-0 flex items-stretch transition-colors ${inputShellClass}`}>
+      <div className="flex items-stretch gap-4">
+        <div className={`flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
           <select
             value={priceCurrency}
             onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-            className="self-stretch bg-transparent text-ui-11 text-tea-text-dim tabular-nums border-none border-r border-r-tea-border outline-none cursor-pointer appearance-none shrink-0 pl-2.5 pr-1"
+            className="self-center bg-transparent text-ui-11 text-tea-text-dim tabular-nums border-none outline-none cursor-pointer appearance-none shrink-0 pl-1 pr-1 py-2.5"
             style={{ backgroundImage: 'none' }}
             aria-label="Currency"
           >
@@ -117,16 +112,16 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
             style={noSpinnerStyle}
-            className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none font-sans text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             aria-label="Price"
           />
         </div>
 
-        {/* Unit — grams + form chip in grams mode (both flex-1, equal
+        {/* Unit — grams + form picker in grams mode (both flex-1, equal
             sizes); +/- counter pill in count mode. */}
         {unit.mode === 'grams' ? (
           <>
-            <div className={`flex-1 min-w-0 flex items-stretch transition-colors ${inputShellClass}`}>
+            <div className={`flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
               <input
                 type="number"
                 inputMode="numeric"
@@ -137,11 +132,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                   unit.onGramsChange(val === '' ? undefined : Number(val));
                 }}
                 style={noSpinnerStyle}
-                className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none font-sans text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 aria-label="Grams"
               />
               <span
-                className="self-center pr-2.5 pl-1 text-ui-11 text-tea-text-dim tabular-nums pointer-events-none select-none"
+                className="self-center pr-1 pl-1 text-ui-11 text-tea-text-dim tabular-nums pointer-events-none select-none"
                 aria-hidden
               >
                 g
@@ -152,14 +147,12 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               <button
                 type="button"
                 onClick={() => setFormSheetOpen(true)}
-                className={`flex-1 min-w-0 flex items-center justify-between gap-1 px-3 py-2.5 border transition-colors ${
-                  unit.form
-                    ? 'rounded-md bg-tea-accent-sub border-tea-gold/30 text-tea-text font-medium'
-                    : 'rounded-md bg-tea-surface border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text hover:border-tea-gold/30'
+                className={`flex-1 min-w-0 flex items-center justify-between gap-1 bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 font-sans text-base transition-colors focus:border-tea-gold focus:outline-none ${
+                  unit.form ? 'text-tea-text font-medium' : 'text-tea-text-sec'
                 }`}
                 aria-label="Tea form"
               >
-                <span className="truncate text-base font-medium">{unit.form || 'Form'}</span>
+                <span className="truncate">{unit.form || 'Form'}</span>
                 <ChevronDown size={14} className={unit.form ? 'text-tea-gold shrink-0' : 'text-tea-text-sec shrink-0'} />
               </button>
             )}
@@ -177,11 +170,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             >
               <Minus size={12} />
             </button>
-            <span className="text-tea-text text-base font-semibold tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
+            <span className="text-tea-text text-base font-medium tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
               {unit.quantity}
             </span>
             <span
-              className="self-center pr-2 pl-0.5 text-tea-text-dim text-ui-10 tabular-nums pointer-events-none select-none"
+              className="self-center pr-2 pl-0.5 text-tea-text-dim text-ui-11 tabular-nums pointer-events-none select-none"
               aria-hidden
             >
               ct
@@ -216,7 +209,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
         );
       })()}
 
-      {/* Form picker — bottom sheet with one-line hints per option. */}
+      {/* Form picker — compact 2-column grid, name only. */}
       {unit.mode === 'grams' && unit.onFormChange && (
         <BottomSheet
           open={formSheetOpen}
@@ -224,16 +217,25 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           title="Form"
           description="What shape is this tea?"
         >
-          <div className="flex flex-col gap-0.5 px-1">
-            {TEA_FORMS.map((f) => (
-              <SheetOption
-                key={f}
-                label={f}
-                hint={FORM_HINTS[f]}
-                selected={unit.form === f}
-                onSelect={() => { unit.onFormChange?.(f); setFormSheetOpen(false); }}
-              />
-            ))}
+          <div className="grid grid-cols-2 gap-2 px-1">
+            {TEA_FORMS.map((f) => {
+              const selected = unit.form === f;
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => { unit.onFormChange?.(f); setFormSheetOpen(false); }}
+                  className={`flex min-h-[52px] items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
+                    selected
+                      ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
+                      : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+                  }`}
+                >
+                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{f}</span>
+                  {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
+                </button>
+              );
+            })}
           </div>
         </BottomSheet>
       )}

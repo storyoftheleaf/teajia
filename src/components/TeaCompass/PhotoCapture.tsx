@@ -109,13 +109,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   variant = 'strip',
 }) => {
   const isLg = size === 'lg';
-  const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-14 h-14';
-  const btnCls = isLg
-    ? 'w-11 h-11 rounded-md'  // 44×44 — meets WCAG 2.5.5 floor without tap-target padding
-    : 'w-7 h-7 rounded-md';
-  const btnIcon = isLg ? 18 : 12;
-  const btnGap = isLg ? 'gap-2' : 'gap-1';
-  const stripGap = isLg ? 'gap-2' : 'gap-1.5';
+  // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
+  // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
+  const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-11 h-11';
+  const btnCls = isLg ? 'w-11 h-11 rounded-md' : 'w-11 h-11 rounded-md';
+  const btnIcon = isLg ? 18 : 16;
+  const btnGap = 'gap-1.5';
+  const stripGap = 'gap-2';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
@@ -681,14 +681,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // scanner unavailable (no provider), scanner unreachable (provider error),
   // and unreadable label (with Retry). An empty read stays silent.
   const scanErrorLine = scanError ? (
-    <div className="flex items-center gap-2 pt-1.5 text-ui-11 text-tea-text-dim" role="status">
-      <span>{SCAN_ERROR_COPY[scanError]}</span>
+    <div className="flex items-center gap-2 pt-1.5" role="status">
+      <span className="text-ui-11 text-tea-text-dim italic">{SCAN_ERROR_COPY[scanError]}</span>
       {scanError === 'extract_failed' && lastScanFile && (
         <button
           type="button"
           onClick={handleRetryScan}
           disabled={retryingScan}
-          className="tap-target text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
+          className="tap-target text-ui-11 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
         >
           {retryingScan ? 'Retrying' : 'Retry'}
         </button>
@@ -851,9 +851,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   );
 
   // ── Inline row ─────────────────────────────────────────────────────────────
+  // Wrapped in a recessed tray so the thumbnails + scan/camera actions read as
+  // one contained unit instead of loose buttons floating on the page.
   const stripRow = (
     <>
-      <div className={`flex items-center ${stripGap} ${isLg ? 'flex-1 min-w-0 flex-wrap' : 'shrink-0'}`}>
+      <div className={`field-recessed bg-tea-elevated rounded-xl p-1.5 inline-flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : 'w-fit'}`}>
         {validPhotos.map((url, i) => (
           <button
             key={url}
@@ -900,29 +902,17 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           </div>
         ))}
 
-        {validPhotos.length === 0 && pendingPreviews.length === 0 && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Add photo"
-            className="w-[60px] h-[60px] rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/30 flex flex-col items-center justify-center gap-0.5 shrink-0 transition-colors"
-          >
-            <Camera size={16} strokeWidth={1.5} />
-            <span className="text-ui-9 uppercase tracking-[1.2px]">Photo</span>
-          </button>
-        )}
 
-        <div className={`flex ${isLg ? 'flex-row ml-auto' : 'flex-col'} ${btnGap} shrink-0`}>
-          {/* Sparkles = AI label scanner. Carries a subtle gold accent at
-              rest so it reads as the "magic" primary action, distinct
-              from the plain Camera button which is just a gallery picker. */}
+        <div className={`flex flex-row ${isLg ? 'ml-auto' : ''} ${btnGap} shrink-0`}>
+          {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity) —
+              gold only lights up on the just-scanned success tick. */}
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center border shrink-0 transition-all ${
+            className={`${btnCls} flex items-center justify-center border shrink-0 transition-all ${
               justExtracted
                 ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
-                : 'border-tea-gold/30 bg-tea-gold/[0.06] text-tea-gold hover:bg-tea-gold/[0.12] hover:border-tea-gold/50'
+                : 'bg-tea-surface border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
             }`}
             aria-label="Scan label"
             title="Scan label"
@@ -935,7 +925,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 shrink-0 transition-colors`}
+            className={`${btnCls} flex items-center justify-center bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 shrink-0 transition-colors`}
             aria-label="Add photo"
             title="Add photo"
           >

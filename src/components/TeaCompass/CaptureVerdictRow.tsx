@@ -1,16 +1,16 @@
 import React from 'react';
 import { BookmarkCheck, BookmarkPlus, CircleSlash, Droplets, ShoppingBag } from 'lucide-react';
 
-/** Fixed verdict row for the mobile capture card. Sits just above the
- *  bottom nav (bottom-nav utility) so a decision is always one thumb-reach
- *  away: Tasted / Want / Pass / Bag it, plus the primary Done.
+/** Inline verdict block for the mobile capture card. Sits at the END of the
+ *  card content (part of the scroll), NOT as a fixed bar stacked over the app
+ *  nav — the nav is the only bar at the bottom of the screen.
  *
- *  Every action maps to EXISTING semantics:
+ *  A quiet segmented row of four quick marks, then the commit:
  *  Tasted opens the tasting overlay, Want/Pass toggle entry.status
- *  ('want' / 'pass', the same fields the Library filters read), Bag it is
- *  the physical-sample flag path (sample cart + isSample), and Done is the
- *  same commit the old footer ran. Buy was removed from capture on purpose;
- *  ordering happens in Runs later.
+ *  ('want' / 'pass', the same fields the Library filters read), Bag it is the
+ *  physical-sample flag path (sample cart + isSample), and Done runs the same
+ *  commit as before. Buy was removed from capture on purpose; ordering happens
+ *  in Runs later.
  */
 interface CaptureVerdictRowProps {
   tasted: boolean;
@@ -35,7 +35,7 @@ const VerdictButton: React.FC<{
     type="button"
     onClick={onClick}
     aria-pressed={active}
-    className={`flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 text-ui-10 font-medium transition-colors ${
+    className={`flex min-h-[46px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md font-sans text-ui-11 font-medium transition-colors ${
       active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
     }`}
   >
@@ -56,8 +56,9 @@ export const CaptureVerdictRow: React.FC<CaptureVerdictRowProps> = ({
   doneEnabled,
   onDone,
 }) => (
-  <div className="lg:hidden fixed left-0 right-0 z-20 bottom-nav border-t border-tea-border bg-tea-bg">
-    <div className="mx-auto flex max-w-3xl items-stretch px-2 py-1">
+  <div className="lg:hidden pt-1 space-y-3">
+    {/* Four quiet marks on the bare page — a decision, not a slab. */}
+    <div className="flex items-stretch gap-1">
       <VerdictButton
         label="Tasted"
         icon={<Droplets size={15} strokeWidth={1.5} />}
@@ -82,17 +83,19 @@ export const CaptureVerdictRow: React.FC<CaptureVerdictRowProps> = ({
         active={bagged}
         onClick={onBagIt}
       />
-      <div className="mx-1 my-2 w-px self-stretch bg-tea-border" aria-hidden />
-      <button
-        type="button"
-        onClick={onDone}
-        disabled={!doneEnabled}
-        className="flex min-h-[52px] flex-[1.2] items-center justify-center rounded-md text-ui-14 font-display font-semibold tracking-[0.08em] text-tea-gold transition-opacity disabled:opacity-30"
-        aria-label="Done, save this entry"
-      >
-        Done
-      </button>
     </div>
+
+    {/* Commit — the one primary action, and now the ONLY warm fill on the
+        screen since every other gold moment above has been quieted. */}
+    <button
+      type="button"
+      onClick={onDone}
+      disabled={!doneEnabled}
+      className="w-full py-2.5 rounded-md bg-tea-gold text-tea-bg font-sans font-medium tracking-[0.06em] text-base shadow-lg shadow-tea-gold/10 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed"
+      aria-label="Done, save this entry"
+    >
+      Done
+    </button>
   </div>
 );
 

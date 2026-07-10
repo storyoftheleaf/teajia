@@ -25,9 +25,6 @@ interface CaptureContextChipsProps {
   onToggleBatchMode?: () => void;
 }
 
-const chipBase =
-  'tap-target inline-flex min-w-0 items-center gap-1.5 rounded-full bg-tea-accent-sub px-3 py-1.5 text-ui-12 transition-colors hover:text-tea-text';
-
 export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   category,
   vendorName,
@@ -87,22 +84,24 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         onClick={() => setRunSheetOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={runSheetOpen}
-        className={`${chipBase} shrink-0 ${runActive ? 'text-tea-text' : 'text-tea-text-sec'}`}
+        className={`tap-target pill-quiet shrink-0 ${runSheetOpen ? 'pill-quiet-on' : ''}`}
       >
         <span className="truncate">{runLabel}</span>
-        <ChevronDown size={12} className="shrink-0 text-tea-text-sec" />
+        <ChevronDown size={12} className="shrink-0 text-tea-text-dim" />
       </button>
+
+      <span className="shrink-0 text-tea-text-dim" aria-hidden>·</span>
 
       <button
         type="button"
         onClick={onToggleVendor}
         aria-expanded={vendorOpen}
-        className={`${chipBase} ${vendorName ? 'text-tea-text' : 'text-tea-text-sec'}`}
+        className={`tap-target pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
       >
         <span className="truncate">{vendorName || 'Vendor'}</span>
         <ChevronDown
           size={12}
-          className={`shrink-0 text-tea-text-sec transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
+          className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
