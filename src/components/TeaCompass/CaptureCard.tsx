@@ -28,6 +28,8 @@ import type { ExtractedTeaData } from './PhotoCapture';
 import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
+import { CaptureContextChips } from './CaptureContextChips';
+import { CaptureVerdictRow } from './CaptureVerdictRow';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -63,6 +65,9 @@ interface CaptureCardProps {
    *  CTA so the user has share + commit colocated in the action area
    *  (rather than share floating up in the page header). */
   onShare?: () => void;
+  /** Rapid batch-entry mode state, surfaced inside the Run chip's sheet */
+  batchMode?: boolean;
+  onToggleBatchMode?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
@@ -208,7 +213,7 @@ const EntryMark: React.FC<{
   </button>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -247,6 +252,25 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
+
+  // Vendor picker visibility. The chip in the context row is the trigger;
+  // the VendorStrip itself stays collapsed until asked for (1b re-houses it
+  // as a proper bottom sheet).
+  const [vendorOpen, setVendorOpen] = useState(false);
+
+  // "More detail" expander: notes, tasting profile, sell price and the other
+  // rarely-used fields. Collapsed by default; sticky for the session so one
+  // open keeps it open across a burst of captures.
+  const [moreOpen, setMoreOpen] = useState(() => {
+    try { return sessionStorage.getItem('teajia-capture-more-open') === '1'; } catch { return false; }
+  });
+  const toggleMore = () => {
+    setMoreOpen((v) => {
+      const next = !v;
+      try { sessionStorage.setItem('teajia-capture-more-open', next ? '1' : '0'); } catch { /* private mode */ }
+      return next;
+    });
+  };
 
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
@@ -725,9 +749,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // the end of the card. Both reset to a flat 2rem on lg+, where there is no
   // bottom nav. A slightly larger top buffer mirrors that breath up top so the
   // card opens and closes with the same softened rhythm.
-  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg [padding-bottom:calc(2rem+80px+30px+env(safe-area-inset-bottom,0px))] lg:[padding-bottom:2rem]`;
+  const mobileShellClass = `${shellClass} pt-3 pb-nav-verdict`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
+  // Tea name reads in the display serif, a step larger than the other
+  // fields (17px keeps the iOS 16px anti-zoom floor).
+  const nameFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 font-display text-ui-17 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
     `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
@@ -861,6 +888,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const handleVendorSelect = (vendorId: string | undefined, vendorName: string) => {
     update({ vendorName, vendorId });
     setLastVendor(vendorId || null, vendorName);
+    // Picked a vendor: fold the strip back down so the chip carries it.
+    setVendorOpen(false);
   };
 
   const handleVendorClear = () => {
@@ -1012,45 +1041,42 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     return (
       <div className={mobileShellClass}>
 
-        {/* "Source" header — vendor + photos read as a single header card
-            with a faint gold inner glow and a subtle hairline between the
-            vendor row and the photo row. Treats the two rows as one
-            cohesive header rather than two stacked widgets. */}
+        {/* Context chips row + photo hero: same header treatment as the tea
+            variant so both forms open with one rhythm. The vendor picker
+            collapses behind the Vendor chip. */}
         <div className={sourceShellClass}>
-          {/* Photo counter floats top-right of the card when photos exist;
-              otherwise the card opens directly with the vendor strip. The
-              SOURCE label that used to sit on the left was removed —
-              the bordered card with its faint gold inner glow is enough
-              visual grouping on its own. */}
-          {entry.photos.length > 0 && (
-            <div className="flex items-center justify-end mb-1">
-              <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
-                {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
-              </span>
+          <CaptureContextChips
+            category={entry.category}
+            vendorName={entry.vendorName}
+            vendorOpen={vendorOpen}
+            onToggleVendor={() => setVendorOpen((v) => !v)}
+            batchMode={batchMode}
+            onToggleBatchMode={onToggleBatchMode}
+          />
+
+          {vendorOpen && (
+            <div className="mt-2.5">
+              <VendorStrip
+                vendorName={entry.vendorName}
+                vendorId={entry.vendorId}
+                vendorDetails={entry.vendorDetails}
+                onVendorSelect={handleVendorSelect}
+                onClear={handleVendorClear}
+                onDetailsChange={handleVendorDetailsChange}
+                linkedCustomerId={entry.linkedCustomerId}
+                onLinkedCustomerChange={handleLinkedCustomerChange}
+              />
             </div>
           )}
 
-          <VendorStrip
-            vendorName={entry.vendorName}
-            vendorId={entry.vendorId}
-            vendorDetails={entry.vendorDetails}
-            onVendorSelect={handleVendorSelect}
-            onClear={handleVendorClear}
-            onDetailsChange={handleVendorDetailsChange}
-            linkedCustomerId={entry.linkedCustomerId}
-            onLinkedCustomerChange={handleLinkedCustomerChange}
-          />
-
-          <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
-
-          <div className="flex items-center min-h-[44px]">
+          <div className="mt-3">
             <PhotoCapture
               onExtracted={handleExtracted}
               onPhotoTaken={handlePhotoTaken}
               onPhotoReplaced={handlePhotoReplaced}
               photos={entry.photos}
               onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-              size="lg"
+              variant="hero"
             />
           </div>
         </div>
@@ -1443,6 +1469,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Status helpers ────────────────────────
   const isWant = entry.status === 'want';
+  const isPass = entry.status === 'pass';
 const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
@@ -1497,53 +1524,53 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </button>
       )}
 
-      {/* SOURCE header — same card the teaware variant uses, so both forms
-          open with an identical vendor + photo cluster. Photo strip uses
-          the lg size so thumbnails render at full visibility, and the
-          right-side counter mirrors what Teaware shows. */}
+      {/* Context chips row: Run + Vendor. Both stay sticky across a burst of
+          captures (run via the session id, vendor via lastVendor seeding), so
+          reopening the card mid-visit costs nothing. The old always-open
+          "Select vendor" box collapses behind the Vendor chip. */}
       <div className={sourceShellClass}>
-          {/* Photo counter floats top-right of the card when photos exist;
-              otherwise the card opens directly with the vendor strip. The
-              SOURCE label that used to sit on the left was removed —
-              the bordered card with its faint gold inner glow is enough
-              visual grouping on its own. */}
-          {entry.photos.length > 0 && (
-            <div className="flex items-center justify-end mb-1">
-              <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
-                {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
-              </span>
-            </div>
-          )}
-
-        <VendorStrip
+        <CaptureContextChips
+          category={entry.category}
           vendorName={entry.vendorName}
-          vendorId={entry.vendorId}
-          vendorDetails={entry.vendorDetails}
-          onVendorSelect={handleVendorSelect}
-          onClear={handleVendorClear}
-          onDetailsChange={handleVendorDetailsChange}
-          linkedCustomerId={entry.linkedCustomerId}
-          onLinkedCustomerChange={handleLinkedCustomerChange}
+          vendorOpen={vendorOpen}
+          onToggleVendor={() => setVendorOpen((v) => !v)}
+          batchMode={batchMode}
+          onToggleBatchMode={onToggleBatchMode}
         />
 
-        <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
+        {vendorOpen && (
+          <div className="mt-2.5">
+            <VendorStrip
+              vendorName={entry.vendorName}
+              vendorId={entry.vendorId}
+              vendorDetails={entry.vendorDetails}
+              onVendorSelect={handleVendorSelect}
+              onClear={handleVendorClear}
+              onDetailsChange={handleVendorDetailsChange}
+              linkedCustomerId={entry.linkedCustomerId}
+              onLinkedCustomerChange={handleLinkedCustomerChange}
+            />
+          </div>
+        )}
 
-        <div className="flex items-center min-h-[44px]">
+        {/* Photo hero: the camera tile is the dominant element. Capture,
+            scan and camera-roll actions all live on the tile itself. */}
+        <div className="mt-3">
           <PhotoCapture
             onExtracted={handleExtracted}
             onPhotoTaken={handlePhotoTaken}
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-            size="lg"
+            variant="hero"
           />
         </div>
-        {/* Nudge a second angle once the first shot lands — a bag label plus
+        {/* Nudge a second angle once the first shot lands: a bag label plus
             the dry leaves (or brewed cup) makes a photo-only capture far more
             identifiable later. */}
         {entry.photos.length === 1 && (
           <p className="mt-1.5 text-ui-11 text-tea-text-dim">
-            Add a second shot — the dry leaves or the brewed cup.
+            Add a second shot, the dry leaves or the brewed cup.
           </p>
         )}
       </div>
@@ -1557,7 +1584,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder={entry.type ? `${entry.type} name (e.g., Tieguanyin, Bingdao…)` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
-            className={`w-full min-w-0 ${fieldClass}`}
+            className={`w-full min-w-0 ${nameFieldClass}`}
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
             hintSuggestions={hintSuggestions}
@@ -1571,6 +1598,16 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             <ChevronDown size={14} />
           </button>
         </div>
+
+        {/* Chinese name: one quiet borderless input directly under the name,
+            so the bilingual identity reads as a pair rather than a form row. */}
+        <input
+          type="text"
+          value={entry.chineseName || ''}
+          onChange={(e) => update({ chineseName: e.target.value || undefined })}
+          placeholder="中文名 · Chinese name"
+          className="w-full bg-transparent px-1 text-base text-tea-text placeholder:text-tea-text-dim focus:outline-none"
+        />
 
         {/* Photo-first reassurance — when there's a photo or a source but no
             name yet, the entry is already complete enough to save. Signals the
@@ -1714,6 +1751,21 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       </AnimatePresence>
 
 
+      {/* ─── More detail: one quiet expander for everything that is not part
+          of the in-shop burst (notes, tasting profile, sell price, storage).
+          Collapsed by default; open state persists for the session. ─── */}
+      <button
+        type="button"
+        onClick={toggleMore}
+        aria-expanded={moreOpen}
+        className="tap-target flex items-center gap-1.5 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
+      >
+        <ChevronDown size={13} className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+        {moreOpen ? 'Less detail' : 'More detail'}
+      </button>
+
+      {moreOpen && (
+      <>
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       {hasTasting && entry.tasting && (
         <>
@@ -1799,6 +1851,39 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             ))}
           </div>
         </>
+      )}
+
+      {/* Sell price: intended retail per gram; flows through to inventory. */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-ui-12 text-tea-text-sec">Sell price</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          placeholder="0"
+          value={entry.sellPrice ?? ''}
+          onChange={(e) => {
+            const v = e.target.value;
+            update({ sellPrice: v === '' ? undefined : Number(v) });
+          }}
+          className={`w-24 text-right tabular-nums ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+        />
+        <span className="shrink-0 text-ui-11 text-tea-text-dim">
+          {CURRENCY_SYMBOLS[entry.priceCurrency] || entry.priceCurrency}/g
+        </span>
+      </div>
+
+      {/* Share moved here from the old footer; the verdict row stays the
+          decision surface. Desktop keeps its bar button. */}
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          className="lg:hidden tap-target inline-flex items-center px-1 py-1 text-ui-12 text-tea-text-sec transition-colors hover:text-tea-text"
+        >
+          Share this entry
+        </button>
+      )}
+      </>
       )}
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
@@ -1908,91 +1993,39 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </AnimatePresence>
       </div>
 
-      {/* Mobile entry marks — primary action row, sized to read as a
-          first-class control surface (not a status chip strip). */}
-      <div className="lg:hidden grid grid-cols-2 gap-2">
-        <EntryMark
-          label={hasTasting ? 'Tasted' : 'Taste'}
-          hint={hasTasting ? 'Tasting recorded' : 'Record a tasting'}
-          active={!!hasTasting}
-          onClick={openTastingOverlay}
-        />
-        <EntryMark
-          label={isWant ? 'Wanted' : 'Want'}
-          hint={isWant ? 'On your wishlist' : 'Save to your wishlist'}
-          active={isWant}
-          onClick={() => update({ status: isWant ? 'noted' : 'want' })}
-        />
-        <EntryMark
-          label="Buy"
-          hint="Add to your inventory"
-          active={showBuyPicker}
-          onClick={() => {
-            const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
-            if (!showBuyPicker) setBuyingQty(defaultQty);
-            setShowBuyPicker((v) => !v);
-          }}
-        />
-        <EntryMark
-          label={sampleCartHas ? 'Listed' : 'Sample'}
-          hint={sampleCartHas ? 'In your sample queue' : 'Queue as a sample'}
-          active={sampleCartHas}
-          onClick={() => {
-            if (sampleCartHas) {
-              removeSampleCartItem(entryId);
-              update({ isSample: false });
-            } else {
-              addSampleCartItem({
-                id: entryId,
-                name: entry.name,
-                chineseName: entry.chineseName,
-                type: entry.type,
-                vendorName: entry.vendorName,
-                compassEntryId: entryId,
-              });
-              // Mark the entry itself so the library's Queue (which keys on
-              // isSample) tracks it — the cart alone is invisible to Browse.
-              update({ isSample: true });
-            }
-          }}
-        />
-      </div>
-
-      {/* Mobile action footer — Share (small icon button) on the left,
-          Done (gold-gradient primary) flex-1 on the right. Share lives
-          here so the user has commit + share colocated in the action
-          area, rather than share floating up in the page header. */}
-      {(() => {
-        // Done is enabled whenever the entry holds anything worth keeping — a
-        // name, a photo, notes (incl. thread notes), or tasting data — matching
-        // exactly what commitEntry() will persist. Requiring a name blocked
-        // saving an entry that already had notes/flavor, which read as broken.
-        const ready = entryHasContent(entry);
-        return (
-          <div className="lg:hidden flex items-center gap-2 mt-1">
-            {onShare && (
-              <button
-                type="button"
-                onClick={onShare}
-                className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-                aria-label="Share this entry"
-                title="Share this entry"
-              >
-                Share
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleCommit}
-              disabled={!ready}
-              className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Done, commit this entry"
-            >
-              Done
-            </button>
-          </div>
-        );
-      })()}
+      {/* Verdict row: fixed above the bottom nav so a decision (or none,
+          which saves as a plain capture) is one thumb-reach away. Buy left
+          this footer deliberately; ordering happens in Runs later. Done is
+          enabled by a photo OR a name, the promised saveable minimum. */}
+      <CaptureVerdictRow
+        tasted={!!hasTasting}
+        onTasted={openTastingOverlay}
+        want={isWant}
+        onWant={() => update({ status: isWant ? 'noted' : 'want' })}
+        pass={isPass}
+        onPass={() => update({ status: isPass ? 'noted' : 'pass' })}
+        bagged={sampleCartHas}
+        onBagIt={() => {
+          if (sampleCartHas) {
+            removeSampleCartItem(entryId);
+            update({ isSample: false });
+          } else {
+            addSampleCartItem({
+              id: entryId,
+              name: entry.name,
+              chineseName: entry.chineseName,
+              type: entry.type,
+              vendorName: entry.vendorName,
+              compassEntryId: entryId,
+            });
+            // Mark the entry itself so the library's Queue (which keys on
+            // isSample) tracks it; the cart alone is invisible to Browse.
+            update({ isSample: true });
+          }
+        }}
+        doneEnabled={entry.photos.length > 0 || hasName}
+        onDone={handleCommit}
+      />
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

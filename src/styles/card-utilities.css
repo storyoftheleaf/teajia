@@ -2429,6 +2429,11 @@ input[type="number"]::-webkit-outer-spin-button {
 .pb-nav-gap-lg { padding-bottom: calc(2rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap-lg { padding-bottom: 2rem; } }
 
+/* Padding clearance — for pages that ALSO show the fixed capture verdict
+   row (30px of row height on top of the bar's 80px). Same lg reset. */
+.pb-nav-verdict { padding-bottom: calc(2rem + 80px + 30px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 1024px) { .pb-nav-verdict { padding-bottom: 2rem; } }
+
 /* bottom: offset — positions fixed elements clear above the bar */
 .bottom-nav    { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .bottom-nav { bottom: 0; } }

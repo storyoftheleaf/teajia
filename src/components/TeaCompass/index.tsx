@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, CircleSlash, Droplets, FlaskConical, Loader2, Mic, Plus, Search, Share2, ShoppingBag, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -266,6 +266,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     (v: unknown) => Array.isArray(v) ? v.length > 0 : v != null
   ));
   const isWantEntry = activeEntry?.status === 'want';
+  const isPassEntry = activeEntry?.status === 'pass';
+  // Done needs a photo OR a name, the promised saveable minimum.
+  const captureDoneReady =
+    !!activeEntry && ((activeEntry.name || '').trim().length > 0 || activeEntry.photos.length > 0);
 
   const handleNewCapture = useCallback((category?: CompassCategory) => {
     startNewCapture(category || activeCategory);
@@ -365,6 +369,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
       );
     }
+
+    // Burst continuity: the form resets but run + vendor chips stay sticky,
+    // and the scroll returns to the photo hero for the next capture.
+    scrollContainerRef.current?.scrollTo({ top: 0 });
   }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary, commitAndPromote]);
 
   const handleDoneClick = useCallback(() => {
@@ -639,10 +647,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         {mode === 'sourcing' && (
           <div className="flex items-center min-h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture type">
             <div className="flex flex-wrap items-center gap-4">
+              {/* SAMPLES sub-tab removed: its job is the "Bag it" verdict on
+                  the capture card. The samples panel itself still renders for
+                  deep links (?tab=samples) until 1c lands. */}
               {([
                 { id: 'tea', label: 'Tea' },
                 { id: 'teaware', label: 'Teaware' },
-                { id: 'samples', label: 'Samples' },
               ] as const).map((opt) => {
                 const active = captureOption === opt.id;
                 return (
@@ -659,9 +669,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     }`}
                   >
                     {opt.label}
-                    {opt.id === 'samples' && sampleCartCount > 0 && (
-                      <span className="text-tea-text-dim ml-1">({sampleCartCount})</span>
-                    )}
                   </button>
                 );
               })}
@@ -745,73 +752,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     <SampleCartPanel />
                   ) : (
                     <>
-                      {/* Session draft strip — + / Batch / Untitled chips.
-                          Lives inside the scroll region (NOT a sticky bar) so
-                          it scrolls away with the page, and WRAPS to new lines
-                          rather than scrolling horizontally — horizontal scroll
-                          is never used in this build. */}
-                      <div className="flex flex-wrap items-center gap-1 mb-3">
-                        <button
-                          type="button"
-                          onClick={() => handleNewCapture()}
-                          aria-label="Start a new entry"
-                          title="Start a new entry"
-                          className="tap-target shrink-0 inline-flex h-8 w-9 items-center justify-center rounded-md text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-                        >
-                          <Plus size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBatchMode((v) => !v)}
-                          aria-pressed={batchMode}
-                          aria-label={batchMode ? 'Exit batch entry mode' : 'Enter batch entry mode'}
-                          title={batchMode ? 'Exit batch mode' : 'Batch — rapid-fire capture'}
-                          className={`tap-target whitespace-nowrap inline-flex items-center px-2.5 py-1 rounded-md text-ui-12 transition-colors shrink-0 ${
-                            batchMode
-                              ? 'bg-tea-accent-sub text-tea-text'
-                              : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-                          }`}
-                        >
-                          Batch
-                        </button>
-
-                        {sessionEntries.length > 0 && (
-                          <div className="w-px h-5 bg-tea-border shrink-0 mx-0.5" aria-hidden />
-                        )}
-
-                        {sessionEntries.map((entry) => {
-                          const isActive = entry.id === activeEntryId;
-                          return (
-                            <button
-                              key={entry.id}
-                              type="button"
-                              onClick={() => handleSelectEntry(entry.id)}
-                              className={`group relative flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 rounded-md text-ui-12 transition-colors shrink-0 ${
-                                isActive
-                                  ? 'bg-tea-accent-sub text-tea-text'
-                                  : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-                              }`}
-                            >
-                              {isActive && <Check size={11} strokeWidth={3} className="text-tea-gold" />}
-                              {entry.name || 'Untitled'}
-                              <span
-                                role="button"
-                                aria-label="Remove"
-                                onClick={(e) => { e.stopPropagation(); handleDiscardSessionEntry(entry.id); }}
-                                className={`transition-opacity ${
-                                  isActive ? 'opacity-50 hover:opacity-100' : 'opacity-0 group-hover:opacity-60 hover:!opacity-100'
-                                }`}
-                              >
-                                <X size={9} />
-                              </span>
-                            </button>
-                          );
-                        })}
-
-                        <div className="ml-auto pl-2 self-center shrink-0">
-                          <SyncIndicator />
-                        </div>
-                      </div>
+                      {/* The old session strip (+ / Batch / Untitled chips)
+                          folded into the Run chip at the top of the capture
+                          card; the SyncIndicator moved there with it. */}
 
                       {/* Batch mode row — rapid-fire entry for vendor tables */}
                       {batchMode && (
@@ -849,6 +792,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                         actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                        batchMode={batchMode}
+                        onToggleBatchMode={() => setBatchMode((v) => !v)}
                       />
                     </>
                   )}
@@ -1166,13 +1111,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     transition={{ duration: 0.2 }}
                     className="flex flex-col gap-3"
                   >
-                    {/* 3-way toggle: Tea / Teaware / Samples */}
+                    {/* 2-way toggle: Tea / Teaware. Samples removed; its job
+                        is the "Bag it" verdict on the capture card. */}
                     <div className="flex gap-0 rounded-md bg-tea-surface/30 p-0.5 relative">
                       <motion.div
                         className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface"
                         animate={{
-                          left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                          right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                          left: captureOption === 'teaware' ? '50%' : '2px',
+                          right: captureOption === 'teaware' ? '2px' : '50%',
                         }}
                         transition={{ duration: 0.1, ease: 'easeOut' }}
                       />
@@ -1183,10 +1129,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       <button type="button" onClick={() => handleCaptureOption('teaware')}
                         className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                         Teaware
-                      </button>
-                      <button type="button" onClick={() => handleCaptureOption('samples')}
-                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                        Samples
                       </button>
                     </div>
 
@@ -1522,6 +1464,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                           actionRef={captureCardActionsRef}
                           onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                          batchMode={batchMode}
+                          onToggleBatchMode={() => setBatchMode((v) => !v)}
                         />
                       </>
                     ) : (
@@ -1601,7 +1545,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
 
                 <div className="flex items-stretch bg-tea-surface">
-                  {/* Taste / Want / Buy */}
+                  {/* Verdicts: Tasted / Want / Pass / Bag it. Buy left this
+                      bar deliberately (ordering happens in Runs later); the
+                      Batch toggle lives in the Run chip; the Mic lives in
+                      the header and in notes. */}
                   {showCaptureActionBar && (
                     <>
                       <button
@@ -1612,7 +1559,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         }`}
                       >
                         <Droplets size={14} strokeWidth={1.5} />
-                        {hasTasting ? 'Re-Taste' : 'Taste'}
+                        Tasted
                       </button>
                       <button
                         type="button"
@@ -1626,11 +1573,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       </button>
                       <button
                         type="button"
-                        onClick={() => captureCardActionsRef.current?.toggleBuy()}
-                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                        onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isPassEntry ? 'noted' : 'pass' })}
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
+                          isPassEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
+                        }`}
                       >
-                        <ShoppingCart size={14} />
-                        Buy
+                        <CircleSlash size={14} strokeWidth={1.5} />
+                        Pass
                       </button>
                       <button
                         type="button"
@@ -1648,8 +1597,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               vendorName: activeEntry.vendorName,
                               compassEntryId: activeEntryId,
                             });
-                            // Mark the entry too — the library Queue keys on
-                            // isSample; the cart alone is invisible to Browse.
+                            // Mark the entry too; the library Queue keys on
+                            // isSample and the cart alone is invisible to Browse.
                             updateEntry(activeEntryId, { isSample: true });
                           }
                         }}
@@ -1657,58 +1606,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
-                        <FlaskConical size={14} strokeWidth={1.5} />
-                        {captureEntryInCart ? 'Listed' : 'Sample'}
+                        <ShoppingBag size={14} strokeWidth={1.5} />
+                        {captureEntryInCart ? 'Bagged' : 'Bag it'}
                       </button>
                       <div className="w-px self-stretch my-1.5 bg-tea-border" />
                     </>
                   )}
-
-                  {/* Mic */}
-                  {isPlatformPrivileged && (
-                    <motion.button
-                      type="button"
-                      onClick={handleVoicePress}
-                      disabled={voiceState === 'transcribing'}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                        voiceState === 'recording' ? 'text-tea-gold'
-                        : voiceState === 'transcribing' ? 'text-tea-text-dim cursor-wait'
-                        : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                      aria-label={voiceState === 'recording' ? 'Stop recording' : 'Record note'}
-                    >
-                      {voiceState === 'recording' && (
-                        <motion.span
-                          className="absolute inset-0"
-                          animate={{ opacity: [0.06, 0.12, 0.06] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                          style={{ background: 'var(--tea-gold)' }}
-                        />
-                      )}
-                      <span className="relative flex flex-col items-center gap-0.5">
-                        {voiceState === 'recording' ? <Square size={14} fill="currentColor" />
-                        : voiceState === 'transcribing' ? (
-                          <motion.span animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="block">
-                            <Loader2 size={14} />
-                          </motion.span>
-                        ) : <Mic size={14} />}
-                        Mic
-                      </span>
-                    </motion.button>
-                  )}
-
-                  {/* Batch */}
-                  <button
-                    type="button"
-                    onClick={() => setBatchMode((v) => !v)}
-                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                      batchMode ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                    }`}
-                    aria-label="Batch entry"
-                  >
-                    <Layers size={14} strokeWidth={1.5} />
-                    Batch
-                  </button>
 
                   {/* Share */}
                   {hasToken() && activeEntryId && (
@@ -1729,7 +1632,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={handleDoneClick}
-                    disabled={!activeEntryId || captureOption === 'samples' || promoting}
+                    disabled={!activeEntryId || captureOption === 'samples' || promoting || !captureDoneReady}
                     data-testid="compass-done-desktop"
                     className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                     style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
