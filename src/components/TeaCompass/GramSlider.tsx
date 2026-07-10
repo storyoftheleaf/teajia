@@ -1,20 +1,16 @@
 import React, { useCallback, useRef, useState } from 'react';
 
 /**
- * GramSlider: a stepped slider indexed into a form's gram presets
- * (e.g. Loose: [50, 75, 100, 150, 300, 600]). The committed VALUE always
- * lands on a preset (positions are non-linear — Cake jumps 100 → 357 → 400),
- * but the thumb moves with a *soft snap*: while dragging it follows the finger
- * continuously, and on release it eases to the nearest stop rather than
- * jumping there instantly.
+ * GramSlider: a CONTINUOUS grams slider. The value can be any amount between
+ * the smallest and largest preset — you slide freely and can rest between the
+ * marked amounts. The presets are magnetic *guides*: drag near one and it
+ * gently snaps (soft snap); drag away and you keep the in-between value
+ * (rounded to 5g). This is the difference the operator asked for — a hard snap
+ * would only ever let you land on the presets.
  *
- * Fully controlled: derives the settled thumb position from `value` + `presets`
- * on every render, so it reacts when the caller resets grams on a form change
- * (see CaptureCard.handleFormSelect).
- *
- * When `value` doesn't match any preset (typed manually in the paired number
- * input), the thumb rests at the nearest stop, muted, and no stop is
- * highlighted. The slider only fires onChange on explicit interaction.
+ * Fully controlled off `value`. The paired number input shows the exact grams,
+ * so the slider itself carries only small preset guide labels, placed BELOW the
+ * bar so the handle never covers a number.
  */
 
 export interface GramSliderProps {
@@ -24,138 +20,150 @@ export interface GramSliderProps {
   className?: string;
 }
 
-function nearestPresetIndex(value: number | undefined, presets: number[]): number {
-  if (value == null || presets.length === 0) return 0;
-  let best = 0;
-  let bestDiff = Infinity;
-  for (let i = 0; i < presets.length; i++) {
-    const diff = Math.abs(presets[i] - value);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      best = i;
-    }
-  }
-  return best;
-}
+const FREE_STEP = 5; // in-between values round to the nearest 5g
 
 export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange, className = '' }) => {
   const trackRef = useRef<HTMLDivElement>(null);
-  // Last committed index during a drag, so onChange only fires when the pointer
-  // actually crosses into a new stop (not on every sub-pixel move).
-  const dragIndexRef = useRef<number | null>(null);
-  // Raw 0..1 pointer position while dragging. null = not dragging, so the thumb
-  // sits at the settled stop and the release transition eases it there.
-  const [dragFraction, setDragFraction] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   if (presets.length === 0) return null;
 
-  const lastIndex = presets.length - 1;
-  const exactIndex = value != null ? presets.indexOf(value) : -1;
-  const isExact = exactIndex !== -1;
-  const activeIndex = isExact ? exactIndex : nearestPresetIndex(value, presets);
-  const settledFraction = lastIndex > 0 ? activeIndex / lastIndex : 0;
+  const min = presets[0];
+  const max = presets[presets.length - 1];
+  const range = Math.max(1, max - min);
 
-  const isDragging = dragFraction != null;
-  const posFraction = isDragging ? dragFraction : settledFraction;
-  const pct = posFraction * 100;
+  const current = value != null ? Math.min(max, Math.max(min, value)) : min;
+  const fraction = (current - min) / range;
+  const isPreset = value != null && presets.includes(value);
+  const isSet = value != null;
 
-  const rawFractionFromClientX = useCallback((clientX: number): number => {
-    const track = trackRef.current;
-    if (!track) return 0;
-    const rect = track.getBoundingClientRect();
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-  }, []);
-
-  const commitFromFraction = useCallback(
-    (frac: number) => {
-      if (lastIndex <= 0) return;
-      const clamped = Math.min(lastIndex, Math.max(0, Math.round(frac * lastIndex)));
-      if (dragIndexRef.current === clamped) return;
-      dragIndexRef.current = clamped;
-      onChange(presets[clamped]);
+  const valueFromClientX = useCallback(
+    (clientX: number): number => {
+      const track = trackRef.current;
+      if (!track) return min;
+      const rect = track.getBoundingClientRect();
+      const f = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const raw = min + f * range;
+      // Soft snap: magnetize to a preset only within a small window; otherwise
+      // keep the free value rounded to 5g so any in-between amount is reachable.
+      const snapWindow = range * 0.035;
+      let best = presets[0];
+      let bestDiff = Infinity;
+      for (const p of presets) {
+        const d = Math.abs(p - raw);
+        if (d < bestDiff) {
+          bestDiff = d;
+          best = p;
+        }
+      }
+      if (bestDiff <= snapWindow) return best;
+      return Math.min(max, Math.max(min, Math.round(raw / FREE_STEP) * FREE_STEP));
     },
-    [presets, lastIndex, onChange]
+    [presets, min, max, range]
   );
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragIndexRef.current = null;
-    const frac = rawFractionFromClientX(e.clientX);
-    setDragFraction(frac);
-    commitFromFraction(frac);
+    setDragging(true);
+    onChange(valueFromClientX(e.clientX));
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.buttons === 0 || dragFraction == null) return;
-    const frac = rawFractionFromClientX(e.clientX);
-    setDragFraction(frac);
-    commitFromFraction(frac);
+    if (!dragging || e.buttons === 0) return;
+    onChange(valueFromClientX(e.clientX));
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
-    dragIndexRef.current = null;
-    setDragFraction(null); // soft snap: thumb eases from here to the settled stop
+    setDragging(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    let next = activeIndex;
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = activeIndex - 1;
-    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = activeIndex + 1;
-    else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = lastIndex;
+    // Arrows nudge by 5g; Home/End jump to the ends. Fine control, not preset-locked.
+    let next = current;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = current - FREE_STEP;
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = current + FREE_STEP;
+    else if (e.key === 'Home') next = min;
+    else if (e.key === 'End') next = max;
     else return;
     e.preventDefault();
-    onChange(presets[Math.min(lastIndex, Math.max(0, next))]);
+    onChange(Math.min(max, Math.max(min, next)));
   };
 
-  const valueText = value != null ? `${value} grams` : `${presets[activeIndex]} grams (default)`;
-  // Follow the finger 1:1 while dragging; ease softly to the stop on release.
-  const settleTransition = isDragging ? 'none' : 'left 260ms cubic-bezier(0.22, 1, 0.36, 1)';
-  const fillTransition = isDragging ? 'none' : 'width 260ms cubic-bezier(0.22, 1, 0.36, 1)';
+  // Guide labels below the bar, positioned by value. Drop any that would crowd
+  // the previous one so the row stays legible even when presets bunch up.
+  const labels: { p: number; pct: number }[] = [];
+  let lastPct = -Infinity;
+  presets.forEach((p, i) => {
+    const pct = ((p - min) / range) * 100;
+    const isEnd = i === 0 || i === presets.length - 1;
+    if (isEnd || pct - lastPct >= 11) {
+      labels.push({ p, pct });
+      lastPct = pct;
+    }
+  });
+
+  const pct = fraction * 100;
+  const settle = dragging ? 'none' : 'left 200ms cubic-bezier(0.22, 1, 0.36, 1)';
+  const fillSettle = dragging ? 'none' : 'width 200ms cubic-bezier(0.22, 1, 0.36, 1)';
 
   return (
-    <div
-      ref={trackRef}
-      role="slider"
-      tabIndex={0}
-      aria-label="Grams"
-      aria-orientation="horizontal"
-      aria-valuemin={presets[0]}
-      aria-valuemax={presets[lastIndex]}
-      aria-valuenow={value ?? presets[activeIndex]}
-      aria-valuetext={valueText}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      className={`gram-slider-track touch-none ${className}`}
-    >
+    <div className={className}>
       <div
-        className={`gram-slider-fill ${isExact || isDragging ? 'gram-slider-fill-on' : 'gram-slider-fill-off'}`}
-        style={{ width: `${pct}%`, transition: fillTransition }}
-        aria-hidden
-      />
-      <div
-        className={`gram-slider-thumb ${isExact || isDragging ? 'gram-slider-thumb-on' : 'gram-slider-thumb-off'}`}
-        style={{ left: `${pct}%`, transition: settleTransition }}
-        aria-hidden
-      />
-      <div className="gram-slider-labels">
-        {presets.map((g, i) => (
+        ref={trackRef}
+        role="slider"
+        tabIndex={0}
+        aria-label="Grams"
+        aria-orientation="horizontal"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={current}
+        aria-valuetext={`${current} grams`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        className="gram-slider-track touch-none"
+      >
+        {/* Tick marks at each preset so the magnetic stops are visible. */}
+        {presets.map((p) => (
           <span
-            key={g}
-            className={`gram-slider-label text-ui-10 ${
-              i === exactIndex ? 'text-tea-gold font-medium' : 'text-tea-text-sec'
+            key={`tick-${p}`}
+            className="gram-slider-tickmark"
+            style={{ left: `${((p - min) / range) * 100}%` }}
+            aria-hidden
+          />
+        ))}
+        <div
+          className={`gram-slider-fill ${isSet ? 'gram-slider-fill-on' : 'gram-slider-fill-off'}`}
+          style={{ width: `${pct}%`, transition: fillSettle }}
+          aria-hidden
+        />
+        <div
+          className={`gram-slider-thumb ${isSet ? 'gram-slider-thumb-on' : 'gram-slider-thumb-off'}`}
+          style={{ left: `${pct}%`, transition: settle }}
+          aria-hidden
+        />
+      </div>
+
+      {/* Preset guide labels, below the bar so the handle never covers them. */}
+      <div className="gram-slider-ticks">
+        {labels.map(({ p, pct: lpct }, i) => (
+          <span
+            key={p}
+            className={`gram-slider-tick text-ui-10 ${
+              isPreset && value === p ? 'text-tea-gold font-medium' : 'text-tea-text-sec'
             }`}
             style={{
-              left: lastIndex > 0 ? `${(i / lastIndex) * 100}%` : '50%',
-              transform: i === 0 ? 'translateX(2px)' : i === lastIndex ? 'translateX(calc(-100% - 2px))' : 'translateX(-50%)',
+              left: `${lpct}%`,
+              transform:
+                i === 0 ? 'translateX(0)' : i === labels.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
             }}
             aria-hidden
           >
-            {g}
+            {p}
           </span>
         ))}
       </div>

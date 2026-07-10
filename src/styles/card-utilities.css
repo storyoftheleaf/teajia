@@ -2392,38 +2392,47 @@ input[type="number"]::-webkit-outer-spin-button {
     rgb(var(--tea-gold-rgb) / 0.04) 0%,
     rgb(var(--tea-gold-rgb) / 0.08) 100%);
 }
+/* Faint tick at each preset — shows the magnetic stops without shouting. */
+.gram-slider-tickmark {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 1px;
+  background: rgb(var(--tea-gold-rgb) / 0.22);
+  pointer-events: none;
+}
+/* Handle — a clear grabbable knob that rides the bar. Taller than it is wide so
+   it reads as a slider grip, gold, lifted with a soft shadow. It sits ABOVE the
+   labels (which live in their own row below the bar), so it never covers a
+   number. */
 .gram-slider-thumb {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  width: 6px;
+  top: 5px;
+  bottom: 5px;
+  width: 12px;
   border-radius: 999px;
   transform: translateX(-50%);
   pointer-events: none;
 }
-/* Handle — a slim rounded pill, gold when active, with a soft lift so it reads
-   as a grabbable handle rather than a hairline. */
 .gram-slider-thumb-on {
   background: var(--tea-gold);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3), 0 0 0 3px rgb(var(--tea-gold-rgb) / 0.12);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(0 0 0 / 0.12);
 }
 .gram-slider-thumb-off {
-  background: var(--tea-text-dim);
-  opacity: 0.6;
+  background: var(--tea-text-sec);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
 }
-.gram-slider-labels {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
+/* Preset guide labels, in their own row beneath the bar. */
+.gram-slider-ticks {
+  position: relative;
+  height: 15px;
+  margin-top: 5px;
 }
-.gram-slider-label {
-  /* left offset is set inline as a % of track width (index / (len-1));
-     the component also sets an inline transform so the first/last labels
-     anchor inward from the edge instead of overflowing the track. */
+.gram-slider-tick {
   position: absolute;
-  padding-inline: 10px;
+  top: 0;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   transition: color 120ms ease-out;
