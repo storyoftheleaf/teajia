@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRi
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
-import { TEA_TYPE_COLORS } from '../../designTokens';
+import { TEA_TYPE_COLORS, TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
@@ -159,27 +159,11 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-/** The brand's editorial eyebrow — Cormorant italic small-caps in gold.
- *  Borrowed from the magazine card eyebrow so the section markers read in the
- *  same museum-caption register as the rest of the brand, not as form labels. */
-const CAPTURE_EYEBROW_STYLE: React.CSSProperties = {
-  fontFamily: 'var(--font-display)',
-  fontSize: 13,
-  fontStyle: 'italic',
-  fontWeight: 500,
-  fontVariant: 'all-small-caps',
-  letterSpacing: '0.08em',
-  color: 'var(--tea-gold)',
-};
-
-/** Section eyebrow divider — warm gold hairline + small-caps gold label.
- *  `ornament` adds a single centered gold dot (use sparingly, once). */
-const SectionDivider: React.FC<{ label: string; ornament?: boolean }> = ({ label, ornament }) => (
-  <div className="flex items-center gap-3 pt-2">
-    <div className={`relative flex-1 divider-warm${ornament ? ' divider-ornament' : ''}`} />
-    <span style={CAPTURE_EYEBROW_STYLE} className="shrink-0">{label}</span>
-    <div className="flex-1 divider-warm" />
-  </div>
+/** Quiet section eyebrow — replaces the retired gold hairline SectionDivider.
+ *  Groups content by whitespace, not by a gold rule; used sparingly (Notes
+ *  always; Profile only when tasting data exists) so gold stays scarce. */
+const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
+  <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
 );
 
 /** Inline status mark — Want/Buy/Sample/Taste tile inside the form.
@@ -1504,6 +1488,13 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
     }, 800);
   };
 
+  // Underline fields — TEA layout only. Typed identity/pricing fields lose
+  // their boxes; only pickers (Type, Form) stay chips, so "picked" reads
+  // differently from "typed" (the wayfinding contrast the redesign relies on).
+  const underlineFieldClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  // Tea name — the hero. Large display serif, still just a bottom hairline.
+  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-display text-ui-26 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+
   // ── Tea card layout ────────────────────────
   return (
     <div className={mobileShellClass}>
@@ -1564,16 +1555,18 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </div>
       </div>
 
-      {/* ─── IDENTITY ─── */}
-      <SectionDivider label="Tea" />
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
+      {/* ─── IDENTITY — the hero. Tea name is the one dominant element on the
+          screen; Type demotes to a small colored text tag beneath it (color
+          carries meaning, no swatch/box) so the picker vs. typed contrast
+          starts right here. ─── */}
+      <div className="space-y-3 pt-1">
+        <div>
           <AutocompleteInput
             value={entry.name}
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder={entry.type ? `${entry.type} name (e.g., Tieguanyin, Bingdao…)` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
-            className={`w-full min-w-0 ${nameFieldClass}`}
+            className={`w-full ${nameHeadlineClass}`}
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
             hintSuggestions={hintSuggestions}
@@ -1581,10 +1574,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-surface text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors"
+            className="mt-1 px-1 text-ui-13 font-medium transition-opacity hover:opacity-80"
+            style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            <span>{entry.type || 'Type'}</span>
-            <ChevronDown size={14} />
+            {entry.type || <span className="text-tea-text-sec font-normal">+ Type</span>}
           </button>
         </div>
 
@@ -1631,14 +1624,14 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </BottomSheet>
 
 
-        {/* Region + Year (year sits to the right of origin) */}
-        <div className="flex items-center gap-2">
+        {/* Region + Year (year sits to the right of origin) — underline fields */}
+        <div className="flex items-center gap-3">
           <AutocompleteInput
             value={entry.originRegion || ''}
             onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
             suggestions={availableRegions}
             placeholder="Origin"
-            className={`w-full ${fieldClass}`}
+            className={`w-full ${underlineFieldClass}`}
           />
           <input
             type="number"
@@ -1650,7 +1643,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className={`w-20 shrink-0 tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+            className={`w-16 shrink-0 tabular-nums text-center ${underlineFieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
           />
         </div>
@@ -1658,54 +1651,55 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         {/* Chinese name — under Origin. Fills automatically from known teas and
             from label scans; the Suggest button asks the AI to write it from
             the name + origin, since the operator won't type hanzi. */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <input
             type="text"
             value={entry.chineseName || ''}
             onChange={(e) => update({ chineseName: e.target.value || undefined })}
             placeholder="中文名 · Chinese name"
-            className={`flex-1 min-w-0 ${fieldClass}`}
+            className={`flex-1 min-w-0 ${underlineFieldClass}`}
           />
           <button
             type="button"
             onClick={handleGenerateChineseName}
             disabled={!entry.name?.trim() || generatingChinese}
-            className="tap-target shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-surface text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text disabled:opacity-40 transition-colors"
+            className="pill-quiet pill-quiet-on tap-target shrink-0 disabled:opacity-40"
             aria-label="Suggest Chinese name"
             title="Suggest Chinese name"
           >
-            {generatingChinese ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} strokeWidth={1.5} />}
+            {generatingChinese ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} strokeWidth={1.5} />}
             <span>Suggest</span>
           </button>
         </div>
 
-
-        <SectionDivider label="Pricing" />
-
-        <PricingRow
-          priceAmount={entry.priceAmount}
-          priceCurrency={entry.priceCurrency}
-          onPriceChange={(priceAmount) => update({ priceAmount })}
-          onCurrencyChange={handleCurrencyChange}
-          unit={{
-            mode: 'grams',
-            pricePerUnitGrams: entry.pricePerUnitGrams,
-            onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
-            form: entry.form,
-            onFormChange: handleFormSelect,
-          }}
-        />
-
-        {/* Retail price preview — only for tea with cost + grams entered */}
-        {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
-          <RetailPricePreview
-            costAmount={entry.priceAmount}
-            grams={entry.pricePerUnitGrams}
-            currency={entry.priceCurrency}
-            shippingRatePerKg={shippingRatePerKg}
-            onShippingRateChange={setShippingRatePerKg}
+        {/* Larger gap before Pricing — whitespace does the grouping the gold
+            divider used to do. */}
+        <div className="pt-6 space-y-2">
+          <PricingRow
+            priceAmount={entry.priceAmount}
+            priceCurrency={entry.priceCurrency}
+            onPriceChange={(priceAmount) => update({ priceAmount })}
+            onCurrencyChange={handleCurrencyChange}
+            unit={{
+              mode: 'grams',
+              pricePerUnitGrams: entry.pricePerUnitGrams,
+              onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
+              form: entry.form,
+              onFormChange: handleFormSelect,
+            }}
           />
-        )}
+
+          {/* Retail price preview — only for tea with cost + grams entered */}
+          {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
+            <RetailPricePreview
+              costAmount={entry.priceAmount}
+              grams={entry.pricePerUnitGrams}
+              currency={entry.priceCurrency}
+              shippingRatePerKg={shippingRatePerKg}
+              onShippingRateChange={setShippingRatePerKg}
+            />
+          )}
+        </div>
       </div>
 
       {/* Duplicate nudge */}
@@ -1750,69 +1744,69 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       {hasTasting && entry.tasting && (
-        <>
-          <SectionDivider label="Profile" />
-          <div className="space-y-2.5">
-            {/* Quality 1–10 — same segment toggle as TastingSession */}
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
-                <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
-                  {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
-                </span>
-              </div>
-              <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
-                {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
-                  const isSelected = entry.tasting!.quality === v;
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => handleQualityChange(v)}
-                      role="radio"
-                      aria-checked={isSelected}
-                      className={`flex-1 py-2.5 text-ui-12 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
-                        isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                      }${i < 9 ? ' weight-seg-div' : ''}`}
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        background: isSelected
-                          ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
-                          : 'transparent',
-                      }}
-                    >
-                      {v}
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="pt-6 space-y-2.5">
+          <QuietEyebrow label="Profile" />
+          {/* Quality 1–10 — same segment toggle as TastingSession */}
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
+              <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
+                {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
+              </span>
             </div>
-            {/* Brewing metadata */}
-            {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
-              <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
-                {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
-                {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
-                {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
-              </div>
-            )}
-            {/* Tag cloud */}
-            <TastingProfileStrip
-              value={entry.tasting}
-              onRemove={handleTastingStripRemove}
-              variant="cloud"
-            />
+            <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
+              {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
+                const isSelected = entry.tasting!.quality === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => handleQualityChange(v)}
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`flex-1 py-2.5 text-ui-12 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                      isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                    }${i < 9 ? ' weight-seg-div' : ''}`}
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      background: isSelected
+                        ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
+                        : 'transparent',
+                    }}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </>
+          {/* Brewing metadata */}
+          {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
+            <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
+              {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
+              {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
+              {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
+            </div>
+          )}
+          {/* Tag cloud */}
+          <TastingProfileStrip
+            value={entry.tasting}
+            onRemove={handleTastingStripRemove}
+            variant="cloud"
+          />
+        </div>
       )}
 
       {/* ─── Notes zone ─── */}
-      <SectionDivider label="Notes" ornament />
-      <NoteThread
-        compassEntryId={entry.id}
-        teaKey={entry.teaKey ?? undefined}
-        compact
-        hideTastingArtifacts
-      />
+      <div className="pt-6 space-y-2">
+        <QuietEyebrow label="Notes" />
+        <NoteThread
+          compassEntryId={entry.id}
+          teaKey={entry.teaKey ?? undefined}
+          compact
+          hideTastingArtifacts
+        />
+      </div>
 
       <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
 

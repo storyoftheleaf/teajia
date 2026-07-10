@@ -681,14 +681,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // scanner unavailable (no provider), scanner unreachable (provider error),
   // and unreadable label (with Retry). An empty read stays silent.
   const scanErrorLine = scanError ? (
-    <div className="flex items-center gap-2 pt-1.5 text-ui-11 text-tea-text-dim" role="status">
-      <span>{SCAN_ERROR_COPY[scanError]}</span>
+    <div className="flex items-center gap-2 pt-1.5" role="status">
+      <span className="text-ui-11 text-tea-text-dim italic">{SCAN_ERROR_COPY[scanError]}</span>
       {scanError === 'extract_failed' && lastScanFile && (
         <button
           type="button"
           onClick={handleRetryScan}
           disabled={retryingScan}
-          className="tap-target text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
+          className="tap-target text-ui-11 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
         >
           {retryingScan ? 'Retrying' : 'Retry'}
         </button>
@@ -851,9 +851,11 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   );
 
   // ── Inline row ─────────────────────────────────────────────────────────────
+  // Wrapped in a recessed tray so the thumbnails + scan/camera actions read as
+  // one contained unit instead of loose buttons floating on the page.
   const stripRow = (
     <>
-      <div className={`flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : ''}`}>
+      <div className={`field-recessed bg-tea-elevated rounded-xl p-1.5 flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : ''}`}>
         {validPhotos.map((url, i) => (
           <button
             key={url}
@@ -902,16 +904,15 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
 
         <div className={`flex flex-row ${isLg ? 'ml-auto' : ''} ${btnGap} shrink-0`}>
-          {/* Sparkles = AI label scanner. Carries a subtle gold accent at
-              rest so it reads as the "magic" primary action, distinct
-              from the plain Camera button which is just a gallery picker. */}
+          {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity) —
+              gold only lights up on the just-scanned success tick. */}
           <button
             type="button"
             onClick={openScanner}
             className={`${btnCls} flex items-center justify-center border shrink-0 transition-all ${
               justExtracted
                 ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
-                : 'border-tea-gold/30 bg-tea-gold/[0.06] text-tea-gold hover:bg-tea-gold/[0.12] hover:border-tea-gold/50'
+                : 'bg-tea-surface border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
             }`}
             aria-label="Scan label"
             title="Scan label"

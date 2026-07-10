@@ -36,7 +36,7 @@ const VerdictButton: React.FC<{
     onClick={onClick}
     aria-pressed={active}
     className={`flex min-h-[46px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md text-ui-10 font-medium transition-colors ${
-      active ? 'bg-tea-accent-sub text-tea-gold' : 'text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
+      active ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
     }`}
   >
     {icon}
@@ -56,9 +56,9 @@ export const CaptureVerdictRow: React.FC<CaptureVerdictRowProps> = ({
   doneEnabled,
   onDone,
 }) => (
-  <div className="lg:hidden pt-1 space-y-2">
-    {/* Four quick marks in a quiet segmented tray — a decision, not a slab. */}
-    <div className="flex items-stretch gap-1 rounded-xl bg-tea-surface/70 p-1">
+  <div className="lg:hidden pt-1 space-y-3">
+    {/* Four quiet marks on the bare page — a decision, not a slab. */}
+    <div className="flex items-stretch gap-1">
       <VerdictButton
         label="Tasted"
         icon={<Droplets size={15} strokeWidth={1.5} />}
@@ -85,12 +85,13 @@ export const CaptureVerdictRow: React.FC<CaptureVerdictRowProps> = ({
       />
     </div>
 
-    {/* Commit — the one primary action. */}
+    {/* Commit — the one primary action, and now the ONLY warm fill on the
+        screen since every other gold moment above has been quieted. */}
     <button
       type="button"
       onClick={onDone}
       disabled={!doneEnabled}
-      className="w-full py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+      className="w-full py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 shadow-lg shadow-tea-gold/10 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed"
       aria-label="Done, save this entry"
     >
       Done
