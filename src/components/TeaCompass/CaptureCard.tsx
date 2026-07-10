@@ -1478,9 +1478,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
   // Underline fields — TEA layout only. Typed identity/pricing fields lose
   // their boxes; only pickers (Type, Form) stay chips, so "picked" reads
   // differently from "typed" (the wayfinding contrast the redesign relies on).
-  const underlineFieldClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  const underlineFieldClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 font-sans text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
   // Tea name — the hero. Large display serif, still just a bottom hairline.
-  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-display text-ui-26 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  // This is the ONE serif element in the capture form — everything else
+  // below is font-sans so the form reads as one typographic system.
+  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-display text-ui-26 font-normal text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
 
   // ── Tea card layout ────────────────────────
   return (
@@ -1561,10 +1563,10 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="mt-1 px-1 text-ui-13 font-medium transition-opacity hover:opacity-80"
+            className="mt-1 px-1 font-sans text-ui-13 font-medium transition-opacity hover:opacity-80"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            {entry.type || <span className="text-tea-text-sec font-normal">+ Type</span>}
+            {entry.type || <span className="text-tea-text-sec font-normal text-ui-12">+ Type</span>}
           </button>
         </div>
 
@@ -1597,7 +1599,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                     style={{ backgroundColor: chipStyle.text }}
                     aria-hidden
                   />
-                  <span className="min-w-0 flex-1 truncate text-ui-13 font-medium">{type}</span>
+                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{type}</span>
                   {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );
@@ -1645,7 +1647,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             type="button"
             onClick={handleGenerateChineseName}
             disabled={!entry.name?.trim() || generatingChinese}
-            className="pill-quiet pill-quiet-on tap-target shrink-0 disabled:opacity-40"
+            className="pill-quiet pill-quiet-on tap-target font-sans shrink-0 disabled:opacity-40"
             aria-label="Suggest Chinese name"
             title="Suggest Chinese name"
           >
@@ -1731,7 +1733,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           {/* Quality 1–10 — same segment toggle as TastingSession */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
+              <span className="font-sans text-ui-11 text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
               <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
                 {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
               </span>

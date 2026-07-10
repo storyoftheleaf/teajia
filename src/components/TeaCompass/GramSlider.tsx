@@ -159,7 +159,7 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
         {labels.map(({ p, pct: lpct }, i) => (
           <span
             key={p}
-            className={`gram-slider-label text-ui-10 ${
+            className={`gram-slider-label font-sans text-ui-10 tabular-nums ${
               isPreset && value === p ? 'text-tea-gold font-medium' : 'text-tea-text-sec'
             }`}
             style={{

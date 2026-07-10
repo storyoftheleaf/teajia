@@ -108,7 +108,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
             style={noSpinnerStyle}
-            className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="flex-1 min-w-0 bg-transparent text-tea-text px-2 py-2.5 outline-none font-sans text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             aria-label="Price"
           />
         </div>
@@ -128,7 +128,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                   unit.onGramsChange(val === '' ? undefined : Number(val));
                 }}
                 style={noSpinnerStyle}
-                className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="flex-1 min-w-0 bg-transparent text-tea-text pl-2.5 pr-1 py-2.5 outline-none font-sans text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 aria-label="Grams"
               />
               <span
@@ -150,7 +150,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                 }`}
                 aria-label="Tea form"
               >
-                <span className="truncate text-base font-medium">{unit.form || 'Form'}</span>
+                <span className="truncate font-sans text-base font-medium">{unit.form || 'Form'}</span>
                 <ChevronDown size={14} className={unit.form ? 'text-tea-gold shrink-0' : 'text-tea-text-sec shrink-0'} />
               </button>
             )}
@@ -229,7 +229,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                       : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                   }`}
                 >
-                  <span className="min-w-0 flex-1 truncate text-ui-13 font-medium">{f}</span>
+                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{f}</span>
                   {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );
