@@ -6005,6 +6005,20 @@ Important:
 - If you see a price like "NT$300" set costAmount=300 and costCurrency="NT"
 - Return ONLY the JSON object, no markdown formatting or explanation`;
 
+// Base64-encode image bytes WITHOUT spreading the whole array as call
+// arguments. `String.fromCharCode(...bytes)` overflows the engine's argument
+// limit (~65k) for any image bigger than ~64KB — i.e. every real photo — which
+// threw here and made every label scan fail with a generic provider error.
+// Chunked fromCharCode stays under the limit.
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const CHUNK = 0x8000; // 32768 args per call, safely under the limit
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
 const handleExtractFromImage: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -6028,9 +6042,9 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No image provided' }, 400);
 
-  // Convert image to base64 for the vision model
+  // Convert image to base64 for the vision model (chunked — see bytesToBase64).
   const arrayBuffer = await file.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const base64 = bytesToBase64(new Uint8Array(arrayBuffer));
   const mimeType = file.type || 'image/jpeg';
 
   // Also upload to R2 so the draft product has an image (account-partitioned).
