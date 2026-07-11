@@ -27,12 +27,34 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         workbox: {
-          globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+          // Precache ONLY the tiny shell (entry page, icon, fonts) — NOT the
+          // multi-MB JS/CSS chunks. A small precache finishes installing even on
+          // a firewalled/jumpy connection, so the service worker actually updates
+          // to each new build instead of leaving a browser pinned on an old one
+          // (which was surfacing as "Failed to fetch dynamically imported module
+          // .../AdminApp-*.js"). The hashed /assets/* files are cached on demand
+          // by the runtime rules below (fonts included).
+          globPatterns: ['**/*.html'],
+          // Drop superseded precaches when a new service worker activates.
+          cleanupOutdatedCaches: true,
           // Never serve the SPA shell for API paths — they must always hit the
           // network (and the edge proxy / Worker), including the Google OAuth
           // top-level navigation to /api/auth/google.
           navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/],
           runtimeCaching: [
+            {
+              // Hashed app scripts + styles. Content-hashed per build, so once a
+              // given file is cached it never changes — CacheFirst is safe and
+              // fast. A new build ships new filenames (via the freshly-updated
+              // index), which simply miss and fetch once. Deliberately NOT
+              // precached so the install stays tiny and always completes.
+              urlPattern: ({ url }) => url.pathname.startsWith('/assets/') || url.pathname.startsWith('/fonts/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'assets-cache',
+                expiration: { maxEntries: 250, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
             {
               // Same-origin API reads (the app now calls /api/* on its own
               // origin via the China-reachable Pages proxy). NetworkFirst lets
