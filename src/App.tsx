@@ -114,8 +114,6 @@ const SharedCollectionsPage = lazy(() => import('./pages/SharedCollectionsPage')
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
-const SavedStoriesPage = lazy(() => import('./pages/SavedStoriesPage'));
-const ReadingHistoryPage = lazy(() => import('./pages/ReadingHistoryPage'));
 const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
@@ -1015,8 +1013,6 @@ const AppContent = () => {
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignUpPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/saved" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SavedStoriesPage /></Suspense></ErrorBoundary>} />
-                <Route path="/account/history" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><ReadingHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />

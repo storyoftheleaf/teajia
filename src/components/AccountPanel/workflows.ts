@@ -41,8 +41,8 @@ export interface FirstDoorReadiness {
 }
 
 export const MEMBER_MEMORY_LINKS: AccountWorkflowLink[] = [
-  { id: 'saved', label: 'Saved', route: '/account/saved', category: 'memory', status: 'wired' },
-  { id: 'history', label: 'History', route: '/account/history', category: 'memory', status: 'wired' },
+  // 'saved' and 'history' removed 2026-07-11: the reading-history and saved-articles
+  // pages were dead by construction (empty), so they were retired.
   { id: 'find-table', label: 'Find a Table', route: '/find-a-table', category: 'continue', status: 'wired' },
   { id: 'magazine', label: 'Read', route: '/read', category: 'continue', status: 'wired' },
   { id: 'settings', label: 'Settings', route: '/account/settings', category: 'account', status: 'wired' },
