@@ -4206,7 +4206,7 @@ const handleGetCustomers: Handler = async (request, env) => {
          WHERE ea.customer_id = c.id AND ea.status = 'confirmed' AND ea.attended = 1
         ) as event_count
       FROM customers c
-      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void' AND i.account_id = ?
+      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled' AND i.account_id = ?
       WHERE c.account_id = ? ${typeClause} ${relationshipClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
@@ -12433,7 +12433,9 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
     body.timezone || 'UTC',
     body.whatsapp_number || null,
     body.contact_email || null,
-    body.public_enabled !== false ? 1 : 0,
+    // Born PRIVATE: a new store must be explicitly published, never public by
+    // default with an empty catalog. Only opt-in (=== true) makes it public.
+    body.public_enabled === true ? 1 : 0,
     now, now
   ).run();
 
@@ -12595,7 +12597,8 @@ const handlePlatformDecideApplication: Handler = async (request, env, params) =>
     `INSERT INTO accounts
        (id, slug, name, contact_email, currency_default, trust_tier, kind, status, public_enabled,
         invoice_prefix, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'active', 1, ?, ?, ?)`
+     -- Born private (public_enabled = 0): the new owner publishes when ready.
+     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'active', 0, ?, ?, ?)`
   ).bind(
     accountId, finalSlug,
     applicantName || applicantEmail,
@@ -12684,7 +12687,8 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
     `INSERT INTO accounts
        (id, slug, name, contact_email, currency_default, trust_tier, kind, status, public_enabled,
         invoice_prefix, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'USD', 'verified', 'master', 'active', 1, ?, ?, ?)`
+     -- Born private (public_enabled = 0): the new owner publishes when ready.
+     VALUES (?, ?, ?, ?, 'USD', 'verified', 'master', 'active', 0, ?, ?, ?)`
   ).bind(accountId, finalSlug, displayName || email, email, invoicePrefix, now, now).run();
 
   // Find or create user
@@ -12805,12 +12809,18 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
 };
 
 // GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
+// that have at least one public, active product. A store flipped public with an
+// empty catalog must not advertise an empty shell in the directory.
 const handleGetNetworkStores: Handler = async (_request, env) => {
   const { results } = await env.DB.prepare(
     `SELECT id, slug, name, tagline, logo_url, location_city, location_country
-     FROM accounts
-     WHERE public_enabled = 1 AND status = 'active'
-     ORDER BY is_platform_owner DESC, name ASC`
+     FROM accounts a
+     WHERE a.public_enabled = 1 AND a.status = 'active'
+       AND EXISTS (
+         SELECT 1 FROM products p
+          WHERE p.account_id = a.id AND p.status = 'Active' AND p.is_public = 1
+       )
+     ORDER BY a.is_platform_owner DESC, a.name ASC`
   ).all();
   return cachedJson(results, 300);
 };
@@ -13072,6 +13082,7 @@ const handleGetMyOrders: Handler = async (request, env) => {
      ) t ON t.invoice_id = i.id
      WHERE i.account_id = ?
        AND i.deleted_at IS NULL
+       AND i.status NOT IN ('Draft', 'Void')
        AND (
          i.customer_id IN (
            SELECT id FROM customers WHERE user_id = ? AND account_id = ?
@@ -16192,6 +16203,17 @@ const handleUnsaveCollection: Handler = async (request, env, params) => {
 // A draft is never a committed order: stock is NOT deducted here (inventory_deducted=0),
 // status='Draft'. The operator promotes/fulfils it in the admin UI.
 const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
+  // Public, unauthenticated, and it creates invoices: rate limit so a link
+  // holder cannot spam a customer's order history or burn the invoice sequence.
+  const ccpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `confirmpicks:${ccpIp}` });
+    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+  if (!checkRateLimit(`confirmpicks:${ccpIp}`, 10, 60000)) {
+    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+
   const pub = await env.DB.prepare(
     `SELECT id, collection_id, unpublished_at, recipients_json
        FROM collection_publications WHERE slug = ?`
