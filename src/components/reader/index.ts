@@ -2,7 +2,6 @@ export { default as BookmarkFold } from './BookmarkFold';
 export { default as SteamAnimation } from './SteamAnimation';
 export { default as SoundscapePlayer } from './SoundscapePlayer';
 export { default as BreathPacer } from './BreathPacer';
-export { default as ReadingStreak } from './ReadingStreak';
 export { default as FootnoteCard } from './FootnoteCard';
 export { default as TouchReveal } from './TouchReveal';
 export { default as ComparisonSlider } from './ComparisonSlider';
