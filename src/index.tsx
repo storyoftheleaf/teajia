@@ -8,6 +8,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
+import { startVersionCheck } from './lib/versionCheck';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,3 +79,5 @@ root.render(
     </HelmetProvider>
   </React.StrictMode>
 );
+
+startVersionCheck();

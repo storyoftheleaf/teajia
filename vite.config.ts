@@ -6,8 +6,12 @@ import fs from 'fs';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', 'VITE_');
+  const BUILD_ID = Date.now().toString(36);
   return {
     base: '/',
+    define: {
+      __BUILD_ID__: JSON.stringify(BUILD_ID),
+    },
     server: {
       port: 7777,
       strictPort: true,
@@ -40,7 +44,7 @@ export default defineConfig(({ mode }) => {
           // Never serve the SPA shell for API paths — they must always hit the
           // network (and the edge proxy / Worker), including the Google OAuth
           // top-level navigation to /api/auth/google.
-          navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/],
+          navigateFallbackDenylist: [/^\/api\//, /^\/media\//, /^\/mcp/, /^\/oauth/, /^\/\.well-known/, /^\/version\.json/],
           runtimeCaching: [
             {
               // Hashed app scripts + styles. Content-hashed per build, so once a
@@ -110,6 +114,10 @@ export default defineConfig(({ mode }) => {
               fs.copyFileSync(src, dest);
             }
           }
+          fs.writeFileSync(
+            path.resolve(__dirname, 'dist', 'version.json'),
+            JSON.stringify({ buildId: BUILD_ID })
+          );
         },
       },
     ],
