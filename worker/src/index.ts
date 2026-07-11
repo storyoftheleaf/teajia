@@ -1716,23 +1716,40 @@ const handleCreateResetToken: Handler = async (request, env) => {
 };
 
 // ── Forgot Password: Self-service reset token request (public) ──
-// Creates a reset token for the given email and returns it directly.
-// Note: Without an email delivery system, the token is returned in the response
-// so the user can immediately set a new password. This is acceptable for a
-// single-tenant internal tool. Do not expose to the public internet without
-// adding email delivery + enumeration protections.
+// Public endpoint. Two hard rules, both security-critical:
+//  1. The reset token is NEVER returned to the caller. It belongs in the email
+//     only. Returning it on email failure was an account-takeover primitive:
+//     anyone who knew an email address could take the account over on any day
+//     the mail provider hiccuped.
+//  2. The response is identical whether or not the account exists (no account
+//     enumeration), and the endpoint is rate-limited.
 const handleForgotPassword: Handler = async (request, env) => {
   const { email } = await request.json() as { email?: string };
   if (!email) return json({ error: 'Email required' }, 400);
+
+  // Durable, cross-isolate rate limit (falls back to in-memory in dev). Same
+  // pattern as login. CF-Connecting-IP cannot be spoofed by the client.
+  const fpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `forgot:${fpIp}` });
+    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+  if (!checkRateLimit(`forgot:${fpIp}`, 5, 60000)) {
+    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+
+  // Identical success response regardless of whether the account exists.
+  const genericResponse = json({
+    ok: true,
+    email_sent: true,
+    message: 'If an account exists for that email, a reset link is on its way.',
+  });
 
   const user = await env.DB.prepare(
     'SELECT id, email, name FROM users WHERE email = ?'
   ).bind(email).first();
 
-  // Generic response shape whether or not the user exists
-  if (!user) {
-    return json({ ok: true, message: 'No account found with that email.' }, 404);
-  }
+  if (!user) return genericResponse;
 
   // Generate a random reset token (expires in 1 hour)
   const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -1742,13 +1759,11 @@ const handleForgotPassword: Handler = async (request, env) => {
     "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+1 hour'))"
   ).bind(id, user.id, resetToken).run();
 
-  // Try to email the reset link. When email succeeds we do NOT return the
-  // token in the response (token belongs in the email only). When email
-  // delivery is not configured or the send fails, we return the token so the
-  // single-tenant in-app recovery flow still works — and surface
-  // email_sent: false so the UI can show "couldn't send the email".
-  const origin = new URL(request.url).origin;
-  const resetUrl = `${origin}/reset-password?token=${resetToken}`;
+  // Build the link from the APP origin, never the request origin. Behind the
+  // Pages proxy request.url resolves to the workers.dev host, so the emailed
+  // link 404s (and is GFW-blocked). Same APP_URL pattern as handleGoogleCallback.
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const resetUrl = `${appOrigin}/reset-password?token=${resetToken}`;
   const emailSent = await sendEmail(
     env,
     user.email as string,
@@ -1761,20 +1776,13 @@ const handleForgotPassword: Handler = async (request, env) => {
     </div>`
   );
 
-  if (emailSent) {
-    return json({
-      ok: true,
-      email_sent: true,
-      message: 'Check your email for a link to reset your password.',
-    });
+  // Fail closed: on send failure we log and still return the generic response.
+  // We do NOT hand the token back to the caller under any branch.
+  if (!emailSent) {
+    console.error(`[forgot-password] email send failed for user ${user.id}`);
   }
 
-  return json({
-    ok: true,
-    email_sent: false,
-    token: resetToken,
-    message: 'Reset token generated. Use it within the next hour to set a new password.',
-  });
+  return genericResponse;
 };
 
 // ── Reset Password with Token (public) ──
@@ -6805,6 +6813,17 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
+  // Rate limit: this endpoint accepts a bare phone number / email, so it must
+  // not be brute-forceable. Durable limiter when bound; in-memory fallback.
+  const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `findrsvp:${frIp}` });
+    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+  if (!checkRateLimit(`findrsvp:${frIp}`, 10, 60000)) {
+    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+
   let lookupField: string;
   let lookupValue: string;
 
@@ -6834,7 +6853,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   }
 
   let attendee = await env.DB.prepare(
-    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
+    `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
   ).bind(event.id, lookupValue).first();
 
   // Phone fallback: match on last 9 digits to handle "+886 912 345 678" vs "+886912345678" vs "0912 345 678"
@@ -6843,18 +6862,52 @@ const handleFindRSVP: Handler = async (request, env, params) => {
     if (digits.length >= 9) {
       const suffix = digits.slice(-9);
       attendee = await env.DB.prepare(
-        `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND phone_number LIKE ?`
+        `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND phone_number LIKE ?`
       ).bind(event.id, `%${suffix}`).first();
     }
   }
 
-  if (!attendee) return json({ error: 'RSVP not found' }, 404);
+  // The magic_token is a bearer credential: whoever holds it can view and edit
+  // that guest's RSVP and journey. It may ONLY be returned to a caller who
+  // proved they own the account (signed JWT, no body). For an unauthenticated
+  // lookup by phone/email, we never return the token — we deliver the access
+  // link to the email on file and return a generic response either way (so a
+  // bare phone number cannot confirm existence or retrieve the credential).
+  const isOwnerVerified = Boolean(token) && !hasBody;
 
-  return json({
-    magic_token: attendee.magic_token,
-    status: attendee.status,
-    redirect_url: `/m/${attendee.magic_token}`,
+  if (isOwnerVerified) {
+    if (!attendee) return json({ error: 'RSVP not found' }, 404);
+    return json({
+      magic_token: attendee.magic_token,
+      status: attendee.status,
+      redirect_url: `/m/${attendee.magic_token}`,
+    });
+  }
+
+  const genericFindResponse = json({
+    ok: true,
+    message: "If a matching RSVP exists, we've sent its access link to the email on file.",
   });
+
+  if (!attendee) return genericFindResponse;
+
+  const attendeeEmail = attendee.email as string | null;
+  if (attendeeEmail) {
+    const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+    const magicUrl = `${appOrigin}/m/${attendee.magic_token}`;
+    await sendEmail(
+      env,
+      attendeeEmail,
+      'Your Teajia RSVP link',
+      `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#3a2e24">
+        <h2 style="font-size:20px;margin-bottom:8px">Your RSVP</h2>
+        <p style="color:#7a6a56;margin-bottom:24px;line-height:1.6">Here is your private link to view and manage your RSVP.</p>
+        <a href="${magicUrl}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#fefaf3;text-decoration:none;font-size:13px;letter-spacing:0.08em">View my RSVP</a>
+      </div>`
+    );
+  }
+
+  return genericFindResponse;
 };
 
 // ── Event Admin Routes ──
@@ -9797,6 +9850,10 @@ const handleEventInterest: Handler = async (request, env, params) => {
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `verify:${verifyIp}` });
+    if (!success) return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
+  }
   if (!checkRateLimit(`verify:${verifyIp}`, 5, 60000)) {
     return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
   }
@@ -13766,6 +13823,10 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `joincode:${ip}` });
+    if (!success) return json({ error: 'Too many attempts. Please try again later.' }, 429);
+  }
   if (!checkRateLimit(`joincode:${ip}`, 20, 60000)) {
     return json({ error: 'Too many attempts. Please try again later.' }, 429);
   }
@@ -14635,13 +14696,16 @@ const handleGetRevenueAnalytics: Handler = async (request, env) => {
 
   const [revenueRows, ageRows] = await Promise.all([
     env.DB.prepare(
-      `SELECT strftime('%Y-%W', created_at) as week,
-              SUM(total_usd) as revenue,
-              COUNT(*) as order_count
-       FROM invoices
-       WHERE status = 'fulfilled'
-         AND account_id = ?
-         AND created_at >= datetime('now', '-26 weeks')
+      // invoices has no total_usd column; revenue is the sum of line items
+      // (quantity × per-unit price_at_sale). Fulfilled status is 'Filled'.
+      `SELECT strftime('%Y-%W', i.created_at) as week,
+              SUM(ili.quantity * ili.price_at_sale) as revenue,
+              COUNT(DISTINCT i.id) as order_count
+       FROM invoices i
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
+       WHERE i.status = 'Filled'
+         AND i.account_id = ?
+         AND i.created_at >= datetime('now', '-26 weeks')
        GROUP BY week
        ORDER BY week ASC`
     ).bind(accountId).all(),
@@ -14650,7 +14714,7 @@ const handleGetRevenueAnalytics: Handler = async (request, env) => {
               MAX(i.created_at) as last_sold_at
        FROM products p
        LEFT JOIN invoice_line_items ili ON ili.product_id = p.id
-       LEFT JOIN invoices i ON i.id = ili.invoice_id AND i.status = 'fulfilled' AND i.account_id = ?
+       LEFT JOIN invoices i ON i.id = ili.invoice_id AND i.status = 'Filled' AND i.account_id = ?
        WHERE p.status = 'Active' AND p.is_public = 1 AND p.account_id = ?
        GROUP BY p.id
        HAVING last_sold_at IS NULL OR last_sold_at < datetime('now', '-90 days')
@@ -14676,10 +14740,11 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT c.id, c.name, c.email,
               COUNT(DISTINCT i.id) as order_count,
-              COALESCE(SUM(i.total_usd), 0) as lifetime_usd,
+              COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) as lifetime_usd,
               MAX(i.created_at) as last_order_at
        FROM customers c
-       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled'
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE c.account_id = ?
        GROUP BY c.id
        ORDER BY lifetime_usd DESC
@@ -14688,9 +14753,10 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT c.id, c.name, c.email,
               MAX(i.created_at) as last_order_at,
-              COALESCE(SUM(i.total_usd), 0) as lifetime_usd
+              COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) as lifetime_usd
        FROM customers c
-       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled'
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE c.account_id = ?
        GROUP BY c.id
        HAVING last_order_at < datetime('now', '-90 days')
@@ -14700,9 +14766,10 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT c.id, c.name, c.email,
               MIN(i.created_at) as first_order_at,
-              COALESCE(SUM(i.total_usd), 0) as lifetime_usd
+              COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) as lifetime_usd
        FROM customers c
-       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled'
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE c.account_id = ?
        GROUP BY c.id
        HAVING first_order_at >= datetime('now', '-30 days')
@@ -16197,11 +16264,17 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       lineTotal = 0;
     }
 
+    // price_at_sale is a PER-UNIT rate: every invoice reader computes
+    // quantity × price_at_sale. Storing the line total here inflates the
+    // invoice by a factor of quantity (the K1 bug). Store the per-unit rate;
+    // lineTotal / quantity reproduces exactly the total the recipient confirmed.
+    const unitPrice = quantity > 0 ? lineTotal / quantity : 0;
+
     lineItems.push({
       product_id: row.product_id,
       custom_name: null,
       quantity,
-      price_at_sale: lineTotal,
+      price_at_sale: unitPrice,
       label: `${row.product_name} × ${quantity}${isTeaware ? '' : 'g'}`,
     });
   }
