@@ -136,8 +136,7 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     tab === 'tasting' ? 'library' : tab === 'browse' ? 'library' :
     tab === 'library' ? 'library' :
     undefined;
-  const initialCaptureOption: 'tea' | 'teaware' | 'samples' | undefined =
-    tab === 'samples' || capture === 'samples' ? 'samples' :
+  const initialCaptureOption: 'tea' | 'teaware' | undefined =
     capture === 'teaware' ? 'teaware' :
     capture === 'tea' ? 'tea' :
     undefined;

@@ -3,24 +3,25 @@ import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from 
 
 const CART_ITEM = { id: 'compass-tea-1', name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', vendorName: 'Chen Family', grams: 10, compassEntryId: 'compass-tea-1' };
 
-test.describe('Current Samples behavior remains reachable', () => {
+test.describe('Sample workflows remain reachable outside the capture method row', () => {
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
-  test.fixme('historical labels and tasting UI has no runtime entry point', async () => {
-    // SampleSetCreator and SampleLabelSheet are only re-exported; Task 8 must mount them.
-  });
-  test('opens the current empty Sample List from Source', async ({ page }) => {
+  test('opens the contextual empty Sample order from Source and restores focus', async ({ page }) => {
     await installCompassHarness(page);
     await openCompass(page);
-    await page.getByRole('tab', { name: 'Samples', exact: true }).click();
+    const trigger = page.getByRole('button', { name: 'Sample order (0)' }).first();
+    await trigger.click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
     await expect(page.getByText('Sample List', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByText('Your sample list is empty', { exact: true }).filter({ visible: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await expect(trigger).toBeFocused();
   });
 
   test('shows count and saves a nonempty cart as a historical set', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await expect(page.getByRole('tab', { name: /Samples\s*\(1\)/ }).first()).toBeVisible();
-    await page.getByRole('tab', { name: /Samples\s*\(1\)/ }).first().click();
+    await expect(page.getByRole('button', { name: 'Sample order (1)' }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Save as Sample Set' }).click();
     await expect.poll(async () => page.evaluate(() => {
@@ -35,7 +36,7 @@ test.describe('Current Samples behavior remains reachable', () => {
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await page.getByRole('tab', { name: /Samples\s*\(1\)/ }).first().click();
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as Sample Set' }).click();
     const historical = await page.evaluate(() => {
       const saved = JSON.parse(localStorage.getItem('teajia-samples') || '{}');
@@ -44,5 +45,26 @@ test.describe('Current Samples behavior remains reachable', () => {
     expect(historical, 'Saved sample must remain available to the historical sample tools').toMatchObject({
       name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', compassEntryId: 'compass-tea-1', tastings: [],
     });
+  });
+
+  test('makes historical sets, labels, tasting management, and purpose semantics reachable', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Manage sample sets' }).click();
+    await expect(page.getByRole('heading', { name: /Sample Sets|Samples/ }).first()).toBeVisible();
+    await page.getByText(/Sample Cart/).first().click();
+    await page.getByRole('button', { name: 'Batch details' }).click();
+    await expect(page.getByRole('button', { name: 'Sourcing', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Gifted', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Event', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Panel', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Print labels/i })).toBeVisible();
+    await expect(page.getByText(/Untasted|Tasted/).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open in Curate to taste' })).toBeVisible();
+    await page.locator('button[title="Click to change status"]').last().click();
+    await page.locator('button[title="Click to change status"]').last().click();
+    await expect(page.getByRole('button', { name: 'Graduate to inventory' })).toBeVisible();
   });
 });

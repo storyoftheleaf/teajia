@@ -21,6 +21,7 @@ const PURPOSE_OPTIONS: { value: SampleSetPurpose; label: string }[] = [
   { value: 'sourcing', label: 'Sourcing' },
   { value: 'customer-gifted', label: 'Gifted' },
   { value: 'event', label: 'Event' },
+  { value: 'panel', label: 'Panel' },
 ];
 
 const PURPOSE_LABEL: Record<string, string> = {

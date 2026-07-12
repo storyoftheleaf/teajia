@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FileInput, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -27,10 +27,10 @@ import { CompassShareModal } from './CompassShareModal';
 import { BatchCaptureRow } from './BatchCaptureRow';
 import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
 import { LedgerOverviewPanel } from './LedgerOverviewPanel';
-import { SampleCartPanel } from '../samples/SampleCartPanel';
-import { useSampleCartStore } from '../../samples/sampleCartStore';
 import { ImportPanel } from './import/ImportPanel';
 import { ImportBatchChip } from './ImportBatchChip';
+import { SampleOrderAction } from './SampleOrderAction';
+import { useSampleCartStore } from '../../samples/sampleCartStore';
 
 export type CompassMode = 'sourcing' | 'library' | 'buying';
 
@@ -40,8 +40,8 @@ interface TeaCompassProps {
   initialMode?: CompassMode;
   /** Open a specific entry by ID */
   initialEntryId?: string;
-  /** In sourcing mode, preselect the capture sub-tab (tea / teaware / samples) */
-  initialCaptureOption?: 'tea' | 'teaware' | 'samples';
+  /** In sourcing mode, preselect the capture method. */
+  initialCaptureOption?: 'tea' | 'teaware';
 }
 
 // ─── Desktop-only right column placeholder ───────────────────────────────────
@@ -219,6 +219,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [showAllImports, setShowAllImports] = useState(false);
   const [importPointerId, setImportPointerId] = useState<string | null>(null);
   const importTriggerRef = useRef<HTMLButtonElement>(null);
+  const openImportFrom = useCallback((trigger: HTMLButtonElement) => {
+    importTriggerRef.current = trigger;
+    setImportOpen(true);
+  }, []);
   const { data: incompleteImports } = useQuery({
     queryKey: ['curate-imports', 'incomplete', activeAccountId],
     queryFn: () => api.curateImports.listIncomplete(),
@@ -541,17 +545,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const pendingIncomingCount = visibleShares.length;
 
-  const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>(initialCaptureOption || 'tea');
+  const [captureOption, setCaptureOption] = useState<'tea' | 'teaware'>(initialCaptureOption || 'tea');
   useEffect(() => {
-    if (mode !== 'sourcing' || captureOption === 'samples' || !activeEntry) return;
+    if (mode !== 'sourcing' || !activeEntry) return;
     if (captureOption !== activeEntry.category) setCaptureOption(activeEntry.category);
   }, [activeEntry, captureOption, mode]);
-  const sampleCartCount = useSampleCartStore((s) => s.items.length);
   const captureEntryInCart = useSampleCartStore((s) => !!activeEntryId && s.items.some((i) => i.id === activeEntryId));
   const addSampleCartItem = useSampleCartStore((s) => s.addItem);
   const removeSampleCartItem = useSampleCartStore((s) => s.removeItem);
 
-  const showCaptureActionBar = mode === 'sourcing' && captureOption !== 'samples'
+  const showCaptureActionBar = mode === 'sourcing'
     && !!activeEntryId && activeEntry?.category !== 'teaware';
 
   // Tab-level search — shared across all tabs; cleared on tab switch
@@ -570,9 +573,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setTastingSelectedEntryId(null);
   }, [mode]);
 
-  const handleCaptureOption = useCallback((opt: 'tea' | 'teaware' | 'samples') => {
+  const handleCaptureOption = useCallback((opt: 'tea' | 'teaware') => {
     setCaptureOption(opt);
-    if (opt !== 'samples') handleCategorySwitch(opt as CompassCategory);
+    handleCategorySwitch(opt as CompassCategory);
   }, [handleCategorySwitch]);
 
   // Tab config
@@ -658,18 +661,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           <div className="flex-1" />
 
-          {mode === 'sourcing' && (
-            <button
-              ref={importTriggerRef}
-              type="button"
-              onClick={() => setImportOpen(true)}
-              aria-label="Import"
-              className="tap-target inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
-            >
-              <FileInput size={15} />
-              <span className="hidden sm:inline">Import</span>
-            </button>
-          )}
+          {mode === 'sourcing' && <SampleOrderAction />}
 
           {mode !== 'sourcing' && (
             <button
@@ -723,27 +715,27 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
         </div>
 
-        {/* Row 2 — capture type (Tea / Teaware / Samples). Only relevant
+        {/* Row 2 — capture method. Only relevant
             inside Source, so it appears only there; Library and Ledger
             collapse to the single Row 1, keeping their header clean. The
             session draft strip is NOT here — it scrolls with the page
             content below, so the header holds at two sticky rows. */}
         {mode === 'sourcing' && (
-          <div className="flex items-center min-h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture type">
+          <div className="flex items-center min-h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture method">
             <div className="flex flex-wrap items-center gap-4">
               {([
                 { id: 'tea', label: 'Tea' },
                 { id: 'teaware', label: 'Teaware' },
-                { id: 'samples', label: 'Samples' },
+                { id: 'import', label: 'Import' },
               ] as const).map((opt) => {
-                const active = captureOption === opt.id;
+                const active = opt.id === 'import' ? importOpen : captureOption === opt.id;
                 return (
                   <button
                     key={opt.id}
                     type="button"
                     role="tab"
                     aria-selected={active}
-                    onClick={() => handleCaptureOption(opt.id)}
+                    onClick={(event) => opt.id === 'import' ? openImportFrom(event.currentTarget) : handleCaptureOption(opt.id)}
                     className={`shrink-0 whitespace-nowrap px-1 py-2 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
                       active
                         ? 'text-tea-text border-b border-tea-gold'
@@ -751,9 +743,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     }`}
                   >
                     {opt.label}
-                    {opt.id === 'samples' && sampleCartCount > 0 && (
-                      <span className="text-tea-text-dim ml-1">({sampleCartCount})</span>
-                    )}
                   </button>
                 );
               })}
@@ -814,17 +803,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               region only needs to clear the BottomTabBar. */}
           <div
             ref={scrollContainerRef}
-            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
-              mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'
-            } ${
-              mode === 'sourcing'
-                // Tea/Teaware capture cards carry their own bottom-nav
-                // clearance inside the warm shell (so the surface extends
-                // below the footer); only the Samples panel needs the outer
-                // container to reserve nav space.
-                ? (captureOption === 'samples' ? 'pb-nav' : '')
-                : 'pb-3'
-            }`}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 ${mode === 'sourcing' ? '' : 'pb-3'}`}
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -840,10 +819,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   {/* Tea / Teaware / Samples sub-tabs moved up into the
                       header row in pass 6 — no duplicate segmented
                       control here. */}
-                  {captureOption === 'samples' ? (
-                    <SampleCartPanel />
-                  ) : (
-                    <>
+                  <>
                       {/* Session draft strip — + / Batch / Untitled chips.
                           Lives inside the scroll region (NOT a sticky bar) so
                           it scrolls away with the page, and WRAPS to new lines
@@ -950,7 +926,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                       />
                     </>
-                  )}
                 </motion.div>
               ) : mode === 'library' ? (
                 <motion.div
@@ -1265,44 +1240,37 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     transition={{ duration: 0.2 }}
                     className="flex flex-col gap-3"
                   >
-                    {/* 3-way toggle: Tea / Teaware / Samples */}
-                    <div className="flex gap-0 rounded-md bg-tea-surface/30 p-0.5 relative">
+                    {/* Capture method: Tea / Teaware / Import */}
+                    <div className="flex gap-0 rounded-md bg-tea-surface/30 p-0.5 relative" role="group" aria-label="Capture method">
                       <motion.div
                         className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface"
                         animate={{
                           left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                          right: captureOption === 'samples' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
+                          right: captureOption === 'teaware' ? '33.33%' : '66.66%',
                         }}
                         transition={{ duration: 0.1, ease: 'easeOut' }}
                       />
-                      <button type="button" onClick={() => handleCaptureOption('tea')}
+                      <button type="button" aria-pressed={captureOption === 'tea'} onClick={() => handleCaptureOption('tea')}
                         className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                         Tea
                       </button>
-                      <button type="button" onClick={() => handleCaptureOption('teaware')}
+                      <button type="button" aria-pressed={captureOption === 'teaware'} onClick={() => handleCaptureOption('teaware')}
                         className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
                         Teaware
                       </button>
-                      <button type="button" onClick={() => handleCaptureOption('samples')}
-                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'samples' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                        Samples
+                      <button type="button" aria-pressed={importOpen} onClick={(event) => openImportFrom(event.currentTarget)}
+                        className="flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] text-tea-text-dim hover:text-tea-text-sec">
+                        Import
                       </button>
                     </div>
 
-                    {/* Sample cart — left panel when samples tab is active */}
-                    {captureOption === 'samples' && (
-                      <SampleCartPanel />
-                    )}
-
                     {/* SessionStack */}
-                    {captureOption !== 'samples' && (
-                      <SessionStack
+                    <SessionStack
                         sessionEntries={sessionEntries}
                         activeEntryId={activeEntryId}
                         onSelectEntry={handleSelectEntry}
                         onDiscardEntry={handleDiscardSessionEntry}
                       />
-                    )}
 
                     {/* Just-committed banner */}
                     <AnimatePresence>
@@ -1329,8 +1297,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     </AnimatePresence>
 
                     {/* New entry hint button */}
-                    {captureOption !== 'samples' && (
-                      <button
+                    <button
                         type="button"
                         onClick={() => handleNewCapture()}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-md border border-dashed border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/40 text-ui-12 transition-colors"
@@ -1338,7 +1305,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         <Plus size={12} />
                         New Entry
                       </button>
-                    )}
                   </motion.div>
                 )}
 
@@ -1588,13 +1554,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               className={`flex-1 min-h-0 overscroll-contain ${
                 mode === 'library' || mode === 'buying'
                   ? 'overflow-hidden'
-                  : `overflow-y-auto ${mode === 'sourcing' && captureOption === 'samples' ? '' : 'px-4 pt-3'} pb-4`
+                  : 'overflow-y-auto px-4 pt-3 pb-4'
               }`}
               style={{ WebkitOverflowScrolling: 'touch', scrollbarGutter: 'stable' }}
             >
               <AnimatePresence mode="wait">
 
-                {/* SOURCING RIGHT: CaptureCard (samples cart lives in left column only) */}
+                {/* SOURCING RIGHT: CaptureCard */}
                 {mode === 'sourcing' && (
                   <motion.div
                     key="right-sourcing"
@@ -1603,15 +1569,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
                   >
-                    {captureOption === 'samples' ? (
-                      <div className="flex flex-col items-center justify-center h-full min-h-[300px] py-20 text-center">
-                        <FlaskConical size={28} className="text-tea-gold/20 mb-4" />
-                        <p className="font-serif text-ui-15 text-tea-text/50 mb-1.5 tracking-wide">Build your sample list</p>
-                        <p className="text-ui-12 text-tea-text-dim max-w-[220px] leading-relaxed">
-                          Use the flask icon on any tea card or the Sample button while capturing to add to your list.
-                        </p>
-                      </div>
-                    ) : activeEntryId ? (
+                    {activeEntryId ? (
                       <>
                         {batchMode && <BatchCaptureRow />}
                         <CaptureCard
@@ -1828,7 +1786,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={handleDoneClick}
-                    disabled={!activeEntryId || captureOption === 'samples' || promoting}
+                    disabled={!activeEntryId || promoting}
                     data-testid="compass-done-desktop"
                     className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                     style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
