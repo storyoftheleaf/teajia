@@ -20,6 +20,7 @@ let failNext = false;
 const movements: any[] = [];
 const movementBodies: any[] = [];
 const absoluteStockWrites: any[] = [];
+const invoiceBodies: any[] = [];
 
 async function install(page: Page) {
   const jwt = token();
@@ -27,6 +28,7 @@ async function install(page: Page) {
   movements.length = 0;
   movementBodies.length = 0;
   absoluteStockWrites.length = 0;
+  invoiceBodies.length = 0;
   failNext = false;
   await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
   await page.addInitScript(value => {
@@ -58,6 +60,14 @@ async function install(page: Page) {
     await r.fulfill({ status: 201, json: { id: movements[0].id, before_balance: before, after_balance: next } });
   });
   await page.route('**/api/products/*/stock', async r => { absoluteStockWrites.push(r.request().postDataJSON()); await r.fulfill({ json: { success: true } }); });
+  await page.route('**/api/invoices', async r => {
+    if (r.request().method() === 'POST') {
+      invoiceBodies.push(r.request().postDataJSON());
+      await r.fulfill({ status: 201, json: { id: 'invoice-1', invoice_number: 'INV-1' } });
+    } else {
+      await r.fulfill({ json: [] });
+    }
+  });
   await page.route('**/api/stock-ledger**', r => {
     const url = new URL(r.request().url());
     const offset = Number(url.searchParams.get('offset') || 0);
@@ -127,6 +137,23 @@ test('receive, sample use, and return record the correct movement direction', as
   }
 });
 
+test('gift and waste submit exact outward movements and refresh their ledger balances', async ({ page }) => {
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
+  for (const [label, type, quantity, expected] of [
+    ['Gift', 'gift', '6', '94'],
+    ['Waste', 'waste', '4', '90'],
+  ] as const) {
+    await page.getByRole('button', { name: label, exact: true }).click();
+    await page.getByLabel('Quantity').fill(quantity);
+    await page.getByLabel('Movement note').fill(`${label} detail`);
+    await page.getByRole('button', { name: 'Record movement' }).click();
+    expect(movementBodies.at(-1)).toMatchObject({ movement_type: type, quantity: Number(quantity), expected_balance: Number(expected) + Number(quantity) });
+    await expect(page.getByText(`Cloud · ${expected}g`)).toBeVisible();
+    await expect(page.getByText(`${label} detail`)).toBeVisible();
+    await expect(page.getByText(`${Number(expected) + Number(quantity)}g → ${expected}g`)).toBeVisible();
+  }
+});
+
 test('prevents insufficient stock inline and preserves form after an API error', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await page.getByRole('button', { name: 'Gift', exact: true }).click();
@@ -166,6 +193,12 @@ test('quick edit opens Recount and full product edit opens movements without abs
   await row.dispatchEvent('pointerup');
   await page.getByRole('button', { name: 'Recount stock for Cloud Oolong' }).click();
   await expect(page.getByRole('button', { name: 'Recount', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel('New balance').fill('88');
+  await page.getByRole('button', { name: 'Record movement' }).click();
+  expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'recount', balance: 88, expected_balance: 100 });
+  await expect(page.getByText('Cloud · 88g')).toBeVisible();
+  await expect(page.getByText('100g → 88g')).toBeVisible();
+  expect(absoluteStockWrites).toHaveLength(0);
   await page.getByRole('button', { name: 'Close stock movement' }).click();
 
   await page.getByText('Cloud Oolong').click();
@@ -177,9 +210,18 @@ test('quick edit opens Recount and full product edit opens movements without abs
 
 test('invoice-driven sale remains available and Sale is not an ad-hoc movement action', async ({ page }) => {
   await page.getByText('Cloud Oolong').click();
-  await expect(page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Invoice' })).toBeVisible();
-  await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  await expect(page.getByRole('button', { name: 'Sale', exact: true })).toHaveCount(0);
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Invoice' }).click();
+  await expect(page.getByRole('heading', { name: 'New Invoice' })).toBeVisible();
+  await expect(page.locator('input[value="Cloud"]')).toBeVisible();
+  await page.getByPlaceholder('Name or search existing customer…').fill('Field Buyer');
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.getByRole('heading', { name: 'New Invoice' })).toHaveCount(0);
+  expect(invoiceBodies).toHaveLength(1);
+  expect(invoiceBodies[0]).toMatchObject({
+    invoice: { customer_name: 'Field Buyer', status: 'Draft' },
+    lineItems: [{ product_id: 'tea-1', quantity: 10 }],
+  });
+  expect(movementBodies.filter(body => body.movement_type === 'sale')).toHaveLength(0);
 });
 
 test('mobile panel is full width, closes without breaking scroll, and returns focus', async ({ page }) => {
