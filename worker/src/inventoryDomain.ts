@@ -144,3 +144,54 @@ export function stockMovementFingerprint(input: StockMovementInput): string {
     source_invoice_number: input.source_invoice_number, source_compass_entry_id: input.source_compass_entry_id,
   });
 }
+
+export interface DecodedInventoryImportRow {
+  rowIndex: number;
+  purpose: InventoryPurpose;
+  issues: string[];
+  canImport: boolean;
+  openingBalance: { quantity: number; unit: ReceiptUnit; before: 0; after: number } | null;
+  movements: Array<{ movement_type: 'receipt'; quantity: number; unit: ReceiptUnit }>;
+}
+
+const missingImportValue = (value: unknown) => value == null || String(value).trim() === '' || ['unknown', 'null', 'undefined', 'nan'].includes(String(value).trim().toLowerCase());
+
+export function decodeInventoryImportRow(
+  row: Record<string, unknown>,
+  rowIndex: number,
+  defaults: { purpose?: InventoryPurpose } = {},
+): DecodedInventoryImportRow {
+  const purpose = row.inventory_purpose == null && row.is_sample == null && row.is_personal == null
+    ? (defaults.purpose || 'working')
+    : decodeInventoryPurposeWrite(row).inventory_purpose;
+  const issues: string[] = [];
+  if (missingImportValue(row.type)) issues.push('Missing Type');
+  if (missingImportValue(row.product_name) && missingImportValue(row.given_name)) issues.push('Missing Name');
+  const isUnit = String(row.type || '').toLowerCase() === 'teaware' || row.quantity_units != null;
+  const rawQuantity = isUnit ? row.quantity_units : row.stock_grams;
+  const quantity = missingImportValue(rawQuantity) ? 0 : Number(rawQuantity);
+  if (!Number.isFinite(quantity) || quantity < 0 || (isUnit && !Number.isInteger(quantity))) issues.push('Invalid Stock');
+  const openingBalance = quantity > 0 && Number.isFinite(quantity)
+    ? { quantity, unit: (isUnit ? 'unit' : 'g') as ReceiptUnit, before: 0 as const, after: quantity }
+    : null;
+  return {
+    rowIndex, purpose, issues, canImport: issues.length === 0, openingBalance,
+    movements: openingBalance ? [{ movement_type: 'receipt', quantity, unit: openingBalance.unit }] : [],
+  };
+}
+
+export function inventoryImportIdempotencyKey(receiptLabel: string, row: Record<string, unknown>, rowIndex: number): string {
+  const canonical = JSON.stringify({ receiptLabel: receiptLabel.trim(), rowIndex, row: Object.keys(row).sort().map(key => [key, row[key]]) });
+  let hash = 2166136261;
+  for (let i = 0; i < canonical.length; i += 1) hash = Math.imul(hash ^ canonical.charCodeAt(i), 16777619);
+  return `inventory-import:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+export function summarizeInventoryImport(rows: DecodedInventoryImportRow[]) {
+  return {
+    total: rows.length,
+    ready: rows.filter(row => row.canImport).length,
+    issues: rows.filter(row => !row.canImport).length,
+    physical: rows.filter(row => row.openingBalance !== null).length,
+  };
+}

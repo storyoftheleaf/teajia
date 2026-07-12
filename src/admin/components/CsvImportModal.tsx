@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, FileQuestion, ChevronDown } from 'lucide-react';
+import { Upload, X, CheckCircle, Trash2, Loader2, Download, AlertTriangle, ChevronDown } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useToast } from './Toast';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -23,6 +23,7 @@ interface StagingRow {
   originRegion: string;
   status: string; // 'Active' or 'Draft'
   isPersonal: boolean;
+  purpose: 'working' | 'sample' | 'personal';
   canReorder: boolean;
   description: string;
   lore: string;
@@ -64,7 +65,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   const [stage, setStage] = useState<'upload' | 'staging' | 'uploading'>('upload');
   const [intakeBatchId, setIntakeBatchId] = useState<string | null>(null);
   const [stagingData, setStagingData] = useState<StagingRow[]>([]);
-  const [validationSummary, setValidationSummary] = useState({ valid: 0, drafts: 0 });
+  const [issueFilter, setIssueFilter] = useState<'all' | 'ready' | 'issues'>('all');
+  const [defaultPurpose, setDefaultPurpose] = useState<'working' | 'sample' | 'personal'>('working');
+  const [receiptLabel, setReceiptLabel] = useState('');
   
   // Progress State
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -122,7 +125,8 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         'Cost Currency': 'NT',
         Vendor: 'Chen Family',
         Restockable: 'Yes',
-        'Personal Collection': 'No'
+        'Personal Collection': 'No',
+        Purpose: 'Working'
       },
       {
         Type: 'Sheng',
@@ -136,7 +140,8 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
         'Cost Currency': 'RMB',
         Vendor: 'Farmer Li',
         Restockable: '',
-        'Personal Collection': 'Yes'
+        'Personal Collection': 'Yes',
+        Purpose: 'Personal'
       }
     ];
 
@@ -181,6 +186,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           // Boolean flags
           const getPersonal = () => getSafeValue(row, ['Personal Collection', 'Personal', 'Is Personal']);
           const getRestockable = () => getSafeValue(row, ['Restockable', 'Restock', 'Can Reorder']);
+          const purposeValue = String(getSafeValue(row, ['Purpose', 'Inventory Purpose']) || '').trim().toLowerCase();
 
           // Teaware-specific fields
           const getMaterial = () => getSafeValue(row, ['Material', 'Clay', 'Body']);
@@ -210,6 +216,8 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             originCountry: (getOriginCountry() || '').trim(),
             originRegion: (getOriginRegion() || '').trim(),
             isPersonal: isYes(getPersonal()),
+            purpose: purposeValue === 'sample' || purposeValue === 'personal' || purposeValue === 'working'
+              ? purposeValue : (isYes(getPersonal()) ? 'personal' : defaultPurpose),
             canReorder: isYes(getRestockable()),
             description: (getSafeValue(row, ['Description', 'Desc']) || '').trim(),
             lore: (getSafeValue(row, ['Lore', 'Story', 'Stories', 'History', 'Background']) || '').trim(),
@@ -234,22 +242,29 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           return newRow;
         });
         setStagingData(rows);
-        updateSummary(rows);
         setStage('staging');
       }
     });
   };
 
-  const updateSummary = (rows: StagingRow[]) => {
-    const valid = rows.filter(r => r.isValid && r.status === 'Active').length;
-    const drafts = rows.filter(r => r.isValid && r.status === 'Draft').length;
-    setValidationSummary({ valid, drafts });
-  };
-
   const deleteRow = (id: string) => {
     const newData = stagingData.filter(r => r.id !== id);
     setStagingData(newData);
-    updateSummary(newData);
+  };
+
+  const updateRow = (id: string, patch: Partial<StagingRow>) => {
+    const next = stagingData.map(row => {
+      if (row.id !== id) return row;
+      const updated = { ...row, ...patch };
+      const validation = validateRow(updated);
+      return { ...updated, ...validation };
+    });
+    setStagingData(next);
+  };
+
+  const applyPurposeToAll = (purpose: 'working' | 'sample' | 'personal') => {
+    setDefaultPurpose(purpose);
+    setStagingData(rows => rows.map(row => ({ ...row, purpose, isPersonal: purpose === 'personal' })));
   };
 
   const handleCommit = async () => {
@@ -337,6 +352,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           description: r.description || null,
           status: r.status,
           is_personal: !!r.isPersonal,
+          inventory_purpose: r.purpose,
           can_reorder: !!r.canReorder,
           lore: r.lore || null,
           tasting_notes: r.tastingNotes ? r.tastingNotes.split(',').map((s: string) => s.trim()).filter(Boolean) : null,
@@ -368,7 +384,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     try {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            await api.products.bulkCreate(batch, intakeBatchId ?? undefined);
+            await api.products.bulkCreate(batch, intakeBatchId ?? undefined, receiptLabel.trim() || undefined);
 
             processedCount += batch.length;
             setUploadProgress(processedCount);
@@ -385,6 +401,12 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   };
 
   if (!isOpen) return null;
+
+  const visibleRows = stagingData.filter(row => issueFilter === 'all' || (issueFilter === 'ready' ? row.isValid : !row.isValid));
+  const physicalCount = stagingData.filter(row => {
+    const value = row.type.toLowerCase() === 'teaware' ? row.quantityUnits : row.stockAmount;
+    return Number(String(value).replace(/[^0-9.-]/g, '')) > 0;
+  }).length;
 
   const stepNumber = stage === 'upload' ? 1 : stage === 'staging' ? 2 : 3;
   const stepLabel = stage === 'upload' ? 'Upload' : stage === 'staging' ? 'Review' : 'Import';
@@ -435,11 +457,19 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
           {stage === 'staging' && (
             <div className="h-full flex flex-col">
-                  <div className="flex justify-between items-center mb-4 text-sm">
-                 <div className="flex gap-4">
-                    <span className="flex items-center gap-2 text-tea-text"><CheckCircle size={14} /> {validationSummary.valid} Active</span>
-                    <span className="flex items-center gap-2 text-tea-text-sec"><FileQuestion size={14} /> {validationSummary.drafts} Drafts (Missing Info)</span>
+              <div className="flex flex-wrap justify-between items-center mb-4 gap-3 text-sm">
+                 <div className="flex flex-wrap gap-2" aria-label="Import review counts">
+                    <button type="button" onClick={() => setIssueFilter('all')} className="tap-target px-2 py-1 rounded-md border border-tea-border text-tea-text">{stagingData.length} Total</button>
+                    <button type="button" onClick={() => setIssueFilter('ready')} className="tap-target px-2 py-1 rounded-md border border-tea-border text-tea-text"><CheckCircle size={14} className="inline mr-1" />{stagingData.filter(r => r.isValid).length} Ready</button>
+                    <button type="button" onClick={() => setIssueFilter('issues')} className="tap-target px-2 py-1 rounded-md border border-tea-border text-tea-text-sec"><AlertTriangle size={14} className="inline mr-1" />{stagingData.filter(r => !r.isValid).length} Issues</button>
+                    <span className="px-2 py-1 text-tea-text-sec">{physicalCount} opening balance{physicalCount === 1 ? '' : 's'}</span>
                  </div>
+                 <label className="flex items-center gap-2 text-ui-12 text-tea-text-sec">
+                   Purpose for all
+                   <select aria-label="Purpose for all rows" value={defaultPurpose} onChange={e => applyPurposeToAll(e.target.value as 'working' | 'sample' | 'personal')} className="bg-tea-surface border border-tea-border rounded-md px-2 py-1 text-tea-text">
+                     <option value="working">Working</option><option value="sample">Sample</option><option value="personal">Personal</option>
+                   </select>
+                 </label>
               </div>
 
               {/* Mobile card list */}
@@ -447,7 +477,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                 <div className="label-caps text-tea-text-sec px-1 pb-2">
                   Reviewing {stagingData.length} item{stagingData.length !== 1 ? 's' : ''}
                 </div>
-                {stagingData.map((row, idx) => {
+                {visibleRows.map((row, idx) => {
                   const isExpanded = expandedRowId === row.id;
                   const hasErrors = row.errors.length > 0;
                   return (
@@ -501,14 +531,18 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                               {row.errors.join(' · ')}
                             </div>
                           )}
+                          {Number(row.type.toLowerCase() === 'teaware' ? row.quantityUnits : row.stockAmount) > 0 && (
+                            <p className="mb-3 text-ui-12 text-tea-text-sec">Opening balance: 0 → {row.type.toLowerCase() === 'teaware' ? row.quantityUnits : row.stockAmount}{row.type.toLowerCase() === 'teaware' ? ' units' : 'g'} · one receipt movement</p>
+                          )}
                           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                            <label>Purpose<select aria-label={`Purpose for ${row.productName || row.givenName || `row ${idx + 1}`}`} value={row.purpose} onChange={e => updateRow(row.id, { purpose: e.target.value as StagingRow['purpose'], isPersonal: e.target.value === 'personal' })} className="block mt-1 bg-tea-surface border border-tea-border rounded-md px-2 py-1"><option value="working">Working</option><option value="sample">Sample</option><option value="personal">Personal</option></select></label>
                             <div>
                               <dt className="label-caps text-tea-text-dim">Product Name</dt>
-                              <dd className="text-tea-text font-serif mt-0.5">{row.productName || '—'}</dd>
+                              <dd><input aria-label={`Product name row ${idx + 1}`} value={row.productName} onChange={e => updateRow(row.id, { productName: e.target.value })} className="w-full mt-1 bg-tea-surface border border-tea-border rounded-md px-2 py-1 text-tea-text" /></dd>
                             </div>
                             <div>
                               <dt className="label-caps text-tea-text-dim">Type</dt>
-                              <dd className={`mt-0.5 ${isMissingOrUnknown(row.type) ? 'text-tea-gold/80 italic' : 'text-tea-text'}`}>{row.type || '—'}</dd>
+                              <dd><input aria-label={`Type row ${idx + 1}`} value={row.type} onChange={e => updateRow(row.id, { type: e.target.value })} className="w-full mt-1 bg-tea-surface border border-tea-border rounded-md px-2 py-1 text-tea-text" /></dd>
                             </div>
                             {row.year && (
                               <div>
@@ -568,6 +602,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                   <thead className="bg-tea-bg label-caps text-tea-text-dim sticky top-0 z-sticky">
                     <tr>
                       <th className="p-3 border-b border-tea-border">State</th>
+                      <th className="p-3 border-b border-tea-border">Purpose</th>
                       <th className="p-3 border-b border-tea-border">Type</th>
                       <th className="p-3 border-b border-tea-border">Given Name</th>
                       <th className="p-3 border-b border-tea-border">Product Name</th>
@@ -583,7 +618,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-tea-border">
-                    {stagingData.map(row => (
+                    {visibleRows.map(row => (
                       <tr key={row.id} className="hover:bg-tea-bg/30 transition-colors">
                         <td className="p-2 text-center">
                             {row.errors.length > 0 ? (
@@ -596,9 +631,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                                 <span className="px-1.5 py-0.5 rounded-md bg-tea-text/10 text-tea-text border border-tea-text/20 text-ui-10 font-mono">ACTIVE</span>
                             )}
                         </td>
-                        <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-gold/10' : ''}`}>{row.type}</td>
+                        <td className="p-2"><select aria-label={`Purpose for ${row.productName || row.givenName}`} value={row.purpose} onChange={e => updateRow(row.id, { purpose: e.target.value as StagingRow['purpose'], isPersonal: e.target.value === 'personal' })} className="bg-tea-surface border border-tea-border rounded-md px-2 py-1 text-tea-text"><option value="working">Working</option><option value="sample">Sample</option><option value="personal">Personal</option></select></td>
+                        <td className={`p-2 text-tea-text-sec ${isMissingOrUnknown(row.type) ? 'bg-tea-gold/10' : ''}`}><input aria-label={`Type for ${row.productName || row.givenName || 'unnamed row'}`} value={row.type} onChange={e => updateRow(row.id, { type: e.target.value })} className="w-28 bg-transparent border-b border-tea-border px-1 py-1 text-tea-text" /></td>
                         <td className="p-2 text-tea-text">{row.givenName}</td>
-                        <td className="p-2 text-tea-text font-serif">{row.productName}</td>
+                        <td className="p-2 text-tea-text font-serif"><input aria-label={`Product name for ${row.productName || row.givenName || 'unnamed row'}`} value={row.productName} onChange={e => updateRow(row.id, { productName: e.target.value })} className="w-40 bg-transparent border-b border-tea-border px-1 py-1 text-tea-text" /></td>
                         <td className="p-2 text-tea-text-sec font-serif italic">{row.year}</td>
 
                         <td className={`p-2 bg-tea-bg/30 font-mono ${isMissingOrUnknown(row.grams) ? 'text-tea-text-sec italic' : 'text-tea-text'}`}>{row.grams}</td>
@@ -641,16 +677,19 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
 
         {stage === 'staging' && (
           <div className="border-t border-tea-border bg-tea-bg/40 rounded-b-xl flex-shrink-0">
-            <div className="px-5 pt-3 pb-1 max-w-sm">
-              <BatchPicker value={intakeBatchId} onChange={setIntakeBatchId} label="Add this import to batch" />
+            <div className="px-5 pt-3 pb-1 flex flex-wrap gap-3">
+              <div className="w-full max-w-sm"><BatchPicker value={intakeBatchId} onChange={setIntakeBatchId} label="Add this import to batch" /></div>
+              <label className="w-full max-w-sm text-ui-12 text-tea-text-sec">Receipt / invoice label
+                <input value={receiptLabel} onChange={e => setReceiptLabel(e.target.value)} placeholder="Invoice, WeChat order, or delivery" className="mt-1 w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-tea-text" />
+              </label>
             </div>
             <div className="flex justify-between gap-2 px-5 py-3">
               <div className="flex items-center gap-3">
                 <button onClick={onClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
                 <button onClick={() => setStage('upload')} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Back</button>
               </div>
-              <button onClick={handleCommit} disabled={stagingData.length === 0} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
-                  Import All ({stagingData.length})
+              <button onClick={handleCommit} disabled={!stagingData.some(row => row.isValid)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+                  Import Ready ({stagingData.filter(row => row.isValid).length})
               </button>
             </div>
           </div>

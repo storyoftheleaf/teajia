@@ -945,10 +945,10 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
-    bulkCreate: async (products: Record<string, any>[], batchId?: string) => {
+    bulkCreate: async (products: Record<string, any>[], batchId?: string, receiptLabel?: string) => {
       return authedFetch(`${API_URL}/api/products/bulk`, {
         method: 'POST',
-        body: JSON.stringify({ products, batch_id: batchId }),
+        body: JSON.stringify({ products, batch_id: batchId, receipt_label: receiptLabel }),
       });
     },
     update: async (id: string, data: Record<string, any>) => {

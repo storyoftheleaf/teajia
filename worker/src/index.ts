@@ -10,7 +10,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 
 interface Env {
   DB: D1Database;
@@ -2170,7 +2170,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
-  const { products, batch_id } = await request.json() as { products: Record<string, any>[]; batch_id?: string };
+  const { products, batch_id, receipt_label } = await request.json() as { products: Record<string, any>[]; batch_id?: string; receipt_label?: string };
 
   if (!Array.isArray(products) || products.length > 100) {
     return new Response(JSON.stringify({ error: 'Bulk create limited to 100 products per request' }), { status: 400 });
@@ -2204,10 +2204,11 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   );
 
   const toInsert: any[] = [];
-  const ledgerInserts: any[] = [];
+  const openingBalances: Array<{ id: string; input: StockMovementInput }> = [];
   const skipped: string[] = [];
 
-  for (const raw of products) {
+  for (let rowIndex = 0; rowIndex < products.length; rowIndex += 1) {
+    const raw = products[rowIndex];
     // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
     const body: Record<string, any> = {};
     for (const [k, v] of Object.entries(raw)) {
@@ -2220,6 +2221,8 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     try { purposeWrite = decodeInventoryPurposeWrite(body); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
     Object.assign(body, purposeWrite);
+    const decodedImport = decodeInventoryImportRow(body, rowIndex);
+    if (!decodedImport.canImport) return json({ error: `Row ${rowIndex + 1}: ${decodedImport.issues.join(', ')}` }, 400);
     if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
       body.stock_known_at = new Date().toISOString();
     }
@@ -2256,6 +2259,18 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
     const id = crypto.randomUUID();
+    const opening = decodedImport.openingBalance;
+    if (opening) {
+      body[opening.unit === 'g' ? 'stock_grams' : 'quantity_units'] = 0;
+      openingBalances.push({
+        id,
+        input: decodeStockMovement({
+          movement_type: 'receipt', quantity: opening.quantity, unit: opening.unit, expected_balance: 0,
+          idempotency_key: inventoryImportIdempotencyKey(receipt_label || importBatchId, raw, rowIndex),
+          note: `Imported · ${receipt_label?.trim() || 'Stock import'}`, batch_id: importBatchId,
+        }),
+      });
+    }
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
     toInsert.push(
@@ -2266,27 +2281,17 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     // so bulk-imported tea behaves identically (partner catalog browse, per-account
     // listing fields, owner/shown_in_shop). No-op for teaware.
     toInsert.push(...buildProductMirrorInserts(env, id, accountId, body));
-    // Opening stock becomes a PURCHASE_RECEIPT intake event, stamped with the import's
-    // batch — so a bulk-imported order is batch-filterable and leaves an audit trace.
-    const openingStock = Number(body.stock_grams ?? body.quantity_units ?? 0);
-    if (openingStock > 0) {
-      ledgerInserts.push(
-        env.DB.prepare(
-          `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id)
-           VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, 'Imported', ?, ?)`
-        ).bind(crypto.randomUUID(), id, openingStock, openingStock, ctx.email ?? null, importBatchId, accountId)
-      );
-    }
   }
 
   for (let i = 0; i < toInsert.length; i += 100) {
     await env.DB.batch(toInsert.slice(i, i + 100));
   }
-  for (let i = 0; i < ledgerInserts.length; i += 100) {
-    await env.DB.batch(ledgerInserts.slice(i, i + 100));
+  for (const opening of openingBalances) {
+    const result = await applyStockMovement(env, ctx, opening.id, opening.input);
+    if (result.status >= 400) return json(result.value, result.status);
   }
 
-  return json({ inserted: toInsert.length, skipped: skipped.length, skippedNames: skipped });
+  return json({ inserted: products.length - skipped.length, movements: openingBalances.length, skipped: skipped.length, skippedNames: skipped });
 };
 
 const PRODUCT_UPDATE_COLUMNS = new Set([
