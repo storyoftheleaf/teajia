@@ -182,6 +182,33 @@ export async function getCurateImport(_request: Request, env: ImportEnv, ctx: Cu
   return result ? response(result) : response({ error: 'Import not found' }, 404);
 }
 
+export async function addCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  if (!await scopedBatch(env, params.id, ctx.accountId)) return response({ error: 'Import not found' }, 404);
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const category = typeof body.category === 'string' ? body.category : 'tea';
+  if (!ITEM_CATEGORIES.has(category)) return response({ error: 'Invalid category' }, 400);
+  let name: string | null;
+  try { name = text(body.name, 500, true); } catch { return response({ error: 'Name is required' }, 400); }
+  const sourceId = typeof body.source_id === 'string' ? body.source_id : null;
+  if (sourceId && !await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND batch_id = ? AND account_id = ?').bind(sourceId, params.id, ctx.accountId).first()) return response({ error: 'Source must belong to this import' }, 400);
+  const existing = await env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ?').bind(params.id, ctx.accountId).all<Record<string, unknown>>();
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, params.id, sourceId, ctx.accountId, ctx.userId, existing.results.length, category, name, null, '{}', null, '{}', 'pending', null, crypto.randomUUID()).run();
+  await refreshImportBatchState(env, params.id, ctx.accountId);
+  return response(itemRow((await scopedItem(env, params.id, id, ctx.accountId))!), 201);
+}
+
+export async function abandonCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  await env.DB.prepare("UPDATE curate_import_batches SET review_state = 'abandoned', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(params.id, ctx.accountId).run();
+  return response({ success: true, id: params.id, review_state: 'abandoned' });
+}
+
 export async function listIncompleteCurateImports(_request: Request, env: ImportEnv, ctx: CurateImportContext) {
   const batches = await env.DB.prepare(
     "SELECT * FROM curate_import_batches WHERE account_id = ? AND review_state != 'completed' AND review_state != 'abandoned' ORDER BY updated_at DESC, created_at DESC LIMIT 25"
@@ -364,6 +391,7 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!item) return response({ error: 'Import item not found' }, 404);
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
+  if (Object.keys(parseJson(item.uncertainty_json, {})).length > 0) return response({ error: 'Review uncertain fields before accepting this item' }, 409);
   if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
   const compassId = typeof item.reserved_compass_entry_id === 'string' ? item.reserved_compass_entry_id : '';
   if (!compassId) return response({ error: 'Import item has no Compass reservation' }, 409);

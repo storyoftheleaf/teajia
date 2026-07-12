@@ -70,6 +70,7 @@ class ImportStatement {
       const set = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
       const columns = [...set.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
       columns.forEach((column, index) => { row[column] = this.values[index]; });
+      if (sql.includes("set review_state = 'abandoned'")) row.review_state = 'abandoned';
       return { success: true, meta: { changes: 1 } };
     }
     return { success: true, meta: { changes: 0 } };
@@ -126,6 +127,27 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
 }
 
 describe('Curate import provenance API', () => {
+  it('resolves an evidence-only batch by adding a manual item or abandoning it', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Evidence only' }) });
+    const { batch } = await created.json() as any;
+    const added = await request(db, `/api/curate/imports/${batch.id}/items`, { method: 'POST', body: JSON.stringify({ name: 'Manual tea', category: 'tea' }) });
+    expect(added.status).toBe(201);
+    expect(await added.json()).toMatchObject({ name: 'Manual tea', category: 'tea', review_state: 'pending' });
+    const abandoned = await request(db, `/api/curate/imports/${batch.id}/abandon`, { method: 'POST' });
+    expect(abandoned.status).toBe(200);
+    expect(db.batches.get(batch.id)?.review_state).toBe('abandoned');
+    expect((await (await request(db, '/api/curate/imports?state=incomplete')).json() as any).imports).toHaveLength(0);
+  });
+
+  it('rejects acceptance until uncertainty is explicitly cleared on the server', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Uncertain', items: [{ name: 'Maybe', uncertainty: { name: 'unclear' } }] }) });
+    const { batch, items } = await created.json() as any;
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(409);
+    await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ uncertainty: {} }) });
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(201);
+  });
   it('completes a batch only after every item is resolved and excludes it from recovery', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Lifecycle', items: [{ name: 'One' }, { name: 'Two' }] }) });

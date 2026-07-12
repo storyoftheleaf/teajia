@@ -72,6 +72,15 @@ async function installImportApi(page: Page) {
       sources.push(source);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
+    if (method === 'POST' && /\/abandon$/.test(path)) {
+      if (batch) batch.review_state = 'abandoned';
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, review_state: 'abandoned' }) });
+    }
+    if (method === 'POST' && /\/items$/.test(path)) {
+      const body = request.postDataJSON();
+      const item = { id: `item-${items.length}`, batch_id: 'batch-1', source_id: body.source_id || null, position: items.length, category: body.category, name: body.name, raw_text: null, parsed_data: {}, confidence: null, uncertainty: {}, review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: `compass-${items.length}` } as ImportItem;
+      items.push(item); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(item) });
+    }
     const updateMatch = path.match(/\/items\/(item-\d+)$/);
     if (method === 'PUT' && updateMatch) {
       const item = items.find(candidate => candidate.id === updateMatch[1])!;
@@ -135,7 +144,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('button', { name: 'Accept Red Jade corrected' })).toBeDisabled();
     await page.getByRole('button', { name: /^Ali Shan/ }).click();
     await page.getByRole('button', { name: 'Merge Ali Shan' }).click();
-    await page.getByLabel('Reviewed uncertain fields').check();
+    await page.getByLabel('Reviewed uncertain fields').click();
     await page.getByRole('button', { name: 'Accept Red Jade corrected' }).click();
     await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toHaveValue('Red Jade corrected');
     await page.getByRole('button', { name: 'Import' }).first().click();
@@ -190,7 +199,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await page.getByRole('button', { name: /^Wrong Name/ }).click();
     await page.getByLabel('Corrected name').fill('Correct Name');
-    await page.getByLabel('Category').selectOption('teaware');
+    await page.getByTestId('import-item-row').filter({ hasText: 'Wrong Name' }).locator('select').selectOption('teaware');
     await page.getByLabel('Origin').fill('Yixing');
     await page.getByRole('button', { name: 'Save corrections' }).click();
     await page.getByRole('button', { name: 'Accept Correct Name' }).click();
@@ -229,6 +238,29 @@ test.describe('Curate Import panel', () => {
     const retrieval = page.waitForRequest(request => request.method() === 'GET' && request.url().includes('/sources/evidence-0/content'));
     await page.getByRole('button', { name: 'Open invoice.pdf' }).click();
     await retrieval;
+  });
+
+  test('resolves an evidence-only batch with a manual item or explicit abandon', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-evidence') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await page.getByLabel('Manual review item name').fill('Manual tea');
+    await page.getByRole('button', { name: 'Add review item' }).click();
+    await expect(page.getByText('Manual tea')).toBeVisible();
+    await page.getByRole('button', { name: 'Abandon import' }).click();
+    await expect(page.getByRole('button', { name: /invoice: 1 items/ })).toHaveCount(0);
+  });
+
+  test('keeps 25 recovered batches compact and capture visible without overflow', async ({ page }) => {
+    const imports = Array.from({ length: 25 }, (_, index) => ({ batch: { id: `batch-${index}`, title: `Batch ${index}`, review_state: 'pending', journey_id: null, visit_id: null }, sources: [{ id: `source-${index}`, batch_id: `batch-${index}`, kind: 'paste', pasted_text: `Batch ${index}`, r2_object_key: null, metadata: {} }], items: [] }));
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports }) }));
+    await openCompass(page);
+    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(2);
+    await page.getByRole('button', { name: '23 more imports' }).click();
+    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(25);
+    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 
   test('retries only the failed attachment after a partial upload', async ({ page }) => {

@@ -93,11 +93,11 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     setState(current => ({ ...current, detail })); onDetailChange(detail);
   };
   const updateItem = async (item: CurateImportItem, updates: Partial<CurateImportItem>) => {
-    if (busyId) return;
+    if (busyId) return false;
     setBusyId(item.id);
     const action = async () => { replaceItem(await api.curateImports.updateItem(item.batch_id, item.id, updates)); await refreshDetail(item.batch_id); };
-    try { setOperationError(null); await action(); }
-    catch (error) { retryAction.current = action; setOperationError(error instanceof Error ? error.message : 'Could not save correction'); }
+    try { setOperationError(null); await action(); return true; }
+    catch (error) { retryAction.current = action; setOperationError(error instanceof Error ? error.message : 'Could not save correction'); return false; }
     finally { setBusyId(null); }
   };
   const accept = async (item: CurateImportItem, open = true) => {
@@ -120,6 +120,20 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     const remaining = state.detail?.items.filter(item => (item.review_state === 'pending' || item.review_state === 'reviewing') && Object.keys(item.uncertainty || {}).length === 0) || [];
     for (const item of remaining) await accept(item, false);
   };
+  const addItem = async (name: string, category: 'tea' | 'teaware') => {
+    if (!state.detail || busyId) return;
+    setBusyId('__add');
+    try { setOperationError(null); await api.curateImports.addItem(state.detail.batch.id, { name, category, source_id: state.detail.sources[0]?.id }); await refreshDetail(state.detail.batch.id); }
+    catch (error) { setOperationError(error instanceof Error ? error.message : 'Could not add review item'); }
+    finally { setBusyId(null); }
+  };
+  const abandon = async () => {
+    if (!state.detail || busyId) return;
+    setBusyId('__abandon');
+    try { setOperationError(null); await api.curateImports.abandon(state.detail.batch.id); onDetailChange({ ...state.detail, batch: { ...state.detail.batch, review_state: 'abandoned' } }); onClose(); }
+    catch (error) { setOperationError(error instanceof Error ? error.message : 'Could not abandon import'); }
+    finally { setBusyId(null); }
+  };
 
   return (
     <div className="fixed inset-0 z-modal flex bg-tea-bg/80" role="presentation">
@@ -132,8 +146,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
           {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} />}
           {state.phase === 'parsing' && <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Parsing your evidence…</div>}
           {state.phase === 'error' && <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p><button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button></div>}
-          {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" onClick={() => retryAction.current?.()} className="tap-target text-tea-gold">Retry action</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={state.detail} busyId={busyId} onUpdate={updateItem} onAccept={accept} onMerge={merge} onAcceptAll={acceptAll} onDefer={onClose} onNew={onNew} />}
+          {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
+          {state.phase === 'review' && state.detail && <ImportBatchReview detail={state.detail} busyId={busyId} onUpdate={updateItem} onAccept={accept} onMerge={merge} onAcceptAll={acceptAll} onDefer={onClose} onNew={onNew} onAddItem={addItem} onAbandon={abandon} />}
         </div>
       </div>
     </div>

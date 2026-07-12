@@ -4,7 +4,7 @@ import {
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 import {
-  acceptCurateImportItem, addCurateImportSource, createCurateImport, getCurateImport,
+  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, createCurateImport, getCurateImport,
   getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem, updateCurateImportItem, uploadCurateImportEvidence,
   type CurateImportContext,
 } from './curateImports';
@@ -18613,6 +18613,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/imports', withCurateImportAccount(createCurateImport)],
   ['GET', '/api/curate/imports', withCurateImportAccount(listIncompleteCurateImports)],
   ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
+  ['POST', '/api/curate/imports/:id/abandon', withCurateImportAccount(abandonCurateImport)],
+  ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem)],
   ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence)],
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
   ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource)],

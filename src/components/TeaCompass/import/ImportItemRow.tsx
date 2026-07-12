@@ -5,7 +5,7 @@ import type { CurateImportItem } from '../../../lib/api';
 interface ImportItemRowProps {
   item: CurateImportItem;
   busy: boolean;
-  onUpdate: (updates: Partial<CurateImportItem>) => void;
+  onUpdate: (updates: Partial<CurateImportItem>) => Promise<boolean>;
   onAccept: () => void;
   onMerge: () => void;
 }
@@ -42,7 +42,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
                 <label className="text-ui-11 text-tea-text-sec">Price<input value={price} onChange={event => setPrice(event.target.value)} inputMode="decimal" className="mt-1 min-h-11 w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-13 text-tea-text focus:border-tea-gold focus:outline-none" /></label>
               </div>
               <button type="button" disabled={busy || !name.trim()} onClick={() => onUpdate({ name: name.trim(), category, parsed_data: { ...item.parsed_data, originRegion: origin.trim() || null, priceAmount: price ? Number(price) : null } })} className="tap-target min-h-11 text-ui-12 text-tea-gold">Save corrections</button>
-              {uncertainty.length > 0 && <label className="flex min-h-11 items-center gap-2 text-ui-12 text-tea-text-sec"><input type="checkbox" checked={uncertaintyReviewed} onChange={event => { setUncertaintyReviewed(event.target.checked); if (event.target.checked) onUpdate({ uncertainty: {} }); }} /> Reviewed uncertain fields</label>}
+              {uncertainty.length > 0 && <label className="flex min-h-11 items-center gap-2 text-ui-12 text-tea-text-sec"><input type="checkbox" checked={uncertaintyReviewed} onChange={async event => { if (!event.target.checked) return setUncertaintyReviewed(false); if (await onUpdate({ uncertainty: {} })) setUncertaintyReviewed(true); }} /> Reviewed uncertain fields</label>}
               <div className="flex flex-wrap items-center justify-between gap-2">
               <button type="button" disabled={busy} onClick={onMerge} aria-label={`Merge ${label}`} className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text">Merge with active entry</button>
               <button type="button" disabled={busy || (uncertainty.length > 0 && !uncertaintyReviewed)} onClick={onAccept} aria-label={`Accept ${label}`} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg disabled:opacity-50">Accept</button>

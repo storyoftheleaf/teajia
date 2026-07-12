@@ -215,6 +215,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [importDetails, setImportDetails] = useState<CurateImportDetail[]>([]);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [importPanelVersion, setImportPanelVersion] = useState(0);
+  const [showAllImports, setShowAllImports] = useState(false);
   const [importPointerId, setImportPointerId] = useState<string | null>(null);
   const importTriggerRef = useRef<HTMLButtonElement>(null);
   const { data: incompleteImports } = useQuery({
@@ -243,9 +244,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (!importDetail) setImportDetail(selected);
   }, [activeAccountId, importAccountId, importDetail, importPointerId, incompleteImports, pointedImport]);
   const rememberImportDetail = useCallback((detail: CurateImportDetail) => {
-    if (detail.batch.review_state === 'completed') {
+    if (detail.batch.review_state === 'completed' || detail.batch.review_state === 'abandoned') {
       setImportDetails(current => current.filter(candidate => candidate.batch.id !== detail.batch.id));
       if (activeAccountId) localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
+      setImportDetail(detail);
+      return;
     } else {
       setImportDetails(current => [detail, ...current.filter(candidate => candidate.batch.id !== detail.batch.id)]);
     }
@@ -759,8 +762,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </div>
 
       {mode === 'sourcing' && importAccountId === activeAccountId && importDetails.length > 0 && (
-        <div className="shrink-0 flex flex-wrap gap-2 border-b border-tea-border px-4 py-2" aria-label="Incomplete imports">
-          {importDetails.map(detail => <ImportBatchChip key={detail.batch.id} detail={detail} onOpen={() => { setImportDetail(detail); setImportPanelVersion(version => version + 1); setImportOpen(true); }} />)}
+        <div className="shrink-0 max-h-40 overflow-y-auto border-b border-tea-border px-4 py-2" aria-label="Incomplete imports">
+          <div className="flex flex-wrap gap-2">{(showAllImports ? importDetails : importDetails.slice(0, 2)).map(detail => <ImportBatchChip key={detail.batch.id} detail={detail} onOpen={() => { setImportDetail(detail); setImportPanelVersion(version => version + 1); setImportOpen(true); }} />)}</div>
+          {importDetails.length > 2 && <button type="button" onClick={() => setShowAllImports(value => !value)} className="tap-target mt-1 min-h-11 text-ui-11 text-tea-gold">{showAllImports ? 'Show fewer imports' : `${importDetails.length - 2} more imports`}</button>}
         </div>
       )}
 
