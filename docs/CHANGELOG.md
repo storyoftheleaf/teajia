@@ -2,6 +2,10 @@
 
 > Shipped work, newest first. For what's next see ROADMAP.md. For active in-progress briefs see ACTIVE_BRIEFS.md.
 
+## 2026-07
+
+- 2026-07-12 — **Curate and purpose-based Inventory ingestion rollout implemented; final integration verification in progress.** Curate preserves its one-tap tea-first field sheet and now saves every deliberate fragment, resumes drafts by account, separates sourcing decision from status, adds optional Journey/Visit context, and provides dimensional Library retrieval. The capture row is Tea / Teaware / Import; pasted lists become grouped review batches, while uploaded image/PDF evidence is retained for manual review rather than OCR-transcribed. Accepting an import records Curate encounters and does not create stock automatically. Physical Inventory is independently classified as Working, Sample, or Personal; readiness requires description, retail price, classification, and known stock; and storefront publication remains an explicit choice. Reviewed receipts drive Incoming, stock changes use idempotent movements, structured stock import shares those primitives, and operational sample portions remain separate from physical Sample holdings. Migrations `099`–`106` cover the additive schema, with clean and legacy-through-`098` migration rehearsals in place. Tasks 1–17 are implemented and independently reviewed; Task 15 is awaiting final branch integration before the complete rollout verification.
+
 ## 2026-06
 
 - 2026-06-12 — **Sample capture minimum + permanent bag photo + library photo view.** Curate capture now commits with just a bag photo + vendor (name optional; auto-named "Vendor · date" when promoted to the library). Products gained a dedicated `bag_photo_url` slot (migration 085, backfilled from compass entries): set at promote from the capture photo, shown as a fourth "Bag" slot in the product image manager, replaceable but never removable, and untouched by product photo edits. The library browse gained a Photos layout toggle: a grid of bag shots with vendor + date captions and an inline per-entry note that saves on blur.

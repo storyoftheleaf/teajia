@@ -3,11 +3,23 @@
 > Comprehensive snapshot of the Teajia platform: what works, what doesn't, where the gaps are. Merges March 2026 audit shards with April 2026 Layer 1/2 audit synthesis. For technical architecture see ARCHITECTURE.md. For what's next see POST_AUDIT_ROADMAP.md.
 
 **Audit period:** March–April 2026
-**Last updated:** 2026-04-27 (post-audit close)
+**Last updated:** 2026-07-12 (Curate and purpose-based Inventory rollout)
 
 ---
 
 ## 1. Executive Summary
+
+### Curate and Inventory ingestion rollout (July 2026)
+
+The approved Curate and Inventory restructuring is implemented through Tasks 1–17 and is in final integration and verification. Curate keeps its one-tap, tea-first field sheet while accepting fragments in the order Adrian receives them. Deliberate drafts resume by account; sourcing decisions are independent from legacy status; optional Journey/Visit context groups encounters; and Library filters make decisions, sample state, source, journey, visit, category, and date directly retrievable.
+
+The former Samples capture tab is now Import, while sample ordering, sets, labels, tastings, events, and gifts remain reachable as distinct workflows. Import accepts pasted vendor or WeChat-style lists and retains uploaded image/PDF evidence for review. It does **not** currently OCR-transcribe uploaded evidence: pasted text is parsed, while images and documents remain attached as source material for manual correction. Accepting an import creates Curate encounters, not physical stock.
+
+Inventory now models physical purpose (`working`, `sample`, or `personal`) separately from readiness, incoming receipts, and storefront publication. Working tea readiness requires a description, positive effective retail price, classification, and explicitly known stock; known zero stock is Ready but unavailable. Photos and tasting profile remain optional. Publication is always an explicit choice and is never inferred from readiness or physical possession.
+
+The stock spine uses reviewed receipts and idempotent movements for receive, sale, sample use, gift, waste, return, recount, and transfer. Incoming is derived from open receipt lines rather than treated as a purpose. Structured Inventory CSV intake routes confirmed physical quantities through the same purpose and movement rules. Operational sample portions may link to an Inventory Sample holding, but creating a portion never silently consumes stock.
+
+Database migrations `099`–`106` add Compass decisions, Journey/Visit context, durable import provenance, sample state, Inventory purpose and known-stock metadata, normalized receipts, canonical stock movements, and concurrency-safe Compass promotion identity. Disposable migration rehearsal covers both a clean schema and a legacy snapshot through migration `098`.
 
 ### What Works
 
