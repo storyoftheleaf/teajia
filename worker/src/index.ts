@@ -12,6 +12,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
+import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 
 interface Env {
@@ -11422,6 +11423,131 @@ const handleGetTastingJournal: Handler = async (request, env) => {
   return json(results);
 };
 
+const handleStarTastingNote: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const journal = await env.DB.prepare(
+    `SELECT id, product_id FROM customer_tasting_journal
+     WHERE id = ? AND account_id = ? AND user_id = ?`
+  ).bind(params.id, ctx.accountId, ctx.email).first<Record<string, any>>();
+  if (!journal?.product_id) return json({ error: 'Journal entry not found' }, 404);
+
+  let input;
+  try { input = parseCandidateInput(await request.json()); }
+  catch (error) { return json({ error: error instanceof Error ? error.message : 'Invalid candidate' }, 400); }
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  await env.DB.prepare(`
+    INSERT INTO tasting_note_candidates
+      (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, source_tasting, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'starred', ?, ?)
+    ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
+      source_text = excluded.source_text,
+      source_tasting = excluded.source_tasting,
+      updated_at = excluded.updated_at
+    WHERE tasting_note_candidates.status = 'starred'
+  `).bind(id, ctx.accountId, journal.id, params.noteKey, journal.product_id, ctx.userId, input.sourceText, input.sourceTasting, now, now).run();
+  const candidate = await env.DB.prepare(
+    `SELECT * FROM tasting_note_candidates WHERE account_id = ? AND author_user_id = ? AND journal_entry_id = ? AND note_key = ?`
+  ).bind(ctx.accountId, ctx.userId, journal.id, params.noteKey).first<Record<string, any>>();
+  if (!candidate) return json({ error: 'Candidate could not be saved' }, 409);
+  if (candidate.status !== 'starred') return json({ error: 'Promoted or dismissed candidates cannot be changed' }, 409);
+  return json(candidateToApi(candidate));
+};
+
+const handleUnstarTastingNote: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const candidate = await env.DB.prepare(`
+    SELECT c.* FROM tasting_note_candidates c
+    JOIN customer_tasting_journal j ON j.id = c.journal_entry_id
+    WHERE c.account_id = ? AND c.author_user_id = ? AND c.journal_entry_id = ?
+      AND c.note_key = ? AND j.account_id = c.account_id AND j.user_id = ?
+  `).bind(ctx.accountId, ctx.userId, params.id, params.noteKey, ctx.email).first<Record<string, any>>();
+  if (!candidate) return json({ error: 'Candidate not found' }, 404);
+  if (candidate.status !== 'starred') return json({ error: 'Promoted or dismissed candidates cannot be removed' }, 409);
+  await env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND author_user_id = ? AND status = 'starred'`)
+    .bind(candidate.id, ctx.accountId, ctx.userId).run();
+  return json({ success: true });
+};
+
+const handleListTastingNoteCandidates: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const requested = new URL(request.url).searchParams.get('status') || 'starred';
+  if (!['starred', 'promoted', 'dismissed'].includes(requested)) return json({ error: 'Invalid status' }, 400);
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM tasting_note_candidates WHERE account_id = ? AND status = ? ORDER BY created_at DESC`
+  ).bind(ctx.accountId, requested).all<Record<string, any>>();
+  return json(results.map(candidateToApi));
+};
+
+const handleUpdateTastingNoteCandidate: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Candidate not found' }, 404);
+  if (existing.status !== 'starred') return json({ error: 'Candidate is no longer editable' }, 409);
+  const body = await request.json() as Record<string, unknown>;
+  const editedText = typeof body.edited_text === 'string' ? body.edited_text.trim() : existing.edited_text;
+  const attributionName = typeof body.attribution_name === 'string' ? body.attribution_name.trim() : existing.attribution_name;
+  const attributionDetail = body.attribution_detail === null || typeof body.attribution_detail === 'string' ? body.attribution_detail : existing.attribution_detail;
+  await env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+    .bind(editedText || null, attributionName || null, attributionDetail, new Date().toISOString(), params.id, ctx.accountId).run();
+  const updated = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return json(candidateToApi(updated!));
+};
+
+const handleDismissTastingNoteCandidate: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const result = await env.DB.prepare(`UPDATE tasting_note_candidates SET status = 'dismissed', dismissed_at = ?, dismissed_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+    .bind(new Date().toISOString(), ctx.userId, new Date().toISOString(), params.id, ctx.accountId).run();
+  if (!result.meta.changes) {
+    const exists = await env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first();
+    return json({ error: exists ? 'Candidate already resolved' : 'Candidate not found' }, exists ? 409 : 404);
+  }
+  return json({ success: true });
+};
+
+const handlePromoteTastingNoteCandidate: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const candidate = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!candidate) return json({ error: 'Candidate not found' }, 404);
+  if (candidate.status !== 'starred') return json({ error: 'Candidate already resolved' }, 409);
+  const text = String(candidate.edited_text || candidate.source_text || '').trim();
+  const attributionName = String(candidate.attribution_name || '').trim();
+  if (!text || !attributionName) return json({ error: 'Final text and attribution name are required' }, 400);
+  const now = new Date().toISOString();
+  const impressionId = crypto.randomUUID();
+  try {
+    const results = await env.DB.batch([
+      env.DB.prepare(`UPDATE tasting_note_candidates SET status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+        .bind(now, ctx.userId, now, params.id, ctx.accountId),
+      env.DB.prepare(`INSERT INTO product_impressions (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(impressionId, ctx.accountId, candidate.product_id, candidate.id, text, attributionName, candidate.attribution_detail || null, now, ctx.userId, now),
+    ]);
+    if (!results[0]?.meta.changes) return json({ error: 'Candidate already resolved' }, 409);
+  } catch {
+    return json({ error: 'Candidate already promoted' }, 409);
+  }
+  return json({ id: impressionId, productId: candidate.product_id, text, attributionName, attributionDetail: candidate.attribution_detail || null, publishedAt: now }, 201);
+};
+
+const handleGetProductImpressions: Handler = async (_request, env, params) => {
+  const { results } = await env.DB.prepare(`
+    SELECT i.* FROM product_impressions i
+    JOIN products p ON p.id = i.product_id AND p.account_id = i.account_id
+    WHERE i.product_id = ? AND p.is_public = 1 AND p.status = 'Active'
+    ORDER BY i.published_at DESC
+  `).bind(params.id).all<Record<string, any>>();
+  return json(results.map(impressionToApi));
+};
+
 // Customer: POST /api/tasting-journal. Accepts the new shape (one entry per
 // productId, with `note` and `tastings` JSON). Upserts on (user_id, product_id).
 // Quick-note sentinel rows are rejected.
@@ -19549,7 +19675,14 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/tasting-journal', handleGetTastingJournal],
   ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
   ['POST', '/api/tasting-journal', handleAddTastingEntry],
+  ['PUT', '/api/tasting-journal/:id/candidates/:noteKey', handleStarTastingNote],
+  ['DELETE', '/api/tasting-journal/:id/candidates/:noteKey', handleUnstarTastingNote],
   ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
+  ['GET', '/api/admin/tasting-note-candidates', handleListTastingNoteCandidates],
+  ['PUT', '/api/admin/tasting-note-candidates/:id', handleUpdateTastingNoteCandidate],
+  ['POST', '/api/admin/tasting-note-candidates/:id/dismiss', handleDismissTastingNoteCandidate],
+  ['POST', '/api/admin/tasting-note-candidates/:id/promote', handlePromoteTastingNoteCandidate],
+  ['GET', '/api/products/:id/impressions', handleGetProductImpressions],
   ['GET', '/api/tea-discovery', handleGetTeaDiscovery],
   ['PUT', '/api/tea-discovery', handlePutTeaDiscovery],
 
