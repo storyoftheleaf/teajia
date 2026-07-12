@@ -502,7 +502,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           draftsByAccount,
         };
       },
-      version: 6,
+      version: 7,
       migrate: migrateCompassPersistedState,
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
@@ -553,6 +553,9 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
           // Older builds queued automatic Done-time promotions. They are not
           // evidence of a deliberate Inventory choice, so never replay them.
           previous.pendingPromotions = [];
+        }
+        if (version < 7 && (previous.libraryFilters?.possession as string | undefined) === 'stock') {
+          previous.libraryFilters = { ...previous.libraryFilters, possession: 'working' };
         }
         return previous;
 }

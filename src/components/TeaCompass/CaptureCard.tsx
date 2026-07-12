@@ -6,7 +6,7 @@ import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
 import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
-import type { TastingData } from '../../types';
+import type { CurateReceiptProposal, InventoryPurposeValue, ReceiptAcquisitionKind, TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, YixingClayType, VendorDetails, TeaCompassEntry } from './types';
@@ -255,6 +255,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [buyingQty, setBuyingQty] = useState(100);
   const [justAddedToLedger, setJustAddedToLedger] = useState(false);
   const [showBuyPicker, setShowBuyPicker] = useState(false);
+  const [receiptPurpose, setReceiptPurpose] = useState<InventoryPurposeValue>('working');
+  const [receiptAcquisition, setReceiptAcquisition] = useState<ReceiptAcquisitionKind>('purchase');
+  const [receiptProposal, setReceiptProposal] = useState<CurateReceiptProposal | null>(null);
+  const [receiptError, setReceiptError] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  useEffect(() => {
+    setReceiptPurpose(entryIsSample(entry) ? 'sample' : (entry.category === 'teaware' ? 'personal' : 'working'));
+    setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
+    setReceiptProposal(null);
+    setReceiptError('');
+  }, [entry.id]);
 
   // Sync price changes back to any matching draft ledger line items
   useEffect(() => {
@@ -1458,7 +1469,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
   const totalPrice = pricePerGram ? buyingQty * pricePerGram : null;
   const buyStep = unitBased ? 1 : 25;
 
-  const handleAddToLedger = () => {
+  const handleAddToLedger = async () => {
     const vendorName = entry.vendorName || 'Unknown Vendor';
     const currency = (entry.priceCurrency || 'NT') as Currency;
     const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
@@ -1478,13 +1489,43 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       currency,
       compassEntryId: entry.id,
     });
-    update({ status: 'in_stock' });
+    setReceiptBusy(true);
+    setReceiptError('');
+    try {
+      const proposal = await api.compass.proposeReceipt(entry.id, {
+        purpose: receiptPurpose,
+        quantity: buyingQty,
+        unit: unitBased ? 'unit' : 'g',
+        acquisition_kind: receiptAcquisition,
+        idempotency_key: `ledger:${txId}:${entry.id}`,
+        product_name: entry.name || 'Unnamed',
+        product_type: entry.category === 'teaware' ? 'Teaware' : entry.type,
+      });
+      setReceiptProposal(proposal);
+    } catch (error) {
+      setReceiptError(error instanceof Error ? error.message : 'Could not create the inventory receipt proposal.');
+    } finally {
+      setReceiptBusy(false);
+    }
     setShowBuyPicker(false);
     setJustAddedToLedger(true);
-    setTimeout(() => {
+  };
+
+  const reviewReceipt = async (action: 'accept' | 'reject') => {
+    if (!receiptProposal) return;
+    setReceiptBusy(true);
+    setReceiptError('');
+    try {
+      if (action === 'accept') await api.compass.acceptReceiptProposal(receiptProposal.id);
+      else await api.compass.rejectReceiptProposal(receiptProposal.id);
+      setReceiptProposal(null);
       setJustAddedToLedger(false);
       onSwitchToLedger?.();
-    }, 800);
+    } catch (error) {
+      setReceiptError(error instanceof Error ? error.message : `Could not ${action} this receipt.`);
+    } finally {
+      setReceiptBusy(false);
+    }
   };
 
   // ── Tea card layout ────────────────────────
@@ -1891,12 +1932,44 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                   </div>
                 )}
 
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-ui-10 text-tea-text-sec">
+                    <span className="mb-1 block">Inventory purpose</span>
+                    <select
+                      aria-label="Inventory purpose"
+                      value={receiptPurpose}
+                      onChange={(event) => setReceiptPurpose(event.target.value as InventoryPurposeValue)}
+                      className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text outline-none focus:border-tea-gold"
+                    >
+                      <option value="working">Working</option>
+                      <option value="sample">Sample</option>
+                      <option value="personal">Personal</option>
+                    </select>
+                  </label>
+                  <label className="text-ui-10 text-tea-text-sec">
+                    <span className="mb-1 block">Acquisition</span>
+                    <select
+                      aria-label="Acquisition"
+                      value={receiptAcquisition}
+                      onChange={(event) => setReceiptAcquisition(event.target.value as ReceiptAcquisitionKind)}
+                      className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text outline-none focus:border-tea-gold"
+                    >
+                      <option value="purchase">Purchase</option>
+                      <option value="free_sample">Free sample</option>
+                      <option value="gift">Gift</option>
+                      <option value="transfer">Transfer</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
+                </div>
+
                 <button
                   type="button"
                   onClick={handleAddToLedger}
+                  disabled={receiptBusy}
                   className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
-                  Add to Ledger
+                  {receiptBusy ? 'Adding…' : 'Add to Ledger'}
                 </button>
               </div>
             </motion.div>
@@ -1908,10 +1981,23 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center gap-2 py-2 rounded-xl bg-tea-gold/15 text-tea-gold text-sm font-medium"
+              className="rounded-xl bg-tea-gold/15 p-3 text-sm"
             >
-              <Check size={16} />
-              Added to Ledger
+              <div className="flex items-center gap-2 text-tea-gold font-medium">
+                <Check size={16} />
+                Added to Ledger
+              </div>
+              {receiptProposal && (
+                <div className="mt-2 space-y-2 text-ui-12 text-tea-text-sec">
+                  <p>Review receipt: {receiptProposal.quantity}{receiptProposal.unit === 'g' ? 'g' : ` ${receiptProposal.quantity === 1 ? 'unit' : 'units'}`} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
+                  <p className="text-tea-text-sec">Inventory changes only after you accept this receipt.</p>
+                  <div className="flex justify-between gap-3 border-t border-tea-border pt-2">
+                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
+                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 font-semibold text-tea-bg">Accept into Inventory</button>
+                  </div>
+                </div>
+              )}
+              {receiptError && <p role="alert" className="mt-2 text-ui-12 text-tea-text-sec">{receiptError}</p>}
             </motion.div>
           )}
         </AnimatePresence>

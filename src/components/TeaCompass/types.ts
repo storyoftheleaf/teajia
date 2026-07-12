@@ -32,7 +32,7 @@ export type CompassSampleState = 'requested' | 'received' | 'tasted';
 export interface LibraryFilters {
   decision?: CompassDecision | 'none';
   verdict?: CompassVerdict;
-  possession?: 'none' | 'sample' | 'stock';
+  possession?: 'none' | 'sample' | 'working' | 'personal';
   journey?: string;
   vendor?: string;
   place?: string;

@@ -5,7 +5,7 @@ import type { LibraryFilters } from './types';
 const FIELDS: Array<{ key: keyof LibraryFilters; label: string; options?: Array<[string, string]> }> = [
   { key: 'decision', label: 'Decision', options: [['none', 'No decision'], ['considering', 'Considering'], ['selected', 'Selected'], ['passed_on', 'Passed on']] },
   { key: 'verdict', label: 'Verdict', options: [['love', 'Love'], ['like', 'Like'], ['neutral', 'Neutral'], ['pass', 'Pass']] },
-  { key: 'possession', label: 'Possession', options: [['none', 'Not possessed'], ['sample', 'Sample'], ['stock', 'Stock']] },
+  { key: 'possession', label: 'Possession', options: [['none', 'None'], ['sample', 'Sample'], ['working', 'Working'], ['personal', 'Personal']] },
   { key: 'journey', label: 'Journey' }, { key: 'vendor', label: 'Vendor' }, { key: 'place', label: 'Place' },
   { key: 'date', label: 'Date', options: [['today', 'Today'], ['7_days', 'Past 7 days'], ['30_days', 'Past 30 days'], ['this_year', 'This year']] },
   { key: 'category', label: 'Category', options: [['tea', 'Tea'], ['teaware', 'Teaware']] },

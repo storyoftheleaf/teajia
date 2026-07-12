@@ -17,6 +17,7 @@ import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSum
 import { api } from '../../lib/api';
 import type { CurateJourney, CurateVisit } from './types';
 import { useAppStore } from '../../lib/store';
+import { buildEntryPossessionMap } from './libraryPossession';
 
 const SORT_LABELS: Record<BrowseSort, string> = {
   recent: 'Most recent',
@@ -151,6 +152,9 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const [visits, setVisits] = useState<CurateVisit[]>([]);
   const [contextErrors, setContextErrors] = useState<{ journeys?: boolean; visits?: boolean }>({});
   const [contextRetry, setContextRetry] = useState(0);
+  const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
+  const [possessionError, setPossessionError] = useState(false);
+  const [possessionRetry, setPossessionRetry] = useState(0);
   const contextRequestRef = React.useRef(0);
   const contextAccountRef = React.useRef<string | null>(null);
   const activeAccountId = useAppStore((state) => state.activeAccountId);
@@ -173,6 +177,25 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       .then((data) => { if (current()) setVisits(data.visits); })
       .catch(() => { if (current()) setContextErrors((errors) => ({ ...errors, visits: true })); });
   }, [activeAccountId, contextRetry]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setInventoryProducts([]);
+    setPossessionError(false);
+    api.products.list()
+      .then((data) => {
+        if (!cancelled && useAppStore.getState().activeAccountId === activeAccountId) {
+          setInventoryProducts(Array.isArray(data) ? data : (data?.products ?? []));
+        }
+      })
+      .catch(() => { if (!cancelled) setPossessionError(true); });
+    return () => { cancelled = true; };
+  }, [activeAccountId, possessionRetry]);
+
+  const entryPossession = useMemo(
+    () => buildEntryPossessionMap(entries, inventoryProducts),
+    [entries, inventoryProducts],
+  );
 
   const journeyMap = useMemo(() => new Map(journeys.map((journey) => [journey.id, journey])), [journeys]);
   const visitMap = useMemo(() => new Map(visits.map((visit) => [visit.id, visit])), [visits]);
@@ -565,11 +588,10 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       if (f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
       if (f.verdict && (e.verdict ?? e.sampleVerdict) !== f.verdict) return false;
       if (f.possession) {
-        const held = ['in_stock', 'depleted'].includes(e.status);
-        const possessed = held;
-        if (f.possession === 'none' && possessed) return false;
-        if (f.possession === 'sample' && !(entryIsSample(e) && held)) return false;
-        if (f.possession === 'stock' && !(held && !entryIsSample(e))) return false;
+        if (possessionError) return false;
+        const purpose = entryPossession.get(e.id);
+        if (f.possession === 'none' && purpose != null) return false;
+        if (f.possession !== 'none' && purpose !== f.possession) return false;
       }
       if (f.journey && e.journeyId !== f.journey) return false;
       if (f.vendor && !`${e.vendorName ?? ''} ${e.vendorId ?? ''}`.toLowerCase().includes(f.vendor.toLowerCase())) return false;
@@ -744,6 +766,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <div role="status" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
           <span>{[contextErrors.journeys && 'journeys', contextErrors.visits && 'visits'].filter(Boolean).join(' and ')} unavailable</span>
           <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setContextRetry((value) => value + 1)}>Retry</button>
+        </div>
+      )}
+      {possessionError && libraryFilters.possession && (
+        <div role="alert" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
+          <span>Inventory unavailable — possession results are hidden to avoid misclassifying entries.</span>
+          <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setPossessionRetry((value) => value + 1)}>Retry</button>
         </div>
       )}
 
