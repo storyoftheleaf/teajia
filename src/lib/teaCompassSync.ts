@@ -1,5 +1,5 @@
 import { useTeaCompassStore } from './teaCompassStore';
-import { api, hasToken } from './api';
+import { api, hasToken, isTransientApiError } from './api';
 import type { TeaCompassEntry } from '../components/TeaCompass/types';
 
 // ── Case conversion helpers ──
@@ -120,8 +120,10 @@ async function retryPendingPromotions(): Promise<void> {
       const { id: productId } = await api.compass.promote(id);
       useTeaCompassStore.getState().updateEntry(id, { draftProductId: productId, synced: false });
       useTeaCompassStore.getState().removePendingPromotion(id);
-    } catch {
-      /* still unreachable — keep queued, next heartbeat retries */
+    } catch (error) {
+      // A permanent authorization/validation/not-found response cannot heal
+      // on a heartbeat. Drop it instead of retrying forever.
+      if (!isTransientApiError(error)) useTeaCompassStore.getState().removePendingPromotion(id);
     }
   }
 }

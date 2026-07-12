@@ -593,12 +593,26 @@ function dispatchNetworkError() {
   window.dispatchEvent(new CustomEvent(NETWORK_ERROR_EVENT));
 }
 
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/** Retry only failures that may succeed without changing the request. */
+export function isTransientApiError(error: unknown): boolean {
+  if (error instanceof ApiError) return error.status === 408 || error.status === 429 || error.status >= 500;
+  if (!(error instanceof Error)) return false;
+  return /timed out|couldn.t reach the server|network|offline|failed to fetch/i.test(error.message);
+}
+
 async function handleResponse(res: Response) {
   let data: any;
   try {
     data = await res.json();
   } catch {
-    throw new Error(`Request failed (${res.status})`);
+    throw new ApiError(`Request failed (${res.status})`, res.status);
   }
   if (!res.ok) {
     // Detect account access denial — clear active account and prompt UI reload.
@@ -613,7 +627,7 @@ async function handleResponse(res: Response) {
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new ApiError(message, res.status);
   }
   // Adopt any sliding-refresh token the server stapled onto the response
   // (currently /api/auth/me does this). Keeps the client JWT fresh without
@@ -685,7 +699,7 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
         const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeadersFor(init.body, init.headers) });
         if (retryRes.status === 401) {
           clearToken(); window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
-          throw new Error('Session expired');
+          throw new ApiError('Session expired', 401);
         }
         return retryRes;
       }
@@ -701,7 +715,7 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
     const message = typeof bodyData?.error === 'string' && bodyData.error.length < 200
       ? bodyData.error
       : `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new ApiError(message, res.status);
   }
 
   return res;

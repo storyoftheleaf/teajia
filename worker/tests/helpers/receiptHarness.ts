@@ -34,6 +34,7 @@ class ReceiptStatement {
     }
     if (sql.includes('select intake_batch_id from inventory_receipt_lines where receipt_id')) return [...this.db.receiptLines.values()].find(row => row.receipt_id === this.values[0] && row.account_id === this.values[1] && row.intake_batch_id)?.intake_batch_id ? { intake_batch_id: [...this.db.receiptLines.values()].find(row => row.receipt_id === this.values[0] && row.account_id === this.values[1] && row.intake_batch_id)!.intake_batch_id } : null;
     if (sql.includes('from inventory_receipts where id') && sql.includes('account_id')) return scoped(this.db.receipts, this.values[0], sql, this.values);
+    if (sql.includes('from products where account_id = ? and source_compass_entry_id = ?')) return [...this.db.products.values()].find(row => row.account_id === this.values[0] && row.source_compass_entry_id === this.values[1]) ?? null;
     if (sql.includes('from batches where id = ? and account_id = ?')) return scoped(this.db.batches, this.values[0], sql, this.values);
     if (sql.includes('from curate_import_items where id = ? and account_id = ?')) return scoped(this.db.importItems, this.values[0], sql, this.values);
     if (sql.includes('from curate_import_batches where id = ? and account_id = ?')) return scoped(this.db.imports, this.values[0], sql, this.values);
@@ -56,7 +57,7 @@ class ReceiptStatement {
   async run() {
     const sql = norm(this.sql);
     if (sql.startsWith('insert into curate_receipt_proposals')) return insertColumns(this.db.proposals, this.sql, this.values);
-    if (sql.startsWith('insert into products')) return insertColumns(this.db.products, this.sql, this.values);
+    if (sql.startsWith('insert into products') || sql.startsWith('insert or ignore into products')) return insertColumns(this.db.products, this.sql, this.values);
     if (sql.startsWith('insert into tea_profiles')) return insertColumns(this.db.profiles, this.sql, this.values);
     if (sql.startsWith('insert into product_listings')) return insertColumns(this.db.listings, this.sql, this.values);
     if (sql.startsWith('insert into stock_ledger')) {
@@ -131,6 +132,13 @@ class ReceiptStatement {
       if (sql.includes('where legacy_product_id = ?')) return updateByLegacy(this.db.listings, this.sql, this.values);
       return updateRow(this.db.listings, this.sql, this.values);
     }
+    if (sql.startsWith('update tea_compass_entries set') && sql.includes('select id from products')) {
+      const product = [...this.db.products.values()].find(row => row.account_id === this.values[0] && row.source_compass_entry_id === this.values[1]);
+      const entry = this.db.entries.get(String(this.values[2]));
+      if (!product || !entry || entry.user_id !== this.values[3] || entry.account_id !== this.values[4]) return { success: true, meta: { changes: 0 } };
+      entry.draft_product_id = product.id;
+      return { success: true, meta: { changes: 1 } };
+    }
     if (sql.startsWith('update tea_compass_entries set')) return updateRow(this.db.entries, this.sql, this.values);
     return { success: true, meta: { changes: 1 } };
   }
@@ -158,7 +166,7 @@ function scoped(map: Map<string, Row>, id: unknown, sql: string, values: unknown
 }
 
 function insertColumns(target: Map<string, Row> | Row[], sql: string, values: unknown[], db?: ReceiptDb) {
-  const table = norm(sql).match(/^insert into ([a-z_]+)/)![1];
+  const table = norm(sql).match(/^insert(?: or ignore)? into ([a-z_]+)/)![1];
   const match = sql.match(new RegExp(`${table}\\s*\\(([^)]+)\\)`, 'i'))!;
   const columns = match[1].split(',').map(v => v.trim());
   const valueMatch = sql.match(/values\s*\((.+)\)/is);
@@ -172,6 +180,7 @@ function insertColumns(target: Map<string, Row> | Row[], sql: string, values: un
     return [column, null];
   }));
   if (table === 'curate_receipt_proposals') Object.assign(row, { status: 'pending', ledger_id: null, reviewed_by_user_id: null, reviewed_at: null });
+  if (table === 'products' && /insert\s+or\s+ignore/i.test(sql) && [...(target as Map<string, Row>).values()].some(existing => existing.account_id === row.account_id && existing.source_compass_entry_id === row.source_compass_entry_id)) return { success: true, meta: { changes: 0 } };
   if (table === 'curate_receipt_proposals' && [...(target as Map<string, Row>).values()].some(existing => existing.account_id === row.account_id && existing.idempotency_key === row.idempotency_key)) throw new Error('UNIQUE account idempotency');
   if (table === 'stock_ledger' && (target as Row[]).some(existing => existing.receipt_proposal_id === row.receipt_proposal_id)) throw new Error('UNIQUE receipt ledger');
   if (table === 'inventory_receipts') {
@@ -255,4 +264,4 @@ export class ReceiptDb {
 
 function b64(input: string | Uint8Array) { const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input; let out = ''; for (const byte of bytes) out += String.fromCharCode(byte); return btoa(out); }
 async function token(userId: string, accountId: string) { const now = Math.floor(Date.now() / 1000); const data = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify({ sub: userId, email: `${userId}@example.com`, active_account_id: accountId, iat: now, exp: now + 3600 }))}`; const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return `${data}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))))}`; }
-export async function receiptRequest(db: ReceiptDb, path: string, options: RequestInit & { accountId?: string } = {}) { const accountId = options.accountId ?? 'account-a'; const headers = new Headers(options.headers); headers.set('Authorization', `Bearer ${await token('user-a', accountId)}`); headers.set('X-Teajia-Account', accountId); if (options.body) headers.set('Content-Type', 'application/json'); return worker.fetch(new Request(`https://worker.test${path}`, { ...options, headers }), { DB: db, JWT_SECRET } as any); }
+export async function receiptRequest(db: ReceiptDb, path: string, options: RequestInit & { accountId?: string; userId?: string } = {}) { const accountId = options.accountId ?? 'account-a'; const headers = new Headers(options.headers); headers.set('Authorization', `Bearer ${await token(options.userId ?? 'user-a', accountId)}`); headers.set('X-Teajia-Account', accountId); if (options.body) headers.set('Content-Type', 'application/json'); return worker.fetch(new Request(`https://worker.test${path}`, { ...options, headers }), { DB: db, JWT_SECRET } as any); }

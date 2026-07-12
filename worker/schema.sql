@@ -136,6 +136,9 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_products_account_compass_identity
+  ON products(account_id, source_compass_entry_id)
+  WHERE source_compass_entry_id IS NOT NULL;
 
 -- 1b. Customers Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS customers (

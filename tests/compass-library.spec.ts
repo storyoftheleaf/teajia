@@ -192,6 +192,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     // Hydration is intentionally asynchronous. Seed fixtures only after its
     // first server merge so a late empty response cannot erase the test entry.
     await expect.poll(() => compassRequestCount(page, 'GET /api/compass/entries')).toBeGreaterThan(0);
+    await page.waitForTimeout(200);
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -222,8 +223,11 @@ test.describe('Curate Library decisions and retrieval', () => {
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: false }) });
     });
     await page.getByRole('button', { name: /River Stone/ }).click();
-    await page.getByRole('button', { name: 'Create Inventory record' }).click();
+    const createAction = page.getByRole('button', { name: 'Create Inventory record' });
+    await expect(createAction).toHaveClass(/tap-target/);
+    await createAction.click();
     await expect(page.getByRole('button', { name: /View in Inventory/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /View in Inventory/ })).toHaveClass(/tap-target/);
     expect(promotions).toBe(1);
     await page.getByRole('button', { name: /View in Inventory/ }).click();
     await expect(page).toHaveURL(/\/admin\/stock\?panel=inventory-river/);
@@ -258,6 +262,20 @@ test.describe('Curate Library decisions and retrieval', () => {
       return { pending: state.pendingPromotions, productId: state.entries.find((entry: any) => entry.id === 'selected')?.draftProductId };
     })).toEqual({ pending: [], productId: 'inventory-river' });
     expect(promotions).toBe(2);
+  });
+
+  test('shows permanent promotion errors without adding a retry queue', async ({ page }) => {
+    await page.route('**/api/compass/entries/selected/promote', route =>
+      route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'Compass entry not found' }) }),
+    );
+    await page.getByRole('button', { name: /River Stone/ }).click();
+    await page.getByRole('button', { name: 'Create Inventory record' }).click();
+    await expect(page.getByText('Could not create Inventory record: Compass entry not found', { exact: true })).toBeVisible();
+    expect(await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().pendingPromotions;
+    })).not.toContain('selected');
   });
 
   test('uses independent four-state sourcing decisions without changing verdict or stock status', async ({ page }) => {

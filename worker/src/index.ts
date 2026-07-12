@@ -8816,6 +8816,18 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     // Stale link — fall through and create a new product, then re-link.
   }
 
+  // Compatibility repair and concurrency fast-path: an older/parallel write
+  // may have created the product before the Compass link became visible.
+  const identityProduct = await env.DB.prepare(
+    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
+  ).bind(accountId, entry.id).first() as Record<string, any> | null;
+  if (identityProduct) {
+    await env.DB.prepare(
+      "UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(identityProduct.id, entry.id, accountId).run();
+    return json({ id: identityProduct.id, product: identityProduct, alreadyPromoted: true });
+  }
+
   const isTeaware = entry.category === 'teaware';
 
   let photos: string[] = [];
@@ -8838,8 +8850,10 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   const tasting = entry.tasting; // already a JSON string in storage
 
   const productType = isTeaware ? 'Teaware' : (entry.type || 'Misc');
-  const stockGrams = isTeaware ? 0 : Number(entry.buy_quantity_grams ?? 0) || 0;
-  const quantityUnits = isTeaware ? Number(entry.quantity ?? 1) || 1 : null;
+  // Captured buying quantity is intent/evidence, not received stock. Only a
+  // reviewed receipt or stock movement may add a positive physical balance.
+  const stockGrams = 0;
+  const quantityUnits = isTeaware ? 0 : null;
 
   const vendorId = await resolveVendorId(
     env,
@@ -8873,9 +8887,10 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     vendor: entry.vendor_name ?? null,
     vendor_id: vendorId,
     stock_grams: stockGrams,
+    stock_known_at: new Date().toISOString(),
     cost_amount: Number(entry.price_amount ?? 0) || 0,
     cost_currency: entry.price_currency ?? 'USD',
-    quantity_purchased: isTeaware ? quantityUnits : stockGrams,
+    quantity_purchased: null,
     quantity_units: quantityUnits,
     material: entry.material ?? null,
     capacity_ml: entry.capacity_ml ?? null,
@@ -8888,24 +8903,35 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
 
   const colNames = Object.keys(cols);
   const placeholders = colNames.map(() => '?').join(', ');
-  await env.DB.prepare(
-    `INSERT INTO products (${colNames.join(', ')}) VALUES (${placeholders})`
-  ).bind(...colNames.map((c) => cols[c])).run();
+  // The unique encounter identity plus one D1 batch makes promotion atomic:
+  // a racing loser inserts nothing and both link to the canonical product.
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO products (${colNames.join(', ')}) VALUES (${placeholders})`
+    ).bind(...colNames.map((c) => cols[c])),
+    env.DB.prepare(
+      `UPDATE tea_compass_entries
+       SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?),
+           updated_at = datetime('now')
+       WHERE id = ? AND user_id = ? AND account_id = ?`
+    ).bind(accountId, entry.id, entry.id, userId, accountId),
+  ]);
 
-  await env.DB.prepare(
-    "UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-  ).bind(productId, entry.id, accountId).run();
+  const canonical = await env.DB.prepare(
+    'SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?'
+  ).bind(accountId, entry.id).first() as Record<string, any> | null;
+  if (!canonical) return json({ error: 'Inventory record could not be created' }, 500);
 
   const created = await env.DB.prepare(
     'SELECT * FROM products WHERE id = ? AND account_id = ?'
-  ).bind(productId, accountId).first();
+  ).bind(canonical.id, accountId).first();
 
-  await auditPlatformActingWrite(env, ctx, 'product.created', 'product', productId, {
+  await auditPlatformActingWrite(env, ctx, 'product.created', 'product', canonical.id, {
     product_name: name,
     promoted_from_compass: entry.id,
   });
 
-  return json({ id: productId, product: created, alreadyPromoted: false }, 201);
+  return json({ id: canonical.id, product: created, alreadyPromoted: canonical.id !== productId }, canonical.id === productId ? 201 : 200);
 };
 
 const RECEIPT_MUTABLE_FIELDS = new Set([
