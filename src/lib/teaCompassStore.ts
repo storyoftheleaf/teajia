@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout, LibraryFilters } from '../components/TeaCompass/types';
-import { createEmptyEntry } from '../components/TeaCompass/types';
+import { createEmptyEntry, entryIsSample } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 import { api, hasToken } from './api';
 import { useNotesStore } from './notesStore';
@@ -139,7 +139,7 @@ export function entryHasDeliberateInput(entry: TeaCompassEntry): boolean {
     entry.buyQuantityUnits != null || entry.buyTotal != null || entry.teawareCategory != null ||
     entry.material != null || entry.clayType != null || !!entry.materialNote?.trim() ||
     entry.capacityMl != null || entry.quantity !== 1 || entry.era != null ||
-    entry.verdict != null || entry.isSample === true || entry.sampleGrams != null ||
+    entry.verdict != null || entryIsSample(entry) || entry.sampleGrams != null ||
     entry.sampleVerdict != null || entry.sampleWouldBuy != null || entry.tasteOrder != null ||
     (touched === undefined && (!!entry.vendorName?.trim() || !!entry.vendorId)) ||
     (entry.tasting != null && Object.values(entry.tasting).some((value) =>

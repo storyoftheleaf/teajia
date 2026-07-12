@@ -97,6 +97,26 @@ test.describe('Curate Library account-scoped context resilience', () => {
   });
 });
 
+test.describe('Curate server-hydrated sample identity', () => {
+  test.beforeEach(async ({ page }) => {
+    await installCompassHarness(page, { compassEntries: [
+      { id: 'server-received', name: 'Server Received', category: 'tea', status: 'in_stock', sample_state: 'received', created_at: '2026-07-01T00:00:00.000Z' },
+      { id: 'server-requested', name: 'Server Requested', category: 'tea', status: 'noted', sample_state: 'requested', created_at: '2026-07-02T00:00:00.000Z' },
+    ] });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+  });
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('uses durable sample_state without a local isSample boolean', async ({ page }) => {
+    await page.getByTestId('library-controls').filter({ visible: true }).getByRole('button', { name: /^To taste/ }).click();
+    await expect(page.getByText('Server Requested', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Server Received', { exact: true }).filter({ visible: true })).toBeVisible();
+    await page.getByTestId('library-controls').filter({ visible: true }).getByRole('button', { name: 'Photos', exact: true }).click();
+    await expect(page.getByText('Sample', { exact: true }).filter({ visible: true })).toHaveCount(2);
+  });
+});
+
 test.describe('Curate context recovery', () => {
   test.beforeEach(async ({ page }) => installCompassHarness(page, { contextEmpty: true, contextFailOnce: true }));
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));

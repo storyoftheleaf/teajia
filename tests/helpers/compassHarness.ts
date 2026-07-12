@@ -6,7 +6,7 @@ const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   await page.addInitScript(({ token, items }) => {
@@ -42,7 +42,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },
       'GET /api/notes': { notes: [] }, 'GET /api/customers': [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }],
-      'GET /api/compass/incoming': [], 'GET /api/compass/entries': [], 'POST /api/compass/sync': [],
+      'GET /api/compass/incoming': [], 'GET /api/compass/entries': { entries: options?.compassEntries ?? [] }, 'POST /api/compass/sync': [],
       'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
       'GET /api/curate/journeys': { journeys: scopedContext?.journeys ?? (options?.contextEmpty ? [] : [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }]) },
       'GET /api/curate/visits': { visits: scopedContext?.visits ?? (options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }]) },

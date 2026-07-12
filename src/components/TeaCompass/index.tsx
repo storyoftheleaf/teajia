@@ -13,6 +13,7 @@ import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
 import { api, hasToken, type CurateImportDetail, type CurateImportItem } from '../../lib/api';
 import type { CompassCategory } from './types';
+import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
@@ -396,7 +397,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (activeEntryId) void commitAndPromote(activeEntryId);
 
     // If this compass entry is linked to a sample, write tasting data back
-    if (committed?.isSample && committed.id && committed.tasting &&
+    if (committed && entryIsSample(committed) && committed.id && committed.tasting &&
         Object.values(committed.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null)) {
       const linkedSample = samplesList.find((s) => s.compassEntryId === committed.id);
       if (linkedSample) {

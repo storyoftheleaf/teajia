@@ -10,6 +10,7 @@ import type { TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import type { TeaType, TeaForm, TeawareCategory, TeawareMaterial, TeawareEra, YixingClayType, VendorDetails, TeaCompassEntry } from './types';
+import { entryIsSample } from './types';
 import { DEFAULT_GRAMS, TEA_TYPES, TEA_FORMS, STORAGE_OPTIONS, TEAWARE_CATEGORIES, TEAWARE_MATERIALS, TEAWARE_ERAS, YIXING_CLAY_TYPES, MATERIAL_ORIGIN_DEFAULT, COMMON_REGIONS, generateTeaKey } from './types';
 import { hasToken } from '../../lib/api';
 import { AutocompleteInput } from './AutocompleteInput';
@@ -832,7 +833,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   }
 
   const isTeaware = entry.category === 'teaware';
-  const isSample = !!entry.isSample;
+  const isSample = entryIsSample(entry);
   const hasName = (entry.name || '').trim().length > 0;
 
   const hasTasting = entry.tasting && Object.values(entry.tasting).some(

@@ -10,7 +10,7 @@ import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
 import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
-import { isUntriaged, entryDisplayTitle } from './types';
+import { isUntriaged, entryDisplayTitle, entryIsSample } from './types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
@@ -110,7 +110,7 @@ const PhotoTile: React.FC<{
             <span className="font-serif text-ui-13 text-tea-text-sec text-center leading-snug">{title}</span>
           </span>
         )}
-        {entry.isSample && (
+        {entryIsSample(entry) && (
           <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-tea-bg/80 text-tea-gold text-ui-10 uppercase tracking-[0.08em]">
             Sample
           </span>
@@ -241,7 +241,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   const counts = useMemo(() => {
     const toTasteCount = entries.filter((e) =>
-      e.isSample || (
+      entryIsSample(e) || (
         !hasTastingData(e) &&
         e.status !== 'pass' &&
         (e.status === 'in_stock' || e.status === 'incoming')
@@ -389,8 +389,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   // ─── "Queue" view: sample sets + untasted owned ───────────────────────────
 
   const renderQueue = (result: TeaCompassEntry[]) => {
-    const sampleEntries = result.filter((e) => e.isSample);
-    const tasteEntries  = result.filter((e) => !e.isSample);
+    const sampleEntries = result.filter(entryIsSample);
+    const tasteEntries  = result.filter((e) => !entryIsSample(e));
 
     // Group samples by set
     const bySet = new Map<string, TeaCompassEntry[]>();
@@ -568,8 +568,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         const held = ['in_stock', 'depleted'].includes(e.status);
         const possessed = held;
         if (f.possession === 'none' && possessed) return false;
-        if (f.possession === 'sample' && !(e.isSample && held)) return false;
-        if (f.possession === 'stock' && !(held && !e.isSample)) return false;
+        if (f.possession === 'sample' && !(entryIsSample(e) && held)) return false;
+        if (f.possession === 'stock' && !(held && !entryIsSample(e))) return false;
       }
       if (f.journey && e.journeyId !== f.journey) return false;
       if (f.vendor && !`${e.vendorName ?? ''} ${e.vendorId ?? ''}`.toLowerCase().includes(f.vendor.toLowerCase())) return false;
@@ -609,7 +609,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     switch (browseFilter) {
       case 'to_taste':
         return baseEntries.filter((e) =>
-          e.isSample || (
+          entryIsSample(e) || (
             !hasTastingData(e) &&
             e.status !== 'pass' &&
             (e.status === 'in_stock' || e.status === 'incoming')

@@ -180,6 +180,12 @@ export interface TeaCompassEntry {
   synced: boolean;
 }
 
+/** Durable sample identity. `isSample` is read only as a legacy fallback for
+ * rows created before sample_state existed. */
+export function entryIsSample(entry: Pick<TeaCompassEntry, 'sampleState' | 'isSample'>): boolean {
+  return entry.sampleState != null || entry.isSample === true;
+}
+
 // Gram presets by form
 export const GRAM_PRESETS: Record<TeaForm, number[]> = {
   Loose: [50, 75, 100, 150, 300, 600],

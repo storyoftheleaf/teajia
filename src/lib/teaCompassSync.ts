@@ -85,6 +85,9 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   result.category = result.category || 'tea';
   result.createdAt = result.createdAt || new Date().toISOString();
   result.updatedAt = result.updatedAt || new Date().toISOString();
+  // Canonical durable lifecycle drives identity; retain the boolean only as a
+  // compatibility mirror for older consumers during migration.
+  if (result.sampleState != null) result.isSample = true;
 
   return result as TeaCompassEntry;
 }
