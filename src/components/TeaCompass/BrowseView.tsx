@@ -12,6 +12,8 @@ import { CompassIcon } from './CompassIcon';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { isUntriaged, entryDisplayTitle } from './types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
+import { LibraryFilterSheet } from './LibraryFilterSheet';
+import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
 
 const SORT_LABELS: Record<BrowseSort, string> = {
   recent: 'Most recent',
@@ -137,10 +139,11 @@ const PhotoTile: React.FC<{
 
 export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode }) => {
   const navigate = useNavigate();
-  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, removeEntry, updateEntry } = useTeaCompassStore();
+  const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, updateEntry } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const sampleSets = useSampleStore((s) => s.sampleSets);
 
   // Reusable sort applied to flat lists (and to "All" when not sorting by date).
@@ -165,9 +168,9 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     [sampleSets]
   );
 
-  // Guard: remap any legacy filter value from localStorage
+  // Guard malformed values that predate the versioned persisted migration.
   React.useEffect(() => {
-    const valid: BrowseFilter[] = ['all', 'mine', 'queue', 'loved', 'want', 'pass'];
+    const valid: BrowseFilter[] = ['all', 'to_taste', 'selected'];
     if (!valid.includes(browseFilter as BrowseFilter)) setBrowseFilter('all');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -180,6 +183,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
       { name: 'name', weight: 2 },
       { name: 'chineseName', weight: 1.5 },
       { name: 'vendorName', weight: 1 },
+      { name: 'journeyId', weight: 1 },
+      { name: 'visitId', weight: 1 },
       { name: 'originRegion', weight: 1 },
       { name: 'type', weight: 1 },
       { name: 'notes', weight: 0.5 },
@@ -196,7 +201,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // ─── Counts (for filter pills) ────────────────────────────────────────────
 
   const counts = useMemo(() => {
-    const queueCount = entries.filter((e) =>
+    const toTasteCount = entries.filter((e) =>
       e.isSample || (
         !hasTastingData(e) &&
         e.status !== 'pass' &&
@@ -206,11 +211,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
     return {
       all:   entries.length,
-      mine:  entries.filter((e) => e.status === 'in_stock' || e.status === 'incoming' || e.status === 'depleted').length,
-      queue: queueCount,
-      loved: entries.filter((e) => (e.verdict ?? e.sampleVerdict) === 'love').length,
-      want:  entries.filter((e) => e.status === 'want').length,
-      pass:  entries.filter((e) => e.status === 'pass').length,
+      to_taste: toTasteCount,
+      selected: entries.filter((e) => e.decision === 'selected').length,
     };
   }, [entries]);
 
@@ -231,11 +233,8 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   const filterOptions: { value: BrowseFilter; label: string; count: number }[] = [
     { value: 'all',   label: 'All',   count: counts.all },
-    { value: 'mine',  label: 'Mine',  count: counts.mine },
-    { value: 'queue', label: 'Queue', count: counts.queue },
-    { value: 'loved', label: 'Loved', count: counts.loved },
-    { value: 'want',  label: 'Want',  count: counts.want },
-    { value: 'pass',  label: 'Pass',  count: counts.pass },
+    { value: 'to_taste', label: 'To taste', count: counts.to_taste },
+    { value: 'selected', label: 'Selected', count: counts.selected },
   ];
 
   // ─── Render helpers ───────────────────────────────────────────────────────
@@ -522,14 +521,40 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
   const baseEntries = useMemo(() => {
     let result = entries;
     if (searchResults !== null) result = result.filter((e) => searchResults.has(e.id));
+    const f = libraryFilters;
+    result = result.filter((e) => {
+      if (f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
+      if (f.verdict && (e.verdict ?? e.sampleVerdict) !== f.verdict) return false;
+      if (f.possession && (f.possession === 'none'
+        ? ['incoming', 'in_stock', 'depleted'].includes(e.status)
+        : e.status !== f.possession)) return false;
+      if (f.journey && !`${e.journeyId ?? ''} ${e.notes}`.toLowerCase().includes(f.journey.toLowerCase())) return false;
+      if (f.vendor && !`${e.vendorName ?? ''} ${e.vendorId ?? ''}`.toLowerCase().includes(f.vendor.toLowerCase())) return false;
+      if (f.place && !`${e.visitId ?? ''} ${e.notes}`.toLowerCase().includes(f.place.toLowerCase())) return false;
+      if (f.date && !e.createdAt.startsWith(f.date)) return false;
+      if (f.category && e.category !== f.category) return false;
+      if (f.type && !`${e.type ?? ''} ${e.teawareCategory ?? ''}`.toLowerCase().includes(f.type.toLowerCase())) return false;
+      if (f.origin && !(e.originRegion ?? '').toLowerCase().includes(f.origin.toLowerCase())) return false;
+      if (f.year && String(e.year ?? '') !== f.year) return false;
+      if (f.price && (f.price === 'known' ? e.priceAmount == null : e.priceAmount != null)) return false;
+      if (f.sampleState && (f.sampleState === 'sample' ? !e.isSample : !!e.isSample)) return false;
+      if (f.photos && (f.photos === 'with' ? !e.photos.some(Boolean) : e.photos.some(Boolean))) return false;
+      if (f.missing) {
+        const missing = f.missing === 'name' ? !e.name.trim()
+          : f.missing === 'price' ? e.priceAmount == null
+          : f.missing === 'type' ? !e.type && !e.teawareCategory
+          : f.missing === 'origin' ? !e.originRegion?.trim()
+          : !e.notes.trim();
+        if (!missing) return false;
+      }
+      return true;
+    });
     return result;
-  }, [entries, searchResults]);
+  }, [entries, searchResults, libraryFilters]);
 
   const filteredForView = useMemo(() => {
     switch (browseFilter) {
-      case 'mine':
-        return baseEntries.filter((e) => e.status === 'in_stock' || e.status === 'incoming' || e.status === 'depleted');
-      case 'queue':
+      case 'to_taste':
         return baseEntries.filter((e) =>
           e.isSample || (
             !hasTastingData(e) &&
@@ -537,12 +562,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             (e.status === 'in_stock' || e.status === 'incoming')
           )
         );
-      case 'loved':
-        return baseEntries.filter((e) => (e.verdict ?? e.sampleVerdict) === 'love');
-      case 'want':
-        return baseEntries.filter((e) => e.status === 'want');
-      case 'pass':
-        return baseEntries.filter((e) => e.status === 'pass');
+      case 'selected':
+        return baseEntries.filter((e) => e.decision === 'selected');
       default:
         return baseEntries;
     }
@@ -603,14 +624,14 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
             2. view controls (how to view it: sort + photo grid)
           "New" was removed here — it duplicated the header "+ NEW" and the
           empty-pane "+ New Entry". Text-only labels per the chrome rule. */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div data-testid="library-controls" className="flex flex-wrap items-center gap-2">
         {/* Group 1 — status filters */}
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
             type="button"
             onClick={() => setBrowseFilter(opt.value)}
-            className={`inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+            className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
               browseFilter === opt.value
                 ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                 : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
@@ -624,13 +645,22 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         {/* Hairline divider between "what to show" and "how to view it" */}
         <div className="self-center h-5 w-px bg-tea-border mx-1" aria-hidden />
 
+        <button
+          type="button"
+          onClick={() => setFilterSheetOpen(true)}
+          className={`tap-target inline-flex min-h-11 items-center rounded-md border px-3 text-ui-12 transition-colors ${activeLibraryFilterCount(libraryFilters) ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'}`}
+          aria-label={activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filters` : 'Filters'}
+        >
+          {activeLibraryFilterCount(libraryFilters) ? `${activeLibraryFilterCount(libraryFilters)} filter${activeLibraryFilterCount(libraryFilters) === 1 ? '' : 's'}` : 'Filters'}
+        </button>
+
         {/* Group 2 — view controls */}
         {/* Sort — opens a sheet of the four orderings. Active when not the
             default recency sort, so the user can see they've reordered. */}
         <button
           type="button"
           onClick={() => setSortSheetOpen(true)}
-          className={`inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
             browseSort !== 'recent'
               ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
               : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
@@ -644,7 +674,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         <button
           type="button"
           onClick={() => setBrowseLayout(browseLayout === 'photos' ? 'list' : 'photos')}
-          className={`inline-flex min-h-[36px] items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
+          className={`tap-target inline-flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-ui-12 transition-colors ${
             browseLayout === 'photos'
               ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
               : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
@@ -655,6 +685,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <span>{browseLayout === 'photos' ? 'List' : 'Photos'}</span>
         </button>
       </div>
+
+      <ActiveFilterSummary filters={libraryFilters} onClear={() => setLibraryFilters({})} />
 
       {/* Cleanup banner — shown when empty test entries exist */}
       <AnimatePresence>
@@ -730,11 +762,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         browseLayout === 'photos' ? renderPhotos(filteredForView) : (
           <>
             {browseFilter === 'all'   && renderAll(filteredForView)}
-            {browseFilter === 'mine'  && renderMine(filteredForView)}
-            {browseFilter === 'queue' && renderQueue(filteredForView)}
-            {browseFilter === 'loved' && renderFlat(filteredForView, 'Nothing loved yet — sort a tasting to flag keepers.')}
-            {browseFilter === 'want'  && renderFlat(filteredForView, 'Nothing on your want list yet.')}
-            {browseFilter === 'pass'  && renderFlat(filteredForView, 'Nothing passed — every tea still has a chance.')}
+            {browseFilter === 'to_taste' && renderQueue(filteredForView)}
+            {browseFilter === 'selected' && renderFlat(filteredForView, 'Nothing selected yet.')}
           </>
         )
       ) : null}
@@ -757,6 +786,8 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           ))}
         </div>
       </BottomSheet>
+
+      <LibraryFilterSheet open={filterSheetOpen} filters={libraryFilters} onOpenChange={setFilterSheetOpen} onApply={setLibraryFilters} />
 
       {/* Batch tasting review — full-screen triage of untriaged tastings */}
       {reviewOpen && (

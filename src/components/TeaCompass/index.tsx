@@ -788,7 +788,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   onChange={(e) => setTabSearchQuery(e.target.value)}
                   placeholder={
                     mode === 'library'
-                      ? 'Search by name, region, vendor…'
+                      ? 'Search Library'
                       : 'Search transactions…'
                   }
                   className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-xl pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"
@@ -1229,7 +1229,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   onChange={(e) => setTabSearchQuery(e.target.value)}
                   placeholder={
                     mode === 'sourcing' ? 'Search entries…'
-                    : mode === 'library' ? 'Search by name, region, vendor…'
+                    : mode === 'library' ? 'Search Library'
                     : 'Search transactions…'
                   }
                   className="w-full bg-tea-surface border border-tea-border text-tea-text text-ui-13 rounded-xl pl-8 pr-8 py-2 outline-none placeholder:text-tea-text-sec/70 focus:ring-1 focus:ring-tea-gold/40 transition-colors"

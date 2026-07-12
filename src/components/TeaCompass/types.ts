@@ -19,7 +19,7 @@ export type YixingClayType = 'Zhuni' | 'Zisha' | 'Duanni' | 'Hongni' | 'Lvni' | 
 export type TeawareEra = string;
 
 export type BrowseGrouping = 'date' | 'vendor';
-export type BrowseFilter = 'all' | 'mine' | 'queue' | 'loved' | 'want' | 'pass';
+export type BrowseFilter = 'all' | 'to_taste' | 'selected';
 export type BrowseSort = 'recent' | 'score' | 'price' | 'name';
 // Library layout — list rows, or a grid of the capture photos (bag shots)
 export type BrowseLayout = 'list' | 'photos';
@@ -27,6 +27,24 @@ export type BrowseLayout = 'list' | 'photos';
 // review. Generalizes the sample-only sampleVerdict (kept as a read fallback).
 export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';
 export type CompassDecision = 'considering' | 'selected' | 'passed_on';
+
+export interface LibraryFilters {
+  decision?: CompassDecision | 'none';
+  verdict?: CompassVerdict;
+  possession?: 'none' | 'incoming' | 'in_stock' | 'depleted';
+  journey?: string;
+  vendor?: string;
+  place?: string;
+  date?: string;
+  category?: CompassCategory;
+  type?: string;
+  origin?: string;
+  year?: string;
+  price?: 'known' | 'missing';
+  sampleState?: 'sample' | 'not_sample';
+  photos?: 'with' | 'without';
+  missing?: 'name' | 'price' | 'type' | 'origin' | 'notes';
+}
 
 export interface CurateJourney {
   id: string;

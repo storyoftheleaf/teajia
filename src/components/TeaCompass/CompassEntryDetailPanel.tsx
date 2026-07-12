@@ -6,6 +6,7 @@ import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { getDateGroup } from './BrowseCard';
 import { entryDisplayTitle } from './types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
+import { DecisionControl } from './DecisionControl';
 
 interface CompassEntryDetailPanelProps {
   entryId: string;
@@ -109,6 +110,8 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-6"
         style={{ scrollbarGutter: 'stable' }}
       >
+
+        <DecisionControl value={entry.decision} onChange={(decision) => updateEntry(entry.id, { decision })} />
 
         {/* Metadata strip */}
         {metaParts.length > 0 && (

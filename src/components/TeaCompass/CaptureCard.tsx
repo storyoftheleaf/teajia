@@ -29,6 +29,7 @@ import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
 import { EncounterContext } from './EncounterContext';
+import { DecisionControl } from './DecisionControl';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -1499,6 +1500,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           Library
         </button>
       )}
+
+      <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
 
       {/* SOURCE header — same card the teaware variant uses, so both forms
           open with an identical vendor + photo cluster. Photo strip uses

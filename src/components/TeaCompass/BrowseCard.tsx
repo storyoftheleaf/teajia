@@ -22,6 +22,7 @@ import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { compressImage } from '../../lib/imageCompressor';
 import type { TeaCompassEntry } from './types';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
+import { DecisionControl } from './DecisionControl';
 
 export interface BrowseCardProps {
   entry: TeaCompassEntry;
@@ -367,6 +368,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               className="overflow-hidden"
             >
               <div className="border-t border-tea-border px-3 pt-3 pb-2 space-y-3">
+                <DecisionControl value={entry.decision} onChange={(decision) => updateEntry(entry.id, { decision })} compact />
                 {/* Photo strip with inline add link */}
                 <div className="flex gap-2 items-center flex-wrap">
                   {validPhotos.map((url, i) => (

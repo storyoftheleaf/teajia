@@ -1,0 +1,61 @@
+import React, { useEffect, useState } from 'react';
+import { BottomSheet } from '../shared/BottomSheet';
+import type { LibraryFilters } from './types';
+
+const FIELDS: Array<{ key: keyof LibraryFilters; label: string; options?: Array<[string, string]> }> = [
+  { key: 'decision', label: 'Decision', options: [['none', 'No decision'], ['considering', 'Considering'], ['selected', 'Selected'], ['passed_on', 'Passed on']] },
+  { key: 'verdict', label: 'Verdict', options: [['love', 'Love'], ['like', 'Like'], ['neutral', 'Neutral'], ['pass', 'Pass']] },
+  { key: 'possession', label: 'Possession', options: [['none', 'Not possessed'], ['incoming', 'Incoming'], ['in_stock', 'In stock'], ['depleted', 'Depleted']] },
+  { key: 'journey', label: 'Journey' }, { key: 'vendor', label: 'Vendor' }, { key: 'place', label: 'Place' },
+  { key: 'date', label: 'Date' },
+  { key: 'category', label: 'Category', options: [['tea', 'Tea'], ['teaware', 'Teaware']] },
+  { key: 'type', label: 'Type' }, { key: 'origin', label: 'Origin' }, { key: 'year', label: 'Year' },
+  { key: 'price', label: 'Price', options: [['known', 'Price known'], ['missing', 'Price missing']] },
+  { key: 'sampleState', label: 'Sample state', options: [['sample', 'Sample'], ['not_sample', 'Not a sample']] },
+  { key: 'photos', label: 'Photos', options: [['with', 'Has photos'], ['without', 'No photos']] },
+  { key: 'missing', label: 'Missing information', options: [['name', 'Name'], ['price', 'Price'], ['type', 'Type'], ['origin', 'Origin'], ['notes', 'Notes']] },
+];
+
+export const LibraryFilterSheet: React.FC<{
+  open: boolean;
+  filters: LibraryFilters;
+  onOpenChange: (open: boolean) => void;
+  onApply: (filters: LibraryFilters) => void;
+}> = ({ open, filters, onOpenChange, onApply }) => {
+  const [draft, setDraft] = useState(filters);
+  useEffect(() => { if (open) setDraft(filters); }, [open, filters]);
+  return (
+    <BottomSheet open={open} onOpenChange={onOpenChange} title="Filter Library" description="Narrow by any detail you remember">
+      <div className="max-h-[62vh] space-y-4 overflow-y-auto px-1 pb-nav-gap">
+        {FIELDS.map((field) => (
+          <label key={field.key} className="block text-ui-12 text-tea-text-sec">
+            <span className="mb-1.5 block text-ui-11 font-medium uppercase tracking-[0.1em] text-tea-text-dim">{field.label}</span>
+            {field.options ? (
+              <select
+                aria-label={field.label}
+                value={(draft[field.key] as string | undefined) ?? ''}
+                onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value || undefined }))}
+                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-13 text-tea-text outline-none focus:border-tea-gold"
+              >
+                <option value="">Any</option>
+                {field.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            ) : (
+              <input
+                aria-label={field.label}
+                type={field.key === 'date' ? 'date' : 'text'}
+                value={(draft[field.key] as string | undefined) ?? ''}
+                onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value || undefined }))}
+                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-13 text-tea-text outline-none focus:border-tea-gold"
+              />
+            )}
+          </label>
+        ))}
+        <div className="flex justify-between border-t border-tea-border pt-3">
+          <button type="button" onClick={() => setDraft({})} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Clear</button>
+          <button type="button" onClick={() => { onApply(draft); onOpenChange(false); }} className="tap-target min-h-11 rounded-md bg-tea-gold px-5 text-ui-12 font-semibold text-tea-bg">Apply filters</button>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+};

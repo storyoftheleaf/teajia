@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout } from '../components/TeaCompass/types';
+import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout, LibraryFilters } from '../components/TeaCompass/types';
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 import { api, hasToken } from './api';
@@ -36,6 +36,7 @@ interface TeaCompassState {
   browseFilter: BrowseFilter;
   browseSort: BrowseSort;
   browseLayout: BrowseLayout;
+  libraryFilters: LibraryFilters;
 
   // Capture session — entries created in one contiguous run share this id.
   // A fresh id is minted when a capture starts after SESSION_GAP_MS of idle,
@@ -90,6 +91,7 @@ interface TeaCompassState {
   setBrowseFilter: (filter: BrowseFilter) => void;
   setBrowseSort: (sort: BrowseSort) => void;
   setBrowseLayout: (layout: BrowseLayout) => void;
+  setLibraryFilters: (filters: LibraryFilters) => void;
 
   // Discard a pending capture without saving. For committed entries being re-edited, just exits the session.
   discardEntry: (id: string) => void;
@@ -231,6 +233,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       browseFilter: 'all',
       browseSort: 'recent',
       browseLayout: 'list',
+      libraryFilters: {},
       currentSessionId: null,
       lastCaptureAt: null,
       syncError: false,
@@ -452,6 +455,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       setBrowseFilter: (filter) => set({ browseFilter: filter }),
       setBrowseSort: (sort) => set({ browseSort: sort }),
       setBrowseLayout: (layout) => set({ browseLayout: layout }),
+      setLibraryFilters: (filters) => set({ libraryFilters: filters }),
 
       getEntry: (id) => {
         const state = get();
@@ -484,6 +488,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           browseFilter: state.browseFilter,
           browseSort: state.browseSort,
           browseLayout: state.browseLayout,
+          libraryFilters: state.libraryFilters,
           currentSessionId: state.currentSessionId,
           lastCaptureAt: state.lastCaptureAt,
           shippingRatePerKg: state.shippingRatePerKg,
@@ -497,26 +502,8 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           draftsByAccount,
         };
       },
-      version: 3,
-      migrate: (persistedState, version) => {
-        if (!persistedState || typeof persistedState !== 'object') return persistedState;
-        const previous = persistedState as Partial<TeaCompassState>;
-        const scope = previous.draftAccountScopeId ?? activeAccountScope();
-        if (version < 1) {
-          previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
-            ...entry,
-            touchedFields: entry.touchedFields,
-            draftAccountId: entry.draftAccountId ?? scope ?? undefined,
-          }));
-        }
-        if (version < 2 && scope) {
-          previous.draftsByAccount = {
-            ...(previous.draftsByAccount ?? {}),
-            [scope]: snapshotCompassDrafts(previous),
-          };
-        }
-        return previous;
-      },
+      version: 4,
+      migrate: migrateCompassPersistedState,
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
         const scope = activeAccountScope();
@@ -531,3 +518,30 @@ export const useTeaCompassStore = create<TeaCompassState>()(
     }
   )
 );
+
+export function migrateCompassPersistedState(persistedState: unknown, version: number): unknown {
+        if (!persistedState || typeof persistedState !== 'object') return persistedState;
+        const previous = persistedState as Partial<TeaCompassState> & { browseFilter?: string };
+        const scope = previous.draftAccountScopeId ?? activeAccountScope();
+        if (version < 1) {
+          previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
+            ...entry,
+            touchedFields: entry.touchedFields,
+            draftAccountId: entry.draftAccountId ?? scope ?? undefined,
+          }));
+        }
+        if (version < 2 && scope) {
+          previous.draftsByAccount = {
+            ...(previous.draftsByAccount ?? {}),
+            [scope]: snapshotCompassDrafts(previous),
+          };
+        }
+        if (version < 4) {
+          const legacyFilter = previous.browseFilter as string | undefined;
+          previous.browseFilter = legacyFilter === 'queue' ? 'to_taste'
+            : legacyFilter === 'want' ? 'selected'
+            : 'all';
+          previous.libraryFilters = {};
+        }
+        return previous;
+}

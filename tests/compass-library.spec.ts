@@ -114,3 +114,89 @@ test.describe('Curate context management', () => {
     })).toBe(0);
   });
 });
+
+test.describe('Curate Library decisions and retrieval', () => {
+  test.beforeEach(async ({ page }) => {
+    await installCompassHarness(page);
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite source import.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      const fixtures = [
+        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'Taiwan Spring journey Taipei', status: 'incoming', verdict: 'love', decision: null, isSample: true },
+        { id: 'selected', name: 'River Stone', vendorName: 'Lin Tea', originRegion: 'Alishan', type: 'Oolong', notes: 'mountain floral', status: 'noted', verdict: 'pass', decision: 'selected' },
+        { id: 'passed', name: 'Old Kiln Cup', vendorName: 'Wang Studio', originRegion: 'Jingdezhen', category: 'teaware', notes: 'invoice ceramic', status: 'in_stock', decision: 'passed_on' },
+      ];
+      const entries = fixtures.map((fixture, index) => ({
+        ...createEmptyEntry(fixture.category === 'teaware' ? 'teaware' : 'tea'),
+        ...fixture,
+        createdAt: new Date(Date.UTC(2026, 5, 12 - index)).toISOString(),
+        updatedAt: new Date(Date.UTC(2026, 5, 12 - index)).toISOString(),
+        synced: true,
+      }));
+      useTeaCompassStore.setState({ entries, pendingEntries: [], activeEntryId: null });
+    });
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+  });
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('uses independent four-state sourcing decisions without changing verdict or stock status', async ({ page }) => {
+    await page.getByRole('button', { name: /Cloud Peak/ }).click();
+    await page.getByRole('radio', { name: 'Considering' }).click();
+    expect(await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const entry = useTeaCompassStore.getState().entries.find((item: any) => item.id === 'unresolved');
+      return { decision: entry.decision, verdict: entry.verdict, status: entry.status };
+    })).toEqual({ decision: 'considering', verdict: 'love', status: 'incoming' });
+    await page.getByRole('radio', { name: 'Considering' }).click();
+    await expect(page.getByRole('radio', { name: 'Considering' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  test('shows only All, To taste, and Selected as primary Library views', async ({ page }) => {
+    const controls = page.getByTestId('library-controls').filter({ visible: true });
+    for (const label of ['All', 'To taste', 'Selected']) await expect(controls.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible();
+    for (const legacy of ['Mine', 'Queue', 'Loved', 'Want', 'Pass']) await expect(controls.getByRole('button', { name: new RegExp(`^${legacy}`) })).toHaveCount(0);
+    await controls.getByRole('button', { name: /^Selected/ }).click();
+    await expect(page.getByText('River Stone', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toHaveCount(0);
+  });
+
+  test('keeps dimensional filters, sorting, and List/Photos as separate controls', async ({ page }) => {
+    await page.getByRole('button', { name: 'Filters' }).click();
+    for (const label of ['Decision', 'Verdict', 'Possession', 'Journey', 'Vendor', 'Place', 'Date', 'Category', 'Type', 'Origin', 'Year', 'Price', 'Sample state', 'Photos', 'Missing information']) {
+      await expect(page.getByLabel(label)).toBeVisible();
+    }
+    await page.getByLabel('Decision').selectOption('passed_on');
+    await page.getByRole('button', { name: 'Apply filters' }).click();
+    await expect(page.getByText('Old Kiln Cup', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /1 filter/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Most recent' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Photos' })).toBeVisible();
+  });
+
+  test('searches broadly across vendor, origin, notes, and journey/place fragments', async ({ page }) => {
+    const search = page.getByPlaceholder('Search Library').filter({ visible: true });
+    for (const query of ['Chen', 'Yunnan', 'Taiwan', 'Taipei', 'Sheng']) {
+      await search.fill(query);
+      await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toBeVisible();
+    }
+  });
+
+  test('migrates legacy persisted filters and keeps every Library control at least 44px', async ({ page }) => {
+    const migrated = await page.evaluate(async () => {
+      localStorage.setItem('teajia-compass', JSON.stringify({ state: { browseFilter: 'loved' }, version: 3 }));
+      // @ts-expect-error Vite source import.
+      const { migrateCompassPersistedState } = await import('/src/lib/teaCompassStore.ts');
+      return migrateCompassPersistedState({ browseFilter: 'loved' }, 3);
+    });
+    expect(migrated).toMatchObject({ browseFilter: 'all', libraryFilters: {} });
+    for (const button of await page.locator('[data-testid="library-controls"] button').all()) {
+      const box = await button.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+});
