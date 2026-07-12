@@ -654,7 +654,7 @@ export const QuickInvoiceModal: React.FC<QuickInvoiceModalProps> = ({
         </div>
 
         {/* Footer — sticky, with large total display */}
-        <div className="px-6 pt-4 pb-5 border-t border-tea-border shrink-0">
+        <div className="px-6 pt-4 pb-nav-gap border-t border-tea-border shrink-0">
 
           {/* Shipping */}
           <div className="flex items-center justify-between mb-3">
