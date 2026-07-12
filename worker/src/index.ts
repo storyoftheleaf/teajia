@@ -13719,16 +13719,29 @@ const handleGetMyWishlist: Handler = async (request, env) => {
 //      created before a customer record was linked to the user account).
 // Scoped to the active account. Returns a stable shape the UI can render without
 // further lookups (invoice number, status, total, currency, created_at, line count).
+const MY_ORDER_OWNERSHIP_SQL = `(
+  i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = ?)
+  OR (? != '' AND i.customer_id IN (
+    SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
+  ))
+  OR (? != '' AND i.customer_whatsapp = ?)
+)`;
+
+async function loadMyOrderOwnership(env: Env, userId: string, accountId: string) {
+  const userRow = await env.DB.prepare(
+    'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first() as { email: string | null; phone: string | null } | null;
+  const email = (userRow?.email || '').trim().toLowerCase();
+  const phone = (userRow?.phone || '').trim();
+  return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, accountId, email, email, accountId, phone, phone] };
+}
+
 const handleGetMyOrders: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
-  const userRow = await env.DB.prepare(
-    'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
-  ).bind(userId).first() as { email: string | null; phone: string | null } | null;
-  const userEmail = (userRow?.email || '').trim().toLowerCase();
-  const userPhone = (userRow?.phone || '').trim();
+  const ownership = await loadMyOrderOwnership(env, userId, accountId);
 
   // Build the WHERE clause: include rows linked via customers.user_id, plus any
   // fallback match on customer_whatsapp == users.phone. customers.email is the
@@ -13742,31 +13755,20 @@ const handleGetMyOrders: Handler = async (request, env) => {
             i.shipping_cost_usd
      FROM invoices i
      LEFT JOIN (
-       SELECT invoice_id,
+       SELECT invoice_id, account_id,
               SUM(quantity * price_at_sale) as line_total,
               COUNT(*) as line_count
        FROM invoice_line_items
-       GROUP BY invoice_id
-     ) t ON t.invoice_id = i.id
+       GROUP BY invoice_id, account_id
+     ) t ON t.invoice_id = i.id AND t.account_id = i.account_id
      WHERE i.account_id = ?
        AND i.deleted_at IS NULL
        AND i.status NOT IN ('Draft', 'Void')
-       AND (
-         i.customer_id IN (
-           SELECT id FROM customers WHERE user_id = ? AND account_id = ?
-         )
-         OR (? != '' AND i.customer_id IN (
-           SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
-         ))
-         OR (? != '' AND i.customer_whatsapp = ?)
-       )
+       AND ${ownership.predicate}
      ORDER BY i.created_at DESC
      LIMIT 200`
   ).bind(
-    accountId,
-    userId, accountId,
-    userEmail, userEmail, accountId,
-    userPhone, userPhone
+    accountId, ...ownership.bindings
   ).all();
 
   const orders = (result.results as Record<string, any>[]).map(r => ({
@@ -13780,6 +13782,62 @@ const handleGetMyOrders: Handler = async (request, env) => {
   }));
 
   return json({ orders });
+};
+
+const handleGetMyOrderDetail: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+  const ownership = await loadMyOrderOwnership(env, userId, accountId);
+  const invoice = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.status, i.created_at, i.payment_date,
+            NULL AS fulfilled_at, i.display_currency, i.shipping_cost_usd
+     FROM invoices i
+     WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
+       AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}
+     LIMIT 1`
+  ).bind(params.id, accountId, ...ownership.bindings).first() as Record<string, any> | null;
+  if (!invoice) return json({ error: 'Order not found' }, 404);
+
+  const lineResult = await env.DB.prepare(
+    `SELECT ili.id, ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale,
+            p.product_name
+     FROM invoice_line_items ili
+     LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
+     WHERE ili.invoice_id = ? AND ili.account_id = ?
+     ORDER BY ili.id`
+  ).bind(params.id, accountId).all();
+  const items = (lineResult.results as Record<string, any>[]).map(line => ({
+    id: line.id as string,
+    product_id: (line.product_id as string | null) ?? null,
+    name: (line.custom_name || line.product_name || 'Tea') as string,
+    quantity: Number(line.quantity),
+    unit_price_usd: Number(line.price_at_sale),
+    line_total_usd: Number(line.quantity) * Number(line.price_at_sale),
+  }));
+  const subtotal = items.reduce((sum, item) => sum + item.line_total_usd, 0);
+  const shipping = Number(invoice.shipping_cost_usd || 0);
+  const account = await env.DB.prepare(
+    'SELECT whatsapp_number, contact_email FROM accounts WHERE id = ?'
+  ).bind(accountId).first() as { whatsapp_number?: string | null; contact_email?: string | null } | null;
+
+  return json({
+    id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    status: invoice.status,
+    created_at: invoice.created_at,
+    payment_date: invoice.payment_date ?? null,
+    fulfilled_at: invoice.fulfilled_at ?? null,
+    currency: invoice.display_currency || 'USD',
+    items,
+    subtotal_amount_usd: subtotal,
+    shipping_amount_usd: shipping,
+    total_amount_usd: subtotal + shipping,
+    contact: {
+      whatsapp: account?.whatsapp_number || null,
+      email: account?.contact_email || null,
+    },
+  });
 };
 
 // GET /api/me/samples — tea samples whose tasting trail belongs to the authed user.
@@ -19544,6 +19602,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
   ['GET', '/api/me/journey', handleGetMyJourney],
   ['GET', '/api/me/orders', handleGetMyOrders],
+  ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
   ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],
 
