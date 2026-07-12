@@ -1661,61 +1661,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div
       className="h-full flex flex-col overflow-hidden bg-tea-bg"
     >
-      <div className="hidden md:flex justify-end px-4 py-2 border-b border-tea-border bg-tea-bg">
-        <button onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); }} className="min-h-11 px-3 inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-accent-sub">
-          <PackageCheck size={16} aria-hidden="true" /> Incoming
-        </button>
-      </div>
-
-      {/* --- VENDOR FILTER BANNER --- */}
-      {vendorFilter && (
-        <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
-          <button
-            onClick={() => navigate('/admin/people')}
-            className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
-          >
-            <ChevronLeft size={14} />
-            <span className="uppercase tracking-[0.15em] text-ui-10 font-bold">Sources</span>
-          </button>
-          <div className="w-px h-4 bg-tea-border" />
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <User size={14} className="text-tea-gold flex-shrink-0" />
-            <span className="text-sm font-serif text-tea-text truncate">{vendorFilter}</span>
-            <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em]">
-              — {processedProducts.length} tea{processedProducts.length !== 1 ? 's' : ''} supplied
-            </span>
-          </div>
-          <button
-            onClick={() => { setSearchParams({}); }}
-            className="flex items-center gap-1 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em] transition-colors px-2 py-1 hover:bg-tea-bg rounded-md"
-          >
-            <XIcon size={12} /> Clear Filter
-          </button>
-        </div>
-      )}
-
-      {batchFilter && (
-        <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Layers size={14} className="text-tea-gold flex-shrink-0" />
-            <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Batch</span>
-            <span className="text-sm font-serif text-tea-text truncate">
-              {activeBatch?.label || 'Selected batch'}
-              {activeBatch?.intake_date ? ` — ${activeBatch.intake_date}` : ''}
-            </span>
-            <span className="text-ui-10 text-tea-text-sec uppercase tracking-[0.15em]">
-              — {processedProducts.length} tea{processedProducts.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <button
-            onClick={() => { searchParams.delete('batch'); setSearchParams(searchParams); }}
-            className="flex items-center gap-1 text-ui-10 text-tea-text-sec hover:text-tea-text uppercase tracking-[0.15em] transition-colors px-2 py-1 hover:bg-tea-bg rounded-md"
-          >
-            <XIcon size={12} /> Clear Filter
-          </button>
-        </div>
-      )}
-
       {/* --- MERGED VIEWS + CONTROLS BAR (mobile) ---
           NOT sticky — this band scrolls UP and away with the list so only the
           column-header row (the table thead, sticky inside its own scroll box)
@@ -1945,7 +1890,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           fixed top-[82px] blocks were removed. */}
 
       {/* --- MOBILE OPTIONS SHEET (outside backdrop-blur container) --- */}
-      <div className="md:hidden">
+      <div>
             {showOptions && (
               <>
               <div className="fixed inset-0 z-40" onClick={() => setShowOptions(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowOptions(false); }} />
@@ -2001,7 +1946,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           The right action cluster carries paddingRight = INVENTORY_ACTION_RAIL_WIDTH
           when railOpen (with a 200ms transition matching the rail's slide-in) so the
           icons shift clear of the rail when a row is selected. */}
-      <div className={`hidden md:flex items-center gap-1 px-4 md:px-6 lg:px-10 py-1.5 md:min-h-12 md:py-0 border-b border-tea-border flex-wrap sticky top-0 z-sticky transition-colors ${isEditMode ? 'bg-tea-surface' : 'bg-tea-bg'}`}>
+      <div className="hidden">
         {(() => {
           const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           // Everyday filters stay inline; the rest fold into "More" so the row never overflows.
@@ -2694,7 +2639,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             card border, no rounding (those only chrome a narrow column on a small
             screen and steal width). Desktop keeps the bordered card. */}
         {filterType !== 'Pending' && !glossaryMode && <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
-          <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-hidden">
+          <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-hidden md:overflow-visible">
 
           {/* On mobile this wrapper owns BOTH scroll axes: a bounded height plus
               overflow-auto makes it the vertical scroller too, so the table's
@@ -2712,10 +2657,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               maxHeight: 'calc(100dvh - 100px)',
             } : undefined}
           >
-          <div className="md:hidden bg-tea-bg">
+          <div className="bg-tea-bg">
             <div
               data-testid="inventory-primary-row"
-              className="static flex h-10 w-screen max-w-[100vw] items-center gap-0 px-0.5 border-b border-tea-border text-ui-8 uppercase tracking-normal whitespace-nowrap overflow-hidden"
+              data-inventory-header-row
+              className="static flex h-10 w-full max-w-full items-center gap-0 px-0.5 md:px-4 border-b border-tea-border text-ui-8 md:text-ui-10 uppercase tracking-normal md:tracking-[0.06em] whitespace-nowrap overflow-hidden"
             >
               <button type="button" aria-pressed={inventoryCategory === 'tea'} onClick={() => onCategoryChange?.('tea')} className={`tap-target px-1 ${inventoryCategory === 'tea' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Tea</button>
               <button type="button" aria-pressed={inventoryCategory === 'teaware'} onClick={() => onCategoryChange?.('teaware')} className={`tap-target px-1 ${inventoryCategory === 'teaware' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Wares</button>
@@ -2745,8 +2691,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     {(close) => ([['productName', 'Name'], ['stockGrams', 'Stock'], ['pricePerGramUSD', 'Price'], ['year', 'Year']] as const).map(([key, label]) => <button key={key} role="menuitem" onClick={() => { setInventorySortConfig([{ key, direction: 'asc' }]); close(); }} className="w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec">{label}</button>)}
                   </AnchoredMenu>
                   <span className="inline-flex shrink-0 items-center gap-0.5 px-0.5 text-tea-text-sec normal-case tracking-normal" title={activeAccountName}><MapPin size={11} className="shrink-0" /><span>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span></span>
-                  <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target w-7 shrink-0 appearance-none bg-transparent px-0 text-ui-8 text-tea-text-sec outline-none"><option value={currency}>{currency}</option></select>
+                  <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target w-7 md:w-12 shrink-0 appearance-none bg-transparent px-0 text-ui-8 md:text-ui-10 text-tea-text-sec outline-none">{rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}</select>
                   {(vendorFilter || batchFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-12 truncate px-0.5 normal-case tracking-normal text-tea-gold">{vendorFilter || activeBatch?.label || 'Batch'} ×</button>}
+                  <div className="hidden md:flex items-center gap-1 ml-auto">
+                    <button type="button" onClick={() => setGlossaryMode(!glossaryMode)} aria-pressed={glossaryMode} className="tap-target px-2 text-tea-text-sec hover:text-tea-text">Glossary</button>
+                    <button type="button" onClick={() => setIsEditMode(!isEditMode)} aria-pressed={isEditMode} className="tap-target px-2 text-tea-text-sec hover:text-tea-text">{isEditMode ? 'Done' : 'Edit'}</button>
+                    <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target px-2 text-tea-text-sec hover:text-tea-text">Add</button>
+                    <AnchoredMenu align="right" width={176} open={showColumnsPopover} onOpenChange={setShowColumnsPopover} trigger={(props) => <button {...props} className="tap-target px-2 text-tea-text-sec hover:text-tea-text" aria-label="Show or hide columns">Cols</button>}>
+                      {() => activeColumnDefs.map(col => <label key={col.key} role="menuitem" className="flex items-center gap-2 px-3 py-2 text-ui-11 text-tea-text-sec"><input type="checkbox" checked={inventoryColumns.includes(col.key)} onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleInventoryColumn(col.key)} disabled={'alwaysVisible' in col && col.alwaysVisible} className="accent-tea-gold" />{col.label}</label>)}
+                    </AnchoredMenu>
+                    <AnchoredMenu align="right" width={208} open={showVendorDropdown} onOpenChange={setShowVendorDropdown} trigger={(props) => <button {...props} className="tap-target px-2 text-tea-text-sec hover:text-tea-text" aria-label="Filter by vendor">Vendor</button>}>
+                      {(close) => <><button role="menuitem" onClick={() => { setSearchParams({}); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setSearchParams({ vendor: vendor! }); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
+                    </AnchoredMenu>
+                  </div>
                   <button type="button" onClick={() => setShowOptions(!showOptions)} aria-label="Open inventory actions" aria-expanded={showOptions} className="tap-target px-0.5 text-tea-text-sec hover:text-tea-text"><MoreHorizontal size={14} /></button>
                 </>
               )}
@@ -2760,7 +2717,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const attentionViews = allViews.filter(view => !purposeIds.has(view.id));
               const selectView = (view: typeof allViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setInventoryColumns(view.columns); setInventorySortConfig(view.sortConfig); setFilterType(view.filterType); setInventoryGroupBy(view.groupBy); };
               return (
-                <div data-testid="inventory-purpose-row" className="static flex h-10 w-screen max-w-[100vw] items-center gap-0 px-0.5 border-b border-tea-border whitespace-nowrap text-ui-9 uppercase tracking-normal overflow-hidden">
+                <div data-testid="inventory-purpose-row" data-inventory-header-row className="static flex h-10 w-full max-w-full items-center gap-0 px-0.5 md:px-4 border-b border-tea-border whitespace-nowrap text-ui-9 md:text-ui-10 uppercase tracking-normal md:tracking-[0.06em] overflow-hidden">
                   <span className="px-1 text-tea-text-dim">Purpose</span>
                   {purposeViews.map(view => <button key={view.id} type="button" onClick={() => selectView(view)} aria-pressed={activeViewId === view.id} className={`tap-target relative px-1.5 ${activeViewId === view.id ? 'text-tea-gold after:absolute after:inset-x-1 after:bottom-1 after:h-px after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
                   <button type="button" onClick={() => setViewTabsExpanded(!viewTabsExpanded)} aria-expanded={viewTabsExpanded} className="tap-target ml-auto inline-flex items-center gap-0.5 px-1 text-tea-text-sec hover:text-tea-text"><span>Needs attention</span><Plus size={10} /></button>
@@ -2776,7 +2733,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               column header row pinned — this is the single statement of "what am
               I looking at," so the count is not repeated in the controls band. */}
           {processedProducts.length > 0 && (
-            <div className="hidden md:flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
+            <div className="hidden">
               <div className="flex items-baseline gap-2 min-w-0">
                 {(() => {
                   const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
@@ -2813,7 +2770,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
-                <thead data-testid="inventory-column-row" className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
+                <thead data-testid="inventory-column-row" data-inventory-header-row className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
                     {renderCols.map((col, i) => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
@@ -2919,7 +2876,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </colgroup>
 
                 {/* Canonical header — auto-aligned: numerics right, others left. */}
-                <thead data-testid="inventory-column-row" className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
+                <thead data-testid="inventory-column-row" data-inventory-header-row className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
                     <tr>
                         {splitView ? (
                           renderSplitCols.map(col => (

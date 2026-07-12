@@ -195,7 +195,7 @@ test.describe('Inventory page — scroll regression guard', () => {
   });
 
   test('three-row inventory header keeps only column headings sticky', async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== 'Mobile Chrome', 'Narrow inventory header contract');
+    test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
 
@@ -206,12 +206,16 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(primary).toBeVisible();
     await expect(purpose).toBeVisible();
     await expect(columns).toBeVisible();
+    await expect(page.locator('[data-inventory-header-row]')).toHaveCount(3);
 
     for (const name of ['Tea', 'Wares', 'Incoming', 'Retail', 'Group', 'Sort', 'Bali']) {
       await expect(primary.getByText(name, { exact: true })).toBeVisible();
     }
     await expect(primary.getByRole('combobox', { name: 'Select currency' })).toBeVisible();
     await expect(primary.getByRole('combobox', { name: 'Select currency' })).toHaveValue('USD');
+    expect(await primary.getByRole('combobox', { name: 'Select currency' }).locator('option').count()).toBeGreaterThan(1);
+    await primary.getByRole('combobox', { name: 'Select currency' }).selectOption('IDR');
+    await expect(primary.getByRole('combobox', { name: 'Select currency' })).toHaveValue('IDR');
     await expect(primary.getByRole('button', { name: /search/i })).toBeVisible();
     await expect(primary.getByRole('button', { name: /inventory actions/i })).toBeVisible();
 
@@ -223,11 +227,68 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(purpose).toHaveCSS('position', 'static');
     await expect(columns).toHaveCSS('position', 'sticky');
 
+    for (const label of ['Product', 'Stock', 'Retail', 'Type', 'Source', 'Origin', 'Leaf', 'Year']) {
+      await expect(columns.getByText(label, { exact: true })).toBeVisible();
+    }
+
+    const initialRowHeight = await primary.evaluate(el => el.getBoundingClientRect().height);
     await primary.getByRole('button', { name: /search/i }).click();
-    await expect(primary.getByRole('textbox', { name: /search tea or source/i })).toBeVisible();
+    const search = primary.getByRole('textbox', { name: /search tea or source/i });
+    await expect(search).toBeVisible();
+    await search.fill('Mountain');
+    await expect(primary).toHaveCSS('height', `${initialRowHeight}px`);
     await expect(page.getByTestId('inventory-primary-row')).toHaveCount(1);
+    await primary.getByRole('button', { name: /close inventory search/i }).click();
+    await expect(primary.getByRole('button', { name: /search inventory/i })).toBeFocused();
+    await primary.getByRole('button', { name: /search inventory/i }).click();
+    await expect(search).toHaveValue('Mountain');
+    await search.press('Escape');
+
+    await primary.getByRole('button', { name: /switch price mode/i }).click();
+    await expect(primary.getByText('Cost', { exact: true })).toBeVisible();
+    await primary.getByRole('button', { name: 'Group inventory' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Type', exact: true }).first()).toBeVisible();
+    await page.keyboard.press('Escape');
+    await primary.getByRole('button', { name: 'Sort inventory' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Stock', exact: true }).first()).toBeVisible();
+    await page.keyboard.press('Escape');
+    await primary.getByRole('button', { name: /inventory actions/i }).click();
+    await expect(primary.getByRole('button', { name: /inventory actions/i })).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Escape');
+
+    const scrollHost = testInfo.project.name === 'Mobile Chrome'
+      ? columns.locator('xpath=ancestor::div[contains(@class,"overflow-auto")][1]')
+      : page.getByTestId('inventory-scroll');
+    const before = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
+    await scrollHost.evaluate(el => el.scrollTo({ top: 300, behavior: 'instant' as ScrollBehavior }));
+    await page.waitForTimeout(100);
+    const after = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
+    const scrollTopEdge = await scrollHost.evaluate(el => el.getBoundingClientRect().top);
+    expect(after[0]).toBeLessThan(before[0] - 100);
+    expect(after[1]).toBeLessThan(before[1] - 100);
+    expect(Math.abs(after[2] - scrollTopEdge)).toBeLessThan(16);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
+  });
+
+  test('three-row inventory header keeps vendor and grouped context inline', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
+    await page.goto('/admin/stock?vendor=Mountain%20Source', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+    await expect(page.getByTestId('inventory-primary-row').getByText(/Mountain Source/)).toBeVisible();
+    await expect(page.locator('[data-testid="inventory-filter-banner"]')).toHaveCount(0);
+
+    await page.goto('/admin/stock?batch=batch-1', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1000);
+    await expect(page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Clear inventory context' })).toContainText('Batch');
+    await expect(page.locator('[data-testid="inventory-filter-banner"]')).toHaveCount(0);
+
+    await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Group inventory' }).click();
+    await page.getByRole('menuitem', { name: 'Type', exact: true }).first().click();
+    await expect(page.getByTestId('inventory-column-row')).toBeVisible();
+
+    await page.getByTestId('inventory-primary-row').getByText('Incoming', { exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Incoming stock' })).toBeVisible();
   });
 });
