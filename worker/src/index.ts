@@ -8534,6 +8534,114 @@ const handleGetTeawareCategories: Handler = async (request, env) => {
   return json(result.results);
 };
 
+// ── Curate encounter context (optional Journey + Visit) ──
+
+const JOURNEY_FIELDS = ['name', 'season', 'year', 'started_at', 'ended_at', 'notes'] as const;
+const VISIT_FIELDS = ['journey_id', 'vendor_id', 'vendor_name', 'place', 'visited_at', 'notes'] as const;
+
+const handleListCurateJourneys: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const result = await env.DB.prepare(
+    'SELECT * FROM curate_journeys WHERE account_id = ? ORDER BY updated_at DESC'
+  ).bind(ctx.accountId).all();
+  return json({ journeys: result.results ?? [] });
+};
+
+const handleCreateCurateJourney: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as Record<string, unknown>;
+  if (typeof body.name !== 'string' || !body.name.trim()) return json({ error: 'name required' }, 400);
+  const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
+  const present = JOURNEY_FIELDS.filter(field => body[field] !== undefined);
+  await env.DB.prepare(
+    `INSERT INTO curate_journeys (id, account_id, ${present.join(', ')}) VALUES (${['?', '?', ...present.map(() => '?')].join(', ')})`
+  ).bind(id, ctx.accountId, ...present.map(field => body[field] ?? null)).run();
+  const created = await env.DB.prepare('SELECT * FROM curate_journeys WHERE id = ? AND account_id = ?')
+    .bind(id, ctx.accountId).first();
+  return json(created, 201);
+};
+
+const handleUpdateCurateJourney: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const owned = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?')
+    .bind(params.id, ctx.accountId).first();
+  if (!owned) return json({ error: 'Journey not found' }, 404);
+  const body = await request.json() as Record<string, unknown>;
+  const fields = JOURNEY_FIELDS.filter(field => body[field] !== undefined);
+  if (fields.length === 0) return json({ error: 'No fields to update' }, 400);
+  await env.DB.prepare(`UPDATE curate_journeys SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    .bind(...fields.map(field => body[field] ?? null), params.id, ctx.accountId).run();
+  return json(await env.DB.prepare('SELECT * FROM curate_journeys WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first());
+};
+
+const handleDeleteCurateJourney: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const owned = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
+  if (!owned) return json({ error: 'Journey not found' }, 404);
+  await env.DB.batch([
+    env.DB.prepare('UPDATE curate_visits SET journey_id = NULL WHERE journey_id = ? AND account_id = ?').bind(params.id, ctx.accountId),
+    env.DB.prepare('UPDATE tea_compass_entries SET journey_id = NULL WHERE journey_id = ? AND account_id = ?').bind(params.id, ctx.accountId),
+    env.DB.prepare('DELETE FROM curate_journeys WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId),
+  ]);
+  return json({ success: true });
+};
+
+const handleListCurateVisits: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const journeyId = new URL(request.url).searchParams.get('journey_id');
+  const query = `SELECT * FROM curate_visits WHERE account_id = ?${journeyId ? ' AND journey_id = ?' : ''} ORDER BY updated_at DESC`;
+  const result = await env.DB.prepare(query).bind(ctx.accountId, ...(journeyId ? [journeyId] : [])).all();
+  return json({ visits: result.results ?? [] });
+};
+
+async function curateJourneyOwned(env: Env, accountId: string, journeyId: unknown): Promise<boolean> {
+  if (journeyId == null || journeyId === '') return true;
+  return !!await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(journeyId, accountId).first();
+}
+
+const handleCreateCurateVisit: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as Record<string, unknown>;
+  if (!await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
+  const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
+  const present = VISIT_FIELDS.filter(field => body[field] !== undefined);
+  await env.DB.prepare(`INSERT INTO curate_visits (id, account_id${present.length ? `, ${present.join(', ')}` : ''}) VALUES (${['?', '?', ...present.map(() => '?')].join(', ')})`)
+    .bind(id, ctx.accountId, ...present.map(field => body[field] ?? null)).run();
+  return json(await env.DB.prepare('SELECT * FROM curate_visits WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first(), 201);
+};
+
+const handleUpdateCurateVisit: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const owned = await env.DB.prepare('SELECT id FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
+  if (!owned) return json({ error: 'Visit not found' }, 404);
+  const body = await request.json() as Record<string, unknown>;
+  if (body.journey_id !== undefined && !await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
+  const fields = VISIT_FIELDS.filter(field => body[field] !== undefined);
+  if (fields.length === 0) return json({ error: 'No fields to update' }, 400);
+  await env.DB.prepare(`UPDATE curate_visits SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    .bind(...fields.map(field => body[field] ?? null), params.id, ctx.accountId).run();
+  return json(await env.DB.prepare('SELECT * FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first());
+};
+
+const handleDeleteCurateVisit: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const owned = await env.DB.prepare('SELECT id FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first();
+  if (!owned) return json({ error: 'Visit not found' }, 404);
+  await env.DB.batch([
+    env.DB.prepare('UPDATE tea_compass_entries SET visit_id = NULL WHERE visit_id = ? AND account_id = ?').bind(params.id, ctx.accountId),
+    env.DB.prepare('DELETE FROM curate_visits WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId),
+  ]);
+  return json({ success: true });
+};
+
 // ── Tea Compass (personal field notes, scoped per account + user) ──
 
 const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips']);
@@ -8544,6 +8652,7 @@ const COMPASS_COLUMNS = [
   'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
   'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
   'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'session_id',
+  'journey_id', 'visit_id',
   'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
 ] as const;
 type CompassColumn = typeof COMPASS_COLUMNS[number];
@@ -8570,6 +8679,21 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
     if (body[column] !== undefined) values[column] = encodeCompassValue(column, body[column]);
   }
   return { values };
+}
+
+async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>): Promise<Response | null> {
+  if (values.journey_id != null) {
+    const journey = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(values.journey_id, accountId).first();
+    if (!journey) return json({ error: 'Journey does not belong to the active account' }, 400);
+  }
+  if (values.visit_id != null) {
+    const visit = await env.DB.prepare('SELECT id, journey_id FROM curate_visits WHERE id = ? AND account_id = ?').bind(values.visit_id, accountId).first() as { journey_id?: string | null } | null;
+    if (!visit) return json({ error: 'Visit does not belong to the active account' }, 400);
+    if (values.journey_id != null && visit.journey_id != null && visit.journey_id !== values.journey_id) {
+      return json({ error: 'Visit is not part of the selected Journey' }, 400);
+    }
+  }
+  return null;
 }
 
 const handleGetCompassEntries: Handler = async (request, env) => {
@@ -8606,6 +8730,8 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, false);
   if ('error' in decoded) return decoded.error;
+  const contextError = await validateCompassContext(env, accountId, decoded.values);
+  if (contextError) return contextError;
 
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
   const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
@@ -8630,6 +8756,8 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
+  const contextError = await validateCompassContext(env, accountId, decoded.values);
+  if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
@@ -8881,6 +9009,8 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
   for (const entry of body.entries) {
     const decoded = decodeCompassWrite(entry, false);
     if ('error' in decoded) return decoded.error;
+    const contextError = await validateCompassContext(env, accountId, decoded.values);
+    if (contextError) return contextError;
     if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
     const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
     const columns = ['id', 'user_id', 'account_id', ...present];
@@ -18473,6 +18603,14 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/admin/teaware/:id/photos/:photoId', handleDeleteTeawarePhoto],
 
   // Tea Compass
+  ['GET', '/api/curate/journeys', handleListCurateJourneys],
+  ['POST', '/api/curate/journeys', handleCreateCurateJourney],
+  ['PUT', '/api/curate/journeys/:id', handleUpdateCurateJourney],
+  ['DELETE', '/api/curate/journeys/:id', handleDeleteCurateJourney],
+  ['GET', '/api/curate/visits', handleListCurateVisits],
+  ['POST', '/api/curate/visits', handleCreateCurateVisit],
+  ['PUT', '/api/curate/visits/:id', handleUpdateCurateVisit],
+  ['DELETE', '/api/curate/visits/:id', handleDeleteCurateVisit],
   ['GET', '/api/compass/entries', handleGetCompassEntries],
   ['POST', '/api/compass/entries', handleCreateCompassEntry],
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],

@@ -147,4 +147,41 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.getByRole('button', { name: /Done/ }).first()).toBeVisible();
     await expect(page.locator('[data-testid="save-mode-personal"], [data-testid="save-mode-inventory"]')).toHaveCount(0);
   });
+
+  test('begins immediately with no Journey or Visit setup gate', async ({ page }) => {
+    await openCompass(page);
+    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add journey or visit context' })).toBeVisible();
+  });
+
+  test('inherits recent context, can clear it, and leaves the six-hour session unchanged', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Add journey or visit context' }).click();
+    await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
+    await page.getByRole('button', { name: /Chen Family/ }).click();
+    await page.getByRole('button', { name: 'Apply context' }).click();
+    await expect(page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ })).toBeVisible();
+
+    const first = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      const entry = state.getEntry(state.activeEntryId!);
+      return { journeyId: entry?.journeyId, visitId: entry?.visitId, sessionId: entry?.sessionId };
+    });
+    await page.getByRole('button', { name: /^(New Entry|Start a new entry)$/ }).filter({ visible: true }).click();
+    const second = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      const entry = state.getEntry(state.activeEntryId!);
+      return { journeyId: entry?.journeyId, visitId: entry?.visitId, sessionId: entry?.sessionId };
+    });
+    expect(second).toMatchObject({ journeyId: 'journey-taiwan', visitId: 'visit-chen', sessionId: first.sessionId });
+    await expect(page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ })).toBeVisible();
+
+    await page.getByRole('button', { name: /Edit context:/ }).click();
+    await page.getByRole('button', { name: 'Clear context' }).click();
+    await expect(page.getByRole('button', { name: 'Add journey or visit context' })).toBeVisible();
+  });
 });

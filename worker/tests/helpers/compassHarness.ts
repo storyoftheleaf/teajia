@@ -41,6 +41,12 @@ class FakeStatement {
       if (sql.includes('account_id = ?') && row.account_id !== accountValue) return null;
       return { ...row };
     }
+    for (const [table, rows] of [['curate_journeys', this.db.journeys], ['curate_visits', this.db.visits]] as const) {
+      if (sql.includes(`from ${table} where id = ?`)) {
+        const row = rows.get(String(this.values[0]));
+        return row && row.account_id === this.values[1] ? { ...row } : null;
+      }
+    }
     return null;
   }
 
@@ -54,11 +60,43 @@ class FakeStatement {
           .map(row => ({ ...row })),
       };
     }
+    if (sql.includes('from curate_journeys where account_id = ?')) {
+      return { results: [...this.db.journeys.values()].filter(row => row.account_id === this.values[0]).map(row => ({ ...row })) };
+    }
+    if (sql.includes('from curate_visits where account_id = ?')) {
+      return { results: [...this.db.visits.values()].filter(row => row.account_id === this.values[0] && (!sql.includes('journey_id = ?') || row.journey_id === this.values[1])).map(row => ({ ...row })) };
+    }
     return { results: [] };
   }
 
   async run() {
     const sql = normalizeSql(this.sql);
+    for (const [table, rows] of [['curate_journeys', this.db.journeys], ['curate_visits', this.db.visits]] as const) {
+      if (sql.startsWith(`insert into ${table}`)) {
+        const columnMatch = this.sql.match(new RegExp(`${table}\\s*\\(([^)]+)\\)`, 'i'))!;
+        const columns = columnMatch[1].split(',').map(column => column.trim());
+        const row = { ...(table === 'curate_visits' ? { journey_id: null } : {}), ...Object.fromEntries(columns.map((column, index) => [column, this.values[index]])) };
+        rows.set(String(row.id), row);
+        return { success: true, meta: { changes: 1 } };
+      }
+      if (sql.startsWith(`update ${table} set`)) {
+        const id = String(this.values.at(-2));
+        const accountId = this.values.at(-1);
+        const row = rows.get(id);
+        if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+        const setClause = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
+        const columns = [...setClause.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
+        columns.forEach((column, index) => { row[column] = this.values[index]; });
+        rows.set(id, row);
+        return { success: true, meta: { changes: 1 } };
+      }
+      if (sql.startsWith(`delete from ${table}`)) {
+        const row = rows.get(String(this.values[0]));
+        const changed = !!row && row.account_id === this.values[1];
+        if (changed) rows.delete(String(this.values[0]));
+        return { success: true, meta: { changes: changed ? 1 : 0 } };
+      }
+    }
     if (sql.startsWith('insert into tea_compass_entries')) {
       const columnMatch = this.sql.match(/tea_compass_entries\s*\(([^)]+)\)/i);
       if (!columnMatch) throw new Error(`Missing INSERT columns: ${this.sql}`);
@@ -106,6 +144,8 @@ class FakeStatement {
 
 export class FakeDb {
   rows = new Map<string, CompassRow>();
+  journeys = new Map<string, Record<string, unknown>>();
+  visits = new Map<string, Record<string, unknown>>();
 
   prepare(sql: string) {
     return new FakeStatement(sql, this);

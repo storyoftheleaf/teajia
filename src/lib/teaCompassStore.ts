@@ -25,6 +25,10 @@ interface TeaCompassState {
   lastVendorName: string | null;
   lastCurrency: Currency;
 
+  // Optional encounter context. Separate from capture-session grouping.
+  encounterContextByAccount: Record<string, { journeyId: string | null; visitId: string | null }>;
+  setEncounterContext: (entryId: string, journeyId: string | null, visitId: string | null) => void;
+
   // Browse state
   browseGrouping: BrowseGrouping;
   browseFilter: BrowseFilter;
@@ -220,6 +224,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       lastVendorId: null,
       lastVendorName: null,
       lastCurrency: 'NT',
+      encounterContextByAccount: {},
       browseGrouping: 'date',
       browseFilter: 'all',
       browseSort: 'recent',
@@ -348,6 +353,9 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         });
         entry.draftAccountId = state.draftAccountScopeId ?? activeAccountScope() ?? 'guest';
         entry.sessionId = sessionId;
+        const context = state.encounterContextByAccount[entry.draftAccountId];
+        entry.journeyId = context?.journeyId ?? null;
+        entry.visitId = context?.visitId ?? null;
         // Add to pendingEntries (NOT entries) — won't appear in Library until committed
         set((s) => ({
           pendingEntries: [entry, ...s.pendingEntries],
@@ -411,6 +419,19 @@ export const useTeaCompassStore = create<TeaCompassState>()(
 
       setLastCurrency: (currency) => set({ lastCurrency: currency }),
 
+      setEncounterContext: (entryId, journeyId, visitId) => set((state) => {
+        const scope = state.draftAccountScopeId ?? activeAccountScope() ?? 'guest';
+        const update = { journeyId, visitId };
+        const apply = (entry: TeaCompassEntry) => entry.id === entryId
+          ? { ...entry, ...update, touchedFields: Array.from(new Set([...(entry.touchedFields ?? []), 'journeyId', 'visitId'])), updatedAt: new Date().toISOString(), synced: false }
+          : entry;
+        return {
+          pendingEntries: state.pendingEntries.map(apply),
+          entries: state.entries.map(apply),
+          encounterContextByAccount: { ...state.encounterContextByAccount, [scope]: update },
+        };
+      }),
+
       setBrowseGrouping: (grouping) => set({ browseGrouping: grouping }),
       setBrowseFilter: (filter) => set({ browseFilter: filter }),
       setBrowseSort: (sort) => set({ browseSort: sort }),
@@ -442,6 +463,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           lastVendorId: state.lastVendorId,
           lastVendorName: state.lastVendorName,
           lastCurrency: state.lastCurrency,
+          encounterContextByAccount: state.encounterContextByAccount,
           browseGrouping: state.browseGrouping,
           browseFilter: state.browseFilter,
           browseSort: state.browseSort,
@@ -459,7 +481,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           draftsByAccount,
         };
       },
-      version: 2,
+      version: 3,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState;
         const previous = persistedState as Partial<TeaCompassState>;

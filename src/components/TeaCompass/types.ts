@@ -28,6 +28,28 @@ export type BrowseLayout = 'list' | 'photos';
 export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';
 export type CompassDecision = 'considering' | 'selected' | 'passed_on';
 
+export interface CurateJourney {
+  id: string;
+  account_id: string;
+  name: string;
+  season?: string | null;
+  year?: number | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  notes?: string | null;
+}
+
+export interface CurateVisit {
+  id: string;
+  account_id: string;
+  journey_id?: string | null;
+  vendor_id?: string | null;
+  vendor_name?: string | null;
+  place?: string | null;
+  visited_at?: string | null;
+  notes?: string | null;
+}
+
 export interface VendorDetails {
   businessCardUrl?: string;
   storefrontUrl?: string;
@@ -111,6 +133,9 @@ export interface TeaCompassEntry {
   // Capture session — entries created in one capture run share this id, so a
   // batch review can group "the teas I just tasted". Column reserved by 071.
   sessionId?: string;
+  /** Optional sourcing context; independent from the six-hour capture session. */
+  journeyId?: string | null;
+  visitId?: string | null;
 
   // Sample flag — tea entries can be marked as samples (small tasting portions)
   isSample?: boolean;

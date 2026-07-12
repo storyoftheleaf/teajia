@@ -28,6 +28,7 @@ import type { ExtractedTeaData } from './PhotoCapture';
 import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
+import { EncounterContext } from './EncounterContext';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -1041,6 +1042,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onLinkedCustomerChange={handleLinkedCustomerChange}
           />
 
+          <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
+
           <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
 
           <div className="flex items-center min-h-[44px]">
@@ -1525,6 +1528,8 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           linkedCustomerId={entry.linkedCustomerId}
           onLinkedCustomerChange={handleLinkedCustomerChange}
         />
+
+        <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
 
         <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
 

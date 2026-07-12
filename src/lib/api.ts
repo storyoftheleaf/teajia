@@ -1,5 +1,5 @@
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, DbArticle, PlatformRole } from '../types';
-import type { CompassDecision } from '../components/TeaCompass/types';
+import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
 export interface CompassSyncResult {
@@ -1873,6 +1873,17 @@ export const api = {
         body: JSON.stringify({}),
       });
     },
+  },
+
+  curateContext: {
+    listJourneys: (): Promise<{ journeys: CurateJourney[] }> => authedFetch(`${API_URL}/api/curate/journeys`),
+    createJourney: (journey: Partial<CurateJourney>): Promise<CurateJourney> => authedFetch(`${API_URL}/api/curate/journeys`, { method: 'POST', body: JSON.stringify(journey) }),
+    updateJourney: (id: string, updates: Partial<CurateJourney>): Promise<CurateJourney> => authedFetch(`${API_URL}/api/curate/journeys/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
+    deleteJourney: (id: string): Promise<{ success: true }> => authedFetch(`${API_URL}/api/curate/journeys/${id}`, { method: 'DELETE' }),
+    listVisits: (journeyId?: string): Promise<{ visits: CurateVisit[] }> => authedFetch(`${API_URL}/api/curate/visits${journeyId ? `?journey_id=${encodeURIComponent(journeyId)}` : ''}`),
+    createVisit: (visit: Partial<CurateVisit>): Promise<CurateVisit> => authedFetch(`${API_URL}/api/curate/visits`, { method: 'POST', body: JSON.stringify(visit) }),
+    updateVisit: (id: string, updates: Partial<CurateVisit>): Promise<CurateVisit> => authedFetch(`${API_URL}/api/curate/visits/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
+    deleteVisit: (id: string): Promise<{ success: true }> => authedFetch(`${API_URL}/api/curate/visits/${id}`, { method: 'DELETE' }),
   },
 
   inquiries: {

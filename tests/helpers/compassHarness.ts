@@ -29,6 +29,8 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/notes': { notes: [] }, 'GET /api/customers': [],
       'GET /api/compass/incoming': [], 'GET /api/compass/entries': [], 'POST /api/compass/sync': [],
       'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
+      'GET /api/curate/journeys': { journeys: [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }] },
+      'GET /api/curate/visits': { visits: [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }] },
     };
     if (!(requestKey in responses)) {
       const diagnostic = requestKey;
