@@ -215,6 +215,14 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [batchMode, setBatchMode] = useState(false);
   const [sampleOrderOpen, setSampleOrderOpen] = useState(initialSampleOrder != null);
   const [sampleOrderManaging, setSampleOrderManaging] = useState(initialSampleOrder === 'manage');
+  const sampleOrderRequestRef = useRef(`${initialSampleOrder ?? ''}:${initialSampleSetId ?? ''}`);
+  useEffect(() => {
+    const request = `${initialSampleOrder ?? ''}:${initialSampleSetId ?? ''}`;
+    if (request === sampleOrderRequestRef.current) return;
+    sampleOrderRequestRef.current = request;
+    setSampleOrderOpen(initialSampleOrder != null);
+    setSampleOrderManaging(initialSampleOrder === 'manage');
+  }, [initialSampleOrder, initialSampleSetId]);
   const [importOpen, setImportOpen] = useState(false);
   const [importDetail, setImportDetail] = useState<CurateImportDetail | null>(null);
   const [importDetails, setImportDetails] = useState<CurateImportDetail[]>([]);
@@ -665,8 +673,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           <div className="flex-1" />
 
-          {mode === 'sourcing' && (
-            <SampleOrderAction
+          <SampleOrderAction
               open={sampleOrderOpen}
               managing={sampleOrderManaging}
               initialSetId={initialSampleSetId}
@@ -684,7 +691,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 handleSwitchMode('library');
               }}
             />
-          )}
 
           {mode !== 'sourcing' && (
             <button

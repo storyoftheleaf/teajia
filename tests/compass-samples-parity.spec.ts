@@ -37,6 +37,38 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
   });
 
+  test('opens the exact sample set from a Library batch link without remounting Compass', async ({ page }) => {
+    await installCompassHarness(page);
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { createEmptySampleSet } = await import('/src/samples/types.ts');
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      const set = createEmptySampleSet({ purpose: 'sourcing' });
+      set.id = 'set-library-click';
+      set.name = 'Library Click Batch';
+      useSampleStore.getState().addSampleSet(set);
+      const entry = createEmptyEntry('tea');
+      entry.id = 'library-sample-entry';
+      entry.name = 'Library Sample Tea';
+      entry.isSample = true;
+      entry.sampleSetId = set.id;
+      entry.status = 'noted';
+      useTeaCompassStore.getState().addEntry(entry);
+    });
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /To taste/ }).click();
+    await page.getByRole('button', { name: 'Library Click Batch' }).click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
+  });
+
   test('shows count and saves a nonempty cart as a historical set', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);

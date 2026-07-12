@@ -91,7 +91,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto pb-nav">
-              {managing ? <SampleSetCreator initialSetId={initialSetId} /> : <SampleCartPanel onCaptureTea={onCaptureTea} onBrowseLibrary={onBrowseLibrary} />}
+              {managing ? <SampleSetCreator key={initialSetId ?? 'sample-sets'} initialSetId={initialSetId} /> : <SampleCartPanel onCaptureTea={onCaptureTea} onBrowseLibrary={onBrowseLibrary} />}
             </div>
           </div>
         </div>
