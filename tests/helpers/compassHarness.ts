@@ -15,26 +15,27 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   }, { token: COMPASS_TOKEN, items: options?.sampleCart ?? [] });
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname;
+    const requestKey = `${route.request().method()} ${path}`;
     const responses: Record<string, unknown> = {
-      '/api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
-      '/api/auth/refresh': { token: COMPASS_TOKEN },
-      '/api/accounts/me': { memberships, active_account_id: 'acct-bali' },
-      '/api/accounts/acct-bali': { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali', default_currency: 'USD' },
-      '/api/products': [], '/api/rates': [{ currency: 'USD', rate_to_usd: 1 }],
-      '/api/products/public': [], '/api/user/favorites': { favorites: [] },
-      '/api/tasting-journal': { entries: [] }, '/api/tea-discovery': { profile: null },
-      '/api/notes': { notes: [] },
-      '/api/customers': [],
-      '/api/compass/incoming': [], '/api/compass/entries': [], '/api/compass/sync': [],
-      '/api/vendors': [], '/api/sources': [], '/api/admin/events': [],
+      'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
+      'POST /api/auth/refresh': { token: COMPASS_TOKEN },
+      'GET /api/accounts/me': { memberships, active_account_id: 'acct-bali' },
+      'GET /api/accounts/acct-bali': { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali', default_currency: 'USD' },
+      'GET /api/products': [], 'GET /api/rates': [{ currency: 'USD', rate_to_usd: 1 }],
+      'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
+      'PUT /api/user/favorites': { ok: true },
+      'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },
+      'GET /api/notes': { notes: [] }, 'GET /api/customers': [],
+      'GET /api/compass/incoming': [], 'GET /api/compass/entries': [], 'POST /api/compass/sync': [],
+      'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
     };
-    if (!(path in responses)) {
-      const diagnostic = `${route.request().method()} ${path}`;
+    if (!(requestKey in responses)) {
+      const diagnostic = requestKey;
       unhandledByPage.get(page)?.push(diagnostic);
       console.error(`[compass-harness] unhandled ${diagnostic}`);
       return route.fulfill({ status: 501, contentType: 'application/json', body: JSON.stringify({ error: `Unhandled Compass test API route: ${path}` }) });
     }
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[path]) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[requestKey]) });
   });
 }
 
