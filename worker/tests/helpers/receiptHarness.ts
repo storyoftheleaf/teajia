@@ -76,16 +76,23 @@ class ReceiptStatement {
       Object.assign(row, { received_quantity: 0, cancelled_quantity: 0, intake_batch_id: null });
       return result;
     }
-    if (sql.startsWith('insert into batches')) return insertColumns(this.db.batches, this.sql, this.values);
+    if (sql.startsWith('insert into batches') || sql.startsWith('insert or ignore into batches')) {
+      if (this.db.batches.has(String(this.values[0]))) return { success: true, meta: { changes: 0 } };
+      const normalizedSql = this.sql.replace(/insert\s+or\s+ignore\s+into/i, 'INSERT INTO');
+      return insertColumns(this.db.batches, normalizedSql, this.values);
+    }
     if (sql.startsWith('update inventory_receipt_lines set')) {
-      const row = this.db.receiptLines.get(String(this.values.at(-2)));
-      if (!row || row.account_id !== this.values.at(-1)) return { success: true, meta: { changes: 0 } };
+      const guardedReceipt = sql.includes('exists (select 1 from products');
+      const idIndex = guardedReceipt ? 2 : this.values.length - 2;
+      const accountIndex = guardedReceipt ? 3 : this.values.length - 1;
+      const row = this.db.receiptLines.get(String(this.values[idIndex]));
+      if (!row || row.account_id !== this.values[accountIndex]) return { success: true, meta: { changes: 0 } };
       if (sql.includes('received_quantity=received_quantity+?')) { row.received_quantity += Number(this.values[0]); row.intake_batch_id = this.values[1]; }
       else if (sql.includes('cancelled_quantity=cancelled_quantity+?')) row.cancelled_quantity += Number(this.values[0]);
       return { success: true, meta: { changes: 1 } };
     }
     if (sql.startsWith('update inventory_receipts set state=case')) {
-      const receiptId = String(this.values.at(-2)); const accountId = this.values.at(-1);
+      const receiptId = String(this.values[0]); const accountId = this.values[1];
       const receipt = this.db.receipts.get(receiptId);
       if (!receipt || receipt.account_id !== accountId) return { success: true, meta: { changes: 0 } };
       const lines = [...this.db.receiptLines.values()].filter(row => row.receipt_id === receiptId && row.account_id === accountId);
@@ -97,6 +104,12 @@ class ReceiptStatement {
     if (sql.startsWith('update inventory_receipts set state=?')) return updateRow(this.db.receipts, this.sql, this.values);
     if (sql.startsWith('update curate_receipt_proposals set')) return updateRow(this.db.proposals, this.sql, this.values);
     if (sql.startsWith('update products set') && sql.includes('coalesce(')) return incrementRow(this.db.products, this.sql, this.values, false);
+    if (sql.startsWith('update products set inventory_purpose=') && sql.includes('stock_movement_guard=?')) {
+      const row = this.db.products.get(String(this.values[3]));
+      if (!row || row.account_id !== this.values[4] || row.stock_movement_guard !== this.values[5]) return { success: true, meta: { changes: 0 } };
+      Object.assign(row, { inventory_purpose: this.values[0], is_sample: this.values[1], is_personal: this.values[2] });
+      return { success: true, meta: { changes: 1 } };
+    }
     if (sql.startsWith('update products set')) return updateRow(this.db.products, this.sql, this.values);
     if (sql.startsWith('update product_listings set')) {
       if (sql.includes('exists (select 1 from products')) {

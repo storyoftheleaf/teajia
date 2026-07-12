@@ -195,7 +195,7 @@ describe('POST product stock movements', () => {
     const responses = await Promise.all([receiveRequest(db,'line',{ quantity:10,idempotency_key:'same-receipt' }),receiveRequest(db,'line',{ quantity:10,idempotency_key:'same-receipt' })]);
     expect(responses.map(response => response.status)).toEqual([200,200]);
     expect((await Promise.all(responses.map(response => response.json() as Promise<any>))).map(result => result.already_received).sort()).toEqual([false,true]);
-    expect(db.ledger).toHaveLength(1); expect(db.ledger[0].batch_id).toBe('receipt-line-line');
+    expect(db.ledger).toHaveLength(1); expect(db.ledger[0].batch_id).toBe('receipt-receipt');
   });
   it('routes legacy absolute stock editing through exactly one recount ledger movement', async () => {
     const db = new MovementDb(); const response = await legacyStockRequest(db,'tea',12);
