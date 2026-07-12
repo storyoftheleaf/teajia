@@ -47,6 +47,56 @@ test.describe('Curate context retrieval', () => {
   });
 });
 
+test.describe('Curate Library account-scoped context resilience', () => {
+  test('clears old context immediately and ignores late responses after account switch', async ({ page }) => {
+    await installCompassHarness(page, {
+      contextByAccount: {
+        'acct-bali': { journeys: [{ id: 'old-journey', name: 'Old Account Journey' }], visits: [] },
+      },
+      contextAfterInitial: { journeys: [{ id: 'new-journey', name: 'New Account Journey' }], visits: [] },
+      contextDelayByAccount: { 'acct-bali': 400 },
+    });
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source imports.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite source imports.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      // @ts-expect-error Vite source imports.
+      const { useAppStore } = await import('/src/lib/store.ts');
+      useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'context-entry', name: 'Context entry', synced: true }] });
+      useAppStore.getState().setActiveAccountId('acct-empty');
+    });
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByLabel('Journey')).not.toContainText('Old Account Journey');
+    await expect(page.getByLabel('Journey')).toContainText('New Account Journey');
+    await page.waitForTimeout(500);
+    await expect(page.getByLabel('Journey')).not.toContainText('Old Account Journey');
+  });
+
+  test('retains partial context success and retries only after a visible error', async ({ page }) => {
+    await installCompassHarness(page, { contextJourneyFailOnce: true });
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source imports.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite source imports.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'partial-entry', name: 'Partial entry', synced: true }] });
+    });
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await expect(page.getByText('journeys unavailable', { exact: true }).filter({ visible: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByLabel('Place')).toContainText('Taipei');
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect(page.getByText('journeys unavailable', { exact: true }).filter({ visible: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Filters' }).click();
+    await expect(page.getByLabel('Journey')).toContainText('Taiwan');
+  });
+});
+
 test.describe('Curate context recovery', () => {
   test.beforeEach(async ({ page }) => installCompassHarness(page, { contextEmpty: true, contextFailOnce: true }));
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
@@ -125,7 +175,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       // @ts-expect-error Vite source import.
       const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
       const fixtures = [
-        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'smoky apricot', status: 'incoming', verdict: 'love', decision: null, isSample: true, journeyId: 'journey-taiwan', visitId: 'visit-chen', draftProductId: 'product-cloud', priceAmount: 20, pricePerUnitGrams: 10, year: 2024, photos: ['cloud.jpg'], tasting: { quality: 9 }, createdAt: '2026-06-10T00:00:00.000Z' },
+        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'smoky apricot', status: 'incoming', verdict: 'love', decision: null, isSample: true, sampleState: 'requested', journeyId: 'journey-taiwan', visitId: 'visit-chen', draftProductId: 'product-cloud', priceAmount: 20, pricePerUnitGrams: 10, year: 2024, photos: ['cloud.jpg'], tasting: { quality: 9 }, createdAt: '2026-06-10T00:00:00.000Z' },
         { id: 'selected', name: 'River Stone', vendorName: 'Lin Tea', originRegion: 'Alishan', type: 'Oolong', notes: 'mountain floral', status: 'noted', verdict: 'pass', decision: 'selected', priceAmount: 5, pricePerUnitGrams: 10, tasting: { quality: 5 }, createdAt: '2026-06-12T00:00:00.000Z' },
         { id: 'passed', name: 'Old Kiln Cup', vendorName: 'Wang Studio', originRegion: 'Jingdezhen', category: 'teaware', notes: 'invoice ceramic', status: 'in_stock', decision: 'passed_on', createdAt: '2025-06-11T00:00:00.000Z' },
       ];
@@ -179,7 +229,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       // @ts-expect-error Vite source import.
       const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
-      const held = { ...createEmptyEntry('tea'), id: 'held-sample', name: 'Held Sample', isSample: true, status: 'in_stock', tasting: { quality: 7 }, synced: true };
+      const held = { ...createEmptyEntry('tea'), id: 'held-sample', name: 'Held Sample', isSample: true, sampleState: 'tasted', status: 'in_stock', tasting: { quality: 7 }, synced: true };
       useTeaCompassStore.setState((state: any) => ({ entries: [...state.entries, held] }));
     });
     const cases: Array<[Record<string, string>, string]> = [
@@ -189,7 +239,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       [{ date: 'this_year' }, 'Cloud Peak'], [{ category: 'teaware' }, 'Old Kiln Cup'],
       [{ type: 'Sheng' }, 'Cloud Peak'], [{ origin: 'Alishan' }, 'River Stone'],
       [{ year: '2024' }, 'Cloud Peak'], [{ price: 'known' }, 'Cloud Peak'],
-      [{ sampleState: 'requested' }, 'Cloud Peak'], [{ sampleState: 'received' }, 'Held Sample'], [{ sampleState: 'tasted' }, 'Held Sample'], [{ photos: 'with' }, 'Cloud Peak'],
+      [{ sampleState: 'requested' }, 'Cloud Peak'], [{ sampleState: 'tasted' }, 'Held Sample'], [{ photos: 'with' }, 'Cloud Peak'],
       [{ missing: 'price' }, 'Old Kiln Cup'],
     ];
     for (const [filters, expected] of cases) {
@@ -213,7 +263,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       }, filters);
       await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toBeVisible();
     }
-    for (const filters of [{ possession: 'sample' }, { possession: 'stock' }, { sampleState: 'received' }]) {
+    for (const filters of [{ possession: 'sample' }, { possession: 'stock' }, { sampleState: 'received' }, { sampleState: 'tasted' }]) {
       await page.evaluate(async (next) => {
         // @ts-expect-error Vite source import.
         const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
@@ -315,6 +365,12 @@ test.describe('Curate Library decisions and retrieval', () => {
       return migrateCompassPersistedState({ browseFilter: 'loved' }, 3);
     });
     expect(migrated).toMatchObject({ browseFilter: 'all', libraryFilters: {} });
+    const legacyWant = await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { migrateCompassPersistedState } = await import('/src/lib/teaCompassStore.ts');
+      return migrateCompassPersistedState({ browseFilter: 'want', entries: [{ id: 'legacy-sample', isSample: true }] }, 3);
+    });
+    expect(legacyWant).toMatchObject({ browseFilter: 'all', entries: [{ sampleState: 'requested' }] });
     for (const button of await page.locator('[data-testid="library-controls"] button').all()) {
       const box = await button.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);

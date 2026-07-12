@@ -27,6 +27,7 @@ export type BrowseLayout = 'list' | 'photos';
 // review. Generalizes the sample-only sampleVerdict (kept as a read fallback).
 export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';
 export type CompassDecision = 'considering' | 'selected' | 'passed_on';
+export type CompassSampleState = 'requested' | 'received' | 'tasted';
 
 export interface LibraryFilters {
   decision?: CompassDecision | 'none';
@@ -157,6 +158,8 @@ export interface TeaCompassEntry {
 
   // Sample flag — tea entries can be marked as samples (small tasting portions)
   isSample?: boolean;
+  /** Explicit sample lifecycle. Never inferred from logistics or tasting data. */
+  sampleState?: CompassSampleState | null;
   sampleSetId?: string;        // Groups samples from one session
   sampleGrams?: number;        // Amount in sample bag (5-15g)
   sampleVerdict?: 'love' | 'like' | 'neutral' | 'pass';

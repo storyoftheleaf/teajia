@@ -8685,6 +8685,7 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
   const decoded = decodeCompassWriteCodec(body, rejectUnknown);
   if ('unknownField' in decoded) return { error: json({ error: `Unknown Compass field: ${decoded.unknownField}` }, 400) };
   if ('invalidDecision' in decoded) return { error: json({ error: 'decision must be considering, selected, passed_on, or null' }, 400) };
+  if ('invalidSampleState' in decoded) return { error: json({ error: 'sample_state must be requested, received, tasted, or null' }, 400) };
   return decoded;
 }
 

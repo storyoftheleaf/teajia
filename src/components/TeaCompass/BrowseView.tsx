@@ -16,6 +16,7 @@ import { LibraryFilterSheet } from './LibraryFilterSheet';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
 import { api } from '../../lib/api';
 import type { CurateJourney, CurateVisit } from './types';
+import { useAppStore } from '../../lib/store';
 
 const SORT_LABELS: Record<BrowseSort, string> = {
   recent: 'Most recent',
@@ -148,15 +149,30 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [journeys, setJourneys] = useState<CurateJourney[]>([]);
   const [visits, setVisits] = useState<CurateVisit[]>([]);
+  const [contextErrors, setContextErrors] = useState<{ journeys?: boolean; visits?: boolean }>({});
+  const [contextRetry, setContextRetry] = useState(0);
+  const contextRequestRef = React.useRef(0);
+  const contextAccountRef = React.useRef<string | null>(null);
+  const activeAccountId = useAppStore((state) => state.activeAccountId);
   const sampleSets = useSampleStore((s) => s.sampleSets);
 
   React.useEffect(() => {
-    let active = true;
-    Promise.all([api.curateContext.listJourneys(), api.curateContext.listVisits()])
-      .then(([journeyData, visitData]) => { if (active) { setJourneys(journeyData.journeys); setVisits(visitData.visits); } })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, []);
+    const request = ++contextRequestRef.current;
+    const account = activeAccountId;
+    if (contextAccountRef.current !== account) {
+      contextAccountRef.current = account;
+      setJourneys([]);
+      setVisits([]);
+    }
+    setContextErrors({});
+    const current = () => contextRequestRef.current === request && useAppStore.getState().activeAccountId === account;
+    api.curateContext.listJourneys()
+      .then((data) => { if (current()) setJourneys(data.journeys); })
+      .catch(() => { if (current()) setContextErrors((errors) => ({ ...errors, journeys: true })); });
+    api.curateContext.listVisits()
+      .then((data) => { if (current()) setVisits(data.visits); })
+      .catch(() => { if (current()) setContextErrors((errors) => ({ ...errors, visits: true })); });
+  }, [activeAccountId, contextRetry]);
 
   const journeyMap = useMemo(() => new Map(journeys.map((journey) => [journey.id, journey])), [journeys]);
   const visitMap = useMemo(() => new Map(visits.map((visit) => [visit.id, visit])), [visits]);
@@ -573,10 +589,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       if (f.year && String(e.year ?? '') !== f.year) return false;
       if (f.price && (f.price === 'known' ? e.priceAmount == null : e.priceAmount != null)) return false;
       if (f.sampleState) {
-        if (!e.isSample) return false;
-        const received = ['in_stock', 'depleted'].includes(e.status);
-        if (f.sampleState === 'received' && !received) return false;
-        if (f.sampleState === 'tasted' && !(received && hasTastingData(e))) return false;
+        if (e.sampleState !== f.sampleState) return false;
       }
       if (f.photos && (f.photos === 'with' ? !e.photos.some(Boolean) : e.photos.some(Boolean))) return false;
       if (f.missing) {
@@ -727,6 +740,12 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       </div>
 
       <ActiveFilterSummary filters={libraryFilters} onClear={() => setLibraryFilters({})} />
+      {(contextErrors.journeys || contextErrors.visits) && (
+        <div role="status" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
+          <span>{[contextErrors.journeys && 'journeys', contextErrors.visits && 'visits'].filter(Boolean).join(' and ')} unavailable</span>
+          <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setContextRetry((value) => value + 1)}>Retry</button>
+        </div>
+      )}
 
       {/* Cleanup banner — shown when empty test entries exist */}
       <AnimatePresence>

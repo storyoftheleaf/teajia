@@ -502,7 +502,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           draftsByAccount,
         };
       },
-      version: 4,
+      version: 5,
       migrate: migrateCompassPersistedState,
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
@@ -539,9 +539,15 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
         if (version < 4) {
           const legacyFilter = previous.browseFilter as string | undefined;
           previous.browseFilter = legacyFilter === 'queue' ? 'to_taste'
-            : legacyFilter === 'want' ? 'selected'
             : 'all';
           previous.libraryFilters = {};
+        }
+        if (version < 5) {
+          const migrateSample = (entry: TeaCompassEntry) => entry.sampleState === undefined && entry.isSample === true
+            ? { ...entry, sampleState: 'requested' as const }
+            : entry;
+          previous.entries = (previous.entries ?? []).map(migrateSample);
+          previous.pendingEntries = (previous.pendingEntries ?? []).map(migrateSample);
         }
         return previous;
 }

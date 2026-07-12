@@ -24,6 +24,7 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   sessionId: 'session_id',
   journeyId: 'journey_id',
   visitId: 'visit_id',
+  sampleState: 'sample_state',
   teaKey: 'tea_key',
   createdAt: 'created_at',
   updatedAt: 'updated_at',
