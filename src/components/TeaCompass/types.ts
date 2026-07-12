@@ -390,6 +390,17 @@ export function entryHasTasting(entry: Pick<TeaCompassEntry, 'tasting'>): boolea
   return !!(entry.tasting && Object.values(entry.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null));
 }
 
+/** Normalize nullable database rows and older local drafts before render. */
+export function normalizeCompassEntry(entry: TeaCompassEntry): TeaCompassEntry {
+  return {
+    ...entry,
+    name: entry.name || '',
+    notes: entry.notes || '',
+    photos: Array.isArray(entry.photos) ? entry.photos : [],
+    audioClips: Array.isArray(entry.audioClips) ? entry.audioClips : [],
+  };
+}
+
 /**
  * The effective verdict for an entry. Prefers the first-class `verdict`,
  * falls back to legacy `sampleVerdict`, and finally infers from the 1–10
@@ -412,7 +423,7 @@ export function isUntriaged(entry: Pick<TeaCompassEntry, 'verdict' | 'sampleVerd
  *  (photo + vendor captures) read as "Vendor · Jun 12" instead of a blank or
  *  generic "Untitled", matching the auto-name they get when promoted. */
 export function entryDisplayTitle(entry: Pick<TeaCompassEntry, 'name' | 'vendorName' | 'createdAt'>): string {
-  if (entry.name.trim()) return entry.name;
+  if ((entry.name || '').trim()) return entry.name;
   const date = new Date(entry.createdAt);
   const dateLabel = isNaN(date.getTime())
     ? ''

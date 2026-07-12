@@ -146,6 +146,30 @@ describe('account-scoped Curate draft restoration', () => {
       .toEqual({ pendingEntries: [], activeEntryId: null, sessionEntryIds: [] });
   });
 
+  it('normalizes legacy drafts with nullable required capture fields', () => {
+    const malformed = {
+      ...createEmptyEntry('tea'),
+      id: 'legacy-nullable',
+      draftAccountId: 'acct-bali',
+      touchedFields: ['priceAmount'],
+      priceAmount: 100,
+      name: null,
+      notes: null,
+      photos: null,
+      audioClips: null,
+    } as unknown as ReturnType<typeof createEmptyEntry>;
+
+    const restored = restoreCompassDraftsForAccount({
+      pendingEntries: [malformed],
+      activeEntryId: malformed.id,
+      sessionEntryIds: [malformed.id],
+    }, 'acct-bali');
+
+    expect(restored.pendingEntries[0]).toMatchObject({
+      name: '', notes: '', photos: [], audioClips: [],
+    });
+  });
+
   it('isolates and restores pending, active, and session drafts across A to B to A', () => {
     useTeaCompassStore.setState({
       pendingEntries: [], activeEntryId: null, sessionEntryIds: [],

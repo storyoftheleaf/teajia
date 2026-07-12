@@ -34,3 +34,28 @@ test.describe('Curate responsive preservation', () => {
     expect(doneBox!.y + doneBox!.height, 'Done button is obscured by mobile bottom navigation').toBeLessThanOrEqual(navBox!.y);
   });
 });
+
+test.describe('Curate legacy data resilience', () => {
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('opens Source when a hydrated encounter has no name', async ({ page }) => {
+    test.setTimeout(60_000);
+    await installCompassHarness(page, {
+      compassEntries: [{
+        id: 'nameless-import',
+        name: null,
+        category: 'tea',
+        notes: '',
+        photos: '[]',
+        audio_clips: '[]',
+        status: 'noted',
+        created_at: '2026-07-12T00:00:00.000Z',
+        updated_at: '2026-07-12T00:00:00.000Z',
+      }],
+    });
+
+    await page.goto('/admin/compass?entry=nameless-import', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 30_000 });
+    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toHaveValue('', { timeout: 30_000 });
+  });
+});

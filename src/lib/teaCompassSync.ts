@@ -1,6 +1,6 @@
 import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTransientApiError } from './api';
-import type { TeaCompassEntry } from '../components/TeaCompass/types';
+import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
 
 // ── Case conversion helpers ──
 
@@ -89,7 +89,7 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
   // compatibility mirror for older consumers during migration.
   if (result.sampleState != null) result.isSample = true;
 
-  return result as TeaCompassEntry;
+  return normalizeCompassEntry(result as TeaCompassEntry);
 }
 
 // ── Pending-work helpers ──

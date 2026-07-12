@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout, LibraryFilters } from '../components/TeaCompass/types';
-import { createEmptyEntry, entryIsSample } from '../components/TeaCompass/types';
+import { createEmptyEntry, entryIsSample, normalizeCompassEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 import { api, hasToken } from './api';
 import { useNotesStore } from './notesStore';
@@ -135,8 +135,8 @@ export function entryHasDeliberateInput(entry: TeaCompassEntry): boolean {
   // calling updateEntry. Inherited vendor/currency and structural defaults are
   // intentionally omitted so an untouched field shell remains empty.
   if (
-    entry.name.trim().length > 0 || entry.photos.length > 0 || entry.notes.trim().length > 0 ||
-    entry.audioClips.length > 0 || !!entry.chineseName?.trim() ||
+    (entry.name || '').trim().length > 0 || (entry.photos?.length ?? 0) > 0 || (entry.notes || '').trim().length > 0 ||
+    (entry.audioClips?.length ?? 0) > 0 || !!entry.chineseName?.trim() ||
     entry.priceAmount != null || entry.sellPrice != null || entry.type != null ||
     entry.form != null || entry.year != null || entry.season != null || entry.storage != null ||
     !!entry.originRegion?.trim() || entry.status !== 'noted' || entry.buyQuantityGrams != null ||
@@ -191,7 +191,7 @@ export function restoreCompassDraftsForAccount(
   activeAccountId: string | null,
 ): Required<PersistedCompassDrafts> {
   if (!activeAccountId) return { pendingEntries: [], activeEntryId: null, sessionEntryIds: [] };
-  const pendingEntries = (persisted.pendingEntries ?? []).filter((entry) =>
+  const pendingEntries = (persisted.pendingEntries ?? []).map(normalizeCompassEntry).filter((entry) =>
     entry.draftAccountId === activeAccountId && entryHasDeliberateInput(entry)
   );
   const ids = new Set(pendingEntries.map((entry) => entry.id));
@@ -519,6 +519,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         const drafts = restoreCompassDraftsForAccount(buckets[scope ?? ''] ?? persisted, scope);
         return {
           ...currentState, ...persisted, ...drafts,
+          entries: (persisted.entries ?? currentState.entries).map(normalizeCompassEntry),
           draftsByAccount: buckets,
           draftAccountScopeId: scope,
         } as TeaCompassState;

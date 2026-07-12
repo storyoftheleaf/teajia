@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { syncMock } = vi.hoisted(() => ({ syncMock: vi.fn() }));
+const { syncMock, listMock } = vi.hoisted(() => ({ syncMock: vi.fn(), listMock: vi.fn() }));
 
 vi.mock('./api', () => ({
   hasToken: () => true,
@@ -9,14 +9,14 @@ vi.mock('./api', () => ({
       sync: syncMock,
       remove: vi.fn(),
       promote: vi.fn(),
-      list: vi.fn(),
+      list: listMock,
     },
   },
 }));
 
 import { createEmptyEntry } from '../components/TeaCompass/types';
 import { useTeaCompassStore } from './teaCompassStore';
-import { syncCompassEntries } from './teaCompassSync';
+import { hydrateCompassEntries, syncCompassEntries } from './teaCompassSync';
 
 function entry(id: string) {
   return { ...createEmptyEntry(), id, name: id, synced: false };
@@ -25,12 +25,29 @@ function entry(id: string) {
 describe('Compass sync acknowledgements', () => {
   beforeEach(() => {
     syncMock.mockReset();
+    listMock.mockReset();
     useTeaCompassStore.setState({
       entries: [],
       deletedIds: [],
       pendingPromotions: [],
       syncError: false,
     });
+  });
+
+  it('normalizes nullable server names before entries reach the Compass store', async () => {
+    listMock.mockResolvedValue({
+      entries: [{
+        ...entry('nameless'),
+        name: null,
+        synced: undefined,
+        photos: '[]',
+        audio_clips: '[]',
+      }],
+    });
+
+    await hydrateCompassEntries();
+
+    expect(useTeaCompassStore.getState().entries[0]?.name).toBe('');
   });
 
   it('marks only acknowledged ids synced and keeps collisions queued', async () => {
