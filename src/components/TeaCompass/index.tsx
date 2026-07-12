@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, CircleSlash, Droplets, FlaskConical, Loader2, Mic, Plus, Search, Share2, ShoppingBag, Square, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, FlaskConical, Loader2, Mic, Plus, Search, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -28,7 +28,7 @@ import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { ImportPanel } from './import/ImportPanel';
 import { ImportBatchChip } from './ImportBatchChip';
 import { SampleOrderAction } from './SampleOrderAction';
-import { useSampleCartStore } from '../../samples/sampleCartStore';
+import { CaptureActionFooter } from './CaptureActionFooter';
 
 export type CompassMode = 'sourcing' | 'library' | 'buying';
 
@@ -345,11 +345,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // ── Capture action bar state (Re-Taste / Want / Buy) ───────────────────
   const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
-  const hasTasting = !!(activeEntry?.tasting && Object.values(activeEntry.tasting).some(
-    (v: unknown) => Array.isArray(v) ? v.length > 0 : v != null
-  ));
-  const isWantEntry = activeEntry?.status === 'want';
-  const isPassEntry = activeEntry?.status === 'pass';
   // Done needs a photo OR a name, the promised saveable minimum.
   const captureDoneReady =
     !!activeEntry && ((activeEntry.name || '').trim().length > 0 || activeEntry.photos.length > 0);
@@ -574,10 +569,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (mode !== 'sourcing' || !activeEntry) return;
     if (captureOption !== activeEntry.category) setCaptureOption(activeEntry.category);
   }, [activeEntry, captureOption, mode]);
-  const captureEntryInCart = useSampleCartStore((s) => !!activeEntryId && s.items.some((i) => i.id === activeEntryId));
-  const addSampleCartItem = useSampleCartStore((s) => s.addItem);
-  const removeSampleCartItem = useSampleCartStore((s) => s.removeItem);
-
   const showCaptureActionBar = mode === 'sourcing'
     && !!activeEntryId && activeEntry?.category !== 'teaware';
 
@@ -765,9 +756,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         {mode === 'sourcing' && (
           <div className="flex items-center min-h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture method">
             <div className="flex flex-wrap items-center gap-4">
-              {/* SAMPLES sub-tab removed: its job is the "Bag it" verdict on
-                  the capture card. The samples panel itself still renders for
-                  deep links (?tab=samples) until 1c lands. */}
+              {/* The samples panel still renders for deep links
+                  (?tab=samples) until its migration lands. */}
               {([
                 { id: 'tea', label: 'Tea' },
                 { id: 'teaware', label: 'Teaware' },
@@ -1632,104 +1622,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   )}
                 </AnimatePresence>
 
-                <div className="flex items-stretch bg-tea-surface">
-                  {/* Verdicts: Tasted / Want / Pass / Bag it. Buy left this
-                      bar deliberately (ordering happens in Runs later); the
-                      Batch toggle lives in the Run chip; the Mic lives in
-                      the header and in notes. */}
-                  {showCaptureActionBar && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => captureCardActionsRef.current?.openTasting()}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                          hasTasting ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                        }`}
-                      >
-                        <Droplets size={14} strokeWidth={1.5} />
-                        Tasted
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isWantEntry ? 'noted' : 'want' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                          isWantEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                        }`}
-                      >
-                        {isWantEntry ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
-                        {isWantEntry ? 'Wanted' : 'Want'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => activeEntryId && updateEntry(activeEntryId, { status: isPassEntry ? 'noted' : 'pass' })}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                          isPassEntry ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                        }`}
-                      >
-                        <CircleSlash size={14} strokeWidth={1.5} />
-                        Pass
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!activeEntryId || !activeEntry) return;
-                          if (captureEntryInCart) {
-                            removeSampleCartItem(activeEntryId);
-                            updateEntry(activeEntryId, { isSample: false, sampleState: null });
-                          } else {
-                            addSampleCartItem({
-                              id: activeEntryId,
-                              name: activeEntry.name,
-                              chineseName: activeEntry.chineseName,
-                              type: activeEntry.type,
-                              vendorName: activeEntry.vendorName,
-                              compassEntryId: activeEntryId,
-                              teaKey: activeEntry.teaKey,
-                            });
-                            // Mark the entry too — the library Queue keys on
-                            // isSample; the cart alone is invisible to Browse.
-                            updateEntry(activeEntryId, { isSample: true, sampleState: 'requested' });
-                          }
-                        }}
-                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium transition-colors ${
-                          captureEntryInCart ? 'text-tea-gold' : 'text-tea-text-dim hover:text-tea-text-sec'
-                        }`}
-                      >
-                        <ShoppingBag size={14} strokeWidth={1.5} />
-                        {captureEntryInCart ? 'Bagged' : 'Bag it'}
-                      </button>
-                      <div className="w-px self-stretch my-1.5 bg-tea-border" />
-                    </>
-                  )}
-
-                  {/* Share */}
-                  {hasToken() && activeEntryId && (
-                    <button
-                      type="button"
-                      onClick={() => setShareModalOpen(true)}
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-ui-10 font-medium text-tea-text-dim hover:text-tea-text-sec transition-colors"
-                      aria-label="Share"
-                    >
-                      <Share2 size={14} strokeWidth={1.5} />
-                      Share
-                    </button>
-                  )}
-
-                  <div className="w-px self-stretch my-1.5 bg-tea-border" />
-
-                  {/* Done */}
-                  <button
-                    type="button"
-                    onClick={handleDoneClick}
-                    disabled={!activeEntryId || !captureDoneReady}
-                    data-testid="compass-done-desktop"
-                    className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
-                    style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
-                    aria-label="Done"
-                  >
-                    Done
-                  </button>
-                </div>
+                {showCaptureActionBar && (
+                  <CaptureActionFooter
+                    className="bg-tea-surface p-2"
+                    onBuy={() => captureCardActionsRef.current?.toggleBuy()}
+                    onDone={handleDoneClick}
+                    onSample={() => captureCardActionsRef.current?.openTasting()}
+                    doneEnabled={!!activeEntryId && captureDoneReady}
+                    doneTestId="compass-done-desktop"
+                  />
+                )}
               </div>
             )}
             {/* END right action bar */}

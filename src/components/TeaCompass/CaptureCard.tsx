@@ -19,7 +19,6 @@ import { VendorStrip } from './VendorStrip';
 import { PricingRow } from './PricingRow';
 import { NoteThread } from '../shared/NoteThread';
 import { useLedgerStore } from '../../lib/ledgerStore';
-import { useSampleCartStore } from '../../samples/sampleCartStore';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
 import { TastingSession } from '../tasting/TastingSession';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
@@ -32,7 +31,7 @@ import { IntentBar } from './IntentBar';
 import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
 import { CaptureContextChips } from './CaptureContextChips';
-import { CaptureVerdictRow } from './CaptureVerdictRow';
+import { CaptureActionFooter } from './CaptureActionFooter';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -205,13 +204,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
   const addLineItem = useLedgerStore((s) => s.addLineItem);
   const transactions = useLedgerStore((s) => s.transactions);
-
-  // Sample cart — used by the inline EntryMarks strip below the form so
-  // Want/Buy/Sample/Taste are colocated with the entry rather than living
-  // in a separate fixed action bar.
-  const sampleCartHas = useSampleCartStore((s) => s.items.some((i) => i.id === entryId));
-  const addSampleCartItem = useSampleCartStore((s) => s.addItem);
-  const removeSampleCartItem = useSampleCartStore((s) => s.removeItem);
 
   // The note thread (NoteThread) stores notes in the notes store, not on the
   // entry. Subscribe to the count for this entry so the Done button's readiness
@@ -736,16 +728,18 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setTastingOverlayOpen(true);
   };
 
+  const toggleBuyPicker = () => {
+    const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
+    if (!showBuyPicker) setBuyingQty(defaultQty);
+    setShowBuyPicker((value) => !value);
+  };
+
   // ── Populate actionRef for parent-rendered action bar ───────────────────
-  const unitBasedForRef = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
   if (actionRef) {
     actionRef.current = {
       openTasting: openTastingOverlay,
-      toggleBuy: () => {
-        const defaultQty = unitBasedForRef ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
-        if (!showBuyPicker) setBuyingQty(defaultQty);
-        setShowBuyPicker((v) => !v);
-      },
+      toggleBuy: toggleBuyPicker,
     };
   }
 
@@ -1449,9 +1443,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   }
 
   // ── Status helpers ────────────────────────
-  const isWant = entry.status === 'want';
-  const isPass = entry.status === 'pass';
-const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+  const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
   );
@@ -1866,19 +1858,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
-              if (!showBuyPicker) setBuyingQty(defaultQty);
-              setShowBuyPicker((value) => !value);
-            }}
-            className="tap-target min-h-11 rounded-md border border-tea-border px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
-            aria-expanded={showBuyPicker}
-          >
-            Buy
-          </button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Ledger link */}
         {isInLedger && (
           <button
@@ -2035,38 +2015,12 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </AnimatePresence>
       </div>
 
-      {/* Verdict + Done: inline at the end of the card (part of the scroll),
-          not a fixed bar stacked over the app nav. A decision, or none — which
-          saves as a plain capture. Done is enabled by a photo OR a name. */}
-      <CaptureVerdictRow
-        tasted={!!hasTasting}
-        onTasted={openTastingOverlay}
-        want={isWant}
-        onWant={() => update({ status: isWant ? 'noted' : 'want' })}
-        pass={isPass}
-        onPass={() => update({ status: isPass ? 'noted' : 'pass' })}
-        bagged={sampleCartHas}
-        onBagIt={() => {
-          if (sampleCartHas) {
-            removeSampleCartItem(entryId);
-            update({ isSample: false, sampleState: null });
-          } else {
-            addSampleCartItem({
-              id: entryId,
-              name: entry.name,
-              chineseName: entry.chineseName,
-              type: entry.type,
-            vendorName: entry.vendorName,
-            compassEntryId: entryId,
-            teaKey: entry.teaKey,
-            });
-            // Mark the entry itself so the library's Queue (which keys on
-            // isSample) tracks it; the cart alone is invisible to Browse.
-            update({ isSample: true, sampleState: 'requested' });
-          }
-        }}
-        doneEnabled={entryHasContent(entry)}
+      <CaptureActionFooter
+        className="lg:hidden pt-1"
+        onBuy={toggleBuyPicker}
         onDone={handleCommit}
+        onSample={openTastingOverlay}
+        doneEnabled={entryHasContent(entry)}
       />
 
       {/* ─── Tasting overlay ─── */}
