@@ -3,15 +3,15 @@
 > Comprehensive snapshot of the Teajia platform: what works, what doesn't, where the gaps are. Merges March 2026 audit shards with April 2026 Layer 1/2 audit synthesis. For technical architecture see ARCHITECTURE.md. For what's next see POST_AUDIT_ROADMAP.md.
 
 **Audit period:** March–April 2026
-**Last updated:** 2026-07-12 (Curate and purpose-based Inventory rollout complete and verified)
+**Last updated:** 2026-07-12 (Curate and purpose-based Inventory implementation complete and verified locally on the feature branch; not yet deployed)
 
 ---
 
 ## 1. Executive Summary
 
-### Curate and Inventory ingestion rollout (July 2026)
+### Curate and Inventory ingestion implementation status (July 2026)
 
-The approved Curate and Inventory restructuring is implemented and verified through Tasks 1–18. Curate keeps its one-tap, tea-first field sheet while accepting fragments in the order Adrian receives them. Deliberate drafts resume by account; sourcing decisions are independent from legacy status; optional Journey/Visit context groups encounters; and Library filters make decisions, sample state, possession, source, journey, visit, category, and date directly retrievable.
+The approved Curate and Inventory restructuring is implemented and verified locally on the feature branch through Tasks 1–18. It is **not yet deployed**, and this status makes no push or production-rollout claim. Curate keeps its one-tap, tea-first field sheet while accepting fragments in the order Adrian receives them. Deliberate drafts resume by account; sourcing decisions are independent from legacy status; optional Journey/Visit context groups encounters; and Library filters make decisions, sample state, possession, source, journey, visit, category, and date directly retrievable.
 
 The former Samples capture tab is now Import, while sample ordering, sets, labels, tastings, events, and gifts remain reachable as distinct workflows. Import extracts pasted text and uploaded TXT, CSV, or JSON into reviewed drafts. It retains image and PDF evidence for manual review and does **not** claim OCR support. Accepting an import creates Curate encounters, not physical stock. Acquired quantities become reviewed receipt proposals; only accepted Inventory receipts establish possession.
 
