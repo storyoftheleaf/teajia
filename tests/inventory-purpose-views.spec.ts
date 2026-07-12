@@ -40,6 +40,7 @@ async function install(page: Page) {
     localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
       savedViews: [
         { id: 'custom-legacy-selling', name: 'My selling list', columns: ['productName', 'stockGrams'], sortConfig: [{ key: 'productName', direction: 'asc' }], filterType: 'ForSale', groupBy: null },
+        { id: 'custom-personal-list', name: 'My personal list', columns: ['productName'], sortConfig: [{ key: 'productName', direction: 'asc' }], filterType: 'LegacyPersonalList', groupBy: null },
         { id: 'default-low-stock', name: 'Alerts', icon: 'AlertTriangle', columns: ['productName'], sortConfig: [{ key: 'productName', direction: 'desc' }], filterType: 'Alerts', groupBy: 'vendor' },
       ],
       activeViewId: 'custom-legacy-selling',
@@ -274,4 +275,22 @@ test('mobile custom-view delete is a separate keyboard-operable control', async 
   await remove.focus();
   await page.keyboard.press('Enter');
   await expect(custom).toHaveCount(0);
+});
+
+test('desktop custom-view delete uses sibling controls with Enter and Space', async ({ page }) => {
+  test.skip((page.viewportSize()?.width || 0) < 768, 'Desktop interaction semantics');
+  const selling = page.getByRole('button', { name: 'Show Selling view' }).filter({ hasText: 'My selling list' });
+  const deleteSelling = page.getByRole('button', { name: 'Delete My selling list view' });
+  await expect(selling.locator('button')).toHaveCount(0);
+  await expect(deleteSelling).toHaveClass(/tap-target/);
+  await deleteSelling.focus();
+  await page.keyboard.press('Enter');
+  await expect(selling).toHaveCount(0);
+
+  const personal = page.getByRole('button', { name: 'Show LegacyPersonalList view' });
+  const deletePersonal = page.getByRole('button', { name: 'Delete My personal list view' });
+  await expect(personal.locator('button')).toHaveCount(0);
+  await deletePersonal.focus();
+  await page.keyboard.press('Space');
+  await expect(personal).toHaveCount(0);
 });

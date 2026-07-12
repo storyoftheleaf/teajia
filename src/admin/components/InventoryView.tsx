@@ -2001,25 +2001,28 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <>
               <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec mr-1">Purpose</span>
               {inlineViews.map(view => (
-                <button
-                  key={view.id}
-                  onClick={() => selectView(view)}
-                  title={VIEW_FILTER_LABELS[view.filterType] || view.name}
-                  aria-label={`Show ${VIEW_FILTER_LABELS[view.filterType] || view.name} view`}
-                  aria-pressed={activeViewId === view.id}
-                  className={tabClass(view)}
-                >
-                  {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
-                  {view.name}
+                <div key={view.id} className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => selectView(view)}
+                    title={VIEW_FILTER_LABELS[view.filterType] || view.name}
+                    aria-label={`Show ${VIEW_FILTER_LABELS[view.filterType] || view.name} view`}
+                    aria-pressed={activeViewId === view.id}
+                    className={tabClass(view)}
+                  >
+                    {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 13 })}
+                    {view.name}
+                  </button>
                   {!view.id.startsWith('default-') && (
-                    <span
-                      onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                      className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => deleteView(view.id)}
+                      aria-label={`Delete ${view.name} view`}
+                      className="tap-target h-9 w-9 inline-flex items-center justify-center rounded-md text-tea-text-sec hover:text-tea-gold transition-colors"
                     >
                       <XIcon size={10} />
-                    </span>
+                    </button>
                   )}
-                </button>
+                </div>
               ))}
 
               {moreViews.length > 0 && (
