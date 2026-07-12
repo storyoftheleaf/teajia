@@ -1997,7 +1997,12 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                   </div>
                 </div>
               )}
-              {receiptError && <p role="alert" className="mt-2 text-ui-12 text-tea-text-sec">{receiptError}</p>}
+              {receiptError && (
+                <div role="alert" className="mt-2 flex items-center justify-between gap-3 text-ui-12 text-tea-text-sec">
+                  <span>{receiptError}</span>
+                  {!receiptProposal && <button type="button" disabled={receiptBusy} onClick={handleAddToLedger} className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt">Retry receipt</button>}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -154,6 +154,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const [contextRetry, setContextRetry] = useState(0);
   const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
   const [possessionError, setPossessionError] = useState(false);
+  const [possessionLoading, setPossessionLoading] = useState(true);
   const [possessionRetry, setPossessionRetry] = useState(0);
   const contextRequestRef = React.useRef(0);
   const contextAccountRef = React.useRef<string | null>(null);
@@ -182,13 +183,15 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
     let cancelled = false;
     setInventoryProducts([]);
     setPossessionError(false);
+    setPossessionLoading(true);
     api.products.list()
       .then((data) => {
         if (!cancelled && useAppStore.getState().activeAccountId === activeAccountId) {
           setInventoryProducts(Array.isArray(data) ? data : (data?.products ?? []));
+          setPossessionLoading(false);
         }
       })
-      .catch(() => { if (!cancelled) setPossessionError(true); });
+      .catch(() => { if (!cancelled && useAppStore.getState().activeAccountId === activeAccountId) { setPossessionError(true); setPossessionLoading(false); } });
     return () => { cancelled = true; };
   }, [activeAccountId, possessionRetry]);
 
@@ -588,7 +591,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       if (f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
       if (f.verdict && (e.verdict ?? e.sampleVerdict) !== f.verdict) return false;
       if (f.possession) {
-        if (possessionError) return false;
+        if (possessionLoading || possessionError) return false;
         const purpose = entryPossession.get(e.id);
         if (f.possession === 'none' && purpose != null) return false;
         if (f.possession !== 'none' && purpose !== f.possession) return false;
@@ -773,6 +776,9 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <span>Inventory unavailable — possession results are hidden to avoid misclassifying entries.</span>
           <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setPossessionRetry((value) => value + 1)}>Retry</button>
         </div>
+      )}
+      {possessionLoading && libraryFilters.possession && (
+        <div role="status" className="min-h-11 rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-12 text-tea-text-sec">Loading Inventory possession…</div>
       )}
 
       {/* Cleanup banner — shown when empty test entries exist */}

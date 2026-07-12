@@ -61,7 +61,7 @@ interface LedgerState {
 
   // Actions
   createTransaction: (direction: TransactionDirection, counterpartyName: string, currency: Currency, counterpartyId?: string) => string;
-  addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => void;
+  addLineItem: (transactionId: string, item: Omit<LedgerLineItem, 'id' | 'addedAt'>) => string;
   updateLineItem: (transactionId: string, itemId: string, updates: Partial<LedgerLineItem>) => void;
   removeLineItem: (transactionId: string, itemId: string) => void;
   updateTransaction: (transactionId: string, updates: Partial<Pick<LedgerTransaction, 'counterpartyName' | 'counterpartyId' | 'currency' | 'status'>>) => void;
@@ -108,6 +108,13 @@ export const useLedgerStore = create<LedgerState>()(
       },
 
       addLineItem: (transactionId, itemData) => {
+        const existing = get().transactions.find((tx) => tx.id === transactionId)?.items.find(
+          (item) => itemData.compassEntryId && item.compassEntryId === itemData.compassEntryId,
+        );
+        if (existing) {
+          get().updateLineItem(transactionId, existing.id, itemData);
+          return existing.id;
+        }
         const item: LedgerLineItem = {
           ...itemData,
           id: crypto.randomUUID(),
@@ -120,6 +127,7 @@ export const useLedgerStore = create<LedgerState>()(
               : tx
           ),
         }));
+        return item.id;
       },
 
       updateLineItem: (transactionId, itemId, updates) => {
