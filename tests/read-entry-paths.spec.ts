@@ -59,6 +59,16 @@ test('retired article destinations stay absent from public entry points', async 
   await expect(page.locator('a[href="/article/draft-story"]')).toHaveCount(0);
   await expect(page.locator('a[href="/article/missing-story"]')).toHaveCount(0);
 
+  for (const slug of ['draft-story', 'missing-story']) {
+    const apiResponse = page.waitForResponse((response) =>
+      response.url().endsWith(`/api/articles/${slug}`),
+    );
+    await page.goto(`/article/${slug}`);
+    expect((await apiResponse).status()).toBe(404);
+    await expect(page.getByText('Article not found', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Live Story' })).toHaveCount(0);
+  }
+
   await page.goto('/magazine-archive');
   await page.locator('#main-content').getByRole('button', { name: 'Your Table' }).click();
   await expect(page.getByRole('link', { name: 'Saved stories' })).toHaveCount(0);

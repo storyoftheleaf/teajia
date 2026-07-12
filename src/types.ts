@@ -387,6 +387,7 @@ export type StoryCategory = 'tea-feature' | 'interview' | 'science' | 'curated' 
 
 export interface Story {
   id: string;
+  slug?: string;
   type: ContentType;
   status: StoryStatus;
   title: string;

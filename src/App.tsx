@@ -423,7 +423,7 @@ const AppContent = () => {
       setSelectedStory(story);
       setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
       if (story.type === ContentType.Article) {
-        const slug = (story as Story & { slug?: string }).slug || story.id;
+        const slug = story.slug || story.id;
         navigate(`/article/${encodeURIComponent(slug)}`);
         return;
       } else if (story.type === ContentType.PhotoEssay) {
@@ -554,7 +554,7 @@ const AppContent = () => {
     }
 
     if (story.type === ContentType.Article) {
-      const slug = (story as Story & { slug?: string }).slug || story.id;
+      const slug = story.slug || story.id;
       navigate(`/article/${encodeURIComponent(slug)}`);
       return;
     }
