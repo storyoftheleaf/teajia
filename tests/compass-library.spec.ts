@@ -117,7 +117,7 @@ test.describe('Curate context management', () => {
 
 test.describe('Curate Library decisions and retrieval', () => {
   test.beforeEach(async ({ page }) => {
-    await installCompassHarness(page);
+    await installCompassHarness(page, { products: [{ id: 'product-cloud', is_public: 1, shown_in_shop: 0, status: 'Draft', given_name: 'Cloud Peak' }] });
     await openCompass(page);
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
@@ -125,7 +125,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       // @ts-expect-error Vite source import.
       const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
       const fixtures = [
-        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'smoky apricot', status: 'incoming', verdict: 'love', decision: null, isSample: true, journeyId: 'journey-taiwan', visitId: 'visit-chen', priceAmount: 20, pricePerUnitGrams: 10, year: 2024, photos: ['cloud.jpg'], tasting: { quality: 9 }, createdAt: '2026-06-10T00:00:00.000Z' },
+        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'smoky apricot', status: 'incoming', verdict: 'love', decision: null, isSample: true, journeyId: 'journey-taiwan', visitId: 'visit-chen', draftProductId: 'product-cloud', priceAmount: 20, pricePerUnitGrams: 10, year: 2024, photos: ['cloud.jpg'], tasting: { quality: 9 }, createdAt: '2026-06-10T00:00:00.000Z' },
         { id: 'selected', name: 'River Stone', vendorName: 'Lin Tea', originRegion: 'Alishan', type: 'Oolong', notes: 'mountain floral', status: 'noted', verdict: 'pass', decision: 'selected', priceAmount: 5, pricePerUnitGrams: 10, tasting: { quality: 5 }, createdAt: '2026-06-12T00:00:00.000Z' },
         { id: 'passed', name: 'Old Kiln Cup', vendorName: 'Wang Studio', originRegion: 'Jingdezhen', category: 'teaware', notes: 'invoice ceramic', status: 'in_stock', decision: 'passed_on', createdAt: '2025-06-11T00:00:00.000Z' },
       ];
@@ -143,6 +143,11 @@ test.describe('Curate Library decisions and retrieval', () => {
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
   test('uses independent four-state sourcing decisions without changing verdict or stock status', async ({ page }) => {
+    const publicationBefore = await page.evaluate(async () => {
+      const response = await fetch('/api/products');
+      const [product] = await response.json();
+      return { is_public: product.is_public, shown_in_shop: product.shown_in_shop };
+    });
     await page.getByRole('button', { name: /Cloud Peak/ }).click();
     await page.getByRole('radio', { name: 'Considering' }).click();
     expect(await page.evaluate(async () => {
@@ -160,17 +165,31 @@ test.describe('Curate Library decisions and retrieval', () => {
     }
     await page.getByRole('radio', { name: 'Passed on' }).click();
     await expect(page.getByRole('radio', { name: 'Considering' })).toHaveAttribute('aria-checked', 'false');
+    const publicationAfter = await page.evaluate(async () => {
+      const response = await fetch('/api/products');
+      const [product] = await response.json();
+      return { is_public: product.is_public, shown_in_shop: product.shown_in_shop };
+    });
+    expect(publicationAfter).toEqual(publicationBefore);
   });
 
   test('applies every supported dimensional filter to the result set', async ({ page }) => {
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite source import.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      const held = { ...createEmptyEntry('tea'), id: 'held-sample', name: 'Held Sample', isSample: true, status: 'in_stock', tasting: { quality: 7 }, synced: true };
+      useTeaCompassStore.setState((state: any) => ({ entries: [...state.entries, held] }));
+    });
     const cases: Array<[Record<string, string>, string]> = [
       [{ decision: 'none' }, 'Cloud Peak'], [{ verdict: 'pass' }, 'River Stone'],
-      [{ possession: 'sample' }, 'Cloud Peak'], [{ journey: 'journey-taiwan' }, 'Cloud Peak'],
+      [{ possession: 'none' }, 'Cloud Peak'], [{ possession: 'sample' }, 'Held Sample'], [{ journey: 'journey-taiwan' }, 'Cloud Peak'],
       [{ vendor: 'Lin Tea' }, 'River Stone'], [{ place: 'visit-chen' }, 'Cloud Peak'],
       [{ date: 'this_year' }, 'Cloud Peak'], [{ category: 'teaware' }, 'Old Kiln Cup'],
       [{ type: 'Sheng' }, 'Cloud Peak'], [{ origin: 'Alishan' }, 'River Stone'],
       [{ year: '2024' }, 'Cloud Peak'], [{ price: 'known' }, 'Cloud Peak'],
-      [{ sampleState: 'tasted' }, 'Cloud Peak'], [{ photos: 'with' }, 'Cloud Peak'],
+      [{ sampleState: 'requested' }, 'Cloud Peak'], [{ sampleState: 'received' }, 'Held Sample'], [{ sampleState: 'tasted' }, 'Held Sample'], [{ photos: 'with' }, 'Cloud Peak'],
       [{ missing: 'price' }, 'Old Kiln Cup'],
     ];
     for (const [filters, expected] of cases) {
@@ -182,6 +201,25 @@ test.describe('Curate Library decisions and retrieval', () => {
       await expect(page.getByText(expected, { exact: true }).filter({ visible: true })).toBeVisible();
       const excluded = expected === 'Old Kiln Cup' ? 'Cloud Peak' : 'Old Kiln Cup';
       await expect(page.getByText(excluded, { exact: true }).filter({ visible: true })).toHaveCount(0);
+    }
+  });
+
+  test('never treats an incoming sample as possessed or received', async ({ page }) => {
+    for (const filters of [{ possession: 'none' }, { sampleState: 'requested' }]) {
+      await page.evaluate(async (next) => {
+        // @ts-expect-error Vite source import.
+        const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+        useTeaCompassStore.getState().setLibraryFilters(next);
+      }, filters);
+      await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toBeVisible();
+    }
+    for (const filters of [{ possession: 'sample' }, { possession: 'stock' }, { sampleState: 'received' }]) {
+      await page.evaluate(async (next) => {
+        // @ts-expect-error Vite source import.
+        const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+        useTeaCompassStore.getState().setLibraryFilters(next);
+      }, filters);
+      await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toHaveCount(0);
     }
   });
 

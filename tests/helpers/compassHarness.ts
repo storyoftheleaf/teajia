@@ -6,7 +6,7 @@ const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean; contextFailOnce?: boolean }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean; contextFailOnce?: boolean; products?: unknown[] }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   await page.addInitScript(({ token, items }) => {
@@ -29,7 +29,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/accounts/me': { memberships, active_account_id: 'acct-bali' },
       'GET /api/accounts/acct-bali': { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali', default_currency: 'USD' },
       'GET /api/accounts/acct-empty': { id: 'acct-empty', name: 'Empty Test Account', slug: 'empty-test', default_currency: 'USD' },
-      'GET /api/products': [], 'GET /api/rates': [{ currency: 'USD', rate_to_usd: 1 }],
+      'GET /api/products': options?.products ?? [], 'GET /api/rates': [{ currency: 'USD', rate_to_usd: 1 }],
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },

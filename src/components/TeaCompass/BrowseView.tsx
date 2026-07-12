@@ -549,10 +549,11 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       if (f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
       if (f.verdict && (e.verdict ?? e.sampleVerdict) !== f.verdict) return false;
       if (f.possession) {
-        const possessed = e.isSample || ['incoming', 'in_stock', 'depleted'].includes(e.status);
+        const held = ['in_stock', 'depleted'].includes(e.status);
+        const possessed = held;
         if (f.possession === 'none' && possessed) return false;
-        if (f.possession === 'sample' && !e.isSample) return false;
-        if (f.possession === 'stock' && !['incoming', 'in_stock', 'depleted'].includes(e.status)) return false;
+        if (f.possession === 'sample' && !(e.isSample && held)) return false;
+        if (f.possession === 'stock' && !(held && !e.isSample)) return false;
       }
       if (f.journey && e.journeyId !== f.journey) return false;
       if (f.vendor && !`${e.vendorName ?? ''} ${e.vendorId ?? ''}`.toLowerCase().includes(f.vendor.toLowerCase())) return false;
@@ -573,8 +574,9 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       if (f.price && (f.price === 'known' ? e.priceAmount == null : e.priceAmount != null)) return false;
       if (f.sampleState) {
         if (!e.isSample) return false;
-        if (f.sampleState === 'received' && !['incoming', 'in_stock', 'depleted'].includes(e.status)) return false;
-        if (f.sampleState === 'tasted' && !hasTastingData(e)) return false;
+        const received = ['in_stock', 'depleted'].includes(e.status);
+        if (f.sampleState === 'received' && !received) return false;
+        if (f.sampleState === 'tasted' && !(received && hasTastingData(e))) return false;
       }
       if (f.photos && (f.photos === 'with' ? !e.photos.some(Boolean) : e.photos.some(Boolean))) return false;
       if (f.missing) {
