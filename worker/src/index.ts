@@ -2244,6 +2244,11 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     delete body.account_id;
     delete body.client_row_id;
     body.account_id = accountId;
+    // Bulk/structured import is ingestion, not a publication action. Force the
+    // product and its listing/profile mirrors private even for account owners
+    // and even if an untrusted import payload asks to publish.
+    body.is_public = 0;
+    body.shown_in_shop = 0;
     let purposeWrite;
     try { purposeWrite = decodeInventoryPurposeWrite(body); }
     catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -2288,9 +2293,6 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     for (const boolKey of ['is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated', 'is_custom_wisdom', 'show_wisdom', 'is_sample', 'in_transit', 'shown_in_shop']) {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
-    // Stock spine step 2: owner-tier imports go straight to the shop; a staff
-    // seller's bulk import starts HELD (0) until the owner shows each row.
-    if (body.shown_in_shop === undefined) body.shown_in_shop = ctx.role === 'owner' ? 1 : 0;
     // Stock spine step 1: stamp the creating user as owner unless specified.
     if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
     // Apply cached vendor_id
@@ -8992,6 +8994,17 @@ const RECEIPT_MUTABLE_FIELDS = new Set([
   'product_id', 'batch_id', 'product_name', 'product_type', 'purpose', 'quantity', 'unit', 'acquisition_kind',
 ]);
 
+function purposeConflict(product: Record<string, any> | null, intendedPurpose: string): Response | null {
+  const currentPurpose = product?.inventory_purpose;
+  if (!currentPurpose || currentPurpose === intendedPurpose) return null;
+  return json({
+    error: `This holding is ${currentPurpose}; receiving it as ${intendedPurpose} requires a separate holding or deliberate purpose conversion.`,
+    code: 'purpose_conflict',
+    current_purpose: currentPurpose,
+    intended_purpose: intendedPurpose,
+  }, 409);
+}
+
 const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -9024,6 +9037,11 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   const requestedProductId = body.product_id ?? entry.draft_product_id ?? null;
   const requestedName = body.product_name ?? entry.name ?? null;
   const requestedType = body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null;
+  if (requestedProductId) {
+    const linkedProduct = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(requestedProductId, ctx.accountId).first() as Record<string, any> | null;
+    const conflict = purposeConflict(linkedProduct, decoded.purpose);
+    if (conflict) return conflict;
+  }
   const matchesRequest = (candidate: any) => candidate.compass_entry_id === params.id
     && (candidate.import_id ?? null) === importId && (candidate.import_item_id ?? null) === importItemId
     && (candidate.product_id ?? null) === requestedProductId && (candidate.batch_id ?? null) === (body.batch_id ?? null)
@@ -9104,6 +9122,8 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   const inventory = receiptInventoryValues(decoded);
   const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
   if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
+  const conflict = purposeConflict(existingProduct, decoded.purpose);
+  if (conflict) return conflict;
   const productId = existingProduct?.id as string || crypto.randomUUID();
   const ledgerId = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -9275,7 +9295,12 @@ const handleCreateInventoryReceipt: Handler = async (request, env) => {
   if (replay) return replay.request_fingerprint === requestFingerprint
     ? json({ id: replay.id, state: replay.state, already_created: true })
     : json({ error: 'idempotency_key already used for a different inventory receipt' }, 409);
-  for (const line of lines) if (!await env.DB.prepare('SELECT id FROM products WHERE id=? AND account_id=?').bind(line.product_id, ctx.accountId).first()) return json({ error: 'Product not found' }, 404);
+  for (const line of lines) {
+    const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id, ctx.accountId).first() as Record<string, any> | null;
+    if (!product) return json({ error: 'Product not found' }, 404);
+    const conflict = purposeConflict(product, line.intended_purpose);
+    if (conflict) return conflict;
+  }
   const id = crypto.randomUUID(); const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id,account_id,state,vendor_name,source_kind,source_ref,eta,created_by_user_id,idempotency_key,request_fingerprint) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,state,body.vendor_name||null,sourceKind,body.source_ref||null,body.eta||null,ctx.userId,idempotencyKey,requestFingerprint)];
   for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id,receipt_id,account_id,product_id,expected_quantity,unit,intended_purpose,source_kind,source_ref) VALUES (?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,ctx.accountId,line.product_id,line.quantity,line.unit,line.intended_purpose,line.source_kind,line.source_ref));
   try { await env.DB.batch(statements); }
@@ -9326,6 +9351,8 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   const quantity = Number(body.quantity);
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remaining || (line.unit === 'unit' && !Number.isInteger(quantity))) return json({ error: 'invalid receive quantity' }, 400);
   const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id,ctx.accountId).first() as any; if (!product) return json({ error: 'Product not found' },404);
+  const conflict = purposeConflict(product, line.intended_purpose);
+  if (conflict) return conflict;
   const existingReceiptBatch = line.intake_batch_id ? null : await env.DB.prepare('SELECT intake_batch_id FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=? AND intake_batch_id IS NOT NULL LIMIT 1').bind(line.receipt_id,ctx.accountId).first() as any;
   // Stable per receipt before persistence: retries and concurrently received
   // lines converge on one intake batch while retaining Task 11 provenance.

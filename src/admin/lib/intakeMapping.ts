@@ -426,7 +426,10 @@ export function stagedToProduct(it: StagedItem, extraCost = 0): Record<string, a
     image_url: it.imageUrl || null,
     status: 'Draft',
     is_personal: it.isPersonal,
-    is_public: !it.isPersonal,
+    // Import is ingestion, never publication. Listing/showing remains a
+    // separate deliberate action regardless of operator role or purpose.
+    is_public: false,
+    shown_in_shop: false,
   };
   if (it.type === 'Teaware') {
     // Teaware is counted in units, not grams. Leave stock_grams unset so the

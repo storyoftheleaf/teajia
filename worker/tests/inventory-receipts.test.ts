@@ -71,6 +71,26 @@ describe('inventory receipt endpoints', () => {
     expect(response.status).toBe(400);
   });
 
+  it('rejects expected receipts that would silently repurpose an existing holding', async () => {
+    for (const [currentPurpose, intendedPurpose] of [['sample', 'working'], ['working', 'sample']] as const) {
+      const db = ReceiptDb.seeded();
+      db.products.set('product-a', { id: 'product-a', account_id: 'account-a', stock_grams: 5, inventory_purpose: currentPurpose });
+      const response = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: `purpose:${currentPurpose}-${intendedPurpose}`, source_kind: 'invoice', lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: intendedPurpose }] }) });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: currentPurpose, intended_purpose: intendedPurpose });
+      expect(db.receipts).toHaveLength(0);
+    }
+  });
+
+  it('rechecks purpose before receiving an older expected line', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    db.products.get('product-a')!.inventory_purpose = 'sample';
+    const response = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ quantity: 10 }) });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: 'sample', intended_purpose: 'working' });
+    expect(db.products.get('product-a')!.stock_grams).toBe(5);
+  });
+
   it('normalizes receipt provenance from consistent lines and rejects missing or mixed sources', async () => {
     const db = ReceiptDb.seeded(); db.products.set('product-a', { id: 'product-a', account_id: 'account-a' });
     const inferred = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: 'create-receipt:inferred', lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample', source_kind: 'vendor-note' }] }) });

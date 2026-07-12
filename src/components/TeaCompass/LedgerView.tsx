@@ -22,9 +22,7 @@ import { useLedgerStore } from '../../lib/ledgerStore';
 import type { LedgerTransaction, LedgerLineItem } from '../../lib/ledgerStore';
 import type { Currency } from '../../admin/types';
 import { useAppStore } from '../../lib/store';
-import { api, isConfigured, hasToken } from '../../lib/api';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
-import { compassEntryToProductDraft } from './types';
+import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
 
 // ─── Currency helpers ────────────────────────────────────────────────────────
@@ -369,33 +367,8 @@ const TransactionCard: React.FC<{
     setJustConfirmed(true);
     setTimeout(() => setJustConfirmed(false), 1500);
 
-    // Auto-promote compass entries to in_stock and create Draft inventory products
-    if (tx.direction === 'purchase' && isConfigured && hasToken()) {
-      const compassStore = useTeaCompassStore.getState();
-      for (const item of tx.items) {
-        if (!item.compassEntryId) continue;
-        const entry = compassStore.getEntry(item.compassEntryId);
-        if (!entry) continue;
-
-        // Update status to in_stock
-        compassStore.updateEntry(entry.id, { status: 'in_stock' });
-
-        // Create Draft product if not already done
-        if (!entry.draftProductId) {
-          try {
-            const payload = compassEntryToProductDraft(entry);
-            const created = await api.products.create(payload);
-            if (created?.id) {
-              compassStore.updateEntry(entry.id, { draftProductId: created.id });
-            }
-          } catch {
-            // Non-critical — product creation failed (offline, auth, etc.)
-          }
-        }
-      }
-    }
-
-    // Persist purchase order to database (fire-and-forget)
+    // A confirmed purchase order records acquisition intent only. Inventory is
+    // created or increased later through a reviewed receipt/Inventory action.
     if (tx.direction === 'purchase') {
       try {
         const totalAmount = tx.items.reduce((sum, item) => sum + lineTotal(item), 0);

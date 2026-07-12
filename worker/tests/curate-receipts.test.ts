@@ -59,6 +59,28 @@ describe('reviewed Curate receipts', () => {
     expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ batch_id: 'batch-b' }) })).status).toBe(404);
   });
 
+  it('rejects receipt proposals whose purpose conflicts with an existing holding', async () => {
+    for (const [currentPurpose, incomingPurpose] of [['sample', 'working'], ['working', 'sample']] as const) {
+      const db = ReceiptDb.seeded();
+      db.products.set('held', { id: 'held', account_id: 'account-a', type: 'Oolong', stock_grams: 10, inventory_purpose: currentPurpose });
+      db.entries.get('entry-a')!.draft_product_id = 'held';
+      const response = await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: incomingPurpose, quantity: 10, unit: 'g', acquisition_kind: 'purchase', idempotency_key: `${currentPurpose}-${incomingPurpose}` }) });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: currentPurpose, intended_purpose: incomingPurpose });
+    }
+  });
+
+  it('allows matching purpose and canonically assigns an unclassified legacy holding once', async () => {
+    for (const currentPurpose of ['working', null] as const) {
+      const db = ReceiptDb.seeded();
+      db.products.set('held', { id: 'held', account_id: 'account-a', type: 'Oolong', stock_grams: 10, inventory_purpose: currentPurpose });
+      db.entries.get('entry-a')!.draft_product_id = 'held';
+      const proposal = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: 'working', quantity: 10, unit: 'g', acquisition_kind: 'purchase', idempotency_key: `same-${currentPurpose}` }) })).json() as any;
+      expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).status).toBe(200);
+      expect(db.products.get('held')?.inventory_purpose).toBe('working');
+    }
+  });
+
   it('accepts free samples, working tea, and teaware and retries without duplicates', async () => {
     for (const [entry, body] of [['entry-a', { purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample', idempotency_key: 'sample' }], ['entry-work', { purpose: 'working', quantity: 50, unit: 'g', acquisition_kind: 'purchase', idempotency_key: 'work' }], ['entry-pot', { purpose: 'personal', quantity: 2, unit: 'unit', acquisition_kind: 'purchase', idempotency_key: 'pot' }]] as const) {
       const db = ReceiptDb.seeded();
