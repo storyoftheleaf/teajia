@@ -71,6 +71,37 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toBeVisible();
   });
 
+  test('keeps Teaware selected when a teaware draft is restored after refresh', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    await page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true }).fill('Field gaiwan');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toHaveValue('Field gaiwan');
+  });
+
+  test('keeps Teaware selected when returning to an account with a teaware draft', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    await page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true }).fill('Account gaiwan');
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useAppStore } = await import('/src/lib/store.ts');
+      useAppStore.getState().setActiveAccountId('acct-empty');
+    });
+    await expect(page.getByRole('tab', { name: 'Tea', exact: true })).toHaveAttribute('aria-selected', 'true');
+
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useAppStore } = await import('/src/lib/store.ts');
+      useAppStore.getState().setActiveAccountId('acct-bali');
+    });
+    await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toHaveValue('Account gaiwan');
+  });
+
   test('switches between named entries in the current session', async ({ page }) => {
     await openCompass(page);
     const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });

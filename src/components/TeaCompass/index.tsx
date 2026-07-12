@@ -471,6 +471,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const pendingIncomingCount = visibleShares.length;
 
   const [captureOption, setCaptureOption] = useState<'tea' | 'teaware' | 'samples'>(initialCaptureOption || 'tea');
+  useEffect(() => {
+    if (mode !== 'sourcing' || captureOption === 'samples' || !activeEntry) return;
+    if (captureOption !== activeEntry.category) setCaptureOption(activeEntry.category);
+  }, [activeEntry, captureOption, mode]);
   const sampleCartCount = useSampleCartStore((s) => s.items.length);
   const captureEntryInCart = useSampleCartStore((s) => !!activeEntryId && s.items.some((i) => i.id === activeEntryId));
   const addSampleCartItem = useSampleCartStore((s) => s.addItem);

@@ -107,6 +107,20 @@ describe('Curate deliberate-input contract', () => {
     expect(afterSync.touchedFields).toBeUndefined();
     expect(entryHasDeliberateInput(afterSync)).toBe(true);
   });
+
+  it('recognizes a directly populated constructor even when touch metadata is empty', () => {
+    const sampleSetLikeEntry = {
+      ...createEmptyEntry('tea'),
+      name: 'Directly constructed sample',
+      type: 'Oolong' as const,
+      isSample: true,
+      sampleGrams: 10,
+    };
+
+    expect(sampleSetLikeEntry.touchedFields).toEqual([]);
+    expect(entryHasDeliberateInput(sampleSetLikeEntry)).toBe(true);
+    expect(entryHasDeliberateInput(createEmptyEntry('tea'))).toBe(false);
+  });
 });
 
 describe('account-scoped Curate draft restoration', () => {

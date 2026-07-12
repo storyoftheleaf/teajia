@@ -115,14 +115,25 @@ function touchedFieldsAfterUpdate(
  * metadata fall back to their stored values so existing fragments stay safe. */
 export function entryHasDeliberateInput(entry: TeaCompassEntry): boolean {
   const touched = entry.touchedFields;
-  if (Array.isArray(touched)) {
-    if (touched.some((field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry))) return true;
-  } else if (
+  if (Array.isArray(touched) && touched.some(
+    (field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry),
+  )) return true;
+
+  // Direct constructors (sample sets/importers) can assign real fields without
+  // calling updateEntry. Inherited vendor/currency and structural defaults are
+  // intentionally omitted so an untouched field shell remains empty.
+  if (
     entry.name.trim().length > 0 || entry.photos.length > 0 || entry.notes.trim().length > 0 ||
-    !!entry.vendorName?.trim() || !!entry.vendorId || entry.priceAmount != null ||
-    entry.sellPrice != null || entry.type != null || entry.form != null || entry.year != null ||
+    entry.audioClips.length > 0 || !!entry.chineseName?.trim() ||
+    entry.priceAmount != null || entry.sellPrice != null || entry.type != null ||
+    entry.form != null || entry.year != null || entry.season != null || entry.storage != null ||
     !!entry.originRegion?.trim() || entry.status !== 'noted' || entry.buyQuantityGrams != null ||
-    entry.buyQuantityUnits != null || entry.teawareCategory != null || entry.material != null ||
+    entry.buyQuantityUnits != null || entry.buyTotal != null || entry.teawareCategory != null ||
+    entry.material != null || entry.clayType != null || !!entry.materialNote?.trim() ||
+    entry.capacityMl != null || entry.quantity !== 1 || entry.era != null ||
+    entry.verdict != null || entry.isSample === true || entry.sampleGrams != null ||
+    entry.sampleVerdict != null || entry.sampleWouldBuy != null || entry.tasteOrder != null ||
+    (touched === undefined && (!!entry.vendorName?.trim() || !!entry.vendorId)) ||
     (entry.tasting != null && Object.values(entry.tasting).some((value) =>
       Array.isArray(value) ? value.length > 0 : value != null
     ))
