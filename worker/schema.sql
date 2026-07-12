@@ -387,6 +387,7 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   decision TEXT CHECK (decision IS NULL OR decision IN ('considering', 'selected', 'passed_on')),
   journey_id TEXT,
   visit_id TEXT,
+  import_item_id TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -397,6 +398,7 @@ CREATE INDEX IF NOT EXISTS idx_compass_entries_source ON tea_compass_entries(sou
 CREATE INDEX IF NOT EXISTS idx_compass_entries_session ON tea_compass_entries(session_id);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_verdict ON tea_compass_entries(verdict);
 CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(account_id, decision);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_compass_import_item ON tea_compass_entries(account_id, user_id, import_item_id) WHERE import_item_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS curate_journeys (
   id TEXT PRIMARY KEY,
@@ -475,6 +477,7 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
   uncertainty_json TEXT NOT NULL DEFAULT '{}',
   review_state TEXT NOT NULL DEFAULT 'pending' CHECK (review_state IN ('pending', 'reviewing', 'accepted', 'merged', 'abandoned')),
   compass_entry_id TEXT,
+  reserved_compass_entry_id TEXT NOT NULL,
   reviewed_by_user_id TEXT,
   reviewed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

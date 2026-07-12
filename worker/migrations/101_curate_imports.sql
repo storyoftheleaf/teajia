@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS curate_import_batches (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+ALTER TABLE tea_compass_entries ADD COLUMN import_item_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_compass_import_item
+  ON tea_compass_entries(account_id, user_id, import_item_id)
+  WHERE import_item_id IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_curate_import_batches_account
   ON curate_import_batches(account_id, updated_at DESC);
 
@@ -45,6 +50,7 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
   uncertainty_json TEXT NOT NULL DEFAULT '{}',
   review_state TEXT NOT NULL DEFAULT 'pending' CHECK (review_state IN ('pending', 'reviewing', 'accepted', 'merged', 'abandoned')),
   compass_entry_id TEXT,
+  reserved_compass_entry_id TEXT NOT NULL,
   reviewed_by_user_id TEXT,
   reviewed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),

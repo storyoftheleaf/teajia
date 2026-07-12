@@ -118,8 +118,6 @@ async function fullBatch(env: ImportEnv, id: string, accountId: string) {
 export async function createCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext) {
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
-  const bodyInspection = inspectStructuredPayload(body);
-  if (bodyInspection !== 'safe') return response({ error: bodyInspection === 'binary' ? 'Upload files to object storage; provide only r2_object_key' : 'Import payload is too deeply nested or too large' }, 400);
   try {
     const title = text(body.title, 240, true)!;
     const journeyId = text(body.journey_id, 100);
@@ -154,11 +152,11 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
       if (confidence != null && (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)) return response({ error: `Invalid confidence at index ${index}` }, 400);
       statements.push(env.DB.prepare(
         `INSERT INTO curate_import_items
-           (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(crypto.randomUUID(), batchId, initialSourceId, ctx.accountId, ctx.userId, position, category,
         text(raw.name, 500), text(raw.raw_text, 20_000), jsonField(raw.parsed_data, {}), confidence,
-        jsonField(raw.uncertainty, {}), 'pending', null));
+        jsonField(raw.uncertainty, {}), 'pending', null, crypto.randomUUID()));
     }
     await env.DB.batch(statements);
     return response(await fullBatch(env, batchId, ctx.accountId), 201);
@@ -178,11 +176,13 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   try {
+    const allowed = new Set(['kind', 'pasted_text', 'r2_object_key', 'metadata']);
+    if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown source field' }, 400);
     const kind = text(body.kind, 40, true)!;
     if (!SOURCE_KINDS.has(kind)) return response({ error: 'Unsupported source kind' }, 400);
     const pastedText = text(body.pasted_text, 250_000);
     const objectKey = text(body.r2_object_key, 1000);
-    const inspection = inspectStructuredPayload(body);
+    const inspection = inspectStructuredPayload(body.metadata ?? {});
     if (inspection !== 'safe') return response({ error: inspection === 'binary' ? 'Upload files to object storage; provide only r2_object_key' : 'Source metadata is too deeply nested or too large' }, 400);
     if (pastedText == null && objectKey == null) return response({ error: 'pasted_text or r2_object_key is required' }, 400);
     if (objectKey != null && !safeR2ObjectKey(objectKey, ctx.accountId, params.id)) return response({ error: 'r2_object_key must be scoped to this account and import batch' }, 400);
@@ -252,7 +252,8 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   if (!item) return response({ error: 'Import item not found' }, 404);
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
   if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
-  const compassId = `curate-import:${params.itemId}`;
+  const compassId = typeof item.reserved_compass_entry_id === 'string' ? item.reserved_compass_entry_id : '';
+  if (!compassId) return response({ error: 'Import item has no Compass reservation' }, 409);
   const parsed = parseJson(item.parsed_data_json, {});
   const structured = object(parsed) ? compassValuesFromImport(parsed as Record<string, unknown>) : {};
   const compassValues = {
@@ -265,16 +266,16 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   const compassColumns = Object.keys(compassValues);
   const results = await env.DB.batch([
     env.DB.prepare(
-      `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, ${compassColumns.join(', ')})
-       VALUES (?, ?, ?, ${compassColumns.map(() => '?').join(', ')})`
-    ).bind(compassId, ctx.userId, ctx.accountId, ...compassColumns.map(column => compassValues[column as keyof typeof compassValues])),
+      `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, import_item_id, ${compassColumns.join(', ')})
+       VALUES (?, ?, ?, ?, ${compassColumns.map(() => '?').join(', ')})`
+    ).bind(compassId, ctx.userId, ctx.accountId, params.itemId, ...compassColumns.map(column => compassValues[column as keyof typeof compassValues])),
     // The ownership EXISTS is part of the same D1 transaction as the insert.
     // A global id collision owned by anyone else makes this update a no-op.
     env.DB.prepare(
       `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
        WHERE id = ? AND account_id = ? AND compass_entry_id IS NULL
-         AND EXISTS (SELECT 1 FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?)`
-    ).bind('accepted', compassId, ctx.userId, params.itemId, ctx.accountId, compassId, ctx.userId, ctx.accountId),
+         AND EXISTS (SELECT 1 FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ? AND import_item_id = ?)`
+    ).bind('accepted', compassId, ctx.userId, params.itemId, ctx.accountId, compassId, ctx.userId, ctx.accountId, params.itemId),
   ]);
   const linkedChanges = results[1]?.meta.changes ?? 0;
   const updated = await scopedItem(env, params.id, params.itemId, ctx.accountId);

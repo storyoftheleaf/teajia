@@ -18,7 +18,7 @@ export interface CurateImportItem {
   name: string | null; raw_text: string | null; parsed_data: Record<string, unknown>;
   confidence: number | null; uncertainty: Record<string, unknown>;
   review_state: 'pending' | 'reviewing' | 'accepted' | 'merged' | 'abandoned';
-  compass_entry_id: string | null;
+  compass_entry_id: string | null; reserved_compass_entry_id: string;
 }
 export interface CurateImportBatch {
   id: string; title: string; review_state: 'pending' | 'reviewing' | 'completed' | 'abandoned';

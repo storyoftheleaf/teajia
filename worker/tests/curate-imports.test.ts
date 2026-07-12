@@ -58,7 +58,7 @@ class ImportStatement {
       if (sql.includes('compass_entry_id is null') && row.compass_entry_id != null) return { success: true, meta: { changes: 0 } };
       if (verifiesCompassOwnership) {
         const compass = this.db.compass.get(String(this.values[5]));
-        if (!compass || compass.user_id !== this.values[6] || compass.account_id !== this.values[7]) {
+        if (!compass || compass.user_id !== this.values[6] || compass.account_id !== this.values[7] || compass.import_item_id !== this.values[8]) {
           return { success: true, meta: { changes: 0 } };
         }
       }
@@ -231,12 +231,24 @@ describe('Curate import provenance API', () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Collision', items: [{ name: 'Protected' }] }) });
     const { batch, items } = await created.json() as any;
-    const compassId = `curate-import:${items[0].id}`;
+    const compassId = items[0].reserved_compass_entry_id;
     db.compass.set(compassId, { id: compassId, account_id: 'account-b', user_id: 'user-b', name: 'Foreign' });
     const accepted = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
     expect(accepted.status).toBe(409);
     expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: null, review_state: 'pending' });
     expect(db.compass.get(compassId)).toMatchObject({ account_id: 'account-b', user_id: 'user-b', name: 'Foreign' });
+  });
+
+  it('does not link a same-owner Compass row that predates the import reservation', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Owned collision', items: [{ name: 'Imported tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const reservedId = items[0].reserved_compass_entry_id;
+    db.compass.set(reservedId, { id: reservedId, account_id: 'account-a', user_id: 'user-a', name: 'Unrelated owned tea', import_item_id: null });
+    const accepted = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
+    expect(accepted.status).toBe(409);
+    expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: null, review_state: 'pending' });
+    expect(db.compass.get(reservedId)).toMatchObject({ name: 'Unrelated owned tea', import_item_id: null });
   });
 
   it('makes concurrent accepts converge on one owned Compass link', async () => {
@@ -247,7 +259,23 @@ describe('Curate import provenance API', () => {
     const responses = await Promise.all([request(db, path, { method: 'POST' }), request(db, path, { method: 'POST' })]);
     expect(responses.map(result => result.status).sort()).toEqual([200, 201]);
     expect(db.compass.size).toBe(1);
-    expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: `curate-import:${items[0].id}`, review_state: 'accepted' });
+    expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: items[0].reserved_compass_entry_id, review_state: 'accepted' });
+  });
+
+  it('preserves long base64-alphabet evidence text byte-for-byte without treating it as an attachment', async () => {
+    const db = new ImportDb();
+    const evidence = 'A'.repeat(256);
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Long evidence',
+      source_kind: 'paste',
+      pasted_text: evidence,
+      items: [{ name: evidence, raw_text: evidence, parsed_data: { notes_from_parser: evidence } }],
+    }) });
+    expect(created.status).toBe(201);
+    const body = await created.json() as any;
+    expect(body.batch.title).toBe('Long evidence');
+    expect(body.sources[0].pasted_text).toBe(evidence);
+    expect(body.items[0]).toMatchObject({ name: evidence, raw_text: evidence, parsed_data: { notes_from_parser: evidence } });
   });
 
   it('rejects foreign or mismatched journey/visit context on import creation', async () => {
