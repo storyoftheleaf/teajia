@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, DbArticle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, CurateReceiptProposal, DbArticle, PlatformRole } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
@@ -1859,6 +1859,21 @@ export const api = {
         retryTimeouts: true,
       });
     },
+    proposeReceipt: async (entryId: string, proposal: {
+      purpose: 'working' | 'sample' | 'personal'; quantity: number; unit: 'g' | 'unit';
+      acquisition_kind: 'purchase' | 'free_sample' | 'gift' | 'transfer' | 'other';
+      idempotency_key?: string; product_id?: string; batch_id?: string;
+      product_name?: string; product_type?: string;
+    }): Promise<CurateReceiptProposal> => authedFetch(`${API_URL}/api/compass/entries/${entryId}/receipt-proposals`, {
+      method: 'POST', body: JSON.stringify(proposal), retryTimeouts: true,
+    }),
+    updateReceiptProposal: async (id: string, updates: Partial<Pick<CurateReceiptProposal,
+      'product_id' | 'batch_id' | 'product_name' | 'product_type' | 'purpose' | 'quantity' | 'unit' | 'acquisition_kind'>>): Promise<CurateReceiptProposal> =>
+      authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
+    acceptReceiptProposal: async (id: string): Promise<{ proposal: CurateReceiptProposal; product_id: string; ledger_id: string; alreadyAccepted: boolean }> =>
+      authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/accept`, { method: 'POST', retryTimeouts: true }),
+    rejectReceiptProposal: async (id: string): Promise<CurateReceiptProposal> =>
+      authedFetch(`${API_URL}/api/curate/receipt-proposals/${id}/reject`, { method: 'POST', retryTimeouts: true }),
     /** Share a capture card to known accounts and/or generate an invite link for external tasters */
     share: async (params: {
       entryId: string;

@@ -10,6 +10,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
+import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues } from './inventoryDomain';
 
 interface Env {
   DB: D1Database;
@@ -975,9 +976,9 @@ function buildProductMirrorInserts(
       show_wisdom, is_custom_wisdom,
       status, sold_out_at,
       tasting, tasting_source,
-      owner_user_id, shown_in_shop,
+      owner_user_id, shown_in_shop, inventory_purpose, stock_known_at,
       legacy_product_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     `list_${productId}`, accountId, `prof_${productId}`,
     body.stock_grams ?? 0, body.low_stock_threshold ?? 100, body.recheck_stock ?? 0,
@@ -991,6 +992,7 @@ function buildProductMirrorInserts(
     listingStatus, body.sold_out_at ?? null,
     body.tasting ?? '{}', body.tasting_source ?? null,
     body.owner_user_id ?? null, body.shown_in_shop ?? 1,
+    body.inventory_purpose ?? null, body.stock_known_at ?? null,
     productId
   );
 
@@ -2070,6 +2072,13 @@ const handleCreateProduct: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  let purposeWrite;
+  try { purposeWrite = decodeInventoryPurposeWrite(body); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  Object.assign(body, purposeWrite);
+  if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
+    body.stock_known_at = new Date().toISOString();
+  }
 
   // Basic validation
   const { product_name, year } = body;
@@ -2205,6 +2214,13 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     // Never let clients cross accounts.
     delete body.account_id;
     body.account_id = accountId;
+    let purposeWrite;
+    try { purposeWrite = decodeInventoryPurposeWrite(body); }
+    catch (error) { return json({ error: (error as Error).message }, 400); }
+    Object.assign(body, purposeWrite);
+    if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
+      body.stock_known_at = new Date().toISOString();
+    }
 
     // Check for duplicate by type + product_name or given_name
     const name = ((body.product_name || body.given_name || '') as string).toLowerCase().trim();
@@ -2284,6 +2300,7 @@ const PRODUCT_UPDATE_COLUMNS = new Set([
   'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
   'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
   'additional_images', 'bag_photo_url', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
+  'inventory_purpose', 'stock_known_at',
   'in_transit_grams', 'in_transit_eta',
   'tasting', 'tasting_source',
   'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
@@ -2339,6 +2356,13 @@ async function applyProductUpdate(
   const userEmail = getUserEmail(request);
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
+  if (body.inventory_purpose !== undefined || body.is_sample !== undefined || body.is_personal !== undefined) {
+    try { Object.assign(body, decodeInventoryPurposeWrite(body)); }
+    catch (error) { return json({ error: (error as Error).message }, 400); }
+  }
+  if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
+    body.stock_known_at = new Date().toISOString();
+  }
   if (Array.isArray(body.tasting_notes)) body.tasting_notes = JSON.stringify(body.tasting_notes);
   if (Array.isArray(body.additional_images)) body.additional_images = JSON.stringify(body.additional_images);
   // Any admin-authenticated write that mutates the tasting profile is, by
@@ -8908,6 +8932,146 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
   });
 
   return json({ id: productId, product: created, alreadyPromoted: false }, 201);
+};
+
+const RECEIPT_MUTABLE_FIELDS = new Set([
+  'product_id', 'batch_id', 'product_name', 'product_type', 'purpose', 'quantity', 'unit', 'acquisition_kind',
+]);
+
+const handleCreateReceiptProposal: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const entry = await env.DB.prepare(
+    'SELECT id, name, type, category, draft_product_id, import_item_id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?'
+  ).bind(params.id, ctx.accountId, ctx.userId).first() as Record<string, any> | null;
+  if (!entry) return json({ error: 'Compass entry not found' }, 404);
+  const body = await request.json() as Record<string, unknown>;
+  let decoded;
+  try { decoded = decodeReceiptProposal(body); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  if (body.product_id != null && !await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(body.product_id, ctx.accountId).first()) {
+    return json({ error: 'Product not found' }, 404);
+  }
+  if (body.batch_id != null && !await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(body.batch_id, ctx.accountId).first()) {
+    return json({ error: 'Batch not found' }, 404);
+  }
+  const importItemId = body.import_item_id ?? entry.import_item_id ?? null;
+  let importId = body.import_id ?? null;
+  if (importItemId != null) {
+    const item = await env.DB.prepare('SELECT id, batch_id FROM curate_import_items WHERE id = ? AND account_id = ?').bind(importItemId, ctx.accountId).first() as Record<string, any> | null;
+    if (!item) return json({ error: 'Import item not found' }, 404);
+    if (importId != null && importId !== item.batch_id) return json({ error: 'Import item does not belong to import' }, 400);
+    importId = item.batch_id;
+  } else if (importId != null && !await env.DB.prepare('SELECT id FROM curate_import_batches WHERE id = ? AND account_id = ?').bind(importId, ctx.accountId).first()) {
+    return json({ error: 'Import not found' }, 404);
+  }
+  const key = typeof body.idempotency_key === 'string' && body.idempotency_key.trim()
+    ? body.idempotency_key.trim() : `compass:${params.id}`;
+  const existing = await env.DB.prepare(
+    'SELECT * FROM curate_receipt_proposals WHERE account_id = ? AND idempotency_key = ?'
+  ).bind(ctx.accountId, key).first();
+  if (existing) return json(existing);
+  const id = crypto.randomUUID();
+  await env.DB.prepare(`INSERT INTO curate_receipt_proposals
+    (id, account_id, compass_entry_id, import_id, import_item_id, product_id, batch_id, product_name, product_type,
+     purpose, quantity, unit, acquisition_kind, idempotency_key, proposed_by_user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(id, ctx.accountId, params.id, importId, importItemId, body.product_id ?? entry.draft_product_id ?? null,
+      body.batch_id ?? null, body.product_name ?? entry.name ?? null,
+      body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null,
+      decoded.purpose, decoded.quantity, decoded.unit, decoded.acquisition_kind, key, ctx.userId).run();
+  return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first(), 201);
+};
+
+const handleUpdateReceiptProposal: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json() as Record<string, unknown>;
+  const unknown = Object.keys(body).filter(key => !RECEIPT_MUTABLE_FIELDS.has(key));
+  if (unknown.length) return json({ error: 'Unsupported receipt proposal fields', fields: unknown }, 400);
+  const existing = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+  if (!existing) return json({ error: 'Receipt proposal not found' }, 404);
+  if (existing.status !== 'pending') return json({ error: 'Reviewed receipt proposals cannot be edited' }, 409);
+  let decoded;
+  try { decoded = decodeReceiptProposal({ ...existing, ...body }); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  const fields = [...RECEIPT_MUTABLE_FIELDS].filter(field => body[field] !== undefined);
+  if (!fields.length) return json({ error: 'No fields to update' }, 400);
+  const values = { ...body, ...decoded } as Record<string, unknown>;
+  await env.DB.prepare(`UPDATE curate_receipt_proposals SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND status = 'pending'`)
+    .bind(...fields.map(field => values[field] ?? null), params.id, ctx.accountId).run();
+  return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first());
+};
+
+const handleRejectReceiptProposal: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+  if (!existing) return json({ error: 'Receipt proposal not found' }, 404);
+  if (existing.status === 'accepted') return json({ error: 'Accepted receipt cannot be rejected' }, 409);
+  if (existing.status === 'rejected') return json(existing);
+  await env.DB.prepare("UPDATE curate_receipt_proposals SET status = 'rejected', reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND status = 'pending'")
+    .bind(ctx.userId, params.id, ctx.accountId).run();
+  return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first());
+};
+
+const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
+  if (!proposal) return json({ error: 'Receipt proposal not found' }, 404);
+  if (proposal.status === 'accepted') return json({ proposal, product_id: proposal.product_id, ledger_id: proposal.ledger_id, alreadyAccepted: true });
+  if (proposal.status !== 'pending') return json({ error: 'Rejected receipt cannot be accepted' }, 409);
+  let decoded;
+  try { decoded = decodeReceiptProposal(proposal); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  const inventory = receiptInventoryValues(decoded);
+  const existingProduct = proposal.product_id ? await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(proposal.product_id, ctx.accountId).first() as Record<string, any> | null : null;
+  if (proposal.product_id && !existingProduct) return json({ error: 'Linked product not found' }, 404);
+  const productId = existingProduct?.id as string || crypto.randomUUID();
+  const ledgerId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
+  if (existingProduct) {
+    const nextStock = decoded.unit === 'g' ? Number(existingProduct.stock_grams ?? 0) + decoded.quantity : Number(existingProduct.stock_grams ?? 0);
+    const nextUnits = decoded.unit === 'unit' ? Number(existingProduct.quantity_units ?? 0) + decoded.quantity : existingProduct.quantity_units;
+    statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, stock_grams = ?, quantity_units = ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+      .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, nextStock, nextUnits ?? null, now, productId, ctx.accountId));
+    statements.push(env.DB.prepare(`UPDATE product_listings SET inventory_purpose = ?, is_sample = ?, is_personal = ?, stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ?`)
+      .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, nextStock, now, productId, ctx.accountId));
+  } else {
+    const name = String(proposal.product_name || 'Unnamed item');
+    const type = String(proposal.product_type || (decoded.unit === 'unit' ? 'Teaware' : 'Misc'));
+    statements.push(env.DB.prepare(`INSERT INTO products
+      (id, account_id, type, product_name, given_name, status, stock_grams, quantity_units,
+       inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id)
+      VALUES (?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`)
+      .bind(productId, ctx.accountId, type, name, name, inventory.stock_grams ?? 0, inventory.quantity_units,
+        inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, now, proposal.compass_entry_id ?? null, ctx.userId));
+    statements.push(...buildProductMirrorInserts(env, productId, ctx.accountId, {
+      product_name: name, type, status: 'Draft', stock_grams: inventory.stock_grams ?? 0,
+      quantity_units: inventory.quantity_units, inventory_purpose: inventory.inventory_purpose,
+      is_sample: inventory.is_sample, is_personal: inventory.is_personal,
+      stock_known_at: now, is_public: 0, shown_in_shop: 0,
+      source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
+    }));
+  }
+  const balanceAfter = decoded.unit === 'g' ? Number(existingProduct?.stock_grams ?? 0) + decoded.quantity : Number(existingProduct?.quantity_units ?? 0) + decoded.quantity;
+  statements.push(env.DB.prepare(`INSERT INTO stock_ledger
+    (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
+    VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
+    .bind(ledgerId, productId, decoded.quantity, balanceAfter, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
+  if (proposal.compass_entry_id) statements.push(env.DB.prepare('UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(productId, proposal.compass_entry_id, ctx.accountId));
+  statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)
+    .bind(productId, ledgerId, ctx.userId, now, now, proposal.id, ctx.accountId));
+  try {
+    await env.DB.batch(statements);
+  } catch (error) {
+    const committed = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposal.id, ctx.accountId).first() as Record<string, any> | null;
+    if (committed?.status === 'accepted') return json({ proposal: committed, product_id: committed.product_id, ledger_id: committed.ledger_id, alreadyAccepted: true });
+    throw error;
+  }
+  return json({ proposal: await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(proposal.id, ctx.accountId).first(), product_id: productId, ledger_id: ledgerId, alreadyAccepted: false });
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -16663,11 +16827,11 @@ const handleCarryListing: Handler = async (request, env) => {
   const insertResult = await env.DB.prepare(`
     INSERT INTO product_listings
       (id, account_id, profile_id, stock_grams, fixed_retail_price_usd,
-       listing_photos, status, is_public)
+       listing_photos, status, is_public, inventory_purpose, stock_known_at)
     VALUES
-      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1)
+      (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, 'active', 1, 'working', ?)
     RETURNING id
-  `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos).first() as
+  `).bind(accountId, profileId, stockGrams, fixedRetailPriceUsd, listingPhotos, new Date().toISOString()).first() as
     { id: string } | null;
 
   if (!insertResult) {
@@ -16844,6 +17008,8 @@ const handleUpdateListing: Handler = async (request, env) => {
     if (!isFinite(n) || n < 0) return json({ error: 'stock_grams must be >= 0' }, 400);
     updates.push('stock_grams = ?');
     binds.push(Math.floor(n));
+    updates.push('stock_known_at = ?');
+    binds.push(new Date().toISOString());
   }
 
   // Retail price — preferred path: price_amount + price_currency, server
@@ -16909,6 +17075,9 @@ const handleUpdateListing: Handler = async (request, env) => {
   if (body.is_sample !== undefined) {
     updates.push('is_sample = ?');
     binds.push(body.is_sample ? 1 : 0);
+    updates.push('is_personal = 0');
+    updates.push('inventory_purpose = ?');
+    binds.push(body.is_sample ? 'sample' : 'working');
   }
 
   if (updates.length === 0) {
@@ -18628,6 +18797,10 @@ const routes: [string, string, Handler][] = [
   ['DELETE', '/api/compass/entries/:id', handleDeleteCompassEntry],
   ['POST', '/api/compass/sync', handleSyncCompassEntries],
   ['POST', '/api/compass/entries/:id/promote', handlePromoteCompassEntry],
+  ['POST', '/api/compass/entries/:id/receipt-proposals', handleCreateReceiptProposal],
+  ['PUT', '/api/curate/receipt-proposals/:id', handleUpdateReceiptProposal],
+  ['POST', '/api/curate/receipt-proposals/:id/accept', handleAcceptReceiptProposal],
+  ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
 
   // Notes — unified thread
   ['GET',  '/api/notes',              handleGetNotes],

@@ -1300,3 +1300,15 @@ export interface ShopCollectionEntry {
 export interface PublicShopCollectionsResponse {
   collections: ShopCollectionEntry[];
 }
+
+export type InventoryPurposeValue = 'working' | 'sample' | 'personal';
+export type ReceiptAcquisitionKind = 'purchase' | 'free_sample' | 'gift' | 'transfer' | 'other';
+export interface CurateReceiptProposal {
+  id: string; account_id: string; compass_entry_id?: string | null; import_id?: string | null;
+  import_item_id?: string | null; product_id?: string | null; batch_id?: string | null;
+  product_name?: string | null; product_type?: string | null; purpose: InventoryPurposeValue;
+  quantity: number; unit: 'g' | 'unit'; acquisition_kind: ReceiptAcquisitionKind;
+  status: 'pending' | 'accepted' | 'rejected'; idempotency_key: string; ledger_id?: string | null;
+  proposed_by_user_id: string; reviewed_by_user_id?: string | null; reviewed_at?: string | null;
+  created_at: string; updated_at: string;
+}

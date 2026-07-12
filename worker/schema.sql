@@ -122,6 +122,8 @@ CREATE TABLE IF NOT EXISTS products (
     quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
     vendor_id TEXT,                -- FK to customers table (vendor contact)
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
+    inventory_purpose TEXT CHECK (inventory_purpose IN ('working', 'sample', 'personal')),
+    stock_known_at TEXT,
     in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
     tasting_source TEXT,                          -- 'owner' | 'community' | NULL; NULL falls back to style baseline
@@ -298,8 +300,37 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     user_email TEXT,
     note TEXT,                        -- Human-readable description
     batch_id TEXT,                    -- FK to batches: which intake shipment/session this arrival belonged to
+    receipt_proposal_id TEXT,
+    account_id TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS curate_receipt_proposals (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    compass_entry_id TEXT,
+    import_id TEXT,
+    import_item_id TEXT,
+    product_id TEXT,
+    batch_id TEXT,
+    product_name TEXT,
+    product_type TEXT,
+    purpose TEXT NOT NULL CHECK (purpose IN ('working', 'sample', 'personal')),
+    quantity REAL NOT NULL CHECK (quantity > 0),
+    unit TEXT NOT NULL CHECK (unit IN ('g', 'unit')),
+    acquisition_kind TEXT NOT NULL CHECK (acquisition_kind IN ('purchase', 'free_sample', 'gift', 'transfer', 'other')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+    idempotency_key TEXT NOT NULL,
+    ledger_id TEXT,
+    proposed_by_user_id TEXT NOT NULL,
+    reviewed_by_user_id TEXT,
+    reviewed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(account_id, idempotency_key), UNIQUE(ledger_id)
+);
+CREATE INDEX IF NOT EXISTS idx_receipt_proposals_account_status ON curate_receipt_proposals(account_id, status, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_ledger_receipt_proposal ON stock_ledger(receipt_proposal_id) WHERE receipt_proposal_id IS NOT NULL;
 
 -- 6c. Intake Batches (group stock arrivals into named shipments / sessions)
 CREATE TABLE IF NOT EXISTS batches (
