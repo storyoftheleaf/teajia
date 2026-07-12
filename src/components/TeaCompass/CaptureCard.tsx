@@ -261,11 +261,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [receiptError, setReceiptError] = useState('');
   const [receiptBusy, setReceiptBusy] = useState(false);
   useEffect(() => {
+    if (!entry) return;
     setReceiptPurpose(entryIsSample(entry) ? 'sample' : (entry.category === 'teaware' ? 'personal' : 'working'));
     setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
     setReceiptProposal(null);
     setReceiptError('');
-  }, [entry.id]);
+  }, [entry?.id]);
 
   // Sync price changes back to any matching draft ledger line items
   useEffect(() => {
