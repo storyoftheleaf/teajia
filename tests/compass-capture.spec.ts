@@ -14,6 +14,40 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toBeVisible();
   });
 
+  test('creates exactly one blank shell on signed-in mount and an empty account switch', async ({ page }) => {
+    await openCompass(page);
+    const draftState = () => page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return {
+        scope: state.draftAccountScopeId,
+        pendingIds: state.pendingEntries.map((entry) => entry.id),
+        sessionIds: state.sessionEntryIds,
+        activeEntryId: state.activeEntryId,
+      };
+    });
+
+    await expect.poll(draftState).toMatchObject({
+      scope: 'acct-bali',
+      pendingIds: [expect.any(String)],
+      sessionIds: [expect.any(String)],
+      activeEntryId: expect.any(String),
+    });
+
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useAppStore } = await import('/src/lib/store.ts');
+      useAppStore.getState().setActiveAccountId('acct-empty');
+    });
+    await expect.poll(draftState).toMatchObject({
+      scope: 'acct-empty',
+      pendingIds: [expect.any(String)],
+      sessionIds: [expect.any(String)],
+      activeEntryId: expect.any(String),
+    });
+  });
+
   test('switches to Teaware in one action', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();

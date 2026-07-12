@@ -21,6 +21,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'POST /api/auth/refresh': { token: COMPASS_TOKEN },
       'GET /api/accounts/me': { memberships, active_account_id: 'acct-bali' },
       'GET /api/accounts/acct-bali': { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali', default_currency: 'USD' },
+      'GET /api/accounts/acct-empty': { id: 'acct-empty', name: 'Empty Test Account', slug: 'empty-test', default_currency: 'USD' },
       'GET /api/products': [], 'GET /api/rates': [{ currency: 'USD', rate_to_usd: 1 }],
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
       'PUT /api/user/favorites': { ok: true },

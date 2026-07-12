@@ -257,13 +257,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     }
   }, [activeEntryId]);
 
-  // Auto-start a capture when opening in sourcing mode with no active entry
-  useEffect(() => {
-    if (mode === 'sourcing' && !activeEntryId) {
-      startNewCapture(activeCategory);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const sessionEntries = getSessionEntries();
   const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;
 
