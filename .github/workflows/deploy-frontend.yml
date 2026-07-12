@@ -1,10 +1,11 @@
 name: Deploy frontend
 
 # The live site (teajia.com / www.teajia.com) is the Cloudflare Pages project
-# `teajiafinal`. Its dashboard git integration was building PREVIEW deploys off
-# feature branches, NOT production off main — so pushes to main left production
-# stale. This workflow makes the frontend deploy to teajiafinal PRODUCTION on
-# every push to main, the same way deploy-worker.yml handles the API.
+# `teajiafinal`. Cloudflare's Git integration deploys main to production.
+# Keep this workflow as a manual recovery path only: running both pipelines on
+# every push produced two production deployments for the same commit, rotating
+# the active build twice and increasing the chance of stale lazy chunks in
+# already-open admin sessions.
 #
 # teajia.pages.dev (project `teajia`) is a stale/abandoned project — do not
 # deploy there.
@@ -14,15 +15,7 @@ name: Deploy frontend
 #   CLOUDFLARE_ACCOUNT_ID  — the account that owns teajiafinal
 
 on:
-  push:
-    branches: [main]
-    # Frontend lives everywhere except the worker; deploy on any non-worker
-    # change. (Worker-only pushes are handled by deploy-worker.yml.)
-    paths-ignore:
-      - 'worker/**'
-      - 'docs/**'
-      - '**/*.md'
-  # Manual trigger from the Actions tab — e.g. to force a redeploy.
+  # Manual fallback if Cloudflare's Git integration ever needs recovery.
   workflow_dispatch:
 
 concurrency:
