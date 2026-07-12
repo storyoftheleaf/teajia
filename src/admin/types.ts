@@ -4,6 +4,8 @@ export type TeaForm = 'Loose' | 'Cake' | 'Tuo' | 'Brick' | 'Rolled' | 'Ball' | '
 
 export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'AUD' | 'UNK';
 
+export type InventoryPurpose = 'working' | 'sample' | 'personal';
+
 import type { TastingData } from '../types';
 
 export interface Product {
@@ -41,6 +43,8 @@ export interface Product {
   isFeatured?: boolean; // Suggested/Featured flag
   isCurated?: boolean; // Curated selection flag
   isSample?: boolean; // Sample/trial tea not yet committed to inventory
+  inventoryPurpose?: InventoryPurpose | null; // Canonical purpose; legacy flags remain during migration
+  stockKnownAt?: string | null; // Set when the on-hand quantity is known, including a known zero
   inTransit?: boolean; // Stock ordered but not yet physically arrived
   inTransitGrams?: number; // Quantity currently in transit (grams)
   inTransitEta?: string; // Expected arrival date (ISO date string)
