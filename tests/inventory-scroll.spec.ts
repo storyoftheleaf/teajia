@@ -208,9 +208,11 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(columns).toBeVisible();
     await expect(page.locator('[data-inventory-header-row]')).toHaveCount(3);
 
-    for (const name of ['Tea', 'Wares', 'Incoming', 'Retail', 'Group', 'Sort', 'Bali']) {
+    for (const name of ['Tea', 'Wares', 'Incoming', 'Bali']) {
       await expect(primary.getByText(name, { exact: true })).toBeVisible();
     }
+    const operationRow = testInfo.project.name === 'Mobile Chrome' ? purpose : primary;
+    for (const name of ['Retail', 'Group', 'Sort']) await expect(operationRow.getByText(name, { exact: true })).toBeVisible();
     await expect(primary.getByRole('combobox', { name: 'Select currency' })).toBeVisible();
     await expect(primary.getByRole('combobox', { name: 'Select currency' })).toHaveValue('USD');
     expect(await primary.getByRole('combobox', { name: 'Select currency' }).locator('option').count()).toBeGreaterThan(1);
@@ -220,27 +222,47 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(primary.getByRole('button', { name: /inventory actions/i })).toBeVisible();
 
     if (testInfo.project.name === 'Mobile Chrome') {
-      const rowBox = await primary.boundingBox();
-      expect(rowBox).not.toBeNull();
-      const controls = [
-        primary.getByText('Tea', { exact: true }),
-        primary.getByText('Wares', { exact: true }),
+      const row1Controls = [
+        primary.getByRole('button', { name: 'Tea', exact: true }),
+        primary.getByRole('button', { name: 'Wares', exact: true }),
         primary.getByRole('button', { name: /search inventory/i }),
-        primary.getByText('Incoming', { exact: true }),
-        primary.getByRole('button', { name: /switch price mode/i }),
-        primary.getByRole('button', { name: 'Group inventory' }),
-        primary.getByRole('button', { name: 'Sort inventory' }),
-        primary.locator('[title="Teajia Bali"]'),
+        primary.getByRole('button', { name: 'Incoming', exact: true }),
         primary.getByRole('combobox', { name: 'Select currency' }),
         primary.getByRole('button', { name: /inventory actions/i }),
       ];
-      for (const control of controls) {
-        const box = await control.boundingBox();
-        expect(box, `Missing geometry for ${await control.getAttribute('aria-label') || await control.textContent()}`).not.toBeNull();
-        expect(box!.x).toBeGreaterThanOrEqual(rowBox!.x - 0.5);
-        expect(box!.x + box!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width + 0.5);
-        expect(box!.x + box!.width).toBeLessThanOrEqual(390.5);
-      }
+      const row2Controls = [
+        purpose.getByRole('button', { name: 'All', exact: true }),
+        purpose.getByRole('button', { name: 'Working', exact: true }),
+        purpose.getByRole('button', { name: 'Samples', exact: true }),
+        purpose.getByRole('button', { name: 'Personal', exact: true }),
+        purpose.getByRole('button', { name: /Needs attention/i }),
+        purpose.getByRole('button', { name: /switch price mode/i }),
+        purpose.getByRole('button', { name: 'Group inventory' }),
+        purpose.getByRole('button', { name: 'Sort inventory' }),
+      ];
+      const assertRowGeometry = async (row: typeof primary, controls: typeof row1Controls, extras: typeof row1Controls = []) => {
+        const rowBox = await row.boundingBox();
+        expect(rowBox).not.toBeNull();
+        const boxes = [];
+        for (const control of [...controls, ...extras]) {
+          const box = await control.boundingBox();
+          expect(box).not.toBeNull();
+          expect(box!.x).toBeGreaterThanOrEqual(rowBox!.x - 0.5);
+          expect(box!.x + box!.width).toBeLessThanOrEqual(Math.min(rowBox!.x + rowBox!.width + 0.5, 390.5));
+          if (controls.includes(control)) {
+            expect(box!.width).toBeGreaterThanOrEqual(44);
+            expect(box!.height).toBeGreaterThanOrEqual(44);
+            boxes.push(box!);
+          }
+        }
+        for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+          const overlapX = Math.min(boxes[i].x + boxes[i].width, boxes[j].x + boxes[j].width) - Math.max(boxes[i].x, boxes[j].x);
+          const overlapY = Math.min(boxes[i].y + boxes[i].height, boxes[j].y + boxes[j].height) - Math.max(boxes[i].y, boxes[j].y);
+          expect(overlapX > 0 && overlapY > 0, `Targets ${i} and ${j} overlap`).toBe(false);
+        }
+      };
+      await assertRowGeometry(primary, row1Controls, [primary.locator('[title="Teajia Bali"]')]);
+      await assertRowGeometry(purpose, row2Controls);
     }
 
     for (const name of ['Purpose', 'All', 'Working', 'Samples', 'Personal', 'Needs attention']) {
@@ -268,27 +290,27 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(search).toHaveValue('Mountain');
     await search.press('Escape');
 
-    await primary.getByRole('button', { name: /switch price mode/i }).click();
-    await expect(primary.getByText('Cost', { exact: true })).toBeVisible();
-    await primary.getByRole('button', { name: 'Group inventory' }).click();
+    await operationRow.getByRole('button', { name: /switch price mode/i }).click();
+    await expect(operationRow.getByText('Cost', { exact: true })).toBeVisible();
+    await operationRow.getByRole('button', { name: 'Group inventory' }).click();
     const typeGroup = page.getByRole('option', { name: 'Type', exact: true }).first();
     await expect(typeGroup).toBeVisible();
     await expect(typeGroup).toHaveAttribute('aria-selected', 'false');
     await expect(page.getByRole('option', { name: 'None', exact: true }).first()).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('option', { name: 'None', exact: true }).first().locator('svg')).toHaveCount(1);
     await page.keyboard.press('Escape');
-    await primary.getByRole('button', { name: 'Sort inventory' }).click();
+    await operationRow.getByRole('button', { name: 'Sort inventory' }).click();
     for (const choice of ['Type', 'Name', 'Stock', 'Price/g', 'Cost', 'Cost/g', 'Year', 'Origin', 'Source']) {
       await expect(page.getByRole('option', { name: new RegExp(`^${choice}`) }).first()).toBeVisible();
     }
     const nameSort = page.getByRole('option', { name: /^Name/ }).first();
     await nameSort.click();
-    await primary.getByRole('button', { name: 'Sort inventory' }).click();
+    await operationRow.getByRole('button', { name: 'Sort inventory' }).click();
     await expect(page.getByRole('option', { name: /^Name/ }).first()).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('option', { name: /^Name/ }).first().locator('svg')).toHaveCount(1);
     const directionBefore = await page.getByRole('option', { name: /^Name/ }).first().getAttribute('aria-label');
     await page.getByRole('option', { name: /^Name/ }).first().click();
-    await primary.getByRole('button', { name: 'Sort inventory' }).click();
+    await operationRow.getByRole('button', { name: 'Sort inventory' }).click();
     await expect(page.getByRole('option', { name: /^Name/ }).first()).not.toHaveAttribute('aria-label', directionBefore || '');
     await page.keyboard.press('Escape');
     await primary.getByRole('button', { name: /inventory actions/i }).click();
@@ -323,7 +345,8 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Clear inventory context' })).toContainText('Batch');
     await expect(page.locator('[data-testid="inventory-filter-banner"]')).toHaveCount(0);
 
-    await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Group inventory' }).click();
+    const operationRow = testInfo.project.name === 'Mobile Chrome' ? page.getByTestId('inventory-purpose-row') : page.getByTestId('inventory-primary-row');
+    await operationRow.getByRole('button', { name: 'Group inventory' }).click();
     await page.getByRole('option', { name: 'Type', exact: true }).first().click();
     await expect(page.getByTestId('inventory-column-row')).toBeVisible();
 
