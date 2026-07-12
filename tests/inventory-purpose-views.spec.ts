@@ -25,6 +25,8 @@ const products = [
   { ...base, id: 'missing-location', type: 'Oolong', product_name: 'Unplaced Working Tea', description: 'Ready', retail_price_per_gram_usd: .3, stock_grams: 50, stock_known_at: '2026-07-12', inventory_purpose: 'working', storage_location: '', tasting_source: 'owner' },
   { ...base, id: 'unlinked-needs', type: 'Misc', product_name: 'Unlinked Development Tea', description: '', retail_price_per_gram_usd: 0, stock_grams: 0, stock_known_at: null, inventory_purpose: 'working', tasting_source: 'common' },
   { ...base, id: 'teaware', type: 'Teaware', product_name: 'Field Gaiwan', description: '', retail_price_per_gram_usd: 22, stock_grams: 0, quantity_units: 2, inventory_purpose: 'working', teaware_category: 'pot', material: 'Porcelain' },
+  { ...base, id: 'teaware-sample', type: 'Teaware', product_name: 'Clay Cup Sample', description: '', retail_price_per_gram_usd: 0, stock_grams: 0, quantity_units: 1, inventory_purpose: 'sample', teaware_category: 'cup', material: 'Clay' },
+  { ...base, id: 'teaware-personal', type: 'Teaware', product_name: 'Personal Silver Pot', description: '', retail_price_per_gram_usd: 0, stock_grams: 0, quantity_units: 1, inventory_purpose: 'personal', teaware_category: 'pot', material: 'Silver' },
 ];
 
 const updateRequests: Array<{ url: string; body: Record<string, unknown> }> = [];
@@ -206,4 +208,25 @@ test('All composes with category, search, sort, grouping, and visible columns', 
   await page.getByRole('button', { name: 'Wares' }).click();
   await expect(page.getByText('Field Gaiwan')).toBeVisible();
   await expect(page.getByText('Personal Cake')).toHaveCount(0);
+});
+
+test('Wares composes with Working, Samples, Personal, and All purpose views', async ({ page }) => {
+  await page.getByRole('button', { name: 'Wares' }).click();
+
+  await selectView(page, 'Working');
+  await expect(page.getByText('Field Gaiwan')).toBeVisible();
+  await expect(page.getByText('Clay Cup Sample')).toHaveCount(0);
+
+  await selectView(page, 'Samples');
+  await expect(page.getByText('Clay Cup Sample')).toBeVisible();
+  await expect(page.getByText('Field Gaiwan')).toHaveCount(0);
+
+  await selectView(page, 'Personal');
+  await expect(page.getByText('Personal Silver Pot')).toBeVisible();
+  await expect(page.getByText('Clay Cup Sample')).toHaveCount(0);
+
+  await selectView(page, 'All');
+  await expect(page.getByText('Field Gaiwan')).toBeVisible();
+  await expect(page.getByText('Clay Cup Sample')).toBeVisible();
+  await expect(page.getByText('Personal Silver Pot')).toBeVisible();
 });

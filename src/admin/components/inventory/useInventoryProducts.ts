@@ -100,9 +100,9 @@ export function useInventoryProducts({
     } else if (filterType === 'ToTaste') {
       result = result.filter(p => p.tastingSource !== 'owner');
     } else if (filterType === 'Reorder') {
-      result = result.filter(p => p.canReorder && p.stockGrams <= p.lowStockThreshold);
+      result = result.filter(p => p.canReorder && (p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams) <= p.lowStockThreshold);
     } else if (filterType === 'LowStock') {
-      result = result.filter(p => p.stockGrams <= p.lowStockThreshold);
+      result = result.filter(p => (p.type === 'Teaware' ? (p.quantityUnits ?? 0) : p.stockGrams) <= p.lowStockThreshold);
     } else if (filterType === 'MissingLocation') {
       result = result.filter(p => !p.inventoryLocation?.trim());
     } else if (filterType === 'Drafts') {
