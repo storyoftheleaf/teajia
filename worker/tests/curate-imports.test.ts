@@ -1,0 +1,183 @@
+import { describe, expect, it } from 'vitest';
+import worker from '../src/index';
+
+const JWT_SECRET = 'test-secret';
+type Row = Record<string, unknown> & { id: string };
+
+class ImportStatement {
+  values: unknown[] = [];
+  constructor(readonly sql: string, private db: ImportDb) {}
+  bind(...values: unknown[]) { this.values = values; return this; }
+  private normalized() { return this.sql.replace(/\s+/g, ' ').trim().toLowerCase(); }
+  async first() {
+    const sql = this.normalized();
+    if (sql.includes('select platform_role from users')) return { platform_role: null };
+    if (sql.includes('from account_members am join accounts')) return { role: 'owner', permissions: '{}', kind: 'location' };
+    if (sql.includes('select status from accounts')) return { status: 'active' };
+    const table = this.db.tableFor(sql);
+    if (table && sql.includes('where id = ?')) {
+      const row = table.get(String(this.values[0]));
+      if (!row) return null;
+      const accountIndex = sql.includes('account_id = ?') ? this.values.length - 1 : -1;
+      if (accountIndex >= 0 && row.account_id !== this.values[accountIndex]) return null;
+      return { ...row };
+    }
+    return null;
+  }
+  async all() {
+    const sql = this.normalized();
+    const table = this.db.tableFor(sql);
+    if (!table) return { results: [] };
+    let rows = [...table.values()];
+    if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
+    if (sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values.at(-1));
+    if (sql.includes('order by position')) rows.sort((a, b) => Number(a.position) - Number(b.position));
+    return { results: rows.map(row => ({ ...row })) };
+  }
+  async run() {
+    const sql = this.normalized();
+    const table = this.db.tableFor(sql);
+    if (table && sql.startsWith('insert')) {
+      const columns = this.sql.match(/\(([^)]+)\)\s*values/i)?.[1].split(',').map(value => value.trim()) ?? [];
+      const row = Object.fromEntries(columns.map((column, index) => [column, this.values[index]])) as Row;
+      if (table.has(String(row.id))) throw new Error('UNIQUE constraint failed');
+      table.set(String(row.id), row);
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (table && sql.startsWith('update')) {
+      const id = String(this.values.at(-2));
+      const accountId = this.values.at(-1);
+      const row = table.get(id);
+      if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+      const set = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
+      const columns = [...set.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
+      columns.forEach((column, index) => { row[column] = this.values[index]; });
+      return { success: true, meta: { changes: 1 } };
+    }
+    return { success: true, meta: { changes: 0 } };
+  }
+}
+
+class ImportDb {
+  batches = new Map<string, Row>();
+  sources = new Map<string, Row>();
+  items = new Map<string, Row>();
+  compass = new Map<string, Row>();
+  tableFor(sql: string) {
+    if (sql.includes('curate_import_batches')) return this.batches;
+    if (sql.includes('curate_import_sources')) return this.sources;
+    if (sql.includes('curate_import_items')) return this.items;
+    if (sql.includes('tea_compass_entries')) return this.compass;
+    return null;
+  }
+  prepare(sql: string) { return new ImportStatement(sql, this); }
+  async batch(statements: ImportStatement[]) {
+    const snapshots = [this.batches, this.sources, this.items, this.compass].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
+    try { return await Promise.all(statements.map(statement => statement.run())); }
+    catch (error) {
+      [this.batches, this.sources, this.items, this.compass] = snapshots;
+      throw error;
+    }
+  }
+}
+
+function b64(input: string | Uint8Array) {
+  const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
+  return btoa(String.fromCharCode(...bytes));
+}
+async function token(userId: string, accountId: string) {
+  const now = Math.floor(Date.now() / 1000);
+  const payload = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify({ sub: userId, email: `${userId}@test.dev`, name: userId, active_account_id: accountId, iat: now, exp: now + 60 }))}`;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return `${payload}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))))}`;
+}
+async function request(db: ImportDb, path: string, init: RequestInit = {}, accountId = 'account-a', userId = 'user-a') {
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${await token(userId, accountId)}`);
+  headers.set('X-Teajia-Account', accountId);
+  if (init.body) headers.set('Content-Type', 'application/json');
+  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET } as any);
+}
+
+describe('Curate import provenance API', () => {
+  it('preserves pasted evidence byte-for-byte and parsed item order across refreshes', async () => {
+    const db = new ImportDb();
+    const pasted = '  2019 老班章\r\nNT$ 800 / 25g\n\n备注: 蜜香  ';
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'WeChat July 12', source_kind: 'wechat', pasted_text: pasted,
+      items: [
+        { position: 1, category: 'tea', name: 'Lao Ban Zhang', raw_text: '2019 老班章', confidence: 0.72, uncertainty: { year: ['2018', '2019'] } },
+        { position: 0, category: 'tea', name: 'Unknown tea', raw_text: 'NT$ 800 / 25g', confidence: 0.31, uncertainty: { name: true } },
+      ],
+    }) });
+    expect(created.status).toBe(201);
+    const body = await created.json() as any;
+    const refreshed = await request(db, `/api/curate/imports/${body.batch.id}`);
+    expect(refreshed.status).toBe(200);
+    expect(await refreshed.json()).toMatchObject({
+      batch: { title: 'WeChat July 12', created_by_user_id: 'user-a' },
+      sources: [{ kind: 'wechat', pasted_text: pasted }],
+      items: [
+        { position: 0, raw_text: 'NT$ 800 / 25g', confidence: 0.31, uncertainty: { name: true } },
+        { position: 1, raw_text: '2019 老班章', confidence: 0.72, uncertainty: { year: ['2018', '2019'] } },
+      ],
+    });
+  });
+
+  it.each(['wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste'])('accepts %s sources while storing object keys instead of file bytes', async kind => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: kind }) });
+    const { batch } = await created.json() as any;
+    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind, r2_object_key: `curate/${batch.id}/scan.jpg`, metadata: { page: 1 } }) });
+    expect(response.status).toBe(201);
+    expect(JSON.stringify([...db.sources.values()])).not.toContain('base64');
+    expect(await response.json()).toMatchObject({ kind, r2_object_key: `curate/${batch.id}/scan.jpg`, metadata: { page: 1 } });
+  });
+
+  it('accepts once, creates exactly one Compass entry, and never creates product or stock', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'List', items: [{ position: 0, category: 'tea', name: 'Ruby 18', raw_text: 'Ruby 18 — 600' }] }) });
+    const { batch, items } = await created.json() as any;
+    const path = `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`;
+    const first = await request(db, path, { method: 'POST' });
+    const second = await request(db, path, { method: 'POST' });
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(200);
+    expect(await second.json()).toMatchObject({ already_accepted: true });
+    expect(db.compass.size).toBe(1);
+    expect([...db.compass.values()][0]).toMatchObject({ name: 'Ruby 18', category: 'tea', account_id: 'account-a', user_id: 'user-a' });
+    expect((db as any).products).toBeUndefined();
+  });
+
+  it('merges into an owned Compass entry without creating another and rejects abandoned items', async () => {
+    const db = new ImportDb();
+    db.compass.set('existing', { id: 'existing', account_id: 'account-a', user_id: 'user-a', name: 'Existing' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Invoice', items: [{ position: 0, category: 'tea', name: 'Line one' }, { position: 1, category: 'tea', name: 'No tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const merged = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/merge`, { method: 'POST', body: JSON.stringify({ compass_entry_id: 'existing' }) });
+    expect(merged.status).toBe(200);
+    expect(await merged.json()).toMatchObject({ compass_entry_id: 'existing', review_state: 'merged' });
+    expect(db.compass.size).toBe(1);
+    await request(db, `/api/curate/imports/${batch.id}/items/${items[1].id}`, { method: 'PUT', body: JSON.stringify({ review_state: 'abandoned' }) });
+    const rejected = await request(db, `/api/curate/imports/${batch.id}/items/${items[1].id}/accept`, { method: 'POST' });
+    expect(rejected.status).toBe(409);
+    expect(db.compass.size).toBe(1);
+  });
+
+  it('returns 404 for every foreign-account batch or item operation', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Private', items: [{ position: 0, name: 'Secret' }] }) });
+    const { batch, items } = await created.json() as any;
+    const paths: Array<[string, string, unknown?]> = [
+      ['GET', `/api/curate/imports/${batch.id}`],
+      ['POST', `/api/curate/imports/${batch.id}/sources`, { kind: 'paste', pasted_text: 'steal' }],
+      ['PUT', `/api/curate/imports/${batch.id}/items/${items[0].id}`, { name: 'stolen' }],
+      ['POST', `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`],
+      ['POST', `/api/curate/imports/${batch.id}/items/${items[0].id}/merge`, { compass_entry_id: 'x' }],
+    ];
+    for (const [method, path, body] of paths) {
+      const response = await request(db, path, { method, body: body ? JSON.stringify(body) : undefined }, 'account-b', 'user-b');
+      expect(response.status, `${method} ${path}`).toBe(404);
+    }
+  });
+});

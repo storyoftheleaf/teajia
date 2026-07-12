@@ -8,6 +8,24 @@ export interface CompassSyncResult {
   conflicts: string[];
 }
 
+export type CurateImportSourceKind = 'wechat' | 'invoice' | 'vendor_list' | 'photo' | 'file' | 'paste';
+export interface CurateImportSource {
+  id: string; batch_id: string; kind: CurateImportSourceKind;
+  pasted_text: string | null; r2_object_key: string | null; metadata: Record<string, unknown>;
+}
+export interface CurateImportItem {
+  id: string; batch_id: string; position: number; category: 'tea' | 'teaware';
+  name: string | null; raw_text: string | null; parsed_data: Record<string, unknown>;
+  confidence: number | null; uncertainty: Record<string, unknown>;
+  review_state: 'pending' | 'reviewing' | 'accepted' | 'merged' | 'abandoned';
+  compass_entry_id: string | null;
+}
+export interface CurateImportBatch {
+  id: string; title: string; review_state: 'pending' | 'reviewing' | 'completed' | 'abandoned';
+  journey_id: string | null; visit_id: string | null;
+}
+export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[] }
+
 export interface AuditLogEntry {
   id: string;
   action: string;
@@ -1884,6 +1902,23 @@ export const api = {
     createVisit: (visit: Partial<CurateVisit>): Promise<CurateVisit> => authedFetch(`${API_URL}/api/curate/visits`, { method: 'POST', body: JSON.stringify(visit) }),
     updateVisit: (id: string, updates: Partial<CurateVisit>): Promise<CurateVisit> => authedFetch(`${API_URL}/api/curate/visits/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
     deleteVisit: (id: string): Promise<{ success: true }> => authedFetch(`${API_URL}/api/curate/visits/${id}`, { method: 'DELETE' }),
+  },
+
+  curateImports: {
+    create: (payload: {
+      title: string; journey_id?: string; visit_id?: string;
+      source_kind?: CurateImportSourceKind; pasted_text?: string;
+      items?: Array<Partial<CurateImportItem>>;
+    }): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports`, { method: 'POST', body: JSON.stringify(payload), retryTimeouts: true }),
+    get: (id: string): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports/${id}`),
+    addSource: (id: string, source: { kind: CurateImportSourceKind; pasted_text?: string; r2_object_key?: string; metadata?: Record<string, unknown> }): Promise<CurateImportSource> =>
+      authedFetch(`${API_URL}/api/curate/imports/${id}/sources`, { method: 'POST', body: JSON.stringify(source), retryTimeouts: true }),
+    updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> =>
+      authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
+    acceptItem: (batchId: string, itemId: string): Promise<CurateImportItem & { already_accepted?: boolean }> =>
+      authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}/accept`, { method: 'POST', retryTimeouts: true }),
+    mergeItem: (batchId: string, itemId: string, compassEntryId: string): Promise<CurateImportItem> =>
+      authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}/merge`, { method: 'POST', body: JSON.stringify({ compass_entry_id: compassEntryId }), retryTimeouts: true }),
   },
 
   inquiries: {

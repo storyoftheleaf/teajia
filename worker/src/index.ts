@@ -3,6 +3,11 @@ import {
   oauthProtectedResourceMetadata, oauthAuthorizationServerMetadata,
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
+import {
+  acceptCurateImportItem, addCurateImportSource, createCurateImport, getCurateImport,
+  mergeCurateImportItem, updateCurateImportItem,
+  type CurateImportContext,
+} from './curateImports';
 
 interface Env {
   DB: D1Database;
@@ -52,6 +57,16 @@ interface Env {
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
+
+function withCurateImportAccount(
+  handler: (request: Request, env: Env, ctx: CurateImportContext, params: Record<string, string>) => Promise<Response>,
+): Handler {
+  return async (request, env, params) => {
+    const ctx = await requireAccount(request, env);
+    if ('error' in ctx) return ctx.error;
+    return handler(request, env, { accountId: ctx.accountId, userId: ctx.userId }, params);
+  };
+}
 
 // ── Multi-account types ──
 export interface AccountMembership {
@@ -18633,6 +18648,12 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/visits', handleCreateCurateVisit],
   ['PUT', '/api/curate/visits/:id', handleUpdateCurateVisit],
   ['DELETE', '/api/curate/visits/:id', handleDeleteCurateVisit],
+  ['POST', '/api/curate/imports', withCurateImportAccount(createCurateImport)],
+  ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
+  ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource)],
+  ['PUT', '/api/curate/imports/:id/items/:itemId', withCurateImportAccount(updateCurateImportItem)],
+  ['POST', '/api/curate/imports/:id/items/:itemId/accept', withCurateImportAccount(acceptCurateImportItem)],
+  ['POST', '/api/curate/imports/:id/items/:itemId/merge', withCurateImportAccount(mergeCurateImportItem)],
   ['GET', '/api/compass/entries', handleGetCompassEntries],
   ['POST', '/api/compass/entries', handleCreateCompassEntry],
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],

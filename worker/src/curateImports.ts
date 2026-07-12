@@ -1,0 +1,221 @@
+export interface CurateImportContext {
+  accountId: string;
+  userId: string;
+}
+
+interface ImportEnv { DB: D1Database }
+
+const SOURCE_KINDS = new Set(['wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste']);
+const ITEM_STATES = new Set(['pending', 'reviewing', 'accepted', 'merged', 'abandoned']);
+const ITEM_CATEGORIES = new Set(['tea', 'teaware']);
+
+function response(value: unknown, status = 200) {
+  return new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+function object(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function text(value: unknown, max: number, required = false): string | null {
+  if (value == null && !required) return null;
+  if (typeof value !== 'string' || (required && !value.trim()) || value.length > max) throw new Error('invalid_text');
+  return value;
+}
+
+function jsonField(value: unknown, fallback: unknown) {
+  if (value == null) return JSON.stringify(fallback);
+  JSON.stringify(value);
+  return JSON.stringify(value);
+}
+
+function parseJson(value: unknown, fallback: unknown) {
+  if (typeof value !== 'string') return fallback;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function sourceRow(row: Record<string, unknown>) {
+  return { ...row, metadata: parseJson(row.metadata_json, {}), metadata_json: undefined };
+}
+
+function itemRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    confidence: row.confidence == null ? null : Number(row.confidence),
+    uncertainty: parseJson(row.uncertainty_json, {}),
+    parsed_data: parseJson(row.parsed_data_json, {}),
+    uncertainty_json: undefined,
+    parsed_data_json: undefined,
+  };
+}
+
+async function scopedBatch(env: ImportEnv, id: string, accountId: string) {
+  return env.DB.prepare('SELECT * FROM curate_import_batches WHERE id = ? AND account_id = ?').bind(id, accountId).first<Record<string, unknown>>();
+}
+
+async function scopedItem(env: ImportEnv, batchId: string, itemId: string, accountId: string) {
+  return env.DB.prepare('SELECT * FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ?').bind(itemId, batchId, accountId).first<Record<string, unknown>>();
+}
+
+async function fullBatch(env: ImportEnv, id: string, accountId: string) {
+  const batch = await scopedBatch(env, id, accountId);
+  if (!batch) return null;
+  const [sources, items] = await Promise.all([
+    env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(id, accountId).all<Record<string, unknown>>(),
+    env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position, created_at, id').bind(id, accountId).all<Record<string, unknown>>(),
+  ]);
+  return { batch, sources: sources.results.map(sourceRow), items: items.results.map(itemRow) };
+}
+
+export async function createCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext) {
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  try {
+    const title = text(body.title, 240, true)!;
+    const journeyId = text(body.journey_id, 100);
+    const visitId = text(body.visit_id, 100);
+    const sourceKind = body.source_kind == null ? null : text(body.source_kind, 40, true);
+    const pastedText = body.pasted_text == null ? null : text(body.pasted_text, 250_000);
+    if (sourceKind && !SOURCE_KINDS.has(sourceKind)) return response({ error: 'Unsupported source kind' }, 400);
+    const rawItems = body.items == null ? [] : body.items;
+    if (!Array.isArray(rawItems) || rawItems.length > 1000) return response({ error: 'items must be an array of at most 1000 entries' }, 400);
+    const batchId = crypto.randomUUID();
+    const statements: D1PreparedStatement[] = [env.DB.prepare(
+      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId)];
+    if (pastedText != null) {
+      statements.push(env.DB.prepare(
+        `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), batchId, ctx.accountId, ctx.userId, sourceKind ?? 'paste', pastedText, null, '{}'));
+    }
+    for (let index = 0; index < rawItems.length; index++) {
+      const raw = object(rawItems[index]);
+      if (!raw) return response({ error: `items[${index}] must be an object` }, 400);
+      const position = raw.position == null ? index : Number(raw.position);
+      const confidence = raw.confidence == null ? null : Number(raw.confidence);
+      const category = raw.category == null ? 'tea' : text(raw.category, 20, true)!;
+      if (!Number.isInteger(position) || position < 0 || !ITEM_CATEGORIES.has(category)) return response({ error: `Invalid item at index ${index}` }, 400);
+      if (confidence != null && (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)) return response({ error: `Invalid confidence at index ${index}` }, 400);
+      statements.push(env.DB.prepare(
+        `INSERT INTO curate_import_items
+           (id, batch_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), batchId, ctx.accountId, ctx.userId, position, category,
+        text(raw.name, 500), text(raw.raw_text, 20_000), jsonField(raw.parsed_data, {}), confidence,
+        jsonField(raw.uncertainty, {}), 'pending', null));
+    }
+    await env.DB.batch(statements);
+    return response(await fullBatch(env, batchId, ctx.accountId), 201);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'invalid_text') return response({ error: 'Invalid or oversized text field' }, 400);
+    throw error;
+  }
+}
+
+export async function getCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const result = await fullBatch(env, params.id, ctx.accountId);
+  return result ? response(result) : response({ error: 'Import not found' }, 404);
+}
+
+export async function addCurateImportSource(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  if (!await scopedBatch(env, params.id, ctx.accountId)) return response({ error: 'Import not found' }, 404);
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  try {
+    const kind = text(body.kind, 40, true)!;
+    if (!SOURCE_KINDS.has(kind)) return response({ error: 'Unsupported source kind' }, 400);
+    const pastedText = text(body.pasted_text, 250_000);
+    const objectKey = text(body.r2_object_key, 1000);
+    if (body.base64 != null || body.data != null) return response({ error: 'Upload files to object storage; provide only r2_object_key' }, 400);
+    if (pastedText == null && objectKey == null) return response({ error: 'pasted_text or r2_object_key is required' }, 400);
+    const id = crypto.randomUUID();
+    const metadataJson = jsonField(body.metadata, {});
+    await env.DB.prepare(
+      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, params.id, ctx.accountId, ctx.userId, kind, pastedText, objectKey, metadataJson).run();
+    const row = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, unknown>>();
+    return response(sourceRow(row!), 201);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'invalid_text') return response({ error: 'Invalid or oversized text field' }, 400);
+    throw error;
+  }
+}
+
+export async function updateCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const current = await scopedItem(env, params.id, params.itemId, ctx.accountId);
+  if (!current) return response({ error: 'Import item not found' }, 404);
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const allowed = new Set(['position', 'category', 'name', 'raw_text', 'parsed_data', 'confidence', 'uncertainty', 'review_state']);
+  if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown update field' }, 400);
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  try {
+    for (const [key, value] of Object.entries(body)) {
+      if (key === 'review_state') {
+        if (typeof value !== 'string' || !ITEM_STATES.has(value) || value === 'accepted' || value === 'merged') return response({ error: 'Invalid review_state' }, 400);
+        updates.push('review_state = ?'); values.push(value);
+      } else if (key === 'category') {
+        if (typeof value !== 'string' || !ITEM_CATEGORIES.has(value)) return response({ error: 'Invalid category' }, 400);
+        updates.push('category = ?'); values.push(value);
+      } else if (key === 'position') {
+        const number = Number(value); if (!Number.isInteger(number) || number < 0) return response({ error: 'Invalid position' }, 400);
+        updates.push('position = ?'); values.push(number);
+      } else if (key === 'confidence') {
+        const number = value == null ? null : Number(value); if (number != null && (!Number.isFinite(number) || number < 0 || number > 1)) return response({ error: 'Invalid confidence' }, 400);
+        updates.push('confidence = ?'); values.push(number);
+      } else if (key === 'parsed_data' || key === 'uncertainty') {
+        updates.push(`${key}_json = ?`); values.push(jsonField(value, {}));
+      } else {
+        updates.push(`${key} = ?`); values.push(text(value, key === 'raw_text' ? 20_000 : 500));
+      }
+    }
+  } catch { return response({ error: 'Invalid update' }, 400); }
+  if (updates.length) {
+    updates.push("updated_at = datetime('now')");
+    await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`).bind(...values, params.itemId, ctx.accountId).run();
+  }
+  const updated = await scopedItem(env, params.id, params.itemId, ctx.accountId);
+  return response(itemRow(updated!));
+}
+
+export async function acceptCurateImportItem(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
+  if (!item) return response({ error: 'Import item not found' }, 404);
+  if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
+  if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
+  const compassId = `curate-import:${params.itemId}`;
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, name, category, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(compassId, ctx.userId, ctx.accountId, item.name ?? null, item.category ?? 'tea', item.raw_text ?? null, 'logged'),
+    env.DB.prepare(
+      `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
+       WHERE id = ? AND account_id = ?`
+    ).bind('accepted', compassId, ctx.userId, params.itemId, ctx.accountId),
+  ]);
+  const updated = await scopedItem(env, params.id, params.itemId, ctx.accountId);
+  return response(itemRow(updated!), 201);
+}
+
+export async function mergeCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
+  if (!item) return response({ error: 'Import item not found' }, 404);
+  if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be merged' }, 409);
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const compassId = typeof body.compass_entry_id === 'string' ? body.compass_entry_id : '';
+  if (!compassId) return response({ error: 'compass_entry_id is required' }, 400);
+  const compass = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(compassId, ctx.accountId).first();
+  if (!compass) return response({ error: 'Compass entry not found' }, 404);
+  if (item.compass_entry_id && item.compass_entry_id !== compassId) return response({ error: 'Import item is already linked' }, 409);
+  await env.DB.prepare(
+    `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
+     WHERE id = ? AND account_id = ?`
+  ).bind('merged', compassId, ctx.userId, params.itemId, ctx.accountId).run();
+  return response(itemRow((await scopedItem(env, params.id, params.itemId, ctx.accountId))!));
+}
