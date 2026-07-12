@@ -160,14 +160,10 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
             <div key="step-contact" className="space-y-4 verify-step-enter">
               {/* Delivery method */}
               <div className="flex gap-6 border-b border-tea-border">
-                <button
-                  type="button"
-                  aria-pressed="true"
-                  className="relative -mb-px pb-2 pt-1 text-tea-text"
-                >
+                <div className="relative -mb-px pb-2 pt-1 text-tea-text" aria-label="Delivery method: Email">
                   <span className="text-ui-12 font-semibold">Email</span>
                   <span className="absolute left-0 right-0 -bottom-px h-px bg-tea-gold" />
-                </button>
+                </div>
               </div>
 
               <div>

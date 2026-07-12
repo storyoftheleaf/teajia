@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
-import { api, API_URL } from '../lib/api';
+import { api, API_URL, ApiError } from '../lib/api';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -23,6 +23,7 @@ export default function SignInPage() {
   const [passwordMode, setPasswordMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [requestRetryable, setRequestRetryable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -63,12 +64,14 @@ export default function SignInPage() {
   const handleCodeRequest = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError('');
+    setRequestRetryable(false);
     setLoading(true);
     try {
       await api.verify.requestCode(identifier.trim(), 'signin');
       setCodeSent(true);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Could not send code. Try again.');
+      setRequestRetryable(!(err instanceof ApiError) || err.data?.retryable !== false);
     } finally {
       setLoading(false);
     }
@@ -209,7 +212,7 @@ export default function SignInPage() {
           </div>
         )}
 
-        {!passwordMode && error && !codeSent && (
+        {!passwordMode && error && !codeSent && requestRetryable && (
           <button
             type="button"
             onClick={() => void handleCodeRequest()}

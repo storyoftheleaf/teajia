@@ -13,13 +13,16 @@ class VerificationDb {
       bind: (...input: any[]) => { values = input; return statement; },
       first: async () => {
         if (normalized.includes('from verification_challenges')) return this.challenges.filter(row => row.contact_normalized === values[0] && row.purpose === values[1]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
-        if (normalized.includes('from accounts where is_platform_owner')) return { id: 'account-platform' };
         if (normalized.includes('from users where lower(email)')) return values[0] === this.user.email ? this.user : null;
+        if (normalized.includes('from event_attendees') && normalized.includes('magic_token')) return values[0] === 'magic' && values.includes('guest@example.com') ? { id: 'attendee-1' } : null;
         if (normalized.includes('from customers')) return values.includes('guest@example.com') ? { id: 'customer-1', name: 'Guest', phone: null, email: 'guest@example.com' } : null;
+        if (normalized.includes('from accounts where is_platform_owner')) return { id: 'account-platform' };
         return null;
       },
       all: async () => {
         if (normalized.includes('from account_members')) return { results: [{ account_id: 'account-1', role: 'staff', permissions: '{"bundles":["catalog"]}', slug: 'store', name: 'Store', kind: 'location', is_platform_owner: 0 }] };
+        if (normalized.includes('select ea.id as attendee_id')) return { results: [{ attendee_id: 'attendee-1', event_id: 'event-1', title: 'Tea', event_date: '2026-08-01', flyer_image_url: null }] };
+        if (normalized.includes('from event_tasting_notes')) return { results: [] };
         if (normalized.includes('from event_attendees')) return { results: [{ magic_token: 'magic', status: 'confirmed', event_id: 'event-1', event_title: 'Tea', event_date: '2026-08-01' }] };
         return { results: [] };
       },
@@ -94,5 +97,19 @@ describe('purpose-aware verification routes', () => {
     const requested = await api(db, 'request', { contact: 'member@example.com', purpose: 'signin' }, { DEV_RETURN_VERIFY_CODES: 'true' });
     db.challenges[0].expires_at = new Date(Date.now() - 1).toISOString();
     expect(await api(db, 'confirm', { contact: 'member@example.com', code: requested.body.code, purpose: 'signin' })).toEqual({ status: 401, body: { error: 'Invalid or expired verification code' } });
+  });
+
+  it('authorizes an email journey with the returned attendance magic token', async () => {
+    const db = new VerificationDb();
+    const response = await worker.fetch(
+      new Request('https://test.dev/api/journey/guest%40example.com?token=magic'),
+      { DB: db, JWT_SECRET: 'jwt-secret' } as any,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      customer: { id: 'customer-1', name: 'Guest' },
+      sessions_attended: 1,
+      seals: [{ event_id: 'event-1', title: 'Tea' }],
+    });
   });
 });

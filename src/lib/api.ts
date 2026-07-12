@@ -1856,11 +1856,30 @@ export const api = {
 
   // V2: Guest journey (tea history, seals, impressions)
   journey: {
-    get: async (phone: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/journey/${encodeURIComponent(phone)}`, {
+    get: async (contact: string, token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/journey/${encodeURIComponent(contact)}?token=${encodeURIComponent(token)}`, {
         headers: { 'Content-Type': 'application/json' },
       });
-      return handleResponse(res);
+      const data = await handleResponse(res);
+      return {
+        sessionsAttended: Number(data.sessions_attended ?? 0),
+        totalTeas: Number(data.total_teas ?? 0),
+        teaTypeMap: data.tea_type_map ?? {},
+        favorites: data.favorites ?? [],
+        impressions: (data.impressions ?? []).map((item: Record<string, unknown>) => ({
+          text: item.text,
+          teaName: item.tea_name,
+          eventTitle: item.event_title,
+          date: item.date,
+        })),
+        milestones: data.milestones ?? [],
+        seals: (data.seals ?? []).map((item: Record<string, unknown>) => ({
+          eventId: item.event_id,
+          title: item.title,
+          date: item.date,
+          flyerUrl: item.flyer_url,
+        })),
+      };
     },
   },
 

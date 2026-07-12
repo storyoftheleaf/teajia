@@ -2389,7 +2389,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
 
 const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
-  'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
+  'stock_verified_at', 'stock_known_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
   'session_reserve_grams',
 ]);
 
@@ -2465,6 +2465,10 @@ async function applyProductUpdate(
       }, 400);
     }
   }
+
+  const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!ownedProduct) return json({ error: 'Product not found' }, 404);
 
   // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
@@ -3005,6 +3009,10 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+
+  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
 
   const result = await env.DB.prepare(
     `SELECT ili.*, p.given_name, p.product_name
@@ -4615,9 +4623,14 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
-    await env.DB.prepare(
+    const result = await env.DB.prepare(
       `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
     ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+    if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Customer not found' }, 404);
+  } else {
+    const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first();
+    if (!customer) return json({ error: 'Customer not found' }, 404);
   }
 
   await ensureRelationshipsFromCustomerBody(env, accountId, params.id, body, 'manual');
@@ -7132,9 +7145,10 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
 };
@@ -9006,6 +9020,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
   const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
@@ -10663,9 +10678,9 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   });
 };
 
-// GET /api/journey/:phone
+// GET /api/journey/:contact
 const handleGetJourney: Handler = async (request, env, params) => {
-  const phone = decodeURIComponent(params.phone);
+  const contact = decodeURIComponent(params.phone).trim().toLowerCase();
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
 
@@ -10673,10 +10688,12 @@ const handleGetJourney: Handler = async (request, env, params) => {
     return json({ error: 'token is required' }, 401);
   }
 
-  // Verify the token matches a magic_token belonging to this phone number
+  // Verify the token belongs to the requested contact. Event verification now
+  // defaults to email, while legacy attendees may still be phone-only.
   const tokenRow = await env.DB.prepare(
-    `SELECT id FROM event_attendees WHERE magic_token = ? AND phone_number = ?`
-  ).bind(token, phone).first();
+    `SELECT id FROM event_attendees
+     WHERE magic_token = ? AND (phone_number = ? OR lower(email) = lower(?))`
+  ).bind(token, contact, contact).first();
 
   if (!tokenRow) {
     return json({ error: 'Invalid or expired token' }, 403);
@@ -10684,9 +10701,9 @@ const handleGetJourney: Handler = async (request, env, params) => {
 
   const customer = await env.DB.prepare(
     `SELECT id, name FROM customers
-     WHERE (phone = ? OR whatsapp = ?)
+     WHERE (phone = ? OR whatsapp = ? OR lower(email) = lower(?))
        AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
-  ).bind(phone, phone).first();
+  ).bind(contact, contact, contact).first();
 
   if (!customer) return json({ error: 'No journey found for this contact' }, 404);
 
@@ -10695,9 +10712,10 @@ const handleGetJourney: Handler = async (request, env, params) => {
     `SELECT ea.id as attendee_id, ea.event_id, e.title, e.event_date, e.flyer_image_url
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.phone_number = ? AND ea.status = 'confirmed' AND ea.attended = 1
+     WHERE (ea.phone_number = ? OR lower(ea.email) = lower(?))
+       AND ea.status = 'confirmed' AND ea.attended = 1
      ORDER BY e.event_date ASC`
-  ).bind(phone).all();
+  ).bind(contact, contact).all();
 
   const sessionsAttended = sessions.results.length;
   const seals = (sessions.results as Record<string, any>[]).map(s => ({
