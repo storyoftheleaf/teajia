@@ -306,4 +306,45 @@ test.describe('Inventory page — scroll regression guard', () => {
     await page.getByTestId('inventory-primary-row').getByText('Incoming', { exact: true }).click();
     await expect(page.getByRole('region', { name: 'Incoming stock' })).toBeVisible();
   });
+
+  test('three-row inventory header remains available in alternate modes', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+
+    const primary = page.getByTestId('inventory-primary-row');
+    const purpose = page.getByTestId('inventory-purpose-row');
+    await primary.getByRole('button', { name: /inventory actions/i }).click();
+    await page.getByText('Pending AI', { exact: false }).first().click();
+    await expect(primary).toBeVisible();
+    await expect(purpose).toBeVisible();
+    await purpose.getByText('All', { exact: true }).click();
+    await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
+
+    if (testInfo.project.name === 'Desktop Chrome') {
+      await primary.getByText('Glossary', { exact: true }).click();
+      await expect(primary).toBeVisible();
+      await primary.getByText('Glossary', { exact: true }).click();
+      await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
+    }
+  });
+
+  test('inventory search suggests sources and category changes clear the query', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+    const primary = page.getByTestId('inventory-primary-row');
+
+    await primary.getByRole('button', { name: /search inventory/i }).click();
+    const search = primary.getByRole('textbox', { name: /search tea or source/i });
+    await search.fill('Mountain');
+    await expect(page.getByRole('button', { name: /Mountain Source/ }).first()).toBeVisible();
+    await page.getByRole('button', { name: /Mountain Source/ }).first().click();
+    await expect(page).toHaveURL(/vendor=Mountain(?:%20|\+)Source/);
+
+    await primary.getByRole('button', { name: /search inventory/i }).click();
+    await search.fill('Oolong');
+    await primary.getByText('Wares', { exact: true }).click();
+    await expect(primary.getByRole('textbox', { name: /search teaware/i })).toHaveValue('');
+  });
 });

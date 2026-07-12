@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ChevronDown, AlertTriangle, Search, X as XIcon, MoreHorizontal, MapPin, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { EmblemLoader } from '../components/shared/EmblemLoader';
@@ -364,11 +364,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<Product | null>(null);
 
-  // Inventory top-bar controls (lifted from InventoryView)
+  // Inventory category/search state is shared with the unified inventory header.
   const [inventoryCategory, setInventoryCategory] = useState<'tea' | 'teaware'>('tea');
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
-  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
   const isOnInventory = location.pathname.includes('/admin/stock') || location.pathname.includes('/admin/inventory');
   const isOnCapture = location.pathname.includes('/admin/capture');
   const isOnIntake = location.pathname.includes('/admin/intake');
@@ -396,37 +394,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
 
   const loading = productsLoading;
   const activeMembership = memberships.find((m) => m.account_id === activeAccountId);
-
-  // Extract unique vendors with tea counts for source suggestions
-  const vendorSuggestions = useMemo(() => {
-    const vendorMap = new Map<string, number>();
-    for (const p of products) {
-      if (p.vendor && p.status !== 'Archived') {
-        vendorMap.set(p.vendor, (vendorMap.get(p.vendor) || 0) + 1);
-      }
-    }
-    return Array.from(vendorMap.entries())
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [products]);
-
-  // Filter vendors matching the search query
-  const matchingVendors = useMemo(() => {
-    if (!inventorySearchQuery || inventorySearchQuery.length < 2) return [];
-    const q = inventorySearchQuery.toLowerCase();
-    return vendorSuggestions.filter(v => v.name.toLowerCase().includes(q)).slice(0, 5);
-  }, [inventorySearchQuery, vendorSuggestions]);
-
-  // Close suggestions on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        setShowSourceSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Redirect when entering admin at root, or prompt login if not authenticated.
   // A short delay lets Zustand persist middleware finish rehydrating isDevAdmin
@@ -522,6 +489,11 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     showToast("Data refreshed", 'info');
   };
 
+  const handleInventoryCategoryChange = (category: 'tea' | 'teaware') => {
+    setInventoryCategory(category);
+    setInventorySearchQuery('');
+  };
+
   const isPlatformOwner = platformRole === 'platform_owner' || platformRole === 'platform_admin';
   const isOperatingAs = isPlatformOwner && !!activeAccountId && !memberships.some(m => m.account_id === activeAccountId);
   const operatingAsName = isOperatingAs
@@ -557,128 +529,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       )}
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        {isOnInventory && <div className="hidden">
-           {/* Inventory: Tea / Teaware toggle + search */}
-           {isOnInventory ? (
-             <>
-               <div className="flex items-center p-0.5 shrink-0">
-                 <button
-                   onClick={() => { setInventoryCategory('tea'); setInventorySearchQuery(''); }}
-                   className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
-                     inventoryCategory === 'tea'
-                       ? 'text-tea-gold font-medium'
-                       : 'text-tea-text-sec hover:text-tea-text'
-                   }`}
-                 >
-                   Tea
-                 </button>
-                 <button
-                   onClick={() => { setInventoryCategory('teaware'); setInventorySearchQuery(''); }}
-                   className={`px-3 py-1 text-ui-10 uppercase tracking-[0.15em] rounded-md transition-colors ${
-                     inventoryCategory === 'teaware'
-                       ? 'text-tea-gold font-medium'
-                       : 'text-tea-text-sec hover:text-tea-text'
-                   }`}
-                 >
-                   Wares
-                 </button>
-               </div>
-               <div className="relative flex-1 min-w-0" ref={searchContainerRef}>
-                 <Search className="absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-sec pointer-events-none" size={13} />
-                 <input
-                   type="text"
-                   placeholder={inventoryCategory === 'tea' ? 'Search tea or source…' : 'Search teaware…'}
-                   aria-label={inventoryCategory === 'tea' ? 'Search tea or source' : 'Search teaware'}
-                   value={inventorySearchQuery}
-                   onChange={(e) => { setInventorySearchQuery(e.target.value); setShowSourceSuggestions(true); }}
-                   onFocus={() => setShowSourceSuggestions(true)}
-                   className="w-full bg-transparent pl-5 pr-7 py-1 text-ui-13 text-tea-text outline-none font-serif placeholder-tea-text-sec/60 transition-colors"
-                 />
-                 {inventorySearchQuery && (
-                   <button
-                     onClick={() => { setInventorySearchQuery(''); setShowSourceSuggestions(false); }}
-                     className="absolute right-2 top-1/2 -translate-y-1/2 text-tea-text-dim hover:text-tea-text p-0.5"
-                     aria-label="Clear inventory search"
-                   >
-                     <XIcon size={12} />
-                   </button>
-                 )}
-                 {/* Source/vendor suggestions dropdown */}
-                 {showSourceSuggestions && matchingVendors.length > 0 && (
-                   <div className="absolute top-full left-0 right-0 mt-1 bg-tea-surface border border-tea-border rounded-xl shadow-lg overflow-hidden z-priority">
-                     <div className="px-3 py-1.5 text-ui-9 uppercase tracking-[0.15em] text-tea-text-dim border-b border-tea-border">
-                       Sources
-                     </div>
-                     {matchingVendors.map(v => (
-                       <button
-                         key={v.name}
-                         onClick={() => {
-                           setInventorySearchQuery('');
-                           setShowSourceSuggestions(false);
-                           navigate(`/admin/stock?vendor=${encodeURIComponent(v.name)}`);
-                         }}
-                         className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-tea-bg/60 transition-colors"
-                       >
-                         <MapPin size={12} className="text-tea-text-sec flex-shrink-0" />
-                         <span className="text-xs text-tea-text font-serif truncate">{v.name}</span>
-                         <span className="text-ui-10 text-tea-text-dim ml-auto flex-shrink-0">{v.count} tea{v.count !== 1 ? 's' : ''}</span>
-                       </button>
-                     ))}
-                   </div>
-                 )}
-               </div>
-             </>
-           ) : (
-             <button onClick={() => setIsCommandPaletteOpen(true)} className="flex items-center gap-2 flex-1 max-w-[200px] bg-tea-bg/60 border border-tea-border rounded-xl px-3 py-1 text-tea-text-dim text-xs hover:border-tea-text-dim transition-colors">
-                <Search size={13} />
-                <span className="truncate">Search...</span>
-             </button>
-           )}
-
-           {/* Current account badge — so staff never forget which store they're
-               acting on. This is most important on the SMALLEST screens (a phone
-               in the shop), so it must survive mobile: the dot always shows, and
-               the name truncates harder rather than disappearing. */}
-           {activeMembership && (
-             <div
-               className="flex items-center gap-1.5 ml-2 px-2 sm:px-2.5 py-1 rounded-md bg-tea-elevated border border-tea-border shrink-0"
-               title={`Active account: ${activeMembership?.account_name}`}
-             >
-               <span className="w-1.5 h-1.5 rounded-full bg-tea-gold shrink-0" />
-               <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec font-medium truncate max-w-[88px] sm:max-w-[140px]">
-                 {activeMembership?.account_name}
-               </span>
-             </div>
-           )}
-
-           {/* Right: Currency selector */}
-           <div className="flex items-center ml-auto shrink-0 relative">
-             <select
-               value={currency}
-               onChange={(e) => setCurrency(e.target.value as any)}
-               aria-label="Select currency"
-               className="appearance-none bg-transparent text-ui-10 text-tea-text-dim uppercase tracking-[0.1em] px-2 py-1 pr-4 cursor-pointer hover:text-tea-text-sec transition-colors outline-none"
-             >
-               {rates.map(rate => (
-                 <option key={rate.currency} value={rate.currency} className="bg-tea-surface text-tea-text">
-                   {rate.currency}
-                 </option>
-               ))}
-             </select>
-             <ChevronDown size={8} className="absolute right-1 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
-           </div>
-           {isOnInventory && (
-             <button
-               onClick={() => setInventoryOptionsOpen(!inventoryOptionsOpen)}
-               className="w-8 h-8 flex items-center justify-center text-tea-text-dim hover:text-tea-text-sec transition-colors rounded-md shrink-0"
-               aria-label="Open inventory actions"
-               aria-expanded={inventoryOptionsOpen}
-               aria-haspopup="menu"
-             >
-               <MoreHorizontal size={17} />
-             </button>
-           )}
-        </div>}
 
         <div className={`flex-1 relative min-h-0 ${isOnInventory || isOnCapture || isOnIntake ? 'overflow-hidden' : 'overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0'}`}>
           <Routes>
@@ -755,7 +605,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                       externalCategory={inventoryCategory}
                       externalSearchQuery={inventorySearchQuery}
                       onSearchQueryChange={setInventorySearchQuery}
-                      onCategoryChange={setInventoryCategory}
+                      onCategoryChange={handleInventoryCategoryChange}
                       activeAccountName={activeMembership?.account_name || ''}
                       externalShowOptions={inventoryOptionsOpen}
                       onOptionsToggle={setInventoryOptionsOpen}
