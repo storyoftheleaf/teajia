@@ -830,7 +830,7 @@ git commit -m "feat(samples): link portions without conflating holdings"
 
 Run migrations from a clean schema and from a snapshot ending at migration `098`. Verify legacy Compass entries, products, unlinked products, flags, listings, ledger rows, and sample links remain readable.
 
-- [ ] **Step 2: Run full automated verification**
+- [x] **Step 2: Run full automated verification**
 
 ```bash
 npm run test:worker
@@ -845,7 +845,15 @@ npm run test:mobile
 
 Expected: zero failures, zero horizontal-overflow regressions, Inventory scroller remains sized and scrollable.
 
-- [ ] **Step 3: Run final independent reviews**
+Final evidence (2026-07-12):
+
+- Non-browser verification: 214 Worker tests and 139 frontend/domain tests passed; clean and legacy-through-`098` schema rehearsals passed through migration `107`.
+- Curate Playwright suites: 111 passed, 1 intentionally skipped, 0 failed.
+- Inventory Playwright suites: 53 passed, 3 intentionally skipped, 0 failed.
+- Mobile audit: 27 passed, 0 failed, including horizontal-overflow and Inventory scroll guards.
+- Targeted acquisition-receipt and same-identity transfer regressions passed.
+
+- [x] **Step 3: Run final independent reviews**
 
 Request one spec-compliance review against the approved design and one code-quality/security review covering account scoping, idempotency, D1 atomicity, migration safety, responsive behavior, accessibility, and preservation of current Curate layout.
 

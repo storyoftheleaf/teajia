@@ -3,7 +3,7 @@
 > Comprehensive snapshot of the Teajia platform: what works, what doesn't, where the gaps are. Merges March 2026 audit shards with April 2026 Layer 1/2 audit synthesis. For technical architecture see ARCHITECTURE.md. For what's next see POST_AUDIT_ROADMAP.md.
 
 **Audit period:** March–April 2026
-**Last updated:** 2026-07-12 (Curate and purpose-based Inventory rollout)
+**Last updated:** 2026-07-12 (Curate and purpose-based Inventory rollout complete and verified)
 
 ---
 
@@ -11,15 +11,15 @@
 
 ### Curate and Inventory ingestion rollout (July 2026)
 
-The approved Curate and Inventory restructuring is implemented through Tasks 1–17 and is in final integration and verification. Curate keeps its one-tap, tea-first field sheet while accepting fragments in the order Adrian receives them. Deliberate drafts resume by account; sourcing decisions are independent from legacy status; optional Journey/Visit context groups encounters; and Library filters make decisions, sample state, source, journey, visit, category, and date directly retrievable.
+The approved Curate and Inventory restructuring is implemented and verified through Tasks 1–18. Curate keeps its one-tap, tea-first field sheet while accepting fragments in the order Adrian receives them. Deliberate drafts resume by account; sourcing decisions are independent from legacy status; optional Journey/Visit context groups encounters; and Library filters make decisions, sample state, possession, source, journey, visit, category, and date directly retrievable.
 
-The former Samples capture tab is now Import, while sample ordering, sets, labels, tastings, events, and gifts remain reachable as distinct workflows. Import accepts pasted vendor or WeChat-style lists and retains uploaded image/PDF evidence for review. It does **not** currently OCR-transcribe uploaded evidence: pasted text is parsed, while images and documents remain attached as source material for manual correction. Accepting an import creates Curate encounters, not physical stock.
+The former Samples capture tab is now Import, while sample ordering, sets, labels, tastings, events, and gifts remain reachable as distinct workflows. Import extracts pasted text and uploaded TXT, CSV, or JSON into reviewed drafts. It retains image and PDF evidence for manual review and does **not** claim OCR support. Accepting an import creates Curate encounters, not physical stock. Acquired quantities become reviewed receipt proposals; only accepted Inventory receipts establish possession.
 
 Inventory now models physical purpose (`working`, `sample`, or `personal`) separately from readiness, incoming receipts, and storefront publication. Working tea readiness requires a description, positive effective retail price, classification, and explicitly known stock; known zero stock is Ready but unavailable. Photos and tasting profile remain optional. Publication is always an explicit choice and is never inferred from readiness or physical possession.
 
-The stock spine uses reviewed receipts and idempotent movements for receive, sale, sample use, gift, waste, return, recount, and transfer. Incoming is derived from open receipt lines rather than treated as a purpose. Structured Inventory CSV intake routes confirmed physical quantities through the same purpose and movement rules. Operational sample portions may link to an Inventory Sample holding, but creating a portion never silently consumes stock.
+The stock spine uses reviewed receipts and idempotent movements for receive, sale, sample use, gift, waste, return, recount, and transfer. Incoming is derived from open receipt lines rather than treated as a purpose. Transfers require a real destination holding linked to the same identity and apply both sides atomically. Structured Inventory intake routes confirmed physical quantities through the same purpose and movement rules. Operational sample portions may link to an Inventory Sample holding, but creating a portion never silently consumes stock.
 
-Database migrations `099`–`106` add Compass decisions, Journey/Visit context, durable import provenance, sample state, Inventory purpose and known-stock metadata, normalized receipts, canonical stock movements, and concurrency-safe Compass promotion identity. Disposable migration rehearsal covers both a clean schema and a legacy snapshot through migration `098`.
+Database migrations `099`–`107` add Compass decisions, Journey/Visit context, durable import provenance, sample state, Inventory purpose and known-stock metadata, normalized receipts, canonical stock movements, concurrency-safe Compass promotion identity, and retry-safe import idempotency. Account scoping and ownership checks protect the new boundaries. Disposable migration rehearsal passed for both a clean schema and a legacy snapshot through migration `098`. Full automated verification and both independent final reviews passed.
 
 ### What Works
 
@@ -221,18 +221,28 @@ Database migrations `099`–`106` add Compass decisions, Journey/Visit context, 
 - Session logging with photo/voice/text
 - Vendor tracking
 - PDF ledger export
-- **Gaps:** Sync incomplete; guest sessions lost; templates missing
+- One-tap tea-first Curate capture preserves unordered deliberate fragments and account-scoped drafts
+- Independent sourcing decision, optional Journey/Visit context, and dimensional Library filters
+- Reviewed Import batches extract pasted text and TXT/CSV/JSON; image/PDF originals are retained for manual review
+- Import acceptance records encounters only; acquisitions become reviewed receipts and do not imply possession
+- **Gap:** Image/PDF OCR is not implemented
 
 ### 2.3 Admin Features
 
-**Inventory Management (940 lines)**
+**Inventory Management**
 - Dual-mode: Tea and Teaware tabs
-- 8+ views: All, For Sale, Drafts, Alerts, Unpublished, Unverified, Samples, Personal, Archived
+- Purpose separates Working, Sample, and Personal holdings; Incoming is derived from open receipt lines
+- Needs Development names missing description, retail price, classification, or known stock without controlling publication
 - Column customization, grouping, multi-level sorting
 - Inline ghost-input editing, bulk operations
 - Fuzzy search, stock verification, QR codes, import/export
-- Stock ledger (view-only)
-- **Status:** 127 actions total; 35 wired, 52 partial, 18 stub, 15 orphan
+- Reviewed acquisition receipts create possession; Curate decisions and accepted imports do not
+- Explicit, retry-safe stock movements include ledger detail
+- Transfers require a destination holding for the same linked identity and update both sides atomically
+- Structured stock import reuses intake and movement primitives
+- Physical Sample holdings remain distinct from operational sample portions, sets, labels, and tastings
+- Storefront publication remains an independent deliberate choice
+- **Status:** Complete and verified through additive migrations `099`–`107`
 
 **Product Management (AddProductModal)**
 - Full product creation/editing with conditional fields
