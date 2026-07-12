@@ -5,6 +5,7 @@ import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { TastingNote } from '../../types/events';
+import { postSessionEditorState, savePostSession } from './PostSessionEditorContract';
 
 interface PostSessionEditorProps {
   eventId: string;
@@ -18,6 +19,10 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [gallery, setGallery] = useState<string[]>([]);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [energy, setEnergy] = useState('');
+  const [sharedTastingNotes, setSharedTastingNotes] = useState('');
+  const [hostNotes, setHostNotes] = useState('');
+  const [hostChanges, setHostChanges] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [ledgerLoaded, setLedgerLoaded] = useState(false);
@@ -35,10 +40,15 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
         const postSession = data.post_session
           ? (typeof data.post_session === 'string' ? JSON.parse(data.post_session) : data.post_session)
           : {};
-        setTeaLedger(postSession.teaLedger || '');
-        setPlaylistUrl(postSession.playlistUrl || (data as any).playlist_url || '');
-        setGallery(postSession.gallery || []);
-        setSessionNotes(postSession.sessionNotes || '');
+        const loaded = postSessionEditorState(postSession);
+        setTeaLedger(loaded.teaLedger);
+        setPlaylistUrl(loaded.playlistUrl || (data as any).playlist_url || '');
+        setGallery(loaded.gallery);
+        setSessionNotes(loaded.sessionNotes);
+        setEnergy(loaded.energy);
+        setSharedTastingNotes(loaded.sharedTastingNotes);
+        setHostNotes(loaded.hostNotes);
+        setHostChanges(loaded.hostChanges);
         setLedgerLoaded(true);
       } catch {
         // Silently fail
@@ -50,11 +60,8 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.events.upsertPostSession(eventId, {
-        teaLedger,
-        playlistUrl,
-        gallery,
-        sessionNotes,
+      await savePostSession(api.events.upsertPostSession, eventId, {
+        teaLedger, playlistUrl, gallery, sessionNotes, energy, sharedTastingNotes, hostNotes, hostChanges,
       });
       showToast('Post-session data saved', 'success');
     } catch (err: any) {
@@ -211,6 +218,54 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
           className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
           placeholder="Notes about the session, observations, highlights..."
         />
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Host Notes</label>
+          <textarea
+            value={hostNotes}
+            onChange={(e) => setHostNotes(e.target.value)}
+            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+            placeholder="Your observations as host"
+          />
+        </div>
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Host Changes</label>
+          <textarea
+            value={hostChanges}
+            onChange={(e) => setHostChanges(e.target.value)}
+            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+            placeholder="What you would change next time"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Session Energy</label>
+          <select
+            value={energy}
+            onChange={(e) => setEnergy(e.target.value)}
+            className="w-full border border-tea-border bg-tea-bg rounded-md px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold"
+          >
+            <option value="">Not recorded</option>
+            <option value="intimate_warm">Intimate and warm</option>
+            <option value="lively">Lively</option>
+            <option value="contemplative">Contemplative</option>
+            <option value="exploratory">Exploratory</option>
+            <option value="meditative">Meditative</option>
+          </select>
+        </div>
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Shared Tasting Notes</label>
+          <textarea
+            value={sharedTastingNotes}
+            onChange={(e) => setSharedTastingNotes(e.target.value)}
+            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+            placeholder="One note per line"
+          />
+        </div>
       </div>
 
       {/* Save button */}
