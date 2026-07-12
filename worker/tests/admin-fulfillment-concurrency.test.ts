@@ -9,6 +9,7 @@ class FulfillmentDb {
   ledgers = 0;
   audits = 0;
   failBatch = false;
+  stealLeaseBeforeBatch = false;
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
@@ -19,7 +20,7 @@ class FulfillmentDb {
         if (normalized.includes('from account_members am')) return { role: 'owner', permissions: '{}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
         if (normalized.startsWith('update invoices set fulfillment_claim_token = ?')) {
-          const stale = this.invoice.fulfillment_claimed_at != null && new Date(this.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000;
+          const stale = this.invoice.fulfillment_claim_token != null && (this.invoice.fulfillment_claimed_at == null || new Date(this.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
           if (this.invoice.inventory_deducted || (this.invoice.fulfillment_claim_token && !stale)) return null;
           this.invoice.fulfillment_claim_token = values[0]; this.invoice.fulfillment_claimed_at = new Date().toISOString(); return { id: this.invoice.id };
         }
@@ -29,6 +30,7 @@ class FulfillmentDb {
       },
       all: async () => normalized.includes('from invoice_line_items') ? { results: [{ id: 'line-a', account_id: 'acct-a', invoice_id: 'invoice-a', product_id: 'product-a', quantity: 40, price_at_sale: 1 }] } : { results: [] },
       run: async () => {
+        if (normalized.includes('fulfillment_claim_token = ?') && !normalized.startsWith('update invoices set fulfillment_claim_token = ?') && this.invoice.fulfillment_claim_token !== values.at(-1)) return { success: true, meta: { changes: 0 }, results: [] };
         if (normalized.startsWith('update products set stock_grams = stock_grams - ?')) { this.stock -= Number(values[0]); return { success: true, results: [{ stock_grams: this.stock }], meta: { changes: 1 } }; }
         if (normalized.startsWith('insert into stock_ledger')) { this.ledgers += 1; return { success: true, meta: { changes: 1 } }; }
         if (normalized.startsWith('insert into activity_logs')) { this.audits += 1; return { success: true, meta: { changes: 1 } }; }
@@ -42,6 +44,9 @@ class FulfillmentDb {
     }; return statement;
   }
   async batch(statements: any[]) {
+    if (this.stealLeaseBeforeBatch && statements.some(statement => statement.sql?.toLowerCase().includes('update products set stock_grams'))) {
+      this.stealLeaseBeforeBatch = false; this.invoice.fulfillment_claim_token = 'winner-b'; this.invoice.inventory_deducted = 1; this.invoice.fulfilled_at = 'winner-time'; this.stock = 60; this.ledgers = 1; this.audits = 1;
+    }
     const snapshot = { invoice: { ...this.invoice }, stock: this.stock, ledgers: this.ledgers, audits: this.audits };
     try { const results = []; for (const statement of statements) { results.push(await statement.run()); if (this.failBatch && statement.sql?.toLowerCase().includes('update products set stock_grams')) throw new Error('simulated batch failure'); } return results; }
     catch (error) { this.invoice = snapshot.invoice; this.stock = snapshot.stock; this.ledgers = snapshot.ledgers; this.audits = snapshot.audits; this.failBatch = false; throw error; }
@@ -68,9 +73,20 @@ describe('admin fulfillment claim', () => {
     expect((await fulfill(db)).status).toBe(200); expect(db.stock).toBe(60);
   });
 
+  it('recovers a migration-111 claim with a null lease timestamp', async () => {
+    const db = new FulfillmentDb(); db.invoice.fulfillment_claim_token = 'legacy';
+    expect((await fulfill(db)).status).toBe(200);
+  });
+
   it('rolls back stock, ledger, audit, and invoice on batch failure', async () => {
     const db = new FulfillmentDb(); db.failBatch = true;
     expect((await fulfill(db)).status).toBe(500);
     expect(db.stock).toBe(100); expect(db.ledgers).toBe(0); expect(db.audits).toBe(0); expect(db.invoice.inventory_deducted).toBe(0); expect(db.invoice.fulfillment_claim_token).toBeNull();
+  });
+
+  it('fences a paused owner after a stale-lease winner commits', async () => {
+    const db = new FulfillmentDb(); db.stealLeaseBeforeBatch = true;
+    expect((await fulfill(db)).status).toBe(409);
+    expect(db.stock).toBe(60); expect(db.ledgers).toBe(1); expect(db.audits).toBe(1); expect(db.invoice.fulfilled_at).toBe('winner-time');
   });
 });

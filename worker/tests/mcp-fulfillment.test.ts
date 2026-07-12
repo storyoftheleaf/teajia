@@ -36,6 +36,7 @@ type FakeDbState = {
   // row, confirm consumes it via atomic UPDATE…RETURNING.
   tickets: Map<string, { payload_json: string; expires_at: number; consumed_at: number | null }>;
   failFulfillmentBatch: boolean;
+  stealLeaseBeforeBatch: boolean;
 };
 
 class FakeStatement {
@@ -70,7 +71,7 @@ class FakeStatement {
       return this.state.products.get(String(this.values[0])) || null;
     }
     if (sql.startsWith('update invoices set fulfillment_claim_token = ?')) {
-      const stale = this.state.invoice.fulfillment_claimed_at != null && new Date(this.state.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000;
+      const stale = this.state.invoice.fulfillment_claim_token != null && (this.state.invoice.fulfillment_claimed_at == null || new Date(this.state.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000);
       if (this.state.invoice.inventory_deducted || (this.state.invoice.fulfillment_claim_token && !stale)) return null;
       this.state.invoice.fulfillment_claim_token = String(this.values[0]);
       this.state.invoice.fulfillment_claimed_at = new Date().toISOString();
@@ -120,6 +121,13 @@ class FakeDb {
   }
 
   async batch(statements: FakeStatement[]) {
+    if (this.state.stealLeaseBeforeBatch && statements.some(statement => normalizeSql(statement.sql).startsWith('update products set stock_grams'))) {
+      this.state.stealLeaseBeforeBatch = false;
+      this.state.invoice.fulfillment_claim_token = 'winner-b'; this.state.invoice.inventory_deducted = 1; this.state.invoice.fulfilled_at = 'winner-time';
+      this.state.products.get('prod_test')!.stock_grams = 20;
+      this.state.listings.get('list_prod_test')!.stock_grams = 20;
+      this.state.ledger.push({ product_id: 'prod_test', delta: -80, balance_after: 20 });
+    }
     const snapshot = { invoice: { ...this.state.invoice }, products: new Map([...this.state.products].map(([id, row]) => [id, { ...row }])), listings: new Map([...this.state.listings].map(([id, row]) => [id, { ...row }])), ledger: this.state.ledger.map(row => ({ ...row })) };
     const results = [];
     try {
@@ -144,6 +152,10 @@ function normalizeSql(sql: string): string {
 function runStatement(state: FakeDbState, statement: FakeStatement) {
   const sql = normalizeSql(statement.sql);
   const values = statement.values;
+  if (sql.includes('fulfillment_claim_token = ?') && !sql.startsWith('update invoices set fulfillment_claim_token = ?')) {
+    const claim = String(values.at(-1));
+    if (state.invoice.fulfillment_claim_token !== claim) return { success: true, meta: { changes: 0 }, results: [] };
+  }
 
   if (sql.startsWith('insert into mcp_confirmation_tickets')) {
     // issueConfirmationToken binds (token_hash, account_id, kind, payload_json, expires_at)
@@ -236,6 +248,7 @@ function makeState(stockGrams: number): FakeDbState {
     batchedSql: [],
     tickets: new Map(),
     failFulfillmentBatch: false,
+    stealLeaseBeforeBatch: false,
   };
 }
 
@@ -347,6 +360,11 @@ describe('MCP invoice fulfillment', () => {
     expect(state.products.get('prod_test')?.stock_grams).toBe(20);
   });
 
+  it('recovers a migration-111 token with no lease timestamp', async () => {
+    const state = makeState(100); state.invoice.fulfillment_claim_token = 'legacy'; state.invoice.fulfillment_claimed_at = null;
+    expect((await fulfillInvoice(state)).committed).toBe(true);
+  });
+
   it('rolls back the whole mutation batch on failure', async () => {
     const state = makeState(100);
     state.failFulfillmentBatch = true;
@@ -355,6 +373,15 @@ describe('MCP invoice fulfillment', () => {
     expect(state.ledger).toEqual([]);
     expect(state.invoice.inventory_deducted).toBe(0);
     expect(state.invoice.fulfillment_claim_token).toBeNull();
+  });
+
+  it('fences a paused owner after another owner steals and commits the stale lease', async () => {
+    const state = makeState(100); state.stealLeaseBeforeBatch = true;
+    const result = await fulfillInvoice(state);
+    expect(result.error).toBe('invoice_fulfillment_lease_lost');
+    expect(state.products.get('prod_test')?.stock_grams).toBe(20);
+    expect(state.ledger).toHaveLength(1);
+    expect(state.invoice.fulfilled_at).toBe('winner-time');
   });
 
   it('deducts only product-backed lines when custom lines are present', async () => {

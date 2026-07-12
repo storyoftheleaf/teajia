@@ -3112,7 +3112,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const claimed = await env.DB.prepare(
     `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
      WHERE id = ? AND account_id = ? AND inventory_deducted = 0
-       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
      RETURNING id`
   ).bind(fulfillmentClaim, invoice_id, accountId).first();
   if (!claimed) return json({ error: 'Invoice fulfillment is already in progress' }, 409);
@@ -3145,61 +3145,61 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     // pattern) so a mirror that drifted below the products row can't go negative.
     stmts.push(
       env.DB.prepare(
-        `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?`
-      ).bind(qty, `list_${item.product_id}`)
+        `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+      ).bind(qty, `list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim)
     );
-    stmts.push(buildStockLedgerEntry(
-      env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
-      userEmail, invoice_id, invoice.invoice_number as string, null, accountId
-    ));
+    stmts.push(env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+       SELECT ?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, NULL, ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+    ).bind(crypto.randomUUID(), item.product_id, -qty, newBalance, invoice_id, invoice.invoice_number, userEmail, accountId, invoice_id, accountId, fulfillmentClaim));
 
     if (newBalance <= 0 && product && product.status !== 'Sold Out') {
       stmts.push(
-        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?")
-          .bind(item.product_id, accountId)
+        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
+          .bind(item.product_id, accountId, invoice_id, accountId, fulfillmentClaim)
       );
-      stmts.push(buildListingStatusMirror(env, item.product_id as string, 'Sold Out'));
-      stmts.push(buildActivityLog(
-        env, 'PRODUCT_SOLD_OUT',
-        `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
-        userEmail, 'product', item.product_id as string, accountId
-      ));
+      stmts.push(env.DB.prepare("UPDATE product_listings SET status = 'Sold Out', updated_at = datetime('now') WHERE id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
+        .bind(`list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim));
+      stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+        SELECT ?, 'PRODUCT_SOLD_OUT', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
+        .bind(crypto.randomUUID(), `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`, userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
       // Set linked compass entry to depleted
       if (product.source_compass_entry_id) {
         stmts.push(
-          env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'")
-            .bind(product.source_compass_entry_id)
+          env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock' AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
+            .bind(product.source_compass_entry_id, invoice_id, accountId, fulfillmentClaim)
         );
       }
     } else if (threshold > 0 && newBalance < threshold && currentStock >= threshold && product) {
       // Low-stock alert when fulfillment drops stock below the configured threshold
       const name = (product.given_name || product.product_name || item.product_id) as string;
-      stmts.push(buildActivityLog(
-        env, 'low_stock_alert',
-        JSON.stringify({ productName: name, stockGrams: newBalance, threshold }),
-        userEmail, 'product', item.product_id as string, accountId
-      ));
+      stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+        SELECT ?, 'low_stock_alert', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
+        .bind(crypto.randomUUID(), JSON.stringify({ productName: name, stockGrams: newBalance, threshold }), userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
     }
   }
 
   stmts.push(
-    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
-      .bind(invoice_id, accountId)
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)')
+      .bind(invoice_id, accountId, invoice_id, accountId, fulfillmentClaim)
   );
 
+  stmts.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     SELECT ?, 'FULFILLMENT', ?, ?, 'invoice', ?, ?
+     WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+  ).bind(crypto.randomUUID(), `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`, userEmail, invoice_id, accountId, invoice_id, accountId, fulfillmentClaim));
+  const finalizeIndex = stmts.length;
   stmts.push(
     env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
       .bind(invoice_id, accountId, fulfillmentClaim)
   );
 
-  stmts.push(buildActivityLog(
-    env, 'FULFILLMENT',
-    `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`,
-    userEmail, 'invoice', invoice_id, accountId
-  ));
-
   try {
-    await env.DB.batch(stmts);
+    const results = await env.DB.batch(stmts);
+    if (Number(results[finalizeIndex]?.meta?.changes || 0) === 0) return json({ error: 'Invoice fulfillment lease was lost' }, 409);
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
     await releaseClaim().catch(() => {});
