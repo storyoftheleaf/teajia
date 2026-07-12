@@ -212,6 +212,51 @@ test.describe('Curate Library decisions and retrieval', () => {
   });
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
+  test('creates one Inventory record explicitly and replaces the action with its Inventory link', async ({ page }) => {
+    let promotions = 0;
+    await page.route('**/api/compass/entries/selected/promote', route => {
+      promotions += 1;
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: false }) });
+    });
+    await page.getByRole('button', { name: /River Stone/ }).click();
+    await page.getByRole('button', { name: 'Create Inventory record' }).click();
+    await expect(page.getByRole('button', { name: /View in Inventory/ })).toBeVisible();
+    expect(promotions).toBe(1);
+    await page.getByRole('button', { name: /View in Inventory/ }).click();
+    await expect(page).toHaveURL(/\/admin\/stock\?panel=inventory-river/);
+  });
+
+  test('persists a failed explicit Inventory request and resumes it through sync', async ({ page }) => {
+    let fail = true;
+    let promotions = 0;
+    await page.route('**/api/compass/entries/selected/promote', route => {
+      promotions += 1;
+      if (fail) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Offline' }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'inventory-river', alreadyPromoted: true }) });
+    });
+    await page.getByRole('button', { name: /River Stone/ }).click();
+    await page.getByRole('button', { name: 'Create Inventory record' }).click();
+    await expect(page.getByText('Queued until the connection returns', { exact: true })).toBeVisible();
+    expect(await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().pendingPromotions;
+    })).toContain('selected');
+    fail = false;
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { syncCompassEntries } = await import('/src/lib/teaCompassSync.ts');
+      await syncCompassEntries();
+    });
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return { pending: state.pendingPromotions, productId: state.entries.find((entry: any) => entry.id === 'selected')?.draftProductId };
+    })).toEqual({ pending: [], productId: 'inventory-river' });
+    expect(promotions).toBe(2);
+  });
+
   test('uses independent four-state sourcing decisions without changing verdict or stock status', async ({ page }) => {
     const publicationBefore = await page.evaluate(async () => {
       const response = await fetch('/api/products');

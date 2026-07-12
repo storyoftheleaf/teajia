@@ -1,5 +1,6 @@
 import React from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, BookmarkCheck, BookmarkPlus, Store, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
@@ -7,6 +8,7 @@ import { getDateGroup } from './BrowseCard';
 import { entryDisplayTitle } from './types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { DecisionControl } from './DecisionControl';
+import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
 
 interface CompassEntryDetailPanelProps {
   entryId: string;
@@ -21,6 +23,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   onEdit,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
 
@@ -214,7 +217,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </div>
 
       {/* ── Footer action bar ── */}
-      <div className="shrink-0 px-6 py-4 border-t border-tea-border flex items-center gap-2">
+      <div className="shrink-0 px-6 py-4 border-t border-tea-border flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => onEdit(entryId)}
@@ -237,6 +240,12 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
             variant="labeled"
           />
         )}
+
+        <CreateInventoryRecordAction
+          entryId={entry.id}
+          productId={entry.draftProductId}
+          onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
+        />
 
         <button
           type="button"
