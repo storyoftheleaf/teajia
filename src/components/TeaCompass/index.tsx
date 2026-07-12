@@ -95,12 +95,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const { activeAccountId, activeAccount } = useAppStore();
   const switchDraftAccount = useTeaCompassStore((s) => s.switchDraftAccount);
-  useEffect(() => {
-    switchDraftAccount(activeAccountId);
-    if (activeAccountId && !useTeaCompassStore.getState().activeEntryId) {
-      startNewCapture('tea');
-    }
-  }, [activeAccountId, startNewCapture, switchDraftAccount]);
   const { addNote } = useNotesStore();
 
   const addSampleTasting = useSampleStore((s) => s.addTasting);
@@ -137,6 +131,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
   // Tasting (the Tasting Journal) is its own surface at /account/journal — not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
+
+  // Account changes always swap the isolated draft bucket. Only Source owns
+  // capture-shell creation; opening Library or Ledger must remain read-only.
+  useEffect(() => {
+    switchDraftAccount(activeAccountId);
+    if (mode === 'sourcing' && activeAccountId && !useTeaCompassStore.getState().activeEntryId) {
+      startNewCapture('tea');
+    }
+  }, [activeAccountId, mode, startNewCapture, switchDraftAccount]);
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);

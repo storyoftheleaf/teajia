@@ -48,6 +48,22 @@ test.describe('Curate field capture preservation', () => {
     });
   });
 
+  for (const destination of [
+    { query: 'library', tab: 'Library' },
+    { query: 'buying', tab: 'Ledger' },
+  ]) {
+    test(`opens ${destination.tab} without creating a capture shell`, async ({ page }) => {
+      await page.goto(`/admin/compass?tab=${destination.query}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('tab', { name: destination.tab, exact: true }))
+        .toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
+      await expect.poll(() => page.evaluate(async () => {
+        // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+        const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+        return useTeaCompassStore.getState().pendingEntries.length;
+      })).toBe(0);
+    });
+  }
+
   test('switches to Teaware in one action', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
