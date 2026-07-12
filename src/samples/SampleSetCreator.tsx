@@ -1489,6 +1489,12 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
 function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () => void }) {
   const { getSample, updateSample } = useSampleStore();
   const sample = getSample(sampleId);
+  const { data: products = [] } = useProducts();
+  const [holdingProductId, setHoldingProductId] = useState(sample?.inventoryHoldingProductId || '');
+  const [holdingMessage, setHoldingMessage] = useState('');
+  const [confirmingUse, setConfirmingUse] = useState(false);
+  const [usingHolding, setUsingHolding] = useState(false);
+  const linkedHolding = products.find((product) => product.id === sample?.inventoryHoldingProductId);
 
   const editTeaType = sample?.type && sample.type !== 'Teaware'
     ? sample.type as Exclude<TeaType, 'Teaware'>
@@ -1517,6 +1523,35 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
 
   if (!sample) return null;
 
+  const saveHoldingLink = () => {
+    updateSample(sampleId, { inventoryHoldingProductId: holdingProductId || undefined });
+    setHoldingMessage(holdingProductId ? 'Linked without changing stock' : 'Holding link removed');
+  };
+
+  const confirmHoldingUse = async () => {
+    if (!linkedHolding || usingHolding) return;
+    setUsingHolding(true);
+    setHoldingMessage('');
+    try {
+      await api.stockMovements.create(linkedHolding.id, {
+        movement_type: 'sample_use',
+        quantity: sample.grams,
+        unit: 'g',
+        expected_balance: linkedHolding.stockGrams,
+        idempotency_key: `sample:${sample.id}:${crypto.randomUUID()}`,
+        note: `Sample portion: ${sample.name || sample.id}`,
+        source_compass_entry_id: sample.compassEntryId,
+      });
+      updateSample(sampleId, { lastHoldingUseAt: new Date().toISOString() });
+      setHoldingMessage(`${sample.grams}g recorded in Inventory history`);
+      setConfirmingUse(false);
+    } catch (error) {
+      setHoldingMessage(error instanceof Error ? error.message : 'Could not record sample use');
+    } finally {
+      setUsingHolding(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1530,7 +1565,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="w-full max-w-lg bg-tea-surface rounded-t-xl lg:rounded-xl p-4"
+        className="w-full max-w-lg bg-tea-surface rounded-t-xl lg:rounded-xl p-4 pb-nav-gap"
         style={{ maxHeight: 'min(calc(100dvh - 44px - env(safe-area-inset-bottom, 0px) - 60px), 90vh)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1669,7 +1704,49 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
+
+          <div className="border-t border-tea-border pt-3">
+            <label htmlFor={`sample-holding-${sampleId}`} className="text-ui-10 uppercase tracking-wider text-tea-text-sec block mb-1">Inventory holding</label>
+            <p className="text-ui-11 text-tea-text-sec mb-2">Optional physical stock source. Linking never changes stock.</p>
+            <div className="flex flex-wrap gap-2">
+              <select
+                id={`sample-holding-${sampleId}`}
+                value={holdingProductId}
+                onChange={(event) => { setHoldingProductId(event.target.value); setHoldingMessage(''); }}
+                className="min-w-0 flex-1 bg-tea-bg text-tea-text rounded px-2 py-2 text-ui-12 border border-tea-border focus:border-tea-gold outline-none"
+              >
+                <option value="">No physical holding</option>
+                {products.map((product) => (
+                  <option key={product.id} value={product.id}>{product.givenName || product.productName} · {product.stockGrams}g</option>
+                ))}
+              </select>
+              <button type="button" onClick={saveHoldingLink} className="tap-target px-3 py-2 rounded bg-tea-elevated text-ui-12 text-tea-text hover:text-tea-gold">
+                Save holding link
+              </button>
+            </div>
+            {holdingMessage && <p role="status" className="mt-2 text-ui-11 text-tea-text-sec">{holdingMessage}</p>}
+            {linkedHolding && (
+              <button type="button" onClick={() => setConfirmingUse(true)} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
+                Use {sample.grams}g from holding
+              </button>
+            )}
+          </div>
         </div>
+
+        {confirmingUse && linkedHolding && (
+          <div role="dialog" aria-label="Confirm sample use" className="fixed inset-x-4 top-4 bottom-nav-gap z-10 flex items-end justify-center rounded bg-black/50 p-3">
+            <div className="w-full rounded bg-tea-elevated p-3">
+              <p className="text-ui-13 text-tea-text">Record {sample.grams}g used from {linkedHolding.givenName || linkedHolding.productName}?</p>
+              <p className="mt-1 text-ui-11 text-tea-text-sec">This is the only action here that changes Inventory stock.</p>
+              <div className="mt-3 flex justify-between gap-3">
+                <button type="button" onClick={() => setConfirmingUse(false)} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button>
+                <button type="button" disabled={usingHolding} onClick={confirmHoldingUse} className="tap-target rounded bg-tea-gold px-3 py-2 text-ui-12 text-tea-bg disabled:opacity-50">
+                  {usingHolding ? 'Recording…' : `Confirm ${sample.grams}g sample use`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

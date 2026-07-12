@@ -38,6 +38,8 @@ export interface TeaSample {
   teaKey?: string;             // Normalised identity key — used to aggregate reviews across accounts/locations
   productId?: string;          // If maps to existing inventory item
   compassEntryId?: string;     // If captured via Tea Compass
+  inventoryHoldingProductId?: string; // Physical stock this portion came from; distinct from product graduation
+  lastHoldingUseAt?: string;   // Last explicit SAMPLE_USE ledger confirmation
 
   // Set grouping
   setId: string;
@@ -80,6 +82,7 @@ export function createEmptySample(setId: string, defaults?: {
   sourceName?: string;
   sourceId?: string;
   type?: TeaType;
+  inventoryHoldingProductId?: string;
 }): TeaSample {
   const now = new Date().toISOString();
   return {
@@ -89,6 +92,7 @@ export function createEmptySample(setId: string, defaults?: {
     sourceId: defaults?.sourceId,
     sourceName: defaults?.sourceName,
     type: defaults?.type,
+    inventoryHoldingProductId: defaults?.inventoryHoldingProductId,
     tastings: [],
     status: 'untasted',
     grams: 10,
