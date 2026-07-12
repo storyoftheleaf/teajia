@@ -53,3 +53,49 @@ test('Library possession filters use linked Inventory purpose, never legacy stat
   await expect(page.locator('span:visible').filter({ hasText: /^none$/ })).toBeVisible();
   await expect(page.getByText('working', { exact: true })).toHaveCount(0);
 });
+
+test('retrying a failed receipt proposal keeps exactly one local purchase line', async ({ page }) => {
+  await installCompassHarness(page);
+  let attempts = 0;
+  await page.route('**/api/compass/entries/retry-entry/receipt-proposals', async route => {
+    attempts += 1;
+    if (attempts === 1) return route.fulfill({ status: 503, json: { error: 'Temporary failure' } });
+    return route.fulfill({ json: { id: 'proposal-retry', account_id: 'acct-bali', compass_entry_id: 'retry-entry', status: 'pending', created_at: '', updated_at: '', proposed_by_user_id: 'test', ...route.request().postDataJSON() } });
+  });
+  await openCompass(page);
+  await page.evaluate(async () => {
+    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+    const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+    const entry = { ...createEmptyEntry('tea'), id: 'retry-entry', name: 'Retry tea', status: 'noted' };
+    useTeaCompassStore.setState({ entries: [entry], pendingEntries: [], activeEntryId: entry.id });
+  });
+  await page.getByRole('button', { name: /Buy/ }).last().click();
+  await page.getByRole('button', { name: 'Add to Ledger' }).click();
+  await expect(page.getByRole('alert')).toContainText('Temporary failure');
+  await page.getByRole('button', { name: 'Retry receipt' }).click();
+  await expect(page.getByText('Inventory changes only after you accept this receipt.')).toBeVisible();
+  expect(attempts).toBe(2);
+  expect(await page.evaluate(async () => {
+    const { useLedgerStore } = await import('/src/lib/ledgerStore.ts');
+    return useLedgerStore.getState().transactions.flatMap((transaction) => transaction.items)
+      .filter((item) => item.compassEntryId === 'retry-entry').length;
+  })).toBe(1);
+});
+
+test('unbagging clears both sample representations', async ({ page }) => {
+  await installCompassHarness(page, { sampleCart: [{ id: 'bagged-entry', name: 'Bagged tea', compassEntryId: 'bagged-entry' }] });
+  await openCompass(page);
+  await page.evaluate(async () => {
+    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+    const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+    const entry = { ...createEmptyEntry('tea'), id: 'bagged-entry', name: 'Bagged tea', isSample: true, sampleState: 'requested', status: 'noted' };
+    useTeaCompassStore.setState({ entries: [entry], pendingEntries: [], activeEntryId: entry.id });
+  });
+  await page.getByRole('button', { name: 'Bagged' }).filter({ visible: true }).first().click();
+  expect(await page.evaluate(async () => {
+    const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+    const { entryIsSample } = await import('/src/components/TeaCompass/types.ts');
+    const entry = useTeaCompassStore.getState().getEntry('bagged-entry')!;
+    return { isSample: entry.isSample, sampleState: entry.sampleState, entryIsSample: entryIsSample(entry) };
+  })).toEqual({ isSample: false, sampleState: null, entryIsSample: false });
+});

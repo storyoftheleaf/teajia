@@ -154,6 +154,72 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.locator('[data-testid="save-mode-personal"], [data-testid="save-mode-inventory"]')).toHaveCount(0);
     await page.getByRole('button', { name: /Done/ }).first().click();
     await expect.poll(() => promotions).toBe(0);
+    await expect.poll(async () => page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return {
+        activeEntryId: state.activeEntryId,
+        pendingIds: state.pendingEntries.map((entry) => entry.id),
+        committedNames: state.entries.map((entry) => entry.name),
+      };
+    })).toMatchObject({ pendingIds: [expect.any(String)], committedNames: ['Encounter only'] });
+    const replacement = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return { activeEntryId: state.activeEntryId, pendingId: state.pendingEntries[0]?.id };
+    });
+    expect(replacement.activeEntryId).toBe(replacement.pendingId);
+  });
+
+  test('desktop Done also creates exactly one active replacement draft', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'Desktop Chrome', 'desktop action bar only');
+    await openCompass(page);
+    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Desktop encounter');
+    await page.getByTestId('compass-done-desktop').click();
+    await expect.poll(async () => page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return {
+        active: state.activeEntryId,
+        pending: state.pendingEntries.map((entry) => entry.id),
+        committed: state.entries.map((entry) => entry.name),
+      };
+    })).toMatchObject({ pending: [expect.any(String)], committed: ['Desktop encounter'] });
+    const ids = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return [state.activeEntryId, state.pendingEntries[0]?.id];
+    });
+    expect(ids[0]).toBe(ids[1]);
+  });
+
+  test('Done resumes an existing partial entry instead of creating a blank replacement', async ({ page }) => {
+    await openCompass(page);
+    const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    await name.fill('Earlier fragment');
+    const earlierId = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().activeEntryId;
+    });
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.getState().startNewCapture('tea');
+    });
+    await name.fill('Current fragment');
+    await page.getByRole('button', { name: /Done/ }).filter({ visible: true }).first().click();
+    await expect(name).toHaveValue('Earlier fragment');
+    expect(await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return { active: state.activeEntryId, pending: state.pendingEntries.map((entry) => entry.id), committed: state.entries.map((entry) => entry.name) };
+    })).toEqual({ active: earlierId, pending: [earlierId], committed: ['Current fragment'] });
   });
 
   test('begins immediately with no Journey or Visit setup gate', async ({ page }) => {

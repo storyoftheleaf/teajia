@@ -703,13 +703,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       // Came from Library — return there rather than starting a new capture
       onReturnToLibrary();
     } else {
-      // Normal flow — auto-start a new capture with the same vendor
-      const cat = entry?.category || 'tea';
-      const newId = startNewCapture(cat);
-      setActiveEntry(newId);
+      // The owning Curate shell alone chooses whether to resume another
+      // partial entry or create the one replacement draft. Keeping that
+      // decision here as well produced two blank drafts after Done.
       onCommit?.();
     }
-  }, [commitEntry, entryId, entry?.category, startNewCapture, setActiveEntry, onCommit, onReturnToLibrary]);
+  }, [commitEntry, entryId, onCommit, onReturnToLibrary]);
 
   // ── Guard: entry must exist (after all hooks) ─────────────────────────
 
@@ -1867,6 +1866,19 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
       <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
+              if (!showBuyPicker) setBuyingQty(defaultQty);
+              setShowBuyPicker((value) => !value);
+            }}
+            className="tap-target min-h-11 rounded-md border border-tea-border px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+            aria-expanded={showBuyPicker}
+          >
+            Buy
+          </button>
         {/* Ledger link */}
         {isInLedger && (
           <button
@@ -1878,6 +1890,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
             View purchases in ledger
           </button>
         )}
+        </div>
 
         {/* Buy quantity picker — expands upward from the sticky bar */}
         <AnimatePresence>
@@ -2036,7 +2049,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         onBagIt={() => {
           if (sampleCartHas) {
             removeSampleCartItem(entryId);
-            update({ isSample: false });
+            update({ isSample: false, sampleState: null });
           } else {
             addSampleCartItem({
               id: entryId,

@@ -335,7 +335,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   }, [activeEntryId]);
 
   const sessionEntries = getSessionEntries();
-  const activeEntry = activeEntryId ? getEntry(activeEntryId) : null;
+  // Subscribe to the active entry itself, not only its id. Desktop action-bar
+  // readiness must update while fields are edited inside CaptureCard.
+  const activeEntry = useTeaCompassStore((state) => activeEntryId
+    ? state.pendingEntries.find((entry) => entry.id === activeEntryId)
+      ?? state.entries.find((entry) => entry.id === activeEntryId)
+      ?? null
+    : null);
 
   // ── Capture action bar state (Re-Taste / Want / Buy) ───────────────────
   const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
