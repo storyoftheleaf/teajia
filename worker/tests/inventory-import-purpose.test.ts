@@ -26,6 +26,12 @@ describe('structured inventory import', () => {
     expect(row.movements[0]).toMatchObject({ movement_type: 'receipt', quantity: 2, unit: 'unit' });
   });
 
+  it('distinguishes absent stock, explicit zero, and malformed stock', () => {
+    expect(decodeInventoryImportRow({ product_name: 'Later tea', type: 'White' }, 0)).toMatchObject({ stockSpecified: false, openingBalance: null, issues: [] });
+    expect(decodeInventoryImportRow({ product_name: 'Sold out tea', type: 'White', stock_grams: 0 }, 1)).toMatchObject({ stockSpecified: true, stockValue: 0, openingBalance: null, issues: [] });
+    expect(decodeInventoryImportRow({ product_name: 'Broken tea', type: 'White', stock_grams: 'twelve-ish' }, 2)).toMatchObject({ canImport: false, issues: ['Invalid Stock'] });
+  });
+
   it('uses a stable line idempotency key scoped to receipt label and content', () => {
     const row = { product_name: 'Tea', type: 'Green', stock_grams: 20, inventory_purpose: 'working' };
     const a = inventoryImportIdempotencyKey('invoice-88', row, 3);

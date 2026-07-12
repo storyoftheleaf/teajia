@@ -38,6 +38,7 @@ interface StagingRow {
   quantityUnits: string;
   isValid: boolean;
   errors: string[];
+  serverIssue?: string;
 }
 
 // Helper to normalize and find keys
@@ -98,6 +99,10 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     // 1. Critical Identity Fields (Must exist to be valid row)
     if (isMissingOrUnknown(row.type)) errors.push('Missing Type');
     if (isMissingOrUnknown(row.productName) && isMissingOrUnknown(row.givenName)) errors.push('Missing Name'); 
+    for (const [label, value] of [['Stock', row.stockAmount], ['Units', row.quantityUnits]] as const) {
+      const numeric = String(value).replace(/[^0-9.-]/g, '');
+      if (!isMissingOrUnknown(value) && (numeric === '' || !Number.isFinite(Number(numeric)))) errors.push(`Invalid ${label}`);
+    }
 
     // 2. Draft Logic (Incomplete Data)
     const missingGrams = isMissingOrUnknown(row.grams);
@@ -305,8 +310,9 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             const cleanStr = val.toString().replace(/[^0-9.-]/g, '');
             return parseFloat(cleanStr) || 0;
         };
+        const parseOptionalNum = (val: string) => isMissingOrUnknown(val) ? null : parseNum(val);
 
-        const stock = parseNum(r.stockAmount);
+        const stock = parseOptionalNum(r.stockAmount);
         const qtyPurchased = parseNum(r.grams);
         const cost = parseNum(r.costAmount);
         
@@ -344,7 +350,6 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           year: year,
           origin_country: r.originCountry || 'Unknown',
           origin_region: r.originRegion || null,
-          stock_grams: stock,
           quantity_purchased: qtyPurchased,
           cost_amount: cost,
           cost_currency: curr,
@@ -365,8 +370,14 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
           material: r.material || null,
           capacity_ml: parseNum(r.capacityMl) || null,
           teaware_category: r.teawareCategory || null,
-          quantity_units: parseNum(r.quantityUnits) || null,
+          client_row_id: r.id,
         };
+        if (r.type.toLowerCase() === 'teaware') {
+          const units = parseOptionalNum(r.quantityUnits);
+          if (units !== null) row.quantity_units = units;
+        } else if (stock !== null) {
+          row.stock_grams = stock;
+        }
 
         // Remove null/empty entries so the API only sends columns with real data
         const cleaned: Record<string, any> = {};
@@ -380,20 +391,29 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
     const BATCH_SIZE = 50;
     const batches = chunkArray(preparedRows, BATCH_SIZE);
     let processedCount = 0;
+    const confirmedIds = new Set<string>();
+    const skippedReasons = new Map<string, string>();
 
     try {
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
-            await api.products.bulkCreate(batch, intakeBatchId ?? undefined, receiptLabel.trim() || undefined);
-
-            processedCount += batch.length;
+            const outcome = await api.products.bulkCreate(batch, intakeBatchId ?? undefined, receiptLabel.trim() || undefined) as { results?: Array<{ client_row_id: string | null; status: string; reason?: string }> };
+            for (const result of outcome.results || []) {
+              if (!result.client_row_id) continue;
+              if (result.status === 'inserted' || result.status === 'replayed') confirmedIds.add(result.client_row_id);
+              else if (result.status === 'skipped') skippedReasons.set(result.client_row_id, result.reason || 'Not imported');
+            }
+            processedCount = confirmedIds.size;
             setUploadProgress(processedCount);
         }
 
         // Keep unresolved lines in the review surface; a ready-only commit must
         // never discard evidence merely because other lines were complete.
         onComplete();
-        const unresolved = stagingData.filter(row => !row.isValid);
+        const unresolved = stagingData.filter(row => !confirmedIds.has(row.id)).map(row => {
+          const reason = skippedReasons.get(row.id);
+          return reason ? { ...row, isValid: false, serverIssue: reason, errors: [...row.errors, reason] } : row;
+        });
         if (unresolved.length > 0) {
           setStagingData(unresolved);
           setIssueFilter('issues');

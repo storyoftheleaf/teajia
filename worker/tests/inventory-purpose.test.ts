@@ -68,4 +68,49 @@ describe('inventory purpose compatibility', () => {
     expect([...db.products.values()].find(row => row.product_name === 'Travel Cup')).toMatchObject({ inventory_purpose: 'working', quantity_units: 2 });
     expect(db.ledger.filter(row => row.note === 'Imported · WeChat delivery 14')).toHaveLength(2);
   });
+
+  it('rolls back product, mirrors, and opening ledger together when a confirmed line fails', async () => {
+    const db = ReceiptDb.seeded();
+    db.failBatchAt = 3;
+    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Atomic line', products: [{ product_name: 'Atomic Tea', type: 'Oolong', stock_grams: 20 }] }) });
+    expect(response.status).toBe(500);
+    expect([...db.products.values()].some(row => row.product_name === 'Atomic Tea')).toBe(false);
+    expect([...db.profiles.values()].some(row => row.product_name === 'Atomic Tea')).toBe(false);
+    expect([...db.listings.values()].some(row => row.product_name === 'Atomic Tea')).toBe(false);
+    expect(db.ledger).toHaveLength(0);
+  });
+
+  it('scopes deterministic import identity to the active account', async () => {
+    const db = ReceiptDb.seeded();
+    const payload = JSON.stringify({ receipt_label: 'Shared invoice', products: [{ product_name: 'Account Tea', type: 'Red', stock_grams: 4 }] });
+    expect((await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: payload })).status).toBe(200);
+    expect((await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: payload, accountId: 'account-b' })).status).toBe(200);
+    expect([...db.products.values()].filter(row => row.product_name === 'Account Tea').map(row => row.account_id).sort()).toEqual(['account-a', 'account-b']);
+  });
+
+  it('stamps known stock only for explicit numeric stock and rejects malformed stock', async () => {
+    const db = ReceiptDb.seeded();
+    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [
+      { product_name: 'Unknown Stock', type: 'White' },
+      { product_name: 'Known Empty', type: 'White', stock_grams: 0 },
+    ] }) });
+    expect(response.status).toBe(200);
+    expect([...db.products.values()].find(row => row.product_name === 'Unknown Stock')).not.toHaveProperty('stock_known_at');
+    expect([...db.products.values()].find(row => row.product_name === 'Known Empty')?.stock_known_at).toBeTruthy();
+    const malformed = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ products: [{ product_name: 'Bad Stock', type: 'White', stock_grams: 'many' }] }) });
+    expect(malformed.status).toBe(400);
+    expect([...db.products.values()].some(row => row.product_name === 'Bad Stock')).toBe(false);
+  });
+
+  it('converges concurrent retries on one account-scoped product and ledger line', async () => {
+    const db = ReceiptDb.seeded();
+    const body = JSON.stringify({ receipt_label: 'Race receipt', products: [{ product_name: 'Race Tea', type: 'Sheng', stock_grams: 12 }] });
+    const responses = await Promise.all([
+      receiptRequest(db, '/api/products/bulk', { method: 'POST', body }),
+      receiptRequest(db, '/api/products/bulk', { method: 'POST', body }),
+    ]);
+    expect(responses.map(response => response.status)).toEqual([200, 200]);
+    expect([...db.products.values()].filter(row => row.product_name === 'Race Tea')).toHaveLength(1);
+    expect(db.ledger.filter(row => row.note === 'Imported · Race receipt')).toHaveLength(1);
+  });
 });

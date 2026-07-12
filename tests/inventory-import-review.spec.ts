@@ -23,7 +23,10 @@ test.describe('structured stock import review', () => {
     let submitted: Record<string, any> | null = null;
     await page.route('**/api/products/bulk', async route => {
       submitted = route.request().postDataJSON();
-      await route.fulfill({ json: { inserted: 2, movements: 1, skipped: 0 } });
+      await route.fulfill({ json: { inserted: 1, movements: 1, skipped: 1, results: [
+        { client_row_id: 'row-0', status: 'inserted' },
+        { client_row_id: 'row-2', status: 'skipped', reason: 'A product with this type and name already exists' },
+      ] } });
     });
     await page.goto('/admin/stock');
     await page.getByRole('button', { name: 'Open inventory actions' }).first().click();
@@ -52,7 +55,10 @@ test.describe('structured stock import review', () => {
     expect(submitted?.receipt_label).toBe('Invoice 88');
     expect(submitted?.products).toHaveLength(2);
     expect(submitted?.products.every((row: any) => row.inventory_purpose === 'working')).toBe(true);
-    await expect(page.getByText('1 Total')).toBeVisible();
-    await expect(page.getByText('1 Issues')).toBeVisible();
+    const cup = submitted?.products.find((row: any) => row.product_name === 'Cup');
+    expect(cup).not.toHaveProperty('quantity_units');
+    await expect(page.getByText('2 Total')).toBeVisible();
+    await expect(page.getByText('2 Issues')).toBeVisible();
+    await expect(page.locator('[title="A product with this type and name already exists"]:visible, [aria-label="A product with this type and name already exists"]:visible')).toBeVisible();
   });
 });

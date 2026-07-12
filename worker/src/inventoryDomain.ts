@@ -150,6 +150,8 @@ export interface DecodedInventoryImportRow {
   purpose: InventoryPurpose;
   issues: string[];
   canImport: boolean;
+  stockSpecified: boolean;
+  stockValue: number | null;
   openingBalance: { quantity: number; unit: ReceiptUnit; before: 0; after: number } | null;
   movements: Array<{ movement_type: 'receipt'; quantity: number; unit: ReceiptUnit }>;
 }
@@ -169,13 +171,15 @@ export function decodeInventoryImportRow(
   if (missingImportValue(row.product_name) && missingImportValue(row.given_name)) issues.push('Missing Name');
   const isUnit = String(row.type || '').toLowerCase() === 'teaware' || row.quantity_units != null;
   const rawQuantity = isUnit ? row.quantity_units : row.stock_grams;
-  const quantity = missingImportValue(rawQuantity) ? 0 : Number(rawQuantity);
+  const stockSpecified = !missingImportValue(rawQuantity);
+  const quantity = stockSpecified ? Number(rawQuantity) : 0;
   if (!Number.isFinite(quantity) || quantity < 0 || (isUnit && !Number.isInteger(quantity))) issues.push('Invalid Stock');
   const openingBalance = quantity > 0 && Number.isFinite(quantity)
     ? { quantity, unit: (isUnit ? 'unit' : 'g') as ReceiptUnit, before: 0 as const, after: quantity }
     : null;
   return {
-    rowIndex, purpose, issues, canImport: issues.length === 0, openingBalance,
+    rowIndex, purpose, issues, canImport: issues.length === 0, stockSpecified,
+    stockValue: stockSpecified && Number.isFinite(quantity) ? quantity : null, openingBalance,
     movements: openingBalance ? [{ movement_type: 'receipt', quantity, unit: openingBalance.unit }] : [],
   };
 }

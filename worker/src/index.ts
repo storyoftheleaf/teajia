@@ -772,6 +772,29 @@ function buildStockLedgerEntry(
   ).bind(crypto.randomUUID(), productId, delta, balanceAfter, reason, invoiceId || null, invoiceNumber || null, userEmail || null, note || null, accountId || null);
 }
 
+function buildStockMovementLedgerInsert(env: Env, args: {
+  id: string; productId: string; delta: number; balanceAfter: number; unit: 'g' | 'unit';
+  movementType: string; idempotencyKey: string; userEmail?: string | null; note?: string | null;
+  batchId?: string | null; accountId: string; fingerprint: string; guard?: string | null;
+  sourceInvoiceId?: string | null; sourceInvoiceNumber?: string | null; sourceCompassEntryId?: string | null;
+  inventoryReceiptLineId?: string | null;
+}) {
+  const values = [args.id, args.productId, args.delta, args.balanceAfter, args.unit === 'g' ? 'gram' : 'unit',
+    args.movementType.toUpperCase(), args.movementType, args.idempotencyKey, args.sourceInvoiceId || null,
+    args.sourceInvoiceNumber || null, args.userEmail || null, args.note || null, args.batchId || null, args.accountId,
+    args.sourceCompassEntryId || null, args.inventoryReceiptLineId || null, args.fingerprint];
+  if (args.guard) {
+    return env.DB.prepare(`INSERT INTO stock_ledger
+      (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, inventory_receipt_line_id, movement_fingerprint)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+      .bind(...values, args.productId, args.accountId, args.guard);
+  }
+  return env.DB.prepare(`INSERT INTO stock_ledger
+    (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, inventory_receipt_line_id, movement_fingerprint)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(...values);
+}
+
 // ── Profile / Listing mirror helpers (Step 2 write-through) ──────────────────
 //
 // During the transition from `products` to `tea_profiles` + `product_listings`,
@@ -2204,14 +2227,14 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   );
   const existingById = new Map((existingProducts.results as any[]).map(p => [p.id, p]));
 
-  const toInsert: any[] = [];
-  const openingBalances: Array<{ id: string; input: StockMovementInput }> = [];
+  const newLines: Array<{ id: string; clientRowId: string | null; statements: D1PreparedStatement[]; movementInput: StockMovementInput | null }> = [];
   const replayBalances: Array<{ id: string; input: StockMovementInput }> = [];
   const skipped: string[] = [];
-  let insertedProducts = 0;
+  const results: Array<{ client_row_id: string | null; status: 'inserted' | 'replayed' | 'skipped'; reason?: string }> = [];
 
   for (let rowIndex = 0; rowIndex < products.length; rowIndex += 1) {
     const raw = products[rowIndex];
+    const clientRowId = typeof raw.client_row_id === 'string' ? raw.client_row_id : null;
     // Strip null/undefined/empty-string keys so we only INSERT columns with actual values
     const body: Record<string, any> = {};
     for (const [k, v] of Object.entries(raw)) {
@@ -2219,6 +2242,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }
     // Never let clients cross accounts.
     delete body.account_id;
+    delete body.client_row_id;
     body.account_id = accountId;
     let purposeWrite;
     try { purposeWrite = decodeInventoryPurposeWrite(body); }
@@ -2235,6 +2259,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     }) : null;
     if (existingById.has(id)) {
       if (movementInput) replayBalances.push({ id, input: movementInput });
+      else results.push({ client_row_id: clientRowId, status: 'replayed' });
       continue;
     }
     if (body.stock_known_at === undefined && (body.stock_grams !== undefined || body.quantity_units !== undefined)) {
@@ -2247,6 +2272,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     const key = `${type}::${name}`;
     if (name && existingByNaturalKey.has(key)) {
       skipped.push(body.product_name || body.given_name || 'unknown');
+      results.push({ client_row_id: clientRowId, status: 'skipped', reason: 'A product with this type and name already exists' });
       continue;
     }
     existingByNaturalKey.set(key, body); // Prevent duplicates within the same batch
@@ -2272,32 +2298,49 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       const vkey = (body.vendor as string).trim().toLowerCase();
       if (vendorCache[vkey]) body.vendor_id = vendorCache[vkey];
     }
-    if (opening) {
-      body[opening.unit === 'g' ? 'stock_grams' : 'quantity_units'] = 0;
-      openingBalances.push({ id, input: movementInput! });
-    }
     const cols = Object.keys(body);
     const placeholders = cols.map(() => '?').join(', ');
-    toInsert.push(
+    const lineStatements: D1PreparedStatement[] = [
       env.DB.prepare(`INSERT INTO products (id, ${cols.join(', ')}) VALUES (?, ${placeholders})`)
         .bind(id, ...cols.map(c => body[c] ?? null))
-    );
+    ];
     // Mirror to tea_profiles + product_listings, same as the single-create path,
     // so bulk-imported tea behaves identically (partner catalog browse, per-account
     // listing fields, owner/shown_in_shop). No-op for teaware.
-    toInsert.push(...buildProductMirrorInserts(env, id, accountId, body));
-    insertedProducts += 1;
+    lineStatements.push(...buildProductMirrorInserts(env, id, accountId, body));
+    if (opening && movementInput) lineStatements.push(buildStockMovementLedgerInsert(env, {
+      id: crypto.randomUUID(), productId: id, delta: opening.quantity, balanceAfter: opening.quantity,
+      unit: opening.unit, movementType: 'receipt', idempotencyKey: movementInput.idempotency_key,
+      userEmail: ctx.email, note: movementInput.note, batchId: importBatchId, accountId,
+      fingerprint: stockMovementFingerprint(movementInput),
+    }));
+    newLines.push({ id, clientRowId, statements: lineStatements, movementInput });
   }
 
-  for (let i = 0; i < toInsert.length; i += 100) {
-    await env.DB.batch(toInsert.slice(i, i + 100));
+  for (const line of newLines) {
+    try {
+      await env.DB.batch(line.statements);
+      results.push({ client_row_id: line.clientRowId, status: 'inserted' });
+    } catch (error) {
+      const prior = line.movementInput
+        ? await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(accountId, line.movementInput.idempotency_key).first() as any
+        : await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(line.id, accountId).first() as any;
+      if (prior) {
+        results.push({ client_row_id: line.clientRowId, status: 'replayed' });
+        continue;
+      }
+      console.error('Atomic inventory import line failed', error);
+      return json({ error: 'Import line failed atomically', failed_client_row_id: line.clientRowId, results }, 500);
+    }
   }
-  for (const opening of [...openingBalances, ...replayBalances]) {
+  for (const opening of replayBalances) {
     const result = await applyStockMovement(env, ctx, opening.id, opening.input);
     if (result.status >= 400) return json(result.value, result.status);
+    const raw = products.find((row, index) => inventoryImportProductId(accountId, inventoryImportIdempotencyKey(receipt_label || importBatchId, row, index)) === opening.id);
+    results.push({ client_row_id: typeof raw?.client_row_id === 'string' ? raw.client_row_id : null, status: 'replayed' });
   }
 
-  return json({ inserted: insertedProducts, replayed: replayBalances.length, movements: openingBalances.length + replayBalances.length, skipped: skipped.length, skippedNames: skipped });
+  return json({ inserted: results.filter(row => row.status === 'inserted').length, replayed: results.filter(row => row.status === 'replayed').length, movements: newLines.filter(line => line.movementInput).length + replayBalances.length, skipped: results.filter(row => row.status === 'skipped').length, skippedNames: skipped, results });
 };
 
 const PRODUCT_UPDATE_COLUMNS = new Set([
@@ -9155,7 +9198,13 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
     : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, stock_movement_guard = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`).bind(after, knownAt, movementGuard, productId, ctx.accountId, current);
   const statements: D1PreparedStatement[] = [stockUpdate];
   if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(after, knownAt, productId, ctx.accountId, movementGuard));
-  statements.push(env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, inventory_receipt_line_id, movement_fingerprint) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`).bind(id, productId, delta, after, input.unit === 'g' ? 'gram' : 'unit', reason, input.movement_type, input.idempotency_key, input.source_invoice_id, input.source_invoice_number, ctx.email || null, input.note, input.batch_id, ctx.accountId, input.source_compass_entry_id, extras.inventoryReceiptLineId || null, fingerprint, productId, ctx.accountId, movementGuard));
+  statements.push(buildStockMovementLedgerInsert(env, {
+    id, productId, delta, balanceAfter: after, unit: input.unit, movementType: input.movement_type,
+    idempotencyKey: input.idempotency_key, sourceInvoiceId: input.source_invoice_id,
+    sourceInvoiceNumber: input.source_invoice_number, userEmail: ctx.email, note: input.note,
+    batchId: input.batch_id, accountId: ctx.accountId, sourceCompassEntryId: input.source_compass_entry_id,
+    inventoryReceiptLineId: extras.inventoryReceiptLineId, fingerprint, guard: movementGuard,
+  }));
   if (destination) {
     const destinationLedgerId = crypto.randomUUID();
     if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_movement_guard = ?)`).bind(destinationAfter, knownAt, destination.id, ctx.accountId, movementGuard));
