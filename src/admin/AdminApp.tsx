@@ -128,6 +128,9 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const capture = params.get('capture');
   const sampleOrder = params.get('sampleOrder');
   const sampleSetId = params.get('set');
+  const developProductId = params.get('developProduct');
+  const developName = params.get('developName');
+  const developType = params.get('developType');
   const initialMode: CompassMode | undefined =
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
@@ -148,6 +151,11 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       onBack={onBack}
       initialMode={initialMode}
       initialEntryId={entryId || undefined}
+      initialDevelopmentProduct={developProductId && developName ? {
+        id: developProductId,
+        name: developName,
+        type: developType || undefined,
+      } : undefined}
       initialCaptureOption={initialCaptureOption}
       initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
       initialSampleSetId={sampleSetId || undefined}

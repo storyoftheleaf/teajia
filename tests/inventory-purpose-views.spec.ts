@@ -23,10 +23,15 @@ const products = [
   { ...base, id: 'legacy-working', type: 'Red', product_name: 'Legacy Selling Tea', description: 'Ready', retail_price_per_gram_usd: .2, stock_grams: 5, stock_known_at: '2026-07-12', inventory_purpose: null, is_public: 1, shown_in_shop: 1, can_reorder: 1, storage_location: 'Shelf A', tasting_source: 'owner' },
   { ...base, id: 'legacy-sample', type: 'White', product_name: 'Legacy Sample', description: '', retail_price_per_gram_usd: 0, stock_grams: 5, inventory_purpose: null, is_sample: 1, tasting_source: 'common' },
   { ...base, id: 'missing-location', type: 'Oolong', product_name: 'Unplaced Working Tea', description: 'Ready', retail_price_per_gram_usd: .3, stock_grams: 50, stock_known_at: '2026-07-12', inventory_purpose: 'working', storage_location: '', tasting_source: 'owner' },
+  { ...base, id: 'unlinked-needs', type: 'Misc', product_name: 'Unlinked Development Tea', description: '', retail_price_per_gram_usd: 0, stock_grams: 0, stock_known_at: null, inventory_purpose: 'working', tasting_source: 'common' },
+  { ...base, id: 'teaware', type: 'Teaware', product_name: 'Field Gaiwan', description: '', retail_price_per_gram_usd: 22, stock_grams: 0, quantity_units: 2, inventory_purpose: 'working', teaware_category: 'pot', material: 'Porcelain' },
 ];
+
+const updateRequests: Array<{ url: string; body: Record<string, unknown> }> = [];
 
 async function install(page: Page) {
   const jwt = token();
+  await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled test API route: ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
   await page.addInitScript(value => {
     localStorage.clear();
     localStorage.setItem('teajia_token', value);
@@ -40,6 +45,14 @@ async function install(page: Page) {
   await page.route('**/api/auth/refresh', r => r.fulfill({ json: { token: jwt } }));
   await page.route('**/api/products', r => r.fulfill({ json: products }));
   await page.route('**/api/products/*/events', r => r.fulfill({ json: [] }));
+  await page.route('**/api/products/*/stock', async r => {
+    updateRequests.push({ url: r.request().url(), body: r.request().postDataJSON() });
+    await r.fulfill({ json: { success: true } });
+  });
+  await page.route('**/api/products/*/publication', async r => {
+    updateRequests.push({ url: r.request().url(), body: r.request().postDataJSON() });
+    await r.fulfill({ json: { success: true } });
+  });
   await page.route('**/api/rates', r => r.fulfill({ json: [] }));
   await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test', slug: 'test' } }));
   await page.route('**/api/batches**', r => r.fulfill({ json: [] }));
@@ -47,7 +60,7 @@ async function install(page: Page) {
   for (const endpoint of ['admin/events', 'compass/incoming', 'user/favorites', 'tea-discovery', 'tasting-journal', 'notes', 'customers']) {
     await page.route(`**/api/${endpoint}**`, r => r.fulfill({ json: [] }));
   }
-  await page.route('**/api/compass/entries**', r => r.fulfill({ json: { entries: [] } }));
+  await page.route('**/api/compass/entries**', r => r.fulfill({ json: { entries: [{ id: 'entry-needs', category: 'tea', name: 'Needs Four Things Encounter', type: 'Misc', status: 'considering', created_at: '2026-07-12T00:00:00Z', updated_at: '2026-07-12T00:00:00Z' }, { id: 'entry-ready', category: 'tea', name: 'Ready Hidden Encounter', type: 'Oolong', status: 'selected', created_at: '2026-07-12T00:00:00Z', updated_at: '2026-07-12T00:00:00Z' }] } }));
 }
 
 async function openMore(page: Page) {
@@ -73,9 +86,15 @@ async function selectView(page: Page, label: string) {
 }
 
 test.beforeEach(async ({ page }) => {
+  updateRequests.length = 0;
   await install(page);
   await page.goto('/admin/stock');
+  await expect(page.getByRole('button', { name: 'Show Working view' })).toBeVisible();
 });
+
+async function expectInputValue(page: Page, value: string) {
+  await expect.poll(() => page.locator('input').evaluateAll(inputs => inputs.map(input => input.value))).toContain(value);
+}
 
 test('purpose and action views remain separate and preserve legacy mappings', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Show Working view' })).toBeVisible();
@@ -130,4 +149,61 @@ test('action views include tasting, reorder, and missing location', async ({ pag
   }
   await page.getByRole('button', { name: 'Incoming' }).click();
   await expect(page.getByRole('heading', { name: 'Incoming stock' })).toBeVisible();
+});
+
+test('development handoff opens linked entry and gives unlinked stock an explicit Curate action', async ({ page }) => {
+  await selectView(page, 'Needs development');
+  await page.getByText('Needs Four Things').click();
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Develop in Curate' }).click();
+  await expect(page).toHaveURL(/\/admin\/compass\?tab=sourcing&entry=entry-needs/);
+  await expectInputValue(page, 'Needs Four Things Encounter');
+
+  await page.goto('/admin/stock');
+  await selectView(page, 'Needs development');
+  await page.getByText('Unlinked Development Tea').click();
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Develop in Curate' }).click();
+  await expect(page).toHaveURL(/developProduct=unlinked-needs/);
+  await expect(page.getByText('Develop Unlinked Development Tea in Curate').filter({ visible: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Start development' }).filter({ visible: true }).click();
+  await expectInputValue(page, 'Unlinked Development Tea');
+});
+
+test('purpose and sample-size offering persist independently without changing publication gates', async ({ page }) => {
+  await selectView(page, 'Samples');
+  await page.getByText('Field Sample').click();
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Working purpose' }).click();
+  await expect.poll(() => updateRequests.find(r => r.url.endsWith('/sample/stock'))?.body).toEqual({ inventory_purpose: 'working' });
+  expect(updateRequests.some(r => 'is_public' in r.body || 'shown_in_shop' in r.body)).toBe(false);
+
+  await page.getByRole('button', { name: 'Sample-size offering' }).click();
+  await expect.poll(() => updateRequests.find(r => r.url.endsWith('/sample/publication'))?.body).toEqual({ is_sample: 1 });
+  expect(updateRequests.filter(r => r.url.endsWith('/sample/stock'))).toHaveLength(1);
+  expect(updateRequests.some(r => 'is_public' in r.body || 'shown_in_shop' in r.body)).toBe(false);
+});
+
+test('All composes with category, search, sort, grouping, and visible columns', async ({ page }) => {
+  await selectView(page, 'All');
+  const search = page.getByRole('textbox', { name: 'Search tea or source' });
+  await search.fill('Personal Cake');
+  await expect(page.getByText('Personal Cake')).toBeVisible();
+  await expect(page.getByText('Ready Hidden Tea')).toHaveCount(0);
+  await search.fill('');
+
+  if ((page.viewportSize()?.width || 0) >= 768) {
+    await page.getByRole('button', { name: /Sort by Product/ }).click();
+    await page.getByRole('button', { name: 'Group inventory' }).click();
+    await page.getByRole('menuitem', { name: 'Type', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Oolong \d+ items/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Show or hide columns' }).click();
+    await page.getByRole('menuitem', { name: 'Year' }).getByRole('checkbox').uncheck();
+    await expect(page.getByRole('columnheader', { name: /Sort by Year/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+  }
+
+  await page.getByRole('button', { name: 'Wares' }).click();
+  await expect(page.getByText('Field Gaiwan')).toBeVisible();
+  await expect(page.getByText('Personal Cake')).toHaveCount(0);
 });

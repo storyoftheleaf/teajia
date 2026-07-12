@@ -12,7 +12,7 @@ import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
 import { api, hasToken, type CurateImportDetail, type CurateImportItem } from '../../lib/api';
-import type { CompassCategory } from './types';
+import type { CompassCategory, TeaType } from './types';
 import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
@@ -39,6 +39,8 @@ interface TeaCompassProps {
   initialMode?: CompassMode;
   /** Open a specific entry by ID */
   initialEntryId?: string;
+  /** Inventory record that has no linked encounter yet. Creation is explicit. */
+  initialDevelopmentProduct?: { id: string; name: string; type?: string };
   /** In sourcing mode, preselect the capture method. */
   initialCaptureOption?: 'tea' | 'teaware';
   initialSampleOrder?: 'open' | 'manage';
@@ -79,7 +81,7 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialDevelopmentProduct, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -87,6 +89,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const discardEntry = useTeaCompassStore((s) => s.discardEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const getEntry = useTeaCompassStore((s) => s.getEntry);
+  const initialEntryExists = useTeaCompassStore((s) => initialEntryId
+    ? s.pendingEntries.some((entry) => entry.id === initialEntryId) || s.entries.some((entry) => entry.id === initialEntryId)
+    : false);
   const isPendingEntry = useTeaCompassStore((s) =>
     s.activeEntryId != null && s.pendingEntries.some((e) => e.id === s.activeEntryId)
   );
@@ -113,6 +118,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
   // Tasting (the Tasting Journal) is its own surface at /account/journal — not a Compass mode.
   const [mode, setMode] = useState<CompassMode>(initialMode || 'sourcing');
+  const [developmentStarted, setDevelopmentStarted] = useState(false);
 
   // Account changes always swap the isolated draft bucket. Only Source owns
   // capture-shell creation; opening Library or Ledger must remain read-only.
@@ -294,12 +300,33 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Open specific entry if initialEntryId is provided
   useEffect(() => {
-    if (initialEntryId && getEntry(initialEntryId)) {
+    if (initialEntryId && initialEntryExists && getEntry(initialEntryId)) {
       setActiveEntry(initialEntryId);
       setMode('sourcing');
       setCaptureOption('tea');
     }
-  }, [initialEntryId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialEntryId, initialEntryExists, getEntry, setActiveEntry]);
+
+  useEffect(() => { setDevelopmentStarted(false); }, [initialDevelopmentProduct?.id]);
+
+  const startInventoryDevelopment = useCallback(() => {
+    if (!initialDevelopmentProduct) return;
+    const category: CompassCategory = initialDevelopmentProduct.type === 'Teaware' ? 'teaware' : 'tea';
+    const entryId = startNewCapture(category);
+    const validTeaTypes: readonly string[] = ['Green', 'White', 'Yellow', 'Oolong', 'Red', 'Dark', 'Sheng', 'Shou', 'Herbal', 'Teaware'];
+    const compassType = initialDevelopmentProduct.type && validTeaTypes.includes(initialDevelopmentProduct.type)
+      ? initialDevelopmentProduct.type as TeaType
+      : undefined;
+    updateEntry(entryId, {
+      name: initialDevelopmentProduct.name,
+      ...(compassType ? { type: compassType } : {}),
+      draftProductId: initialDevelopmentProduct.id,
+    });
+    setActiveEntry(entryId);
+    setMode('sourcing');
+    setCaptureOption(category);
+    setDevelopmentStarted(true);
+  }, [initialDevelopmentProduct, setActiveEntry, startNewCapture, updateEntry]);
 
   // When activeEntryId changes externally, switch to sourcing mode
   useEffect(() => {
@@ -823,6 +850,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       header row in pass 6 — no duplicate segmented
                       control here. */}
                   <>
+                      {initialDevelopmentProduct && !developmentStarted && (
+                        <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
+                            <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
+                          </div>
+                          <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                            Start development
+                          </button>
+                        </div>
+                      )}
                       {/* Session draft strip — + / Batch / Untitled chips.
                           Lives inside the scroll region (NOT a sticky bar) so
                           it scrolls away with the page, and WRAPS to new lines
@@ -1558,6 +1596,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   >
                     {activeEntryId ? (
                       <>
+                        {initialDevelopmentProduct && !developmentStarted && (
+                          <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
+                              <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
+                            </div>
+                            <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                              Start development
+                            </button>
+                          </div>
+                        )}
                         {batchMode && <BatchCaptureRow />}
                         <CaptureCard
                           entryId={activeEntryId}

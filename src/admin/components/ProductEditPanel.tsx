@@ -1330,8 +1330,8 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                 <button
                   data-compass-entry-id={product.sourceCompassEntryId || undefined}
                   onClick={() => navigate(product.sourceCompassEntryId
-                    ? `/admin/compass?tab=buying&entry=${encodeURIComponent(product.sourceCompassEntryId)}&develop=1`
-                    : `/admin/compass?developProduct=${encodeURIComponent(product.id)}`)}
+                    ? `/admin/compass?tab=sourcing&entry=${encodeURIComponent(product.sourceCompassEntryId)}`
+                    : `/admin/compass?tab=sourcing&developProduct=${encodeURIComponent(product.id)}&developName=${encodeURIComponent(product.givenName || product.productName)}&developType=${encodeURIComponent(product.type)}`)}
                   className="min-h-11 inline-flex items-center text-ui-12 text-admin-text-sec hover:text-admin-text"
                 >Develop in Curate</button>
               )}
