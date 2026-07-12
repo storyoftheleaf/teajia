@@ -1701,16 +1701,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           style={{ paddingRight: railOpen ? INVENTORY_ACTION_RAIL_WIDTH : 0 }}
         >
         <div
-          className="flex items-center px-2 pt-1.5 pb-0 gap-0.5 overflow-x-auto hide-scrollbar"
-          style={{
-            // Soft right-edge fade so it's visually clear the tab row scrolls
-            // past the viewport edge (the scrollbar is hidden). Masks only the
-            // last 20px; harmless when the tabs already fit.
-            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent 100%)',
-            maskImage: 'linear-gradient(to right, black calc(100% - 20px), transparent 100%)',
-          }}
+          className="flex flex-col px-2 pt-1.5 pb-1 gap-1"
         >
-          {/* View tabs — all visible, horizontally scrollable */}
+          {/* Purpose answers why a holding exists. Operational actions remain a
+              separate expandable group so the two questions never blur. */}
           {(() => {
             const defaultOrder = activeDefaultViews.map(v => v.id);
             const unsorted = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
@@ -1719,60 +1713,73 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               const bi = defaultOrder.indexOf(b.id);
               return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
             });
-            const VISIBLE_COUNT = 3;
-            const visibleViews = viewTabsExpanded ? views : views.slice(0, VISIBLE_COUNT);
-            const hasMore = views.length > VISIBLE_COUNT;
-            // Check if active view is in the hidden set
-            const activeInHidden = !viewTabsExpanded && views.findIndex(v => v.id === activeViewId) >= VISIBLE_COUNT;
+            const purposeFilters = ['All', 'Working', 'Samples', 'Personal'];
+            const purposeViews = purposeFilters
+              .map(filter => views.find(view => view.filterType === filter))
+              .filter((view): view is NonNullable<typeof view> => Boolean(view));
+            const purposeIds = new Set(purposeViews.map(view => view.id));
+            const attentionViews = views.filter(view => !purposeIds.has(view.id));
+
+            const selectMobileView = (view: typeof views[number]) => {
+              setGlossaryMode(false);
+              setActiveView(view.id);
+              setInventoryColumns(view.columns);
+              setInventorySortConfig(view.sortConfig);
+              setFilterType(view.filterType);
+              setInventoryGroupBy(view.groupBy);
+            };
+
+            const viewButton = (view: typeof views[number]) => {
+              const filterLabel = VIEW_FILTER_LABELS[view.filterType] || view.filterType;
+              return (
+                <button
+                  key={view.id}
+                  onClick={() => selectMobileView(view)}
+                  className={`tap-target relative flex items-center gap-1 px-2 h-9 text-ui-11 uppercase tracking-[0.08em] rounded-md transition-colors ${
+                    activeViewId === view.id
+                      ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
+                      : view.filterType === 'Archived'
+                      ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
+                      : 'text-tea-text-dim hover:text-tea-text-sec'
+                  }`}
+                  title={filterLabel}
+                  aria-label={`Show ${filterLabel} view`}
+                  aria-pressed={activeViewId === view.id}
+                >
+                  {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
+                  <span>{view.name || filterLabel}</span>
+                  {!view.id.startsWith('default-') && (
+                    <span onClick={(e) => { e.stopPropagation(); deleteView(view.id); }} className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors">
+                      <XIcon size={9} />
+                    </span>
+                  )}
+                </button>
+              );
+            };
+
             return (
               <>
-                {visibleViews.map(view => {
-                  const isIconOnly = view.icon && !view.name;
-                  const filterLabel = VIEW_FILTER_LABELS[view.filterType] || view.filterType;
-                  return (
-                    <button
-                      key={view.id}
-                      onClick={() => {
-                        setGlossaryMode(false);
-                        setActiveView(view.id);
-                        setInventoryColumns(view.columns);
-                        setInventorySortConfig(view.sortConfig);
-                        setFilterType(view.filterType);
-                        setInventoryGroupBy(view.groupBy);
-                      }}
-                      className={`tap-target relative flex items-center gap-1 shrink-0 ${isIconOnly && !viewTabsExpanded ? 'w-9 h-9 justify-center' : 'px-2 h-9 text-ui-11 uppercase tracking-[0.08em]'} rounded-md transition-colors ${
-                        activeViewId === view.id
-                          ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
-                          : view.filterType === 'Archived'
-                          ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
-                          : 'text-tea-text-dim hover:text-tea-text-sec'
-                      }`}
-                      title={filterLabel}
-                      aria-label={`Show ${filterLabel} view`}
-                      aria-pressed={activeViewId === view.id}
-                    >
-                      {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
-                      {viewTabsExpanded && isIconOnly ? <span className="text-ui-11 uppercase tracking-[0.08em]">{filterLabel}</span> : (view.name || null)}
-                      {!view.id.startsWith('default-') && (
-                        <span
-                          onClick={(e) => { e.stopPropagation(); deleteView(view.id); }}
-                          className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors"
-                        >
-                          <XIcon size={9} />
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-                {hasMore && (
+                <div className="text-ui-9 uppercase tracking-[0.12em] text-tea-text-sec px-1">Purpose</div>
+                <div role="group" aria-label="Purpose views" className="flex flex-wrap items-center gap-0.5">
+                  {purposeViews.map(viewButton)}
+                </div>
+                {attentionViews.length > 0 && (
+                  <div className="border-t border-tea-border pt-1 mt-0.5">
                   <button
                     onClick={() => setViewTabsExpanded(!viewTabsExpanded)}
-                    className={`tap-target w-9 h-9 flex items-center justify-center shrink-0 rounded-md transition-colors ${activeInHidden ? 'text-tea-gold bg-tea-gold/10' : 'text-tea-text-dim hover:text-tea-text-sec'}`}
-                    title={viewTabsExpanded ? 'Show fewer views' : 'Show all views'}
-                    aria-label={viewTabsExpanded ? 'Show fewer inventory views' : 'Show all inventory views'}
+                    className="tap-target min-h-11 w-full flex items-center justify-between px-1 text-ui-9 uppercase tracking-[0.12em] text-tea-text-sec"
+                    aria-label={viewTabsExpanded ? 'Hide needs attention views' : 'Show needs attention views'}
+                    aria-expanded={viewTabsExpanded}
                   >
+                    <span>Needs attention</span>
                     {viewTabsExpanded ? <XIcon size={13} /> : <Plus size={13} />}
                   </button>
+                  {viewTabsExpanded && (
+                    <div role="group" aria-label="Needs attention views" className="flex flex-wrap items-center gap-0.5 pb-1">
+                      {attentionViews.map(viewButton)}
+                    </div>
+                  )}
+                  </div>
                 )}
               </>
             );

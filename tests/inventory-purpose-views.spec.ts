@@ -73,7 +73,7 @@ async function selectView(page: Page, label: string) {
   if ((page.viewportSize()?.width || 0) < 768) {
     const button = page.getByRole('button', { name: `Show ${label} view` });
     if (!(await button.isVisible().catch(() => false))) {
-      await page.getByRole('button', { name: 'Show all inventory views' }).click();
+      await page.getByRole('button', { name: 'Show needs attention views' }).click();
     }
     await button.click();
     return;
@@ -101,7 +101,7 @@ async function expectInputValue(page: Page, value: string) {
 test('purpose and action views remain separate and preserve legacy mappings', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Show Working view' })).toBeVisible();
   if ((page.viewportSize()?.width || 0) < 768) {
-    await page.getByRole('button', { name: 'Show all inventory views' }).click();
+    await page.getByRole('button', { name: 'Show needs attention views' }).click();
   }
   await expect(page.getByRole('button', { name: 'Show Selling view' })).toContainText('My selling list');
   await selectView(page, 'Working');
@@ -229,4 +229,24 @@ test('Wares composes with Working, Samples, Personal, and All purpose views', as
   await expect(page.getByText('Field Gaiwan')).toBeVisible();
   await expect(page.getByText('Clay Cup Sample')).toBeVisible();
   await expect(page.getByText('Personal Silver Pot')).toBeVisible();
+});
+
+test('mobile labels and separates Purpose from Needs attention for Tea and Wares', async ({ page }) => {
+  test.skip((page.viewportSize()?.width || 0) >= 768, 'Mobile information architecture');
+
+  for (const category of ['Tea', 'Wares']) {
+    await page.getByRole('button', { name: category }).click();
+    const purpose = page.getByRole('group', { name: 'Purpose views' });
+    await expect(purpose).toBeVisible();
+    await expect(purpose.getByRole('button')).toHaveText(['All', 'Working', 'Samples', 'Personal']);
+    await expect(page.getByRole('button', { name: 'Show needs attention views' })).toContainText('Needs attention');
+    await expect(page.getByRole('group', { name: 'Needs attention views' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Show needs attention views' }).click();
+    await expect(page.getByRole('group', { name: 'Needs attention views' })).toBeVisible();
+    await page.getByRole('button', { name: 'Hide needs attention views' }).click();
+  }
+
+  await page.getByRole('group', { name: 'Purpose views' }).getByRole('button', { name: 'Show Samples view' }).click();
+  await expect(page.getByText('Clay Cup Sample')).toBeVisible();
+  await expect(page.getByText('Field Gaiwan')).toHaveCount(0);
 });
