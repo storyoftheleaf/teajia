@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -212,6 +212,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [batchMode, setBatchMode] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importDetail, setImportDetail] = useState<CurateImportDetail | null>(null);
+  const [importDetails, setImportDetails] = useState<CurateImportDetail[]>([]);
+  const [importAccountId, setImportAccountId] = useState<string | null>(null);
+  const [importPanelVersion, setImportPanelVersion] = useState(0);
   const [importPointerId, setImportPointerId] = useState<string | null>(null);
   const importTriggerRef = useRef<HTMLButtonElement>(null);
   const { data: incompleteImports } = useQuery({
@@ -219,7 +222,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     queryFn: () => api.curateImports.listIncomplete(),
     enabled: hasToken() && !!activeAccountId,
   });
-  useEffect(() => {
+  useLayoutEffect(() => {
+    setImportOpen(false); setImportDetail(null); setImportDetails([]); setImportAccountId(activeAccountId); setImportPanelVersion(version => version + 1);
     setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
   }, [activeAccountId]);
   const { data: pointedImport } = useQuery({
@@ -228,14 +232,32 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     enabled: hasToken() && !!activeAccountId && !!importPointerId,
   });
   useEffect(() => {
-    if (!importDetail) setImportDetail(pointedImport ?? incompleteImports?.imports?.[0] ?? null);
-  }, [importDetail, incompleteImports, pointedImport]);
+    if (importAccountId !== activeAccountId) return;
+    if (importDetail?.batch.review_state === 'completed') {
+      setImportDetails(current => current.filter(detail => detail.batch.id !== importDetail.batch.id));
+      return;
+    }
+    const imports = incompleteImports?.imports ?? [];
+    const selected = importPointerId && pointedImport && pointedImport.batch.review_state !== 'completed' ? pointedImport : imports[0] ?? null;
+    setImportDetails(selected && !imports.some(detail => detail.batch.id === selected.batch.id) ? [selected, ...imports] : imports);
+    if (!importDetail) setImportDetail(selected);
+  }, [activeAccountId, importAccountId, importDetail, importPointerId, incompleteImports, pointedImport]);
   const rememberImportDetail = useCallback((detail: CurateImportDetail) => {
+    if (detail.batch.review_state === 'completed') {
+      setImportDetails(current => current.filter(candidate => candidate.batch.id !== detail.batch.id));
+      if (activeAccountId) localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
+    } else {
+      setImportDetails(current => [detail, ...current.filter(candidate => candidate.batch.id !== detail.batch.id)]);
+    }
     setImportDetail(detail);
     if (activeAccountId) {
       localStorage.setItem(`teajia-curate-import:${activeAccountId}`, detail.batch.id);
       setImportPointerId(detail.batch.id);
     }
+  }, [activeAccountId]);
+  const beginNewImport = useCallback(() => {
+    setImportDetail(null); setImportPointerId(null); setImportPanelVersion(version => version + 1); setImportOpen(true);
+    if (activeAccountId) localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
   }, [activeAccountId]);
 
   // Auto-collapse the header on scroll. We hide it when the user scrolls
@@ -736,9 +758,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         )}
       </div>
 
-      {mode === 'sourcing' && importDetail && (
-        <div className="shrink-0 border-b border-tea-border px-4 py-2">
-          <ImportBatchChip detail={importDetail} onOpen={() => setImportOpen(true)} />
+      {mode === 'sourcing' && importAccountId === activeAccountId && importDetails.length > 0 && (
+        <div className="shrink-0 flex flex-wrap gap-2 border-b border-tea-border px-4 py-2" aria-label="Incomplete imports">
+          {importDetails.map(detail => <ImportBatchChip key={detail.batch.id} detail={detail} onOpen={() => { setImportDetail(detail); setImportPanelVersion(version => version + 1); setImportOpen(true); }} />)}
         </div>
       )}
 
@@ -1839,11 +1861,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       </AnimatePresence>
       {importOpen && (
         <ImportPanel
+          key={importPanelVersion}
           initialDetail={importDetail}
           activeCompassEntryId={activeEntryId}
           onDetailChange={rememberImportDetail}
           onAccepted={openAcceptedImportItem}
           onClose={closeImport}
+          onNew={beginNewImport}
         />
       )}
     </div>

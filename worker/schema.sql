@@ -455,10 +455,12 @@ CREATE TABLE IF NOT EXISTS curate_import_sources (
   kind TEXT NOT NULL CHECK (kind IN ('wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste')),
   pasted_text TEXT,
   r2_object_key TEXT,
+  client_evidence_id TEXT,
   metadata_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   CHECK (pasted_text IS NOT NULL OR r2_object_key IS NOT NULL),
-  FOREIGN KEY (batch_id) REFERENCES curate_import_batches(id) ON DELETE CASCADE
+  FOREIGN KEY (batch_id) REFERENCES curate_import_batches(id) ON DELETE CASCADE,
+  UNIQUE (account_id, batch_id, client_evidence_id)
 );
 CREATE INDEX IF NOT EXISTS idx_curate_import_sources_batch ON curate_import_sources(account_id, batch_id, created_at);
 

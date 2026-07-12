@@ -661,7 +661,7 @@ function authHeadersFor(body: BodyInit | null | undefined, additional?: HeadersI
   return Object.fromEntries(headers.entries());
 }
 
-async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
+async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Promise<Response> {
   const opts: ApiRequestInit = { ...init, headers: authHeadersFor(init.body, init.headers) };
   const res = await fetchWithTimeout(url, opts);
 
@@ -683,7 +683,11 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
         // retry (the retry itself throws on 401, which surfaces SESSION_EXPIRED
         // correctly if the fresh token is also rejected).
         const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeadersFor(init.body, init.headers) });
-        return handleResponse(retryRes);
+        if (retryRes.status === 401) {
+          clearToken(); window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+          throw new Error('Session expired');
+        }
+        return retryRes;
       }
       if (refreshResult === 'rejected') {
         clearToken();
@@ -700,11 +704,15 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
     throw new Error(message);
   }
 
-  return handleResponse(res);
+  return res;
+}
+
+async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
+  return handleResponse(await authenticatedResponse(url, init));
 }
 
 async function authedBlobFetch(url: string): Promise<Blob> {
-  const response = await fetchWithTimeout(url, { headers: authHeadersFor(undefined) });
+  const response = await authenticatedResponse(url);
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     try { const body = await response.json(); if (typeof body?.error === 'string') message = body.error; } catch { /* use status */ }
@@ -1926,7 +1934,7 @@ export const api = {
     addSource: (id: string, source: { kind: CurateImportSourceKind; pasted_text?: string; r2_object_key?: string; metadata?: Record<string, unknown> }): Promise<CurateImportSource> =>
       authedFetch(`${API_URL}/api/curate/imports/${id}/sources`, { method: 'POST', body: JSON.stringify(source), retryTimeouts: true }),
     uploadEvidence: (id: string, file: File, clientEvidenceId: string): Promise<CurateImportSource> => authedFetch(`${API_URL}/api/curate/imports/${id}/evidence`, {
-      method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name), 'X-Client-Evidence-Id': clientEvidenceId }, retryTimeouts: true,
+      method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name), 'X-Client-Evidence-Id': clientEvidenceId },
     }),
     getEvidence: (batchId: string, sourceId: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/imports/${batchId}/sources/${sourceId}/content`),
     updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> =>

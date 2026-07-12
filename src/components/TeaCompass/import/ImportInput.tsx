@@ -5,7 +5,7 @@ import type { ImportDraft, ImportEvidence } from './importTypes';
 
 interface ImportInputProps {
   draft: ImportDraft;
-  onChange: (draft: ImportDraft) => void;
+  onChange: React.Dispatch<React.SetStateAction<ImportDraft>>;
   onSubmit: () => void;
   submitRef?: React.RefObject<HTMLButtonElement | null>;
 }
@@ -15,7 +15,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
   const fileRef = useRef<HTMLInputElement>(null);
   const addFiles = (files: FileList | null, kind: ImportEvidence['kind']) => {
     const additions = Array.from(files || []).map(file => ({ id: crypto.randomUUID(), file, kind }));
-    onChange({ ...draft, evidence: [...draft.evidence, ...additions] });
+    onChange(current => ({ ...current, evidence: [...current.evidence, ...additions] }));
   };
   const canSubmit = draft.text.trim().length > 0 || draft.evidence.length > 0;
   return (
@@ -25,7 +25,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
         <textarea
           id="curate-import-text"
           value={draft.text}
-          onChange={event => onChange({ ...draft, text: event.target.value })}
+          onChange={event => { const text = event.target.value; onChange(current => ({ ...current, text })); }}
           rows={8}
           placeholder="Paste WeChat fragments, a vendor list, or invoice lines. One item per line works well."
           className="w-full resize-y rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-14 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/20"

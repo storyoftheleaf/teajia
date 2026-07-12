@@ -12,9 +12,10 @@ interface ImportBatchReviewProps {
   onMerge: (item: CurateImportItem) => void;
   onAcceptAll: () => void;
   onDefer: () => void;
+  onNew: () => void;
 }
 
-export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, busyId, onUpdate, onAccept, onMerge, onAcceptAll, onDefer }) => {
+export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, busyId, onUpdate, onAccept, onMerge, onAcceptAll, onDefer, onNew }) => {
   const [visibleCount, setVisibleCount] = useState(10);
   const remaining = useMemo(() => detail.items.filter(item => item.review_state === 'pending' || item.review_state === 'reviewing'), [detail.items]);
   return (
@@ -35,7 +36,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, bu
         {detail.items.slice(0, visibleCount).map(item => <ImportItemRow key={item.id} item={item} busy={busyId === item.id} onUpdate={updates => onUpdate(item, updates)} onAccept={() => onAccept(item)} onMerge={() => onMerge(item)} />)}
       </div>
       {visibleCount < detail.items.length && <button type="button" onClick={() => setVisibleCount(count => Math.min(count + 10, detail.items.length))} className="tap-target w-full min-h-11 rounded-md border border-tea-border text-ui-12 text-tea-text-sec hover:text-tea-text">Show {Math.min(10, detail.items.length - visibleCount)} more</button>}
-      <button type="button" onClick={onDefer} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Review later</button>
+      <div className="flex flex-wrap justify-between gap-2"><button type="button" onClick={onDefer} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Review later</button><button type="button" onClick={onNew} className="tap-target min-h-11 text-ui-12 text-tea-gold">New import</button></div>
     </div>
   );
 };

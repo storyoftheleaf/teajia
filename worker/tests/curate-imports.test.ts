@@ -14,8 +14,8 @@ class ImportStatement {
     if (sql.includes('select platform_role from users')) return { platform_role: null };
     if (sql.includes('from account_members am join accounts')) return { role: 'owner', permissions: '{}', kind: 'location' };
     if (sql.includes('select status from accounts')) return { status: 'active' };
-    if (sql.includes("json_extract(metadata_json, '$.client_evidence_id')")) {
-      return [...this.db.sources.values()].find(row => row.batch_id === this.values[0] && row.account_id === this.values[1] && JSON.parse(String(row.metadata_json)).client_evidence_id === this.values[2]) ?? null;
+    if (sql.includes('from curate_import_sources') && sql.includes('client_evidence_id = ?')) {
+      return [...this.db.sources.values()].find(row => row.batch_id === this.values[0] && row.account_id === this.values[1] && row.client_evidence_id === this.values[2]) ?? null;
     }
     const table = this.db.tableFor(sql);
     if (table && sql.includes('where id = ?')) {
@@ -36,6 +36,7 @@ class ImportStatement {
     let rows = [...table.values()];
     if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
     if (sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values.at(-1));
+    if (sql.includes("review_state != 'completed'")) rows = rows.filter(row => row.review_state !== 'completed' && row.review_state !== 'abandoned');
     if (sql.includes('order by position')) rows.sort((a, b) => Number(a.position) - Number(b.position));
     return { results: rows.map(row => ({ ...row })) };
   }
@@ -49,6 +50,7 @@ class ImportStatement {
         if (sql.startsWith('insert or ignore')) return { success: true, meta: { changes: 0 } };
         throw new Error('UNIQUE constraint failed');
       }
+      if (table === this.db.sources && row.client_evidence_id != null && [...table.values()].some(existing => existing.account_id === row.account_id && existing.batch_id === row.batch_id && existing.client_evidence_id === row.client_evidence_id)) throw new Error('UNIQUE constraint failed');
       table.set(String(row.id), row);
       return { success: true, meta: { changes: 1 } };
     }
@@ -124,6 +126,17 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
 }
 
 describe('Curate import provenance API', () => {
+  it('completes a batch only after every item is resolved and excludes it from recovery', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Lifecycle', items: [{ name: 'One' }, { name: 'Two' }] }) });
+    const { batch, items } = await created.json() as any;
+    await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
+    expect(db.batches.get(batch.id)?.review_state).toBe('reviewing');
+    expect((await (await request(db, '/api/curate/imports?state=incomplete')).json() as any).imports).toHaveLength(1);
+    await request(db, `/api/curate/imports/${batch.id}/items/${items[1].id}`, { method: 'PUT', body: JSON.stringify({ review_state: 'abandoned' }) });
+    expect(db.batches.get(batch.id)?.review_state).toBe('completed');
+    expect((await (await request(db, '/api/curate/imports?state=incomplete')).json() as any).imports).toHaveLength(0);
+  });
   it('durably uploads scoped evidence and lists the incomplete batch after reload', async () => {
     const db = new ImportDb();
     const objects = new Map<string, { value: ArrayBuffer; options: unknown }>();
@@ -152,9 +165,19 @@ describe('Curate import provenance API', () => {
     expect(await retried.json()).toMatchObject({ id: source.id, already_uploaded: true });
     expect(objects.size).toBe(1);
     expect(db.sources.size).toBe(1);
+    const concurrent = await Promise.all([request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST', headers: { 'X-Filename': 'other.pdf', 'X-Client-Evidence-Id': 'client-two', 'Content-Type': 'application/pdf' }, body: '%PDF-other',
+    }, 'account-a', 'user-a', bucket), request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST', headers: { 'X-Filename': 'other.pdf', 'X-Client-Evidence-Id': 'client-two', 'Content-Type': 'application/pdf' }, body: '%PDF-other',
+    }, 'account-a', 'user-a', bucket)]);
+    expect(concurrent.map(result => result.status).sort()).toEqual([200, 201]);
+    expect([...db.sources.values()].filter(row => row.client_evidence_id === 'client-two')).toHaveLength(1);
     const listed = await request(db, '/api/curate/imports?state=incomplete', {}, 'account-a', 'user-a', bucket);
     expect(listed.status).toBe(200);
-    expect(await listed.json()).toMatchObject({ imports: [{ batch: { id: batch.id }, sources: [{ id: source.id }], items: [] }] });
+    const recovery = await listed.json() as any;
+    expect(recovery.imports).toHaveLength(1);
+    expect(recovery.imports[0]).toMatchObject({ batch: { id: batch.id }, items: [] });
+    expect(recovery.imports[0].sources).toEqual(expect.arrayContaining([expect.objectContaining({ id: source.id })]));
     const opened = await request(db, `/api/curate/imports/${batch.id}/sources/${source.id}/content`, {}, 'account-a', 'user-a', bucket);
     expect(opened.status).toBe(200);
     expect(opened.headers.get('Content-Disposition')).toContain("attachment; filename*=UTF-8''");

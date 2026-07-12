@@ -190,6 +190,14 @@ export async function listIncompleteCurateImports(_request: Request, env: Import
   return response({ imports });
 }
 
+async function refreshImportBatchState(env: ImportEnv, batchId: string, accountId: string) {
+  const items = await env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ?').bind(batchId, accountId).all<Record<string, unknown>>();
+  if (!items.results.length) return;
+  const completed = items.results.every(item => ['accepted', 'merged', 'abandoned'].includes(String(item.review_state)));
+  await env.DB.prepare("UPDATE curate_import_batches SET review_state = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+    .bind(completed ? 'completed' : 'reviewing', batchId, accountId).run();
+}
+
 const EVIDENCE_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
   'application/pdf', 'text/plain', 'text/csv', 'application/csv',
@@ -208,7 +216,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const clientEvidenceId = request.headers.get('X-Client-Evidence-Id') || '';
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(clientEvidenceId)) return response({ error: 'Invalid client evidence identity' }, 400);
   const existing = await env.DB.prepare(
-    "SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND json_extract(metadata_json, '$.client_evidence_id') = ?"
+    'SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND client_evidence_id = ?'
   ).bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();
   if (existing) return response({ ...sourceRow(existing), already_uploaded: true });
   let filename = '';
@@ -229,19 +237,25 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
     : true;
   if (!matchesType) return response({ error: 'Evidence content does not match its declared file type' }, 415);
   const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'application/pdf': 'pdf', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
-  const key = `curate/${ctx.accountId}/${params.id}/${crypto.randomUUID()}.${extensionByType[contentType]}`;
+  const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  const key = `curate/${ctx.accountId}/${params.id}/${clientEvidenceId}-${digest}.${extensionByType[contentType]}`;
   const sourceId = crypto.randomUUID();
   const kind = contentType.startsWith('image/') ? 'photo' : contentType === 'application/pdf' ? 'invoice' : 'file';
   const metadata = { filename, content_type: contentType, size: bytes.byteLength, extraction_status: 'not_available', client_evidence_id: clientEvidenceId };
   await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType }, customMetadata: { account_id: ctx.accountId, batch_id: params.id, source_id: sourceId } });
   try {
     await env.DB.prepare(
-      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, JSON.stringify(metadata)).run();
+      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, client_evidence_id, metadata_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, clientEvidenceId, JSON.stringify(metadata)).run();
   } catch (error) {
-    await env.MEDIA_BUCKET.delete(key);
-    throw error;
+    const winner = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND client_evidence_id = ?')
+      .bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();
+    if (winner) {
+      if (winner.r2_object_key !== key) await env.MEDIA_BUCKET.delete(key);
+      return response({ ...sourceRow(winner), already_uploaded: true });
+    }
+    await env.MEDIA_BUCKET.delete(key); throw error;
   }
   const row = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND account_id = ?').bind(sourceId, ctx.accountId).first<Record<string, unknown>>();
   return response(sourceRow(row!), 201);
@@ -341,6 +355,7 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
     updates.push("updated_at = datetime('now')");
     await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE id = ? AND account_id = ?`).bind(...values, params.itemId, ctx.accountId).run();
   }
+  await refreshImportBatchState(env, params.id, ctx.accountId);
   const updated = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   return response(itemRow(updated!));
 }
@@ -378,6 +393,7 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   const linkedChanges = results[1]?.meta.changes ?? 0;
   const updated = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!updated?.compass_entry_id) return response({ error: 'Compass entry id is unavailable' }, 409);
+  await refreshImportBatchState(env, params.id, ctx.accountId);
   return response({ ...itemRow(updated), ...(linkedChanges ? {} : { already_accepted: true }) }, linkedChanges ? 201 : 200);
 }
 
@@ -396,5 +412,6 @@ export async function mergeCurateImportItem(request: Request, env: ImportEnv, ct
     `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
      WHERE id = ? AND account_id = ?`
   ).bind('merged', compassId, ctx.userId, params.itemId, ctx.accountId).run();
+  await refreshImportBatchState(env, params.id, ctx.accountId);
   return response(itemRow((await scopedItem(env, params.id, params.itemId, ctx.accountId))!));
 }

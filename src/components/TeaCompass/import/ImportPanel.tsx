@@ -12,6 +12,7 @@ interface ImportPanelProps {
   onDetailChange: (detail: CurateImportDetail) => void;
   onAccepted: (item: CurateImportItem) => void | Promise<void>;
   onClose: () => void;
+  onNew: () => void;
 }
 
 const parseDraftItems = (draft: ImportDraft) => {
@@ -26,10 +27,12 @@ const parseDraftItems = (draft: ImportDraft) => {
   });
 };
 
-export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeCompassEntryId, onDetailChange, onAccepted, onClose }) => {
+export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeCompassEntryId, onDetailChange, onAccepted, onClose, onNew }) => {
   const [draft, setDraft] = useState<ImportDraft>({ text: '', evidence: [], sourceKind: 'paste' });
   const [state, setState] = useState<ImportPanelState>({ phase: initialDetail ? 'review' : 'input', detail: initialDetail, error: null });
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const retryAction = useRef<null | (() => Promise<void>)>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -82,24 +85,35 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     setState(current => {
       if (!current.detail) return current;
       const detail = { ...current.detail, items: current.detail.items.map(item => item.id === updated.id ? updated : item) };
-      window.queueMicrotask(() => onDetailChange(detail));
       return { ...current, detail };
     });
   };
+  const refreshDetail = async (batchId: string) => {
+    const detail = await api.curateImports.get(batchId);
+    setState(current => ({ ...current, detail })); onDetailChange(detail);
+  };
   const updateItem = async (item: CurateImportItem, updates: Partial<CurateImportItem>) => {
+    if (busyId) return;
     setBusyId(item.id);
-    try { replaceItem(await api.curateImports.updateItem(item.batch_id, item.id, updates)); }
+    const action = async () => { replaceItem(await api.curateImports.updateItem(item.batch_id, item.id, updates)); await refreshDetail(item.batch_id); };
+    try { setOperationError(null); await action(); }
+    catch (error) { retryAction.current = action; setOperationError(error instanceof Error ? error.message : 'Could not save correction'); }
     finally { setBusyId(null); }
   };
   const accept = async (item: CurateImportItem, open = true) => {
+    if (busyId || item.compass_entry_id) return;
     setBusyId(item.id);
-    try { const updated = await api.curateImports.acceptItem(item.batch_id, item.id); replaceItem(updated); if (open) await onAccepted(updated); }
+    const action = async () => { const updated = await api.curateImports.acceptItem(item.batch_id, item.id); replaceItem(updated); await refreshDetail(item.batch_id); if (open) await onAccepted(updated); };
+    try { setOperationError(null); await action(); }
+    catch (error) { retryAction.current = action; setOperationError(error instanceof Error ? error.message : 'Could not accept item'); }
     finally { setBusyId(null); }
   };
   const merge = async (item: CurateImportItem) => {
     if (!activeCompassEntryId) return;
     setBusyId(item.id);
-    try { replaceItem(await api.curateImports.mergeItem(item.batch_id, item.id, activeCompassEntryId)); }
+    const action = async () => { replaceItem(await api.curateImports.mergeItem(item.batch_id, item.id, activeCompassEntryId)); await refreshDetail(item.batch_id); };
+    try { setOperationError(null); await action(); }
+    catch (error) { retryAction.current = action; setOperationError(error instanceof Error ? error.message : 'Could not merge item'); }
     finally { setBusyId(null); }
   };
   const acceptAll = async () => {
@@ -118,7 +132,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
           {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} />}
           {state.phase === 'parsing' && <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Parsing your evidence…</div>}
           {state.phase === 'error' && <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p><button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={state.detail} busyId={busyId} onUpdate={updateItem} onAccept={accept} onMerge={merge} onAcceptAll={acceptAll} onDefer={onClose} />}
+          {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" onClick={() => retryAction.current?.()} className="tap-target text-tea-gold">Retry action</button></div>}
+          {state.phase === 'review' && state.detail && <ImportBatchReview detail={state.detail} busyId={busyId} onUpdate={updateItem} onAccept={accept} onMerge={merge} onAcceptAll={acceptAll} onDefer={onClose} onNew={onNew} />}
         </div>
       </div>
     </div>

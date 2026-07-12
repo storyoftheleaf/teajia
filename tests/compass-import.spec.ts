@@ -7,7 +7,7 @@ type ImportItem = {
   uncertainty: Record<string, unknown>; review_state: 'pending' | 'accepted' | 'merged';
   compass_entry_id: string | null; reserved_compass_entry_id: string;
 };
-
+const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
 async function installImportApi(page: Page) {
   let attempts = 0;
   const items: ImportItem[] = [];
@@ -34,6 +34,7 @@ async function installImportApi(page: Page) {
       return route.fulfill({ status: 200, contentType: type, body });
     }
     if (method === 'GET' && /^\/api\/curate\/imports\/[^/]+$/.test(path)) {
+      if (batch && items.length > 0 && items.every(item => ['accepted', 'merged'].includes(item.review_state))) batch.review_state = 'completed';
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batch, sources, items }) });
     }
     if (method === 'POST' && path === '/api/curate/imports') {
@@ -60,6 +61,12 @@ async function installImportApi(page: Page) {
       }) });
     }
     if (method === 'POST' && /\/evidence$/.test(path)) {
+      const ordinal = evidenceOrdinalByPage.get(page);
+      if (ordinal) {
+        ordinal.ordinal += 1;
+        if (ordinal.injectSecondFailure && ordinal.ordinal === 2) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary evidence failure' }) });
+      }
+      const clientId = request.headers()['x-client-evidence-id'];
       const filename = decodeURIComponent(request.headers()['x-filename']);
       const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: request.headers()['content-type'] === 'application/pdf' ? 'invoice' : 'photo', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: request.headers()['content-type'], size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
       sources.push(source);
@@ -121,15 +128,41 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Parsing your evidence…')).toBeVisible();
     await expect(page.getByText('Could be a transliteration')).toBeVisible();
+    await page.getByRole('button', { name: /^Red Jade/ }).click();
+    await page.getByLabel('Corrected name').fill('Red Jade corrected');
+    await page.getByRole('button', { name: 'Save corrections' }).click();
+    await expect(page.getByText('Could be a transliteration')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Accept Red Jade corrected' })).toBeDisabled();
     await page.getByRole('button', { name: /^Ali Shan/ }).click();
     await page.getByRole('button', { name: 'Merge Ali Shan' }).click();
     await page.getByLabel('Reviewed uncertain fields').check();
-    await page.getByRole('button', { name: 'Accept Red Jade' }).click();
-    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toHaveValue('Red Jade');
+    await page.getByRole('button', { name: 'Accept Red Jade corrected' }).click();
+    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toHaveValue('Red Jade corrected');
     await page.getByRole('button', { name: 'Import' }).first().click();
     await page.getByRole('button', { name: 'Accept all remaining' }).click();
     await page.getByRole('button', { name: 'Review later' }).click();
-    await expect(page.getByRole('button', { name: /Imported list: 3 items, 3 reviewed, 0 remaining/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Imported list: 3 items/ })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByRole('button', { name: 'New import' }).click();
+    await expect(page.getByLabel('Paste a list or invoice text')).toBeVisible();
+  });
+
+  test('shows every incomplete batch and clears account A import state immediately on account switch', async ({ page }) => {
+    const detail = (id: string, title: string) => ({ batch: { id, title, review_state: 'pending', journey_id: null, visit_id: null }, sources: [{ id: `source-${id}`, batch_id: id, kind: 'paste', pasted_text: title, r2_object_key: null, metadata: {} }], items: [] });
+    let switched = false;
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports: switched ? [] : [detail('batch-a', 'First list'), detail('batch-b', 'Second list')] }) }));
+    await openCompass(page);
+    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(2);
+    await page.getByRole('button', { name: /Imported list: 0 items/ }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
+    switched = true;
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useAppStore } = await import('/src/lib/store.ts');
+      useAppStore.getState().setActiveAccountId('acct-empty');
+    });
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeHidden();
+    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(0);
   });
 
   test('supports photo, document, and invoice evidence plus retry after parsing failure', async ({ page }) => {
@@ -198,27 +231,36 @@ test.describe('Curate Import panel', () => {
     await retrieval;
   });
 
-  test('retries only a failed attachment and preserves same-name files as distinct evidence', async ({ page }) => {
+  test('retries only the failed attachment after a partial upload', async ({ page }) => {
     const attempts = new Map<string, number>();
-    let secondId: string | null = null;
-    await page.route('**/api/curate/imports/batch-1/evidence', route => {
-      const id = route.request().headers()['x-client-evidence-id'];
-      attempts.set(id, (attempts.get(id) || 0) + 1);
-      if (!secondId && attempts.size === 2) secondId = id;
-      if (id === secondId && attempts.get(id) === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary evidence failure' }) });
-      return route.fallback();
-    });
+    const ordinal = { ordinal: 0, injectSecondFailure: true };
+    evidenceOrdinalByPage.set(page, ordinal);
+    page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/evidence')) { const id = request.headers()['x-client-evidence-id']; attempts.set(id, (attempts.get(id) || 0) + 1); } });
     await openCompass(page);
     await page.getByRole('button', { name: 'Import' }).first().click();
-    await page.getByLabel('Add files or invoices').setInputFiles([
-      { name: 'same.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-one') },
-      { name: 'same.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') },
-    ]);
+    await page.getByLabel('Add photos').setInputFiles({ name: 'one.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('one') });
+    await expect(page.getByText('one.jpg')).toBeVisible();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'two.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
     await page.getByRole('button', { name: 'Start import' }).click();
+    await expect.poll(() => attempts.size, { message: `Expected both evidence requests; attempts=${JSON.stringify([...attempts])}` }).toBe(2);
+    expect(ordinal.ordinal).toBe(2);
     await expect(page.getByText('Temporary evidence failure')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
-    await expect(page.getByText('same.pdf')).toHaveCount(2);
+    await expect(page.getByText('one.jpg')).toBeVisible();
+    await expect(page.getByText('two.pdf')).toBeVisible();
     expect([...attempts.values()].sort()).toEqual([1, 2]);
+    expect(ordinal.ordinal).toBe(3);
+  });
+
+  test('preserves separately selected files with the same filename', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Add photos').setInputFiles({ name: 'same.evidence', mimeType: 'image/jpeg', buffer: Buffer.from('one') });
+    await expect(page.getByText('same.evidence')).toBeVisible();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'same.evidence', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
+    await expect(page.getByText('same.evidence')).toHaveCount(2);
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(page.getByText('Saved · extraction not available · needs review').first()).toBeVisible();
   });
 
   test('keeps a 30-item batch grouped instead of flooding the capture session', async ({ page }) => {
