@@ -9,6 +9,7 @@ class RepairDb {
   lines: Line[] = [
     { account_id: 'account-a', invoice_id: 'inv-a', line_item_id: 'line-a', quantity: 50, price_at_sale: 12, source_collection_id: 'collection-a', recommended_quantity: 50, recommended_price_usd: 12, catalog_price: 0.3 },
     { account_id: 'account-a', invoice_id: 'inv-b', line_item_id: 'line-b', quantity: 50, price_at_sale: 0.24, source_collection_id: 'collection-b', recommended_quantity: 50, recommended_price_usd: 12, catalog_price: 0.3 },
+    { account_id: 'account-b', invoice_id: 'inv-other', line_item_id: 'line-other', quantity: 50, price_at_sale: 12, source_collection_id: 'collection-other', recommended_quantity: 50, recommended_price_usd: 12, catalog_price: 0.3 },
   ];
   repairs: Record<string, unknown>[] = [];
   prepare(sql: string) {
@@ -54,11 +55,17 @@ describe('invoice line repair', () => {
     expect(db.lines[0].price_at_sale).toBe(12);
     expect((await request(db, 'POST', 'account-a', {})).status).toBe(400);
     expect((await request(db, 'POST', 'account-a', { confirm: true, preview_key: 'stale' })).status).toBe(409);
+    const crossAccountAttempt = await request(db, 'POST', 'account-b', { confirm: true, preview_key: preview.preview_key });
+    expect(crossAccountAttempt.status).toBe(409);
+    expect(db.lines.find(line => line.line_item_id === 'line-a')?.price_at_sale).toBe(12);
+    expect(db.repairs).toEqual([]);
     const applied = await request(db, 'POST', 'account-a', { confirm: true, preview_key: preview.preview_key });
     expect(await applied.json()).toMatchObject({ changed_lines: 1 }); expect(db.lines[0].price_at_sale).toBe(0.24); expect(db.repairs).toHaveLength(1);
     const repeated = await request(db, 'POST', 'account-a', { confirm: true, preview_key: preview.preview_key });
     expect(await repeated.json()).toMatchObject({ changed_lines: 0 });
-    expect((await (await request(db, 'GET', 'account-b')).json() as any).candidates).toEqual([]);
+    expect((await (await request(db, 'GET', 'account-b')).json() as any).candidates).toEqual([
+      expect.objectContaining({ invoice_id: 'inv-other', line_item_id: 'line-other' }),
+    ]);
   });
 
   it('requires owner tier', async () => { const db = new RepairDb(); db.role = 'staff'; expect((await request(db, 'GET', 'account-a')).status).toBe(403); });
