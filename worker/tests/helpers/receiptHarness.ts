@@ -26,6 +26,7 @@ class ReceiptStatement {
       const receipt = line && this.db.receipts.get(String(line.receipt_id));
       return line && receipt ? { ...line, receipt_state: receipt.state, vendor_name: receipt.vendor_name } : null;
     }
+    if (sql.includes('select intake_batch_id from inventory_receipt_lines where receipt_id')) return [...this.db.receiptLines.values()].find(row => row.receipt_id === this.values[0] && row.account_id === this.values[1] && row.intake_batch_id)?.intake_batch_id ? { intake_batch_id: [...this.db.receiptLines.values()].find(row => row.receipt_id === this.values[0] && row.account_id === this.values[1] && row.intake_batch_id)!.intake_batch_id } : null;
     if (sql.includes('from inventory_receipts where id') && sql.includes('account_id')) return scoped(this.db.receipts, this.values[0], sql, this.values);
     if (sql.includes('from batches where id = ? and account_id = ?')) return scoped(this.db.batches, this.values[0], sql, this.values);
     if (sql.includes('from curate_import_items where id = ? and account_id = ?')) return scoped(this.db.importItems, this.values[0], sql, this.values);

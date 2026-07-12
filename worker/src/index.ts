@@ -9124,9 +9124,13 @@ const handleCreateInventoryReceipt: Handler = async (request, env) => {
   const state = String(body.state || 'planned');
   if (!RECEIPT_STATES.has(state) || ['partially_received','received','cancelled'].includes(state)) return json({ error: 'invalid initial state' }, 400);
   if (!Array.isArray(body.lines) || !body.lines.length) return json({ error: 'lines are required' }, 400);
-  let lines; try { lines = body.lines.map((line: any) => decodeInventoryReceipt({ ...line, source_kind: line.source_kind || body.source_kind, source_ref: line.source_ref ?? body.source_ref })); } catch (error) { return json({ error: (error as Error).message }, 400); }
+  const bodySourceKind = typeof body.source_kind === 'string' ? body.source_kind.trim() : '';
+  const lineSourceKinds = [...new Set(body.lines.map((line: any) => typeof line.source_kind === 'string' ? line.source_kind.trim() : '').filter(Boolean))] as string[];
+  if (!bodySourceKind && (lineSourceKinds.length !== 1 || body.lines.some((line: any) => typeof line.source_kind !== 'string' || !line.source_kind.trim()))) return json({ error: 'source_kind is required at receipt level or must be the same on every line' }, 400);
+  const sourceKind = bodySourceKind || lineSourceKinds[0];
+  let lines; try { lines = body.lines.map((line: any) => decodeInventoryReceipt({ ...line, source_kind: sourceKind, source_ref: line.source_ref ?? body.source_ref })); } catch (error) { return json({ error: (error as Error).message }, 400); }
   for (const line of lines) if (!await env.DB.prepare('SELECT id FROM products WHERE id=? AND account_id=?').bind(line.product_id, ctx.accountId).first()) return json({ error: 'Product not found' }, 404);
-  const id = crypto.randomUUID(); const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id,account_id,state,vendor_name,source_kind,source_ref,eta,created_by_user_id) VALUES (?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,state,body.vendor_name||null,body.source_kind,body.source_ref||null,body.eta||null,ctx.userId)];
+  const id = crypto.randomUUID(); const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id,account_id,state,vendor_name,source_kind,source_ref,eta,created_by_user_id) VALUES (?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,state,body.vendor_name||null,sourceKind,body.source_ref||null,body.eta||null,ctx.userId)];
   for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id,receipt_id,account_id,product_id,expected_quantity,unit,intended_purpose,source_kind,source_ref) VALUES (?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,ctx.accountId,line.product_id,line.quantity,line.unit,line.intended_purpose,line.source_kind,line.source_ref));
   await env.DB.batch(statements); return json({ id, state }, 201);
 };
@@ -9156,11 +9160,12 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   const quantity = body.quantity == null ? remaining : Number(body.quantity);
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remaining || (line.unit === 'unit' && !Number.isInteger(quantity))) return json({ error: 'invalid receive quantity' }, 400);
   const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id,ctx.accountId).first() as any; if (!product) return json({ error: 'Product not found' },404);
-  const batchId = line.intake_batch_id || crypto.randomUUID(); const ledgerId = crypto.randomUUID(); const now = new Date().toISOString();
+  const existingReceiptBatch = line.intake_batch_id ? null : await env.DB.prepare('SELECT intake_batch_id FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=? AND intake_batch_id IS NOT NULL LIMIT 1').bind(line.receipt_id,ctx.accountId).first() as any;
+  const batchId = line.intake_batch_id || existingReceiptBatch?.intake_batch_id || crypto.randomUUID(); const ledgerId = crypto.randomUUID(); const now = new Date().toISOString();
   const amountCol = line.unit === 'g' ? 'stock_grams' : 'quantity_units'; const newBalance = Number(product[amountCol] || 0) + quantity;
   const newReceived = Number(line.received_quantity) + quantity; const state = deriveReceiptState(line.receipt_state as InventoryReceiptState,Number(line.expected_quantity),newReceived,Number(line.cancelled_quantity));
   const statements: D1PreparedStatement[] = [];
-  if (!line.intake_batch_id) statements.push(env.DB.prepare(`INSERT INTO batches (id,account_id,label,intake_date,vendor,note) VALUES (?,?,?,date('now'),?,'Inventory receipt')`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null));
+  if (!line.intake_batch_id && !existingReceiptBatch) statements.push(env.DB.prepare(`INSERT INTO batches (id,account_id,label,intake_date,vendor,note) VALUES (?,?,?,date('now'),?,'Inventory receipt')`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null));
   statements.push(env.DB.prepare(`UPDATE products SET ${amountCol}=?, inventory_purpose=?, is_sample=?, is_personal=?, stock_known_at=?, updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(newBalance,line.intended_purpose,line.intended_purpose==='sample'?1:0,line.intended_purpose==='personal'?1:0,now,line.product_id,ctx.accountId));
   statements.push(env.DB.prepare(`INSERT INTO stock_ledger (id,product_id,delta,balance_after,movement_unit,reason,user_email,note,batch_id,account_id,inventory_receipt_line_id) VALUES (?,?,?,?,?,'PURCHASE_RECEIPT',?,?,?,?,?)`).bind(ledgerId,line.product_id,quantity,newBalance,line.unit==='g'?'gram':'unit',ctx.email||null,'Received incoming stock',batchId,ctx.accountId,line.id));
   statements.push(env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity=received_quantity+?,intake_batch_id=?,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(quantity,batchId,line.id,ctx.accountId));

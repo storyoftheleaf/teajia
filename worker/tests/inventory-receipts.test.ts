@@ -32,6 +32,17 @@ describe('inventory receipt endpoints', () => {
     expect((await (await receiptRequest(db, '/api/inventory/receipts?include_closed=1', { accountId: 'account-b' })).json())).toHaveLength(0);
   });
 
+  it('normalizes receipt provenance from consistent lines and rejects missing or mixed sources', async () => {
+    const db = ReceiptDb.seeded(); db.products.set('product-a', { id: 'product-a', account_id: 'account-a' });
+    const inferred = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample', source_kind: 'vendor-note' }] }) });
+    expect(inferred.status).toBe(201);
+    expect([...db.receipts.values()][0].source_kind).toBe('vendor-note');
+    const missing = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample' }] }) });
+    expect(missing.status).toBe(400);
+    const mixed = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ lines: [{ product_id: 'product-a', quantity: 5, unit: 'g', intended_purpose: 'sample', source_kind: 'invoice' }, { product_id: 'product-a', quantity: 5, unit: 'g', intended_purpose: 'sample', source_kind: 'message' }] }) });
+    expect(mixed.status).toBe(400);
+  });
+
   it('moves through the manual lifecycle and rejects invalid transitions', async () => {
     const db = ReceiptDb.seededWithReceipt();
     expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'ordered' }) })).status).toBe(200);
@@ -53,6 +64,29 @@ describe('inventory receipt endpoints', () => {
     expect(db.teaSamples).toHaveLength(0);
     // A second open line means the persisted receipt remains partially received.
     expect(db.receipts.get('receipt-a')!.state).toBe('partially_received');
+  });
+
+  it('reuses one intake batch across separate lines of the same receipt', async () => {
+    const db = ReceiptDb.seededWithReceipt(true);
+    await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ quantity: 10 }) });
+    await receiptRequest(db, '/api/inventory/receipt-lines/line-b/receive', { method: 'POST', body: JSON.stringify({ quantity: 5 }) });
+    expect(db.receiptLines.get('line-b')!.intake_batch_id).toBe(db.receiptLines.get('line-a')!.intake_batch_id);
+    expect(db.batches.size).toBe(3);
+  });
+
+  it('isolates multiple receipts for one product and rejects all cross-account mutations', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    db.receipts.set('receipt-second', { ...db.receipts.get('receipt-a'), id: 'receipt-second', state: 'in_transit' });
+    db.receiptLines.set('line-second', { ...db.receiptLines.get('line-a'), id: 'line-second', receipt_id: 'receipt-second' });
+    db.products.set('foreign-product', { id: 'foreign-product', account_id: 'account-b', stock_grams: 0 });
+    const foreignCreate = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ source_kind: 'invoice', lines: [{ product_id: 'foreign-product', quantity: 10, unit: 'g', intended_purpose: 'working' }] }) });
+    expect(foreignCreate.status).toBe(404);
+    expect((await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', accountId: 'account-b', body: JSON.stringify({ quantity: 1 }) })).status).toBe(404);
+    expect((await receiptRequest(db, '/api/inventory/receipt-lines/line-a/cancel-remaining', { method: 'POST', accountId: 'account-b' })).status).toBe(404);
+    expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', accountId: 'account-b', body: JSON.stringify({ state: 'ordered' }) })).status).toBe(404);
+    await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ quantity: 10 }) });
+    expect(db.receipts.get('receipt-second')!.state).toBe('in_transit');
+    expect(db.receiptLines.get('line-second')!.received_quantity).toBe(0);
   });
 
   it('rolls stock, ledger, batch, line, and receipt back together on failure', async () => {
