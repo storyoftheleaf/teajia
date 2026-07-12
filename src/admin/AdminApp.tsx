@@ -122,6 +122,7 @@ import { AddProductModal } from './components/AddProductModal';
 /** Reads ?tab= and ?entry= query params and passes them to TeaCompass */
 const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const tab = params.get('tab');
   const entryId = params.get('entry');
   const capture = params.get('capture');
@@ -150,6 +151,12 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       initialCaptureOption={initialCaptureOption}
       initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
       initialSampleSetId={sampleSetId || undefined}
+      onSampleOrderRouteClose={() => {
+        const next = new URLSearchParams(params);
+        next.delete('sampleOrder');
+        next.delete('set');
+        navigate({ pathname: '/admin/compass', search: next.toString() ? `?${next}` : '' }, { replace: true });
+      }}
     />
   );
 };

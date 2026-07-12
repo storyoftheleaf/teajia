@@ -412,6 +412,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
 
       <button
         onClick={() => onEdit(sample.id)}
+        aria-label={`Edit ${sample.name || 'sample'}`}
         className="p-1 text-tea-text-dim hover:text-tea-text transition-colors"
       >
         <Edit3 size={14} />
@@ -660,7 +661,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
 
 // ── Main Component ─────────────────────────────────────────────────────
 
-export default function SampleSetCreator({ embeddedMode, initialSetId }: { embeddedMode?: 'list' | 'detail'; initialSetId?: string } = {}) {
+export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedOverlayChange }: { embeddedMode?: 'list' | 'detail'; initialSetId?: string; onNestedOverlayChange?: (open: boolean) => void } = {}) {
   const {
     sampleSets,
     samples,
@@ -711,6 +712,23 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [ledgerPromptName, setLedgerPromptName] = useState<string | null>(null);
+  const nestedTriggerRef = React.useRef<HTMLElement | null>(null);
+  const closeLabels = useCallback(() => {
+    setShowLabels(false);
+    window.requestAnimationFrame(() => nestedTriggerRef.current?.focus());
+  }, []);
+  const closeEdit = useCallback(() => {
+    setEditingSampleId(null);
+    window.requestAnimationFrame(() => nestedTriggerRef.current?.focus());
+  }, []);
+  const openEdit = useCallback((sampleId: string) => {
+    nestedTriggerRef.current = document.activeElement as HTMLElement | null;
+    setEditingSampleId(sampleId);
+  }, []);
+  useEffect(() => {
+    onNestedOverlayChange?.(showLabels || editingSampleId != null);
+    return () => onNestedOverlayChange?.(false);
+  }, [showLabels, editingSampleId, onNestedOverlayChange]);
 
   const visibleSets = sampleSets.filter(s => !s.archived);
   const activeSet = visibleSets.find((s) => s.id === activeSetId);
@@ -729,10 +747,10 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
 
   useEffect(() => {
     if (!showLabels) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowLabels(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeLabels(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [showLabels]);
+  }, [showLabels, closeLabels]);
 
   // List mode: seed the store so the detail panel has an initial selection
   useEffect(() => {
@@ -1018,7 +1036,11 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
           {/* Action buttons */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
-              onClick={() => activeSamples.length > 0 && setShowLabels(true)}
+              onClick={(event) => {
+                if (activeSamples.length === 0) return;
+                nestedTriggerRef.current = event.currentTarget;
+                setShowLabels(true);
+              }}
               disabled={activeSamples.length === 0}
               className={`nav-control nav-control-sm ${activeSamples.length === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
               title={activeSamples.length === 0 ? 'Add samples to print labels' : 'Print labels'}
@@ -1274,7 +1296,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
                   <SampleCard
                     key={sample.id}
                     sample={sample}
-                    onEdit={setEditingSampleId}
+                    onEdit={openEdit}
                     onDelete={handleDeleteSample}
                     onStatusChange={handleStatusChange}
                     onTaste={handleTaste}
@@ -1349,7 +1371,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
                 <SampleCard
                   key={sample.id}
                   sample={sample}
-                  onEdit={setEditingSampleId}
+                  onEdit={openEdit}
                   onDelete={handleDeleteSample}
                   onStatusChange={handleStatusChange}
                   onTaste={handleTaste}
@@ -1422,7 +1444,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
         {editingSampleId && (
           <SampleEditModal
             sampleId={editingSampleId}
-            onClose={() => setEditingSampleId(null)}
+            onClose={closeEdit}
           />
         )}
       </AnimatePresence>
@@ -1444,7 +1466,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId }: { embed
         <div className="fixed inset-0 z-modal bg-tea-bg flex flex-col">
           <div className="flex-shrink-0 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-3 border-b border-tea-border">
             <button
-              onClick={() => setShowLabels(false)}
+              onClick={closeLabels}
               className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Back to sample set"
             >

@@ -44,6 +44,7 @@ interface TeaCompassProps {
   initialCaptureOption?: 'tea' | 'teaware';
   initialSampleOrder?: 'open' | 'manage';
   initialSampleSetId?: string;
+  onSampleOrderRouteClose?: () => void;
 }
 
 // ─── Desktop-only right column placeholder ───────────────────────────────────
@@ -79,7 +80,7 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption, initialSampleOrder, initialSampleSetId }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption, initialSampleOrder, initialSampleSetId, onSampleOrderRouteClose }) => {
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -678,6 +679,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               managing={sampleOrderManaging}
               initialSetId={initialSampleSetId}
               onOpenChange={setSampleOrderOpen}
+              onRequestCloseRoute={initialSampleOrder ? onSampleOrderRouteClose : undefined}
               onManagingChange={setSampleOrderManaging}
               onCaptureTea={() => {
                 setSampleOrderOpen(false);

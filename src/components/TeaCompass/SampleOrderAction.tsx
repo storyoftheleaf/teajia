@@ -10,29 +10,40 @@ interface SampleOrderActionProps {
   managing: boolean;
   initialSetId?: string;
   onOpenChange: (open: boolean) => void;
+  onRequestCloseRoute?: () => void;
   onManagingChange: (managing: boolean) => void;
   onCaptureTea: () => void;
   onBrowseLibrary: () => void;
 }
 
 export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
-  open, managing, initialSetId, onOpenChange, onManagingChange, onCaptureTea, onBrowseLibrary,
+  open, managing, initialSetId, onOpenChange, onRequestCloseRoute, onManagingChange, onCaptureTea, onBrowseLibrary,
 }) => {
   const count = useSampleCartStore((state) => state.items.length);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const hasFocusedOpenRef = useRef(false);
+  const [nestedOverlayOpen, setNestedOverlayOpen] = React.useState(false);
 
   const close = () => {
     onOpenChange(false);
     onManagingChange(false);
+    onRequestCloseRoute?.();
     window.requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
   useEffect(() => {
-    if (!open) return;
-    closeRef.current?.focus();
+    if (!open) {
+      hasFocusedOpenRef.current = false;
+      return;
+    }
+    if (!hasFocusedOpenRef.current) {
+      closeRef.current?.focus();
+      hasFocusedOpenRef.current = true;
+    }
     const onKeyDown = (event: KeyboardEvent) => {
+      if (nestedOverlayOpen) return;
       if (event.key === 'Escape') close();
       if (event.key !== 'Tab') return;
       const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
@@ -51,7 +62,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [open]);
+  }, [open, nestedOverlayOpen]);
 
   return (
     <>
@@ -91,7 +102,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto pb-nav">
-              {managing ? <SampleSetCreator key={initialSetId ?? 'sample-sets'} initialSetId={initialSetId} /> : <SampleCartPanel onCaptureTea={onCaptureTea} onBrowseLibrary={onBrowseLibrary} />}
+              {managing ? <SampleSetCreator key={initialSetId ?? 'sample-sets'} initialSetId={initialSetId} onNestedOverlayChange={setNestedOverlayOpen} /> : <SampleCartPanel onCaptureTea={onCaptureTea} onBrowseLibrary={onBrowseLibrary} />}
             </div>
           </div>
         </div>

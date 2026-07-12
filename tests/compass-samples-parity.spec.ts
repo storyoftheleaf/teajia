@@ -35,6 +35,34 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await expect(page).not.toHaveURL(/sampleOrder|set=/);
+  });
+
+  test('nested label and edit overlays own Escape before the Sample order', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Manage sample sets' }).click();
+    await page.getByText(/Sample Cart/).first().click();
+    const labels = page.getByRole('button', { name: 'Print labels' });
+    await labels.click();
+    await expect(page.getByText('Print Labels', { exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Print Labels', { exact: true })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(labels).toBeFocused();
+    const edit = page.getByRole('button', { name: 'Edit 1998 Dong Ding' });
+    await edit.click();
+    await expect(page.getByText('Edit Sample', { exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Edit Sample', { exact: true })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(edit).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
   });
 
   test('opens the exact sample set from a Library batch link without remounting Compass', async ({ page }) => {
@@ -67,6 +95,16 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await expect(page).not.toHaveURL(/sampleOrder|set=/);
+    await page.getByRole('button', { name: /To taste/ }).click();
+    await page.getByRole('button', { name: 'Library Click Batch' }).click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await page.goForward();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
   });
 
   test('shows count and saves a nonempty cart as a historical set', async ({ page }) => {
