@@ -187,7 +187,10 @@ test.describe('Curate context management', () => {
 
 test.describe('Curate Library decisions and retrieval', () => {
   test.beforeEach(async ({ page }) => {
-    await installCompassHarness(page, { products: [{ id: 'product-cloud', is_public: 1, shown_in_shop: 0, status: 'Draft', given_name: 'Cloud Peak' }] });
+    await installCompassHarness(page, { products: [
+      { id: 'product-cloud', is_public: 1, shown_in_shop: 0, status: 'Draft', given_name: 'Cloud Peak' },
+      { id: 'product-held', source_compass_entry_id: 'held-sample', inventory_purpose: 'sample', stock_grams: 10, given_name: 'Held Sample' },
+    ] });
     await openCompass(page);
     // Hydration is intentionally asynchronous. Seed fixtures only after its
     // first server merge so a late empty response cannot erase the test entry.
@@ -199,7 +202,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       // @ts-expect-error Vite source import.
       const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
       const fixtures = [
-        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'smoky apricot', status: 'incoming', verdict: 'love', decision: null, isSample: true, sampleState: 'requested', journeyId: 'journey-taiwan', visitId: 'visit-chen', draftProductId: 'product-cloud', priceAmount: 20, pricePerUnitGrams: 10, year: 2024, photos: ['cloud.jpg'], tasting: { quality: 9 }, createdAt: '2026-06-10T00:00:00.000Z' },
+        { id: 'unresolved', name: 'Cloud Peak', vendorName: 'Chen Family', originRegion: 'Yunnan', type: 'Sheng', notes: 'smoky apricot', status: 'incoming', verdict: 'love', decision: null, isSample: true, sampleState: 'requested', journeyId: 'journey-taiwan', visitId: 'visit-chen', priceAmount: 20, pricePerUnitGrams: 10, year: 2024, photos: ['cloud.jpg'], tasting: { quality: 9 }, createdAt: '2026-06-10T00:00:00.000Z' },
         { id: 'selected', name: 'River Stone', vendorName: 'Lin Tea', originRegion: 'Alishan', type: 'Oolong', notes: 'mountain floral', status: 'noted', verdict: 'pass', decision: 'selected', priceAmount: 5, pricePerUnitGrams: 10, tasting: { quality: 5 }, createdAt: '2026-06-12T00:00:00.000Z' },
         { id: 'passed', name: 'Old Kiln Cup', vendorName: 'Wang Studio', originRegion: 'Jingdezhen', category: 'teaware', notes: 'invoice ceramic', status: 'in_stock', decision: 'passed_on', createdAt: '2025-06-11T00:00:00.000Z' },
       ];
@@ -349,7 +352,7 @@ test.describe('Curate Library decisions and retrieval', () => {
       }, filters);
       await expect(page.getByText('Cloud Peak', { exact: true }).filter({ visible: true })).toBeVisible();
     }
-    for (const filters of [{ possession: 'sample' }, { possession: 'stock' }, { sampleState: 'received' }, { sampleState: 'tasted' }]) {
+    for (const filters of [{ possession: 'sample' }, { possession: 'working' }, { sampleState: 'received' }, { sampleState: 'tasted' }]) {
       await page.evaluate(async (next) => {
         // @ts-expect-error Vite source import.
         const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
