@@ -81,6 +81,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
   const editorFor = (key: string): React.ReactNode => {
     switch (key) {
       case 'stockGrams':
+      case 'quantityUnits':
         return (
           <button
             type="button"
@@ -88,7 +89,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
             onClick={(event) => onStockMovement?.(product, event.currentTarget)}
             className="tap-target w-full rounded-md bg-tea-bg border border-tea-border px-2 py-1 text-ui-13 text-right num text-tea-text hover:border-tea-gold transition-colors"
           >
-            {Math.round(product.stockGrams ?? 0)}g · Recount
+            {key === 'quantityUnits' ? Math.round(product.quantityUnits ?? 0) : Math.round(product.stockGrams ?? 0)}{key === 'quantityUnits' ? ' units' : 'g'} · Recount
           </button>
         );
       case 'year':

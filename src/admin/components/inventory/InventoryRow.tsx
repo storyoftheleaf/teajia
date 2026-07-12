@@ -265,9 +265,9 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'quantityUnits': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          {isEditMode
-            ? <GhostInput id={ghostId(colIndex)} ariaLabel="Quantity units" value={product.quantityUnits || ''} onSave={(val) => onProductUpdate(product.id, 'quantityUnits', val)} type="number" align={numInputAlign} className={`num text-ui-13 ${numTone}`} />
-            : <span>{product.quantityUnits ?? '—'}</span>}
+          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`tap-target w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
+            {product.quantityUnits ?? 0}
+          </button>
         </td>
       );
       case 'verified': {

@@ -14,9 +14,11 @@ const product = {
   is_sample: 0, is_personal: 0, inventory_purpose: 'working', tasting_source: 'common',
 };
 const destinationProduct = { ...product, id: 'tea-2', given_name: 'Reserve', product_name: 'Reserve Oolong', stock_grams: 25 };
+const teawareProduct = { ...product, id: 'ware-1', type: 'Teaware', given_name: 'Field Gaiwan', product_name: 'Field Gaiwan', stock_grams: 0, quantity_units: 3, teaware_category: 'pot', material: 'Porcelain' };
 
 let balance = 100;
 let failNext = false;
+let teawareBalance = 3;
 const movements: any[] = [];
 const movementBodies: any[] = [];
 const absoluteStockWrites: any[] = [];
@@ -30,6 +32,7 @@ async function install(page: Page) {
   absoluteStockWrites.length = 0;
   invoiceBodies.length = 0;
   failNext = false;
+  teawareBalance = 3;
   await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
   await page.addInitScript(value => {
     localStorage.clear();
@@ -38,14 +41,15 @@ async function install(page: Page) {
   }, jwt);
   await page.route('**/api/auth/me', r => r.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } }));
   await page.route('**/api/auth/refresh', r => r.fulfill({ json: { token: jwt } }));
-  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }, destinationProduct] }));
+  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }, destinationProduct, { ...teawareProduct, quantity_units: teawareBalance }] }));
   await page.route('**/api/products/*/events', r => r.fulfill({ json: [] }));
   await page.route('**/api/products/tea-1/movements', async r => {
     const body = r.request().postDataJSON();
     movementBodies.push(body);
     if (failNext) {
       failNext = false;
-      await r.fulfill({ status: 409, json: { error: 'Stock changed elsewhere. Review the current balance and try again.' } });
+      balance = 95;
+      await r.fulfill({ status: 409, json: { error: 'Stock balance changed', current_balance: 95 } });
       return;
     }
     const before = balance;
@@ -58,6 +62,15 @@ async function install(page: Page) {
     balance = next;
     movements.unshift({ id: `movement-${movements.length + 1}`, movement_type: body.movement_type, reason: body.movement_type.toUpperCase(), delta: next - before, balance_before: before, balance_after: next, user_email: 'operator@test', note: body.note, source_invoice_number: body.source_invoice_number, created_at: new Date().toISOString() });
     await r.fulfill({ status: 201, json: { id: movements[0].id, before_balance: before, after_balance: next } });
+  });
+  await page.route('**/api/products/ware-1/movements', async r => {
+    const body = r.request().postDataJSON();
+    movementBodies.push(body);
+    const before = teawareBalance;
+    const outward = ['sample_use', 'gift', 'waste'].includes(body.movement_type);
+    teawareBalance = body.movement_type === 'recount' ? Number(body.balance) : before + (outward ? -Number(body.quantity) : Number(body.quantity));
+    movements.unshift({ id: `ware-${movements.length}`, movement_type: body.movement_type, reason: body.movement_type.toUpperCase(), delta: teawareBalance - before, balance_after: teawareBalance, movement_unit: 'unit', created_at: new Date().toISOString() });
+    await r.fulfill({ status: 201, json: { before_balance: before, after_balance: teawareBalance, unit: 'unit' } });
   });
   await page.route('**/api/products/*/stock', async r => { absoluteStockWrites.push(r.request().postDataJSON()); await r.fulfill({ json: { success: true } }); });
   await page.route('**/api/invoices', async r => {
@@ -164,26 +177,46 @@ test('prevents insufficient stock inline and preserves form after an API error',
   await page.getByLabel('Movement note').fill('Vendor gift');
   failNext = true;
   await page.getByRole('button', { name: 'Record movement' }).click();
-  await expect(page.getByText('Stock changed elsewhere. Review the current balance and try again.')).toBeVisible();
+  const firstKey = movementBodies.at(-1).idempotency_key;
+  await expect(page.getByText('Stock changed to 95g. Review and retry.')).toBeVisible();
   await expect(page.getByLabel('Quantity')).toHaveValue('10');
   await expect(page.getByLabel('Movement note')).toHaveValue('Vendor gift');
+  await expect(page.getByText('95g → 85g')).toBeVisible();
+  await page.getByRole('button', { name: 'Record movement' }).click();
+  expect(movementBodies.at(-1)).toMatchObject({ expected_balance: 95, quantity: 10, note: 'Vendor gift' });
+  expect(movementBodies.at(-1).idempotency_key).not.toBe(firstKey);
+  await expect(page.getByText('Cloud · 85g')).toBeVisible();
 });
 
-test('transfer requires a destination and recount records an absolute balance', async ({ page }) => {
+test('transfer rejects unrelated products and recount records an absolute balance', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await page.getByRole('button', { name: 'Transfer', exact: true }).click();
   await page.getByLabel('Quantity').fill('5');
-  await expect(page.getByText('Choose a destination holding')).toBeVisible();
+  await expect(page.getByText(/Transfer is unavailable until holdings can be explicitly related/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Record movement' })).toBeDisabled();
-  await page.getByLabel('Destination holding').selectOption('tea-2');
-  await page.getByRole('button', { name: 'Record movement' }).click();
-  await expect(page.getByText('Cloud · 95g')).toBeVisible();
-  expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'transfer', quantity: 5, destination_product_id: 'tea-2' });
+  await expect(page.getByRole('option', { name: 'Reserve Oolong' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Recount', exact: true }).click();
   await page.getByLabel('New balance').fill('72');
-  await expect(page.getByText('95g → 72g')).toBeVisible();
+  await expect(page.getByText('100g → 72g')).toBeVisible();
   await page.getByRole('button', { name: 'Record movement' }).click();
   await expect(page.getByText('Cloud · 72g')).toBeVisible();
+});
+
+test('teaware movements use units, update quantityUnits, and render a unit-aware ledger', async ({ page }) => {
+  await page.getByRole('button', { name: 'Wares', exact: true }).click();
+  await expect(page.getByText('Field Gaiwan').first()).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Change stock for Field Gaiwan' }).click();
+  await expect(page.getByText('Field Gaiwan · 3 units')).toBeVisible();
+  await page.getByLabel('Quantity').fill('2');
+  await page.getByRole('button', { name: 'Record movement' }).click();
+  expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'receipt', unit: 'unit', expected_balance: 3, quantity: 2 });
+  await expect(page.getByText('Field Gaiwan · 5 units')).toBeVisible();
+  await expect(page.getByText('3 units → 5 units')).toBeVisible();
+  await page.getByRole('button', { name: 'Recount', exact: true }).click();
+  await page.getByLabel('New balance').fill('4');
+  await page.getByRole('button', { name: 'Record movement' }).click();
+  expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'recount', unit: 'unit', expected_balance: 5, balance: 4 });
+  await expect(page.getByText('Field Gaiwan · 4 units')).toBeVisible();
 });
 
 test('quick edit opens Recount and full product edit opens movements without absolute stock writes', async ({ page }) => {

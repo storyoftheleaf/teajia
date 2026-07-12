@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api';
+import { ApiError, api } from '../../../lib/api';
 import type { Product } from '../../types';
 import { StockLedgerPanel } from '../StockLedgerPanel';
 
@@ -24,7 +24,7 @@ export interface StockMovementPanelProps {
   products: Product[];
   trigger?: HTMLElement | null;
   onClose: () => void;
-  onRecorded: (afterBalance: number) => void;
+  onRecorded: (afterBalance: number, unit: 'g' | 'unit') => void;
   initialMovementType?: MovementType;
 }
 
@@ -32,17 +32,20 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   product, products, trigger, onClose, onRecorded, initialMovementType = 'receipt',
 }) => {
   const queryClient = useQueryClient();
+  void products; // Transfers remain unavailable until holdings have an explicit relation.
+  const movementUnit: 'g' | 'unit' = product.type === 'Teaware' ? 'unit' : 'g';
+  const initialBalance = movementUnit === 'unit' ? Number(product.quantityUnits || 0) : Number(product.stockGrams || 0);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [movementType, setMovementType] = useState<MovementType>(initialMovementType);
   const [quantity, setQuantity] = useState('');
-  const [balance, setBalance] = useState(String(Math.round(product.stockGrams || 0)));
-  const [destination, setDestination] = useState('');
+  const [balance, setBalance] = useState(String(Math.round(initialBalance)));
+  const [currentBalance, setCurrentBalance] = useState(initialBalance);
   const [note, setNote] = useState('');
   const [reference, setReference] = useState('');
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const current = Number(product.stockGrams || 0);
+  const current = currentBalance;
   const amount = Number(quantity);
   const next = movementType === 'recount'
     ? Number(balance)
@@ -50,13 +53,8 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const invalidQuantity = movementType !== 'recount' && (!Number.isFinite(amount) || amount <= 0);
   const invalidBalance = movementType === 'recount' && (!Number.isFinite(next) || next < 0);
   const insufficient = OUTWARD.has(movementType) && Number.isFinite(amount) && amount > current;
-  const missingDestination = movementType === 'transfer' && !destination;
-  const canSubmit = !saving && !invalidQuantity && !invalidBalance && !insufficient && !missingDestination;
-
-  const destinations = useMemo(
-    () => products.filter(candidate => candidate.id !== product.id && candidate.type === product.type),
-    [product.id, product.type, products],
-  );
+  const transferUnavailable = movementType === 'transfer';
+  const canSubmit = !saving && !invalidQuantity && !invalidBalance && !insufficient && !transferUnavailable;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -82,24 +80,30 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
     try {
       const result = await api.stockMovements.create(product.id, {
         movement_type: movementType,
-        unit: product.type === 'Teaware' ? 'unit' : 'g',
+        unit: movementUnit,
         expected_balance: current,
         idempotency_key: idempotencyKey,
         ...(movementType === 'recount' ? { balance: next } : { quantity: amount }),
-        ...(destination ? { destination_product_id: destination } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reference.trim() ? { source_invoice_number: reference.trim() } : {}),
       });
-      onRecorded(Number(result.after_balance));
+      onRecorded(Number(result.after_balance), movementUnit);
+      setCurrentBalance(Number(result.after_balance));
       await queryClient.invalidateQueries({ queryKey: ['stock_ledger', product.id] });
       setQuantity('');
       setNote('');
       setReference('');
-      setDestination('');
       setBalance(String(result.after_balance));
       setIdempotencyKey(crypto.randomUUID());
     } catch (caught: any) {
-      setError(caught?.message || 'Movement could not be recorded. Try again.');
+      if (caught instanceof ApiError && caught.status === 409 && Number.isFinite(Number(caught.data?.current_balance))) {
+        const latest = Number(caught.data?.current_balance);
+        setCurrentBalance(latest);
+        setIdempotencyKey(crypto.randomUUID());
+        setError(`Stock changed to ${latest}${movementUnit === 'unit' ? ' units' : 'g'}. Review and retry.`);
+      } else {
+        setError(caught?.message || 'Movement could not be recorded. Try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -154,21 +158,12 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               />
             </label>
 
-            {movementType === 'transfer' && (
-              <label className="block text-ui-12 text-tea-text-sec">
-                Destination holding
-                <select aria-label="Destination holding" value={destination} onChange={event => setDestination(event.target.value)} className="admin-input mt-1 w-full">
-                  <option value="">Choose a destination</option>
-                  {destinations.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.givenName || candidate.productName}</option>)}
-                </select>
-              </label>
-            )}
+            {transferUnavailable && <p className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-text-sec">Transfer is unavailable until holdings can be explicitly related. Matching tea type alone is not a safe destination.</p>}
 
             <div aria-live="polite" className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-14 text-tea-text tabular-nums">
               {Number.isFinite(next) ? `${current}${unit} → ${next}${unit}` : `${current}${unit} → —`}
             </div>
             {insufficient && <p className="text-ui-12 text-tea-error">Only {current}{unit} available</p>}
-            {missingDestination && <p className="text-ui-12 text-tea-text-sec">Choose a destination holding</p>}
 
             <label className="block text-ui-12 text-tea-text-sec">
               Note

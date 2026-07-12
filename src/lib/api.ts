@@ -594,7 +594,7 @@ function dispatchNetworkError() {
 }
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly data?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiError';
   }
@@ -627,7 +627,7 @@ async function handleResponse(res: Response) {
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, data);
   }
   // Adopt any sliding-refresh token the server stapled onto the response
   // (currently /api/auth/me does this). Keeps the client JWT fresh without
@@ -715,7 +715,7 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
     const message = typeof bodyData?.error === 'string' && bodyData.error.length < 200
       ? bodyData.error
       : `Request failed (${res.status})`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, bodyData);
   }
 
   return res;

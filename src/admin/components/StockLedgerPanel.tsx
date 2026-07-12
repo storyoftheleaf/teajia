@@ -68,16 +68,19 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
               const isPositive = entry.delta > 0;
               const before = entry.balance_before ?? Number(entry.balance_after) - Number(entry.delta);
               const reference = entry.source_invoice_number || entry.reference;
+              const isUnits = entry.movement_unit === 'unit' || entry.unit === 'unit';
+              const unitLabel = isUnits ? ' units' : 'g';
+              const ariaUnit = isUnits ? 'units' : 'grams';
               return (
                 <article key={entry.id} className="py-2 border-b border-tea-border last:border-0">
                   <div className="flex flex-wrap items-center gap-2">
                   <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-tea-gold' : 'text-tea-text-sec'}`}>
                     {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                     <span className="text-ui-11 num font-medium">
-                      {isPositive ? '+' : ''}{entry.delta}g
+                      {isPositive ? '+' : ''}{entry.delta}{unitLabel}
                     </span>
                   </div>
-                  <span className="text-ui-11 text-tea-text-sec num shrink-0" aria-label={`Balance ${before} grams to ${entry.balance_after} grams`}>{before}g → {entry.balance_after}g</span>
+                  <span className="text-ui-11 text-tea-text-sec num shrink-0" aria-label={`Balance ${before} ${ariaUnit} to ${entry.balance_after} ${ariaUnit}`}>{before}{unitLabel} → {entry.balance_after}{unitLabel}</span>
                   <span className="badge-status badge-status-default text-ui-11">
                     {REASON_LABELS[entry.reason] || entry.reason}
                   </span>

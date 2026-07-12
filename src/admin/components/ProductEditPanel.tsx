@@ -1583,7 +1583,9 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               {inventoryCategory === 'teaware' ? (
                 <FieldGrid cols={2}>
                   <FieldCell label="Units">
-                    <GhostInput variant="bordered" value={product.quantityUnits || ''} onSave={(val) => handleUpdate(product.id, 'quantityUnits', val)} type="number" className="tabular-nums" />
+                    <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)} className="tap-target admin-input w-full text-left tabular-nums hover:border-tea-gold transition-colors">
+                      {product.quantityUnits ?? 0} units · Record movement
+                    </button>
                   </FieldCell>
                   <FieldCell label="Capacity ml">
                     <GhostInput variant="bordered" value={product.capacityMl || ''} onSave={(val) => handleUpdate(product.id, 'capacityMl', val)} type="number" className="tabular-nums" />

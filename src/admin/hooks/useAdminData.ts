@@ -78,6 +78,10 @@ export const useProducts = (options?: { enabled?: boolean }) => {
             ? p.tasting_source
             : undefined,
         sourceCompassEntryId: p.source_compass_entry_id || undefined,
+        material: p.material || undefined,
+        capacityMl: p.capacity_ml == null ? undefined : Number(p.capacity_ml),
+        teawareCategory: p.teaware_category || undefined,
+        quantityUnits: p.quantity_units == null ? undefined : Number(p.quantity_units),
       })) as Product[];
     }
   });

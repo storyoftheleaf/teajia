@@ -158,15 +158,15 @@ describe('POST product stock movements', () => {
   });
   it('enforces product, destination, and account scope', async () => {
     expect((await movementRequest(new MovementDb(), 'other', body('sale'))).status).toBe(404);
-    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'other' }))).status).toBe(404);
-    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'missing' }))).status).toBe(404);
+    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'other' }))).status).toBe(400);
+    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'missing' }))).status).toBe(400);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { batch_id: 'foreign-batch' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { source_compass_entry_id: 'foreign-entry' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { source_invoice_id: 'foreign-invoice' }))).status).toBe(404);
   });
-  it('transfers only to a valid destination without disappearance', async () => {
+  it('rejects unrelated products as transfer destinations', async () => {
     const db = new MovementDb(); const response = await movementRequest(db, 'tea', body('transfer', { quantity: 4, destination_product_id: 'destination' }));
-    expect(response.status).toBe(201); expect(db.products.get('tea')?.stock_grams).toBe(16); expect(db.products.get('destination')?.stock_grams).toBe(9); expect(db.ledger.map(row => row.delta)).toEqual([-4, 4]);
+    expect(response.status).toBe(400); expect(await response.json()).toMatchObject({ error: expect.stringMatching(/explicit holding relationship/) }); expect(db.products.get('tea')?.stock_grams).toBe(20); expect(db.products.get('destination')?.stock_grams).toBe(5); expect(db.ledger).toHaveLength(0);
   });
   it('preserves invoice, batch, and compass provenance', async () => {
     const db = new MovementDb(); await movementRequest(db, 'tea', body('receipt', { source_invoice_id: 'inv', source_invoice_number: 'INV-1', batch_id: 'batch', source_compass_entry_id: 'entry' }));
