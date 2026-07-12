@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Printer, Trash2, Edit3, Package, Leaf, X, ChevronDown, ChevronUp, ArrowLeft, Archive, Info, Compass, ShoppingBag, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -1502,6 +1502,10 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
   const [holdingMessage, setHoldingMessage] = useState('');
   const [confirmingUse, setConfirmingUse] = useState(false);
   const [usingHolding, setUsingHolding] = useState(false);
+  const holdingRequestInFlightRef = useRef(false);
+  const useHoldingButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelHoldingUseRef = useRef<HTMLButtonElement>(null);
+  const confirmHoldingUseRef = useRef<HTMLButtonElement>(null);
   const linkedHolding = products.find((product) => product.id === sample?.inventoryHoldingProductId);
 
   const editTeaType = sample?.type && sample.type !== 'Teaware'
@@ -1524,40 +1528,123 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
   );
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || confirmingUse) return;
+      onClose();
+    };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+  }, [onClose, confirmingUse]);
+
+  useEffect(() => {
+    if (confirmingUse) window.requestAnimationFrame(() => cancelHoldingUseRef.current?.focus());
+  }, [confirmingUse]);
 
   if (!sample) return null;
 
   const saveHoldingLink = () => {
-    updateSample(sampleId, { inventoryHoldingProductId: holdingProductId || undefined });
+    const changed = sample.inventoryHoldingProductId !== (holdingProductId || undefined);
+    updateSample(sampleId, {
+      inventoryHoldingProductId: holdingProductId || undefined,
+      ...(changed ? {
+        holdingUsePendingIdempotencyKey: undefined,
+        holdingUsePendingQuantity: undefined,
+        holdingUsePendingExpectedBalance: undefined,
+        holdingUsePendingProductId: undefined,
+        completedHoldingMovement: undefined,
+        lastHoldingUseAt: undefined,
+      } : {}),
+    });
     setHoldingMessage(holdingProductId ? 'Linked without changing stock' : 'Holding link removed');
   };
 
   const confirmHoldingUse = async () => {
-    if (!linkedHolding || usingHolding) return;
+    if (!linkedHolding || usingHolding || holdingRequestInFlightRef.current || sample.completedHoldingMovement) return;
+    holdingRequestInFlightRef.current = true;
     setUsingHolding(true);
     setHoldingMessage('');
+    const idempotencyKey = sample.holdingUsePendingIdempotencyKey || `sample:${sample.id}:${crypto.randomUUID()}`;
+    const quantity = sample.holdingUsePendingQuantity ?? sample.grams;
+    const expectedBalance = sample.holdingUsePendingExpectedBalance ?? linkedHolding.stockGrams;
+    const productId = sample.holdingUsePendingProductId ?? linkedHolding.id;
+    updateSample(sampleId, {
+      holdingUsePendingIdempotencyKey: idempotencyKey,
+      holdingUsePendingQuantity: quantity,
+      holdingUsePendingExpectedBalance: expectedBalance,
+      holdingUsePendingProductId: productId,
+    });
     try {
-      await api.stockMovements.create(linkedHolding.id, {
+      const result = await api.stockMovements.create(productId, {
         movement_type: 'sample_use',
-        quantity: sample.grams,
+        quantity,
         unit: 'g',
-        expected_balance: linkedHolding.stockGrams,
-        idempotency_key: `sample:${sample.id}:${crypto.randomUUID()}`,
+        expected_balance: expectedBalance,
+        idempotency_key: idempotencyKey,
         note: `Sample portion: ${sample.name || sample.id}`,
         source_compass_entry_id: sample.compassEntryId,
       });
-      updateSample(sampleId, { lastHoldingUseAt: new Date().toISOString() });
-      setHoldingMessage(`${sample.grams}g recorded in Inventory history`);
+      const recordedAt = new Date().toISOString();
+      updateSample(sampleId, {
+        lastHoldingUseAt: recordedAt,
+        holdingUsePendingIdempotencyKey: undefined,
+        holdingUsePendingQuantity: undefined,
+        holdingUsePendingExpectedBalance: undefined,
+        holdingUsePendingProductId: undefined,
+        completedHoldingMovement: {
+          id: result?.id || idempotencyKey,
+          idempotencyKey,
+          productId,
+          quantity,
+          afterBalance: typeof result?.after_balance === 'number' ? result.after_balance : undefined,
+          recordedAt,
+        },
+      });
+      setHoldingMessage(`${quantity}g recorded in Inventory history`);
       setConfirmingUse(false);
     } catch (error) {
       setHoldingMessage(error instanceof Error ? error.message : 'Could not record sample use');
+      setConfirmingUse(false);
+      window.requestAnimationFrame(() => useHoldingButtonRef.current?.focus());
     } finally {
+      holdingRequestInFlightRef.current = false;
       setUsingHolding(false);
     }
+  };
+
+  const closeHoldingUseConfirmation = () => {
+    setConfirmingUse(false);
+    window.requestAnimationFrame(() => useHoldingButtonRef.current?.focus());
+  };
+
+  const handleHoldingUseDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeHoldingUseConfirmation();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const first = cancelHoldingUseRef.current;
+    const last = confirmHoldingUseRef.current;
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const prepareAnotherHoldingUse = () => {
+    updateSample(sampleId, {
+      holdingUsePendingIdempotencyKey: undefined,
+      holdingUsePendingQuantity: undefined,
+      holdingUsePendingExpectedBalance: undefined,
+      holdingUsePendingProductId: undefined,
+      completedHoldingMovement: undefined,
+    });
+    setHoldingMessage('Ready to record a separate sample use');
   };
 
   return (
@@ -1733,22 +1820,30 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               </button>
             </div>
             {holdingMessage && <p role="status" className="mt-2 text-ui-11 text-tea-text-sec">{holdingMessage}</p>}
-            {linkedHolding && (
-              <button type="button" onClick={() => setConfirmingUse(true)} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
-                Use {sample.grams}g from holding
+            {linkedHolding && !sample.completedHoldingMovement && (
+              <button ref={useHoldingButtonRef} type="button" onClick={() => setConfirmingUse(true)} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
+                {sample.holdingUsePendingIdempotencyKey ? `Retry ${sample.holdingUsePendingQuantity ?? sample.grams}g sample use` : `Use ${sample.grams}g from holding`}
               </button>
+            )}
+            {linkedHolding && sample.completedHoldingMovement && (
+              <div className="mt-2">
+                <p className="text-ui-11 text-tea-text-sec">This portion’s {sample.completedHoldingMovement.quantity}g use is recorded.</p>
+                <button type="button" onClick={prepareAnotherHoldingUse} className="tap-target mt-1 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
+                  Record another sample use
+                </button>
+              </div>
             )}
           </div>
         </div>
 
         {confirmingUse && linkedHolding && (
-          <div role="dialog" aria-label="Confirm sample use" className="fixed inset-x-4 top-4 bottom-nav-gap z-10 flex items-end justify-center rounded bg-black/50 p-3">
+          <div role="dialog" aria-modal="true" aria-label="Confirm sample use" onKeyDown={handleHoldingUseDialogKeyDown} className="fixed inset-x-4 top-4 bottom-nav-gap z-10 flex items-end justify-center rounded bg-black/50 p-3">
             <div className="w-full rounded bg-tea-elevated p-3">
               <p className="text-ui-13 text-tea-text">Record {sample.grams}g used from {linkedHolding.givenName || linkedHolding.productName}?</p>
               <p className="mt-1 text-ui-11 text-tea-text-sec">This is the only action here that changes Inventory stock.</p>
               <div className="mt-3 flex justify-between gap-3">
-                <button type="button" onClick={() => setConfirmingUse(false)} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button>
-                <button type="button" disabled={usingHolding} onClick={confirmHoldingUse} className="tap-target rounded bg-tea-gold px-3 py-2 text-ui-12 text-tea-bg disabled:opacity-50">
+                <button ref={cancelHoldingUseRef} type="button" onClick={closeHoldingUseConfirmation} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label="Cancel sample use">Cancel</button>
+                <button ref={confirmHoldingUseRef} type="button" disabled={usingHolding} onClick={confirmHoldingUse} className="tap-target rounded bg-tea-gold px-3 py-2 text-ui-12 text-tea-bg disabled:opacity-50">
                   {usingHolding ? 'Recording…' : `Confirm ${sample.grams}g sample use`}
                 </button>
               </div>

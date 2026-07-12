@@ -32,10 +32,87 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await expect(page.getByText('Linked without changing stock')).toBeVisible();
 
     await page.getByRole('button', { name: 'Use 10g from holding' }).click();
-    await expect(page.getByRole('dialog', { name: 'Confirm sample use' })).toBeVisible();
-    await page.getByRole('button', { name: 'Confirm 10g sample use' }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Confirm sample use' });
+    await expect(confirmation).toHaveAttribute('aria-modal', 'true');
+    await expect(page.getByRole('button', { name: 'Cancel sample use' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Confirm 10g sample use' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Cancel sample use' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(confirmation).toBeHidden();
+    await expect(page.getByText('Edit Sample')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Use 10g from holding' })).toBeFocused();
+
+    await page.getByRole('button', { name: 'Use 10g from holding' }).click();
+    await page.evaluate(() => {
+      const confirm = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.includes('Confirm 10g sample use'));
+      confirm?.click();
+      confirm?.click();
+    });
     await expect.poll(() => movements.length).toBe(1);
     expect(movements[0]).toMatchObject({ movement_type: 'sample_use', quantity: 10, unit: 'g', expected_balance: 42 });
+    await expect(page.getByRole('button', { name: 'Use 10g from holding' })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Record another sample use' })).toBeVisible();
+  });
+
+  test('reuses a persisted movement key after a lost response and records one completed use', async ({ page }) => {
+    const requests: Array<Record<string, unknown>> = [];
+    const appliedKeys = new Set<string>();
+    await installCompassHarness(page, { sampleCart: [CART_ITEM], preserveSamplesOnNavigation: true, products: [{
+      id: 'holding-1', type: 'Oolong', given_name: 'Dong Ding holding', product_name: 'Dong Ding',
+      stock_grams: 42, status: 'Active', inventory_purpose: 'sample', origin_country: '', origin_region: '',
+    }] });
+    await page.route('**/api/products/holding-1/movements', async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>;
+      requests.push(body);
+      const key = String(body.idempotency_key);
+      const alreadyApplied = appliedKeys.has(key);
+      appliedKeys.add(key);
+      if (!alreadyApplied) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Response lost after commit' }) });
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'movement-1', after_balance: 32, already_applied: true }) });
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Manage sample sets' }).click();
+    await page.getByText(/Sample Cart/).first().click();
+    await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
+    await page.getByLabel('Inventory holding').selectOption('holding-1');
+    await page.getByRole('button', { name: 'Save holding link' }).click();
+    await page.getByRole('button', { name: 'Use 10g from holding' }).click();
+    await page.getByRole('button', { name: 'Confirm 10g sample use' }).click();
+    await expect.poll(() => requests.length).toBe(1);
+    await expect(page.getByText('Response lost after commit', { exact: true })).toBeVisible();
+    const pending = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0]);
+    expect(pending.holdingUsePendingIdempotencyKey).toBe(requests[0].idempotency_key);
+    expect(pending.completedHoldingMovement).toBeUndefined();
+
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
+    await expect(page.getByRole('button', { name: 'Retry 10g sample use' })).toBeVisible();
+    await page.getByRole('button', { name: 'Retry 10g sample use' }).click();
+    await page.getByRole('button', { name: 'Confirm 10g sample use' }).click();
+    await expect.poll(() => requests.length).toBe(2);
+    expect(requests[1].idempotency_key).toBe(requests[0].idempotency_key);
+    const completed = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.samples[0]);
+    expect(completed).toMatchObject({
+      inventoryHoldingProductId: 'holding-1',
+      completedHoldingMovement: { id: 'movement-1', idempotencyKey: requests[0].idempotency_key, quantity: 10, afterBalance: 32 },
+    });
+    expect(completed.holdingUsePendingIdempotencyKey).toBeUndefined();
+    expect(appliedKeys.size).toBe(1);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const hydrated = await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      return useSampleStore.getState().samples[0];
+    });
+    expect(hydrated).toMatchObject({
+      inventoryHoldingProductId: 'holding-1', lastHoldingUseAt: expect.any(String),
+      completedHoldingMovement: { id: 'movement-1', idempotencyKey: requests[0].idempotency_key, quantity: 10, afterBalance: 32 },
+    });
+    expect(hydrated.holdingUsePendingIdempotencyKey).toBeUndefined();
   });
 
   test('persists history, identity, tastings, labels, and both source destinations across reopen', async ({ page }) => {

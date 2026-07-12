@@ -40,6 +40,18 @@ export interface TeaSample {
   compassEntryId?: string;     // If captured via Tea Compass
   inventoryHoldingProductId?: string; // Physical stock this portion came from; distinct from product graduation
   lastHoldingUseAt?: string;   // Last explicit SAMPLE_USE ledger confirmation
+  holdingUsePendingIdempotencyKey?: string;
+  holdingUsePendingQuantity?: number;
+  holdingUsePendingExpectedBalance?: number;
+  holdingUsePendingProductId?: string;
+  completedHoldingMovement?: {
+    id: string;
+    idempotencyKey: string;
+    productId: string;
+    quantity: number;
+    afterBalance?: number;
+    recordedAt: string;
+  };
 
   // Set grouping
   setId: string;
