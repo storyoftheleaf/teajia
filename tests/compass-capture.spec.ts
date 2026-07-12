@@ -106,10 +106,16 @@ test.describe('Curate field capture preservation', () => {
     await openCompass(page);
     const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
     await name.fill('First field tea');
-    await page.getByRole('button', { name: /^(New Entry|Start a new entry)$/ }).filter({ visible: true }).click();
+    const directNewEntry = page.getByRole('button', { name: /^(New Entry|Start a new entry)$/ }).filter({ visible: true });
+    await expect(directNewEntry).toHaveCount(1);
+    await directNewEntry.click();
     await name.fill('Second field tea');
     await expect(name).toHaveValue('Second field tea');
-    await page.getByRole('button', { name: /First field tea/ }).filter({ visible: true }).click();
+    const firstEntry = page.getByRole('button', { name: 'First field tea', exact: true }).filter({ visible: true });
+    if (!(await firstEntry.isVisible().catch(() => false))) {
+      await page.getByRole('button', { name: /^Run(?: · \d+)?$/ }).filter({ visible: true }).click();
+    }
+    await firstEntry.click();
     await expect(name).toHaveValue('First field tea');
   });
 

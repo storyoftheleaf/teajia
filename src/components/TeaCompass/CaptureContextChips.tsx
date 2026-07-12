@@ -105,7 +105,18 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         />
       </button>
 
-      <div className="ml-auto shrink-0 pl-1">
+      <span className="ml-auto shrink-0 md:hidden">
+        <button
+          type="button"
+          onClick={() => startNewCapture(category)}
+          aria-label="Start a new entry"
+          className="tap-target pill-quiet"
+        >
+          <Plus size={14} aria-hidden="true" />
+        </button>
+      </span>
+
+      <div className="shrink-0 pl-1 md:ml-auto">
         <SyncIndicator />
       </div>
 

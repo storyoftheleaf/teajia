@@ -176,10 +176,15 @@ test('unlinked development waits for consent then creates exactly one linked dra
   await page.getByRole('button', { name: 'Develop in Curate' }).click();
   await expect(page).toHaveURL(/developProduct=unlinked-needs/);
   await expect(page.getByText('Develop Unlinked Development Tea in Curate').filter({ visible: true })).toBeVisible();
-  await expect(page.getByLabel('Remove')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => {
+    const compass = JSON.parse(localStorage.getItem('teajia-compass') || '{}').state;
+    return [...(compass?.pendingEntries || []), ...(compass?.entries || [])]
+      .filter((entry: { draftProductId?: string }) => entry.draftProductId === 'unlinked-needs').length;
+  })).toBe(0);
   await page.getByRole('button', { name: 'Start development' }).filter({ visible: true }).click();
   await expectInputValue(page, 'Unlinked Development Tea');
-  await expect(page.getByLabel('Remove')).toHaveCount(1);
+  await page.getByPlaceholder('Price').filter({ visible: true }).fill('24');
+  await expect(page.getByPlaceholder('Price').filter({ visible: true })).toHaveValue('24');
   const compass = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-compass') || '{}').state);
   const linked = [...(compass?.pendingEntries || []), ...(compass?.entries || [])].filter((entry: { draftProductId?: string }) => entry.draftProductId === 'unlinked-needs');
   expect(linked).toHaveLength(1);

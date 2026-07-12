@@ -167,10 +167,12 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByPlaceholder('Select customer...').blur();
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].customerName)).toBe('Mina Chen');
     await expect(page.getByRole('button', { name: /Print labels/i })).toBeVisible();
-    await expect(page.getByText(/Untasted|Tasted/).first()).toBeVisible();
+    await expect(page.getByText(/Untasted|Tasted/).filter({ visible: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open in Curate to taste' })).toBeVisible();
-    await page.locator('button[title="Click to change status"]').last().click();
-    await page.locator('button[title="Click to change status"]').last().click();
+    const visibleStatusControl = page.locator('button[title="Click to change status"]').filter({ visible: true });
+    await expect(visibleStatusControl).toHaveCount(1);
+    await visibleStatusControl.click();
+    await visibleStatusControl.click();
     await expect(page.getByRole('button', { name: 'Graduate to inventory' })).toBeVisible();
     await page.evaluate(async () => {
       // @ts-expect-error Vite source modules are available in Playwright.
