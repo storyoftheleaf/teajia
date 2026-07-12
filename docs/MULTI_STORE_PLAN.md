@@ -1,6 +1,6 @@
 # Multi-Store Architecture — Teajia
 
-*Phase 1A shipped on branch `claude/multi-store-collaboration-4hjfW`. Read VISION.md and ROADMAP.md first — this doc is the implementation reference.*
+*Phase 1A shipped. Read `VISION.md`, `CONSOLIDATED_DIRECTION.md`, and `tracks/02-first-operator-and-users.md` first — this document is an implementation reference, not an active roadmap.*
 
 ---
 

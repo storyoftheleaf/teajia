@@ -104,9 +104,9 @@ All require authentication (Guest cannot access).
 - **Status:** WIRED (per project_tasting_model: one CustomerTasting per user × product)
 
 ### /account/collection
-- Personal tea collection (first-class inventory)
-- Add tea to personal collection, browse owned teas
-- **Status:** PARTIAL (placeholder; intent per project_vision_tea_master_platform)
+- Favorites list backed by the member's saved teas
+- Owned inventory lives in the API-backed Cellar surface; a routable `/account/cellar` page remains in Track 9
+- **Status:** WIRED (favorites)
 
 ### /account/journey
 - My Journey card expanded view
@@ -117,12 +117,12 @@ All require authentication (Guest cannot access).
 ### /account/orders
 - Purchase history via WhatsApp orders
 - Order status tracking by order ref
-- **Status:** EMPTY STATE ONLY (no order data wired per CLAUDE.md known stubs)
+- **Status:** WIRED (order list); per-order detail page remains open in Track 6
 
 ### /account/samples
 - Requested/received tasting samples
 - Sample detail, request flow
-- **Status:** EMPTY STATE ONLY (no sample data wired per CLAUDE.md known stubs)
+- **Status:** WIRED (sample history)
 
 ### /account/settings
 - Change password (old + new, validation)
@@ -250,39 +250,17 @@ All public (no auth required).
 
 | Route | Status | Notes |
 |---|---|---|
-| `/account/orders` | EMPTY STATE ONLY | No order data wired. WhatsApp checkout works, but order list not connected. |
-| `/account/samples` | EMPTY STATE ONLY | No sample data wired. Sample request flow UI exists but backend incomplete. |
+| `/account/orders` | WIRED | Order list is live; per-order detail remains open in Track 6. |
+| `/account/samples` | WIRED | Sample history is connected to the member API. |
 | `/design/tabs` | ORPHAN | Internal design system demo page; not in navigation. |
 | `/admin/network?tab=adoptions` | WIRED | Platform-tier adoption queue lives inside the Network hub (`AdoptionQueue` rendered embedded by `NetworkLanding` when `isPlatform`). Reads `GET /api/network/adoption-queue`; decisions go to `POST /api/network/profiles/:id/adopt`. |
 
 ---
 
-## High-Risk Authorization Gaps (Per _audit/02–03)
+## Authorization status
 
-**31 actions with client-side gates but no server-side requireBundle enforcement:**
-
-### Stock-Related (6 gaps)
-- GET /api/stock/available
-- POST /api/rpc/reserve-stock
-- POST /api/rpc/release-stock
-- POST /api/rpc/increment-stock (HIGH RISK)
-- GET /api/stock-ledger
-- POST /api/rpc/reset-stock-verification
-
-### Gather-Related (17 gaps)
-- All 17 `/api/admin/events/*` and `/api/admin/venues/*` endpoints lack bundle enforcement
-- Implicit account scope; no `requireBundle('gather')` middleware
-
-### Publish-Related (6 gaps)
-- All 6 `/api/collections/*` endpoints lack bundle enforcement
-
-### Sell-Related (2 gaps)
-- POST /api/rpc/fulfill-invoice (HIGH RISK — stock deduction)
-- POST /api/rpc/void-invoice (HIGH RISK — state reset)
-
-**Severity:** HIGH. These RPC endpoints allow any authenticated member with a higher-tier token to perform privileged actions regardless of bundle assignment.
+The April 31-gap bundle audit is closed; server-side enforcement and auth-boundary tests shipped. Current residual work is narrower: cross-account tenancy-isolation coverage and a few inconsistent route-specific bundle assignments. Track 8 and the maintained route/auth inventory are authoritative.
 
 ---
 
-**Source files:** _audit/01–03 (route + action inventory with status), src/App.tsx (route table), src/admin/AdminApp.tsx (admin routing), CLAUDE.md (known stubs section), NETWORK_ROLLOUT_PLAN.md (tier model + bundle definitions)
-
+**Source files:** `src/App.tsx` (public/member routes), `src/admin/AdminApp.tsx` (admin routing), `worker/src/index.ts` (API routing), `plan/product-architecture-route-auth-inventory.md` (maintained auth inventory), and `tracks/08-platform-hardening.md` (open hardening work).

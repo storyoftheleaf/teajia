@@ -82,10 +82,10 @@ Not a social network. A tea table with chairs for friends.
 
 **Connective intent (not yet wired):** Purchase should suggest tasting. "You bought this 3 days ago. Ready to log your first session?" Owned teas appear in Compass as first-class.
 
-### 3.2 Personal Collection
-**Model:** First-class personal inventory, distinct from favorites.
+### 3.2 Favorites and Cellar
+**Model:** Favorites and owned inventory are distinct. `/account/collection` is the live favorites view; the API-backed Cellar is the owned-stock surface.
 
-**Current state:** `/account/collection` is a placeholder. Intent per project_vision_tea_master_platform memory is inventory management for members acting as Tea Masters.
+**Current state:** Favorites are wired. Cellar works inside AccountPanel but still needs a routable `/account/cellar` page and quiet cross-links to Journal and Favorites; Track 9 owns that wiring.
 
 ### 3.3 Account Panel ("Your Table")
 **Entry:** Bottom tab bar user icon (mobile) OR AccountPanel icon → Opens modal
@@ -306,4 +306,3 @@ Adrian manages tier defaults and per-partner overrides.
 **Last updated:** 2026-04-27
 
 **Source files:** VISION_AUDIT_1–7, NETWORK_ROLLOUT_PLAN.md, _audit/01–03, CLAUDE.md (intentional design notes), ARCHITECTURE.md
-

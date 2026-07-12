@@ -66,4 +66,4 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ## Cross-track dependencies
 
-- Track 9's "Render the cross-links" item ("Teas mentioned in this piece" on articles, featured products on Advise projects) builds UI on top of surfaces this track owns (articles, Advise project cards). The xref endpoints already exist; Track 9 does the rendering, not this track.
+- Cross-link rendering is already shipped across articles, Learn, and Advise; Track 9 retains only the remaining personal-surface connective wiring.

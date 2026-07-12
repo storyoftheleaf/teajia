@@ -11,7 +11,7 @@ last_reviewed: 2026-05-02
 
 # Teajia — flagship e-commerce + content platform
 
-> **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/ROADMAP.md](docs/ROADMAP.md). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
+> **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md) and [docs/tracks/](docs/tracks/). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine (139 products). WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
@@ -37,7 +37,7 @@ Professional tea infrastructure — sourcing, inventory, education, events, and 
 - **Color tokens** → `tailwind.config.ts` + `src/styles/card-utilities.css`
 - **Types** → `src/types.ts` (global), `src/admin/types.ts` (admin)
 - **Multi-store plan** → `docs/MULTI_STORE_PLAN.md`
-- **Product strategy** → `docs/VISION.md`, `docs/ROADMAP.md`
+- **Product strategy** → `docs/VISION.md`, `docs/CONSOLIDATED_DIRECTION.md`
 
 ## MANDATORY styling rules
 Read `docs/COLOR_RULES.md` before writing any component styles.
@@ -110,14 +110,12 @@ Requires dev server already running (`npm run dev`). Takes ~90 seconds.
 
 **Screenshots saved to:** `test-results/<spec-name>/` (not committed)
 
-### Known stub/incomplete pages — do not add links to these without building them first
-| Route | Status |
-|---|---|
-| `/account/orders` | Empty state only — no order data wired |
-| `/account/samples` | Empty state only — no sample data wired |
+### Known account-page limitation
+
+`/account/orders` and `/account/samples` are wired to member data. The order list still lacks a per-order detail destination; Track 6 owns that work.
 
 ## Open work
-See `docs/ROADMAP.md` for build sequence and `docs/MULTI_STORE_PLAN.md` for multi-tenancy rollout.
+See `docs/CONSOLIDATED_DIRECTION.md` and `docs/tracks/` for build sequence, and `docs/MULTI_STORE_PLAN.md` for the shipped multi-tenancy reference.
 
 ## Desktop / mobile layout principles
 - **Mobile:** AccountPanel (person icon, top-right) is the primary engagement hub — everything personal lives there.

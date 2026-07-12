@@ -26,7 +26,7 @@ The nine tracks:
 | 06 | [Commerce in the Inquiry Model](tracks/06-commerce-inquiry-model.md) — WhatsApp checkout, invoice lifecycle | 2 |
 | 07 | [Events & Gatherings](tracks/07-events-gatherings.md) — invite, gather, remember | 6 |
 | 08 | [Platform Hardening](tracks/08-platform-hardening.md) — worker, MCP, architecture | 17 |
-| 09 | [Coherence & IA Finishing](tracks/09-coherence-ia-finishing.md) — cross-links, mental model, homepage | 5 |
+| 09 | [Coherence & IA Finishing](tracks/09-coherence-ia-finishing.md) — personal routing, mental model, homepage | 4 |
 
 ---
 
@@ -35,7 +35,7 @@ The nine tracks:
 | Doc | What | Read if |
 |---|---|---|
 | **VISION.md** | What Teajia is, who uses it, why it exists | New to the platform; need the philosophy |
-| **STATE_OF_THE_SITE.md** | Snapshot of what works and what's broken (predates July consolidation; the tracks are newer on open work) | Getting the lay of the land |
+| **STATE_OF_THE_SITE.md** | Concise, verified snapshot of what works and what remains | Getting the lay of the land |
 | **OPERATIONAL_NOTES.md** | Intentional tradeoffs, residual risks, things to revisit | Onboarding; before changing auth or infra |
 
 ## Live audits & active contracts
@@ -106,6 +106,7 @@ Cheap-to-load navigation files for the major code areas. Load these instead of d
 ## Archived
 
 - `docs/_archive/consolidated-2026-07/` — the 37 planning docs folded into the tracks on 2026-07-11. See the README there and the disposition table in CONSOLIDATED_DIRECTION.md.
+- `docs/_archive/session-artifacts-2026-07/` — retired root TODOs, handoffs, run logs, and the superseded article-template plan.
 - `docs/_archive/` — older superseded docs kept for history.
 
 ---

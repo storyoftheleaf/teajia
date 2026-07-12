@@ -63,7 +63,7 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ## Sources
 
-- `docs/TODO.md` (Compass phases 2/2b/3, live)
+- `docs/_archive/session-artifacts-2026-07/DOCS_TODO.md` (historical detailed notes for Compass phases 2/2b/3; this track is authoritative)
 - `docs/TEA_DISCOVERY.md` (live)
 - `docs/_archive/consolidated-2026-07/tea-compass-spec.md` (archived, historical reference)
 - `docs/_archive/consolidated-2026-07/COMPASS_SOCIAL_PLAN.md` (archived)

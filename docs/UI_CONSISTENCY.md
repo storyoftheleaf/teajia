@@ -3,7 +3,7 @@
 > The visual contract. Buttons, corner radii, inputs, focus states — one set of rules so every interface feels like the same product. Modeled on `COLOR_RULES.md`, enforced the same way.
 
 **Created:** 2026-05-16
-**Companion docs:** `COLOR_RULES.md` (color contract), `FRICTION_REVIEW.md`, `FIX_QUEUE.md`.
+**Companion docs:** `COLOR_RULES.md` (color contract) and `tracks/01-launch-integrity.md`. The shipped friction and fix queues are preserved in `_archive/consolidated-2026-07/`.
 
 ---
 
@@ -66,7 +66,7 @@ Six values collapse to three tiers. Every `rounded-*` in the codebase maps to ex
 
 - One shared input style, one shared label style, one focus ring treatment, used by every form field.
 - The focus ring is the one already standard in the codebase: `focus-visible:ring-2 ring-tea-gold/50` with offset. No bespoke focus styles per form.
-- The add-tea reorganization (`FRICTION_REVIEW.md` O-P0-1) is the first consumer of the unified input style.
+- The add-tea reorganization (historical `FRICTION_REVIEW.md` O-P0-1, now archived) was the first consumer of the unified input style.
 
 ### 4. Spacing & hover
 
@@ -98,7 +98,7 @@ check_pattern_notice 'pill-(primary|destructive)' \
   "pill-* action class — use the <Button> component for actions. See UI_CONSISTENCY.md. (non-blocking until migration completes)"
 ```
 
-Both checks ship as part of the consistency fixes in `FIX_QUEUE.md`. Until the `rounded-*` migration is complete, Rule 8 must be **added last** (after the migration fix) so it doesn't block its own cleanup commit.
+Both checks shipped with the archived consistency fix queue. Rule 8 remains part of the enforced contract.
 
 ---
 

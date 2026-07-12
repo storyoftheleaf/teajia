@@ -113,7 +113,7 @@ The May pivot settled the identity question for good: Curate is the admin sourci
 **Shipped:** Curate capture through Phase 11 (photo/voice/parse/verdict/promotion, capture card redesigned this week), sample-minimum capture + permanent bag photos, tasting journal with the one-CustomerTasting-per-tea model, tasting events (join codes, guest auth, control room), Tea Discovery Phases 1–2 + evolution loop (observed palate from the journal), stock spine personal cellar, journal as the member surface.
 
 **Open, still valid (in order):**
-1. **The starred-notes loop:** Phase 2 per-section voice capture → Phase 2b customer starring → Phase 3 `/admin/community-impressions` promote/dismiss queue with attribution. Detailed plan already in `docs/TODO.md`; build as one arc.
+1. **The starred-notes loop:** Phase 2 per-section voice capture → Phase 2b customer starring → Phase 3 `/admin/community-impressions` promote/dismiss queue with attribution. Build it as one arc; Track 5 is authoritative and the earlier detailed notes are archived.
 2. **Schema unification:** orphan-entry audit, migrate `tea_compass_entries` rows into `products` (`is_personal=1`, Draft), drop the parallel table. Removes a whole class of drift.
 3. **Worker permission gate:** `requireBundle('catalog')` on all six compass handlers; today they only require account auth.
 4. **Shared-tea acceptance writes to the wrong table** (`handleCompassAcceptShare` → compass, not journal); accepted shares never appear in the member's journal.
@@ -124,7 +124,7 @@ The May pivot settled the identity question for good: Curate is the admin sourci
 
 **Killed:** COMPASS_SOCIAL_PLAN Phases 1A/1B/1D/2B/2C/2D/3A/3B/3C (member connections, QR table-share pages, taste-profile recommendation surfacing, feedback aggregation). The May pivot displaced the plan and the vision's no-social, no-aggregation principles bury it. The starred-notes loop above is the only survivor, deliberately reshaped as hand curation.
 
-**Source docs collapsed here:** tea-compass-spec.md, COMPASS_SOCIAL_PLAN.md, compass-tasting-separation-followups.md, TASTING_JOURNAL_BRIEF.md, TASTING_EVENT_PLAN.md, TEA_DISCOVERY.md, docs/TODO.md (Compass phases).
+**Source docs collapsed here:** tea-compass-spec.md, COMPASS_SOCIAL_PLAN.md, compass-tasting-separation-followups.md, TASTING_JOURNAL_BRIEF.md, TASTING_EVENT_PLAN.md, TEA_DISCOVERY.md, and the archived docs/TODO Compass notes.
 
 ---
 
@@ -207,7 +207,7 @@ The oldest structural criticism of Teajia is still half-true: six excellent sect
 2. **One mental model for tea thoughts:** Journal (my tastings), Collection (my favorites), Cellar (what I own). Fix with naming, copy, and one connective view, not new tables.
 3. **Homepage pair, Adrian judgment:** persistent explore-the-shop CTA above the fold + one-line value proposition. Constraint: the grounding lines' editorial voice is untouchable.
 4. **URL grammar + findability:** `/account/saved` and `/account/journey` break the noun pattern; `/start` and `/for-your-space` are orphaned from nav. One renaming/linking pass (nav changes need explicit confirmation per house rules).
-5. **Doc hygiene execution:** run the disposition table below; update INDEX.md, FLOWS.md and SITE_MAP.md stale claims (orders/samples are wired, Personal Collection is not a placeholder); replace ACTIVE_BRIEFS.md with a pointer here.
+5. **Doc hygiene execution — shipped 2026-07-12:** INDEX, State, FLOWS, and SITE_MAP now route to current truth; competing TODOs and session artifacts are archived.
 6. **Deferred until a second operator:** admin nav regrouped by product jobs (Sell/Source/Gather/Publish/Teach), admin tool taxonomy rebalancing, events' four-homes unification.
 
 **Killed:** The IA review's full four-phase discovery project as a standalone initiative; its live findings are items 1–4 above and the rest resolved itself through shipping.
@@ -262,7 +262,7 @@ One pass over `docs/`: KEEP stays where it is, MERGE means its live content is c
 | TASTING_EVENT_PLAN.md | SHIPPED | Full feature on main since May 4 |
 | TASTING_JOURNAL_BRIEF.md | MERGE → Track 5 | Small alignment items captured |
 | TEA_DISCOVERY.md | KEEP | Live feature doc; two deferred items noted |
-| TODO.md (docs/) | KEEP | Detail home for Compass phases; linked from root TODO |
+| TODO.md (docs/) | ARCHIVE | Valid Compass work is owned by Track 5; historical detail preserved under `_archive/session-artifacts-2026-07/` |
 | UI_CONSISTENCY.md | KEEP | Enforced visual contract; 2 items to close |
 | VISION_AUDIT_4_LEARNING.md | ARCHIVE | Mostly on the DO-NOT-BUILD list; salvage noted in Tracks 3 + 9 |
 | VISION_AUDIT_5_EVENTS.md | ARCHIVE | Salvage (B3 loop) captured in Track 7 |

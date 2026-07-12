@@ -156,5 +156,5 @@ brief/
 plan/
   [feature specs]
 VISION.md              ← root-level north star (keep at root, auto-loaded)
-ROADMAP.md             ← root-level build sequence (keep at root)
+CONSOLIDATED_DIRECTION.md + tracks/ ← current build sequence
 ```

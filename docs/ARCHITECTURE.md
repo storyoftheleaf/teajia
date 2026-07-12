@@ -1,6 +1,6 @@
 # Teajia Architecture
 
-> Last updated: 2026-04-27. Authoritative reference for tenancy, roles, authorization, data model, and technical invariants. For current state and gaps, see STATE_OF_THE_SITE.md. For what's coming, see ROADMAP.md.
+> Last reviewed: 2026-07-12 for documentation routing. Technical content originated 2026-04-27 and must be verified against current code before implementation. For current state see `STATE_OF_THE_SITE.md`; for active hardening see `tracks/08-platform-hardening.md`.
 
 ## 1. Tenancy & Account Model
 
@@ -389,4 +389,3 @@ See ARCHITECTURE.md §1.2 for the 22 Phase 1B decisions. Additional historical d
 - docs/VISION_AUDIT_7_TECHNICAL.md (technical vision)
 - docs/_audit/03_platform_crosscutting.md (authorization audit)
 - CLAUDE.md (frontend invariants)
-

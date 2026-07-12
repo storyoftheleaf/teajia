@@ -1,6 +1,6 @@
 # Teajia Changelog
 
-> Shipped work, newest first. For what's next see ROADMAP.md. For active in-progress briefs see ACTIVE_BRIEFS.md.
+> Shipped work, newest first. For what's next see `CONSOLIDATED_DIRECTION.md`; active checklists live in `tracks/`.
 
 ## 2026-07
 
@@ -17,7 +17,7 @@
 
 ## 2026-04
 
-- 2026-04-27 — **Audit closed.** 36 of 37 findings shipped or verified; #36 (design system) phased into 4 stages in `DESIGN_SYSTEM_PHASING.md` for future pickup. Forward plan written in `POST_AUDIT_ROADMAP.md`; IA project scoped in `IA_REVIEW.md`; tradeoffs and revisit-if flags captured in `OPERATIONAL_NOTES.md`. State-of-the-site rewritten to reflect post-audit reality. Commits in this session: `1c57099`, `c653dde`, `39d730e`, `da98cd6`, `3433059`, `3d6507c`, `78d5f44`, `6961b34`.
+- 2026-04-27 — **Audit closed.** 36 of 37 findings shipped or verified; #36 was subsequently completed through the archived four-stage design-system plan. The contemporary forward plan and IA review are preserved in `_archive/consolidated-2026-07/`; their surviving work now lives in the July tracks. Commits in this session: `1c57099`, `c653dde`, `39d730e`, `da98cd6`, `3433059`, `3d6507c`, `78d5f44`, `6961b34`.
 - 2026-04-27 — PREVIEW_MODE machinery removed; /community route + page deleted (cut, not built) [git: 6961b34]
 - 2026-04-27 — Auth re-verifies platform_role + membership from DB on every request; fail-closed on DB errors [git: 3d6507c]
 - 2026-04-27 — Adoption queue + AccessView editor sheet shipped (#18 + #34) [git: 3433059]
@@ -65,4 +65,4 @@ Pre-audit history not fully reconstructed. Refer to git history for work before 
 
 ---
 
-**Maintenance:** Append new entries at top of relevant month section. Move shipped items out of ROADMAP.md when adding here.
+**Maintenance:** Append new entries at the top of the relevant month. Check completed work off in its track and record the shipped outcome here.
