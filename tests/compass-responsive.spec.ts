@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { installCompassHarness, openCompass } from './helpers/compassHarness';
+import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test.describe('Curate responsive preservation', () => {
   test.beforeEach(async ({ page }) => { await installCompassHarness(page); });
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
   test('capture document never overflows horizontally', async ({ page }) => {
     await openCompass(page);

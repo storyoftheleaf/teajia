@@ -2,9 +2,11 @@ import { expect, type Page } from '@playwright/test';
 
 const enc = (s: string) => Buffer.from(s).toString('base64url');
 const memberships = [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }];
+const unhandledByPage = new WeakMap<Page, string[]>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
 export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[] }) {
+  unhandledByPage.set(page, []);
   await page.addInitScript(({ token, items }) => {
     localStorage.setItem('teajia_token', token);
     localStorage.removeItem('teajia-storage');
@@ -27,11 +29,17 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       '/api/vendors': [], '/api/sources': [], '/api/admin/events': [],
     };
     if (!(path in responses)) {
-      console.error(`[compass-harness] unhandled ${route.request().method()} ${path}`);
+      const diagnostic = `${route.request().method()} ${path}`;
+      unhandledByPage.get(page)?.push(diagnostic);
+      console.error(`[compass-harness] unhandled ${diagnostic}`);
       return route.fulfill({ status: 501, contentType: 'application/json', body: JSON.stringify({ error: `Unhandled Compass test API route: ${path}` }) });
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[path]) });
   });
+}
+
+export async function expectNoUnhandledCompassApi(page: Page) {
+  expect(unhandledByPage.get(page) ?? [], 'Compass test made unhandled API requests').toEqual([]);
 }
 
 export async function openCompass(page: Page) {

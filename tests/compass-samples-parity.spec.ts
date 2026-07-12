@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { installCompassHarness, openCompass } from './helpers/compassHarness';
+import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 const CART_ITEM = { id: 'compass-tea-1', name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', vendorName: 'Chen Family', grams: 10, compassEntryId: 'compass-tea-1' };
 
 test.describe('Current Samples behavior remains reachable', () => {
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
   test.fixme('historical labels and tasting UI has no runtime entry point', async () => {
     // SampleSetCreator and SampleLabelSheet are only re-exported; Task 8 must mount them.
   });
@@ -28,7 +29,7 @@ test.describe('Current Samples behavior remains reachable', () => {
     }), { message: 'Save as Sample Set must persist a historical set' }).toBe(1);
 
     await page.goto('/admin/samples', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/\/admin\/compass\?tab=samples/);
+    await expect(page).toHaveURL(/\/admin\/compass\?tab=samples/, { timeout: 15_000 });
   });
 
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {

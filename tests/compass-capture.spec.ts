@@ -1,9 +1,10 @@
 /** Curate preservation contract: field capture stays one tap away and non-linear. */
 import { test, expect } from '@playwright/test';
-import { installCompassHarness, openCompass } from './helpers/compassHarness';
+import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 test.describe('Curate field capture preservation', () => {
   test.beforeEach(async ({ page }) => installCompassHarness(page));
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
   test('opens directly to Source and Tea with price visible', async ({ page }) => {
     await openCompass(page);
