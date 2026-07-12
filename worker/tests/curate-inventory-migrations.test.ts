@@ -21,6 +21,10 @@ const promotionMigration = readFileSync(
   new URL('../migrations/106_compass_promotion_identity.sql', import.meta.url),
   'utf8',
 );
+const schemaThrough098 = readFileSync(
+  new URL('./fixtures/schema-through-098.sql', import.meta.url),
+  'utf8',
+);
 const canonicalSchema = readFileSync(new URL('../schema.sql', import.meta.url), 'utf8');
 const temporaryDirectories: string[] = [];
 
@@ -42,80 +46,94 @@ function query(database: string, sql: string): Array<Record<string, string | num
   return JSON.parse(execFileSync('sqlite3', ['-json', database, sql], { encoding: 'utf8' }) || '[]');
 }
 
-// This fixture intentionally models the production schema immediately after
-// migration 098, including the legacy profile/listing mirror and operational
-// sample tables. It is kept to only the columns exercised by migrations 099–106.
-const production098Subset = `
-  CREATE TABLE accounts (id TEXT PRIMARY KEY);
-  CREATE TABLE users (id TEXT PRIMARY KEY);
-  CREATE TABLE customers (id TEXT PRIMARY KEY, line TEXT);
-  CREATE TABLE batches (id TEXT PRIMARY KEY);
-  CREATE TABLE tea_compass_entries (
-    id TEXT PRIMARY KEY, account_id TEXT NOT NULL, user_id TEXT NOT NULL,
-    draft_product_id TEXT
-  );
-  CREATE TABLE products (
-    id TEXT PRIMARY KEY, account_id TEXT NOT NULL, product_name TEXT,
-    type TEXT, is_sample INTEGER DEFAULT 0, is_personal INTEGER DEFAULT 0,
-    stock_grams INTEGER DEFAULT 0, source_compass_entry_id TEXT,
-    created_at TEXT
-  );
-  CREATE TABLE tea_profiles (
-    id TEXT PRIMARY KEY, slug TEXT UNIQUE NOT NULL,
-    originated_by_account_id TEXT NOT NULL, curated_by_account_id TEXT NOT NULL,
-    name TEXT NOT NULL
-  );
-  CREATE TABLE product_listings (
-    id TEXT PRIMARY KEY, account_id TEXT NOT NULL, profile_id TEXT NOT NULL,
-    stock_grams INTEGER DEFAULT 0, is_sample INTEGER DEFAULT 0,
-    is_personal INTEGER DEFAULT 0, legacy_product_id TEXT
-  );
-  CREATE TABLE stock_ledger (
-    id TEXT PRIMARY KEY, account_id TEXT, product_id TEXT NOT NULL,
-    delta INTEGER NOT NULL, balance_after INTEGER NOT NULL, reason TEXT NOT NULL
-  );
-  CREATE TABLE tea_samples (
-    id TEXT PRIMARY KEY, account_id TEXT, name TEXT NOT NULL,
-    set_id TEXT NOT NULL, product_id TEXT, compass_entry_id TEXT
-  );
-  CREATE TABLE tea_sample_sets (
-    id TEXT PRIMARY KEY, account_id TEXT, name TEXT NOT NULL
-  );
-  CREATE TABLE tea_sample_tastings (
-    id TEXT PRIMARY KEY, account_id TEXT, sample_id TEXT NOT NULL
-  );
+function pragma(database: string, pragmaName: string, table: string) {
+  return query(database, `PRAGMA ${pragmaName}('${table.replaceAll("'", "''")}');`);
+}
 
-  INSERT INTO accounts VALUES ('account-a');
-  INSERT INTO users VALUES ('user-a');
-  INSERT INTO tea_compass_entries VALUES ('entry-a', 'account-a', 'user-a', 'product-new');
-  INSERT INTO products VALUES ('product-old', 'account-a', 'Old encounter copy', 'Green', 1, 0, 25, 'entry-a', '2025-01-01');
-  INSERT INTO products VALUES ('product-new', 'account-a', 'Current encounter copy', 'Green', 0, 1, 80, 'entry-a', '2026-01-01');
-  INSERT INTO tea_profiles VALUES ('profile-a', 'profile-a', 'account-a', 'account-a', 'Preserved profile');
-  INSERT INTO product_listings VALUES ('listing-a', 'account-a', 'profile-a', 25, 1, 0, 'product-old');
-  INSERT INTO tea_sample_sets VALUES ('set-a', 'account-a', 'Field samples');
-  INSERT INTO tea_samples VALUES ('sample-a', 'account-a', 'Ten gram sample', 'set-a', 'product-old', 'entry-a');
-  INSERT INTO tea_sample_tastings VALUES ('tasting-a', 'account-a', 'sample-a');
-  INSERT INTO stock_ledger VALUES ('ledger-a', 'account-a', 'product-old', 25, 25, 'MANUAL_INCREMENT');
+function normalizedColumns(database: string, table: string) {
+  return pragma(database, 'table_info', table)
+    .map(({ cid: _cid, ...column }) => column)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function normalizedIndexes(database: string, table: string) {
+  return pragma(database, 'index_list', table)
+    .filter(index => !String(index.name).startsWith('sqlite_autoindex_'))
+    .map(({ seq: _seq, ...index }) => index)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function normalizedForeignKeys(database: string, table: string) {
+  return pragma(database, 'foreign_key_list', table)
+    .map(({ id: _id, seq: _seq, ...foreignKey }) => foreignKey)
+    .sort((a, b) => `${a.from}:${a.table}:${a.to}`.localeCompare(`${b.from}:${b.table}:${b.to}`));
+}
+
+const seed = `
+  INSERT INTO accounts (id, slug, name) VALUES ('account-a', 'account-a', 'Account A');
+  INSERT INTO users (id, email, name, password_hash) VALUES ('user-a', 'a@example.com', 'A', 'hash');
+  INSERT INTO tea_compass_entries (id, account_id, user_id, draft_product_id)
+    VALUES ('entry-a', 'account-a', 'user-a', 'product-new');
+  INSERT INTO products (
+    id, account_id, product_name, type, is_sample, is_personal,
+    stock_grams, source_compass_entry_id, created_at
+  ) VALUES
+    ('product-old', 'account-a', 'Old encounter copy', 'Green', 1, 0, 25, 'entry-a', '2025-01-01'),
+    ('product-new', 'account-a', 'Current encounter copy', 'Green', 0, 1, 80, 'entry-a', '2026-01-01'),
+    ('product-never-linked', 'account-a', 'Never linked sample', 'White', 1, 0, 11, NULL, '2026-02-01');
+  INSERT INTO tea_profiles (
+    id, slug, originated_by_account_id, curated_by_account_id, name
+  ) VALUES ('profile-a', 'profile-a', 'account-a', 'account-a', 'Preserved profile');
+  INSERT INTO product_listings (
+    id, account_id, profile_id, stock_grams, is_sample, is_personal, legacy_product_id
+  ) VALUES ('listing-a', 'account-a', 'profile-a', 25, 1, 0, 'product-old');
+  INSERT INTO tea_sample_sets (id, account_id, name) VALUES ('set-a', 'account-a', 'Field samples');
+  INSERT INTO tea_samples (id, account_id, name, set_id, product_id, compass_entry_id)
+    VALUES ('sample-a', 'account-a', 'Ten gram sample', 'set-a', 'product-old', 'entry-a');
+  INSERT INTO tea_sample_tastings (id, account_id, sample_id)
+    VALUES ('tasting-a', 'account-a', 'sample-a');
+  INSERT INTO stock_ledger (id, account_id, product_id, delta, balance_after, reason)
+    VALUES ('ledger-a', 'account-a', 'product-old', 25, 25, 'MANUAL_INCREMENT');
 `;
 
+const affectedTables = [
+  'tea_compass_entries',
+  'curate_journeys',
+  'curate_visits',
+  'curate_import_batches',
+  'curate_import_sources',
+  'curate_import_items',
+  'products',
+  'product_listings',
+  'stock_ledger',
+  'curate_receipt_proposals',
+  'inventory_receipts',
+  'inventory_receipt_lines',
+] as const;
+
 describe('Curate and Inventory migration rehearsal', () => {
-  it('upgrades a production-faithful migration-098 database without losing legacy data', () => {
+  it('upgrades the committed production-faithful migration-098 snapshot without data loss', () => {
     const database = databaseFor(
       'teajia-curate-migrations-',
-      production098Subset + migrations + promotionMigration + promotionMigration,
+      schemaThrough098 + seed + migrations + promotionMigration + promotionMigration,
     );
 
     expect(query(database, `
+      SELECT id, inventory_purpose, stock_grams, is_sample, is_personal, source_compass_entry_id
+      FROM products WHERE id = 'product-never-linked';
+    `)).toEqual([{
+      id: 'product-never-linked', inventory_purpose: 'sample', stock_grams: 11,
+      is_sample: 1, is_personal: 0, source_compass_entry_id: null,
+    }]);
+    expect(query(database, `
       SELECT id, inventory_purpose, stock_grams, source_compass_entry_id
-      FROM products ORDER BY id;
+      FROM products WHERE id IN ('product-old', 'product-new') ORDER BY id;
     `)).toEqual([
       { id: 'product-new', inventory_purpose: 'personal', stock_grams: 80, source_compass_entry_id: 'entry-a' },
       { id: 'product-old', inventory_purpose: 'sample', stock_grams: 25, source_compass_entry_id: null },
     ]);
-    expect(query(database, `
-      SELECT id, draft_product_id, decision, sample_state FROM tea_compass_entries;
-    `)).toEqual([
-      { id: 'entry-a', draft_product_id: 'product-new', decision: null, sample_state: null },
+    expect(query(database, `SELECT id, draft_product_id FROM tea_compass_entries;`)).toEqual([
+      { id: 'entry-a', draft_product_id: 'product-new' },
     ]);
     expect(query(database, `
       SELECT l.id, l.inventory_purpose, l.stock_grams, p.name profile_name
@@ -131,34 +149,32 @@ describe('Curate and Inventory migration rehearsal', () => {
     `)).toEqual([
       { id: 'sample-a', name: 'Ten gram sample', set_name: 'Field samples', tasting_id: 'tasting-a' },
     ]);
-    expect(query(database, `
-      SELECT id, account_id, movement_unit, movement_type FROM stock_ledger;
-    `)).toEqual([
-      { id: 'ledger-a', account_id: 'account-a', movement_unit: null, movement_type: null },
+    expect(query(database, `SELECT id, account_id FROM stock_ledger;`)).toEqual([
+      { id: 'ledger-a', account_id: 'account-a' },
     ]);
+    expect(query(database, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
+    expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 
-  it('builds a clean canonical database with every legacy dependency required by Curate and Inventory', () => {
-    const database = databaseFor('teajia-canonical-schema-', canonicalSchema);
-    const requiredTables = [
-      'product_listings',
-      'tea_profiles',
-      'tea_sample_sets',
-      'tea_sample_tastings',
-      'tea_samples',
-    ];
-    const requiredTableList = requiredTables.map(name => `'${name}'`).join(', ');
+  it('matches the canonical schema for every table changed or created by migrations 099-106', () => {
+    const upgraded = databaseFor(
+      'teajia-upgraded-schema-',
+      schemaThrough098 + migrations + promotionMigration,
+    );
+    const canonical = databaseFor('teajia-canonical-schema-', canonicalSchema);
 
-    expect(query(database, `
-      SELECT name FROM sqlite_master
-      WHERE type = 'table' AND name IN (${requiredTableList})
-      ORDER BY name;
-    `).map(row => row.name)).toEqual([
-      'product_listings',
-      'tea_profiles',
-      'tea_sample_sets',
-      'tea_sample_tastings',
-      'tea_samples',
-    ]);
+    const upgradedTables = query(upgraded, `SELECT name FROM sqlite_master WHERE type = 'table';`)
+      .map(row => row.name);
+    for (const table of affectedTables) {
+      expect(upgradedTables, `${table} must exist after migration`).toContain(table);
+      expect(normalizedColumns(upgraded, table), `${table} columns`).toEqual(normalizedColumns(canonical, table));
+      expect(normalizedIndexes(upgraded, table), `${table} indexes`).toEqual(normalizedIndexes(canonical, table));
+      expect(normalizedForeignKeys(upgraded, table), `${table} foreign keys`).toEqual(normalizedForeignKeys(canonical, table));
+    }
+
+    expect(query(upgraded, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
+    expect(query(upgraded, 'PRAGMA foreign_key_check;')).toEqual([]);
+    expect(query(canonical, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
+    expect(query(canonical, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 });

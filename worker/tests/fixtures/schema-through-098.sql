@@ -1,3 +1,12 @@
+-- Production-faithful Teajia D1 schema immediately after migration 098.
+--
+-- Provenance: the complete canonical schema at commit 9d44edbc (the final
+-- pre-Curate/Inventory implementation commit), reconciled with the exact
+-- authoritative definitions in migrations 0007, 017, 021, 048, 051, 052,
+-- 055, 056, 058, 059, 061, 062, 071, 085, and 090–098. This fixture is
+-- intentionally committed rather than synthesized inside the test so schema
+-- drift remains reviewable.
+--
 -- Teajia D1 Schema (SQLite)
 -- Converted from Postgres db_setup.sql
 --
@@ -95,12 +104,10 @@ CREATE TABLE IF NOT EXISTS products (
     status TEXT DEFAULT 'Active',
     vendor TEXT,
     stock_grams INTEGER DEFAULT 0,
-    stock_movement_guard TEXT,
     cost_amount REAL DEFAULT 0,
     cost_currency TEXT DEFAULT 'USD',
     shipping_rate_per_kg REAL DEFAULT 0,
     quantity_purchased INTEGER,
-    session_reserve_grams INTEGER,
     low_stock_threshold INTEGER DEFAULT 100,
     recheck_stock INTEGER DEFAULT 0,
     markup_multiplier REAL DEFAULT 2.5,
@@ -124,26 +131,17 @@ CREATE TABLE IF NOT EXISTS products (
     quantity_units INTEGER,  -- Teaware: count of items (instead of grams)
     vendor_id TEXT,                -- FK to customers table (vendor contact)
     is_sample INTEGER DEFAULT 0,                    -- Sample/trial tea not yet committed to inventory
-    inventory_purpose TEXT CHECK (inventory_purpose IN ('working', 'sample', 'personal')),
-    stock_known_at TEXT,
     in_transit INTEGER DEFAULT 0,                   -- Stock ordered but not yet physically arrived
-    in_transit_grams INTEGER,
-    in_transit_eta TEXT,
-    bag_photo_url TEXT,
     tasting TEXT DEFAULT '{}',                    -- Structured tasting taxonomy JSON
     tasting_source TEXT,                          -- 'owner' | 'community' | NULL; NULL falls back to style baseline
     sold_out_at TEXT,                             -- When product auto-archived due to zero stock
     stock_verified_at TEXT,                        -- Last time stock was physically verified
     source_compass_entry_id TEXT,                  -- FK to tea_compass_entries(id) — which field note sourced this product
     owner_user_id TEXT,                          -- NULL = owned by the location; set = owned by a specific member/person (stock spine step 1)
-    shown_in_shop INTEGER NOT NULL DEFAULT 1,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),  -- Tracks admin edits for smart export
     last_synced_at TEXT                         -- Last time markdown sync touched this row
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_products_account_compass_identity
-  ON products(account_id, source_compass_entry_id)
-  WHERE source_compass_entry_id IS NOT NULL;
 
 -- 1b. Customers Table (scoped by account_id)
 CREATE TABLE IF NOT EXISTS customers (
@@ -274,7 +272,6 @@ CREATE TABLE IF NOT EXISTS account_features (
   PRIMARY KEY (account_id, feature)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
-
 -- Canonical tea identity and per-account listing mirror (migrations 048, 051,
 -- 090, 092, and 103). Profiles must precede listings because listings carry a
 -- required profile reference.
@@ -361,8 +358,6 @@ CREATE TABLE IF NOT EXISTS product_listings (
   legacy_product_id TEXT,
   owner_user_id TEXT,
   shown_in_shop INTEGER NOT NULL DEFAULT 1,
-  inventory_purpose TEXT CHECK (inventory_purpose IN ('working', 'sample', 'personal')),
-  stock_known_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(account_id, profile_id)
@@ -395,45 +390,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
--- 6b. Expected inventory receipts. Define these before stock_ledger so a fresh
--- schema never creates a ledger foreign key against a not-yet-declared table.
-CREATE TABLE IF NOT EXISTS inventory_receipts (
-    id TEXT PRIMARY KEY,
-    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    state TEXT NOT NULL DEFAULT 'planned' CHECK (state IN ('planned','ordered','in_transit','partially_received','received','cancelled')),
-    vendor_name TEXT,
-    source_kind TEXT NOT NULL,
-    source_ref TEXT,
-    eta TEXT,
-    created_by_user_id TEXT NOT NULL REFERENCES users(id),
-    idempotency_key TEXT NOT NULL,
-    request_fingerprint TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(account_id, idempotency_key)
-);
-CREATE INDEX IF NOT EXISTS idx_inventory_receipts_account_state ON inventory_receipts(account_id, state, created_at);
-
-CREATE TABLE IF NOT EXISTS inventory_receipt_lines (
-    id TEXT PRIMARY KEY,
-    receipt_id TEXT NOT NULL REFERENCES inventory_receipts(id) ON DELETE CASCADE,
-    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
-    expected_quantity REAL NOT NULL CHECK (expected_quantity > 0),
-    received_quantity REAL NOT NULL DEFAULT 0 CHECK (received_quantity >= 0),
-    cancelled_quantity REAL NOT NULL DEFAULT 0 CHECK (cancelled_quantity >= 0),
-    unit TEXT NOT NULL CHECK (unit IN ('g','unit')),
-    intended_purpose TEXT NOT NULL CHECK (intended_purpose IN ('working','sample','personal')),
-    source_kind TEXT NOT NULL,
-    source_ref TEXT,
-    intake_batch_id TEXT REFERENCES batches(id) ON DELETE SET NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (received_quantity + cancelled_quantity <= expected_quantity)
-);
-CREATE INDEX IF NOT EXISTS idx_inventory_receipt_lines_receipt ON inventory_receipt_lines(account_id, receipt_id);
-
--- 6c. Stock Ledger Table (audit trail for stock changes)
+-- 6b. Stock Ledger Table (audit trail for stock changes)
 CREATE TABLE IF NOT EXISTS stock_ledger (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     product_id TEXT NOT NULL REFERENCES products(id),
@@ -445,43 +402,10 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     user_email TEXT,
     note TEXT,                        -- Human-readable description
     batch_id TEXT,                    -- FK to batches: which intake shipment/session this arrival belonged to
-    receipt_proposal_id TEXT REFERENCES curate_receipt_proposals(id) ON DELETE SET NULL,
-    inventory_receipt_line_id TEXT REFERENCES inventory_receipt_lines(id) ON DELETE SET NULL,
-    movement_unit TEXT CHECK (movement_unit IS NULL OR movement_unit IN ('gram', 'unit')),
-    movement_type TEXT CHECK (movement_type IS NULL OR movement_type IN ('receipt','sale','sample_use','gift','waste','return','recount','transfer')),
-    idempotency_key TEXT,
-    source_compass_entry_id TEXT REFERENCES tea_compass_entries(id) ON DELETE SET NULL,
-    movement_fingerprint TEXT,
     account_id TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
-
-CREATE TABLE IF NOT EXISTS curate_receipt_proposals (
-    id TEXT PRIMARY KEY,
-    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    compass_entry_id TEXT REFERENCES tea_compass_entries(id) ON DELETE SET NULL,
-    import_id TEXT REFERENCES curate_import_batches(id) ON DELETE SET NULL,
-    import_item_id TEXT REFERENCES curate_import_items(id) ON DELETE SET NULL,
-    product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
-    batch_id TEXT REFERENCES batches(id) ON DELETE SET NULL,
-    product_name TEXT,
-    product_type TEXT,
-    purpose TEXT NOT NULL CHECK (purpose IN ('working', 'sample', 'personal')),
-    quantity REAL NOT NULL CHECK (quantity > 0),
-    unit TEXT NOT NULL CHECK (unit IN ('g', 'unit')),
-    acquisition_kind TEXT NOT NULL CHECK (acquisition_kind IN ('purchase', 'free_sample', 'gift', 'transfer', 'other')),
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
-    idempotency_key TEXT NOT NULL,
-    ledger_id TEXT REFERENCES stock_ledger(id) ON DELETE SET NULL,
-    proposed_by_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-    reviewed_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
-    reviewed_at TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE(account_id, idempotency_key), UNIQUE(ledger_id)
-);
-CREATE INDEX IF NOT EXISTS idx_receipt_proposals_account_status ON curate_receipt_proposals(account_id, status, created_at);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_ledger_receipt_proposal ON stock_ledger(receipt_proposal_id) WHERE receipt_proposal_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_account ON stock_ledger(account_id);
 
 -- 6c. Intake Batches (group stock arrivals into named shipments / sessions)
 CREATE TABLE IF NOT EXISTS batches (
@@ -554,7 +478,6 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   era TEXT,
   vendor_id TEXT,
   vendor_name TEXT,
-  linked_customer_id TEXT,
   notes TEXT,
   tasting TEXT,
   photos TEXT,
@@ -567,11 +490,6 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   source_entry_id TEXT,
   session_id TEXT,
   verdict TEXT,
-  decision TEXT CHECK (decision IS NULL OR decision IN ('considering', 'selected', 'passed_on')),
-  sample_state TEXT CHECK (sample_state IS NULL OR sample_state IN ('requested', 'received', 'tasted')),
-  journey_id TEXT,
-  visit_id TEXT,
-  import_item_id TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -581,10 +499,6 @@ CREATE INDEX IF NOT EXISTS idx_compass_status ON tea_compass_entries(status);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_source ON tea_compass_entries(source_entry_id);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_session ON tea_compass_entries(session_id);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_verdict ON tea_compass_entries(verdict);
-CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(account_id, decision);
-CREATE INDEX IF NOT EXISTS idx_compass_account_sample_state ON tea_compass_entries(account_id, sample_state);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_compass_import_item ON tea_compass_entries(account_id, user_id, import_item_id) WHERE import_item_id IS NOT NULL;
-
 -- Operational sample workflow (migrations 0007, 017, and 021). Sets precede
 -- samples, and samples precede tastings, matching their dependency chain.
 CREATE TABLE IF NOT EXISTS tea_sample_sets (
@@ -649,96 +563,6 @@ CREATE INDEX IF NOT EXISTS idx_tea_samples_tea_key ON tea_samples(tea_key);
 CREATE INDEX IF NOT EXISTS idx_sample_tastings_sample_id ON tea_sample_tastings(sample_id);
 CREATE INDEX IF NOT EXISTS idx_sample_sets_purpose ON tea_sample_sets(purpose);
 
-CREATE TABLE IF NOT EXISTS curate_journeys (
-  id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL,
-  created_by_user_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  season TEXT,
-  year INTEGER,
-  started_at TEXT,
-  ended_at TEXT,
-  notes TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_curate_journeys_account ON curate_journeys(account_id, updated_at DESC);
-
-CREATE TABLE IF NOT EXISTS curate_visits (
-  id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL,
-  created_by_user_id TEXT NOT NULL,
-  journey_id TEXT,
-  vendor_id TEXT,
-  vendor_name TEXT,
-  place TEXT,
-  visited_at TEXT,
-  notes TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (journey_id) REFERENCES curate_journeys(id) ON DELETE SET NULL
-);
-CREATE INDEX IF NOT EXISTS idx_curate_visits_account ON curate_visits(account_id, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_curate_visits_journey ON curate_visits(account_id, journey_id);
-CREATE INDEX IF NOT EXISTS idx_compass_entries_journey ON tea_compass_entries(account_id, journey_id);
-CREATE INDEX IF NOT EXISTS idx_compass_entries_visit ON tea_compass_entries(account_id, visit_id);
-
-CREATE TABLE IF NOT EXISTS curate_import_batches (
-  id TEXT PRIMARY KEY,
-  account_id TEXT NOT NULL,
-  created_by_user_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  review_state TEXT NOT NULL DEFAULT 'pending' CHECK (review_state IN ('pending', 'reviewing', 'completed', 'abandoned')),
-  journey_id TEXT,
-  visit_id TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_curate_import_batches_account ON curate_import_batches(account_id, updated_at DESC);
-
-CREATE TABLE IF NOT EXISTS curate_import_sources (
-  id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL,
-  account_id TEXT NOT NULL,
-  created_by_user_id TEXT NOT NULL,
-  kind TEXT NOT NULL CHECK (kind IN ('wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste')),
-  pasted_text TEXT,
-  r2_object_key TEXT,
-  client_evidence_id TEXT,
-  metadata_json TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  CHECK (pasted_text IS NOT NULL OR r2_object_key IS NOT NULL),
-  FOREIGN KEY (batch_id) REFERENCES curate_import_batches(id) ON DELETE CASCADE,
-  UNIQUE (account_id, batch_id, client_evidence_id)
-);
-CREATE INDEX IF NOT EXISTS idx_curate_import_sources_batch ON curate_import_sources(account_id, batch_id, created_at);
-
-CREATE TABLE IF NOT EXISTS curate_import_items (
-  id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL,
-  source_id TEXT,
-  account_id TEXT NOT NULL,
-  created_by_user_id TEXT NOT NULL,
-  position INTEGER NOT NULL CHECK (position >= 0),
-  category TEXT NOT NULL DEFAULT 'tea' CHECK (category IN ('tea', 'teaware')),
-  name TEXT,
-  raw_text TEXT,
-  parsed_data_json TEXT NOT NULL DEFAULT '{}',
-  confidence REAL CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
-  uncertainty_json TEXT NOT NULL DEFAULT '{}',
-  review_state TEXT NOT NULL DEFAULT 'pending' CHECK (review_state IN ('pending', 'reviewing', 'accepted', 'merged', 'abandoned')),
-  compass_entry_id TEXT,
-  reserved_compass_entry_id TEXT NOT NULL,
-  reviewed_by_user_id TEXT,
-  reviewed_at TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (batch_id) REFERENCES curate_import_batches(id) ON DELETE CASCADE,
-  FOREIGN KEY (source_id) REFERENCES curate_import_sources(id) ON DELETE SET NULL
-);
-CREATE INDEX IF NOT EXISTS idx_curate_import_items_batch ON curate_import_items(account_id, batch_id, position);
-CREATE INDEX IF NOT EXISTS idx_curate_import_items_compass ON curate_import_items(account_id, compass_entry_id);
-
 CREATE TABLE IF NOT EXISTS compass_shares (
   id TEXT PRIMARY KEY,
   source_entry_id TEXT NOT NULL,
@@ -770,18 +594,12 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 
 -- Performance indices for common query patterns
 CREATE INDEX IF NOT EXISTS idx_products_account_status ON products(account_id, status);
-CREATE INDEX IF NOT EXISTS idx_products_account_owner ON products(account_id, owner_user_id);
-CREATE INDEX IF NOT EXISTS idx_products_account_shown ON products(account_id, shown_in_shop);
 CREATE INDEX IF NOT EXISTS idx_invoices_account_status ON invoices(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_customers_account_name ON customers(account_id, name);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(account_id, created_at);
 -- Inventory & attribution lookups (migration 086, audit H7/M8)
 CREATE INDEX IF NOT EXISTS idx_stock_ledger_product ON stock_ledger(product_id);
-CREATE INDEX IF NOT EXISTS idx_stock_ledger_account ON stock_ledger(account_id);
 CREATE INDEX IF NOT EXISTS idx_stock_ledger_source_invoice ON stock_ledger(source_invoice_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_ledger_account_idempotency ON stock_ledger(account_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_stock_ledger_compass_entry ON stock_ledger(account_id, source_compass_entry_id);
-CREATE INDEX IF NOT EXISTS idx_stock_ledger_receipt_line ON stock_ledger(inventory_receipt_line_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_account_customer ON invoices(account_id, customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_source_event ON invoices(source_event_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_source_collection ON invoices(source_collection_id);
@@ -831,6 +649,143 @@ CREATE TABLE IF NOT EXISTS contact_private_notes (
 );
 CREATE INDEX IF NOT EXISTS idx_contact_private_notes_customer
   ON contact_private_notes(account_id, customer_id);
+
+-- Columns and tables present in production through migration 098 but not yet
+-- folded into the pre-Curate canonical schema above.
+CREATE TABLE note_sessions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  title TEXT,
+  session_date TEXT NOT NULL,
+  location TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE notes (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  tea_key TEXT,
+  compass_entry_id TEXT,
+  session_id TEXT REFERENCES note_sessions(id),
+  text TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  tasting_id TEXT,
+  tasting_snapshot TEXT,
+  author_id TEXT NOT NULL,
+  author_name TEXT NOT NULL,
+  visibility TEXT NOT NULL DEFAULT 'private',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE interest_signups (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  event_id TEXT REFERENCES events(id),
+  customer_id TEXT REFERENCES customers(id),
+  name TEXT,
+  phone TEXT,
+  email TEXT,
+  account_id TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE customer_tasting_journal (
+  id TEXT PRIMARY KEY,
+  account_id TEXT,
+  user_id TEXT NOT NULL,
+  product_id TEXT,
+  product_name TEXT,
+  product_type TEXT,
+  product_image TEXT,
+  tasting TEXT DEFAULT '{}',
+  personal_note TEXT,
+  rating INTEGER,
+  event_id TEXT,
+  event_title TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE tasting_sessions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  created_by_user_id TEXT NOT NULL,
+  title TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  invite_token TEXT UNIQUE,
+  max_participants INTEGER NOT NULL DEFAULT 8,
+  created_at TEXT NOT NULL,
+  completed_at TEXT
+);
+CREATE TABLE tasting_session_teas (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  compass_entry_id TEXT,
+  tea_name TEXT,
+  tea_key TEXT,
+  tea_metadata TEXT,
+  position INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE tasting_session_members (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  user_name TEXT,
+  joined_at TEXT NOT NULL,
+  UNIQUE(session_id, user_id)
+);
+CREATE TABLE tasting_session_verdicts (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+  session_tea_id TEXT NOT NULL REFERENCES tasting_session_teas(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  verdict TEXT,
+  tasting_data TEXT,
+  notes TEXT,
+  submitted_at TEXT NOT NULL,
+  UNIQUE(session_tea_id, user_id)
+);
+-- `inquiries` originated as a production legacy table. Its pre-045 shape is
+-- reconstructed from every worker read/write column; migrations 045 and 076
+-- supply `source` and `ref_number` below.
+CREATE TABLE inquiries (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  name TEXT,
+  email TEXT,
+  phone TEXT,
+  items TEXT NOT NULL DEFAULT '[]',
+  total_usd REAL NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+ALTER TABLE tea_reviews ADD COLUMN profile_id TEXT REFERENCES tea_profiles(id);
+CREATE INDEX IF NOT EXISTS idx_reviews_profile ON tea_reviews(profile_id);
+ALTER TABLE notes ADD COLUMN deleted INTEGER DEFAULT 0;
+ALTER TABLE tea_compass_entries ADD COLUMN linked_customer_id TEXT;
+ALTER TABLE products ADD COLUMN session_reserve_grams INTEGER;
+ALTER TABLE products ADD COLUMN in_transit_grams INTEGER;
+ALTER TABLE products ADD COLUMN in_transit_eta TEXT;
+ALTER TABLE products ADD COLUMN bag_photo_url TEXT;
+ALTER TABLE products ADD COLUMN shown_in_shop INTEGER NOT NULL DEFAULT 1;
+CREATE INDEX IF NOT EXISTS idx_products_account_owner ON products(account_id, owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_products_account_shown ON products(account_id, shown_in_shop);
+ALTER TABLE tasting_session_teas ADD COLUMN product_id TEXT REFERENCES products(id);
+ALTER TABLE customer_tasting_journal ADD COLUMN session_id TEXT;
+ALTER TABLE customer_tasting_journal ADD COLUMN session_title TEXT;
+ALTER TABLE interest_signups ADD COLUMN converted_at TEXT;
+ALTER TABLE platform_audit_log ADD COLUMN account_id TEXT;
+ALTER TABLE platform_audit_log ADD COLUMN actor_account_id TEXT;
+ALTER TABLE inquiries ADD COLUMN ref_number TEXT;
+ALTER TABLE inquiries ADD COLUMN source TEXT NOT NULL DEFAULT 'cart';
+CREATE INDEX IF NOT EXISTS idx_inquiries_ref_number ON inquiries(ref_number);
+CREATE INDEX IF NOT EXISTS idx_inquiries_account_source ON inquiries(account_id, source, created_at DESC);
+ALTER TABLE users ADD COLUMN shelf_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN shelf_slug TEXT;
+ALTER TABLE users ADD COLUMN shelf_title TEXT;
+ALTER TABLE users ADD COLUMN shelf_whatsapp TEXT;
+ALTER TABLE customers ADD COLUMN business_card_photo TEXT;
+ALTER TABLE customers ADD COLUMN storefront_photo TEXT;
+ALTER TABLE customers ADD COLUMN latitude REAL;
+ALTER TABLE customers ADD COLUMN longitude REAL;
+ALTER TABLE customers ADD COLUMN line TEXT;
 
 -- 8. Collections — persistent curator-driven product sets published to audiences.
 -- Phase 1 ships Person audience; target_type accommodates future store/event/shop.
@@ -938,3 +893,104 @@ CREATE TABLE IF NOT EXISTS oauth_authorize_requests (
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_authorize_requests_expires ON oauth_authorize_requests(expires_at);
+
+-- Exact table definitions introduced by migrations 093, 095, and 096.
+-- Migration 093: Personal cellar — location-less, person-owned stock (stock spine step 4)
+--
+-- A personal collection is the SAME person-owned stock as everything else, just
+-- placed at NO location (docs/MULTI_STORE_PLAN.md, todo/plans/stock-spine.md).
+-- The model is one spine, person-anchored. The IMPLEMENTATION here is a dedicated
+-- table — the deliberate fallback the plan blesses — because the worker scopes
+-- ~310 queries by `account_id = ?` and migration 017 backfilled every products
+-- row to an account; a NULL-account row in `products` is one missed audit away
+-- from leaking into a shop or the step-3 master view. A dedicated table keeps
+-- these rows entirely out of those account-scoped paths while preserving the
+-- model: owner_user_id is the anchor, and the row can be PLACED at a location
+-- later (the move) — a human-approved request, never a silent write.
+--
+-- Private by default. Nothing here appears in any shop, storefront, or master
+-- view until it is placed at a location (owner-curated) or published via step 5.
+
+CREATE TABLE IF NOT EXISTS personal_cellar_items (
+  id                TEXT PRIMARY KEY,
+  owner_user_id     TEXT NOT NULL,            -- the anchor (stock spine)
+  name              TEXT NOT NULL,
+  type              TEXT,                      -- tea type, free-form
+  year              INTEGER,
+  origin            TEXT,
+  notes             TEXT,
+  grams             REAL NOT NULL DEFAULT 0,   -- quantity the person owns
+  image_url         TEXT,
+
+  -- The move: a cellar item can be PLACED at a location. Private until then.
+  --   'private'   — location-less, visible to no one but the owner (default)
+  --   'requested' — owner asked to place it at placement_account_id; awaiting approval
+  --   'placed'    — a location owner approved; linked_product_id is the created row
+  placement_status      TEXT NOT NULL DEFAULT 'private',
+  placement_account_id  TEXT,                  -- the location a request targets / landed at
+  linked_product_id     TEXT,                  -- the products row created on approval
+
+  -- Step 5 hook: flip a placed-nowhere item onto the owner's public shelf.
+  shelf_published   INTEGER NOT NULL DEFAULT 0,
+
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_cellar_owner ON personal_cellar_items(owner_user_id);
+-- Owner-tier review of pending placement requests targeting a location.
+CREATE INDEX IF NOT EXISTS idx_cellar_placement ON personal_cellar_items(placement_account_id, placement_status);
+-- Story photos: a real image + crop position for each named photo frame in a
+-- hand-built Read story page. Keeps the bespoke page layout while letting the
+-- owner drag a photo into each frame and pan/zoom it to fit, from admin.
+--
+-- One row per (story_slug, frame_slot). crop holds the pan/zoom as JSON:
+--   { "scale": 1.0, "x": 0.5, "y": 0.5 }  -- x/y are object-position fractions.
+CREATE TABLE IF NOT EXISTS story_photos (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  story_slug TEXT NOT NULL,
+  frame_slot TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  crop TEXT NOT NULL DEFAULT '{"scale":1,"x":0.5,"y":0.5}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_story_photos_slug_slot
+  ON story_photos(account_id, story_slug, frame_slot);
+-- Story content: per-field text + photo overrides for a hand-built Read story,
+-- with a draft/published split and a small version history. The bespoke page
+-- layout stays in code; this holds what the owner edits inline.
+--
+-- One row per story (the whole editable surface as JSON), kept in two states:
+--   state = 'published'  -> what visitors see
+--   state = 'draft'      -> the owner's in-progress edits (preview-only)
+-- content JSON shape (all keys optional; page falls back to its coded defaults):
+--   { "text": { "<fieldKey>": "<string>" },
+--     "photos": { "<slot>": { "url": "...", "crop": {scale,x,y} } },
+--     "plates": [ "plate-1", "plate-2", ... ]   -- order + membership of the photo row
+--   }
+CREATE TABLE IF NOT EXISTS story_content (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  story_slug TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'published',   -- 'published' | 'draft'
+  content TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_story_content_slug_state
+  ON story_content(account_id, story_slug, state);
+
+-- Version history: a snapshot each time the owner publishes, newest first.
+-- Used for one-click undo / rollback. Keep a bounded number per story.
+CREATE TABLE IF NOT EXISTS story_content_versions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  story_slug TEXT NOT NULL,
+  content TEXT NOT NULL,
+  label TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_story_versions_slug
+  ON story_content_versions(account_id, story_slug, created_at DESC);
