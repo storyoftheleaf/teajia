@@ -13,15 +13,20 @@ const product = {
   cost_currency: 'USD', quantity_purchased: 100, is_public: 0, shown_in_shop: 0, can_reorder: 0,
   is_sample: 0, is_personal: 0, inventory_purpose: 'working', tasting_source: 'common',
 };
+const destinationProduct = { ...product, id: 'tea-2', given_name: 'Reserve', product_name: 'Reserve Oolong', stock_grams: 25 };
 
 let balance = 100;
 let failNext = false;
 const movements: any[] = [];
+const movementBodies: any[] = [];
+const absoluteStockWrites: any[] = [];
 
 async function install(page: Page) {
   const jwt = token();
   balance = 100;
   movements.length = 0;
+  movementBodies.length = 0;
+  absoluteStockWrites.length = 0;
   failNext = false;
   await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
   await page.addInitScript(value => {
@@ -31,10 +36,11 @@ async function install(page: Page) {
   }, jwt);
   await page.route('**/api/auth/me', r => r.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } }));
   await page.route('**/api/auth/refresh', r => r.fulfill({ json: { token: jwt } }));
-  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }] }));
+  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }, destinationProduct] }));
   await page.route('**/api/products/*/events', r => r.fulfill({ json: [] }));
   await page.route('**/api/products/tea-1/movements', async r => {
     const body = r.request().postDataJSON();
+    movementBodies.push(body);
     if (failNext) {
       failNext = false;
       await r.fulfill({ status: 409, json: { error: 'Stock changed elsewhere. Review the current balance and try again.' } });
@@ -51,7 +57,13 @@ async function install(page: Page) {
     movements.unshift({ id: `movement-${movements.length + 1}`, movement_type: body.movement_type, reason: body.movement_type.toUpperCase(), delta: next - before, balance_before: before, balance_after: next, user_email: 'operator@test', note: body.note, source_invoice_number: body.source_invoice_number, created_at: new Date().toISOString() });
     await r.fulfill({ status: 201, json: { id: movements[0].id, before_balance: before, after_balance: next } });
   });
-  await page.route('**/api/stock-ledger**', r => r.fulfill({ json: { entries: movements, total: movements.length } }));
+  await page.route('**/api/products/*/stock', async r => { absoluteStockWrites.push(r.request().postDataJSON()); await r.fulfill({ json: { success: true } }); });
+  await page.route('**/api/stock-ledger**', r => {
+    const url = new URL(r.request().url());
+    const offset = Number(url.searchParams.get('offset') || 0);
+    const limit = Number(url.searchParams.get('limit') || 20);
+    return r.fulfill({ json: { entries: movements.slice(offset, offset + limit), total: movements.length } });
+  });
   await page.route('**/api/rates', r => r.fulfill({ json: [] }));
   await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test' } }));
   await page.route('**/api/batches**', r => r.fulfill({ json: [] }));
@@ -93,6 +105,26 @@ test('stock ledger pagination controls have accessible names', async ({ page }) 
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await expect(page.getByRole('button', { name: 'Previous stock history page' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Next stock history page' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Next stock history page' }).click();
+  await expect(page.getByText('21–21 of 21')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Previous stock history page' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Previous stock history page' }).click();
+  await expect(page.getByText('1–20 of 21')).toBeVisible();
+});
+
+test('receive, sample use, and return record the correct movement direction', async ({ page }) => {
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
+  for (const [label, type, quantity, expected] of [
+    ['Receive', 'receipt', '5', '105'],
+    ['Sample use', 'sample_use', '2', '103'],
+    ['Return', 'return', '4', '107'],
+  ] as const) {
+    await page.getByRole('button', { name: label, exact: true }).click();
+    await page.getByLabel('Quantity').fill(quantity);
+    await page.getByRole('button', { name: 'Record movement' }).click();
+    await expect(page.getByText(`Cloud · ${expected}g`)).toBeVisible();
+    expect(movementBodies.at(-1)).toMatchObject({ movement_type: type, quantity: Number(quantity) });
+  }
 });
 
 test('prevents insufficient stock inline and preserves form after an API error', async ({ page }) => {
@@ -116,11 +148,38 @@ test('transfer requires a destination and recount records an absolute balance', 
   await page.getByLabel('Quantity').fill('5');
   await expect(page.getByText('Choose a destination holding')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Record movement' })).toBeDisabled();
+  await page.getByLabel('Destination holding').selectOption('tea-2');
+  await page.getByRole('button', { name: 'Record movement' }).click();
+  await expect(page.getByText('Cloud · 95g')).toBeVisible();
+  expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'transfer', quantity: 5, destination_product_id: 'tea-2' });
   await page.getByRole('button', { name: 'Recount', exact: true }).click();
   await page.getByLabel('New balance').fill('72');
-  await expect(page.getByText('100g → 72g')).toBeVisible();
+  await expect(page.getByText('95g → 72g')).toBeVisible();
   await page.getByRole('button', { name: 'Record movement' }).click();
   await expect(page.getByText('Cloud · 72g')).toBeVisible();
+});
+
+test('quick edit opens Recount and full product edit opens movements without absolute stock writes', async ({ page }) => {
+  const row = page.locator('tr[data-product-id="tea-1"]');
+  await row.dispatchEvent('pointerdown');
+  await page.waitForTimeout(600);
+  await row.dispatchEvent('pointerup');
+  await page.getByRole('button', { name: 'Recount stock for Cloud Oolong' }).click();
+  await expect(page.getByRole('button', { name: 'Recount', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Close stock movement' }).click();
+
+  await page.getByText('Cloud Oolong').click();
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.locator('[role="dialog"][aria-hidden="false"]').getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
+  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+  expect(absoluteStockWrites).toHaveLength(0);
+});
+
+test('invoice-driven sale remains available and Sale is not an ad-hoc movement action', async ({ page }) => {
+  await page.getByText('Cloud Oolong').click();
+  await expect(page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Invoice' })).toBeVisible();
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
+  await expect(page.getByRole('button', { name: 'Sale', exact: true })).toHaveCount(0);
 });
 
 test('mobile panel is full width, closes without breaking scroll, and returns focus', async ({ page }) => {
