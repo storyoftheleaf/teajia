@@ -248,7 +248,7 @@ test('mobile labels and separates Purpose from Needs attention for Tea and Wares
   test.skip((page.viewportSize()?.width || 0) >= 768, 'Mobile information architecture');
 
   for (const category of ['Tea', 'Wares']) {
-    await page.getByRole('button', { name: category }).click();
+    await page.getByRole('button', { name: category, exact: true }).click();
     const purpose = page.getByRole('group', { name: 'Purpose views' });
     await expect(purpose).toBeVisible();
     await expect(purpose.getByRole('button')).toHaveText(['All', 'Working', 'Samples', 'Personal']);
