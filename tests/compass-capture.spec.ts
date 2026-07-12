@@ -222,6 +222,30 @@ test.describe('Curate field capture preservation', () => {
     })).toEqual({ decision: 'considering', sampleState: null });
   });
 
+  test('authenticated capture keeps Share reachable outside the action footer', async ({ page }) => {
+    await openCompass(page);
+    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Shareable tea');
+    const share = page.getByRole('button', { name: 'Share', exact: true }).filter({ visible: true });
+
+    await expect(share).toHaveCount(1);
+    await share.click();
+    await expect(page.getByRole('heading', { name: 'Shareable tea', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Link', exact: true })).toBeVisible();
+  });
+
+  test('Buy reports and controls its purchase picker disclosure state', async ({ page }) => {
+    await openCompass(page);
+    const buy = page.getByTestId('capture-action-footer').filter({ visible: true })
+      .getByRole('button', { name: 'Buy', exact: true });
+
+    await expect(buy).toHaveAttribute('aria-expanded', 'false');
+    const pickerId = await buy.getAttribute('aria-controls');
+    expect(pickerId).toBeTruthy();
+    await expect(page.locator(`#${pickerId}`)).toHaveCount(1);
+    await buy.click();
+    await expect(buy).toHaveAttribute('aria-expanded', 'true');
+  });
+
   test('desktop Done also creates exactly one active replacement draft', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'Desktop Chrome', 'desktop action bar only');
     await openCompass(page);

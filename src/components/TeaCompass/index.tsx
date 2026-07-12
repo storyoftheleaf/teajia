@@ -343,8 +343,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       ?? null
     : null);
 
-  // ── Capture action bar state (Re-Taste / Want / Buy) ───────────────────
+  // ── Capture action footer state ─────────────────────────────────────────
   const captureCardActionsRef = useRef<CaptureCardActions | null>(null);
+  const [captureBuyExpanded, setCaptureBuyExpanded] = useState(false);
   // Done needs a photo OR a name, the promised saveable minimum.
   const captureDoneReady =
     !!activeEntry && ((activeEntry.name || '').trim().length > 0 || activeEntry.photos.length > 0);
@@ -832,9 +833,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </div>
           )}
 
-          {/* Content area. Action bar lived here historically; it's now
-              distributed across the page (Batch/Share in the header strip,
-              Want/Buy/Sample/Taste/Done inside the form), so the scroll
+          {/* Content area. Capture context actions live in the header cluster;
+              Buy, Done, and Sample live in the form footer, so this scroll
               region only needs to clear the BottomTabBar. */}
           <div
             ref={scrollContainerRef}
@@ -906,6 +906,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                         actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                        purchasePickerId={`capture-purchase-picker-mobile-${activeEntryId}`}
                         batchMode={batchMode}
                         onToggleBatchMode={() => setBatchMode((v) => !v)}
                       />}
@@ -1557,6 +1558,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                           actionRef={captureCardActionsRef}
                           onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
+                          purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
+                          onBuyExpandedChange={setCaptureBuyExpanded}
                           batchMode={batchMode}
                           onToggleBatchMode={() => setBatchMode((v) => !v)}
                         />
@@ -1630,6 +1633,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onSample={() => captureCardActionsRef.current?.openTasting()}
                     doneEnabled={!!activeEntryId && captureDoneReady}
                     doneTestId="compass-done-desktop"
+                    buyExpanded={captureBuyExpanded}
+                    purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
                   />
                 )}
               </div>

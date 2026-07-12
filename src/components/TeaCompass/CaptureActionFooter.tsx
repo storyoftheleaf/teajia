@@ -5,6 +5,8 @@ interface CaptureActionFooterProps {
   onDone: () => void;
   onSample: () => void;
   doneEnabled: boolean;
+  buyExpanded: boolean;
+  purchasePickerId: string;
   doneTestId?: string;
   className?: string;
 }
@@ -16,11 +18,20 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   onDone,
   onSample,
   doneEnabled,
+  buyExpanded,
+  purchasePickerId,
   doneTestId,
   className = '',
 }) => (
   <div data-testid="capture-action-footer" className={`grid grid-cols-3 gap-2 ${className}`}>
-    <button type="button" onClick={onBuy} className={quietActionClass} aria-label="Buy">
+    <button
+      type="button"
+      onClick={onBuy}
+      className={quietActionClass}
+      aria-label="Buy"
+      aria-expanded={buyExpanded}
+      aria-controls={purchasePickerId}
+    >
       Buy
     </button>
     <button

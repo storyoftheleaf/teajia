@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Check, ChevronDown, Plus, RotateCcw, X, Zap } from 'lucide-react';
+import { Check, ChevronDown, Plus, RotateCcw, Share2, X, Zap } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import type { CompassCategory } from './types';
 import { BottomSheet } from '../shared/BottomSheet';
@@ -23,6 +23,7 @@ interface CaptureContextChipsProps {
   onToggleVendor: () => void;
   batchMode?: boolean;
   onToggleBatchMode?: () => void;
+  onShare?: () => void;
 }
 
 export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
@@ -32,6 +33,7 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
   onToggleVendor,
   batchMode,
   onToggleBatchMode,
+  onShare,
 }) => {
   const [runSheetOpen, setRunSheetOpen] = React.useState(false);
 
@@ -104,6 +106,17 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           className={`shrink-0 text-tea-text-dim transition-transform ${vendorOpen ? 'rotate-180' : ''}`}
         />
       </button>
+
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          aria-label="Share"
+          className="tap-target pill-quiet shrink-0"
+        >
+          <Share2 size={13} aria-hidden="true" />
+        </button>
+      )}
 
       <span className="ml-auto shrink-0 md:hidden">
         <button

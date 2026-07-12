@@ -63,10 +63,10 @@ interface CaptureCardProps {
   initialCollapsed?: boolean;
   /** Ref populated with action callbacks — used by parent to render pinned action bar */
   actionRef?: React.MutableRefObject<CaptureCardActions | null>;
-  /** When provided, a small "Share" affordance renders next to the Done
-   *  CTA so the user has share + commit colocated in the action area
-   *  (rather than share floating up in the page header). */
+  /** Optional Share action rendered in the capture context/header cluster. */
   onShare?: () => void;
+  purchasePickerId?: string;
+  onBuyExpandedChange?: (expanded: boolean) => void;
   /** Rapid batch-entry mode state, surfaced inside the Run chip's sheet */
   batchMode?: boolean;
   onToggleBatchMode?: () => void;
@@ -155,7 +155,7 @@ const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
   <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, batchMode, onToggleBatchMode }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, onBuyExpandedChange, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -200,6 +200,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [buyingQty, setBuyingQty] = useState(100);
   const [justAddedToLedger, setJustAddedToLedger] = useState(false);
   const [showBuyPicker, setShowBuyPicker] = useState(false);
+  useEffect(() => onBuyExpandedChange?.(showBuyPicker), [onBuyExpandedChange, showBuyPicker]);
   const [receiptPurpose, setReceiptPurpose] = useState<InventoryPurposeValue>('working');
   const [receiptAcquisition, setReceiptAcquisition] = useState<ReceiptAcquisitionKind>('purchase');
   const [receiptProposal, setReceiptProposal] = useState<CurateReceiptProposal | null>(null);
@@ -1005,6 +1006,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onToggleVendor={() => setVendorOpen((v) => !v)}
             batchMode={batchMode}
             onToggleBatchMode={onToggleBatchMode}
+            onShare={onShare}
           />
 
           {vendorOpen && (
@@ -1360,7 +1362,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
         <div className="border-t border-tea-border" />
 
-        {/* Notes — in-field mic dictates straight into the note; the footer Mic does whole-entry voice scan. */}
+        {/* Notes — the in-field mic dictates directly into the note. */}
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
@@ -1368,7 +1370,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           sans
         />
 
-        {/* Action footer — Done. Share lives in the Library, not at capture. */}
+        {/* Teaware keeps its single Done action; tea-only actions live below the tea form. */}
         {(() => {
           // Done is enabled whenever the entry holds anything worth keeping —
           // a name, a photo, notes, or tasting data — matching exactly what
@@ -1501,6 +1503,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           onToggleVendor={() => setVendorOpen((v) => !v)}
           batchMode={batchMode}
           onToggleBatchMode={onToggleBatchMode}
+          onShare={onShare}
         />
 
         {vendorOpen && (
@@ -1808,7 +1811,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
-      <div className="space-y-2">
+      <div id={purchasePickerId} className="space-y-2">
         <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Ledger link */}
         {isInLedger && (
@@ -1972,6 +1975,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         onDone={handleCommit}
         onSample={openTastingOverlay}
         doneEnabled={entryHasContent(entry)}
+        buyExpanded={showBuyPicker}
+        purchasePickerId={purchasePickerId}
       />
 
       {/* ─── Tasting overlay ─── */}
