@@ -112,15 +112,49 @@ async function token(userId: string, accountId: string) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return `${payload}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))))}`;
 }
-async function request(db: ImportDb, path: string, init: RequestInit = {}, accountId = 'account-a', userId = 'user-a') {
+async function request(db: ImportDb, path: string, init: RequestInit = {}, accountId = 'account-a', userId = 'user-a', bucket?: R2Bucket) {
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${await token(userId, accountId)}`);
   headers.set('X-Teajia-Account', accountId);
-  if (init.body) headers.set('Content-Type', 'application/json');
-  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET } as any);
+  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET, MEDIA_BUCKET: bucket } as any);
 }
 
 describe('Curate import provenance API', () => {
+  it('durably uploads scoped evidence and lists the incomplete batch after reload', async () => {
+    const db = new ImportDb();
+    const objects = new Map<string, { value: ArrayBuffer; options: unknown }>();
+    const bucket = {
+      put: async (key: string, value: ArrayBuffer, options: unknown) => { objects.set(key, { value, options }); },
+      delete: async (key: string) => { objects.delete(key); },
+    } as unknown as R2Bucket;
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Invoice evidence' }) }, 'account-a', 'user-a', bucket);
+    const { batch } = await created.json() as any;
+    const uploaded = await request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST', headers: { 'X-Filename': encodeURIComponent('台灣 invoice.pdf'), 'Content-Type': 'application/pdf' }, body: '%PDF-test',
+    }, 'account-a', 'user-a', bucket);
+    expect(uploaded.status).toBe(201);
+    const source = await uploaded.json() as any;
+    expect(source).toMatchObject({ kind: 'invoice', metadata: { filename: '台灣 invoice.pdf', content_type: 'application/pdf', size: 9, extraction_status: 'not_available' } });
+    expect(source.r2_object_key).toMatch(new RegExp(`^curate/account-a/${batch.id}/`));
+    expect(objects.has(source.r2_object_key)).toBe(true);
+    const listed = await request(db, '/api/curate/imports?state=incomplete', {}, 'account-a', 'user-a', bucket);
+    expect(listed.status).toBe(200);
+    expect(await listed.json()).toMatchObject({ imports: [{ batch: { id: batch.id }, sources: [{ id: source.id }], items: [] }] });
+  });
+
+  it('rejects unsupported, oversized, unbound, and cross-account evidence without persisting a source', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Evidence' }) });
+    const { batch } = await created.json() as any;
+    const path = `/api/curate/imports/${batch.id}/evidence`;
+    expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf' }, body: 'x' })).status).toBe(503);
+    const bucket = { put: async () => {} } as unknown as R2Bucket;
+    expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.exe', 'Content-Type': 'application/octet-stream' }, body: 'x' }, 'account-a', 'user-a', bucket)).status).toBe(415);
+    expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf', 'Content-Length': String(10 * 1024 * 1024 + 1) }, body: 'x' }, 'account-a', 'user-a', bucket)).status).toBe(413);
+    expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf' }, body: 'x' }, 'account-b', 'user-b', bucket)).status).toBe(404);
+    expect(db.sources.size).toBe(0);
+  });
   it('preserves pasted evidence byte-for-byte and parsed item order across refreshes', async () => {
     const db = new ImportDb();
     const pasted = '  2019 老班章\r\nNT$ 800 / 25g\n\n备注: 蜜香  ';

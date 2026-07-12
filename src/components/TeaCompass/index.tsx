@@ -12,7 +12,7 @@ import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
 import { api, hasToken, type CurateImportDetail, type CurateImportItem } from '../../lib/api';
-import type { CompassCategory, TeaType } from './types';
+import type { CompassCategory } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
@@ -212,7 +212,31 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [batchMode, setBatchMode] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importDetail, setImportDetail] = useState<CurateImportDetail | null>(null);
+  const [importPointerId, setImportPointerId] = useState<string | null>(null);
   const importTriggerRef = useRef<HTMLButtonElement>(null);
+  const { data: incompleteImports } = useQuery({
+    queryKey: ['curate-imports', 'incomplete', activeAccountId],
+    queryFn: () => api.curateImports.listIncomplete(),
+    enabled: hasToken() && !!activeAccountId,
+  });
+  useEffect(() => {
+    setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
+  }, [activeAccountId]);
+  const { data: pointedImport } = useQuery({
+    queryKey: ['curate-import', importPointerId, activeAccountId],
+    queryFn: () => api.curateImports.get(importPointerId!),
+    enabled: hasToken() && !!activeAccountId && !!importPointerId,
+  });
+  useEffect(() => {
+    if (!importDetail) setImportDetail(pointedImport ?? incompleteImports?.imports?.[0] ?? null);
+  }, [importDetail, incompleteImports, pointedImport]);
+  const rememberImportDetail = useCallback((detail: CurateImportDetail) => {
+    setImportDetail(detail);
+    if (activeAccountId) {
+      localStorage.setItem(`teajia-curate-import:${activeAccountId}`, detail.batch.id);
+      setImportPointerId(detail.batch.id);
+    }
+  }, [activeAccountId]);
 
   // Auto-collapse the header on scroll. We hide it when the user scrolls
   // down (engaged with the form) and reveal on scroll up. Threshold + a
@@ -306,22 +330,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     window.requestAnimationFrame(() => importTriggerRef.current?.focus());
   }, []);
 
-  const openAcceptedImportItem = useCallback((item: CurateImportItem) => {
-    const category = item.category;
-    const id = startNewCapture(category);
-    const parsed = item.parsed_data || {};
-    updateEntry(id, {
-      category,
-      name: item.name || String(parsed.name || ''),
-      originRegion: typeof parsed.originRegion === 'string' ? parsed.originRegion : undefined,
-      type: typeof parsed.type === 'string' ? parsed.type as TeaType : undefined,
-      notes: item.raw_text || '',
-    });
-    setActiveEntry(id);
-    setCaptureOption(category);
+  const openAcceptedImportItem = useCallback(async (item: CurateImportItem) => {
+    if (!item.compass_entry_id) throw new Error('Accepted import did not return its Compass identity');
+    await hydrateCompassEntries();
+    const accepted = useTeaCompassStore.getState().getEntry(item.compass_entry_id);
+    if (!accepted) throw new Error('Accepted Compass entry could not be loaded');
+    setActiveEntry(item.compass_entry_id);
+    setCaptureOption(accepted.category);
     setMode('sourcing');
     closeImport();
-  }, [closeImport, setActiveEntry, startNewCapture, updateEntry]);
+  }, [closeImport, setActiveEntry]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -1823,7 +1841,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         <ImportPanel
           initialDetail={importDetail}
           activeCompassEntryId={activeEntryId}
-          onDetailChange={setImportDetail}
+          onDetailChange={rememberImportDetail}
           onAccepted={openAcceptedImportItem}
           onClose={closeImport}
         />

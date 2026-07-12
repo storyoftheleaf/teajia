@@ -652,16 +652,17 @@ async function handleResponse(res: Response) {
  *  browser can't append the multipart boundary, and the worker hard-rejects
  *  non-multipart uploads with 400. This single header bug broke every
  *  `api.uploadImage` call (photo capture, vendor photos, teaware, ledger). */
-function authHeadersFor(body: BodyInit | null | undefined): Record<string, string> {
-  const headers = authHeaders();
+function authHeadersFor(body: BodyInit | null | undefined, additional?: HeadersInit): Record<string, string> {
+  const headers = new Headers(authHeaders());
   if (typeof FormData !== 'undefined' && body instanceof FormData) {
-    delete headers['Content-Type'];
+    headers.delete('Content-Type');
   }
-  return headers;
+  if (additional) new Headers(additional).forEach((value, key) => headers.set(key, value));
+  return Object.fromEntries(headers.entries());
 }
 
 async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any> {
-  const opts: ApiRequestInit = { ...init, headers: authHeadersFor(init.body) };
+  const opts: ApiRequestInit = { ...init, headers: authHeadersFor(init.body, init.headers) };
   const res = await fetchWithTimeout(url, opts);
 
   if (res.status === 401 && hasToken()) {
@@ -681,7 +682,7 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
         // The second call goes straight to handleResponse; there is no further
         // retry (the retry itself throws on 401, which surfaces SESSION_EXPIRED
         // correctly if the fresh token is also rejected).
-        const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeadersFor(init.body) });
+        const retryRes = await fetchWithTimeout(url, { ...init, headers: authHeadersFor(init.body, init.headers) });
         return handleResponse(retryRes);
       }
       if (refreshResult === 'rejected') {
@@ -1905,6 +1906,7 @@ export const api = {
   },
 
   curateImports: {
+    listIncomplete: (): Promise<{ imports: CurateImportDetail[] }> => authedFetch(`${API_URL}/api/curate/imports?state=incomplete`),
     create: (payload: {
       title: string; journey_id?: string; visit_id?: string;
       source_kind?: CurateImportSourceKind; pasted_text?: string;
@@ -1913,6 +1915,9 @@ export const api = {
     get: (id: string): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports/${id}`),
     addSource: (id: string, source: { kind: CurateImportSourceKind; pasted_text?: string; r2_object_key?: string; metadata?: Record<string, unknown> }): Promise<CurateImportSource> =>
       authedFetch(`${API_URL}/api/curate/imports/${id}/sources`, { method: 'POST', body: JSON.stringify(source), retryTimeouts: true }),
+    uploadEvidence: (id: string, file: File): Promise<CurateImportSource> => authedFetch(`${API_URL}/api/curate/imports/${id}/evidence`, {
+      method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name) }, retryTimeouts: true,
+    }),
     updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
     acceptItem: (batchId: string, itemId: string): Promise<CurateImportItem & { already_accepted?: boolean }> =>

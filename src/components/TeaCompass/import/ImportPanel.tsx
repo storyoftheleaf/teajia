@@ -10,12 +10,12 @@ interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
   activeCompassEntryId: string | null;
   onDetailChange: (detail: CurateImportDetail) => void;
-  onAccepted: (item: CurateImportItem) => void;
+  onAccepted: (item: CurateImportItem) => void | Promise<void>;
   onClose: () => void;
 }
 
 const parseDraftItems = (draft: ImportDraft) => {
-  const textItems = draft.text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, position) => {
+  return draft.text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, position) => {
     const uncertain = line.startsWith('?');
     const name = line.replace(/^\?\s*/, '').split(/[-—]/)[0].trim();
     return {
@@ -24,11 +24,6 @@ const parseDraftItems = (draft: ImportDraft) => {
       uncertainty: uncertain ? { name: 'Could be a transliteration' } : {},
     };
   });
-  return [...textItems, ...draft.evidence.map((evidence, index) => ({
-    position: textItems.length + index, category: 'tea' as const, name: evidence.file.name.replace(/\.[^.]+$/, ''), raw_text: evidence.file.name,
-    parsed_data: { evidence_name: evidence.file.name, evidence_type: evidence.file.type }, confidence: 0.35,
-    uncertainty: { extraction: 'Review fields extracted from this evidence' },
-  }))];
 };
 
 export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeCompassEntryId, onDetailChange, onAccepted, onClose }) => {
@@ -59,10 +54,19 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     setState(current => ({ ...current, phase: 'parsing', error: null }));
     await new Promise(resolve => window.setTimeout(resolve, 250));
     try {
-      const detail = await api.curateImports.create({
-        title: draft.evidence[0]?.file.name || 'Imported list', source_kind: evidenceKind,
-        pasted_text: draft.text.trim() || undefined, items: parseDraftItems(draft),
-      });
+      let detail = state.detail;
+      if (!detail) {
+        detail = await api.curateImports.create({
+          title: draft.evidence[0]?.file.name || 'Imported list', source_kind: draft.text.trim() ? 'paste' : evidenceKind,
+          pasted_text: draft.text.trim() || undefined, items: parseDraftItems(draft),
+        });
+        setState(current => ({ ...current, detail }));
+      }
+      const savedFilenames = new Set(detail.sources.map(source => String(source.metadata?.filename || '')));
+      for (const evidence of draft.evidence) {
+        if (!savedFilenames.has(evidence.file.name)) await api.curateImports.uploadEvidence(detail.batch.id, evidence.file);
+      }
+      detail = await api.curateImports.get(detail.batch.id);
       setState({ phase: 'review', detail, error: null });
       onDetailChange(detail);
     } catch (error) {
@@ -77,9 +81,14 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
       return { ...current, detail };
     });
   };
+  const updateItem = async (item: CurateImportItem, updates: Partial<CurateImportItem>) => {
+    setBusyId(item.id);
+    try { replaceItem(await api.curateImports.updateItem(item.batch_id, item.id, updates)); }
+    finally { setBusyId(null); }
+  };
   const accept = async (item: CurateImportItem, open = true) => {
     setBusyId(item.id);
-    try { const updated = await api.curateImports.acceptItem(item.batch_id, item.id); replaceItem(updated); if (open) onAccepted(updated); }
+    try { const updated = await api.curateImports.acceptItem(item.batch_id, item.id); replaceItem(updated); if (open) await onAccepted(updated); }
     finally { setBusyId(null); }
   };
   const merge = async (item: CurateImportItem) => {
@@ -89,7 +98,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     finally { setBusyId(null); }
   };
   const acceptAll = async () => {
-    const remaining = state.detail?.items.filter(item => item.review_state === 'pending' || item.review_state === 'reviewing') || [];
+    const remaining = state.detail?.items.filter(item => (item.review_state === 'pending' || item.review_state === 'reviewing') && Object.keys(item.uncertainty || {}).length === 0) || [];
     for (const item of remaining) await accept(item, false);
   };
 
@@ -104,7 +113,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
           {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} />}
           {state.phase === 'parsing' && <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Parsing your evidence…</div>}
           {state.phase === 'error' && <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p><button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={state.detail} busyId={busyId} onAccept={accept} onMerge={merge} onAcceptAll={acceptAll} onDefer={onClose} />}
+          {state.phase === 'review' && state.detail && <ImportBatchReview detail={state.detail} busyId={busyId} onUpdate={updateItem} onAccept={accept} onMerge={merge} onAcceptAll={acceptAll} onDefer={onClose} />}
         </div>
       </div>
     </div>

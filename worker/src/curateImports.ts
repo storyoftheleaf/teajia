@@ -6,7 +6,7 @@ export interface CurateImportContext {
   userId: string;
 }
 
-interface ImportEnv { DB: D1Database }
+interface ImportEnv { DB: D1Database; MEDIA_BUCKET?: R2Bucket }
 
 const SOURCE_KINDS = new Set(['wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste']);
 const ITEM_STATES = new Set(['pending', 'reviewing', 'accepted', 'merged', 'abandoned']);
@@ -180,6 +180,65 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
 export async function getCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const result = await fullBatch(env, params.id, ctx.accountId);
   return result ? response(result) : response({ error: 'Import not found' }, 404);
+}
+
+export async function listIncompleteCurateImports(_request: Request, env: ImportEnv, ctx: CurateImportContext) {
+  const batches = await env.DB.prepare(
+    "SELECT * FROM curate_import_batches WHERE account_id = ? AND review_state != 'completed' AND review_state != 'abandoned' ORDER BY updated_at DESC, created_at DESC LIMIT 25"
+  ).bind(ctx.accountId).all<Record<string, unknown>>();
+  const imports = (await Promise.all(batches.results.map(batch => fullBatch(env, String(batch.id), ctx.accountId)))).filter(Boolean);
+  return response({ imports });
+}
+
+const EVIDENCE_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
+  'application/pdf', 'text/plain', 'text/csv', 'application/csv',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
+const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
+
+export async function uploadCurateImportEvidence(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  if (!await scopedBatch(env, params.id, ctx.accountId)) return response({ error: 'Import not found' }, 404);
+  if (!env.MEDIA_BUCKET) return response({ error: 'Evidence storage is not configured. Your file was not saved.' }, 503);
+  const contentType = (request.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+  if (!EVIDENCE_TYPES.has(contentType)) return response({ error: 'Unsupported evidence file type' }, 415);
+  const declaredSize = Number(request.headers.get('Content-Length') || 0);
+  if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 10 MB or smaller' }, 413);
+  const encodedFilename = request.headers.get('X-Filename') || '';
+  let filename = '';
+  try { filename = decodeURIComponent(encodedFilename); } catch { return response({ error: 'Invalid evidence filename' }, 400); }
+  if (!filename || filename.length > 500 || /[\u0000-\u001f\u007f]/.test(filename)) return response({ error: 'Invalid evidence filename' }, 400);
+  const bytes = await request.arrayBuffer();
+  if (!bytes.byteLength) return response({ error: 'Evidence file is empty' }, 400);
+  if (bytes.byteLength > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 10 MB or smaller' }, 413);
+  const head = new Uint8Array(bytes.slice(0, 16));
+  const ascii = new TextDecoder().decode(head);
+  const matchesType = contentType === 'application/pdf' ? ascii.startsWith('%PDF-')
+    : contentType === 'image/jpeg' ? head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff
+    : contentType === 'image/png' ? [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => head[index] === byte)
+    : contentType === 'image/webp' ? ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP'
+    : contentType === 'image/heic' || contentType === 'image/heif' ? ascii.slice(4, 8) === 'ftyp'
+    : contentType === 'application/msword' ? [0xd0, 0xcf, 0x11, 0xe0].every((byte, index) => head[index] === byte)
+    : contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? ascii.startsWith('PK')
+    : true;
+  if (!matchesType) return response({ error: 'Evidence content does not match its declared file type' }, 415);
+  const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'application/pdf': 'pdf', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+  const key = `curate/${ctx.accountId}/${params.id}/${crypto.randomUUID()}.${extensionByType[contentType]}`;
+  const sourceId = crypto.randomUUID();
+  const kind = contentType.startsWith('image/') ? 'photo' : contentType === 'application/pdf' ? 'invoice' : 'file';
+  const metadata = { filename, content_type: contentType, size: bytes.byteLength, extraction_status: 'not_available' };
+  await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType }, customMetadata: { account_id: ctx.accountId, batch_id: params.id, source_id: sourceId } });
+  try {
+    await env.DB.prepare(
+      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, JSON.stringify(metadata)).run();
+  } catch (error) {
+    await env.MEDIA_BUCKET.delete(key);
+    throw error;
+  }
+  const row = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND account_id = ?').bind(sourceId, ctx.accountId).first<Record<string, unknown>>();
+  return response(sourceRow(row!), 201);
 }
 
 export async function addCurateImportSource(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {

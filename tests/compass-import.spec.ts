@@ -11,10 +11,24 @@ type ImportItem = {
 async function installImportApi(page: Page) {
   let attempts = 0;
   const items: ImportItem[] = [];
+  const sources: Array<Record<string, unknown>> = [];
+  let batch: Record<string, unknown> | null = null;
+  const acceptedCompass: Array<Record<string, unknown>> = [];
+  await page.route('**/api/compass/entries', route => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: acceptedCompass }) });
+  });
   await page.route('**/api/curate/imports**', async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const method = request.method();
+    if (method === 'GET' && path === '/api/curate/imports') {
+      const detail = batch ? { batch, sources, items } : null;
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports: detail ? [detail] : [] }) });
+    }
+    if (method === 'GET' && /^\/api\/curate\/imports\/[^/]+$/.test(path)) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batch, sources, items }) });
+    }
     if (method === 'POST' && path === '/api/curate/imports') {
       attempts += 1;
       const body = request.postDataJSON() as { title: string; pasted_text?: string; source_kind: string; items?: ImportItem[] };
@@ -32,16 +46,30 @@ async function installImportApi(page: Page) {
         uncertainty: line.startsWith('?') ? { name: 'Could be a transliteration' } : {},
         review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: `compass-${position}`,
       })));
+      batch = { id: 'batch-1', title: body.title, review_state: 'pending', journey_id: null, visit_id: null };
+      sources.splice(0, sources.length, ...(body.pasted_text ? [{ id: 'source-text', batch_id: 'batch-1', kind: body.source_kind, pasted_text: body.pasted_text, r2_object_key: null, metadata: {} }] : []));
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
-        batch: { id: 'batch-1', title: body.title, review_state: 'pending', journey_id: null, visit_id: null },
-        sources: [{ id: 'source-1', batch_id: 'batch-1', kind: body.source_kind, pasted_text: body.pasted_text || null, r2_object_key: null, metadata: {} }], items,
+        batch, sources, items,
       }) });
+    }
+    if (method === 'POST' && /\/evidence$/.test(path)) {
+      const filename = decodeURIComponent(request.headers()['x-filename']);
+      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: request.headers()['content-type'] === 'application/pdf' ? 'invoice' : 'photo', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: request.headers()['content-type'], size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available' } };
+      sources.push(source);
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
+    }
+    const updateMatch = path.match(/\/items\/(item-\d+)$/);
+    if (method === 'PUT' && updateMatch) {
+      const item = items.find(candidate => candidate.id === updateMatch[1])!;
+      Object.assign(item, request.postDataJSON());
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(item) });
     }
     const itemMatch = path.match(/\/items\/(item-\d+)\/(accept|merge)$/);
     if (method === 'POST' && itemMatch) {
       const item = items.find(candidate => candidate.id === itemMatch[1])!;
       item.review_state = itemMatch[2] === 'accept' ? 'accepted' : 'merged';
       item.compass_entry_id = item.reserved_compass_entry_id;
+      if (itemMatch[2] === 'accept') acceptedCompass.push({ id: item.compass_entry_id, account_id: 'acct-bali', user_id: 'test-admin-uid', name: item.name, category: item.category, notes: item.raw_text, status: 'logged', import_item_id: item.id });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(item) });
     }
     return route.fallback();
@@ -67,6 +95,14 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Close Import' }).click();
     await expect(trigger).toBeFocused();
     await expect(name).toHaveValue('Field tea');
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    const teawareName = page.getByPlaceholder(/Teaware name/).filter({ visible: true });
+    await teawareName.fill('Field pot');
+    await trigger.click();
+    await page.keyboard.press('Escape');
+    await expect(trigger).toBeFocused();
+    await expect(teawareName).toHaveValue('Field pot');
+    await expect(page.getByRole('tab', { name: 'Samples', exact: true })).toBeVisible();
   });
 
   test('accepts pasted fragments with parsing, textual uncertainty, merge, one/all review, and deferred batch chip', async ({ page }) => {
@@ -78,6 +114,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Could be a transliteration')).toBeVisible();
     await page.getByRole('button', { name: /^Ali Shan/ }).click();
     await page.getByRole('button', { name: 'Merge Ali Shan' }).click();
+    await page.getByLabel('Reviewed uncertain fields').check();
     await page.getByRole('button', { name: 'Accept Red Jade' }).click();
     await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toHaveValue('Red Jade');
     await page.getByRole('button', { name: 'Import' }).first().click();
@@ -100,6 +137,52 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Parser unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
+    await expect(page.getByText('Saved · extraction not available · needs review').first()).toBeVisible();
+  });
+
+  test('persists corrections and opens the exact accepted server Compass identity', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Paste a list or invoice text').fill('Wrong Name — 12');
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await page.getByRole('button', { name: /^Wrong Name/ }).click();
+    await page.getByLabel('Corrected name').fill('Correct Name');
+    await page.getByLabel('Category').selectOption('teaware');
+    await page.getByLabel('Origin').fill('Yixing');
+    await page.getByRole('button', { name: 'Save corrections' }).click();
+    await page.getByRole('button', { name: 'Accept Correct Name' }).click();
+    await expect(page.getByPlaceholder(/Teaware name/).filter({ visible: true })).toHaveValue('Correct Name');
+    await expect.poll(() => page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('teajia-compass') || '{}').state;
+      return state?.entries?.some((entry: { id: string }) => entry.id === 'compass-0');
+    })).toBe(true);
+    const synced = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname === '/api/compass/sync' && (request.postData() || '').includes('compass-0'));
+    await page.getByPlaceholder(/Teaware name/).filter({ visible: true }).fill('Correct Name Edited');
+    await synced;
+  });
+
+  test('keeps unsupported evidence recoverable and never invents a tea from its filename', async ({ page }) => {
+    await page.route('**/api/curate/imports/batch-1/evidence', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Evidence storage is not configured. Your file was not saved.' }) }));
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'not-a-tea.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(page.getByText('Evidence storage is not configured. Your file was not saved.')).toBeVisible();
+    await expect(page.getByTestId('import-item-row')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
+  });
+
+  test('recovers saved evidence and its grouped incomplete batch after reload', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(page.getByText('Saved · extraction not available · needs review')).toBeVisible();
+    await page.getByRole('button', { name: 'Review later' }).click();
+    await page.reload();
+    await expect(page.getByRole('button', { name: /invoice: 0 items, 0 reviewed, 0 remaining/ })).toBeVisible();
+    await page.getByRole('button', { name: /invoice: 0 items/ }).click();
+    await expect(page.getByText('invoice.pdf')).toBeVisible();
   });
 
   test('keeps a 30-item batch grouped instead of flooding the capture session', async ({ page }) => {
