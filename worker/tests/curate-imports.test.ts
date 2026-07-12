@@ -278,6 +278,32 @@ describe('Curate import provenance API', () => {
     expect(body.items[0]).toMatchObject({ name: evidence, raw_text: evidence, parsed_data: { notes_from_parser: evidence } });
   });
 
+  it.each([
+    { parsed_data: { parser: { attachment: { base64: 'aGVsbG8=' } } }, uncertainty: {} },
+    { parsed_data: {}, uncertainty: { photo: { uri: 'data:image/png;base64,aGVsbG8=' } } },
+    { parsed_data: { invoice: { file_bytes: [1, 2, 3] } }, uncertainty: {} },
+  ])('rejects binary payloads nested in structured import item fields: %j', async structured => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Structured binary',
+      pasted_text: 'exact evidence remains text',
+      items: [{ name: 'Tea', raw_text: 'line', ...structured }],
+    }) });
+    expect(created.status).toBe(400);
+    expect(db.batches.size).toBe(0);
+  });
+
+  it('returns 400 when structured item fields exceed traversal depth', async () => {
+    const db = new ImportDb();
+    let parsedData: Record<string, unknown> = { leaf: true };
+    for (let index = 0; index < 40; index++) parsedData = { child: parsedData };
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Deep parsed result', items: [{ name: 'Tea', parsed_data: parsedData }],
+    }) });
+    expect(created.status).toBe(400);
+    expect(db.batches.size).toBe(0);
+  });
+
   it('rejects foreign or mismatched journey/visit context on import creation', async () => {
     const db = new ImportDb();
     (db as any).journeys = new Map([['journey-a', { id: 'journey-a', account_id: 'account-a' }]]);

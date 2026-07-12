@@ -43,7 +43,7 @@ function binaryShaped(value: unknown): boolean {
   return Array.isArray(value) && value.length > 0 && value.every(entry => Number.isInteger(entry) && Number(entry) >= 0 && Number(entry) <= 255);
 }
 
-function inspectStructuredPayload(root: unknown): PayloadInspection {
+function inspectStructuredPayload(root: unknown, detectUnlabelledBase64 = true): PayloadInspection {
   const stack: Array<{ value: unknown; key: string; depth: number }> = [{ value: root, key: '', depth: 0 }];
   let visited = 0;
   while (stack.length) {
@@ -52,7 +52,7 @@ function inspectStructuredPayload(root: unknown): PayloadInspection {
     const normalizedKey = current.key.toLowerCase().replace(/[-\s]/g, '_');
     if (typeof current.value === 'string') {
       const candidate = current.value.trim();
-      if (/^data:[^,]*;base64,/i.test(candidate) || (candidate.length >= 128 && binaryShaped(candidate))) return 'binary';
+      if (/^data:[^,]*;base64,/i.test(candidate) || (detectUnlabelledBase64 && candidate.length >= 128 && binaryShaped(candidate))) return 'binary';
     }
     if (['base64', 'file_bytes', 'filebytes', 'bytes', 'binary', 'blob'].includes(normalizedKey) && current.value != null) return 'binary';
     if (normalizedKey === 'data' && binaryShaped(current.value)) return 'binary';
@@ -145,6 +145,17 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
     for (let index = 0; index < rawItems.length; index++) {
       const raw = object(rawItems[index]);
       if (!raw) return response({ error: `items[${index}] must be an object` }, 400);
+      const structuredInspection = inspectStructuredPayload({
+        parsed_data: raw.parsed_data ?? {},
+        uncertainty: raw.uncertainty ?? {},
+      }, false);
+      if (structuredInspection !== 'safe') {
+        return response({
+          error: structuredInspection === 'binary'
+            ? `items[${index}] contains embedded binary data; store attachments in R2`
+            : `items[${index}] structured fields are too deeply nested or too large`,
+        }, 400);
+      }
       const position = raw.position == null ? index : Number(raw.position);
       const confidence = raw.confidence == null ? null : Number(raw.confidence);
       const category = raw.category == null ? 'tea' : text(raw.category, 20, true)!;
