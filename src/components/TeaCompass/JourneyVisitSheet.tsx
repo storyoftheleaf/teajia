@@ -17,6 +17,15 @@ interface Props {
 type Editor = { kind: 'journey'; item?: CurateJourney } | { kind: 'visit'; item?: CurateVisit } | null;
 const inputClass = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-14 text-tea-text focus:border-tea-gold focus:outline-none';
 
+export function normalizeCustomerTags(tags: unknown): string[] {
+  let value = tags;
+  if (typeof tags === 'string') {
+    try { value = JSON.parse(tags); } catch { return []; }
+  }
+  if (!Array.isArray(value)) return [];
+  return value.filter((tag): tag is string => typeof tag === 'string');
+}
+
 export const JourneyVisitSheet: React.FC<Props> = ({ open, journeyId, visitId, onOpenChange, onApply, onLoaded }) => {
   const [journeys, setJourneys] = useState<CurateJourney[]>([]);
   const [visits, setVisits] = useState<CurateVisit[]>([]);
@@ -47,7 +56,7 @@ export const JourneyVisitSheet: React.FC<Props> = ({ open, journeyId, visitId, o
         if (!active) return;
         publish(j.journeys, v.visits);
         const rows = Array.isArray(customers) ? customers : customers.customers ?? [];
-        setVendors(rows.filter((row: any) => { try { return JSON.parse(row.tags || '[]').includes('vendor'); } catch { return false; } }).map((row: any) => ({ id: row.id, name: row.name })));
+        setVendors(rows.filter((row: any) => normalizeCustomerTags(row.tags).includes('vendor')).map((row: any) => ({ id: row.id, name: row.name })));
         setLoading(false);
       }).catch(() => { if (active) { setLoading(false); setError('Could not load context. Check the connection and retry.'); } });
     return () => { active = false; };
