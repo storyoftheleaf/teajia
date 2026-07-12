@@ -9,5 +9,5 @@ test('the Read nav button navigates to /read', async ({ page }) => {
   await expect(readBtn).toBeVisible();
   await readBtn.click();
   await expect(page).toHaveURL(/\/read$/);
-  await expect(page.getByRole('heading', { name: 'The Craft of Tea' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The Art of Tea' })).toBeVisible();
 });

@@ -1,6 +1,7 @@
 // tests/read-index-articles.spec.ts
-// Verifies the Read index lists editor-authored articles alongside the four
-// hand-built showcases, in the same card register.
+// Verifies the public Read index respects the curated publication boundary:
+// explicitly live pieces are listed, while drafts and the retained article
+// query are not accidentally exposed in the public register.
 import { test, expect } from '@playwright/test';
 
 const PUBLISHED = [
@@ -14,21 +15,25 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test('Read index lists the four showcases AND editor articles together', async ({ page }) => {
+test('Read index lists live curated pieces without exposing drafts or queried articles', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
   await page.goto('/read');
 
-  // The four hand-built showcases.
-  await expect(page.getByText('From Leaf to Liquor', { exact: true })).toBeVisible();
-  await expect(page.getByText('The Rock Remembers', { exact: true })).toBeVisible();
+  // The four explicitly published pieces in the curated register.
+  for (const href of ['/read/ritual', '/read/atlas', '/read/tasting', '/read/porcelain-and-tea']) {
+    await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible();
+  }
 
-  // The editor-authored articles, in the same grid, linking to /article/:slug.
-  await expect(page.getByText('A Quiet Steep', { exact: true })).toBeVisible();
-  await expect(page.getByText('The Water Matters', { exact: true })).toBeVisible();
-  await expect(page.locator('a[href="/article/a-quiet-steep"]')).toBeVisible();
+  // Draft curated pieces remain owner-only, and the retained article query is
+  // not a second publication path into this deliberately curated index.
+  await expect(page.getByText('From Leaf to Liquor', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('The Rock Remembers', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('A Quiet Steep', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('The Water Matters', { exact: true })).toHaveCount(0);
+  await expect(page.locator('a[href="/article/a-quiet-steep"]')).toHaveCount(0);
 
   await page.screenshot({ path: `test-results/read-index-${test.info().project.name}.png`, fullPage: true });
 

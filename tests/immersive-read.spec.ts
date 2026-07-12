@@ -43,21 +43,23 @@ for (const r of ROUTES) {
   });
 }
 
-// Exercise all five directions of the explainer switcher.
-test('leaf-to-liquor all five directions', async ({ page }) => {
+// Exercise all five URL-addressable directions of the explainer. Each design
+// is a distinct article route now, rather than an in-page mode switcher.
+test('leaf-to-liquor all five direction routes', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
-  await page.goto('http://localhost:7777/read/leaf-to-liquor', { waitUntil: 'networkidle' });
   for (const label of ['Manuscript', 'Gallery', 'Folio', 'Thread', 'Reverie']) {
-    const btn = page.getByRole('button', { name: new RegExp(label) });
-    await btn.scrollIntoViewIfNeeded();
-    await btn.click({ force: true });
+    errors.length = 0;
+    const template = label.toLowerCase();
+    await page.goto(`http://localhost:7777/read/leaf-to-liquor/${template}`, { waitUntil: 'networkidle' });
+    await expect(page).toHaveURL(new RegExp(`/read/leaf-to-liquor/${template}$`));
+    await expect(page.getByText(`From Leaf to Liquor · ${label}`, { exact: true })).toBeVisible();
     await page.waitForTimeout(600);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, `${label}: overflow ${overflow}px`).toBeLessThanOrEqual(2);
     await page.screenshot({ path: `test-results/immersive/dir-${label.toLowerCase()}.png` });
+    const real = errors.filter((e) => !/favicon|fonts\.g|woff|manifest/i.test(e));
+    expect(real, `${label}: console errors: ${real.join(' | ')}`).toHaveLength(0);
   }
-  const real = errors.filter((e) => !/favicon|fonts\.g|woff|manifest/i.test(e));
-  expect(real, `console errors: ${real.join(' | ')}`).toHaveLength(0);
 });
