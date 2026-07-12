@@ -5,6 +5,7 @@ import { createEmptyEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
 import { api, hasToken } from './api';
 import { useNotesStore } from './notesStore';
+import { useAppStore } from './store';
 
 interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
@@ -90,25 +91,29 @@ interface TeaCompassState {
   getSessionEntries: () => TeaCompassEntry[];
 }
 
-/** An entry has meaningful content if it has a name, photo, notes, real tasting
- *  data, or a linked source (shop). Selecting a type or status alone does NOT
- *  count — those are too easy to tap accidentally. A vendor link IS a deliberate
- *  action (you searched and matched a shop), and "photo + source is enough" is
- *  the promised saveable minimum the capture card shows, so it counts here too. */
-export function entryHasContent(entry: TeaCompassEntry): boolean {
-  if (
-    entry.name.trim().length > 0 ||
-    entry.photos.length > 0 ||
-    entry.notes.trim().length > 0 ||
-    !!entry.vendorName?.trim() ||
-    !!entry.vendorId ||
-    (entry.tasting != null &&
-      Object.values(entry.tasting).some((v) =>
-        Array.isArray(v) ? v.length > 0 : v != null
-      ))
-  ) {
-    return true;
-  }
+const NON_DELIBERATE_UPDATE_FIELDS = new Set<keyof TeaCompassEntry>([
+  'category', 'createdAt', 'draftAccountId', 'draftProductId', 'sessionId',
+  'sourceEntryId', 'synced', 'teaKey', 'touchedFields', 'updatedAt',
+]);
+
+/** The single capture-retention contract. New entries use explicit touch
+ * metadata so inherited defaults never become content. Legacy rows without
+ * metadata fall back to their stored values so existing fragments stay safe. */
+export function entryHasDeliberateInput(entry: TeaCompassEntry): boolean {
+  const touched = entry.touchedFields;
+  if (Array.isArray(touched)) {
+    if (touched.some((field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry))) return true;
+  } else if (
+    entry.name.trim().length > 0 || entry.photos.length > 0 || entry.notes.trim().length > 0 ||
+    !!entry.vendorName?.trim() || !!entry.vendorId || entry.priceAmount != null ||
+    entry.sellPrice != null || entry.type != null || entry.form != null || entry.year != null ||
+    !!entry.originRegion?.trim() || entry.status !== 'noted' || entry.buyQuantityGrams != null ||
+    entry.buyQuantityUnits != null || entry.teawareCategory != null || entry.material != null ||
+    (entry.tasting != null && Object.values(entry.tasting).some((value) =>
+      Array.isArray(value) ? value.length > 0 : value != null
+    ))
+  ) return true;
+
   // Notes typed in the NoteThread are stored in the notes store keyed by the
   // entry id (and/or its teaKey), NOT on entry.notes — so an entry whose only
   // content is thread notes must still count as having content, or committing
@@ -117,6 +122,51 @@ export function entryHasContent(entry: TeaCompassEntry): boolean {
   if (ns.getNotesForCompassEntry(entry.id).length > 0) return true;
   if (entry.teaKey && ns.getNotesForTea(entry.teaKey).length > 0) return true;
   return false;
+}
+
+/** Backward-compatible alias for consumers outside the retention flow. */
+export const entryHasContent = entryHasDeliberateInput;
+
+interface PersistedCompassDrafts {
+  pendingEntries?: TeaCompassEntry[];
+  activeEntryId?: string | null;
+  sessionEntryIds?: string[];
+}
+
+function activeAccountScope(): string | null {
+  const fromAppStore = useAppStore.getState().activeAccountId;
+  if (fromAppStore) return fromAppStore;
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const token = localStorage.getItem('teajia_token');
+    const payload = token?.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = JSON.parse(atob(normalized)) as { active_account_id?: string };
+    return decoded.active_account_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function restoreCompassDraftsForAccount(
+  persisted: PersistedCompassDrafts,
+  activeAccountId: string | null,
+): Required<PersistedCompassDrafts> {
+  if (!activeAccountId) return { pendingEntries: [], activeEntryId: null, sessionEntryIds: [] };
+  const pendingEntries = (persisted.pendingEntries ?? []).filter((entry) =>
+    entry.draftAccountId === activeAccountId && entryHasDeliberateInput(entry)
+  );
+  const ids = new Set(pendingEntries.map((entry) => entry.id));
+  const sessionEntryIds = (persisted.sessionEntryIds ?? []).filter((id) => ids.has(id));
+  const requestedActive = persisted.activeEntryId && ids.has(persisted.activeEntryId)
+    ? persisted.activeEntryId
+    : null;
+  return {
+    pendingEntries,
+    activeEntryId: requestedActive ?? sessionEntryIds[0] ?? pendingEntries[0]?.id ?? null,
+    sessionEntryIds,
+  };
 }
 
 // New capture run starts after this much idle time. Keeps a single sitting
@@ -176,13 +226,31 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           if (inPending) {
             return {
               pendingEntries: state.pendingEntries.map((e) =>
-                e.id === id ? { ...e, ...updates, updatedAt: new Date().toISOString(), synced: false } : e
+                e.id === id ? {
+                  ...e,
+                  ...updates,
+                  touchedFields: Array.from(new Set([
+                    ...(e.touchedFields ?? []),
+                    ...Object.keys(updates).filter((field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry)),
+                  ])),
+                  updatedAt: new Date().toISOString(),
+                  synced: false,
+                } : e
               ),
             };
           }
           return {
             entries: state.entries.map((e) =>
-              e.id === id ? { ...e, ...updates, updatedAt: new Date().toISOString(), synced: false } : e
+              e.id === id ? {
+                ...e,
+                ...updates,
+                touchedFields: Array.from(new Set([
+                  ...(e.touchedFields ?? []),
+                  ...Object.keys(updates).filter((field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry)),
+                ])),
+                updatedAt: new Date().toISOString(),
+                synced: false,
+              } : e
             ),
           };
         }),
@@ -235,6 +303,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           vendorName: state.lastVendorName || undefined,
           priceCurrency: state.lastCurrency,
         });
+        entry.draftAccountId = activeAccountScope() ?? 'guest';
         entry.sessionId = sessionId;
         // Add to pendingEntries (NOT entries) — won't appear in Library until committed
         set((s) => ({
@@ -251,7 +320,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         const state = get();
         const pending = state.pendingEntries.find((e) => e.id === id);
         if (pending) {
-          if (entryHasContent(pending)) {
+          if (entryHasDeliberateInput(pending)) {
             // Move from pending to committed entries
             set((s) => ({
               entries: [pending, ...s.entries],
@@ -335,8 +404,30 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         customEras: state.customEras,
         deletedIds: state.deletedIds, // survive reloads so a pending delete still wins
         pendingPromotions: state.pendingPromotions, // survive reloads so a failed promote still retries
-        // pendingEntries, activeEntryId, sessionEntryIds are intentionally NOT persisted
+        pendingEntries: state.pendingEntries.filter(entryHasDeliberateInput),
+        activeEntryId: state.activeEntryId,
+        sessionEntryIds: state.sessionEntryIds,
       }),
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (!persistedState || typeof persistedState !== 'object' || version >= 1) return persistedState;
+        const previous = persistedState as Partial<TeaCompassState>;
+        const scope = activeAccountScope();
+        previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
+          ...entry,
+          touchedFields: entry.touchedFields ?? [],
+          draftAccountId: entry.draftAccountId ?? scope ?? undefined,
+        }));
+        return previous;
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
+        const drafts = restoreCompassDraftsForAccount(
+          persisted,
+          activeAccountScope(),
+        );
+        return { ...currentState, ...persisted, ...drafts } as TeaCompassState;
+      },
     }
   )
 );

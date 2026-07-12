@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Leaf, X } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
-import { entryHasContent } from '../../lib/teaCompassStore';
+import { entryHasDeliberateInput } from '../../lib/teaCompassStore';
 import type { TeaCompassEntry } from './types';
 
 interface SessionStackProps {
@@ -19,7 +19,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
   onDiscardEntry,
 }) => {
   const stackEntries = sessionEntries.filter(
-    (e) => e.id !== activeEntryId && entryHasContent(e)
+    (e) => e.id !== activeEntryId && entryHasDeliberateInput(e)
   );
 
   if (stackEntries.length === 0) return null;

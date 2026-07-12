@@ -23,27 +23,42 @@ test.describe('Curate field capture preservation', () => {
 
   test('switches between named entries in the current session', async ({ page }) => {
     await openCompass(page);
-    await page.evaluate(async () => {
-      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
-      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      const first = useTeaCompassStore.getState().activeEntryId;
-      useTeaCompassStore.getState().updateEntry(first, { name: 'First field tea' });
-      const second = useTeaCompassStore.getState().startNewCapture('tea');
-      useTeaCompassStore.getState().updateEntry(second, { name: 'Second field tea' });
-    });
     const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    await name.fill('First field tea');
+    await page.getByRole('button', { name: /^(New Entry|Start a new entry)$/ }).filter({ visible: true }).click();
+    await name.fill('Second field tea');
     await expect(name).toHaveValue('Second field tea');
     await page.getByRole('button', { name: /First field tea/ }).filter({ visible: true }).click();
     await expect(name).toHaveValue('First field tea');
   });
 
-  test('currently replaces a partial tea entry when switching capture type', async ({ page }) => {
+  test('preserves a partial tea entry when switching capture type', async ({ page }) => {
     await openCompass(page);
     const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
     await name.fill('Field fragment tea');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     await page.getByRole('tab', { name: 'Tea', exact: true }).click();
-    await expect(name).toHaveValue('');
+    await expect(name).toHaveValue('Field fragment tea');
+  });
+
+  test('restores a price-only pending fragment after refresh without accumulating blank shells', async ({ page }) => {
+    await openCompass(page);
+    await page.getByPlaceholder('Price').filter({ visible: true }).fill('480');
+    const originalId = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().activeEntryId;
+    });
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByPlaceholder('Price').filter({ visible: true })).toHaveValue('480');
+    const restored = await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return { activeEntryId: state.activeEntryId, pendingIds: state.pendingEntries.map((entry) => entry.id) };
+    });
+    expect(restored).toEqual({ activeEntryId: originalId, pendingIds: [originalId] });
   });
 
   test('keeps the single Done commit affordance', async ({ page }) => {

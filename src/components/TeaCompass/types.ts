@@ -41,6 +41,11 @@ export interface VendorDetails {
 export interface TeaCompassEntry {
   id: string;
 
+  /** Client-only record of fields explicitly entered or confirmed by the operator. */
+  touchedFields?: string[];
+  /** Client-only scope for resumable, uncommitted capture drafts. */
+  draftAccountId?: string;
+
   // Identity
   name: string;
   chineseName?: string;
@@ -363,6 +368,7 @@ export function createEmptyEntry(category: CompassCategory = 'tea', defaults?: {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID(),
+    touchedFields: [],
     name: '',
     category,
     priceCurrency: defaults?.priceCurrency || 'NT',

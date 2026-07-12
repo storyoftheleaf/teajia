@@ -5,7 +5,7 @@ import { Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ListChecks, Chev
 import { SessionReview } from './SessionReview';
 import { motion, AnimatePresence } from 'framer-motion';
 import Fuse from 'fuse.js';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
 import { BrowseCard } from './BrowseCard';
 import { CompassIcon } from './CompassIcon';
@@ -217,14 +217,9 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   // Tasted teas still waiting for a verdict — the batch-review working set.
   const untriaged = useMemo(() => entries.filter(isUntriaged), [entries]);
 
-  // Entries that have no name, notes, photos, or tasting data — safe to bulk-delete
+  // Entries with no deliberate field fragment — safe to bulk-delete.
   const emptyEntries = useMemo(() =>
-    entries.filter((e) =>
-      e.name.trim() === '' &&
-      e.notes.trim() === '' &&
-      e.photos.length === 0 &&
-      !hasTastingData(e)
-    ),
+    entries.filter((e) => !entryHasDeliberateInput(e)),
     [entries]
   );
 

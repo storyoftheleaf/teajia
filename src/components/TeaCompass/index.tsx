@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
 import { syncNotes } from '../../lib/notesSync';
 import { useNotesStore } from '../../lib/notesStore';
@@ -277,14 +277,21 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     // If the current entry is still empty, just switch its category instead of creating a new one
     if (activeEntryId) {
       const current = getEntry(activeEntryId);
-      if (current && !current.name && !current.notes && !current.type && current.photos.length === 0 && current.status === 'noted') {
+      if (current && !entryHasDeliberateInput(current)) {
+        const resumable = getSessionEntries().find(
+          (entry) => entry.id !== current.id && entry.category === category && entryHasDeliberateInput(entry),
+        );
+        if (resumable) {
+          setActiveEntry(resumable.id);
+          return;
+        }
         updateEntry(activeEntryId, { category });
         return;
       }
     }
     startNewCapture(category);
     setMode('sourcing');
-  }, [startNewCapture, activeEntryId, getEntry, updateEntry]);
+  }, [startNewCapture, activeEntryId, getEntry, getSessionEntries, setActiveEntry, updateEntry]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -355,8 +362,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
     // After commit removes the entry from session, check if there are remaining session entries
     const remaining = getSessionEntries().filter(
-      (e) => e.id !== activeEntryId &&
-        (e.name || e.notes || e.type || e.photos.length > 0 || e.status !== 'noted')
+      (e) => e.id !== activeEntryId && entryHasDeliberateInput(e)
     );
     if (remaining.length > 0) {
       setActiveEntry(remaining[0].id);
@@ -376,12 +382,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const handleDiscardActive = useCallback(() => {
     if (!activeEntryId) return;
     const entry = getEntry(activeEntryId);
-    const hasContent = entry && (
-      entry.name.trim().length > 0 ||
-      entry.photos.length > 0 ||
-      entry.notes.trim().length > 0 ||
-      (entry.tasting != null && Object.values(entry.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null))
-    );
+    const hasContent = entry && entryHasDeliberateInput(entry);
     if (hasContent && !window.confirm('Discard this entry?')) return;
 
     // Grab remaining session entries before discarding

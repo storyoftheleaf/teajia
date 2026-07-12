@@ -29,7 +29,7 @@ export const BatchCaptureRow: React.FC<BatchCaptureRowProps> = ({ onAdded }) => 
 
     const prevId = activeEntryId;
     const id = startNewCapture('tea');
-    const updates: Record<string, unknown> = { name: name.trim() };
+    const updates: Partial<import('./types').TeaCompassEntry> = { name: name.trim() };
     if (type) updates.type = type;
     updateEntry(id, updates);
     commitEntry(id); // immediately commit as a minimal entry
