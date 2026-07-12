@@ -124,10 +124,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // capture-shell creation; opening Library or Ledger must remain read-only.
   useEffect(() => {
     switchDraftAccount(activeAccountId);
-    if (mode === 'sourcing' && activeAccountId && !useTeaCompassStore.getState().activeEntryId) {
+    if (mode === 'sourcing' && activeAccountId && !initialDevelopmentProduct && !useTeaCompassStore.getState().activeEntryId) {
       startNewCapture('tea');
     }
-  }, [activeAccountId, mode, startNewCapture, switchDraftAccount]);
+  }, [activeAccountId, initialDevelopmentProduct, mode, startNewCapture, switchDraftAccount]);
 
   // Incoming pending shares (not yet accepted into compass)
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -866,7 +866,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           it scrolls away with the page, and WRAPS to new lines
                           rather than scrolling horizontally — horizontal scroll
                           is never used in this build. */}
-                      <div className="flex flex-wrap items-center gap-1 mb-3">
+                      {(!initialDevelopmentProduct || developmentStarted) && <div className="flex flex-wrap items-center gap-1 mb-3">
                         <button
                           type="button"
                           onClick={() => handleNewCapture()}
@@ -927,15 +927,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         <div className="ml-auto pl-2 self-center shrink-0">
                           <SyncIndicator />
                         </div>
-                      </div>
+                      </div>}
 
                       {/* Batch mode row — rapid-fire entry for vendor tables */}
-                      {batchMode && (
+                      {(!initialDevelopmentProduct || developmentStarted) && batchMode && (
                         <BatchCaptureRow />
                       )}
 
                       {/* Just-committed banner */}
-                      <AnimatePresence>
+                      {(!initialDevelopmentProduct || developmentStarted) && <AnimatePresence>
                         {justCommitted && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
@@ -956,16 +956,16 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                             </div>
                           </motion.div>
                         )}
-                      </AnimatePresence>
+                      </AnimatePresence>}
 
-                      <CaptureCard
+                      {(!initialDevelopmentProduct || developmentStarted) && <CaptureCard
                         entryId={activeEntryId}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
                         actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
-                      />
+                      />}
                     </>
                 </motion.div>
               ) : mode === 'library' ? (
@@ -1594,19 +1594,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
                   >
-                    {activeEntryId ? (
+                    {initialDevelopmentProduct && !developmentStarted ? (
+                      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
+                          <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
+                        </div>
+                        <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
+                          Start development
+                        </button>
+                      </div>
+                    ) : activeEntryId ? (
                       <>
-                        {initialDevelopmentProduct && !developmentStarted && (
-                          <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
-                            <div className="min-w-0 flex-1">
-                              <div className="font-display text-ui-15 text-tea-text">Develop {initialDevelopmentProduct.name} in Curate</div>
-                              <div className="text-ui-12 text-tea-text-sec">No encounter is linked yet. Start one deliberately from this inventory record.</div>
-                            </div>
-                            <button type="button" onClick={startInventoryDevelopment} className="min-h-11 px-3 rounded-md bg-tea-accent-sub text-ui-12 text-tea-text hover:bg-tea-gold/10">
-                              Start development
-                            </button>
-                          </div>
-                        )}
                         {batchMode && <BatchCaptureRow />}
                         <CaptureCard
                           entryId={activeEntryId}

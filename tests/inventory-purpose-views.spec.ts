@@ -38,7 +38,10 @@ async function install(page: Page) {
     localStorage.clear();
     localStorage.setItem('teajia_token', value);
     localStorage.setItem('teajia-storage', JSON.stringify({ version: 2, state: {
-      savedViews: [{ id: 'custom-legacy-selling', name: 'My selling list', columns: ['productName', 'stockGrams'], sortConfig: [{ key: 'productName', direction: 'asc' }], filterType: 'ForSale', groupBy: null }],
+      savedViews: [
+        { id: 'custom-legacy-selling', name: 'My selling list', columns: ['productName', 'stockGrams'], sortConfig: [{ key: 'productName', direction: 'asc' }], filterType: 'ForSale', groupBy: null },
+        { id: 'default-low-stock', name: 'Alerts', icon: 'AlertTriangle', columns: ['productName'], sortConfig: [{ key: 'productName', direction: 'desc' }], filterType: 'Alerts', groupBy: 'vendor' },
+      ],
       activeViewId: 'custom-legacy-selling',
       activeAccountId: 'acct', activeUserId: 'admin', memberships: [{ account_id: 'acct', account_name: 'Test', role: 'owner' }],
     } }));
@@ -118,6 +121,9 @@ test('purpose and action views remain separate and preserve legacy mappings', as
   await selectView(page, 'Needs development');
   await expect(page.getByText('Needs Four Things')).toBeVisible();
   await expect(page.getByText('Field Sample')).toHaveCount(0);
+  const migrated = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-storage') || '{}').state?.savedViews?.find((view: { id: string }) => view.id === 'default-low-stock'));
+  expect(migrated).toMatchObject({ name: 'Needs development', filterType: 'NeedsDevelopment', groupBy: null });
+  expect(migrated.columns).toContain('stockGrams');
 
   await selectView(page, 'Low stock');
   await expect(page.getByText('Legacy Selling Tea')).toBeVisible();
@@ -153,23 +159,29 @@ test('action views include tasting, reorder, and missing location', async ({ pag
   await expect(page.getByRole('heading', { name: 'Incoming stock' })).toBeVisible();
 });
 
-test('development handoff opens linked entry and gives unlinked stock an explicit Curate action', async ({ page }) => {
+test('development handoff opens the exact linked Curate entry', async ({ page }) => {
   await selectView(page, 'Needs development');
   await page.getByText('Needs Four Things').click();
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Develop in Curate' }).click();
   await expect(page).toHaveURL(/\/admin\/compass\?tab=sourcing&entry=entry-needs/);
   await expectInputValue(page, 'Needs Four Things Encounter');
+});
 
-  await page.goto('/admin/stock');
+test('unlinked development waits for consent then creates exactly one linked draft', async ({ page }) => {
   await selectView(page, 'Needs development');
   await page.getByText('Unlinked Development Tea').click();
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Develop in Curate' }).click();
   await expect(page).toHaveURL(/developProduct=unlinked-needs/);
   await expect(page.getByText('Develop Unlinked Development Tea in Curate').filter({ visible: true })).toBeVisible();
+  await expect(page.getByLabel('Remove')).toHaveCount(0);
   await page.getByRole('button', { name: 'Start development' }).filter({ visible: true }).click();
   await expectInputValue(page, 'Unlinked Development Tea');
+  await expect(page.getByLabel('Remove')).toHaveCount(1);
+  const compass = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-compass') || '{}').state);
+  const linked = [...(compass?.pendingEntries || []), ...(compass?.entries || [])].filter((entry: { draftProductId?: string }) => entry.draftProductId === 'unlinked-needs');
+  expect(linked).toHaveLength(1);
 });
 
 test('purpose and sample-size offering persist independently without changing publication gates', async ({ page }) => {
@@ -249,4 +261,17 @@ test('mobile labels and separates Purpose from Needs attention for Tea and Wares
   await page.getByRole('group', { name: 'Purpose views' }).getByRole('button', { name: 'Show Samples view' }).click();
   await expect(page.getByText('Clay Cup Sample')).toBeVisible();
   await expect(page.getByText('Field Gaiwan')).toHaveCount(0);
+});
+
+test('mobile custom-view delete is a separate keyboard-operable control', async ({ page }) => {
+  test.skip((page.viewportSize()?.width || 0) >= 768, 'Mobile interaction semantics');
+  await page.getByRole('button', { name: 'Show needs attention views' }).click();
+  const custom = page.getByRole('button', { name: 'Show Selling view' });
+  const remove = page.getByRole('button', { name: 'Delete My selling list view' });
+  await expect(custom).toBeVisible();
+  await expect(remove).toBeVisible();
+  await expect(custom.locator('button')).toHaveCount(0);
+  await remove.focus();
+  await page.keyboard.press('Enter');
+  await expect(custom).toHaveCount(0);
 });

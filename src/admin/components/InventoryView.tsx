@@ -264,17 +264,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       DEFAULT_TEAWARE_VIEWS.forEach(v => saveView(v));
       setActiveView('default-all');
     } else {
-      // Sync default view names, icons, and sortConfig, and add any new defaults
+      // Default ids are schema-owned: migrate their complete semantics. Custom
+      // views remain operator-owned and are never rewritten here.
       [...DEFAULT_TEA_VIEWS, ...DEFAULT_TEAWARE_VIEWS].forEach(def => {
         const existing = savedViews.find(v => v.id === def.id);
         if (!existing) {
           saveView(def);
-        } else {
-          const nameChanged = existing.name !== def.name || existing.icon !== def.icon;
-          const sortChanged = JSON.stringify(existing.sortConfig) !== JSON.stringify(def.sortConfig);
-          if (nameChanged || sortChanged) {
-            saveView({ ...existing, name: def.name, icon: def.icon, sortConfig: def.sortConfig });
-          }
+        } else if (JSON.stringify(existing) !== JSON.stringify(def)) {
+          saveView(def);
         }
       });
     }
@@ -1732,28 +1729,34 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             const viewButton = (view: typeof views[number]) => {
               const filterLabel = VIEW_FILTER_LABELS[view.filterType] || view.filterType;
               return (
-                <button
-                  key={view.id}
-                  onClick={() => selectMobileView(view)}
-                  className={`tap-target relative flex items-center gap-1 px-2 h-9 text-ui-11 uppercase tracking-[0.08em] rounded-md transition-colors ${
-                    activeViewId === view.id
-                      ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
-                      : view.filterType === 'Archived'
-                      ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
-                      : 'text-tea-text-dim hover:text-tea-text-sec'
-                  }`}
-                  title={filterLabel}
-                  aria-label={`Show ${filterLabel} view`}
-                  aria-pressed={activeViewId === view.id}
-                >
-                  {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
-                  <span>{view.name || filterLabel}</span>
+                <div key={view.id} className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => selectMobileView(view)}
+                    className={`tap-target relative flex items-center gap-1 px-2 h-9 text-ui-11 uppercase tracking-[0.08em] rounded-md transition-colors ${
+                      activeViewId === view.id
+                        ? 'bg-tea-gold/10 text-tea-text ring-1 ring-tea-gold/40'
+                        : view.filterType === 'Archived'
+                        ? 'text-tea-text-dim/50 hover:text-tea-text-dim'
+                        : 'text-tea-text-dim hover:text-tea-text-sec'
+                    }`}
+                    title={filterLabel}
+                    aria-label={`Show ${filterLabel} view`}
+                    aria-pressed={activeViewId === view.id}
+                  >
+                    {view.icon && VIEW_ICON_MAP[view.icon] && React.createElement(VIEW_ICON_MAP[view.icon], { size: 15 })}
+                    <span>{view.name || filterLabel}</span>
+                  </button>
                   {!view.id.startsWith('default-') && (
-                    <span onClick={(e) => { e.stopPropagation(); deleteView(view.id); }} className="ml-1 text-tea-text-sec/40 hover:text-tea-gold transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => deleteView(view.id)}
+                      aria-label={`Delete ${view.name || filterLabel} view`}
+                      className="tap-target h-9 w-9 inline-flex items-center justify-center rounded-md text-tea-text-sec hover:text-tea-gold transition-colors"
+                    >
                       <XIcon size={9} />
-                    </span>
+                    </button>
                   )}
-                </button>
+                </div>
               );
             };
 
