@@ -108,6 +108,7 @@ class MovementDb {
     ['destination', { id: 'destination', account_id: 'account-a', type: 'Oolong', source_compass_entry_id: 'identity-b', stock_grams: 5, quantity_units: null }],
     ['same-tea', { id: 'same-tea', account_id: 'account-a', type: 'Oolong', source_compass_entry_id: 'identity-a', stock_grams: 5, quantity_units: null }],
     ['pot', { id: 'pot', account_id: 'account-a', type: 'Teaware', source_compass_entry_id: 'pot-a', stock_grams: 0, quantity_units: 4 }],
+    ['same-pot', { id: 'same-pot', account_id: 'account-a', type: 'Teaware', source_compass_entry_id: 'identity-a', stock_grams: 0, quantity_units: 2 }],
     ['other', { id: 'other', account_id: 'account-b', stock_grams: 10, quantity_units: null }],
   ]);
   ledger: Row[] = []; listings = new Map<string, number>([['tea', 20], ['destination', 5]]); failBatchAt: number | null = null;
@@ -179,6 +180,21 @@ describe('POST product stock movements', () => {
     expect(response.status).toBe(201); expect(await response.json()).toMatchObject({ after_balance: 16, destination_product_id: 'same-tea', destination_after_balance: 9 });
     expect(db.products.get('tea')?.stock_grams).toBe(16); expect(db.products.get('same-tea')?.stock_grams).toBe(9);
     expect(db.ledger.map(row => [row.product_id, row.delta, row.balance_after])).toEqual([['tea', -4, 16], ['same-tea', 4, 9]]);
+  });
+  it('rejects self-transfer and tea-to-teaware unit/category mismatch', async () => {
+    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'tea' }))).status).toBe(400);
+    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'same-pot' }))).status).toBe(400);
+  });
+  it('returns an idempotent transfer retry without applying either balance twice', async () => {
+    const db = new MovementDb(); const requestBody = body('transfer', { quantity: 4, destination_product_id: 'same-tea', idempotency_key: 'transfer-safe' });
+    expect((await movementRequest(db, 'tea', requestBody)).status).toBe(201);
+    expect((await movementRequest(db, 'tea', { ...requestBody, expected_balance: 20 })).status).toBe(200);
+    expect(db.products.get('tea')?.stock_grams).toBe(16); expect(db.products.get('same-tea')?.stock_grams).toBe(9); expect(db.ledger).toHaveLength(2);
+  });
+  it('rolls back both transfer balances and both ledgers when the D1 batch fails', async () => {
+    const db = new MovementDb(); db.failBatchAt = 4;
+    expect((await movementRequest(db, 'tea', body('transfer', { quantity: 4, destination_product_id: 'same-tea' }))).status).toBe(500);
+    expect(db.products.get('tea')?.stock_grams).toBe(20); expect(db.products.get('same-tea')?.stock_grams).toBe(5); expect(db.ledger).toHaveLength(0);
   });
   it('preserves invoice, batch, and compass provenance', async () => {
     const db = new MovementDb(); await movementRequest(db, 'tea', body('receipt', { source_invoice_id: 'inv', source_invoice_number: 'INV-1', batch_id: 'batch', source_compass_entry_id: 'entry' }));

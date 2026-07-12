@@ -24,7 +24,7 @@ export interface StockMovementPanelProps {
   products: Product[];
   trigger?: HTMLElement | null;
   onClose: () => void;
-  onRecorded: (afterBalance: number, unit: 'g' | 'unit') => void;
+  onRecorded: (afterBalance: number, unit: 'g' | 'unit', destination?: { id: string; afterBalance: number }) => void;
   initialMovementType?: MovementType;
 }
 
@@ -109,7 +109,9 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reference.trim() ? { source_invoice_number: reference.trim() } : {}),
       });
-      onRecorded(Number(result.after_balance), movementUnit);
+      onRecorded(Number(result.after_balance), movementUnit, result.destination_product_id
+        ? { id: String(result.destination_product_id), afterBalance: Number(result.destination_after_balance) }
+        : undefined);
       setCurrentBalance(Number(result.after_balance));
       await queryClient.invalidateQueries({ queryKey: ['stock_ledger', product.id] });
       setQuantity('');

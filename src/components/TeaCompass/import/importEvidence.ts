@@ -13,8 +13,12 @@ export async function extractImportEvidence(file: File): Promise<string> {
   if (!textBearing) return '';
   const exact = await file.text();
   if (extension === 'csv' || file.type === 'text/csv') {
-    const parsed = Papa.parse<Record<string, unknown>>(exact, { header: true, skipEmptyLines: true });
-    return parsed.data.map(rowText).filter(Boolean).join('\n');
+    const matrix = Papa.parse<string[]>(exact, { header: false, skipEmptyLines: true }).data;
+    if (!matrix.length) return '';
+    const knownHeaders = new Set(['name', 'tea', 'item', 'product', 'description', 'price', 'cost', 'weight', 'quantity', 'qty', 'type', 'category']);
+    const first = matrix[0].map(value => value.trim().toLowerCase());
+    const hasHeader = first.some(value => knownHeaders.has(value)) && first.every(value => !/^\d+(?:\.\d+)?$/.test(value));
+    return matrix.slice(hasHeader ? 1 : 0).map(row => rowText(row)).filter(Boolean).join('\n');
   }
   if (extension === 'json' || file.type === 'application/json') {
     try {

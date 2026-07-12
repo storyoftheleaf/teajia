@@ -9,6 +9,11 @@ describe('Curate attachment interpretation', () => {
     expect(await file.text()).toBe(exact);
   });
 
+  it('preserves the first item in headerless and single-row CSV evidence', async () => {
+    expect(await extractImportEvidence(new File(['Moonlight White,18,50g\nGaiwan,24,1'], 'list.csv', { type: 'text/csv' }))).toBe('Moonlight White — 18 — 50g\nGaiwan — 24 — 1');
+    expect(await extractImportEvidence(new File(['Sheng cake,42,357g'], 'single.csv', { type: 'text/csv' }))).toBe('Sheng cake — 42 — 357g');
+  });
+
   it('extracts JSON and plain vendor lists and declines binary/image fabrication', async () => {
     expect(await extractImportEvidence(new File(['[{"name":"Sheng","price":12}]'], 'list.json', { type: 'application/json' }))).toBe('Sheng — 12');
     expect(await extractImportEvidence(new File(['Tea A\nTea B'], 'wechat.txt', { type: 'text/plain' }))).toBe('Tea A\nTea B');

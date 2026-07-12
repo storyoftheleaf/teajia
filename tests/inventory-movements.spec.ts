@@ -12,13 +12,16 @@ const product = {
   stock_known_at: '2026-07-12', description: 'Floral tea', tasting_notes: [], image_url: '', status: 'Active',
   cost_currency: 'USD', quantity_purchased: 100, is_public: 0, shown_in_shop: 0, can_reorder: 0,
   is_sample: 0, is_personal: 0, inventory_purpose: 'working', tasting_source: 'common',
+  source_compass_entry_id: 'compass-cloud',
 };
 const destinationProduct = { ...product, id: 'tea-2', given_name: 'Reserve', product_name: 'Reserve Oolong', stock_grams: 25 };
+const unrelatedProduct = { ...product, id: 'tea-3', given_name: 'Other lot', product_name: 'Other lot', source_compass_entry_id: 'compass-other', stock_grams: 8 };
 const teawareProduct = { ...product, id: 'ware-1', type: 'Teaware', given_name: 'Field Gaiwan', product_name: 'Field Gaiwan', stock_grams: 0, quantity_units: 3, teaware_category: 'pot', material: 'Porcelain' };
 
 let balance = 100;
 let failNext = false;
 let teawareBalance = 3;
+let destinationBalance = 25;
 const movements: any[] = [];
 const movementBodies: any[] = [];
 const absoluteStockWrites: any[] = [];
@@ -33,6 +36,7 @@ async function install(page: Page) {
   invoiceBodies.length = 0;
   failNext = false;
   teawareBalance = 3;
+  destinationBalance = 25;
   await page.route('**/api/**', route => route.fulfill({ status: 501, json: { error: `Unhandled ${route.request().method()} ${new URL(route.request().url()).pathname}` } }));
   await page.addInitScript(value => {
     localStorage.clear();
@@ -41,7 +45,7 @@ async function install(page: Page) {
   }, jwt);
   await page.route('**/api/auth/me', r => r.fulfill({ json: { id: 'admin', email: 'operator@test', role: 'owner' } }));
   await page.route('**/api/auth/refresh', r => r.fulfill({ json: { token: jwt } }));
-  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }, destinationProduct, { ...teawareProduct, quantity_units: teawareBalance }] }));
+  await page.route('**/api/products', r => r.fulfill({ json: [{ ...product, stock_grams: balance }, { ...destinationProduct, stock_grams: destinationBalance }, unrelatedProduct, { ...teawareProduct, quantity_units: teawareBalance }] }));
   await page.route('**/api/products/*/events', r => r.fulfill({ json: [] }));
   await page.route('**/api/products/tea-1/movements', async r => {
     const body = r.request().postDataJSON();
@@ -60,8 +64,9 @@ async function install(page: Page) {
       return;
     }
     balance = next;
+    if (body.movement_type === 'transfer') destinationBalance += Number(body.quantity);
     movements.unshift({ id: `movement-${movements.length + 1}`, movement_type: body.movement_type, reason: body.movement_type.toUpperCase(), delta: next - before, balance_before: before, balance_after: next, user_email: 'operator@test', note: body.note, source_invoice_number: body.source_invoice_number, created_at: new Date().toISOString() });
-    await r.fulfill({ status: 201, json: { id: movements[0].id, before_balance: before, after_balance: next } });
+    await r.fulfill({ status: 201, json: { id: movements[0].id, before_balance: before, after_balance: next, ...(body.movement_type === 'transfer' ? { destination_product_id: body.destination_product_id, destination_after_balance: destinationBalance } : {}) } });
   });
   await page.route('**/api/products/ware-1/movements', async r => {
     const body = r.request().postDataJSON();
@@ -188,16 +193,22 @@ test('prevents insufficient stock inline and preserves form after an API error',
   await expect(page.getByText('Cloud · 85g')).toBeVisible();
 });
 
-test('transfer rejects unrelated products and recount records an absolute balance', async ({ page }) => {
+test('transfer selects a related holding, sends its identity, and refreshes both balances', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await page.getByRole('button', { name: 'Transfer', exact: true }).click();
   await page.getByLabel('Quantity').fill('5');
-  await expect(page.getByText(/Transfer is unavailable until holdings can be explicitly related/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Record movement' })).toBeDisabled();
-  await expect(page.getByRole('option', { name: 'Reserve Oolong' })).toHaveCount(0);
+  await expect(page.getByLabel('Transfer destination')).toHaveValue('tea-2');
+  await expect(page.getByRole('option', { name: /Other lot/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Record movement' }).click();
+  expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'transfer', destination_product_id: 'tea-2', quantity: 5 });
+  await expect(page.getByText('Cloud · 95g')).toBeVisible();
+  await page.getByRole('button', { name: 'Close stock movement' }).click();
+  await expect(page.getByText('Reserve Oolong').first()).toBeVisible();
+  await expect(page.getByText('30').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await page.getByRole('button', { name: 'Recount', exact: true }).click();
   await page.getByLabel('New balance').fill('72');
-  await expect(page.getByText('100g → 72g')).toBeVisible();
+  await expect(page.getByText('95g → 72g')).toBeVisible();
   await page.getByRole('button', { name: 'Record movement' }).click();
   await expect(page.getByText('Cloud · 72g')).toBeVisible();
 });

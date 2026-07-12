@@ -820,11 +820,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setStockMovement({ product, trigger, initialType: 'recount' });
   }, []);
 
-  const handleMovementRecorded = useCallback((productId: string, afterBalance: number, unit: 'g' | 'unit') => {
+  const handleMovementRecorded = useCallback((productId: string, afterBalance: number, unit: 'g' | 'unit', destination?: { id: string; afterBalance: number }) => {
     const updatedStock = unit === 'unit' ? { quantityUnits: afterBalance } : { stockGrams: afterBalance };
-    setLocalProducts(prev => prev.map(product => product.id === productId
-      ? { ...product, ...updatedStock, stockKnownAt: new Date().toISOString() }
-      : product));
+    setLocalProducts(prev => prev.map(product => {
+      if (product.id === productId) return { ...product, ...updatedStock, stockKnownAt: new Date().toISOString() };
+      if (product.id === destination?.id) return { ...product, ...(unit === 'unit' ? { quantityUnits: destination.afterBalance } : { stockGrams: destination.afterBalance }), stockKnownAt: new Date().toISOString() };
+      return product;
+    }));
     setPanelProduct(prev => prev?.id === productId ? { ...prev, ...updatedStock, stockKnownAt: new Date().toISOString() } : prev);
     setStockMovement(prev => prev?.product.id === productId ? { ...prev, product: { ...prev.product, ...updatedStock, stockKnownAt: new Date().toISOString() } } : prev);
     onRefresh();
@@ -3058,7 +3060,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           products={localProducts}
           trigger={stockMovement.trigger}
           onClose={() => setStockMovement(null)}
-          onRecorded={(after, unit) => handleMovementRecorded(stockMovement.product.id, after, unit)}
+          onRecorded={(after, unit, destination) => handleMovementRecorded(stockMovement.product.id, after, unit, destination)}
           initialMovementType={stockMovement.initialType}
         />
       )}
