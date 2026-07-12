@@ -1821,23 +1821,36 @@ export const api = {
     },
   },
 
-  // V2: Verification (quiet account — phone or email, no passwords)
+  // Verification codes power both event identity and passwordless sign-in.
   verify: {
-    requestCode: async (contact: string, method: 'whatsapp' | 'email') => {
+    requestCode: async (contact: string, purpose: 'signin' | 'event' = 'event') => {
       const res = await fetchWithTimeout(`${API_URL}/api/verify/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact, method }),
+        body: JSON.stringify({ contact, method: 'email', purpose }),
       });
       return handleResponse(res);
     },
-    confirmCode: async (contact: string, code: string) => {
+    confirmCode: async (contact: string, code: string, purpose: 'signin' | 'event' = 'event') => {
       const res = await fetchWithTimeout(`${API_URL}/api/verify/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact, code }),
+        body: JSON.stringify({ contact, code, purpose }),
       });
-      return handleResponse(res);
+      const data = await handleResponse(res);
+      if (purpose === 'signin' && typeof data?.token === 'string') {
+        setToken(data.token);
+        const claims = hydrateAccountStateFromToken();
+        if (claims) {
+          useAppStore.getState().setAuthUser({
+            email: claims.email,
+            username: claims.username ?? null,
+            name: claims.name,
+            role: claims.role,
+          });
+        }
+      }
+      return data;
     },
   },
 

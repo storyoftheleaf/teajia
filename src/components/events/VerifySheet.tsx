@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import type { ContactMethod } from '../../types/events';
 
 interface VerifySheetProps {
   onClose: () => void;
@@ -19,7 +18,6 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
   useScrollLock(true);
 
   const [step, setStep] = useState<'contact' | 'code'>('contact');
-  const [method, setMethod] = useState<ContactMethod>('whatsapp');
   const [contact, setContact] = useState('');
   const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '']);
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -56,14 +54,14 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
   }, [dragY, onClose]);
 
   const requestMutation = useMutation({
-    mutationFn: () => api.verify.requestCode(contact.trim(), method),
+    mutationFn: () => api.verify.requestCode(contact.trim(), 'event'),
     onSuccess: () => setStep('code'),
   });
 
   const confirmMutation = useMutation({
-    mutationFn: () => api.verify.confirmCode(contact.trim(), codeDigits.join('')),
+    mutationFn: (submittedCode?: string) => api.verify.confirmCode(contact.trim(), submittedCode ?? codeDigits.join(''), 'event'),
     onSuccess: (data: any) => {
-      onVerified(contact.trim(), data.sessionToken ?? '');
+      onVerified(contact.trim(), data.sessionToken ?? data.attendances?.[0]?.magic_token ?? '');
     },
   });
 
@@ -79,7 +77,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     if (digit && idx === 5) {
       const full = next.join('');
       if (full.length === 6) {
-        confirmMutation.mutate();
+        confirmMutation.mutate(full);
       }
     }
   };
@@ -93,7 +91,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     setCodeDigits(next);
     const lastFilled = Math.min(pasted.length, 6) - 1;
     codeRefs.current[lastFilled]?.focus();
-    if (pasted.length === 6) confirmMutation.mutate();
+    if (pasted.length === 6) confirmMutation.mutate(pasted);
   };
 
   const handleCodeKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -155,47 +153,33 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
           </p>
 
           <p className="body-light">
-            Enter your phone or email {purposeLabel}. We'll send a short code.
+            Enter your email {purposeLabel}. We'll send a short code.
           </p>
 
           {step === 'contact' && (
             <div key="step-contact" className="space-y-4 verify-step-enter">
-              {/* Method toggle — underline tabs */}
+              {/* Delivery method */}
               <div className="flex gap-6 border-b border-tea-border">
-                {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
-                  const isActive = method === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setMethod(m)}
-                      className={`relative -mb-px pb-2 pt-1 transition-colors ${
-                        isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                      }`}
-                    >
-                      <span className="text-ui-12 font-semibold">
-                        {m === 'whatsapp' ? 'WhatsApp' : 'Email'}
-                      </span>
-                      <span
-                        className={`absolute left-0 right-0 -bottom-px h-px transition-colors ${
-                          isActive ? 'bg-tea-gold' : 'bg-transparent'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
+                <button
+                  type="button"
+                  aria-pressed="true"
+                  className="relative -mb-px pb-2 pt-1 text-tea-text"
+                >
+                  <span className="text-ui-12 font-semibold">Email</span>
+                  <span className="absolute left-0 right-0 -bottom-px h-px bg-tea-gold" />
+                </button>
               </div>
 
               <div>
                 <label className="label-caps block mb-2" htmlFor="verify-contact">
-                  {method === 'whatsapp' ? 'WhatsApp number' : 'Email address'}
+                  Email address
                 </label>
                 <input
                   id="verify-contact"
-                  type={method === 'email' ? 'email' : 'tel'}
+                  type="email"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  placeholder={method === 'email' ? 'your@email.com' : '0912-345-678'}
+                  placeholder="your@email.com"
                   autoFocus
                   aria-invalid={requestMutation.isError || undefined}
                   className={inputClass}
@@ -241,7 +225,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 <button
                   type="button"
                   onClick={() => setStep('contact')}
-                  className="ml-2 text-tea-readgold hover:text-tea-text transition-colors font-semibold"
+                  className="ml-2 text-tea-gold hover:text-tea-text transition-colors font-semibold"
                 >
                   Change
                 </button>
@@ -292,7 +276,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 <button
                   type="button"
                   disabled={!isCodeComplete || confirmMutation.isPending}
-                  onClick={() => confirmMutation.mutate()}
+                  onClick={() => confirmMutation.mutate(undefined)}
                   className="inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[140px]"
                 >
                   {confirmMutation.isPending ? (
