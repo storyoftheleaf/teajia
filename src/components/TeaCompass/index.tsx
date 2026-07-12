@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
+import { ArrowLeft, BookmarkCheck, BookmarkPlus, Check, ChevronDown, ChevronUp, Droplets, FileInput, FlaskConical, Layers, Loader2, Mic, Plus, Search, Share2, ShoppingCart, Square, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { hydrateCompassEntries } from '../../lib/teaCompassSync';
@@ -11,8 +11,8 @@ import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
-import { api, hasToken } from '../../lib/api';
-import type { CompassCategory } from './types';
+import { api, hasToken, type CurateImportDetail, type CurateImportItem } from '../../lib/api';
+import type { CompassCategory, TeaType } from './types';
 import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
@@ -28,6 +28,8 @@ import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
 import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { SampleCartPanel } from '../samples/SampleCartPanel';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
+import { ImportPanel } from './import/ImportPanel';
+import { ImportBatchChip } from './ImportBatchChip';
 
 export type CompassMode = 'sourcing' | 'library' | 'buying';
 
@@ -208,6 +210,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Batch entry mode — rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importDetail, setImportDetail] = useState<CurateImportDetail | null>(null);
+  const importTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Auto-collapse the header on scroll. We hide it when the user scrolls
   // down (engaged with the form) and reveal on scroll up. Threshold + a
@@ -295,6 +300,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     startNewCapture(category);
     setMode('sourcing');
   }, [startNewCapture, activeEntryId, getEntry, getSessionEntries, setActiveEntry, updateEntry]);
+
+  const closeImport = useCallback(() => {
+    setImportOpen(false);
+    window.requestAnimationFrame(() => importTriggerRef.current?.focus());
+  }, []);
+
+  const openAcceptedImportItem = useCallback((item: CurateImportItem) => {
+    const category = item.category;
+    const id = startNewCapture(category);
+    const parsed = item.parsed_data || {};
+    updateEntry(id, {
+      category,
+      name: item.name || String(parsed.name || ''),
+      originRegion: typeof parsed.originRegion === 'string' ? parsed.originRegion : undefined,
+      type: typeof parsed.type === 'string' ? parsed.type as TeaType : undefined,
+      notes: item.raw_text || '',
+    });
+    setActiveEntry(id);
+    setCaptureOption(category);
+    setMode('sourcing');
+    closeImport();
+  }, [closeImport, setActiveEntry, startNewCapture, updateEntry]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -587,6 +614,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           <div className="flex-1" />
 
+          {mode === 'sourcing' && (
+            <button
+              ref={importTriggerRef}
+              type="button"
+              onClick={() => setImportOpen(true)}
+              aria-label="Import"
+              className="tap-target inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+            >
+              <FileInput size={15} />
+              <span className="hidden sm:inline">Import</span>
+            </button>
+          )}
+
           {mode !== 'sourcing' && (
             <button
               type="button"
@@ -677,6 +717,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           </div>
         )}
       </div>
+
+      {mode === 'sourcing' && importDetail && (
+        <div className="shrink-0 border-b border-tea-border px-4 py-2">
+          <ImportBatchChip detail={importDetail} onOpen={() => setImportOpen(true)} />
+        </div>
+      )}
 
       {/* ── BODY ── */}
       <div className="flex-1 min-h-0 flex flex-col">
@@ -1773,6 +1819,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           ) : null;
         })()}
       </AnimatePresence>
+      {importOpen && (
+        <ImportPanel
+          initialDetail={importDetail}
+          activeCompassEntryId={activeEntryId}
+          onDetailChange={setImportDetail}
+          onAccepted={openAcceptedImportItem}
+          onClose={closeImport}
+        />
+      )}
     </div>
   );
 };
