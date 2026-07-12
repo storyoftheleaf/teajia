@@ -189,6 +189,9 @@ test.describe('Curate Library decisions and retrieval', () => {
   test.beforeEach(async ({ page }) => {
     await installCompassHarness(page, { products: [{ id: 'product-cloud', is_public: 1, shown_in_shop: 0, status: 'Draft', given_name: 'Cloud Peak' }] });
     await openCompass(page);
+    // Hydration is intentionally asynchronous. Seed fixtures only after its
+    // first server merge so a late empty response cannot erase the test entry.
+    await expect.poll(() => compassRequestCount(page, 'GET /api/compass/entries')).toBeGreaterThan(0);
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
