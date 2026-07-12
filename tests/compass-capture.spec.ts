@@ -1,81 +1,53 @@
-/**
- * Compass capture — every save lands in /admin/capture as a Draft product.
- * No save-mode toggle, no decision at capture time. The "Capture in Compass"
- * link in DraftsView routes to /admin/compass and the Done button inside
- * CaptureCard is the single commit affordance.
- */
+/** Curate preservation contract: field capture stays one tap away and non-linear. */
+import { test, expect } from '@playwright/test';
+import { installCompassHarness, openCompass } from './helpers/compassHarness';
 
-import { test, expect, type Page } from '@playwright/test';
+test.describe('Curate field capture preservation', () => {
+  test.beforeEach(async ({ page }) => installCompassHarness(page));
 
-function makeFakeJWT(payload: object): string {
-  const enc = (s: string) => Buffer.from(s).toString('base64url');
-  const h = enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const p = enc(JSON.stringify(payload));
-  return `${h}.${p}.fakesig`;
-}
-
-const ADMIN_PAYLOAD = {
-  sub: 'test-admin-uid',
-  email: 'admin@teajia.com',
-  name: 'Test Admin',
-  role: 'owner',
-  platform_role: 'platform_owner',
-  exp: Math.floor(Date.now() / 1000) + 86400 * 30,
-  active_account_id: 'acct-bali',
-  memberships: [
-    { account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' },
-  ],
-};
-
-async function injectAuth(page: Page, payload: object) {
-  await page.addInitScript((token) => {
-    localStorage.setItem('teajia_token', token);
-    const persisted = JSON.parse(localStorage.getItem('teajia-storage') || '{}');
-    persisted.state = persisted.state || {};
-    persisted.state.activeAccountId = (JSON.parse(atob(token.split('.')[1])).active_account_id) ?? null;
-    localStorage.setItem('teajia-storage', JSON.stringify(persisted));
-  }, makeFakeJWT(payload));
-}
-
-async function gotoCompass(page: Page) {
-  await page.goto('/admin/compass', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1500);
-}
-
-test.describe('Compass capture — unified inventory model', () => {
-  test('no save-mode toggle is rendered', async ({ page }) => {
-    await injectAuth(page, ADMIN_PAYLOAD);
-    await gotoCompass(page);
-    // The toggle was deliberately removed — every save goes to inventory.
-    await expect(page.locator('[data-testid="save-mode-personal"]')).toHaveCount(0);
-    await expect(page.locator('[data-testid="save-mode-inventory"]')).toHaveCount(0);
+  test('opens directly to Source and Tea with price visible', async ({ page }) => {
+    await openCompass(page);
+    await expect(page.getByRole('tab', { name: 'Tea', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Price').filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toBeVisible();
   });
 
-  test('Done button is present in the capture form', async ({ page }) => {
-    await injectAuth(page, ADMIN_PAYLOAD);
-    await gotoCompass(page);
-    // Type a name so the form is in a ready-to-commit state.
-    const nameInput = page.locator('input[placeholder*="tasting"], input[placeholder*="What"]').first();
-    if (await nameInput.count()) {
-      await nameInput.fill('Test capture');
-      await page.waitForTimeout(300);
-    }
-    const doneButton = page.locator('button[aria-label*="Done"]').first();
-    await expect(doneButton).toBeVisible();
+  test('switches to Teaware in one action', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toBeVisible();
   });
-});
 
-test.describe('Drafts queue — Compass handoff', () => {
-  test('"Capture in Compass" link routes to /admin/compass (no query param)', async ({ page }) => {
-    await injectAuth(page, ADMIN_PAYLOAD);
-    await page.goto('/admin/capture', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1500);
+  test('switches between named entries in the current session', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const first = useTeaCompassStore.getState().activeEntryId;
+      useTeaCompassStore.getState().updateEntry(first, { name: 'First field tea' });
+      const second = useTeaCompassStore.getState().startNewCapture('tea');
+      useTeaCompassStore.getState().updateEntry(second, { name: 'Second field tea' });
+    });
+    const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    await expect(name).toHaveValue('Second field tea');
+    await page.getByRole('button', { name: /First field tea/ }).filter({ visible: true }).click();
+    await expect(name).toHaveValue('First field tea');
+  });
 
-    const link = page.locator('a, button', { hasText: /Capture in Compass|Open Compass/ }).first();
-    if (await link.count()) {
-      await link.click();
-      await page.waitForTimeout(800);
-      expect(page.url()).toMatch(/\/admin\/compass$/);
-    }
+  test('currently replaces a partial tea entry when switching capture type', async ({ page }) => {
+    await openCompass(page);
+    const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    await name.fill('Field fragment tea');
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    await page.getByRole('tab', { name: 'Tea', exact: true }).click();
+    await expect(name).toHaveValue('');
+  });
+
+  test('keeps the single Done commit affordance', async ({ page }) => {
+    await openCompass(page);
+    await expect(page.getByRole('button', { name: /Done/ }).first()).toBeVisible();
+    await expect(page.locator('[data-testid="save-mode-personal"], [data-testid="save-mode-inventory"]')).toHaveCount(0);
   });
 });
