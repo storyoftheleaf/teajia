@@ -2175,6 +2175,25 @@ export const api = {
         body: JSON.stringify({ entries }),
       });
     },
+    starCandidate: (entryId: string, noteKey: string, data: { source_text: string; source_tasting?: unknown }) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
+    unstarCandidate: (entryId: string, noteKey: string) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, { method: 'DELETE' }),
+  },
+
+  tastingNoteCandidates: {
+    list: (status = 'starred') => authedFetch(`${API_URL}/api/admin/tasting-note-candidates?status=${encodeURIComponent(status)}`),
+    update: (id: string, data: { edited_text?: string; attribution_name?: string; attribution_detail?: string }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    promote: (id: string, data: { edited_text: string; attribution_name: string; attribution_detail?: string }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}/promote`, { method: 'POST', body: JSON.stringify(data) }),
+    dismiss: (id: string) => authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}/dismiss`, { method: 'POST' }),
+  },
+
+  productImpressions: {
+    list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
 
   // Tea Discovery — the onboarding disposition profile (one per member, server-

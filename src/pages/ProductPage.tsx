@@ -39,6 +39,32 @@ interface PublicTeaReview {
   visibility: string;
 }
 
+interface ProductImpression {
+  id: string;
+  productId: string;
+  text: string;
+  attributionName: string;
+  attributionDetail: string | null;
+  publishedAt: string;
+}
+
+export const ProductImpressions: React.FC<{ impressions: ProductImpression[] }> = ({ impressions }) => {
+  if (impressions.length === 0) return null;
+  return (
+    <section aria-labelledby="community-impressions-heading" className="mb-6 space-y-4">
+      <h3 id="community-impressions-heading" className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec">Selected impressions</h3>
+      {impressions.map(impression => (
+        <blockquote key={impression.id} className="border-l-2 border-tea-gold pl-4">
+          <p className="font-body text-ui-15 italic leading-relaxed text-tea-text">“{impression.text}”</p>
+          <footer className="mt-2 text-ui-11 text-tea-text-sec">
+            — {impression.attributionName}{impression.attributionDetail ? ` · ${impression.attributionDetail}` : ''}
+          </footer>
+        </blockquote>
+      ))}
+    </section>
+  );
+};
+
 const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = ({ productId, teaKey }) => {
   const { data: reviews = [], isLoading } = useQuery<PublicTeaReview[]>({
     queryKey: ['public-tea-reviews', productId, teaKey],
@@ -51,10 +77,15 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
   });
 
   const networkReviews = reviews.filter(r => r.visibility === 'network');
+  const { data: impressions = [] } = useQuery<ProductImpression[]>({
+    queryKey: ['product-impressions', productId],
+    queryFn: () => api.productImpressions.list(productId),
+    staleTime: 60_000,
+  });
 
   if (isLoading) return null;
 
-  if (networkReviews.length === 0) {
+  if (networkReviews.length === 0 && impressions.length === 0) {
     return (
       <div className="mt-10 pt-6 border-t border-tea-border">
         <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
@@ -65,10 +96,12 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
 
   return (
     <div className="mt-10 pt-6 border-t border-tea-border">
-      <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
-        Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
-      </h3>
-      <div className="space-y-4">
+      <ProductImpressions impressions={impressions} />
+      {networkReviews.length > 0 && <>
+        <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
+          Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
+        </h3>
+        <div className="space-y-4">
         {networkReviews.map(r => {
           const flavorTerms = r.tasting ? flattenTastingNotes(r.tasting) : [];
           return (
@@ -126,7 +159,8 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
             </div>
           );
         })}
-      </div>
+        </div>
+      </>}
     </div>
   );
 };
