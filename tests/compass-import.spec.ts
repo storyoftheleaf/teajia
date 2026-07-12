@@ -8,6 +8,7 @@ type ImportItem = {
   compass_entry_id: string | null; reserved_compass_entry_id: string;
 };
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
+const manualAddFailureByPage = new WeakMap<Page, { remaining: number }>();
 async function installImportApi(page: Page) {
   let attempts = 0;
   const items: ImportItem[] = [];
@@ -77,6 +78,11 @@ async function installImportApi(page: Page) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, review_state: 'abandoned' }) });
     }
     if (method === 'POST' && /\/items$/.test(path)) {
+      const failure = manualAddFailureByPage.get(page);
+      if (failure && failure.remaining > 0) {
+        failure.remaining -= 1;
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Manual item temporarily unavailable' }) });
+      }
       const body = request.postDataJSON();
       const item = { id: `item-${items.length}`, batch_id: 'batch-1', source_id: body.source_id || null, position: items.length, category: body.category, name: body.name, raw_text: null, parsed_data: {}, confidence: null, uncertainty: {}, review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: `compass-${items.length}` } as ImportItem;
       items.push(item); return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(item) });
@@ -248,8 +254,37 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Manual review item name').fill('Manual tea');
     await page.getByRole('button', { name: 'Add review item' }).click();
     await expect(page.getByText('Manual tea')).toBeVisible();
-    await page.getByRole('button', { name: 'Abandon import' }).click();
+    const abandon = page.getByRole('button', { name: 'Abandon import' });
+    await abandon.click();
+    await expect(page.getByRole('alertdialog', { name: 'Confirm abandon import' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel abandon' })).toBeFocused();
+    await page.getByRole('button', { name: 'Cancel abandon' }).click();
+    await expect(abandon).toBeFocused();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
+    await abandon.click();
+    await page.getByRole('button', { name: 'Confirm abandon' }).click();
     await expect(page.getByRole('button', { name: /invoice: 1 items/ })).toHaveCount(0);
+  });
+
+  test('preserves a failed manual item and clears it only after managed retry succeeds', async ({ page }) => {
+    manualAddFailureByPage.set(page, { remaining: 1 });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'retry-evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    const name = page.getByLabel('Manual review item name');
+    const category = page.getByLabel('Manual review item category');
+    await name.fill('Recoverable gaiwan');
+    await category.selectOption('teaware');
+    await page.getByRole('button', { name: 'Add review item' }).click();
+    await expect(page.getByRole('alert')).toContainText('Manual item temporarily unavailable');
+    await expect(name).toHaveValue('Recoverable gaiwan');
+    await expect(category).toHaveValue('teaware');
+    await expect(page.getByText('retry-evidence.pdf')).toBeVisible();
+    await page.getByRole('button', { name: 'Retry action' }).click();
+    await expect(page.getByText('Recoverable gaiwan')).toBeVisible();
+    await expect(name).toHaveValue('');
+    await expect(page.getByRole('alert')).toHaveCount(0);
   });
 
   test('keeps 25 recovered batches compact and capture visible without overflow', async ({ page }) => {
