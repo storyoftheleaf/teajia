@@ -34,11 +34,9 @@ interface Env {
   APP_URL?: string;
   // Origin used to build the Google OAuth `redirect_uri`. It must EXACTLY match
   // one of the "Authorized redirect URIs" on the Google Cloud console OAuth
-  // client, AND be reachable by the user's browser. In mainland China the
-  // *.workers.dev host is blocked, so production pins this to the China-reachable
-  // custom domain (https://api.teajia.com) so the redirect_uri stays correct
-  // even if the worker is reached via workers.dev. Defaults to the inbound
-  // request origin when unset (correct for local dev on localhost).
+  // client. Production pins this to the registered workers.dev callback; after
+  // the code exchange, APP_URL returns the user to the public site. Defaults to
+  // the inbound request origin when unset (correct for local dev on localhost).
   // → Register `${OAUTH_REDIRECT_ORIGIN}/api/auth/google/callback` in Google Cloud.
   OAUTH_REDIRECT_ORIGIN?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
@@ -1860,10 +1858,9 @@ const handleGoogleAuth: Handler = async (request, env) => {
   // account panel passes ?return=/ so customers come back to the site.
   const rawReturn = url.searchParams.get('return') || '/admin';
   const returnPath = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin';
-  // Pin the redirect_uri to the China-reachable, Google-registered host. Using
-  // the raw inbound `origin` means a request that arrives via *.workers.dev (or
-  // any preview host) would send an unregistered redirect_uri → Google returns
-  // "Error 400: redirect_uri_mismatch". OAUTH_REDIRECT_ORIGIN keeps it stable.
+  // Pin the redirect_uri to the Google-registered host. Using the raw inbound
+  // `origin` makes requests routed through another host send an unregistered
+  // redirect_uri, which Google rejects with `redirect_uri_mismatch`.
   const redirectUri = `${(env.OAUTH_REDIRECT_ORIGIN || origin).replace(/\/$/, '')}/api/auth/google/callback`;
   const state = await signOAuthState(env.JWT_SECRET, returnPath);
   const params = new URLSearchParams({
