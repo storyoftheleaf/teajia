@@ -9226,14 +9226,14 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
     const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId,body.idempotency_key.trim()).first() as any;
     if (prior) {
       let priorInput: any = null; try { priorInput = JSON.parse(prior.movement_fingerprint || 'null'); } catch { /* legacy row */ }
-      const sameQuantity = body.quantity == null || Number(body.quantity) === Number(priorInput?.quantity);
+      const sameQuantity = body.quantity != null && Number(body.quantity) === Number(priorInput?.quantity);
       if (prior.inventory_receipt_line_id !== line.id || prior.movement_type !== 'receipt' || !sameQuantity) return json({ error:'idempotency_key already used for a different receipt' },409);
       const remainingNow = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
       return json({ received_quantity:Number(line.received_quantity),remaining_quantity:remainingNow,state:line.receipt_state,ledger_id:prior.id,batch_id:prior.batch_id,already_received:true });
     }
   }
   const remaining = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
-  const quantity = body.quantity == null ? remaining : Number(body.quantity);
+  const quantity = Number(body.quantity);
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remaining || (line.unit === 'unit' && !Number.isInteger(quantity))) return json({ error: 'invalid receive quantity' }, 400);
   const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id,ctx.accountId).first() as any; if (!product) return json({ error: 'Product not found' },404);
   const existingReceiptBatch = line.intake_batch_id ? null : await env.DB.prepare('SELECT intake_batch_id FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=? AND intake_batch_id IS NOT NULL LIMIT 1').bind(line.receipt_id,ctx.accountId).first() as any;

@@ -114,9 +114,17 @@ describe('inventory receipt endpoints', () => {
     const replay = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body });
     expect(replay.status).toBe(200);
     expect(await replay.json()).toMatchObject({ received_quantity: 40, remaining_quantity: 60, already_received: true });
+    const omittedQuantity = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ idempotency_key: 'receive:line-a:delivery-1' }) });
+    expect(omittedQuantity.status).toBe(409);
     expect(db.products.get('product-a')!.stock_grams).toBe(45);
     expect(db.receiptLines.get('line-a')!.received_quantity).toBe(40);
     expect(db.ledger).toHaveLength(1);
+  });
+
+  it('requires an explicit positive receive quantity', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    const response = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ idempotency_key: 'receive:line-a:missing-quantity' }) });
+    expect(response.status).toBe(400);
   });
 
   it('converges concurrent receives that carry the same operation key', async () => {
