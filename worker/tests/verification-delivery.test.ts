@@ -46,6 +46,26 @@ describe('verification email delivery', () => {
     expectSafeLogs(error);
   });
 
+  it.each([408, 429])('marks transient HTTP %s responses retryable', async status => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await deliverVerificationCode(env, input, vi.fn(async () => new Response('', { status })) as typeof fetch);
+
+    expect(result).toEqual({ delivered: false, retryable: true, reason: 'provider_unavailable' });
+    expectSafeLogs(error);
+  });
+
+  it.each([
+    ['malformed JSON', new Response('not-json', { status: 200 })],
+    ['missing id', new Response(JSON.stringify({}), { status: 200 })],
+    ['empty id', new Response(JSON.stringify({ id: '  ' }), { status: 200 })],
+  ])('rejects a 2xx response with %s without leaking delivery data', async (_label, response) => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await deliverVerificationCode(env, input, vi.fn(async () => response) as typeof fetch);
+
+    expect(result).toEqual({ delivered: false, retryable: true, reason: 'provider_unavailable' });
+    expectSafeLogs(error);
+  });
+
   it('marks provider rejection non-retryable and keeps logs redacted', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const result = await deliverVerificationCode(env, input, vi.fn(async () => new Response('', { status: 422 })) as typeof fetch);

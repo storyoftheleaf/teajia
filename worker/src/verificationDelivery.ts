@@ -18,8 +18,9 @@ export async function deliverVerificationCode(
     return { delivered: false, retryable: false, reason: 'provider_not_configured' };
   }
 
+  let response: Response;
   try {
-    const response = await fetcher('https://api.resend.com/emails', {
+    response = await fetcher('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${env.RESEND_API_KEY}`,
@@ -32,17 +33,26 @@ export async function deliverVerificationCode(
         html: `<p>Your Teajia code is <strong>${input.code}</strong>.</p><p>It expires in 10 minutes.</p>`,
       }),
     });
-
-    if (!response.ok) {
-      console.error(`[verification] email delivery failed status=${response.status}`);
-      const retryable = response.status >= 500;
-      return { delivered: false, retryable, reason: retryable ? 'provider_unavailable' : 'provider_rejected' };
-    }
-
-    const body = await response.json() as { id: string };
-    return { delivered: true, providerMessageId: body.id };
   } catch {
     console.error('[verification] email delivery failed due to a network error');
+    return { delivered: false, retryable: true, reason: 'provider_unavailable' };
+  }
+
+  if (!response.ok) {
+    console.error(`[verification] email delivery failed status=${response.status}`);
+    const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+    return { delivered: false, retryable, reason: retryable ? 'provider_unavailable' : 'provider_rejected' };
+  }
+
+  try {
+    const body = await response.json() as { id?: unknown };
+    if (typeof body.id !== 'string' || body.id.trim().length === 0) {
+      console.error('[verification] email provider returned an invalid response');
+      return { delivered: false, retryable: true, reason: 'provider_unavailable' };
+    }
+    return { delivered: true, providerMessageId: body.id };
+  } catch {
+    console.error('[verification] email provider returned an invalid response');
     return { delivered: false, retryable: true, reason: 'provider_unavailable' };
   }
 }
