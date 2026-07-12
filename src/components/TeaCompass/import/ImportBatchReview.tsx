@@ -20,6 +20,7 @@ interface ImportBatchReviewProps {
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, busyId, onUpdate, onAccept, onMerge, onAcceptAll, onDefer, onNew, onAddItem, onAbandon }) => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [manualName, setManualName] = useState('');
+  const manualNameRef = useRef('');
   const [manualCategory, setManualCategory] = useState<'tea' | 'teaware'>('tea');
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const abandonRef = useRef<HTMLButtonElement>(null);
@@ -42,9 +43,9 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, bu
         {detail.items.slice(0, visibleCount).map(item => <ImportItemRow key={item.id} item={item} busy={busyId === item.id} onUpdate={updates => onUpdate(item, updates)} onAccept={() => onAccept(item)} onMerge={() => onMerge(item)} />)}
       </div>
       <div className="flex flex-wrap gap-2 rounded-md border border-tea-border bg-tea-surface p-3">
-        <input aria-label="Manual review item name" value={manualName} onChange={event => setManualName(event.target.value)} placeholder="Add an item from this evidence" className="min-h-11 min-w-0 flex-1 rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-13 text-tea-text" />
+        <input aria-label="Manual review item name" value={manualName} onChange={event => { manualNameRef.current = event.target.value; setManualName(event.target.value); }} placeholder="Add an item from this evidence" className="min-h-11 min-w-0 flex-1 rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-13 text-tea-text" />
         <select aria-label="Manual review item category" value={manualCategory} onChange={event => setManualCategory(event.target.value as 'tea' | 'teaware')} className="min-h-11 rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-13 text-tea-text"><option value="tea">Tea</option><option value="teaware">Teaware</option></select>
-        <button type="button" disabled={!manualName.trim() || !!busyId} onClick={() => void onAddItem(manualName.trim(), manualCategory, () => setManualName(''))} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">Add review item</button>
+        <button type="button" disabled={!manualName.trim() || !!busyId} onClick={() => { const submitted = manualName.trim(); void onAddItem(submitted, manualCategory, () => { if (manualNameRef.current.trim() === submitted) { manualNameRef.current = ''; setManualName(''); } }); }} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">Add review item</button>
       </div>
       {visibleCount < detail.items.length && <button type="button" onClick={() => setVisibleCount(count => Math.min(count + 10, detail.items.length))} className="tap-target w-full min-h-11 rounded-md border border-tea-border text-ui-12 text-tea-text-sec hover:text-tea-text">Show {Math.min(10, detail.items.length - visibleCount)} more</button>}
       {confirmAbandon ? <div role="alertdialog" aria-label="Confirm abandon import" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface p-3"><p className="text-ui-12 text-tea-text">Keep the evidence, but stop reviewing this import?</p><div className="flex gap-2"><button autoFocus type="button" onClick={() => { setConfirmAbandon(false); requestAnimationFrame(() => abandonRef.current?.focus()); }} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel abandon</button><button type="button" disabled={!!busyId} onClick={() => void onAbandon()} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">Confirm abandon</button></div></div> : null}

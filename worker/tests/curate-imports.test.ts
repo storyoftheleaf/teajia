@@ -42,9 +42,18 @@ class ImportStatement {
   }
   async run() {
     const sql = this.normalized();
+    if (sql.includes("review_state not in ('completed', 'abandoned')") && this.db.terminalizeNextGuardedWrite) {
+      this.db.terminalizeNextGuardedWrite = false;
+      const batch = this.db.batches.get(String(this.values.at(-2)));
+      if (batch) batch.review_state = 'abandoned';
+    }
     const table = this.db.tableFor(sql);
     if (table && sql.startsWith('insert')) {
-      const columns = this.sql.match(/\(([^)]+)\)\s*values/i)?.[1].split(',').map(value => value.trim()) ?? [];
+      const columns = this.sql.match(/\(([^)]+)\)\s*(?:values|select)/i)?.[1].split(',').map(value => value.trim()) ?? [];
+      if (sql.includes("review_state not in ('completed', 'abandoned')")) {
+        const guardedBatch = this.db.batches.get(String(this.values.at(-2)));
+        if (!guardedBatch || guardedBatch.account_id !== this.values.at(-1) || ['completed', 'abandoned'].includes(String(guardedBatch.review_state))) return { success: true, meta: { changes: 0 } };
+      }
       const row = Object.fromEntries(columns.map((column, index) => [column, this.values[index]])) as Row;
       if (table.has(String(row.id))) {
         if (sql.startsWith('insert or ignore')) return { success: true, meta: { changes: 0 } };
@@ -61,10 +70,16 @@ class ImportStatement {
         return { success: true, meta: { changes } };
       }
       const verifiesCompassOwnership = sql.includes('exists (select 1 from tea_compass_entries');
-      const id = String(verifiesCompassOwnership ? this.values[3] : this.values.at(-2));
-      const accountId = verifiesCompassOwnership ? this.values[4] : this.values.at(-1);
+      const set = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
+      const columns = [...set.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
+      const id = String(verifiesCompassOwnership ? this.values[3] : this.values[columns.length]);
+      const accountId = verifiesCompassOwnership ? this.values[4] : this.values[columns.length + 1];
       const row = table.get(id);
       if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+      if (sql.includes("review_state not in ('completed', 'abandoned')")) {
+        const guardedBatch = table === this.db.batches ? row : this.db.batches.get(String(this.values.at(-2)));
+        if (!guardedBatch || ['completed', 'abandoned'].includes(String(guardedBatch.review_state))) return { success: true, meta: { changes: 0 } };
+      }
       if (sql.includes('compass_entry_id is null') && row.compass_entry_id != null) return { success: true, meta: { changes: 0 } };
       if (verifiesCompassOwnership) {
         const compass = this.db.compass.get(String(this.values[5]));
@@ -72,8 +87,6 @@ class ImportStatement {
           return { success: true, meta: { changes: 0 } };
         }
       }
-      const set = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
-      const columns = [...set.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
       columns.forEach((column, index) => { row[column] = this.values[index]; });
       if (sql.includes("set review_state = 'abandoned'")) row.review_state = 'abandoned';
       return { success: true, meta: { changes: 1 } };
@@ -83,6 +96,7 @@ class ImportStatement {
 }
 
 class ImportDb {
+  terminalizeNextGuardedWrite = false;
   batches = new Map<string, Row>();
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
@@ -90,10 +104,10 @@ class ImportDb {
   journeys = new Map<string, Row>();
   visits = new Map<string, Row>();
   tableFor(sql: string) {
-    if (sql.includes('curate_import_batches')) return this.batches;
     if (sql.includes('curate_import_sources')) return this.sources;
     if (sql.includes('curate_import_items')) return this.items;
     if (sql.includes('tea_compass_entries')) return this.compass;
+    if (sql.includes('curate_import_batches')) return this.batches;
     if (sql.includes('curate_journeys')) return this.journeys;
     if (sql.includes('curate_visits')) return this.visits;
     return null;
@@ -165,6 +179,24 @@ describe('Curate import provenance API', () => {
     db.items.set('stale-pending', { ...db.items.get(items[0].id), id: 'stale-pending', compass_entry_id: null, review_state: 'pending' } as Row);
     expect((await request(db, `/api/curate/imports/${batch.id}/items/stale-pending/accept`, { method: 'POST' })).status).toBe(409);
     expect(db.batches.get(batch.id)?.review_state).toBe('completed');
+  });
+
+  it('rejects writes when abandon wins between the stale read and guarded mutation', async () => {
+    for (const operation of ['add', 'update', 'accept'] as const) {
+      const db = new ImportDb();
+      const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: operation, items: [{ name: 'Race' }] }) });
+      const { batch, items } = await created.json() as any;
+      db.terminalizeNextGuardedWrite = true;
+      const result = operation === 'add'
+        ? await request(db, `/api/curate/imports/${batch.id}/items`, { method: 'POST', body: JSON.stringify({ name: 'Late' }) })
+        : operation === 'update'
+          ? await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ name: 'Late' }) })
+          : await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
+      expect(result.status, operation).toBe(409);
+      expect(db.batches.get(batch.id)?.review_state).toBe('abandoned');
+      expect(db.items.get(items[0].id)).toMatchObject({ name: 'Race', review_state: 'pending', compass_entry_id: null });
+      expect(db.compass.size).toBe(0);
+    }
   });
 
   it('rejects acceptance until uncertainty is explicitly cleared on the server', async () => {

@@ -281,9 +281,10 @@ test.describe('Curate Import panel', () => {
     await expect(name).toHaveValue('Recoverable gaiwan');
     await expect(category).toHaveValue('teaware');
     await expect(page.getByText('retry-evidence.pdf')).toBeVisible();
+    await name.fill('Newer field note');
     await page.getByRole('button', { name: 'Retry action' }).click();
     await expect(page.getByText('Recoverable gaiwan')).toBeVisible();
-    await expect(name).toHaveValue('');
+    await expect(name).toHaveValue('Newer field note');
     await expect(page.getByRole('alert')).toHaveCount(0);
   });
 
