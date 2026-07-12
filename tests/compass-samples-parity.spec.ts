@@ -77,6 +77,13 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       const { createEmptySampleSet } = await import('/src/samples/types.ts');
       // @ts-expect-error Vite source modules are available in Playwright.
       const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      // Both stores persist independently. Rehydrate them before injecting the
+      // runtime-only fixture so a late hydration cannot replace it after the
+      // Library tab renders (most visible on slower mobile runs).
+      await Promise.all([
+        useSampleStore.persist.rehydrate(),
+        useTeaCompassStore.persist.rehydrate(),
+      ]);
       const set = createEmptySampleSet({ purpose: 'sourcing' });
       set.id = 'set-library-click';
       set.name = 'Library Click Batch';
