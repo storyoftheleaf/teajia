@@ -66,8 +66,15 @@ describe('reviewed Curate receipts', () => {
       expect(retry).toMatchObject({ product_id: first.product_id, ledger_id: first.ledger_id, alreadyAccepted: true });
       expect(db.ledger).toHaveLength(1);
       expect(db.products.get(first.product_id)).toMatchObject({ inventory_purpose: body.purpose, is_public: 0, shown_in_shop: 0 });
-      if (body.unit === 'unit') expect(db.products.get(first.product_id)?.quantity_units).toBe(2);
-      else expect(db.products.get(first.product_id)?.stock_grams).toBe(body.quantity);
+      if (body.unit === 'unit') {
+        expect(db.products.get(first.product_id)?.quantity_units).toBe(2);
+        expect(db.listings.has(`list_${first.product_id}`)).toBe(false);
+        expect(db.profiles.has(`prof_${first.product_id}`)).toBe(false);
+      } else {
+        expect(db.products.get(first.product_id)?.stock_grams).toBe(body.quantity);
+        expect(db.listings.get(`list_${first.product_id}`)).toMatchObject({ is_public: 0, shown_in_shop: 0, status: 'active' });
+        expect(db.profiles.get(`prof_${first.product_id}`)).toMatchObject({ network_visible: 0, status: 'draft' });
+      }
     }
   });
 
