@@ -95,6 +95,18 @@ describe('Curate deliberate-input contract', () => {
     const metadataOnly = { ...entry, touchedFields: ['draftProductId', 'synced', 'updatedAt'] };
     expect(entryHasDeliberateInput(metadataOnly)).toBe(false);
   });
+
+  it('preserves value fallback when sync bookkeeping updates a populated legacy entry', () => {
+    const legacy = { ...createEmptyEntry('tea'), id: 'legacy-server-entry', name: 'Legacy Dong Ding' };
+    delete legacy.touchedFields;
+    useTeaCompassStore.setState({ entries: [legacy] });
+
+    useTeaCompassStore.getState().updateEntry(legacy.id, { synced: true });
+
+    const afterSync = useTeaCompassStore.getState().getEntry(legacy.id)!;
+    expect(afterSync.touchedFields).toBeUndefined();
+    expect(entryHasDeliberateInput(afterSync)).toBe(true);
+  });
 });
 
 describe('account-scoped Curate draft restoration', () => {
@@ -118,5 +130,33 @@ describe('account-scoped Curate draft restoration', () => {
     const draft = { ...createEmptyEntry('tea'), draftAccountId: 'acct-bali', touchedFields: ['name'], name: 'Scoped tea' };
     expect(restoreCompassDraftsForAccount({ pendingEntries: [draft], activeEntryId: draft.id, sessionEntryIds: [draft.id] }, null))
       .toEqual({ pendingEntries: [], activeEntryId: null, sessionEntryIds: [] });
+  });
+
+  it('isolates and restores pending, active, and session drafts across A to B to A', () => {
+    useTeaCompassStore.setState({
+      pendingEntries: [], activeEntryId: null, sessionEntryIds: [],
+      draftAccountScopeId: 'acct-a', draftsByAccount: {},
+    });
+    const a = useTeaCompassStore.getState().startNewCapture('tea');
+    useTeaCompassStore.getState().updateEntry(a, { priceAmount: 120 });
+
+    useTeaCompassStore.getState().switchDraftAccount('acct-b');
+    expect(useTeaCompassStore.getState().pendingEntries).toEqual([]);
+    expect(useTeaCompassStore.getState().activeEntryId).toBeNull();
+    expect(useTeaCompassStore.getState().sessionEntryIds).toEqual([]);
+
+    const b = useTeaCompassStore.getState().startNewCapture('teaware');
+    useTeaCompassStore.getState().updateEntry(b, { material: 'Porcelain' });
+    expect(useTeaCompassStore.getState().pendingEntries.map((entry) => entry.id)).toEqual([b]);
+
+    useTeaCompassStore.getState().switchDraftAccount('acct-a');
+    expect(useTeaCompassStore.getState().pendingEntries.map((entry) => entry.id)).toEqual([a]);
+    expect(useTeaCompassStore.getState().activeEntryId).toBe(a);
+    expect(useTeaCompassStore.getState().sessionEntryIds).toEqual([a]);
+
+    useTeaCompassStore.getState().switchDraftAccount('acct-b');
+    expect(useTeaCompassStore.getState().pendingEntries.map((entry) => entry.id)).toEqual([b]);
+    expect(useTeaCompassStore.getState().activeEntryId).toBe(b);
+    expect(useTeaCompassStore.getState().sessionEntryIds).toEqual([b]);
   });
 });

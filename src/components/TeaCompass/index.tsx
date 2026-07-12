@@ -94,6 +94,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
 
   const { activeAccountId, activeAccount } = useAppStore();
+  const switchDraftAccount = useTeaCompassStore((s) => s.switchDraftAccount);
+  useEffect(() => {
+    switchDraftAccount(activeAccountId);
+    if (activeAccountId && !useTeaCompassStore.getState().activeEntryId) {
+      startNewCapture('tea');
+    }
+  }, [activeAccountId, startNewCapture, switchDraftAccount]);
   const { addNote } = useNotesStore();
 
   const addSampleTasting = useSampleStore((s) => s.addTasting);

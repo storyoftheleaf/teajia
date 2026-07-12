@@ -16,6 +16,9 @@ interface TeaCompassState {
   // Session
   activeEntryId: string | null;
   sessionEntryIds: string[]; // IDs of entries created in current session
+  draftAccountScopeId: string | null;
+  draftsByAccount: Record<string, Required<PersistedCompassDrafts>>;
+  switchDraftAccount: (accountId: string | null) => void;
 
   // Vendor persistence
   lastVendorId: string | null;
@@ -96,6 +99,17 @@ const NON_DELIBERATE_UPDATE_FIELDS = new Set<keyof TeaCompassEntry>([
   'sourceEntryId', 'synced', 'teaKey', 'touchedFields', 'updatedAt',
 ]);
 
+function touchedFieldsAfterUpdate(
+  entry: TeaCompassEntry,
+  updates: Partial<TeaCompassEntry>,
+): string[] | undefined {
+  const deliberateKeys = Object.keys(updates).filter(
+    (field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry),
+  );
+  if (entry.touchedFields === undefined && deliberateKeys.length === 0) return undefined;
+  return Array.from(new Set([...(entry.touchedFields ?? []), ...deliberateKeys]));
+}
+
 /** The single capture-retention contract. New entries use explicit touch
  * metadata so inherited defaults never become content. Legacy rows without
  * metadata fall back to their stored values so existing fragments stay safe. */
@@ -169,6 +183,16 @@ export function restoreCompassDraftsForAccount(
   };
 }
 
+function snapshotCompassDrafts(state: PersistedCompassDrafts): Required<PersistedCompassDrafts> {
+  const pendingEntries = (state.pendingEntries ?? []).filter(entryHasDeliberateInput);
+  const ids = new Set(pendingEntries.map((entry) => entry.id));
+  return {
+    pendingEntries,
+    activeEntryId: state.activeEntryId && ids.has(state.activeEntryId) ? state.activeEntryId : null,
+    sessionEntryIds: (state.sessionEntryIds ?? []).filter((id) => ids.has(id)),
+  };
+}
+
 // New capture run starts after this much idle time. Keeps a single sitting
 // (back-to-back captures) grouped under one sessionId for batch review.
 const SESSION_GAP_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -180,6 +204,8 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       pendingEntries: [],
       activeEntryId: null,
       sessionEntryIds: [],
+      draftAccountScopeId: activeAccountScope(),
+      draftsByAccount: {},
       lastVendorId: null,
       lastVendorName: null,
       lastCurrency: 'NT',
@@ -196,6 +222,18 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       customEras: [],
 
       setSyncError: (failed) => set({ syncError: failed }),
+
+      switchDraftAccount: (accountId) => set((state) => {
+        if (state.draftAccountScopeId === accountId) return state;
+        const draftsByAccount = { ...state.draftsByAccount };
+        if (state.draftAccountScopeId) {
+          draftsByAccount[state.draftAccountScopeId] = snapshotCompassDrafts(state);
+        }
+        const target = accountId
+          ? restoreCompassDraftsForAccount(draftsByAccount[accountId] ?? {}, accountId)
+          : { pendingEntries: [], activeEntryId: null, sessionEntryIds: [] };
+        return { ...target, draftsByAccount, draftAccountScopeId: accountId };
+      }),
 
       addPendingPromotion: (id) =>
         set((s) => (s.pendingPromotions.includes(id)
@@ -229,10 +267,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
                 e.id === id ? {
                   ...e,
                   ...updates,
-                  touchedFields: Array.from(new Set([
-                    ...(e.touchedFields ?? []),
-                    ...Object.keys(updates).filter((field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry)),
-                  ])),
+                  touchedFields: touchedFieldsAfterUpdate(e, updates),
                   updatedAt: new Date().toISOString(),
                   synced: false,
                 } : e
@@ -244,10 +279,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
               e.id === id ? {
                 ...e,
                 ...updates,
-                touchedFields: Array.from(new Set([
-                  ...(e.touchedFields ?? []),
-                  ...Object.keys(updates).filter((field) => !NON_DELIBERATE_UPDATE_FIELDS.has(field as keyof TeaCompassEntry)),
-                ])),
+                touchedFields: touchedFieldsAfterUpdate(e, updates),
                 updatedAt: new Date().toISOString(),
                 synced: false,
               } : e
@@ -303,7 +335,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           vendorName: state.lastVendorName || undefined,
           priceCurrency: state.lastCurrency,
         });
-        entry.draftAccountId = activeAccountScope() ?? 'guest';
+        entry.draftAccountId = state.draftAccountScopeId ?? activeAccountScope() ?? 'guest';
         entry.sessionId = sessionId;
         // Add to pendingEntries (NOT entries) — won't appear in Library until committed
         set((s) => ({
@@ -389,44 +421,63 @@ export const useTeaCompassStore = create<TeaCompassState>()(
     }),
     {
       name: 'teajia-compass',
-      partialize: (state) => ({
-        entries: state.entries,
-        lastVendorId: state.lastVendorId,
-        lastVendorName: state.lastVendorName,
-        lastCurrency: state.lastCurrency,
-        browseGrouping: state.browseGrouping,
-        browseFilter: state.browseFilter,
-        browseSort: state.browseSort,
-        browseLayout: state.browseLayout,
-        currentSessionId: state.currentSessionId,
-        lastCaptureAt: state.lastCaptureAt,
-        shippingRatePerKg: state.shippingRatePerKg,
-        customEras: state.customEras,
-        deletedIds: state.deletedIds, // survive reloads so a pending delete still wins
-        pendingPromotions: state.pendingPromotions, // survive reloads so a failed promote still retries
-        pendingEntries: state.pendingEntries.filter(entryHasDeliberateInput),
-        activeEntryId: state.activeEntryId,
-        sessionEntryIds: state.sessionEntryIds,
-      }),
-      version: 1,
+      partialize: (state) => {
+        const draftsByAccount = { ...state.draftsByAccount };
+        if (state.draftAccountScopeId) {
+          draftsByAccount[state.draftAccountScopeId] = snapshotCompassDrafts(state);
+        }
+        return {
+          entries: state.entries,
+          lastVendorId: state.lastVendorId,
+          lastVendorName: state.lastVendorName,
+          lastCurrency: state.lastCurrency,
+          browseGrouping: state.browseGrouping,
+          browseFilter: state.browseFilter,
+          browseSort: state.browseSort,
+          browseLayout: state.browseLayout,
+          currentSessionId: state.currentSessionId,
+          lastCaptureAt: state.lastCaptureAt,
+          shippingRatePerKg: state.shippingRatePerKg,
+          customEras: state.customEras,
+          deletedIds: state.deletedIds, // survive reloads so a pending delete still wins
+          pendingPromotions: state.pendingPromotions, // survive reloads so a failed promote still retries
+          pendingEntries: state.pendingEntries.filter(entryHasDeliberateInput),
+          activeEntryId: state.activeEntryId,
+          sessionEntryIds: state.sessionEntryIds,
+          draftAccountScopeId: state.draftAccountScopeId,
+          draftsByAccount,
+        };
+      },
+      version: 2,
       migrate: (persistedState, version) => {
-        if (!persistedState || typeof persistedState !== 'object' || version >= 1) return persistedState;
+        if (!persistedState || typeof persistedState !== 'object') return persistedState;
         const previous = persistedState as Partial<TeaCompassState>;
-        const scope = activeAccountScope();
-        previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
-          ...entry,
-          touchedFields: entry.touchedFields ?? [],
-          draftAccountId: entry.draftAccountId ?? scope ?? undefined,
-        }));
+        const scope = previous.draftAccountScopeId ?? activeAccountScope();
+        if (version < 1) {
+          previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
+            ...entry,
+            touchedFields: entry.touchedFields,
+            draftAccountId: entry.draftAccountId ?? scope ?? undefined,
+          }));
+        }
+        if (version < 2 && scope) {
+          previous.draftsByAccount = {
+            ...(previous.draftsByAccount ?? {}),
+            [scope]: snapshotCompassDrafts(previous),
+          };
+        }
         return previous;
       },
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
-        const drafts = restoreCompassDraftsForAccount(
-          persisted,
-          activeAccountScope(),
-        );
-        return { ...currentState, ...persisted, ...drafts } as TeaCompassState;
+        const scope = activeAccountScope();
+        const buckets = persisted.draftsByAccount ?? {};
+        const drafts = restoreCompassDraftsForAccount(buckets[scope ?? ''] ?? persisted, scope);
+        return {
+          ...currentState, ...persisted, ...drafts,
+          draftsByAccount: buckets,
+          draftAccountScopeId: scope,
+        } as TeaCompassState;
       },
     }
   )
