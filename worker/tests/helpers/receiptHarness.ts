@@ -11,7 +11,7 @@ class ReceiptStatement {
 
   async first() {
     const sql = norm(this.sql);
-    if (sql.includes('from account_members am join accounts a on a.id = am.account_id')) return { role: 'owner', permissions: '{}', kind: 'location', status: 'active' };
+    if (sql.includes('from account_members am join accounts a on a.id = am.account_id')) return { role: this.db.role, permissions: this.db.role === 'staff' ? JSON.stringify({ bundles: ['stock'] }) : '{}', kind: 'location', status: 'active' };
     if (sql.includes('select platform_role from users where id = ?')) return { platform_role: null };
     if (sql.includes('select id, email, platform_role from users where id = ?')) return { id: this.values[0], email: `${this.values[0]}@example.com`, platform_role: null };
     if (sql.includes('select status from accounts where id = ?')) return { status: 'active' };
@@ -236,6 +236,7 @@ function updateByLegacy(target: Map<string, Row>, sql: string, values: unknown[]
 }
 
 export class ReceiptDb {
+  role: 'owner' | 'staff' | 'viewer' = 'owner';
   entries = new Map<string, Row>(); proposals = new Map<string, Row>(); products = new Map<string, Row>();
   profiles = new Map<string, Row>(); listings = new Map<string, Row>(); ledger: Row[] = [];
   batches = new Map<string, Row>(); imports = new Map<string, Row>(); importItems = new Map<string, Row>();

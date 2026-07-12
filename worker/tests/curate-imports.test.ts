@@ -12,8 +12,10 @@ class ImportStatement {
   async first() {
     const sql = this.normalized();
     if (sql.includes('select platform_role from users')) return { platform_role: null };
-    if (sql.includes('from account_members am join accounts')) return { role: 'owner', permissions: '{}', kind: 'location' };
+    if (sql.includes('from account_members am join accounts')) return { role: this.db.role, permissions: this.db.role === 'staff' ? JSON.stringify({ bundles: ['catalog'] }) : '{}', kind: 'location' };
     if (sql.includes('select status from accounts')) return { status: 'active' };
+    if (sql.includes('from curate_import_batches') && sql.includes('client_idempotency_key = ?')) return [...this.db.batches.values()].find(row => row.account_id === this.values[0] && row.client_idempotency_key === this.values[1]) ?? null;
+    if (sql.includes('from curate_import_sources') && sql.includes('client_idempotency_key = ?')) return [...this.db.sources.values()].find(row => row.account_id === this.values[0] && row.client_idempotency_key === this.values[1]) ?? null;
     if (sql.includes('from curate_import_sources') && sql.includes('client_evidence_id = ?')) {
       return [...this.db.sources.values()].find(row => row.batch_id === this.values[0] && row.account_id === this.values[1] && row.client_evidence_id === this.values[2]) ?? null;
     }
@@ -96,6 +98,7 @@ class ImportStatement {
 }
 
 class ImportDb {
+  role: 'owner' | 'staff' | 'viewer' = 'owner';
   terminalizeNextGuardedWrite = false;
   batches = new Map<string, Row>();
   sources = new Map<string, Row>();
@@ -137,7 +140,12 @@ async function token(userId: string, accountId: string) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return `${payload}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))))}`;
 }
+let legacyIdempotencySequence = 0;
 async function request(db: ImportDb, path: string, init: RequestInit = {}, accountId = 'account-a', userId = 'user-a', bucket?: R2Bucket) {
+  if (init.body && typeof init.body === 'string' && init.method === 'POST' && (path === '/api/curate/imports' || /\/sources$/.test(path))) {
+    const body = JSON.parse(init.body);
+    if (!body.idempotency_key) init = { ...init, body: JSON.stringify({ ...body, idempotency_key: `legacy-test-${++legacyIdempotencySequence}` }) };
+  }
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${await token(userId, accountId)}`);
   headers.set('X-Teajia-Account', accountId);
@@ -146,6 +154,30 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
 }
 
 describe('Curate import provenance API', () => {
+  it('allows viewers to read imports but denies every import mutation', async () => {
+    const db = new ImportDb(); db.role = 'viewer';
+    expect((await request(db, '/api/curate/imports')).status).toBe(200);
+    expect((await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Denied', idempotency_key: 'viewer-create' }) })).status).toBe(403);
+    expect(db.batches).toHaveLength(0);
+  });
+  it('replays import creation and source addition after response loss and rejects key reuse with changed content', async () => {
+    const db = new ImportDb();
+    const create = (title: string) => request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title, idempotency_key: 'import-device-1' }) });
+    const first = await create('Vendor list');
+    const original = await first.json() as any;
+    const replay = await create('Vendor list');
+    expect(replay.status).toBe(200);
+    expect((await replay.json() as any).batch.id).toBe(original.batch.id);
+    expect((await create('Different list')).status).toBe(409);
+
+    const add = (text: string) => request(db, `/api/curate/imports/${original.batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'paste', pasted_text: text, idempotency_key: 'source-device-1' }) });
+    const source = await add('one tea');
+    const sourceId = (await source.json() as any).id;
+    expect((await (await add('one tea')).json() as any).id).toBe(sourceId);
+    expect((await add('changed tea')).status).toBe(409);
+    expect(db.batches).toHaveLength(1);
+    expect(db.sources).toHaveLength(1);
+  });
   it('resolves an evidence-only batch by adding a manual item or abandoning it', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Evidence only' }) });

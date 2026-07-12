@@ -20,6 +20,13 @@ describe('inventory receipts', () => {
 });
 
 describe('inventory receipt endpoints', () => {
+  it('allows viewers to list receipts but denies inventory mutations', async () => {
+    const db = ReceiptDb.seededWithReceipt(); db.role = 'viewer';
+    expect((await receiptRequest(db, '/api/inventory/receipts')).status).toBe(200);
+    expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'ordered' }) })).status).toBe(403);
+    expect((await receiptRequest(db, '/api/inventory/receipt-lines/line-a/cancel-remaining', { method: 'POST' })).status).toBe(403);
+    expect(db.receipts.get('receipt-a')?.state).toBe('planned');
+  });
   it('persists normalized receipt lines and keeps accounts isolated', async () => {
     const db = ReceiptDb.seeded();
     db.products.set('product-a', { id: 'product-a', account_id: 'account-a', stock_grams: 5, quantity_units: 0 });
@@ -126,6 +133,21 @@ describe('inventory receipt endpoints', () => {
     expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'ordered' }) })).status).toBe(200);
     expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'in_transit' }) })).status).toBe(200);
     expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'planned' }) })).status).toBe(409);
+  });
+
+  it('treats response-loss replays of state changes and cancellation as success', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    const stateBody = JSON.stringify({ state: 'ordered' });
+    expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: stateBody })).status).toBe(200);
+    const stateReplay = await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: stateBody });
+    expect(stateReplay.status).toBe(200);
+    expect(await stateReplay.json()).toMatchObject({ state: 'ordered', already_updated: true });
+
+    const cancelPath = '/api/inventory/receipt-lines/line-a/cancel-remaining';
+    expect((await receiptRequest(db, cancelPath, { method: 'POST' })).status).toBe(200);
+    const cancelReplay = await receiptRequest(db, cancelPath, { method: 'POST' });
+    expect(cancelReplay.status).toBe(200);
+    expect(await cancelReplay.json()).toMatchObject({ cancelled_quantity: 100, already_cancelled: true });
   });
 
   it('receives atomically, reuses its intake batch, returns aggregate state, and never creates TeaSample rows', async () => {

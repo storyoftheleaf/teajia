@@ -274,3 +274,19 @@ test('mobile panel is full width, closes without breaking scroll, and returns fo
   await expect.poll(() => scroll.evaluate(el => getComputedStyle(el).overflowY)).toMatch(/auto|scroll/);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
+
+test('stock movement dialog traps keyboard focus and Escape restores its trigger', async ({ page }) => {
+  const trigger = page.getByRole('button', { name: 'Change stock for Cloud Oolong' });
+  await trigger.focus();
+  await trigger.click();
+  const dialog = page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' });
+  const close = page.getByRole('button', { name: 'Close stock movement' });
+  await expect(close).toBeFocused();
+  await close.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Record movement' })).toBeFocused();
+  await dialog.getByRole('button', { name: 'Record movement' }).press('Tab');
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});

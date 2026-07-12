@@ -122,6 +122,7 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   try {
+    const idempotencyKey = text(body.idempotency_key, 200, true)!;
     const title = text(body.title, 240, true)!;
     const journeyId = text(body.journey_id, 100);
     const visitId = text(body.visit_id, 100);
@@ -132,11 +133,16 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
     if (sourceKind && !SOURCE_KINDS.has(sourceKind)) return response({ error: 'Unsupported source kind' }, 400);
     const rawItems = body.items == null ? [] : body.items;
     if (!Array.isArray(rawItems) || rawItems.length > 1000) return response({ error: 'items must be an array of at most 1000 entries' }, 400);
+    const fingerprint = JSON.stringify({ title, journey_id: journeyId, visit_id: visitId, source_kind: sourceKind, pasted_text: pastedText, items: rawItems });
+    const replay = await env.DB.prepare('SELECT * FROM curate_import_batches WHERE account_id = ? AND client_idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first<Record<string, unknown>>();
+    if (replay) return replay.request_fingerprint === fingerprint
+      ? response(await fullBatch(env, String(replay.id), ctx.accountId))
+      : response({ error: 'idempotency_key already used for a different import' }, 409);
     const batchId = crypto.randomUUID();
     const statements: D1PreparedStatement[] = [env.DB.prepare(
-      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId)];
+      `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id, client_idempotency_key, request_fingerprint)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId, idempotencyKey, fingerprint)];
     let initialSourceId: string | null = null;
     if (pastedText != null) {
       initialSourceId = crypto.randomUUID();
@@ -172,7 +178,14 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
         text(raw.name, 500), text(raw.raw_text, 20_000), jsonField(raw.parsed_data, {}), confidence,
         jsonField(raw.uncertainty, {}), 'pending', null, crypto.randomUUID()));
     }
-    await env.DB.batch(statements);
+    try { await env.DB.batch(statements); }
+    catch (error) {
+      const raced = await env.DB.prepare('SELECT * FROM curate_import_batches WHERE account_id = ? AND client_idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first<Record<string, unknown>>();
+      if (raced) return raced.request_fingerprint === fingerprint
+        ? response(await fullBatch(env, String(raced.id), ctx.accountId))
+        : response({ error: 'idempotency_key already used for a different import' }, 409);
+      throw error;
+    }
     return response(await fullBatch(env, batchId, ctx.accountId), 201);
   } catch (error) {
     if (error instanceof Error && error.message === 'invalid_text') return response({ error: 'Invalid or oversized text field' }, 400);
@@ -332,7 +345,7 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   try {
-    const allowed = new Set(['kind', 'pasted_text', 'r2_object_key', 'metadata']);
+    const allowed = new Set(['kind', 'pasted_text', 'r2_object_key', 'metadata', 'idempotency_key']);
     if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown source field' }, 400);
     const kind = text(body.kind, 40, true)!;
     if (!SOURCE_KINDS.has(kind)) return response({ error: 'Unsupported source kind' }, 400);
@@ -344,10 +357,16 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
     if (objectKey != null && !safeR2ObjectKey(objectKey, ctx.accountId, params.id)) return response({ error: 'r2_object_key must be scoped to this account and import batch' }, 400);
     const id = crypto.randomUUID();
     const metadataJson = jsonField(body.metadata, {});
+    const idempotencyKey = text(body.idempotency_key, 200, true)!;
+    const fingerprint = JSON.stringify({ batch_id: params.id, kind, pasted_text: pastedText, r2_object_key: objectKey, metadata: JSON.parse(metadataJson) });
+    const replay = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE account_id = ? AND client_idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first<Record<string, unknown>>();
+    if (replay) return replay.request_fingerprint === fingerprint
+      ? response(sourceRow(replay))
+      : response({ error: 'idempotency_key already used for a different source' }, 409);
     const inserted = await env.DB.prepare(
-      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
-    ).bind(id, params.id, ctx.accountId, ctx.userId, kind, pastedText, objectKey, metadataJson, params.id, ctx.accountId).run();
+      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json, client_idempotency_key, request_fingerprint)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+    ).bind(id, params.id, ctx.accountId, ctx.userId, kind, pastedText, objectKey, metadataJson, idempotencyKey, fingerprint, params.id, ctx.accountId).run();
     if (!(inserted.meta.changes ?? 0)) return terminalResponse();
     const row = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, unknown>>();
     return response(sourceRow(row!), 201);

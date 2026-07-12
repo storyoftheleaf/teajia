@@ -1973,12 +1973,13 @@ export const api = {
       title: string; journey_id?: string; visit_id?: string;
       source_kind?: CurateImportSourceKind; pasted_text?: string;
       items?: Array<Partial<CurateImportItem>>;
-    }): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports`, { method: 'POST', body: JSON.stringify(payload), retryTimeouts: true }),
+      idempotency_key?: string;
+    }): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports`, { method: 'POST', body: JSON.stringify({ ...payload, idempotency_key: payload.idempotency_key || crypto.randomUUID() }), retryTimeouts: true }),
     get: (id: string): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports/${id}`),
     addItem: (id: string, item: { name: string; category: 'tea' | 'teaware'; source_id?: string }): Promise<CurateImportItem> => authedFetch(`${API_URL}/api/curate/imports/${id}/items`, { method: 'POST', body: JSON.stringify(item) }),
     abandon: (id: string): Promise<{ success: true; review_state: 'abandoned' }> => authedFetch(`${API_URL}/api/curate/imports/${id}/abandon`, { method: 'POST', body: JSON.stringify({}) }),
-    addSource: (id: string, source: { kind: CurateImportSourceKind; pasted_text?: string; r2_object_key?: string; metadata?: Record<string, unknown> }): Promise<CurateImportSource> =>
-      authedFetch(`${API_URL}/api/curate/imports/${id}/sources`, { method: 'POST', body: JSON.stringify(source), retryTimeouts: true }),
+    addSource: (id: string, source: { kind: CurateImportSourceKind; pasted_text?: string; r2_object_key?: string; metadata?: Record<string, unknown>; idempotency_key?: string }): Promise<CurateImportSource> =>
+      authedFetch(`${API_URL}/api/curate/imports/${id}/sources`, { method: 'POST', body: JSON.stringify({ ...source, idempotency_key: source.idempotency_key || crypto.randomUUID() }), retryTimeouts: true }),
     uploadEvidence: (id: string, file: File, clientEvidenceId: string): Promise<CurateImportSource> => authedFetch(`${API_URL}/api/curate/imports/${id}/evidence`, {
       method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name), 'X-Client-Evidence-Id': clientEvidenceId },
     }),

@@ -63,9 +63,10 @@ type Handler = (request: Request, env: Env, params: Record<string, string>) => P
 
 function withCurateImportAccount(
   handler: (request: Request, env: Env, ctx: CurateImportContext, params: Record<string, string>) => Promise<Response>,
+  write = false,
 ): Handler {
   return async (request, env, params) => {
-    const ctx = await requireAccount(request, env);
+    const ctx = write ? await requireBundle(request, env, 'catalog') : await requireAccount(request, env);
     if ('error' in ctx) return ctx.error;
     return handler(request, env, { accountId: ctx.accountId, userId: ctx.userId }, params);
   };
@@ -9255,7 +9256,7 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
 }
 
 const handleCreateStockMovement: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
   let input: StockMovementInput;
   try { input = decodeStockMovement(await request.json() as Record<string, unknown>); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -9278,7 +9279,7 @@ const handleListInventoryReceipts: Handler = async (request, env) => {
 };
 
 const handleCreateInventoryReceipt: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
   const body = await request.json() as any;
   const idempotencyKey = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
   if (!idempotencyKey || idempotencyKey.length > 200) return json({ error: 'idempotency_key is required and must be at most 200 characters' }, 400);
@@ -9328,11 +9329,12 @@ const MANUAL_RECEIPT_TRANSITIONS: Record<string, string[]> = {
 };
 
 const handleUpdateInventoryReceiptState: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
   const receipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(params.id, ctx.accountId).first() as any;
   if (!receipt) return json({ error: 'Receipt not found' }, 404);
   const body = await request.json().catch(() => ({})) as any;
   const state = String(body.state || '');
+  if (receipt.state === state && ['ordered', 'in_transit'].includes(state)) return json({ ...receipt, state, already_updated: true });
   if (!(MANUAL_RECEIPT_TRANSITIONS[receipt.state] || []).includes(state)) return json({ error: `Cannot move receipt from ${receipt.state} to ${state}` }, 409);
   await env.DB.prepare("UPDATE inventory_receipts SET state=?, updated_at=datetime('now') WHERE id=? AND account_id=?").bind(state, receipt.id, ctx.accountId).run();
   return json({ ...receipt, state });
@@ -9341,7 +9343,7 @@ const handleUpdateInventoryReceiptState: Handler = async (request, env, params) 
 const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.DB.prepare(`SELECT l.*, r.state receipt_state, r.vendor_name FROM inventory_receipt_lines l JOIN inventory_receipts r ON r.id=l.receipt_id AND r.account_id=l.account_id WHERE l.id=? AND l.account_id=?`).bind(id,accountId).first() as Promise<any>;
 
 const handleReceiveInventoryLine: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
   const line = await loadReceiptLine(env, params.id, ctx.accountId); if (!line) return json({ error: 'Receipt line not found' }, 404);
   const body = await request.json().catch(() => ({})) as any;
   if (typeof body.idempotency_key === 'string' && body.idempotency_key.trim()) {
@@ -9393,9 +9395,9 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
 };
 
 const handleCancelInventoryLine: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
   const line = await loadReceiptLine(env,params.id,ctx.accountId); if (!line) return json({ error:'Receipt line not found' },404);
-  const remaining=remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)); if (!remaining) return json({ error:'Nothing remaining' },409);
+  const remaining=remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)); if (!remaining) return json({ cancelled_quantity:Number(line.cancelled_quantity),state:line.receipt_state,already_cancelled:true });
   const state=deriveReceiptState(line.receipt_state,Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity)+remaining);
   await env.DB.batch([env.DB.prepare(`UPDATE inventory_receipt_lines SET cancelled_quantity=cancelled_quantity+?,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(remaining,line.id,ctx.accountId),env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
     WHEN (SELECT COALESCE(SUM(expected_quantity-received_quantity-cancelled_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)=0
@@ -19112,17 +19114,17 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/visits', handleCreateCurateVisit],
   ['PUT', '/api/curate/visits/:id', handleUpdateCurateVisit],
   ['DELETE', '/api/curate/visits/:id', handleDeleteCurateVisit],
-  ['POST', '/api/curate/imports', withCurateImportAccount(createCurateImport)],
+  ['POST', '/api/curate/imports', withCurateImportAccount(createCurateImport, true)],
   ['GET', '/api/curate/imports', withCurateImportAccount(listIncompleteCurateImports)],
   ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
-  ['POST', '/api/curate/imports/:id/abandon', withCurateImportAccount(abandonCurateImport)],
-  ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem)],
-  ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence)],
+  ['POST', '/api/curate/imports/:id/abandon', withCurateImportAccount(abandonCurateImport, true)],
+  ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem, true)],
+  ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence, true)],
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
-  ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource)],
-  ['PUT', '/api/curate/imports/:id/items/:itemId', withCurateImportAccount(updateCurateImportItem)],
-  ['POST', '/api/curate/imports/:id/items/:itemId/accept', withCurateImportAccount(acceptCurateImportItem)],
-  ['POST', '/api/curate/imports/:id/items/:itemId/merge', withCurateImportAccount(mergeCurateImportItem)],
+  ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource, true)],
+  ['PUT', '/api/curate/imports/:id/items/:itemId', withCurateImportAccount(updateCurateImportItem, true)],
+  ['POST', '/api/curate/imports/:id/items/:itemId/accept', withCurateImportAccount(acceptCurateImportItem, true)],
+  ['POST', '/api/curate/imports/:id/items/:itemId/merge', withCurateImportAccount(mergeCurateImportItem, true)],
   ['GET', '/api/compass/entries', handleGetCompassEntries],
   ['POST', '/api/compass/entries', handleCreateCompassEntry],
   ['PUT', '/api/compass/entries/:id', handleUpdateCompassEntry],

@@ -36,6 +36,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const movementUnit: 'g' | 'unit' = product.type === 'Teaware' ? 'unit' : 'g';
   const initialBalance = movementUnit === 'unit' ? Number(product.quantityUnits || 0) : Number(product.stockGrams || 0);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const [movementType, setMovementType] = useState<MovementType>(initialMovementType);
   const [quantity, setQuantity] = useState('');
   const [balance, setBalance] = useState(String(Math.round(initialBalance)));
@@ -58,7 +59,15 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
 
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+      const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(element => !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true');
+      if (!controls.length) return;
+      const first = controls[0]; const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
@@ -114,6 +123,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   return (
     <div className="fixed inset-0 z-modal flex items-stretch justify-end bg-tea-bg/70" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Change stock — ${product.productName || product.givenName}`}

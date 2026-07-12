@@ -33,6 +33,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
   const [busyId, setBusyId] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const retryAction = useRef<null | (() => Promise<void>)>(null);
+  const createIdempotencyKey = useRef(crypto.randomUUID());
   const closeRef = useRef<HTMLButtonElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -60,6 +61,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
       let detail = state.detail;
       if (!detail) {
         detail = await api.curateImports.create({
+          idempotency_key: createIdempotencyKey.current,
           title: draft.evidence[0]?.file.name || 'Imported list', source_kind: draft.text.trim() ? 'paste' : evidenceKind,
           pasted_text: draft.text.trim() || undefined, items: parseDraftItems(draft),
         });
