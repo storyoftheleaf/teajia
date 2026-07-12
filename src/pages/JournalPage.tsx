@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { TastingJournal } from '../components/tasting/TastingJournal';
 import { api, hasToken } from '../lib/api';
 import { useAppStore } from '../lib/store';
+import { PersonalTeaLinks } from '../components/account/PersonalTeaLinks';
 
 function fromApiRow(row: Record<string, any>) {
   return {
@@ -66,6 +67,9 @@ export default function JournalPage() {
         onBack={() => navigate(-1)}
         onOrderTea={(teaId) => navigate(`/shop/product/${teaId}`)}
       />
+      <div className="mx-auto max-w-3xl px-4 pb-nav-gap-lg md:px-6">
+        <PersonalTeaLinks current="journal" />
+      </div>
     </>
   );
 }

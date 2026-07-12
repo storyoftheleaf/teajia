@@ -12,6 +12,7 @@ import { useAppStore } from '../../lib/store';
 
 interface CellarViewProps {
   onBack: () => void;
+  embedded?: boolean;
 }
 
 const PLACEMENT_LABEL: Record<CellarItem['placementStatus'], string> = {
@@ -20,7 +21,7 @@ const PLACEMENT_LABEL: Record<CellarItem['placementStatus'], string> = {
   placed: 'Placed at a location',
 };
 
-export const CellarView: React.FC<CellarViewProps> = () => {
+export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   const qc = useQueryClient();
   const memberships = useAppStore(s => s.memberships);
   const activeAccount = useAppStore(s => s.activeAccount);
@@ -35,7 +36,7 @@ export const CellarView: React.FC<CellarViewProps> = () => {
   const [editName, setEditName] = useState('');
   const [editGrams, setEditGrams] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['cellar'],
     queryFn: () => api.cellar.list(),
     staleTime: 1000 * 60,
@@ -116,7 +117,7 @@ export const CellarView: React.FC<CellarViewProps> = () => {
     ?? 'a location';
 
   return (
-    <div className="px-6 pt-6 pb-6 space-y-5">
+    <div className={embedded ? 'py-6 space-y-5' : 'px-6 pt-6 pb-6 space-y-5'}>
       <p className="text-ui-13 text-tea-text-sec leading-relaxed">
         Tea you personally own, kept private. Add what's on your shelf with a weight —
         only you can see it.
@@ -220,6 +221,16 @@ export const CellarView: React.FC<CellarViewProps> = () => {
       {isLoading ? (
         <div className="flex items-center justify-center py-10 text-tea-text-dim">
           <Loader2 size={18} className="animate-spin" />
+        </div>
+      ) : isError ? (
+        <div role="alert" className="rounded-xl border border-tea-border bg-tea-surface p-5 text-center">
+          <p className="text-ui-14 text-tea-text-sec">We couldn't load your cellar right now.</p>
+          <button
+            onClick={() => refetch()}
+            className="tap-target mt-3 text-ui-13 text-tea-gold transition-colors hover:text-tea-gold-lt"
+          >
+            Try again
+          </button>
         </div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center text-center py-10 text-tea-text-sec">
