@@ -11545,12 +11545,24 @@ const handleUpdateTastingNoteCandidate: Handler = async (request, env, params) =
     .bind(params.id, ctx.accountId).first<Record<string, any>>();
   if (!existing) return json({ error: 'Candidate not found' }, 404);
   if (existing.status !== 'starred') return json({ error: 'Candidate is no longer editable' }, 409);
-  const body = await request.json() as Record<string, unknown>;
+  let body: Record<string, unknown>;
+  try {
+    const parsed = await request.json();
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
   const editedText = typeof body.edited_text === 'string' ? body.edited_text.trim() : existing.edited_text;
   const attributionName = typeof body.attribution_name === 'string' ? body.attribution_name.trim() : existing.attribution_name;
   const attributionDetail = body.attribution_detail === null || typeof body.attribution_detail === 'string' ? body.attribution_detail : existing.attribution_detail;
-  await env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+  const result = await env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
     .bind(editedText || null, attributionName || null, attributionDetail, new Date().toISOString(), params.id, ctx.accountId).run();
+  if (!result.meta.changes) {
+    const current = await env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+      .bind(params.id, ctx.accountId).first<Record<string, any>>();
+    return json({ error: current ? 'Candidate is no longer editable' : 'Candidate not found' }, current ? 409 : 404);
+  }
   const updated = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
     .bind(params.id, ctx.accountId).first<Record<string, any>>();
   return json(candidateToApi(updated!));
@@ -11575,23 +11587,58 @@ const handlePromoteTastingNoteCandidate: Handler = async (request, env, params) 
     .bind(params.id, ctx.accountId).first<Record<string, any>>();
   if (!candidate) return json({ error: 'Candidate not found' }, 404);
   if (candidate.status !== 'starred') return json({ error: 'Candidate already resolved' }, 409);
-  const text = String(candidate.edited_text || candidate.source_text || '').trim();
-  const attributionName = String(candidate.attribution_name || '').trim();
+  let body: Record<string, unknown> = {};
+  try {
+    const raw = await request.text();
+    if (raw.trim()) {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
+      body = parsed as Record<string, unknown>;
+    }
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+  const owns = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
+  if ((owns('edited_text') && typeof body.edited_text !== 'string')
+      || (owns('attribution_name') && typeof body.attribution_name !== 'string')
+      || (owns('attribution_detail') && body.attribution_detail !== null && typeof body.attribution_detail !== 'string')) {
+    return json({ error: 'Invalid promotion fields' }, 400);
+  }
+  const text = String(owns('edited_text') ? body.edited_text : (candidate.edited_text || candidate.source_text || '')).trim();
+  const attributionName = String(owns('attribution_name') ? body.attribution_name : (candidate.attribution_name || '')).trim();
+  const attributionDetail = owns('attribution_detail')
+    ? (typeof body.attribution_detail === 'string' ? body.attribution_detail.trim() || null : null)
+    : (candidate.attribution_detail || null);
   if (!text || !attributionName) return json({ error: 'Final text and attribution name are required' }, 400);
   const now = new Date().toISOString();
   const impressionId = crypto.randomUUID();
   try {
     const results = await env.DB.batch([
-      env.DB.prepare(`UPDATE tasting_note_candidates SET status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
-        .bind(now, ctx.userId, now, params.id, ctx.accountId),
-      env.DB.prepare(`INSERT INTO product_impressions (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(impressionId, ctx.accountId, candidate.product_id, candidate.id, text, attributionName, candidate.attribution_detail || null, now, ctx.userId, now),
+      env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+        .bind(text, attributionName, attributionDetail, now, ctx.userId, now, params.id, ctx.accountId),
+      env.DB.prepare(`
+        INSERT INTO product_impressions
+          (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        FROM tasting_note_candidates
+        WHERE id = ? AND account_id = ? AND status = 'promoted' AND promoted_at = ? AND promoted_by = ?
+      `).bind(impressionId, ctx.accountId, candidate.product_id, candidate.id, text, attributionName, attributionDetail, now, ctx.userId, now, candidate.id, ctx.accountId, now, ctx.userId),
     ]);
-    if (!results[0]?.meta.changes) return json({ error: 'Candidate already resolved' }, 409);
+    if (!results[0]?.meta.changes && !results[1]?.meta.changes) return json({ error: 'Candidate already resolved' }, 409);
+    if (!results[0]?.meta.changes || !results[1]?.meta.changes) {
+      return json({ error: 'Promotion could not be completed', retryable: true }, 500);
+    }
   } catch {
-    return json({ error: 'Candidate already promoted' }, 409);
+    try {
+      const [current, impression] = await Promise.all([
+        env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first<Record<string, any>>(),
+        env.DB.prepare(`SELECT id FROM product_impressions WHERE candidate_id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first(),
+      ]);
+      if (impression || (current && current.status !== 'starred')) return json({ error: 'Candidate already resolved' }, 409);
+    } catch { /* Preserve the original failure as retryable. */ }
+    return json({ error: 'Promotion could not be completed', retryable: true }, 500);
   }
-  return json({ id: impressionId, productId: candidate.product_id, text, attributionName, attributionDetail: candidate.attribution_detail || null, publishedAt: now }, 201);
+  return json({ id: impressionId, productId: candidate.product_id, text, attributionName, attributionDetail, publishedAt: now }, 201);
 };
 
 const handleGetProductImpressions: Handler = async (_request, env, params) => {

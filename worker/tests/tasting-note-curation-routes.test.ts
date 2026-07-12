@@ -18,9 +18,24 @@ const normalized = (sql: string) => sql.replace(/\s+/g, ' ').trim().toLowerCase(
 class Db {
   candidates: Row[] = [];
   impressions: Row[] = [];
+  failImpressionInsert = false;
+  transitionOnEdit = false;
   constructor(private bundles: string[] = ['publish']) {}
   prepare(sql: string) { return new Statement(this, sql); }
-  async batch(statements: Statement[]) { return Promise.all(statements.map(statement => statement.run())); }
+  async batch(statements: Statement[]) {
+    const candidates = structuredClone(this.candidates);
+    const impressions = structuredClone(this.impressions);
+    try {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    }
+    catch (error) {
+      this.candidates.splice(0, this.candidates.length, ...candidates);
+      this.impressions.splice(0, this.impressions.length, ...impressions);
+      throw error;
+    }
+  }
   auth(sql: string) {
     if (sql.includes('select platform_role from users')) return { platform_role: null };
     if (sql.includes('from account_members am join accounts')) return { role: 'staff', permissions: JSON.stringify({ bundles: this.bundles }), kind: 'location' };
@@ -48,6 +63,16 @@ class Statement {
       const [id, account] = this.values;
       return this.db.candidates.find(c => c.id === id && c.account_id === account) || null;
     }
+    if (sql.includes('select status from tasting_note_candidates where id')) {
+      const [id, account] = this.values;
+      const candidate = this.db.candidates.find(c => c.id === id && c.account_id === account);
+      return candidate ? { status: candidate.status } : null;
+    }
+    if (sql.includes('select id from product_impressions where candidate_id')) {
+      const [candidate, account] = this.values;
+      const impression = this.db.impressions.find(row => row.candidate_id === candidate && row.account_id === account);
+      return impression ? { id: impression.id } : null;
+    }
     return null;
   }
   async all() {
@@ -71,16 +96,27 @@ class Statement {
       else if (!old) this.db.candidates.push({ id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, source_tasting, status: 'starred', edited_text: null, attribution_name: null, attribution_detail: null, created_at, updated_at });
       return { success: true, meta: { changes: old?.status === 'starred' || !old ? 1 : 0 } };
     }
-    if (sql.startsWith("update tasting_note_candidates set status = 'promoted'")) {
-      const [promoted_at, promoted_by, updated_at, id, account] = this.values;
+    if (sql.startsWith('update tasting_note_candidates set edited_text') && sql.includes("status = 'promoted'")) {
+      const [edited_text, attribution_name, attribution_detail, promoted_at, promoted_by, updated_at, id, account] = this.values;
       const candidate = this.db.candidates.find(c => c.id === id && c.account_id === account && c.status === 'starred');
-      if (candidate) Object.assign(candidate, { status: 'promoted', promoted_at, promoted_by, updated_at });
+      if (candidate) Object.assign(candidate, { edited_text, attribution_name, attribution_detail, status: 'promoted', promoted_at, promoted_by, updated_at });
       return { success: true, meta: { changes: candidate ? 1 : 0 } };
     }
     if (sql.startsWith('insert into product_impressions')) {
+      if (this.db.failImpressionInsert) throw new Error('database unavailable');
       const [id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at] = this.values;
+      const candidate = this.db.candidates.find(row => row.id === candidate_id && row.account_id === account_id && row.status === 'promoted');
+      if (!candidate) return { success: true, meta: { changes: 0 } };
       if (this.db.impressions.some(row => row.candidate_id === candidate_id)) throw new Error('unique candidate');
       this.db.impressions.push({ id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at, product_public: true });
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (sql.startsWith('update tasting_note_candidates set edited_text')) {
+      const [edited_text, attribution_name, attribution_detail, updated_at, id, account] = this.values;
+      const candidate = this.db.candidates.find(c => c.id === id && c.account_id === account);
+      if (this.db.transitionOnEdit && candidate) candidate.status = 'dismissed';
+      if (!candidate || candidate.status !== 'starred') return { success: true, meta: { changes: 0 } };
+      Object.assign(candidate, { edited_text, attribution_name, attribution_detail, updated_at });
       return { success: true, meta: { changes: 1 } };
     }
     return { success: true, meta: { changes: 1 } };
@@ -131,5 +167,46 @@ describe('tasting-note curation routes', () => {
     expect(published).toEqual([expect.objectContaining({ text: 'Orchid over warm stone', attributionName: 'M.' })]);
     expect(published[0]).not.toHaveProperty('sourceTasting');
     expect(published[0]).not.toHaveProperty('sourceText');
+  });
+
+  it('promotes directly from the request body without a preceding admin update', async () => {
+    const db = new Db();
+    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
+    const response = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, 'POST', {
+      edited_text: 'Body-selected final text', attribution_name: 'Host', attribution_detail: 'Session table',
+    });
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ text: 'Body-selected final text', attributionName: 'Host', attributionDetail: 'Session table' });
+    expect(db.candidates[0]).toMatchObject({ status: 'promoted', edited_text: 'Body-selected final text', attribution_name: 'Host' });
+  });
+
+  it('returns 400 for malformed promotion JSON', async () => {
+    const db = new Db();
+    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
+    const response = await worker.fetch(new Request(`https://test/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, {
+      method: 'POST', headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': 'a', 'Content-Type': 'application/json' }, body: '{bad',
+    }), { DB: db, JWT_SECRET: SECRET } as any);
+    expect(response.status).toBe(400);
+  });
+
+  it('does not report a successful edit after a concurrent terminal transition', async () => {
+    const db = new Db();
+    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
+    db.transitionOnEdit = true;
+    const response = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}`, 'PUT', { edited_text: 'too late' });
+    expect(response.status).toBe(409);
+  });
+
+  it('rolls back candidate promotion and returns retryable 500 when impression insertion fails', async () => {
+    const db = new Db();
+    await call(db, '/api/tasting-journal/journal-a/candidates/aroma', 'PUT', { source_text: 'private source' });
+    db.failImpressionInsert = true;
+    const response = await call(db, `/api/admin/tasting-note-candidates/${db.candidates[0].id}/promote`, 'POST', { edited_text: 'Final', attribution_name: 'Host' });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({ retryable: true });
+    expect(db.candidates[0].status).toBe('starred');
+    expect(db.candidates[0].edited_text).toBeNull();
+    expect(db.candidates[0].attribution_name).toBeNull();
+    expect(db.impressions).toEqual([]);
   });
 });
