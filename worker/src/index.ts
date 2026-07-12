@@ -11,6 +11,7 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { deriveConfirmedInvoiceLine } from './invoiceDomain';
 
 interface Env {
   DB: D1Database;
@@ -16935,38 +16936,19 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
     const rawQty = pick.quantity ?? row.recommended_quantity ?? (isTeaware ? 1 : 50);
     const quantity = Math.max(1, Math.round(Number(rawQty) || 1));
 
-    // Price (line total), scaled to the picked amount.
-    const recPrice = row.recommended_price_usd !== null && row.recommended_price_usd !== undefined
-      ? Number(row.recommended_price_usd) : null;
-    const recQty = Number(row.recommended_quantity);
-    const hasRecQty = row.recommended_quantity != null && Number.isFinite(recQty) && recQty > 0;
-
-    let lineTotal: number;
-    if (recPrice !== null && hasRecQty) {
-      // Curator quoted recPrice for recQty → per-unit rate × the amount actually picked.
-      lineTotal = Math.round((recPrice / recQty) * quantity * 100) / 100;
-    } else if (recPrice !== null) {
-      // Quote with no recommended quantity to scale against: treat as a flat total.
-      lineTotal = recPrice;
-    } else if (row.fixed_retail_price_usd) {
-      // No curator price: catalog per-unit rate × amount.
-      lineTotal = Math.round(Number(row.fixed_retail_price_usd) * quantity * 100) / 100;
-    } else {
-      lineTotal = 0;
-    }
-
-    // price_at_sale is a PER-UNIT rate: every invoice reader computes
-    // quantity × price_at_sale. Storing the line total here inflates the
-    // invoice by a factor of quantity (the K1 bug). Store the per-unit rate;
-    // lineTotal / quantity reproduces exactly the total the recipient confirmed.
-    const unitPrice = quantity > 0 ? lineTotal / quantity : 0;
+    const derived = deriveConfirmedInvoiceLine({
+      quantity,
+      recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
+      recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
+      catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
+    });
 
     lineItems.push({
       product_id: row.product_id,
       custom_name: null,
-      quantity,
-      price_at_sale: unitPrice,
-      label: `${row.product_name} × ${quantity}${isTeaware ? '' : 'g'}`,
+      quantity: derived.quantity,
+      price_at_sale: derived.unitPriceUsd,
+      label: `${row.product_name} × ${derived.quantity}${isTeaware ? '' : 'g'}`,
     });
   }
 
