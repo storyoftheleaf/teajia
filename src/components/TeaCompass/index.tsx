@@ -42,6 +42,8 @@ interface TeaCompassProps {
   initialEntryId?: string;
   /** In sourcing mode, preselect the capture method. */
   initialCaptureOption?: 'tea' | 'teaware';
+  initialSampleOrder?: 'open' | 'manage';
+  initialSampleSetId?: string;
 }
 
 // ─── Desktop-only right column placeholder ───────────────────────────────────
@@ -77,7 +79,7 @@ const CompassRightEmptyState: React.FC<{
 
 // ─── Main Tea Compass ────────────────────────────────────────────────────
 
-export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption }) => {
+export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, initialEntryId, initialCaptureOption, initialSampleOrder, initialSampleSetId }) => {
   const activeEntryId = useTeaCompassStore((s) => s.activeEntryId);
   const setActiveEntry = useTeaCompassStore((s) => s.setActiveEntry);
   const startNewCapture = useTeaCompassStore((s) => s.startNewCapture);
@@ -211,6 +213,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Batch entry mode — rapid-fire name + type row for vendor table sessions
   const [batchMode, setBatchMode] = useState(false);
+  const [sampleOrderOpen, setSampleOrderOpen] = useState(initialSampleOrder != null);
+  const [sampleOrderManaging, setSampleOrderManaging] = useState(initialSampleOrder === 'manage');
   const [importOpen, setImportOpen] = useState(false);
   const [importDetail, setImportDetail] = useState<CurateImportDetail | null>(null);
   const [importDetails, setImportDetails] = useState<CurateImportDetail[]>([]);
@@ -661,7 +665,26 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
           <div className="flex-1" />
 
-          {mode === 'sourcing' && <SampleOrderAction />}
+          {mode === 'sourcing' && (
+            <SampleOrderAction
+              open={sampleOrderOpen}
+              managing={sampleOrderManaging}
+              initialSetId={initialSampleSetId}
+              onOpenChange={setSampleOrderOpen}
+              onManagingChange={setSampleOrderManaging}
+              onCaptureTea={() => {
+                setSampleOrderOpen(false);
+                setSampleOrderManaging(false);
+                handleCaptureOption('tea');
+                window.requestAnimationFrame(() => Array.from(document.querySelectorAll<HTMLInputElement>('input[placeholder^="Tea name"]')).find(input => input.offsetParent !== null)?.focus());
+              }}
+              onBrowseLibrary={() => {
+                setSampleOrderOpen(false);
+                setSampleOrderManaging(false);
+                handleSwitchMode('library');
+              }}
+            />
+          )}
 
           {mode !== 'sourcing' && (
             <button

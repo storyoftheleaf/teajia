@@ -13,8 +13,28 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
     await expect(page.getByText('Sample List', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(page.getByText('Your sample list is empty', { exact: true }).filter({ visible: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Capture tea' }).click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toBeFocused();
+    await trigger.click();
+    await page.getByRole('button', { name: 'Browse Library' }).click();
+    await expect(page.getByRole('tab', { name: 'Library', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await page.getByRole('tab', { name: 'Source', exact: true }).click();
+    await trigger.click();
     await page.getByRole('button', { name: 'Close Sample order' }).click();
     await expect(trigger).toBeFocused();
+  });
+
+  test('/admin/samples and linked set query open visible sample management UI', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    const setId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].id);
+    await page.goto(`/admin/samples?set=${encodeURIComponent(setId)}`);
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
   });
 
   test('shows count and saves a nonempty cart as a historical set', async ({ page }) => {
@@ -30,7 +50,8 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     }), { message: 'Save as Sample Set must persist a historical set' }).toBe(1);
 
     await page.goto('/admin/samples', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveURL(/\/admin\/compass\?tab=samples/, { timeout: 15_000 });
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
   });
 
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {
@@ -45,6 +66,10 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     expect(historical, 'Saved sample must remain available to the historical sample tools').toMatchObject({
       name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', compassEntryId: 'compass-tea-1', tastings: [],
     });
+    await page.getByRole('button', { name: 'Manage sample sets' }).click();
+    await page.getByText(/Sample Cart/).first().click();
+    await page.getByRole('button', { name: 'Open in Curate to taste' }).click();
+    await expect(page).toHaveURL(/\/admin\/compass\?entry=compass-tea-1/);
   });
 
   test('makes historical sets, labels, tasting management, and purpose semantics reachable', async ({ page }) => {
@@ -60,11 +85,23 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('button', { name: 'Gifted', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Event', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Panel', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Gifted', exact: true }).click();
+    await page.getByPlaceholder('Select customer...').fill('Mina Chen');
+    await page.getByPlaceholder('Select customer...').blur();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].customerName)).toBe('Mina Chen');
     await expect(page.getByRole('button', { name: /Print labels/i })).toBeVisible();
     await expect(page.getByText(/Untasted|Tasted/).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Open in Curate to taste' })).toBeVisible();
     await page.locator('button[title="Click to change status"]').last().click();
     await page.locator('button[title="Click to change status"]').last().click();
     await expect(page.getByRole('button', { name: 'Graduate to inventory' })).toBeVisible();
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      const sample = useSampleStore.getState().samples[0];
+      useSampleStore.getState().updateSample(sample.id, { productId: 'product-42' });
+    });
+    await page.getByRole('button', { name: 'Open inventory product' }).click();
+    await expect(page).toHaveURL(/\/admin\/stock\?panel=product-42/);
   });
 });

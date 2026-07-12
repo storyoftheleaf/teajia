@@ -66,9 +66,11 @@ function buildPrintContent(items: ReturnType<typeof useSampleCartStore.getState>
 
 interface SampleCartPanelProps {
   onClose?: () => void;
+  onCaptureTea?: () => void;
+  onBrowseLibrary?: () => void;
 }
 
-export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => {
+export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCaptureTea, onBrowseLibrary }) => {
   const items = useSampleCartStore((s) => s.items);
   const removeItem = useSampleCartStore((s) => s.removeItem);
   const updateGrams = useSampleCartStore((s) => s.updateGrams);
@@ -180,6 +182,12 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose }) => 
             <p className="text-ui-12 text-tea-text-dim max-w-[200px] leading-relaxed">
               Tap the flask icon on any tea to add it here.
             </p>
+            {(onCaptureTea || onBrowseLibrary) && (
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {onCaptureTea && <button type="button" onClick={onCaptureTea} className="tap-target min-h-11 rounded-md bg-tea-accent-sub px-4 text-ui-12 text-tea-gold">Capture tea</button>}
+                {onBrowseLibrary && <button type="button" onClick={onBrowseLibrary} className="tap-target min-h-11 rounded-md px-4 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text">Browse Library</button>}
+              </div>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-tea-border">

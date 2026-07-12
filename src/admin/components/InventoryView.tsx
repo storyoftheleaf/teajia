@@ -1580,7 +1580,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     setActiveSet(newSet.id);
     setSelectedIds(new Set());
     lastSelectedIdxRef.current = null;
-    navigate('/admin/compass?tab=samples');
+    navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(newSet.id)}`);
   };
 
   if (isLoading) {

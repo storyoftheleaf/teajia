@@ -346,6 +346,7 @@ interface SampleCardProps {
 }
 
 function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGraduate, bulkMode, isSelected, onToggleSelect, noteCount }: SampleCardProps) {
+  const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const statusCfg = SAMPLE_STATUS_CONFIG[sample.status];
 
@@ -436,7 +437,14 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         </button>
       )}
       {sample.productId && (
-        <span className="text-ui-9 text-tea-gold shrink-0 px-1">In stock</span>
+        <button
+          type="button"
+          onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(sample.productId!)}`)}
+          className="tap-target shrink-0 px-1 text-ui-9 text-tea-gold hover:text-tea-gold-lt"
+          aria-label="Open inventory product"
+        >
+          In stock
+        </button>
       )}
 
       {confirmDelete ? (
@@ -652,7 +660,7 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
 
 // ── Main Component ─────────────────────────────────────────────────────
 
-export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'list' | 'detail' } = {}) {
+export default function SampleSetCreator({ embeddedMode, initialSetId }: { embeddedMode?: 'list' | 'detail'; initialSetId?: string } = {}) {
   const {
     sampleSets,
     samples,
@@ -686,7 +694,9 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
   }, [notes]);
 
   const [activeSetId, setActiveSetId] = useState<string | null>(
-    sampleSets.filter(s => !s.archived).length > 0 ? sampleSets.filter(s => !s.archived)[0].id : null
+    initialSetId && sampleSets.some(set => set.id === initialSetId && !set.archived)
+      ? initialSetId
+      : sampleSets.filter(s => !s.archived).length > 0 ? sampleSets.filter(s => !s.archived)[0].id : null
   );
   const [editingSampleId, setEditingSampleId] = useState<string | null>(null);
   const [showLabels, setShowLabels] = useState(false);
@@ -694,7 +704,7 @@ export default function SampleSetCreator({ embeddedMode }: { embeddedMode?: 'lis
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [view, setView] = useState<'batches' | 'batch' | 'all'>('batches');
+  const [view, setView] = useState<'batches' | 'batch' | 'all'>(initialSetId ? 'batch' : 'batches');
   const [showCompassImport, setShowCompassImport] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [batchDetailsOpen, setBatchDetailsOpen] = useState(false);

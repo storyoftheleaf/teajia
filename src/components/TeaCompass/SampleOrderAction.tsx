@@ -1,21 +1,31 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { FlaskConical, X } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import SampleSetCreator from '../../samples/SampleSetCreator';
 import { SampleCartPanel } from '../samples/SampleCartPanel';
 
-export const SampleOrderAction: React.FC = () => {
+interface SampleOrderActionProps {
+  open: boolean;
+  managing: boolean;
+  initialSetId?: string;
+  onOpenChange: (open: boolean) => void;
+  onManagingChange: (managing: boolean) => void;
+  onCaptureTea: () => void;
+  onBrowseLibrary: () => void;
+}
+
+export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
+  open, managing, initialSetId, onOpenChange, onManagingChange, onCaptureTea, onBrowseLibrary,
+}) => {
   const count = useSampleCartStore((state) => state.items.length);
-  const [open, setOpen] = useState(false);
-  const [managing, setManaging] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const close = () => {
-    setOpen(false);
-    setManaging(false);
+    onOpenChange(false);
+    onManagingChange(false);
     window.requestAnimationFrame(() => triggerRef.current?.focus());
   };
 
@@ -48,7 +58,7 @@ export const SampleOrderAction: React.FC = () => {
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => onOpenChange(true)}
         aria-label={`Sample order (${count})`}
         className="tap-target inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
       >
@@ -74,14 +84,14 @@ export const SampleOrderAction: React.FC = () => {
               <div className="flex-1" />
               <button
                 type="button"
-                onClick={() => setManaging((value) => !value)}
+                onClick={() => onManagingChange(!managing)}
                 className="tap-target min-h-11 rounded-md px-3 text-ui-12 text-tea-gold transition-colors hover:bg-tea-accent-sub"
               >
                 {managing ? 'Current order' : 'Manage sample sets'}
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto pb-nav">
-              {managing ? <SampleSetCreator /> : <SampleCartPanel />}
+              {managing ? <SampleSetCreator initialSetId={initialSetId} /> : <SampleCartPanel onCaptureTea={onCaptureTea} onBrowseLibrary={onBrowseLibrary} />}
             </div>
           </div>
         </div>

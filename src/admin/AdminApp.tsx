@@ -125,6 +125,8 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const tab = params.get('tab');
   const entryId = params.get('entry');
   const capture = params.get('capture');
+  const sampleOrder = params.get('sampleOrder');
+  const sampleSetId = params.get('set');
   const initialMode: CompassMode | undefined =
     tab === 'buying' ? 'buying' : tab === 'ledger' ? 'buying' :
     tab === 'sourcing' ? 'sourcing' : tab === 'capture' ? 'sourcing' :
@@ -146,6 +148,8 @@ const CompassWithMode: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       initialMode={initialMode}
       initialEntryId={entryId || undefined}
       initialCaptureOption={initialCaptureOption}
+      initialSampleOrder={sampleOrder === 'manage' ? 'manage' : sampleOrder === 'open' ? 'open' : undefined}
+      initialSampleSetId={sampleSetId || undefined}
     />
   );
 };
@@ -694,7 +698,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="tasting-events/:sessionId" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
               <Route path="tasting-events/:sessionId/live" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><TastingControlRoom /></PageTransition></ProtectedRoute>} />
               <Route path="venues" element={<ProtectedRoute hasAccess={hasGatherBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><VenueManager /></PageTransition></ProtectedRoute>} />
-              <Route path="samples" element={<Navigate to="/admin/compass?tab=samples" replace />} />
+              <Route path="samples" element={<Navigate to={`/admin/compass?sampleOrder=manage${location.search ? `&${location.search.slice(1)}` : ''}`} replace />} />
 
               {/* Operations — staff, admin, owner */}
               <Route path="activity" element={<ProtectedRoute hasAccess={hasSellBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ActivityView products={products} /></PageTransition></ProtectedRoute>} />

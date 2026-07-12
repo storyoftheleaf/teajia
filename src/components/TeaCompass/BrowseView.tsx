@@ -447,7 +447,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 label={
                   set ? (
                     <button
-                      onClick={() => navigate('/admin/samples')}
+                      onClick={() => navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(set.id)}`)}
                       className="hover:text-tea-gold transition-colors"
                       title="Open batch in Samples"
                     >
