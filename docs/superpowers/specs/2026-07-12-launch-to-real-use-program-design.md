@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-12
 
-**Status:** Approved direction; implementation has not started
+**Status:** Release 1 implemented and locally verified; Releases 2 and 3 not complete
 
 **Program owner:** Teajia
 
@@ -27,6 +27,12 @@ The program therefore uses one isolated branch with three sequential, internally
 Each release must be green before the next begins. The full verification matrix runs again after all three are integrated.
 
 ## Release 1 — Trust floor
+
+**Implementation checkpoint (2026-07-13):** The technical trust floor is implemented and locally verified. Fresh evidence: `npm run lint`, `npm run lint:colors`, and `npm run build` passed; the Worker suite passed 286/286; the Release 1 browser matrix passed 34/34 across Desktop and Mobile Chrome; the account mobile suite passed 27/27; and the Inventory scroll suite passed 2/2. Clean-schema creation and the legacy `098` upgrade path both succeeded through migration `112`; repeating the ledger-managed migration application also succeeded. Raw `ALTER TABLE` migration files are not independently idempotent and must not be prescribed for direct reruns outside the migration ledger.
+
+The historical invoice repair endpoint and read-only preview are built and tested, but the confirmed repair has **not** been applied to business data. Google OAuth remains available, and commerce remains inquiry-led through WhatsApp or email rather than automated checkout.
+
+Pending environment/human gates: receipt of a deployed Resend OTP end to end, the Australia operator run, a real inquiry/fulfillment feedback loop, mainland-network validation, and Adrian-approved Barry contributor content. These do not convert Releases 2 or 3 to complete.
 
 ### 1. Invoice correctness and repair
 

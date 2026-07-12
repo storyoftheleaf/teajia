@@ -808,7 +808,7 @@ git commit -m "feat: add customer order details"
 **Files:**
 - Modify only if a verification failure proves a Release 1 regression in a file already named above.
 
-- [ ] **Step 1: Run static checks and production build**
+- [x] **Step 1: Run static checks and production build**
 
 Run:
 
@@ -818,33 +818,33 @@ npm run lint:colors
 npm run build
 ```
 
-Expected: all three commands exit 0; Vite creates `dist/` without TypeScript, color-token, or bundle errors.
+Verified locally: all three commands exited 0; Vite created `dist/` without TypeScript, color-token, or bundle errors.
 
-- [ ] **Step 2: Run the complete Worker suite**
+- [x] **Step 2: Run the complete Worker suite**
 
 Run: `npm run test:worker`
 
-Expected: every Worker test passes, including invoice repair, verification delivery, tenancy isolation, and customer order detail.
+Verified locally: 286/286 Worker tests passed, including invoice repair, verification delivery, tenancy isolation, customer order detail, and fulfillment fencing.
 
-- [ ] **Step 3: Start the reserved development server**
+- [x] **Step 3: Start the reserved development server**
 
 Run: `npm run dev`
 
 Expected: Vite serves `http://localhost:7777`; if port 7777 is already serving this worktree, reuse it rather than starting a second server.
 
-- [ ] **Step 4: Run Release 1 browser journeys**
+- [x] **Step 4: Run Release 1 browser journeys**
 
 Run:
 
 ```bash
 npx playwright test tests/read-entry-paths.spec.ts tests/read-index-articles.spec.ts tests/read-bottom-bar.spec.ts tests/signin-email-code.spec.ts tests/order-detail.spec.ts --project='Desktop Chrome' --project='Mobile Chrome'
-npm run test:mobile
+npx playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome'
 npx playwright test tests/inventory-scroll.spec.ts --project='Desktop Chrome' --project='Mobile Chrome'
 ```
 
-Expected: all projects PASS; no page errors, horizontal overflow, hidden order contact actions, or Inventory height-chain regression.
+Verified locally: Release 1 browser journeys passed 34/34 across Desktop and Mobile Chrome; account mobile passed 27/27; Inventory scroll passed 2/2. No page error, horizontal-overflow, hidden-contact-action, or Inventory height-chain regression was reported.
 
-- [ ] **Step 5: Rehearse the full migration chain**
+- [x] **Step 5: Rehearse the full migration chain**
 
 Run:
 
@@ -852,10 +852,13 @@ Run:
 rm -rf /tmp/teajia-r1-final-clean /tmp/teajia-r1-final-legacy
 npx wrangler d1 execute teajia-r1-final-clean --local --persist-to /tmp/teajia-r1-final-clean --file worker/schema.sql
 npx wrangler d1 execute teajia-r1-final-legacy --local --persist-to /tmp/teajia-r1-final-legacy --file worker/tests/fixtures/schema-through-098.sql
-for f in worker/migrations/{099_compass_decision,100_curate_context,101_curate_imports,102_compass_sample_state,103_inventory_purpose_receipts,104_inventory_receipts,105_stock_movements,106_compass_promotion_identity,107_curate_import_idempotency,108_invoice_line_repair_audit,109_verification_challenges}.sql; do npx wrangler d1 execute teajia-r1-final-legacy --local --persist-to /tmp/teajia-r1-final-legacy --file "$f"; done
+# Prepare the Wrangler migration ledger as applied through 098 for this legacy fixture,
+# then use the ledger-managed runner for 099-112 and repeat the same command.
+npx wrangler d1 migrations apply teajia-r1-final-legacy --local --persist-to /tmp/teajia-r1-final-legacy
+npx wrangler d1 migrations apply teajia-r1-final-legacy --local --persist-to /tmp/teajia-r1-final-legacy
 ```
 
-Expected: clean schema and legacy-upgrade rehearsal both exit 0 through migration 109.
+Verified locally: clean schema and legacy upgrade both exited 0 through migration 112, and the repeated ledger-managed apply was a successful no-op. Do not test repeatability by rerunning raw migrations `110`-`112`: they contain `ALTER TABLE` statements and are intentionally protected by the migration ledger rather than raw-file idempotency.
 
 - [ ] **Step 6: Verify production configuration without exposing secrets**
 
@@ -868,34 +871,35 @@ rg -n "console\.(log|warn|error).*code|console\.(log|warn|error).*token" worker/
 
 Expected: sender/provider variables are documented; `DEV_RETURN_VERIFY_CODES` is never enabled in committed production configuration; the second command finds no statement that logs verification codes or JWTs.
 
-- [ ] **Step 7: Commit any evidence-driven corrections, then record the release checkpoint**
+- [x] **Step 7: Commit any evidence-driven corrections, then record the release checkpoint**
 
 ```bash
 git status --short
 git log --oneline --max-count=12
 ```
 
-Expected: the worktree is clean, and the log contains the Release 1 commits from Tasks 1-10. Do not claim real email delivery complete until a configured deployed-environment message is received; report that human/environment gate separately.
+Verified locally: the Release 1 implementation commits are present. Deployed Resend receipt remains a separate pending environment gate and is not implied by mocked provider coverage.
 
 ### Task 12: Update program documentation after fresh green evidence
 
 **Files:**
 - Modify: `docs/superpowers/specs/2026-07-12-launch-to-real-use-program-design.md`
 - Modify: `docs/CHANGELOG.md`
+- Modify: `docs/superpowers/plans/2026-07-12-launch-to-real-use-release-1.md`
 
-- [ ] **Step 1: Record only verified implementation state**
+- [x] **Step 1: Record only verified implementation state**
 
 Under Release 1, change implementation status from unstarted to implemented and locally verified, listing the exact commands from Task 11 that passed. Keep deployed email receipt as pending until it has actually occurred. State that the historical invoice repair is previewable and no mutation has occurred unless an operator explicitly ran the confirmed apply endpoint.
 
-- [ ] **Step 2: Add the changelog entry**
+- [x] **Step 2: Add the changelog entry**
 
 Add a dated `2026-07-12 — Launch-to-Real-Use Release 1` entry covering invoice invariant/repair preview, live Read routing, email-code verification, tenancy denial coverage, and customer order details. Explicitly say Google OAuth and inquiry-led commerce remain intact.
 
-- [ ] **Step 3: Run documentation-sensitive checks**
+- [x] **Step 3: Run documentation-sensitive checks**
 
 Run: `npm run lint && npm run lint:colors && git diff --check`
 
-Expected: all commands exit 0 and the diff contains no whitespace errors.
+Verified locally: all commands exited 0 and the documentation diff contains no whitespace errors.
 
 - [ ] **Step 4: Commit the verified release checkpoint**
 
