@@ -1027,3 +1027,43 @@ CREATE TABLE IF NOT EXISTS product_impressions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_product_impressions_account_product_published ON product_impressions(account_id, product_id, published_at DESC);
+
+-- Event post-session editorial source and ordinary article drafts.
+CREATE TABLE IF NOT EXISTS event_post_session (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  account_id TEXT,
+  event_id TEXT UNIQUE NOT NULL REFERENCES events(id),
+  tea_ledger TEXT,
+  playlist_url TEXT,
+  gallery_images TEXT,
+  session_notes TEXT,
+  host_notes TEXT,
+  energy TEXT,
+  host_changes TEXT,
+  shared_tasting_notes TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS articles (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  author_id TEXT,
+  slug TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  category TEXT,
+  tags TEXT NOT NULL DEFAULT '[]',
+  cover_image_url TEXT,
+  blocks TEXT NOT NULL DEFAULT '[]',
+  layout_template TEXT,
+  reading_time_mins INTEGER,
+  published_at TEXT,
+  source_event_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
+CREATE INDEX IF NOT EXISTS idx_articles_account_status ON articles(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event ON articles(account_id, source_event_id) WHERE source_event_id IS NOT NULL;

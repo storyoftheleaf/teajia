@@ -12,6 +12,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
+import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
 
@@ -7391,6 +7392,9 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   const teaLedger = body.tea_ledger ? (typeof body.tea_ledger === 'string' ? body.tea_ledger : JSON.stringify(body.tea_ledger)) : null;
   const galleryImages = body.gallery_images ? (typeof body.gallery_images === 'string' ? body.gallery_images : JSON.stringify(body.gallery_images)) : null;
+  const sharedTastingNotes = body.shared_tasting_notes
+    ? (typeof body.shared_tasting_notes === 'string' ? body.shared_tasting_notes : JSON.stringify(body.shared_tasting_notes))
+    : null;
 
   const existing = await env.DB.prepare(
     `SELECT id FROM event_post_session WHERE event_id = ?`
@@ -7398,16 +7402,68 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   if (existing) {
     await env.DB.prepare(
-      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ? WHERE event_id = ?`
-    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, params.id).run();
+      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
+    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
   } else {
     await env.DB.prepare(
-      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null).run();
+      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, energy, shared_tasting_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.energy || null, sharedTastingNotes).run();
   }
 
   return json({ success: true });
+};
+
+function eventDraftArticleToApi(article: Record<string, any>) {
+  return {
+    ...article,
+    tags: article.tags ? JSON.parse(article.tags as string) : [],
+    blocks: article.blocks ? JSON.parse(article.blocks as string) : [],
+  };
+}
+
+const handleCreateEventArticleDraft: Handler = async (request, env, params) => {
+  const gather = await requireBundle(request, env, 'gather');
+  if ('error' in gather) return gather.error;
+  const publish = await requireBundle(request, env, 'publish');
+  if ('error' in publish) return publish.error;
+  const { accountId, userId } = publish;
+
+  const event = await env.DB.prepare(
+    `SELECT id, account_id, title, subtitle FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<Record<string, any>>();
+  if (!event) return json({ error: 'Event not found' }, 404);
+
+  const existing = await env.DB.prepare(
+    `SELECT * FROM articles WHERE account_id = ? AND source_event_id = ?`
+  ).bind(accountId, params.id).first<Record<string, any>>();
+  if (existing) return json({ existing: true, article: eventDraftArticleToApi(existing) });
+
+  const postSession = await env.DB.prepare(
+    `SELECT * FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<Record<string, any>>();
+  const draft = buildEventArticleDraft(event, postSession);
+  const id = crypto.randomUUID();
+  const slug = `${slugify(draft.title) || 'event'}-${params.id}`;
+  try {
+    await env.DB.prepare(`
+      INSERT INTO articles
+        (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, source_event_id)
+      VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id, accountId, draft.title, draft.subtitle, userId, slug, draft.category, '[]',
+      draft.cover_image_url, JSON.stringify(draft.blocks), draft.layout_template, params.id,
+    ).run();
+  } catch {
+    const raced = await env.DB.prepare(`SELECT * FROM articles WHERE account_id = ? AND source_event_id = ?`)
+      .bind(accountId, params.id).first<Record<string, any>>();
+    if (raced) return json({ existing: true, article: eventDraftArticleToApi(raced) });
+    return json({ error: 'Unable to create article draft' }, 500);
+  }
+
+  const article = await env.DB.prepare(`SELECT * FROM articles WHERE id = ? AND account_id = ?`)
+    .bind(id, accountId).first<Record<string, any>>();
+  return json({ existing: false, article: eventDraftArticleToApi(article!) }, 201);
 };
 
 const handleDuplicateEvent: Handler = async (request, env, params) => {
@@ -19532,6 +19588,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/admin/events/:id/attendees', handleGetAttendees],
   ['GET', '/api/admin/events/:id/notifications', handleGetNotifications],
   ['POST', '/api/admin/events/:id/notifications', handleCreateNotifications],
+  ['POST', '/api/admin/events/:id/article-draft', handleCreateEventArticleDraft],
   ['POST', '/api/admin/events/:id/post-session', handleUpsertPostSession],
   ['POST', '/api/admin/events/:id/duplicate', handleDuplicateEvent],
   ['POST', '/api/admin/events/:id/attendance', handleBatchAttendance],
