@@ -314,8 +314,19 @@ test.describe('Inventory page — scroll regression guard', () => {
 
     const primary = page.getByTestId('inventory-primary-row');
     const purpose = page.getByTestId('inventory-purpose-row');
+    const expectHeaderAtTop = async () => {
+      const [scrollTop, primaryTop, purposeTop] = await Promise.all([
+        page.getByTestId('inventory-scroll').evaluate(el => el.getBoundingClientRect().top),
+        primary.evaluate(el => el.getBoundingClientRect().top),
+        purpose.evaluate(el => el.getBoundingClientRect().top),
+      ]);
+      expect(primaryTop - scrollTop).toBeLessThan(20);
+      expect(purposeTop).toBeGreaterThan(primaryTop);
+      expect(purposeTop - primaryTop).toBeLessThan(50);
+    };
     await primary.getByRole('button', { name: /inventory actions/i }).click();
     await page.getByText('Pending AI', { exact: false }).first().click();
+    await expectHeaderAtTop();
     await expect(primary).toBeVisible();
     await expect(purpose).toBeVisible();
     await purpose.getByText('All', { exact: true }).click();
@@ -323,6 +334,7 @@ test.describe('Inventory page — scroll regression guard', () => {
 
     if (testInfo.project.name === 'Desktop Chrome') {
       await primary.getByText('Glossary', { exact: true }).click();
+      await expectHeaderAtTop();
       await expect(primary).toBeVisible();
       await primary.getByText('Glossary', { exact: true }).click();
       await expect(page.getByTestId('inventory-column-row').first()).toBeVisible();
