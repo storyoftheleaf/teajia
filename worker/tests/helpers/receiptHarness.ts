@@ -20,6 +20,12 @@ class ReceiptStatement {
       return [...this.db.proposals.values()].find(row => row.account_id === this.values[0] && row.idempotency_key === this.values[1]) ?? null;
     }
     if (sql.includes('from curate_receipt_proposals where id = ? and account_id = ?')) return scoped(this.db.proposals, this.values[0], sql, this.values);
+    if (sql.includes('from inventory_receipts where account_id = ? and idempotency_key = ?')) {
+      return [...this.db.receipts.values()].find(row => row.account_id === this.values[0] && row.idempotency_key === this.values[1]) ?? null;
+    }
+    if (sql.includes('from stock_ledger where account_id = ? and idempotency_key = ?')) {
+      return this.db.ledger.find(row => row.account_id === this.values[0] && row.idempotency_key === this.values[1]) ?? null;
+    }
     if (sql.includes('from products where id') && sql.includes('account_id')) return scoped(this.db.products, this.values[0], sql, this.values);
     if (sql.includes('from inventory_receipt_lines l join inventory_receipts r')) {
       const line = scoped(this.db.receiptLines, this.values[0], sql, this.values);
@@ -54,8 +60,11 @@ class ReceiptStatement {
     if (sql.startsWith('insert into tea_profiles')) return insertColumns(this.db.profiles, this.sql, this.values);
     if (sql.startsWith('insert into product_listings')) return insertColumns(this.db.listings, this.sql, this.values);
     if (sql.startsWith('insert into stock_ledger')) {
-      if (sql.includes('inventory_receipt_line_id')) {
-        const row = { id: this.values[0], product_id: this.values[1], delta: this.values[2], balance_after: this.values[3], movement_unit: this.values[4], reason: 'PURCHASE_RECEIPT', user_email: this.values[5], note: this.values[6], batch_id: this.values[7], account_id: this.values[8], inventory_receipt_line_id: this.values[9] };
+      if (sql.includes('inventory_receipt_line_id') && sql.includes('movement_fingerprint')) {
+        const product = this.db.products.get(String(this.values[17]));
+        if (!product || product.account_id !== this.values[18] || product.stock_movement_guard !== this.values[19]) return { success: true, meta: { changes: 0 } };
+        const row = { id: this.values[0], product_id: this.values[1], delta: this.values[2], balance_after: this.values[3], movement_unit: this.values[4], reason: this.values[5], movement_type: this.values[6], idempotency_key: this.values[7], source_invoice_id: this.values[8], source_invoice_number: this.values[9], user_email: this.values[10], note: this.values[11], batch_id: this.values[12], account_id: this.values[13], source_compass_entry_id: this.values[14], inventory_receipt_line_id: this.values[15], movement_fingerprint: this.values[16] };
+        if (this.db.ledger.some(item => item.account_id === row.account_id && item.idempotency_key === row.idempotency_key)) throw new Error('UNIQUE stock movement idempotency');
         this.db.ledger.push(row); return { success: true, meta: { changes: 1 } };
       }
       const existing = sql.includes('(select stock_grams') || sql.includes('(select quantity_units');
@@ -69,9 +78,9 @@ class ReceiptStatement {
       if (this.db.ledger.some(item => item.receipt_proposal_id === row.receipt_proposal_id)) throw new Error('UNIQUE receipt ledger');
       this.db.ledger.push(row); return { success: true, meta: { changes: 1 } };
     }
-    if (sql.startsWith('insert into inventory_receipts')) return insertColumns(this.db.receipts, this.sql, this.values);
+    if (sql.startsWith('insert into inventory_receipts')) return insertColumns(this.db.receipts, this.sql, this.values, this.db);
     if (sql.startsWith('insert into inventory_receipt_lines')) {
-      const result = insertColumns(this.db.receiptLines, this.sql, this.values);
+      const result = insertColumns(this.db.receiptLines, this.sql, this.values, this.db);
       const row = this.db.receiptLines.get(String(this.values[0]))!;
       Object.assign(row, { received_quantity: 0, cancelled_quantity: 0, intake_batch_id: null });
       return result;
@@ -89,6 +98,7 @@ class ReceiptStatement {
       if (!row || row.account_id !== this.values[accountIndex]) return { success: true, meta: { changes: 0 } };
       if (sql.includes('received_quantity=received_quantity+?')) { row.received_quantity += Number(this.values[0]); row.intake_batch_id = this.values[1]; }
       else if (sql.includes('cancelled_quantity=cancelled_quantity+?')) row.cancelled_quantity += Number(this.values[0]);
+      if (Number(row.received_quantity) < 0 || Number(row.cancelled_quantity) < 0 || Number(row.received_quantity) + Number(row.cancelled_quantity) > Number(row.expected_quantity)) throw new Error('CHECK receipt quantities');
       return { success: true, meta: { changes: 1 } };
     }
     if (sql.startsWith('update inventory_receipts set state=case')) {
@@ -145,7 +155,7 @@ function scoped(map: Map<string, Row>, id: unknown, sql: string, values: unknown
   return { ...row };
 }
 
-function insertColumns(target: Map<string, Row> | Row[], sql: string, values: unknown[]) {
+function insertColumns(target: Map<string, Row> | Row[], sql: string, values: unknown[], db?: ReceiptDb) {
   const table = norm(sql).match(/^insert into ([a-z_]+)/)![1];
   const match = sql.match(new RegExp(`${table}\\s*\\(([^)]+)\\)`, 'i'))!;
   const columns = match[1].split(',').map(v => v.trim());
@@ -162,6 +172,16 @@ function insertColumns(target: Map<string, Row> | Row[], sql: string, values: un
   if (table === 'curate_receipt_proposals') Object.assign(row, { status: 'pending', ledger_id: null, reviewed_by_user_id: null, reviewed_at: null });
   if (table === 'curate_receipt_proposals' && [...(target as Map<string, Row>).values()].some(existing => existing.account_id === row.account_id && existing.idempotency_key === row.idempotency_key)) throw new Error('UNIQUE account idempotency');
   if (table === 'stock_ledger' && (target as Row[]).some(existing => existing.receipt_proposal_id === row.receipt_proposal_id)) throw new Error('UNIQUE receipt ledger');
+  if (table === 'inventory_receipts') {
+    if ([...(target as Map<string, Row>).values()].some(existing => existing.account_id === row.account_id && existing.idempotency_key === row.idempotency_key)) throw new Error('UNIQUE receipt creation idempotency');
+    if (!['planned', 'ordered', 'in_transit', 'partially_received', 'received', 'cancelled'].includes(String(row.state))) throw new Error('CHECK inventory receipt state');
+  }
+  if (table === 'inventory_receipt_lines') {
+    const receipt = db?.receipts.get(String(row.receipt_id));
+    const product = db?.products.get(String(row.product_id));
+    if (!receipt || receipt.account_id !== row.account_id || !product || product.account_id !== row.account_id) throw new Error('FOREIGN KEY inventory receipt line');
+    if (!(Number(row.expected_quantity) > 0) || !['g', 'unit'].includes(String(row.unit)) || !['working', 'sample', 'personal'].includes(String(row.intended_purpose))) throw new Error('CHECK inventory receipt line');
+  }
   if (target instanceof Map) target.set(String(row.id), row); else target.push(row);
   return { success: true, meta: { changes: 1 } };
 }

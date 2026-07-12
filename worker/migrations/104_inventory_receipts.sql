@@ -7,8 +7,11 @@ CREATE TABLE inventory_receipts (
   source_ref TEXT,
   eta TEXT,
   created_by_user_id TEXT NOT NULL REFERENCES users(id),
+  idempotency_key TEXT NOT NULL,
+  request_fingerprint TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(account_id, idempotency_key)
 );
 CREATE INDEX idx_inventory_receipts_account_state ON inventory_receipts(account_id, state, created_at);
 

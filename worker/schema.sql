@@ -289,7 +289,45 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
--- 6b. Stock Ledger Table (audit trail for stock changes)
+-- 6b. Expected inventory receipts. Define these before stock_ledger so a fresh
+-- schema never creates a ledger foreign key against a not-yet-declared table.
+CREATE TABLE IF NOT EXISTS inventory_receipts (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    state TEXT NOT NULL DEFAULT 'planned' CHECK (state IN ('planned','ordered','in_transit','partially_received','received','cancelled')),
+    vendor_name TEXT,
+    source_kind TEXT NOT NULL,
+    source_ref TEXT,
+    eta TEXT,
+    created_by_user_id TEXT NOT NULL REFERENCES users(id),
+    idempotency_key TEXT NOT NULL,
+    request_fingerprint TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(account_id, idempotency_key)
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_receipts_account_state ON inventory_receipts(account_id, state, created_at);
+
+CREATE TABLE IF NOT EXISTS inventory_receipt_lines (
+    id TEXT PRIMARY KEY,
+    receipt_id TEXT NOT NULL REFERENCES inventory_receipts(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    expected_quantity REAL NOT NULL CHECK (expected_quantity > 0),
+    received_quantity REAL NOT NULL DEFAULT 0 CHECK (received_quantity >= 0),
+    cancelled_quantity REAL NOT NULL DEFAULT 0 CHECK (cancelled_quantity >= 0),
+    unit TEXT NOT NULL CHECK (unit IN ('g','unit')),
+    intended_purpose TEXT NOT NULL CHECK (intended_purpose IN ('working','sample','personal')),
+    source_kind TEXT NOT NULL,
+    source_ref TEXT,
+    intake_batch_id TEXT REFERENCES batches(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (received_quantity + cancelled_quantity <= expected_quantity)
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_receipt_lines_receipt ON inventory_receipt_lines(account_id, receipt_id);
+
+-- 6c. Stock Ledger Table (audit trail for stock changes)
 CREATE TABLE IF NOT EXISTS stock_ledger (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     product_id TEXT NOT NULL REFERENCES products(id),
@@ -569,6 +607,7 @@ CREATE INDEX IF NOT EXISTS idx_stock_ledger_product ON stock_ledger(product_id);
 CREATE INDEX IF NOT EXISTS idx_stock_ledger_source_invoice ON stock_ledger(source_invoice_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_ledger_account_idempotency ON stock_ledger(account_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_stock_ledger_compass_entry ON stock_ledger(account_id, source_compass_entry_id);
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_receipt_line ON stock_ledger(inventory_receipt_line_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_account_customer ON invoices(account_id, customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_source_event ON invoices(source_event_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_source_collection ON invoices(source_collection_id);
@@ -725,15 +764,3 @@ CREATE TABLE IF NOT EXISTS oauth_authorize_requests (
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_authorize_requests_expires ON oauth_authorize_requests(expires_at);
--- Expected inventory is normalized separately from physical on-hand stock.
-CREATE TABLE IF NOT EXISTS inventory_receipts (
-  id TEXT PRIMARY KEY, account_id TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'planned', vendor_name TEXT,
-  source_kind TEXT NOT NULL, source_ref TEXT, eta TEXT, created_by_user_id TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS inventory_receipt_lines (
-  id TEXT PRIMARY KEY, receipt_id TEXT NOT NULL, account_id TEXT NOT NULL, product_id TEXT NOT NULL,
-  expected_quantity REAL NOT NULL, received_quantity REAL NOT NULL DEFAULT 0, cancelled_quantity REAL NOT NULL DEFAULT 0,
-  unit TEXT NOT NULL, intended_purpose TEXT NOT NULL, source_kind TEXT NOT NULL, source_ref TEXT, intake_batch_id TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);

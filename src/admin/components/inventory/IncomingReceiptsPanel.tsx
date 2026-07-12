@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, PackageCheck, X } from 'lucide-react';
+import { ArrowLeft, Loader2, PackageCheck } from 'lucide-react';
 import { api } from '../../../lib/api';
 import type { InventoryReceipt } from '../../types';
 
@@ -25,12 +25,11 @@ export function IncomingReceiptsPanel({ onClose }: { onClose: () => void }) {
   };
 
   return <section className="flex-1 min-h-0 overflow-auto pb-nav-gap bg-tea-bg" aria-label="Incoming stock">
-    <div className="sticky top-0 z-10 bg-tea-bg border-b border-tea-border px-4 py-3 flex items-center justify-between gap-3">
+    <div className="sticky top-0 z-10 bg-tea-bg border-b border-tea-border px-4 py-3 flex items-center gap-3">
       <div className="flex items-center gap-2 min-w-0">
         <button className="tap-target text-tea-text-sec hover:text-tea-text" onClick={onClose} aria-label="Back to inventory"><ArrowLeft size={20}/></button>
         <div><h2 className="font-display text-ui-20 text-tea-text">Incoming stock</h2><p className="text-ui-12 text-tea-text-sec">Expected stock stays separate from current on-hand stock until it arrives.</p></div>
       </div>
-      <button className="tap-target text-tea-text-sec hover:text-tea-text" onClick={onClose} aria-label="Close incoming"><X size={18}/></button>
     </div>
     <div className="max-w-3xl mx-auto p-4 space-y-3">
       {error && <div role="alert" className="border border-tea-border bg-tea-elevated rounded-md px-3 py-2 text-ui-12 text-tea-text">{error} <button onClick={() => void load()} className="ml-2 underline text-tea-text-sec hover:text-tea-text">Try again</button></div>}

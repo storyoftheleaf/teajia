@@ -9163,6 +9163,8 @@ const handleListInventoryReceipts: Handler = async (request, env) => {
 const handleCreateInventoryReceipt: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
   const body = await request.json() as any;
+  const idempotencyKey = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
+  if (!idempotencyKey || idempotencyKey.length > 200) return json({ error: 'idempotency_key is required and must be at most 200 characters' }, 400);
   const state = String(body.state || 'planned');
   if (!RECEIPT_STATES.has(state) || ['partially_received','received','cancelled'].includes(state)) return json({ error: 'invalid initial state' }, 400);
   if (!Array.isArray(body.lines) || !body.lines.length) return json({ error: 'lines are required' }, 400);
@@ -9171,10 +9173,31 @@ const handleCreateInventoryReceipt: Handler = async (request, env) => {
   if (!bodySourceKind && (lineSourceKinds.length !== 1 || body.lines.some((line: any) => typeof line.source_kind !== 'string' || !line.source_kind.trim()))) return json({ error: 'source_kind is required at receipt level or must be the same on every line' }, 400);
   const sourceKind = bodySourceKind || lineSourceKinds[0];
   let lines; try { lines = body.lines.map((line: any) => decodeInventoryReceipt({ ...line, source_kind: sourceKind, source_ref: line.source_ref ?? body.source_ref })); } catch (error) { return json({ error: (error as Error).message }, 400); }
+  const requestFingerprint = JSON.stringify({
+    state,
+    vendor_name: typeof body.vendor_name === 'string' && body.vendor_name.trim() ? body.vendor_name.trim() : null,
+    source_kind: sourceKind,
+    source_ref: typeof body.source_ref === 'string' && body.source_ref.trim() ? body.source_ref.trim() : null,
+    eta: typeof body.eta === 'string' && body.eta.trim() ? body.eta.trim() : null,
+    lines: lines.map((line: any) => ({ product_id: line.product_id, quantity: line.quantity, unit: line.unit, intended_purpose: line.intended_purpose, source_kind: line.source_kind, source_ref: line.source_ref || null })),
+  });
+  const replay = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first() as any;
+  if (replay) return replay.request_fingerprint === requestFingerprint
+    ? json({ id: replay.id, state: replay.state, already_created: true })
+    : json({ error: 'idempotency_key already used for a different inventory receipt' }, 409);
   for (const line of lines) if (!await env.DB.prepare('SELECT id FROM products WHERE id=? AND account_id=?').bind(line.product_id, ctx.accountId).first()) return json({ error: 'Product not found' }, 404);
-  const id = crypto.randomUUID(); const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id,account_id,state,vendor_name,source_kind,source_ref,eta,created_by_user_id) VALUES (?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,state,body.vendor_name||null,sourceKind,body.source_ref||null,body.eta||null,ctx.userId)];
+  const id = crypto.randomUUID(); const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id,account_id,state,vendor_name,source_kind,source_ref,eta,created_by_user_id,idempotency_key,request_fingerprint) VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,state,body.vendor_name||null,sourceKind,body.source_ref||null,body.eta||null,ctx.userId,idempotencyKey,requestFingerprint)];
   for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id,receipt_id,account_id,product_id,expected_quantity,unit,intended_purpose,source_kind,source_ref) VALUES (?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,ctx.accountId,line.product_id,line.quantity,line.unit,line.intended_purpose,line.source_kind,line.source_ref));
-  await env.DB.batch(statements); return json({ id, state }, 201);
+  try { await env.DB.batch(statements); }
+  catch (error) {
+    const raced = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first() as any;
+    if (raced) return raced.request_fingerprint === requestFingerprint
+      ? json({ id: raced.id, state: raced.state, already_created: true })
+      : json({ error: 'idempotency_key already used for a different inventory receipt' }, 409);
+    console.error('Inventory receipt creation failed', error);
+    return json({ error: 'Receipt could not be created' }, 500);
+  }
+  return json({ id, state, already_created: false }, 201);
 };
 
 const MANUAL_RECEIPT_TRANSITIONS: Record<string, string[]> = {
@@ -9237,8 +9260,11 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
     const result = await applyStockMovement(env,ctx,line.product_id,movement,{ statementFactory, inventoryReceiptLineId:line.id, allowNewBatchId:createsBatch });
     if (result.status >= 400) return json(result.value,result.status);
     const alreadyReceived = result.status===200;
+    const persistedLine = await loadReceiptLine(env, line.id, ctx.accountId);
     const persistedReceipt = await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
-    return json({ received_quantity:alreadyReceived?Number(line.received_quantity):newReceived, remaining_quantity:alreadyReceived?remaining:remaining-quantity,state:persistedReceipt?.state || state,ledger_id:(result.value as any).id,batch_id:batchId,already_received:alreadyReceived });
+    const receivedQuantity = Number(persistedLine?.received_quantity ?? (alreadyReceived ? line.received_quantity : newReceived));
+    const remainingQuantity = persistedLine ? remainingReceiptQuantity(Number(persistedLine.expected_quantity), receivedQuantity, Number(persistedLine.cancelled_quantity)) : (alreadyReceived ? remaining : remaining - quantity);
+    return json({ received_quantity:receivedQuantity, remaining_quantity:remainingQuantity,state:persistedReceipt?.state || state,ledger_id:(result.value as any).id,batch_id:persistedLine?.intake_batch_id || batchId,already_received:alreadyReceived });
   } catch (error) { console.error('Receipt stock movement failed',error); return json({ error:'Receipt failed' },500); }
 };
 

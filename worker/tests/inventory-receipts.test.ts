@@ -23,7 +23,7 @@ describe('inventory receipt endpoints', () => {
   it('persists normalized receipt lines and keeps accounts isolated', async () => {
     const db = ReceiptDb.seeded();
     db.products.set('product-a', { id: 'product-a', account_id: 'account-a', stock_grams: 5, quantity_units: 0 });
-    const created = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ state: 'planned', vendor_name: 'Lin', source_kind: 'invoice', source_ref: 'INV-4', lines: [{ product_id: 'product-a', quantity: 100, unit: 'g', intended_purpose: 'working' }] }) });
+    const created = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: 'create-receipt:normalized', state: 'planned', vendor_name: 'Lin', source_kind: 'invoice', source_ref: 'INV-4', lines: [{ product_id: 'product-a', quantity: 100, unit: 'g', intended_purpose: 'working' }] }) });
     expect(created.status).toBe(201);
     expect([...db.receiptLines.values()][0]).toMatchObject({ expected_quantity: 100, received_quantity: 0, intended_purpose: 'working', source_kind: 'invoice', source_ref: 'INV-4' });
     const listed = await (await receiptRequest(db, '/api/inventory/receipts?include_closed=1')).json() as any[];
@@ -32,9 +32,48 @@ describe('inventory receipt endpoints', () => {
     expect((await (await receiptRequest(db, '/api/inventory/receipts?include_closed=1', { accountId: 'account-b' })).json())).toHaveLength(0);
   });
 
+  it('replays receipt creation after a lost response without duplicating receipt lines', async () => {
+    const db = ReceiptDb.seeded();
+    db.products.set('product-a', { id: 'product-a', account_id: 'account-a', stock_grams: 5, quantity_units: 0 });
+    const body = JSON.stringify({ idempotency_key: 'create-receipt:invoice-4', state: 'planned', vendor_name: 'Lin', source_kind: 'invoice', source_ref: 'INV-4', lines: [{ product_id: 'product-a', quantity: 100, unit: 'g', intended_purpose: 'working' }] });
+
+    const lostResponse = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body });
+    expect(lostResponse.status).toBe(201);
+    const first = await lostResponse.json() as any;
+    const replay = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body });
+
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ id: first.id, state: 'planned', already_created: true });
+    expect(db.receipts).toHaveLength(1);
+    expect(db.receiptLines).toHaveLength(1);
+  });
+
+  it('converges concurrent receipt creation and rejects reuse with different content', async () => {
+    const db = ReceiptDb.seeded();
+    db.products.set('product-a', { id: 'product-a', account_id: 'account-a', stock_grams: 0, quantity_units: 0 });
+    const request = (quantity: number) => receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: 'create-receipt:wechat-7', source_kind: 'wechat', lines: [{ product_id: 'product-a', quantity, unit: 'g', intended_purpose: 'sample' }] }) });
+
+    const responses = await Promise.all([request(10), request(10)]);
+    expect(responses.map(response => response.status).sort()).toEqual([200, 201]);
+    expect(new Set(await Promise.all(responses.map(async response => (await response.json() as any).id))).size).toBe(1);
+    expect(db.receipts).toHaveLength(1);
+    expect(db.receiptLines).toHaveLength(1);
+
+    const conflict = await request(20);
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ error: expect.stringMatching(/idempotency_key/) });
+  });
+
+  it('requires a receipt creation idempotency key', async () => {
+    const db = ReceiptDb.seeded();
+    db.products.set('product-a', { id: 'product-a', account_id: 'account-a' });
+    const response = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ source_kind: 'invoice', lines: [{ product_id: 'product-a', quantity: 1, unit: 'g', intended_purpose: 'working' }] }) });
+    expect(response.status).toBe(400);
+  });
+
   it('normalizes receipt provenance from consistent lines and rejects missing or mixed sources', async () => {
     const db = ReceiptDb.seeded(); db.products.set('product-a', { id: 'product-a', account_id: 'account-a' });
-    const inferred = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample', source_kind: 'vendor-note' }] }) });
+    const inferred = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: 'create-receipt:inferred', lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample', source_kind: 'vendor-note' }] }) });
     expect(inferred.status).toBe(201);
     expect([...db.receipts.values()][0].source_kind).toBe('vendor-note');
     const missing = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample' }] }) });
@@ -66,6 +105,35 @@ describe('inventory receipt endpoints', () => {
     expect(db.receipts.get('receipt-a')!.state).toBe('partially_received');
   });
 
+  it('replays a receive after response loss without adding stock twice', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    const body = JSON.stringify({ quantity: 40, idempotency_key: 'receive:line-a:delivery-1' });
+    const lostResponse = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body });
+    expect(lostResponse.status).toBe(200);
+
+    const replay = await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body });
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ received_quantity: 40, remaining_quantity: 60, already_received: true });
+    expect(db.products.get('product-a')!.stock_grams).toBe(45);
+    expect(db.receiptLines.get('line-a')!.received_quantity).toBe(40);
+    expect(db.ledger).toHaveLength(1);
+  });
+
+  it('converges concurrent receives that carry the same operation key', async () => {
+    const db = ReceiptDb.seededWithReceipt();
+    const request = () => receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ quantity: 25, idempotency_key: 'receive:line-a:delivery-concurrent' }) });
+    const responses = await Promise.all([request(), request()]);
+
+    expect(responses.every(response => response.status === 200)).toBe(true);
+    expect(await Promise.all(responses.map(async response => await response.json()))).toEqual(expect.arrayContaining([
+      expect.objectContaining({ received_quantity: 25, remaining_quantity: 75 }),
+      expect.objectContaining({ received_quantity: 25, remaining_quantity: 75 }),
+    ]));
+    expect(db.products.get('product-a')!.stock_grams).toBe(30);
+    expect(db.receiptLines.get('line-a')!.received_quantity).toBe(25);
+    expect(db.ledger).toHaveLength(1);
+  });
+
   it('reuses one intake batch across separate lines of the same receipt', async () => {
     const db = ReceiptDb.seededWithReceipt(true);
     await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ quantity: 10 }) });
@@ -79,7 +147,7 @@ describe('inventory receipt endpoints', () => {
     db.receipts.set('receipt-second', { ...db.receipts.get('receipt-a'), id: 'receipt-second', state: 'in_transit' });
     db.receiptLines.set('line-second', { ...db.receiptLines.get('line-a'), id: 'line-second', receipt_id: 'receipt-second' });
     db.products.set('foreign-product', { id: 'foreign-product', account_id: 'account-b', stock_grams: 0 });
-    const foreignCreate = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ source_kind: 'invoice', lines: [{ product_id: 'foreign-product', quantity: 10, unit: 'g', intended_purpose: 'working' }] }) });
+    const foreignCreate = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: 'create-receipt:foreign', source_kind: 'invoice', lines: [{ product_id: 'foreign-product', quantity: 10, unit: 'g', intended_purpose: 'working' }] }) });
     expect(foreignCreate.status).toBe(404);
     expect((await receiptRequest(db, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', accountId: 'account-b', body: JSON.stringify({ quantity: 1 }) })).status).toBe(404);
     expect((await receiptRequest(db, '/api/inventory/receipt-lines/line-a/cancel-remaining', { method: 'POST', accountId: 'account-b' })).status).toBe(404);
