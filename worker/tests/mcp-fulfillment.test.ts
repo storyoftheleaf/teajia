@@ -24,6 +24,7 @@ type FakeDbState = {
     payment_date: string | null;
     fulfilled_at: string | null;
     fulfillment_claim_token: string | null;
+    fulfillment_claimed_at: string | null;
     inventory_deducted: number;
   };
   lineItems: Array<{ product_id: string | null; quantity: number }>;
@@ -34,6 +35,7 @@ type FakeDbState = {
   // Durable confirmation tickets (mcp_confirmation_tickets) — preview INSERTs a
   // row, confirm consumes it via atomic UPDATE…RETURNING.
   tickets: Map<string, { payload_json: string; expires_at: number; consumed_at: number | null }>;
+  failFulfillmentBatch: boolean;
 };
 
 class FakeStatement {
@@ -68,8 +70,10 @@ class FakeStatement {
       return this.state.products.get(String(this.values[0])) || null;
     }
     if (sql.startsWith('update invoices set fulfillment_claim_token = ?')) {
-      if (this.state.invoice.inventory_deducted || this.state.invoice.fulfillment_claim_token) return null;
+      const stale = this.state.invoice.fulfillment_claimed_at != null && new Date(this.state.invoice.fulfillment_claimed_at).getTime() < Date.now() - 5 * 60_000;
+      if (this.state.invoice.inventory_deducted || (this.state.invoice.fulfillment_claim_token && !stale)) return null;
       this.state.invoice.fulfillment_claim_token = String(this.values[0]);
+      this.state.invoice.fulfillment_claimed_at = new Date().toISOString();
       return { id: this.state.invoice.id };
     }
     if (sql.startsWith('update mcp_confirmation_tickets set consumed_at')) {
@@ -116,10 +120,18 @@ class FakeDb {
   }
 
   async batch(statements: FakeStatement[]) {
+    const snapshot = { invoice: { ...this.state.invoice }, products: new Map([...this.state.products].map(([id, row]) => [id, { ...row }])), listings: new Map([...this.state.listings].map(([id, row]) => [id, { ...row }])), ledger: this.state.ledger.map(row => ({ ...row })) };
     const results = [];
-    for (const statement of statements) {
-      this.state.batchedSql.push(normalizeSql(statement.sql));
-      results.push(await runStatement(this.state, statement));
+    try {
+      for (const statement of statements) {
+        this.state.batchedSql.push(normalizeSql(statement.sql));
+        results.push(await runStatement(this.state, statement));
+        if (this.state.failFulfillmentBatch && normalizeSql(statement.sql).startsWith('update products set stock_grams')) throw new Error('simulated batch failure');
+      }
+    } catch (error) {
+      this.state.invoice = snapshot.invoice; this.state.products = snapshot.products; this.state.listings = snapshot.listings; this.state.ledger = snapshot.ledger;
+      this.state.failFulfillmentBatch = false;
+      throw error;
     }
     return results;
   }
@@ -178,6 +190,7 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
     state.invoice.inventory_deducted = 1;
     state.invoice.fulfilled_at ||= '2026-07-13 00:00:00';
     state.invoice.fulfillment_claim_token = null;
+    state.invoice.fulfillment_claimed_at = null;
     return { success: true, meta: { changes: 1 } };
   }
   if (sql.startsWith('update invoices set fulfillment_claim_token = null')) {
@@ -199,6 +212,7 @@ function makeState(stockGrams: number): FakeDbState {
       payment_date: null,
       fulfilled_at: null,
       fulfillment_claim_token: null,
+      fulfillment_claimed_at: null,
       inventory_deducted: 0,
     },
     lineItems: [
@@ -221,6 +235,7 @@ function makeState(stockGrams: number): FakeDbState {
     ledger: [],
     batchedSql: [],
     tickets: new Map(),
+    failFulfillmentBatch: false,
   };
 }
 
@@ -322,6 +337,24 @@ describe('MCP invoice fulfillment', () => {
     expect(state.products.get('prod_test')?.stock_grams).toBe(20);
     expect(state.ledger).toHaveLength(1);
     expect(state.invoice.fulfilled_at).toBe('2026-07-13 00:00:00');
+  });
+
+  it('reclaims a stale pre-batch lease', async () => {
+    const state = makeState(100);
+    state.invoice.fulfillment_claim_token = 'abandoned';
+    state.invoice.fulfillment_claimed_at = new Date(Date.now() - 6 * 60_000).toISOString();
+    expect((await fulfillInvoice(state)).committed).toBe(true);
+    expect(state.products.get('prod_test')?.stock_grams).toBe(20);
+  });
+
+  it('rolls back the whole mutation batch on failure', async () => {
+    const state = makeState(100);
+    state.failFulfillmentBatch = true;
+    await fulfillInvoice(state).catch(() => undefined);
+    expect(state.products.get('prod_test')?.stock_grams).toBe(100);
+    expect(state.ledger).toEqual([]);
+    expect(state.invoice.inventory_deducted).toBe(0);
+    expect(state.invoice.fulfillment_claim_token).toBeNull();
   });
 
   it('deducts only product-backed lines when custom lines are present', async () => {

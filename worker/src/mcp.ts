@@ -2490,13 +2490,14 @@ async function commitFulfillInvoice(
 ) {
   const fulfillmentClaim = crypto.randomUUID();
   const claimed = await env.DB.prepare(
-    `UPDATE invoices SET fulfillment_claim_token = ?
-     WHERE id = ? AND account_id = ? AND inventory_deducted = 0 AND fulfillment_claim_token IS NULL
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND inventory_deducted = 0
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
      RETURNING id`
   ).bind(fulfillmentClaim, m.invoiceId, m.accountId).first();
   if (!claimed) return { error: 'invoice_fulfillment_already_claimed' };
   const releaseClaim = () => env.DB.prepare(
-    'UPDATE invoices SET fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(m.invoiceId, m.accountId, fulfillmentClaim).run();
   const stmts: D1PreparedStatement[] = [];
 
@@ -2528,8 +2529,9 @@ async function commitFulfillInvoice(
     const threshold = Number(product.low_stock_threshold || 0);
 
     stmts.push(
-      env.DB.prepare('UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?')
-        .bind(qty, item.product_id, m.accountId)
+      env.DB.prepare(`UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ?
+        AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
+        .bind(qty, item.product_id, m.accountId, m.invoiceId, m.accountId, fulfillmentClaim)
     );
     stmts.push(
       env.DB.prepare(
@@ -2581,7 +2583,7 @@ async function commitFulfillInvoice(
       .bind(m.invoiceId, m.accountId)
   );
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
       .bind(m.invoiceId, m.accountId, fulfillmentClaim)
   );
   stmts.push(

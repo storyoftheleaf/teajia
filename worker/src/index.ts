@@ -3110,75 +3110,21 @@ const handleFulfillInvoice: Handler = async (request, env) => {
 
   const fulfillmentClaim = crypto.randomUUID();
   const claimed = await env.DB.prepare(
-    `UPDATE invoices SET fulfillment_claim_token = ?
-     WHERE id = ? AND account_id = ? AND inventory_deducted = 0 AND fulfillment_claim_token IS NULL
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND inventory_deducted = 0
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
      RETURNING id`
   ).bind(fulfillmentClaim, invoice_id, accountId).first();
   if (!claimed) return json({ error: 'Invoice fulfillment is already in progress' }, 409);
   const releaseClaim = () => env.DB.prepare(
-    'UPDATE invoices SET fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
   ).bind(invoice_id, accountId, fulfillmentClaim).run();
 
-  // ── Phase A: atomic, guarded stock deduction ───────────────────────────
-  // Each deduct is conditional on `stock_grams >= qty`. If a concurrent
-  // fulfillment drained stock since the pre-check, the row won't match and
-  // RETURNING is empty — we detect that, restore, and 409 before committing
-  // any of the downstream ledger / status / invoice state.
+  // All stock, ledger, audit, and invoice writes below commit in one D1 batch.
+  // The non-negative-stock trigger aborts the whole batch if stock changed
+  // after the pre-check. A termination before this batch leaves only the
+  // leased claim, which can be reclaimed after five minutes.
   const deductLines = (items.results as any[]).filter(i => i.product_id);
-  const deductStmts: D1PreparedStatement[] = deductLines.map(item =>
-    env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
-    ).bind(Number(item.quantity) || 0, item.product_id, accountId, Number(item.quantity) || 0)
-  );
-
-  // Maps product_id → balance_after taken from the actual RETURNING value.
-  const balanceAfter = new Map<string, number>();
-  if (deductStmts.length > 0) {
-    let deductResults: D1Result[];
-    try {
-      deductResults = await env.DB.batch(deductStmts);
-    } catch (err: any) {
-      await releaseClaim().catch(() => {});
-      console.error('handleFulfillInvoice deduct batch failed:', err);
-      return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
-    }
-
-    // Find any line whose guarded UPDATE matched no row (lost the race).
-    const failedIdx = deductResults.findIndex(r => (r.results?.length ?? 0) === 0);
-    if (failedIdx !== -1) {
-      // Compensate: add back the qty for every line that DID deduct, so the
-      // partial Phase-A commit is undone before we abort.
-      const restoreStmts: D1PreparedStatement[] = [];
-      deductResults.forEach((r, i) => {
-        if ((r.results?.length ?? 0) > 0) {
-          const qty = Number(deductLines[i].quantity) || 0;
-          restoreStmts.push(
-            env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-              .bind(qty, deductLines[i].product_id, accountId)
-          );
-        }
-      });
-      if (restoreStmts.length > 0) {
-        try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment rollback failed:', e); }
-      }
-      await releaseClaim().catch(() => {});
-      const failed = deductLines[failedIdx];
-      const product = products.get(failed.product_id as string);
-      return json({
-        error: 'insufficient_stock',
-        product_id: failed.product_id,
-        requested: Number(failed.quantity) || 0,
-        available: product ? Number(product.stock_grams) || 0 : 0,
-      }, 409);
-    }
-
-    deductResults.forEach((r, i) => {
-      const row = r.results?.[0] as { stock_grams?: number } | undefined;
-      balanceAfter.set(deductLines[i].product_id as string, Number(row?.stock_grams) || 0);
-    });
-  }
-
-  // ── Phase B: ledger, mirror, status, holds, invoice (atomic batch) ─────
   const stmts: D1PreparedStatement[] = [];
 
   for (const item of items.results as any[]) {
@@ -3186,12 +3132,14 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     const product = products.get(item.product_id as string);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
-    // balance_after derived from the conditional UPDATE's RETURNING value, not
-    // the earlier (potentially stale) read.
-    const newBalance = balanceAfter.has(item.product_id as string)
-      ? (balanceAfter.get(item.product_id as string) as number)
-      : currentStock - qty;
+    const newBalance = currentStock - qty;
     const threshold = product ? Number(product.low_stock_threshold) || 0 : 0;
+
+    stmts.push(env.DB.prepare(
+      `UPDATE products SET stock_grams = stock_grams - ?
+       WHERE id = ? AND account_id = ?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+    ).bind(qty, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
 
     // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))
     // pattern) so a mirror that drifted below the products row can't go negative.
@@ -3240,7 +3188,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   );
 
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
       .bind(invoice_id, accountId, fulfillmentClaim)
   );
 
@@ -3254,16 +3202,6 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     await env.DB.batch(stmts);
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
-    // Phase A already committed the stock deduction in a separate batch, so we
-    // MUST compensate it here — otherwise stock stays reduced with no invoice/
-    // ledger record and a retry would double-deduct.
-    if (deductLines.length > 0) {
-      const restoreStmts: D1PreparedStatement[] = deductLines.map(item =>
-        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-          .bind(Number(item.quantity) || 0, item.product_id, accountId)
-      );
-      try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment Phase-B rollback failed:', e); }
-    }
     await releaseClaim().catch(() => {});
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }

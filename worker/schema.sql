@@ -205,6 +205,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_method TEXT,
     fulfilled_at TEXT,
     fulfillment_claim_token TEXT,
+    fulfillment_claimed_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -224,6 +225,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_account_invoice_number_active
   WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_invoices_fulfillment_claim
   ON invoices(account_id, fulfillment_claim_token);
+CREATE TRIGGER IF NOT EXISTS trg_products_nonnegative_stock
+BEFORE UPDATE OF stock_grams ON products
+FOR EACH ROW WHEN NEW.stock_grams < 0
+BEGIN
+  SELECT RAISE(ABORT, 'stock_grams cannot be negative');
+END;
 
 -- 5. Users Table
 CREATE TABLE IF NOT EXISTS users (
