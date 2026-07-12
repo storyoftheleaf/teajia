@@ -2389,7 +2389,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
 
 const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
-  'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
+  'stock_verified_at', 'stock_known_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
   'session_reserve_grams',
 ]);
 
@@ -2465,6 +2465,10 @@ async function applyProductUpdate(
       }, 400);
     }
   }
+
+  const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!ownedProduct) return json({ error: 'Product not found' }, 404);
 
   // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
@@ -3005,6 +3009,10 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+
+  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
 
   const result = await env.DB.prepare(
     `SELECT ili.*, p.given_name, p.product_name
@@ -4615,9 +4623,14 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
-    await env.DB.prepare(
+    const result = await env.DB.prepare(
       `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
     ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+    if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Customer not found' }, 404);
+  } else {
+    const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first();
+    if (!customer) return json({ error: 'Customer not found' }, 404);
   }
 
   await ensureRelationshipsFromCustomerBody(env, accountId, params.id, body, 'manual');
@@ -7132,9 +7145,10 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
 };
@@ -9006,6 +9020,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
   const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
