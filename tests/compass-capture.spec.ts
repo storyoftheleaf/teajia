@@ -179,6 +179,41 @@ test.describe('Curate field capture preservation', () => {
     expect(replacement.activeEntryId).toBe(replacement.pendingId);
   });
 
+  test('capture action footer has three equal actions in Buy Done Sample order', async ({ page }) => {
+    await openCompass(page);
+    const footer = page.getByTestId('capture-action-footer').filter({ visible: true });
+    const buttons = footer.getByRole('button');
+
+    await expect(buttons).toHaveCount(3);
+    await expect(buttons).toHaveText(['Buy', 'Done', 'Sample']);
+    await expect(page.getByRole('button', { name: 'Tasted', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Want', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Pass', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Bag it', exact: true })).toHaveCount(0);
+
+    const widths = await buttons.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().width),
+    );
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+  });
+
+  test('Sample opens the current tea tasting without changing sourcing or possession', async ({ page }) => {
+    await openCompass(page);
+    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Decision-safe sample');
+    await page.getByRole('radio', { name: 'Considering' }).click();
+    await page.getByTestId('capture-action-footer').filter({ visible: true })
+      .getByRole('button', { name: 'Sample', exact: true }).click();
+
+    await expect(page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true })).toBeVisible();
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      const entry = state.getEntry(state.activeEntryId!);
+      return { decision: entry?.decision, sampleState: entry?.sampleState ?? null };
+    })).toEqual({ decision: 'considering', sampleState: null });
+  });
+
   test('desktop Done also creates exactly one active replacement draft', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'Desktop Chrome', 'desktop action bar only');
     await openCompass(page);
