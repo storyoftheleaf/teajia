@@ -138,7 +138,16 @@ test('event verification defaults to email and sends the event purpose', async (
   await page.goto('/journey');
   await expect(page.getByLabel('Delivery method: Email')).toBeVisible();
   await page.getByLabel('Email address').fill('guest@example.com');
-  await page.getByRole('button', { name: 'Send code' }).click();
+  const sendCode = page.getByRole('button', { name: 'Send code' });
+  await sendCode.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => {
+    const action = [...document.querySelectorAll('button')].find(button => button.textContent?.trim() === 'Send code')?.getBoundingClientRect();
+    const navElement = document.querySelector('[data-testid="bottom-tab-bar"]');
+    const nav = navElement?.getBoundingClientRect();
+    const navVisible = navElement && getComputedStyle(navElement).display !== 'none' && nav && nav.height > 0;
+    return Boolean(action) && (!navVisible || action!.bottom <= nav!.top);
+  })).toBe(true);
+  await sendCode.click();
 
   expect(requestBody).toEqual({ contact: 'guest@example.com', method: 'email', purpose: 'event' });
   await expect(page.getByText('Code sent to guest@example.com.')).toBeVisible();

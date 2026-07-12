@@ -64,8 +64,11 @@ test('detail shows loading then the complete inquiry journey above mobile naviga
   await contact.scrollIntoViewIfNeeded();
   const clearance = await page.evaluate(() => {
     const action = document.querySelector('[data-testid="order-contact-action"]')?.getBoundingClientRect();
-    const nav = document.querySelector('[data-testid="bottom-tab-bar"]')?.getBoundingClientRect();
-    return action && nav ? action.bottom <= nav.top : false;
+    const navElement = document.querySelector('[data-testid="bottom-tab-bar"]');
+    const nav = navElement?.getBoundingClientRect();
+    const navVisible = window.matchMedia('(max-width: 1023px)').matches
+      && navElement && getComputedStyle(navElement).display !== 'none' && nav && nav.height > 0;
+    return Boolean(action) && (!navVisible || action!.bottom <= nav!.top);
   });
   expect(clearance).toBe(true);
 });

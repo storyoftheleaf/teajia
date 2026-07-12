@@ -198,7 +198,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
               )}
 
               {/* Footer — Cancel-left, primary-right */}
-              <div className="flex justify-between items-center gap-3 pt-2">
+              <div className="flex justify-between items-center gap-3 pt-2 pb-nav-gap">
                 <button
                   type="button"
                   onClick={onClose}
@@ -289,7 +289,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
               )}
 
               {/* Footer — Cancel-left, primary-right */}
-              <div className="flex justify-between items-center gap-3 pt-2">
+              <div className="flex justify-between items-center gap-3 pt-2 pb-nav-gap">
                 <button
                   type="button"
                   onClick={onClose}
