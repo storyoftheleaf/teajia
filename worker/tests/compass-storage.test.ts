@@ -79,12 +79,46 @@ describe('Compass storage safety', () => {
   it('does not let sync steal an id owned by another account', async () => {
     const db = new FakeDb();
     db.rows.set('shared-id', { id: 'shared-id', user_id: 'user-b', account_id: 'account-b', name: 'B tea' });
-    await compassRequest(db, '/api/compass/sync', {
+    const response = await compassRequest(db, '/api/compass/sync', {
       method: 'POST', body: JSON.stringify({ entries: [{ id: 'shared-id', name: 'stolen' }] }),
     });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ synced: 0, syncedIds: [], conflicts: ['shared-id'] });
     expect(db.rows.get('shared-id')).toMatchObject({ account_id: 'account-b', user_id: 'user-b', name: 'B tea' });
     const list = await compassRequest(db, '/api/compass/entries');
     expect(await list.json()).toEqual({ entries: [] });
+  });
+
+  it('acknowledges successful entries while reporting collisions in the same batch', async () => {
+    const db = new FakeDb();
+    db.rows.set('collision', { id: 'collision', user_id: 'user-b', account_id: 'account-b', name: 'Protected' });
+    const response = await compassRequest(db, '/api/compass/sync', {
+      method: 'POST',
+      body: JSON.stringify({ entries: [
+        { id: 'accepted', price_amount: 25 },
+        { id: 'collision', price_amount: 99 },
+      ] }),
+    });
+    expect(await response.json()).toEqual({
+      synced: 1,
+      syncedIds: ['accepted'],
+      conflicts: ['collision'],
+    });
+    expect(db.rows.get('accepted')?.price_amount).toBe(25);
+    expect(db.rows.get('collision')?.price_amount).toBeUndefined();
+  });
+
+  it('preserves created_at during an acknowledged upsert', async () => {
+    const db = new FakeDb();
+    db.rows.set('created', {
+      id: 'created', user_id: 'user-a', account_id: 'account-a', created_at: '2024-01-01', price_amount: 1,
+    });
+    const response = await compassRequest(db, '/api/compass/sync', {
+      method: 'POST',
+      body: JSON.stringify({ entries: [{ id: 'created', created_at: '2099-01-01', price_amount: 2 }] }),
+    });
+    expect(await response.json()).toMatchObject({ syncedIds: ['created'], conflicts: [] });
+    expect(db.rows.get('created')).toMatchObject({ created_at: '2024-01-01', price_amount: 2 });
   });
 
   it('preserves server fields omitted by a partial sync', async () => {

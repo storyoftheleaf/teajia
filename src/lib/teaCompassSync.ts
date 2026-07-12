@@ -162,25 +162,27 @@ export async function syncCompassEntries(): Promise<number> {
   try {
     const payload = unsynced.map(toSnakeCase);
     const result = await api.compass.sync(payload);
+    const attemptedIds = new Set(unsynced.map(entry => entry.id));
+    const acknowledgedIds = new Set(
+      Array.isArray(result.syncedIds)
+        ? result.syncedIds.filter(id => attemptedIds.has(id))
+        : [],
+    );
+    const hasUnacknowledged = acknowledgedIds.size !== unsynced.length;
 
-    // Mark as synced in store
-    for (const entry of unsynced) {
-      store.updateEntry(entry.id, { synced: true });
-      // updateEntry sets synced=false, so we need to force it back
-    }
-    // Direct state update to set synced=true without triggering the synced=false logic.
-    // Also clear any prior sync-error flag — we just reached the server.
+    // Only explicit per-id acknowledgements are allowed to clear local dirty
+    // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
       entries: state.entries.map(e =>
-        unsynced.some(u => u.id === e.id) ? { ...e, synced: true } : e
+        acknowledgedIds.has(e.id) ? { ...e, synced: true } : e
       ),
-      syncError: false,
+      syncError: hasUnacknowledged,
     }));
 
     // Entries are on the server now — safe to retry any queued promotions.
     await retryPendingPromotions();
 
-    return result.synced;
+    return acknowledgedIds.size;
   } catch (err) {
     // Offline or error — do NOT mark entries as synced; they will retry next cycle.
     // Flag it so the UI can say "couldn't save" rather than leaving the user to

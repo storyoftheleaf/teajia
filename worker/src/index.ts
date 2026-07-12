@@ -8887,20 +8887,26 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     const updates = present
       .filter(column => column !== 'created_at')
       .map(column => `${column} = excluded.${column}`);
-    const conflictAction = updates.length > 0
-      ? `DO UPDATE SET ${updates.join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`
-      : 'DO NOTHING';
+    // Even an id-only retry performs an ownership-scoped no-value update so
+    // D1 returns meta.changes=1 for an acknowledged row and 0 for a collision.
+    const conflictUpdates = updates.length > 0 ? updates : ['id = excluded.id'];
+    const conflictAction = `DO UPDATE SET ${conflictUpdates.join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`;
     stmts.push(env.DB.prepare(
       `INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
        ON CONFLICT(id) ${conflictAction}`
     ).bind(entry.id, userId, accountId, ...present.map(column => decoded.values[column])));
   }
 
-  if (stmts.length > 0) {
-    await env.DB.batch(stmts);
-  }
+  const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
+  const syncedIds: string[] = [];
+  const conflicts: string[] = [];
+  results.forEach((result, index) => {
+    const id = String(body.entries[index].id);
+    if (Number(result.meta?.changes ?? 0) > 0) syncedIds.push(id);
+    else conflicts.push(id);
+  });
 
-  return json({ synced: stmts.length });
+  return json({ synced: syncedIds.length, syncedIds, conflicts });
 };
 
 // ── Event System V2 Handlers ──

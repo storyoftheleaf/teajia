@@ -72,7 +72,16 @@ class FakeStatement {
       ) {
         return { success: true, meta: { changes: 0 } };
       }
-      this.db.rows.set(String(incoming.id), current ? { ...current, ...incoming } : incoming);
+      if (!current) {
+        this.db.rows.set(String(incoming.id), incoming);
+        return { success: true, meta: { changes: 1 } };
+      }
+      const updateClause = this.sql.match(/do\s+update\s+set\s+(.+?)\s+where/is)?.[1] ?? '';
+      const updated = { ...current };
+      for (const match of updateClause.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*excluded\.([a-z_]+)/gi)) {
+        updated[match[1]] = incoming[match[2]];
+      }
+      this.db.rows.set(String(incoming.id), updated);
       return { success: true, meta: { changes: 1 } };
     }
     if (sql.startsWith('update tea_compass_entries set')) {
@@ -103,7 +112,20 @@ export class FakeDb {
   }
 
   async batch(statements: FakeStatement[]) {
-    return Promise.all(statements.map(statement => statement.run()));
+    const snapshot = new Map(
+      [...this.rows].map(([id, row]) => [id, { ...row }]),
+    );
+    try {
+      // D1 batch results are positional and the batch is transactional. Keep
+      // both properties in the harness because sync acknowledgements depend on
+      // each statement's corresponding meta.changes value.
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    } catch (error) {
+      this.rows = snapshot;
+      throw error;
+    }
   }
 }
 

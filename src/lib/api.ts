@@ -2,6 +2,11 @@ import type { Account, AccountApplication, AccountKind, AccountMember, AccountMe
 import type { CompassDecision } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
+export interface CompassSyncResult {
+  synced: number;
+  syncedIds: string[];
+  conflicts: string[];
+}
 
 export interface AuditLogEntry {
   id: string;
@@ -1800,7 +1805,7 @@ export const api = {
         retryTimeouts: true,
       });
     },
-    sync: async (entries: CompassWrite[]) => {
+    sync: async (entries: CompassWrite[]): Promise<CompassSyncResult> => {
       // Worker uses an ownership-scoped upsert keyed by entry id — idempotent
       // without replacing server-owned or omitted fields.
       return authedFetch(`${API_URL}/api/compass/sync`, {
