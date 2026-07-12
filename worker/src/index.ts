@@ -10652,7 +10652,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   }
 
   const customer = await env.DB.prepare(
-    `SELECT id, name, phone, email FROM customers
+    `SELECT id, account_id, name, phone, email FROM customers
      WHERE (phone = ? OR whatsapp = ? OR lower(email) = lower(?))
        AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
   ).bind(contact, contact, contact).first();
@@ -10663,9 +10663,10 @@ const handleVerifyConfirm: Handler = async (request, env) => {
     `SELECT ea.magic_token, ea.status, ea.event_id, e.title as event_title, e.event_date
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.phone_number = ? OR ea.email = ?
+     WHERE ea.account_id = ? AND e.account_id = ?
+       AND (ea.phone_number = ? OR lower(ea.email) = lower(?))
      ORDER BY e.event_date DESC`
-  ).bind(contact, contact).all();
+  ).bind(customer.account_id, customer.account_id, contact, contact).all();
 
   return json({
     customer: {
@@ -10691,8 +10692,10 @@ const handleGetJourney: Handler = async (request, env, params) => {
   // Verify the token belongs to the requested contact. Event verification now
   // defaults to email, while legacy attendees may still be phone-only.
   const tokenRow = await env.DB.prepare(
-    `SELECT id FROM event_attendees
-     WHERE magic_token = ? AND (phone_number = ? OR lower(email) = lower(?))`
+    `SELECT ea.id, ea.account_id, ea.event_id
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE ea.magic_token = ? AND (ea.phone_number = ? OR lower(ea.email) = lower(?))`
   ).bind(token, contact, contact).first();
 
   if (!tokenRow) {
@@ -10702,8 +10705,8 @@ const handleGetJourney: Handler = async (request, env, params) => {
   const customer = await env.DB.prepare(
     `SELECT id, name FROM customers
      WHERE (phone = ? OR whatsapp = ? OR lower(email) = lower(?))
-       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
-  ).bind(contact, contact, contact).first();
+       AND account_id = ?`
+  ).bind(contact, contact, contact, tokenRow.account_id).first();
 
   if (!customer) return json({ error: 'No journey found for this contact' }, 404);
 
@@ -10711,11 +10714,12 @@ const handleGetJourney: Handler = async (request, env, params) => {
   const sessions = await env.DB.prepare(
     `SELECT ea.id as attendee_id, ea.event_id, e.title, e.event_date, e.flyer_image_url
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
      WHERE (ea.phone_number = ? OR lower(ea.email) = lower(?))
+       AND ea.account_id = ? AND e.account_id = ?
        AND ea.status = 'confirmed' AND ea.attended = 1
      ORDER BY e.event_date ASC`
-  ).bind(contact, contact).all();
+  ).bind(contact, contact, tokenRow.account_id, tokenRow.account_id).all();
 
   const sessionsAttended = sessions.results.length;
   const seals = (sessions.results as Record<string, any>[]).map(s => ({
@@ -10742,12 +10746,13 @@ const handleGetJourney: Handler = async (request, env, params) => {
               etm.custom_name, p.given_name, p.product_name, p.type,
               e.title as event_title, e.event_date
        FROM event_tasting_notes etn
-       LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
-       LEFT JOIN products p ON p.id = etm.product_id
-       JOIN event_attendees ea ON ea.id = etn.attendee_id
-       JOIN events e ON e.id = ea.event_id
-       WHERE etn.attendee_id IN (${placeholders})`
-    ).bind(...attendeeIds).all();
+       LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id AND etm.account_id = etn.account_id
+       LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etn.account_id
+       JOIN event_attendees ea ON ea.id = etn.attendee_id AND ea.account_id = etn.account_id
+       JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+       WHERE etn.attendee_id IN (${placeholders})
+         AND etn.account_id = ? AND ea.account_id = ? AND e.account_id = ?`
+    ).bind(...attendeeIds, tokenRow.account_id, tokenRow.account_id, tokenRow.account_id).all();
 
     totalTeas = notes.results.length;
 

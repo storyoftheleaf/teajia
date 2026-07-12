@@ -14,14 +14,14 @@ class VerificationDb {
       first: async () => {
         if (normalized.includes('from verification_challenges')) return this.challenges.filter(row => row.contact_normalized === values[0] && row.purpose === values[1]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
         if (normalized.includes('from users where lower(email)')) return values[0] === this.user.email ? this.user : null;
-        if (normalized.includes('from event_attendees') && normalized.includes('magic_token')) return values[0] === 'magic' && values.includes('guest@example.com') ? { id: 'attendee-1' } : null;
-        if (normalized.includes('from customers')) return values.includes('guest@example.com') ? { id: 'customer-1', name: 'Guest', phone: null, email: 'guest@example.com' } : null;
+        if (normalized.includes('from event_attendees') && normalized.includes('magic_token')) return values[0] === 'magic' && values.includes('guest@example.com') ? { id: 'attendee-1', account_id: 'account-platform', event_id: 'event-1' } : null;
+        if (normalized.includes('from customers')) return values.includes('guest@example.com') && (!normalized.includes('account_id = ?') || values.includes('account-platform')) ? { id: 'customer-1', account_id: 'account-platform', name: 'Guest', phone: null, email: 'guest@example.com' } : null;
         if (normalized.includes('from accounts where is_platform_owner')) return { id: 'account-platform' };
         return null;
       },
       all: async () => {
         if (normalized.includes('from account_members')) return { results: [{ account_id: 'account-1', role: 'staff', permissions: '{"bundles":["catalog"]}', slug: 'store', name: 'Store', kind: 'location', is_platform_owner: 0 }] };
-        if (normalized.includes('select ea.id as attendee_id')) return { results: [{ attendee_id: 'attendee-1', event_id: 'event-1', title: 'Tea', event_date: '2026-08-01', flyer_image_url: null }] };
+        if (normalized.includes('select ea.id as attendee_id')) return { results: normalized.includes('ea.account_id = ?') && values.includes('account-platform') ? [{ attendee_id: 'attendee-1', event_id: 'event-1', title: 'Tea', event_date: '2026-08-01', flyer_image_url: null }] : [{ attendee_id: 'attendee-1', event_id: 'event-1', title: 'Tea' }, { attendee_id: 'attendee-b', event_id: 'event-b', title: 'Other tenant' }] };
         if (normalized.includes('from event_tasting_notes')) return { results: [] };
         if (normalized.includes('from event_attendees')) return { results: [{ magic_token: 'magic', status: 'confirmed', event_id: 'event-1', event_title: 'Tea', event_date: '2026-08-01' }] };
         return { results: [] };
@@ -111,5 +111,13 @@ describe('purpose-aware verification routes', () => {
       sessions_attended: 1,
       seals: [{ event_id: 'event-1', title: 'Tea' }],
     });
+  });
+
+  it('does not include another account journey for the same email', async () => {
+    const response = await worker.fetch(new Request('https://test.dev/api/journey/guest%40example.com?token=magic'), { DB: new VerificationDb(), JWT_SECRET: 'jwt-secret' } as any);
+    expect(response.status).toBe(200);
+    const body = await response.json() as any;
+    expect(body.seals).toEqual([{ event_id: 'event-1', title: 'Tea', date: '2026-08-01', flyer_url: null }]);
+    expect(JSON.stringify(body)).not.toContain('event-b');
   });
 });

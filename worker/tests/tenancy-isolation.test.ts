@@ -10,6 +10,7 @@ const tables: Record<string, Row[]> = {
   invoices: [{ id: 'invoice-a', account_id: 'acct-a', status: 'Pending' }, { id: 'invoice-b', account_id: 'acct-b', status: 'Pending' }],
   invoice_line_items: [{ id: 'line-a', account_id: 'acct-a', invoice_id: 'invoice-a' }, { id: 'line-b', account_id: 'acct-b', invoice_id: 'invoice-b' }],
   products: [{ id: 'product-a', account_id: 'acct-a', stock_grams: 10 }, { id: 'product-b', account_id: 'acct-b', stock_grams: 10 }],
+  stock_movements: [{ id: 'stock-a', account_id: 'acct-a', product_id: 'product-a', delta: 0 }, { id: 'stock-b', account_id: 'acct-b', product_id: 'product-b', delta: 0 }],
   curate_journeys: [{ id: 'journey-a', account_id: 'acct-a', name: 'A' }, { id: 'journey-b', account_id: 'acct-b', name: 'B' }],
   curate_visits: [{ id: 'visit-a', account_id: 'acct-a', notes: 'A' }, { id: 'visit-b', account_id: 'acct-b', notes: 'B' }],
   tea_compass_entries: [{ id: 'entry-a', account_id: 'acct-a', user_id: 'member-a', notes: 'A' }, { id: 'entry-b', account_id: 'acct-b', user_id: 'member-b', notes: 'B' }],
@@ -20,12 +21,18 @@ class Statement {
   constructor(readonly sql: string, private db: TenantDb) {}
   bind(...values: unknown[]) { this.values = values; return this; }
   normalized() { return this.sql.replace(/\s+/g, ' ').trim().toLowerCase(); }
-  table() { return Object.keys(this.db.rows).find(name => this.normalized().includes(`from ${name}`) || this.normalized().startsWith(`update ${name}`)) || null; }
-  scoped(rows: Row[]) {
+  table() { return Object.keys(this.db.rows).find(name => this.normalized().includes(`from ${name}`) || new RegExp(`^(?:update|insert into|delete from) ${name}\\b`).test(this.normalized())) || null; }
+  accountBinding(): unknown {
     const sql = this.normalized();
-    if (!sql.includes('account_id')) return rows;
-    const account = this.values.find(value => value === 'acct-a' || value === 'acct-b');
-    return account ? rows.filter(row => row.account_id === account) : rows;
+    const matches = [...sql.matchAll(/(?:\b\w+\.)?account_id\s*=\s*\?/g)];
+    const match = matches.at(-1);
+    if (!match || match.index == null) return undefined;
+    const bindingIndex = (sql.slice(0, match.index).match(/\?/g) || []).length;
+    return this.values[bindingIndex];
+  }
+  scoped(rows: Row[]) {
+    const account = this.accountBinding();
+    return account === 'acct-a' || account === 'acct-b' ? rows.filter(row => row.account_id === account) : rows;
   }
   async first() {
     const sql = this.normalized();
@@ -55,8 +62,20 @@ class Statement {
     const table = this.table();
     if (!table || !this.normalized().startsWith('update')) return { success: true, meta: { changes: 0 } };
     const id = this.values.find(value => typeof value === 'string' && /^(customer|event|invoice|product|journey|visit|entry)-/.test(value));
-    const account = this.values.find(value => value === 'acct-a' || value === 'acct-b');
-    const row = this.db.rows[table].find(candidate => candidate.id === id && (!this.normalized().includes('account_id') || candidate.account_id === account));
+    const sql = this.normalized();
+    const account = this.accountBinding();
+    if (sql.startsWith('delete')) {
+      const before = this.db.rows[table].length;
+      this.db.rows[table] = this.db.rows[table].filter(candidate => candidate.id !== id || candidate.account_id !== account);
+      return { success: true, meta: { changes: before - this.db.rows[table].length } };
+    }
+    if (sql.startsWith('insert')) {
+      const columns = this.sql.match(/\(([^)]+)\)\s*values/i)?.[1].split(',').map(value => value.trim()) || [];
+      const inserted = Object.fromEntries(columns.map((column, index) => [column, this.values[index]])) as Row;
+      if (inserted.id && inserted.account_id) this.db.rows[table].push(inserted);
+      return { success: true, meta: { changes: inserted.id ? 1 : 0 } };
+    }
+    const row = this.db.rows[table].find(candidate => candidate.id === id && candidate.account_id === account);
     if (!row) return { success: true, meta: { changes: 0 } };
     row.mutated = true;
     return { success: true, meta: { changes: 1 } };
@@ -67,7 +86,8 @@ class TenantDb {
   rows = Object.fromEntries(Object.entries(tables).map(([name, rows]) => [name, rows.map(row => ({ ...row }))])) as Record<string, Row[]>;
   memberships: Record<string, boolean> = { 'member-a:acct-a': true, 'member-b:acct-b': true };
   platformRoles: Record<string, string | null> = { 'member-a': null, 'member-b': null, platform: 'platform_owner' };
-  prepare(sql: string) { return new Statement(sql, this); }
+  statements: Statement[] = [];
+  prepare(sql: string) { const statement = new Statement(sql, this); this.statements.push(statement); return statement; }
   async batch(statements: Statement[]) {
     const results = [];
     for (const statement of statements) results.push(statement.normalized().startsWith('select') ? await statement.all() : await statement.run());
@@ -81,21 +101,22 @@ async function call(db: TenantDb, userId: string, accountId: string, path: strin
 function ids(value: unknown): string[] { if (Array.isArray(value)) return value.flatMap(ids); if (value && typeof value === 'object') return Object.entries(value).flatMap(([key, nested]) => key === 'id' && typeof nested === 'string' ? [nested] : ids(nested)); return []; }
 
 const cases = [
-  ['customers', '/api/customers', '/api/customers/customer-b', 'PUT', { name: 'changed' }],
-  ['events', '/api/admin/events', '/api/admin/events/event-b', 'PUT', { title: 'changed' }],
-  ['invoices', '/api/invoices', '/api/invoices/invoice-b/items', 'GET', undefined],
-  ['inventory', '/api/products', '/api/products/product-b/stock', 'PUT', { stock_grams: 999 }],
-  ['curate journeys', '/api/curate/journeys', '/api/curate/journeys/journey-b', 'PUT', { name: 'changed' }],
-  ['curate visits', '/api/curate/visits', '/api/curate/visits/visit-b', 'PUT', { notes: 'changed' }],
-  ['curate records', '/api/compass/entries', '/api/compass/entries/entry-b', 'PUT', { notes: 'changed' }],
+  ['customers', '/api/customers', '/api/customers/customer-b', 'PUT', { name: 'changed' }, /where c\.account_id\s*=\s*\?/],
+  ['events', '/api/admin/events', '/api/admin/events/event-b', 'PUT', { title: 'changed' }, /where e\.account_id\s*=\s*\?/],
+  ['invoices', '/api/invoices', '/api/invoices/invoice-b/items', 'GET', undefined, /where i\.account_id\s*=\s*\?/],
+  ['inventory', '/api/products', '/api/products/product-b/stock', 'PUT', { stock_grams: 999 }, /where p\.account_id\s*=\s*\?/],
+  ['curate journeys', '/api/curate/journeys', '/api/curate/journeys/journey-b', 'PUT', { name: 'changed' }, /where account_id\s*=\s*\?/],
+  ['curate visits', '/api/curate/visits', '/api/curate/visits/visit-b', 'PUT', { notes: 'changed' }, /where account_id\s*=\s*\?/],
+  ['curate records', '/api/compass/entries', '/api/compass/entries/entry-b', 'PUT', { notes: 'changed' }, /where user_id\s*=\s*\? and account_id\s*=\s*\?/],
 ] as const;
 
 describe('cross-account resource isolation', () => {
   it('denies selecting an account without membership', async () => { const response = await call(new TenantDb(), 'member-a', 'acct-b', '/api/customers'); expect(response.status).toBe(403); expect(await response.json()).toMatchObject({ error: 'Account access denied' }); });
 
-  it.each(cases)('scopes %s lists and direct access', async (_label, listPath, directPath, method, body) => {
+  it.each(cases)('scopes %s lists and direct access', async (_label, listPath, directPath, method, body, listPredicate) => {
     const db = new TenantDb(); const before = JSON.stringify(db.rows);
     const list = await call(db, 'member-a', 'acct-a', listPath); expect(list.status).toBe(200); expect(ids(await list.json())).not.toContain(expect.stringMatching(/-b$/));
+    expect(db.statements.some(statement => listPredicate.test(statement.normalized()) && statement.accountBinding() === 'acct-a')).toBe(true);
     const direct = await call(db, 'member-a', 'acct-a', directPath, method, body); expect([403, 404]).toContain(direct.status);
     expect(JSON.stringify(db.rows)).toBe(before);
   });
@@ -103,7 +124,9 @@ describe('cross-account resource isolation', () => {
   it('uses database platform role for the platform exception', async () => {
     const db = new TenantDb();
     expect((await call(db, 'member-a', 'acct-b', '/api/customers')).status).toBe(403);
+    expect((await call(db, 'member-a', 'acct-a', '/api/customers/customer-b')).status).toBe(404);
     const response = await call(db, 'platform', 'acct-b', '/api/customers'); expect(response.status).toBe(200); expect(ids(await response.json())).toContain('customer-b');
+    const direct = await call(db, 'platform', 'acct-b', '/api/customers/customer-b'); expect(direct.status).toBe(200); expect(await direct.json()).toMatchObject({ id: 'customer-b', account_id: 'acct-b' });
   });
 
   it('blocks cross-account fulfillment and stock side effects', async () => {
