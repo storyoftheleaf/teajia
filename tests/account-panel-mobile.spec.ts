@@ -237,7 +237,7 @@ const PUBLIC_ROUTES = [
   ['/account/history',    'Reading History'],
   ['/account/settings',   'Account Settings'],
   ['/shop',               'Shop'],
-  ['/magazine',           'Magazine'],
+  ['/read',               'Read'],
   ['/community',          'Community'],
   ['/find-a-table',       'Find a Teahouse'],
   ['/consult',            'Consult'],

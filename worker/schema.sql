@@ -270,6 +270,104 @@ CREATE TABLE IF NOT EXISTS account_features (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
 
+-- Canonical tea identity and per-account listing mirror (migrations 048, 051,
+-- 090, 092, and 103). Profiles must precede listings because listings carry a
+-- required profile reference.
+CREATE TABLE IF NOT EXISTS tea_profiles (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  slug TEXT UNIQUE NOT NULL,
+  originated_by_account_id TEXT NOT NULL REFERENCES accounts(id),
+  curated_by_account_id TEXT NOT NULL REFERENCES accounts(id),
+  name TEXT NOT NULL,
+  chinese_name TEXT,
+  type TEXT,
+  form TEXT,
+  origin_country TEXT,
+  origin_region TEXT,
+  varietal TEXT,
+  harvest_year TEXT,
+  description TEXT,
+  lore TEXT,
+  processing_notes TEXT,
+  terroir TEXT,
+  mood TEXT,
+  experience TEXT,
+  tasting_notes TEXT DEFAULT '[]',
+  image_url TEXT,
+  canonical_photos TEXT DEFAULT '[]',
+  flavor_tags TEXT DEFAULT '[]',
+  mood_tags TEXT DEFAULT '[]',
+  wholesale_margin_pct INTEGER,
+  network_visible INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'published',
+  suggested_for_network_at TEXT,
+  suggested_for_network_by_user_id TEXT REFERENCES users(id),
+  suggested_for_network_note TEXT,
+  adoption_decision TEXT,
+  adoption_decided_at TEXT,
+  adoption_decided_by_user_id TEXT REFERENCES users(id),
+  adoption_decline_note TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_profiles_originated ON tea_profiles(originated_by_account_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_curated ON tea_profiles(curated_by_account_id);
+CREATE INDEX IF NOT EXISTS idx_profiles_network ON tea_profiles(network_visible, status);
+CREATE INDEX IF NOT EXISTS idx_profiles_type ON tea_profiles(type);
+CREATE INDEX IF NOT EXISTS idx_profiles_adoption_pending
+  ON tea_profiles(adoption_decision, suggested_for_network_at)
+  WHERE adoption_decision = 'pending';
+
+CREATE TABLE IF NOT EXISTS product_listings (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  profile_id TEXT NOT NULL REFERENCES tea_profiles(id),
+  stock_grams INTEGER DEFAULT 0,
+  low_stock_threshold INTEGER DEFAULT 100,
+  recheck_stock INTEGER DEFAULT 0,
+  fixed_retail_price_usd REAL,
+  markup_multiplier REAL DEFAULT 2.5,
+  vendor TEXT,
+  vendor_id TEXT,
+  cost_amount REAL DEFAULT 0,
+  cost_currency TEXT DEFAULT 'USD',
+  shipping_rate_per_kg REAL DEFAULT 0,
+  quantity_purchased INTEGER,
+  source_compass_entry_id TEXT,
+  stock_verified_at TEXT,
+  store_note TEXT,
+  listing_photos TEXT DEFAULT '[]',
+  hide_canonical_photos INTEGER NOT NULL DEFAULT 0,
+  is_personal INTEGER DEFAULT 0,
+  can_reorder INTEGER DEFAULT 0,
+  is_public INTEGER DEFAULT 1,
+  is_featured INTEGER DEFAULT 0,
+  is_curated INTEGER DEFAULT 0,
+  is_sample INTEGER DEFAULT 0,
+  in_transit INTEGER DEFAULT 0,
+  show_wisdom INTEGER DEFAULT 1,
+  is_custom_wisdom INTEGER DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active',
+  archived_at TEXT,
+  archived_reason TEXT,
+  sold_out_at TEXT,
+  tasting TEXT DEFAULT '{}',
+  tasting_source TEXT,
+  legacy_product_id TEXT,
+  owner_user_id TEXT,
+  shown_in_shop INTEGER NOT NULL DEFAULT 1,
+  inventory_purpose TEXT CHECK (inventory_purpose IN ('working', 'sample', 'personal')),
+  stock_known_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(account_id, profile_id)
+);
+CREATE INDEX IF NOT EXISTS idx_listings_account ON product_listings(account_id);
+CREATE INDEX IF NOT EXISTS idx_listings_profile ON product_listings(profile_id);
+CREATE INDEX IF NOT EXISTS idx_listings_account_status ON product_listings(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_listings_legacy ON product_listings(legacy_product_id);
+CREATE INDEX IF NOT EXISTS idx_listings_account_owner ON product_listings(account_id, owner_user_id);
+
 -- 5b. Password Reset Tokens Table
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -480,6 +578,70 @@ CREATE INDEX IF NOT EXISTS idx_compass_entries_verdict ON tea_compass_entries(ve
 CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(account_id, decision);
 CREATE INDEX IF NOT EXISTS idx_compass_account_sample_state ON tea_compass_entries(account_id, sample_state);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_compass_import_item ON tea_compass_entries(account_id, user_id, import_item_id) WHERE import_item_id IS NOT NULL;
+
+-- Operational sample workflow (migrations 0007, 017, and 021). Sets precede
+-- samples, and samples precede tastings, matching their dependency chain.
+CREATE TABLE IF NOT EXISTS tea_sample_sets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  source_id TEXT,
+  source_name TEXT,
+  purpose TEXT NOT NULL DEFAULT 'sourcing',
+  notes TEXT,
+  shared_with TEXT DEFAULT '[]',
+  account_id TEXT,
+  panel_account_ids TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tea_samples (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  chinese_name TEXT,
+  type TEXT,
+  form TEXT,
+  year INTEGER,
+  origin_region TEXT,
+  source_id TEXT,
+  source_name TEXT,
+  source_contact TEXT,
+  product_id TEXT,
+  compass_entry_id TEXT,
+  set_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'untasted',
+  grams REAL NOT NULL DEFAULT 10,
+  notes TEXT,
+  photos TEXT DEFAULT '[]',
+  account_id TEXT,
+  tea_key TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by TEXT NOT NULL DEFAULT 'admin',
+  user_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS tea_sample_tastings (
+  id TEXT PRIMARY KEY,
+  sample_id TEXT NOT NULL,
+  taster_id TEXT NOT NULL DEFAULT 'admin',
+  taster_name TEXT,
+  tasting TEXT NOT NULL DEFAULT '{}',
+  rating INTEGER,
+  verdict TEXT NOT NULL DEFAULT 'neutral',
+  would_buy INTEGER NOT NULL DEFAULT 0,
+  personal_note TEXT,
+  account_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (sample_id) REFERENCES tea_samples(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_samples_set_id ON tea_samples(set_id);
+CREATE INDEX IF NOT EXISTS idx_samples_status ON tea_samples(status);
+CREATE INDEX IF NOT EXISTS idx_samples_source_id ON tea_samples(source_id);
+CREATE INDEX IF NOT EXISTS idx_tea_samples_tea_key ON tea_samples(tea_key);
+CREATE INDEX IF NOT EXISTS idx_sample_tastings_sample_id ON tea_sample_tastings(sample_id);
+CREATE INDEX IF NOT EXISTS idx_sample_sets_purpose ON tea_sample_sets(purpose);
 
 CREATE TABLE IF NOT EXISTS curate_journeys (
   id TEXT PRIMARY KEY,
