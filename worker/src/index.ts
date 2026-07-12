@@ -1761,23 +1761,40 @@ const handleCreateResetToken: Handler = async (request, env) => {
 };
 
 // ── Forgot Password: Self-service reset token request (public) ──
-// Creates a reset token for the given email and returns it directly.
-// Note: Without an email delivery system, the token is returned in the response
-// so the user can immediately set a new password. This is acceptable for a
-// single-tenant internal tool. Do not expose to the public internet without
-// adding email delivery + enumeration protections.
+// Public endpoint. Two hard rules, both security-critical:
+//  1. The reset token is NEVER returned to the caller. It belongs in the email
+//     only. Returning it on email failure was an account-takeover primitive:
+//     anyone who knew an email address could take the account over on any day
+//     the mail provider hiccuped.
+//  2. The response is identical whether or not the account exists (no account
+//     enumeration), and the endpoint is rate-limited.
 const handleForgotPassword: Handler = async (request, env) => {
   const { email } = await request.json() as { email?: string };
   if (!email) return json({ error: 'Email required' }, 400);
+
+  // Durable, cross-isolate rate limit (falls back to in-memory in dev). Same
+  // pattern as login. CF-Connecting-IP cannot be spoofed by the client.
+  const fpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `forgot:${fpIp}` });
+    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+  if (!checkRateLimit(`forgot:${fpIp}`, 5, 60000)) {
+    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+
+  // Identical success response regardless of whether the account exists.
+  const genericResponse = json({
+    ok: true,
+    email_sent: true,
+    message: 'If an account exists for that email, a reset link is on its way.',
+  });
 
   const user = await env.DB.prepare(
     'SELECT id, email, name FROM users WHERE email = ?'
   ).bind(email).first();
 
-  // Generic response shape whether or not the user exists
-  if (!user) {
-    return json({ ok: true, message: 'No account found with that email.' }, 404);
-  }
+  if (!user) return genericResponse;
 
   // Generate a random reset token (expires in 1 hour)
   const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -1787,13 +1804,11 @@ const handleForgotPassword: Handler = async (request, env) => {
     "INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, datetime('now', '+1 hour'))"
   ).bind(id, user.id, resetToken).run();
 
-  // Try to email the reset link. When email succeeds we do NOT return the
-  // token in the response (token belongs in the email only). When email
-  // delivery is not configured or the send fails, we return the token so the
-  // single-tenant in-app recovery flow still works — and surface
-  // email_sent: false so the UI can show "couldn't send the email".
-  const origin = new URL(request.url).origin;
-  const resetUrl = `${origin}/reset-password?token=${resetToken}`;
+  // Build the link from the APP origin, never the request origin. Behind the
+  // Pages proxy request.url resolves to the workers.dev host, so the emailed
+  // link 404s (and is GFW-blocked). Same APP_URL pattern as handleGoogleCallback.
+  const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+  const resetUrl = `${appOrigin}/reset-password?token=${resetToken}`;
   const emailSent = await sendEmail(
     env,
     user.email as string,
@@ -1806,20 +1821,13 @@ const handleForgotPassword: Handler = async (request, env) => {
     </div>`
   );
 
-  if (emailSent) {
-    return json({
-      ok: true,
-      email_sent: true,
-      message: 'Check your email for a link to reset your password.',
-    });
+  // Fail closed: on send failure we log and still return the generic response.
+  // We do NOT hand the token back to the caller under any branch.
+  if (!emailSent) {
+    console.error(`[forgot-password] email send failed for user ${user.id}`);
   }
 
-  return json({
-    ok: true,
-    email_sent: false,
-    token: resetToken,
-    message: 'Reset token generated. Use it within the next hour to set a new password.',
-  });
+  return genericResponse;
 };
 
 // ── Reset Password with Token (public) ──
@@ -4266,7 +4274,7 @@ const handleGetCustomers: Handler = async (request, env) => {
          WHERE ea.customer_id = c.id AND ea.status = 'confirmed' AND ea.attended = 1
         ) as event_count
       FROM customers c
-      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status != 'Void' AND i.account_id = ?
+      LEFT JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled' AND i.account_id = ?
       WHERE c.account_id = ? ${typeClause} ${relationshipClause}
       GROUP BY c.id
       ORDER BY c.created_at DESC
@@ -5438,6 +5446,87 @@ const handleGenerateWisdom: Handler = async (request, env) => {
   return json(toolUse.input);
 };
 
+// ── AI Chinese Name Generation ──
+// The operator captures teas in the field and cannot type Chinese. Known teas
+// auto-fill their hanzi from the local variety map and from label scans; this
+// endpoint is the one-tap fallback for everything else, returning traditional
+// characters from the tea's English name + context. Always reviewed before it
+// is saved.
+const handleGenerateChineseName: Handler = async (request, env) => {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+
+  if (!env.ANTHROPIC_API_KEY) {
+    return json({ error: 'no_ai_provider' }, 503);
+  }
+
+  const { name, type, originRegion, year } = (await request.json()) as {
+    name?: string;
+    type?: string;
+    originRegion?: string;
+    year?: number;
+  };
+  if (!name || !name.trim()) return json({ error: 'name required' }, 400);
+
+  const context = [
+    `Tea name (English / romanized): ${name.trim()}`,
+    type ? `Type: ${type}` : '',
+    originRegion ? `Origin: ${originRegion}` : '',
+    year ? `Year: ${year}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-5',
+      max_tokens: 256,
+      messages: [
+        {
+          role: 'user',
+          content: `Give the traditional Chinese (繁體) name a tea vendor would print on this tea's label. If the romanized name maps to a well-known tea, use its canonical characters. If uncertain, give your best transliteration rather than inventing a fanciful name.\n\n${context}`,
+        },
+      ],
+      tools: [
+        {
+          name: 'chinese_name',
+          description: "Return the tea's name in traditional Chinese characters.",
+          input_schema: {
+            type: 'object',
+            properties: {
+              chineseName: {
+                type: 'string',
+                description: 'The tea name in traditional Chinese characters. Empty string if it genuinely cannot be determined.',
+              },
+              confident: {
+                type: 'boolean',
+                description: 'True for a recognized tea with a canonical name; false for a best-effort transliteration.',
+              },
+            },
+            required: ['chineseName'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'chinese_name' },
+    }),
+  });
+
+  if (!claudeRes.ok) {
+    return json({ error: `Claude API error: ${claudeRes.status}` }, 502);
+  }
+  const claudeData = (await claudeRes.json()) as any;
+  const toolUse = claudeData.content?.find((b: any) => b.type === 'tool_use');
+  if (!toolUse) return json({ error: 'no_output' }, 500);
+  return json(toolUse.input);
+};
+
 // ── Audio Transcription (Groq Whisper) ──
 const handleTranscribe: Handler = async (request, env) => {
   const authErr = await requireAuth(request, env);
@@ -5949,59 +6038,14 @@ const handleEnhanceProductImage: Handler = async (request, env, params) => {
 };
 
 // ── Extract Product Info from Image (Gemini Flash) ──
-const handleExtractFromImage: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+// Vision model used for tea-label extraction when Claude is the active provider.
+// Kept as a named constant so a future model bump is a one-line change.
+const EXTRACT_VISION_MODEL = 'claude-sonnet-5';
 
-  if (!env.GEMINI_API_KEY) {
-    return json({ error: 'GEMINI_API_KEY not configured' }, 503);
-  }
-
-  const contentType = request.headers.get('Content-Type') || '';
-  if (!contentType.includes('multipart/form-data')) {
-    return json({ error: 'Expected multipart/form-data' }, 400);
-  }
-
-  const formData = await request.formData();
-  const file = formData.get('file') as File | null;
-  if (!file) return json({ error: 'No image provided' }, 400);
-
-  // Convert image to base64 for Gemini
-  const arrayBuffer = await file.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  const mimeType = file.type || 'image/jpeg';
-
-  // Also upload to R2 so the draft product has an image (account-partitioned).
-  // Skipped when the caller already uploaded the photo via /api/upload-image.
-  const skipUpload = formData.get('skip_upload') === '1';
-  let imageUrl = '';
-  if (env.MEDIA_BUCKET && !skipUpload) {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
-    await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
-      httpMetadata: { contentType: mimeType },
-    });
-    imageUrl = `https://media.teajia.co/${key}`;
-  }
-
-  // Call Gemini Flash to extract product info from the image
-  const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              inlineData: {
-                mimeType,
-                data: base64,
-              },
-            },
-            {
-              text: `You are a tea product data extractor. Analyze this image of a tea product (package, label, menu listing, or price tag) and extract as much information as possible.
+// Shared extraction instructions: the same contract both providers must honor.
+// Field names here are load-bearing: PhotoCapture.tsx (parseExtractResult) and
+// intakeMapping.ts (extractedToStaged) key off these exact names.
+const EXTRACT_IMAGE_PROMPT = `You are a tea product data extractor. Analyze this image of a tea product (package, label, menu listing, or price tag) and extract as much information as possible.
 
 Return ONLY a valid JSON object with these fields (omit any you can't determine):
 {
@@ -6027,35 +6071,144 @@ Important:
 - For costAmount, extract the numeric price if visible
 - For quantityPurchased, extract grams/weight if visible (always in grams)
 - If you see a price like "NT$300" set costAmount=300 and costCurrency="NT"
-- Return ONLY the JSON object, no markdown formatting or explanation`,
-            },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 1024,
-        },
-      }),
-    }
-  );
+- Return ONLY the JSON object, no markdown formatting or explanation`;
 
-  if (!geminiRes.ok) {
-    const errText = await geminiRes.text();
-    // Log the upstream detail; do not echo it back to the client.
-    console.error(`extract-from-image upstream error: ${geminiRes.status} — ${errText}`);
-    return json({ error: `Gemini API error: ${geminiRes.status}` }, 502);
+// Base64-encode image bytes WITHOUT spreading the whole array as call
+// arguments. `String.fromCharCode(...bytes)` overflows the engine's argument
+// limit (~65k) for any image bigger than ~64KB — i.e. every real photo — which
+// threw here and made every label scan fail with a generic provider error.
+// Chunked fromCharCode stays under the limit.
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const CHUNK = 0x8000; // 32768 args per call, safely under the limit
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+const handleExtractFromImage: Handler = async (request, env) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId } = ctx;
+
+  // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
+  // Gemini only if Claude isn't configured. Both keys missing is a hard 503;
+  // there is no vision provider to call.
+  const useClaude = !!env.ANTHROPIC_API_KEY;
+  const useGemini = !useClaude && !!env.GEMINI_API_KEY;
+  if (!useClaude && !useGemini) {
+    return json({ error: 'no_ai_provider' }, 503);
   }
 
-  const geminiData = await geminiRes.json() as any;
-  const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const contentType = request.headers.get('Content-Type') || '';
+  if (!contentType.includes('multipart/form-data')) {
+    return json({ error: 'Expected multipart/form-data' }, 400);
+  }
 
-  // Parse the JSON from Gemini's response (strip markdown fences if present)
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  if (!file) return json({ error: 'No image provided' }, 400);
+
+  // Convert image to base64 for the vision model (chunked — see bytesToBase64).
+  const arrayBuffer = await file.arrayBuffer();
+  const base64 = bytesToBase64(new Uint8Array(arrayBuffer));
+  const mimeType = file.type || 'image/jpeg';
+
+  // Also upload to R2 so the draft product has an image (account-partitioned).
+  // Skipped when the caller already uploaded the photo via /api/upload-image.
+  const skipUpload = formData.get('skip_upload') === '1';
+  let imageUrl = '';
+  if (env.MEDIA_BUCKET && !skipUpload) {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
+    await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
+      httpMetadata: { contentType: mimeType },
+    });
+    imageUrl = `https://media.teajia.co/${key}`;
+  }
+
+  let rawText = '';
+
+  if (useClaude) {
+    // Claude Messages API via plain fetch, no SDK (keep the worker bundle lean).
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: EXTRACT_VISION_MODEL,
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mimeType, data: base64 },
+            },
+            { type: 'text', text: EXTRACT_IMAGE_PROMPT },
+          ],
+        }],
+      }),
+    });
+
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      // Log the upstream detail; do not echo it back to the client.
+      console.error(`extract-from-image Claude upstream error: ${claudeRes.status}: ${errText}`);
+      return json({ error: 'provider_error' }, 502);
+    }
+
+    const claudeData = await claudeRes.json() as any;
+    rawText = claudeData?.content?.find((b: any) => b.type === 'text')?.text || '';
+  } else {
+    // Call Gemini Flash to extract product info from the image
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64,
+                },
+              },
+              { text: EXTRACT_IMAGE_PROMPT },
+            ],
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 1024,
+          },
+        }),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      // Log the upstream detail; do not echo it back to the client.
+      console.error(`extract-from-image Gemini upstream error: ${geminiRes.status}: ${errText}`);
+      return json({ error: 'provider_error' }, 502);
+    }
+
+    const geminiData = await geminiRes.json() as any;
+    rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  // Parse the JSON from the model's response (strip markdown fences if present)
   let extracted: Record<string, any> = {};
   try {
     const jsonStr = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     extracted = JSON.parse(jsonStr);
   } catch {
-    return json({ error: 'Failed to parse Gemini response', raw: rawText }, 500);
+    return json({ error: 'extract_failed' }, 502);
   }
 
   // Attach the uploaded image URL
@@ -6742,6 +6895,17 @@ const handleFindRSVP: Handler = async (request, env, params) => {
 
   if (!event) return json({ error: 'Event not found' }, 404);
 
+  // Rate limit: this endpoint accepts a bare phone number / email, so it must
+  // not be brute-forceable. Durable limiter when bound; in-memory fallback.
+  const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `findrsvp:${frIp}` });
+    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+  if (!checkRateLimit(`findrsvp:${frIp}`, 10, 60000)) {
+    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+
   let lookupField: string;
   let lookupValue: string;
 
@@ -6771,7 +6935,7 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   }
 
   let attendee = await env.DB.prepare(
-    `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
+    `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND ${lookupField} = ?`
   ).bind(event.id, lookupValue).first();
 
   // Phone fallback: match on last 9 digits to handle "+886 912 345 678" vs "+886912345678" vs "0912 345 678"
@@ -6780,18 +6944,52 @@ const handleFindRSVP: Handler = async (request, env, params) => {
     if (digits.length >= 9) {
       const suffix = digits.slice(-9);
       attendee = await env.DB.prepare(
-        `SELECT magic_token, status FROM event_attendees WHERE event_id = ? AND phone_number LIKE ?`
+        `SELECT magic_token, status, email FROM event_attendees WHERE event_id = ? AND phone_number LIKE ?`
       ).bind(event.id, `%${suffix}`).first();
     }
   }
 
-  if (!attendee) return json({ error: 'RSVP not found' }, 404);
+  // The magic_token is a bearer credential: whoever holds it can view and edit
+  // that guest's RSVP and journey. It may ONLY be returned to a caller who
+  // proved they own the account (signed JWT, no body). For an unauthenticated
+  // lookup by phone/email, we never return the token — we deliver the access
+  // link to the email on file and return a generic response either way (so a
+  // bare phone number cannot confirm existence or retrieve the credential).
+  const isOwnerVerified = Boolean(token) && !hasBody;
 
-  return json({
-    magic_token: attendee.magic_token,
-    status: attendee.status,
-    redirect_url: `/m/${attendee.magic_token}`,
+  if (isOwnerVerified) {
+    if (!attendee) return json({ error: 'RSVP not found' }, 404);
+    return json({
+      magic_token: attendee.magic_token,
+      status: attendee.status,
+      redirect_url: `/m/${attendee.magic_token}`,
+    });
+  }
+
+  const genericFindResponse = json({
+    ok: true,
+    message: "If a matching RSVP exists, we've sent its access link to the email on file.",
   });
+
+  if (!attendee) return genericFindResponse;
+
+  const attendeeEmail = attendee.email as string | null;
+  if (attendeeEmail) {
+    const appOrigin = (env.APP_URL || 'https://www.teajia.com').replace(/\/$/, '');
+    const magicUrl = `${appOrigin}/m/${attendee.magic_token}`;
+    await sendEmail(
+      env,
+      attendeeEmail,
+      'Your Teajia RSVP link',
+      `<div style="font-family:Georgia,serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#3a2e24">
+        <h2 style="font-size:20px;margin-bottom:8px">Your RSVP</h2>
+        <p style="color:#7a6a56;margin-bottom:24px;line-height:1.6">Here is your private link to view and manage your RSVP.</p>
+        <a href="${magicUrl}" style="display:inline-block;padding:12px 24px;background:#a8874d;color:#fefaf3;text-decoration:none;font-size:13px;letter-spacing:0.08em">View my RSVP</a>
+      </div>`
+    );
+  }
+
+  return genericFindResponse;
 };
 
 // ── Event Admin Routes ──
@@ -10321,6 +10519,10 @@ const handleEventInterest: Handler = async (request, env, params) => {
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `verify:${verifyIp}` });
+    if (!success) return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
+  }
   if (!checkRateLimit(`verify:${verifyIp}`, 5, 60000)) {
     return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
   }
@@ -12886,7 +13088,9 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
     body.timezone || 'UTC',
     body.whatsapp_number || null,
     body.contact_email || null,
-    body.public_enabled !== false ? 1 : 0,
+    // Born PRIVATE: a new store must be explicitly published, never public by
+    // default with an empty catalog. Only opt-in (=== true) makes it public.
+    body.public_enabled === true ? 1 : 0,
     now, now
   ).run();
 
@@ -13048,7 +13252,8 @@ const handlePlatformDecideApplication: Handler = async (request, env, params) =>
     `INSERT INTO accounts
        (id, slug, name, contact_email, currency_default, trust_tier, kind, status, public_enabled,
         invoice_prefix, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'active', 1, ?, ?, ?)`
+     -- Born private (public_enabled = 0): the new owner publishes when ready.
+     VALUES (?, ?, ?, ?, 'USD', ?, ?, 'active', 0, ?, ?, ?)`
   ).bind(
     accountId, finalSlug,
     applicantName || applicantEmail,
@@ -13137,7 +13342,8 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
     `INSERT INTO accounts
        (id, slug, name, contact_email, currency_default, trust_tier, kind, status, public_enabled,
         invoice_prefix, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'USD', 'verified', 'master', 'active', 1, ?, ?, ?)`
+     -- Born private (public_enabled = 0): the new owner publishes when ready.
+     VALUES (?, ?, ?, ?, 'USD', 'verified', 'master', 'active', 0, ?, ?, ?)`
   ).bind(accountId, finalSlug, displayName || email, email, invoicePrefix, now, now).run();
 
   // Find or create user
@@ -13258,12 +13464,18 @@ const handlePlatformUpgradeToLocation: Handler = async (request, env, params) =>
 };
 
 // GET /api/network/stores — PUBLIC list of accounts with public_enabled = 1
+// that have at least one public, active product. A store flipped public with an
+// empty catalog must not advertise an empty shell in the directory.
 const handleGetNetworkStores: Handler = async (_request, env) => {
   const { results } = await env.DB.prepare(
     `SELECT id, slug, name, tagline, logo_url, location_city, location_country
-     FROM accounts
-     WHERE public_enabled = 1 AND status = 'active'
-     ORDER BY is_platform_owner DESC, name ASC`
+     FROM accounts a
+     WHERE a.public_enabled = 1 AND a.status = 'active'
+       AND EXISTS (
+         SELECT 1 FROM products p
+          WHERE p.account_id = a.id AND p.status = 'Active' AND p.is_public = 1
+       )
+     ORDER BY a.is_platform_owner DESC, a.name ASC`
   ).all();
   return cachedJson(results, 300);
 };
@@ -13525,6 +13737,7 @@ const handleGetMyOrders: Handler = async (request, env) => {
      ) t ON t.invoice_id = i.id
      WHERE i.account_id = ?
        AND i.deleted_at IS NULL
+       AND i.status NOT IN ('Draft', 'Void')
        AND (
          i.customer_id IN (
            SELECT id FROM customers WHERE user_id = ? AND account_id = ?
@@ -14290,6 +14503,10 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `joincode:${ip}` });
+    if (!success) return json({ error: 'Too many attempts. Please try again later.' }, 429);
+  }
   if (!checkRateLimit(`joincode:${ip}`, 20, 60000)) {
     return json({ error: 'Too many attempts. Please try again later.' }, 429);
   }
@@ -15159,13 +15376,16 @@ const handleGetRevenueAnalytics: Handler = async (request, env) => {
 
   const [revenueRows, ageRows] = await Promise.all([
     env.DB.prepare(
-      `SELECT strftime('%Y-%W', created_at) as week,
-              SUM(total_usd) as revenue,
-              COUNT(*) as order_count
-       FROM invoices
-       WHERE status = 'fulfilled'
-         AND account_id = ?
-         AND created_at >= datetime('now', '-26 weeks')
+      // invoices has no total_usd column; revenue is the sum of line items
+      // (quantity × per-unit price_at_sale). Fulfilled status is 'Filled'.
+      `SELECT strftime('%Y-%W', i.created_at) as week,
+              SUM(ili.quantity * ili.price_at_sale) as revenue,
+              COUNT(DISTINCT i.id) as order_count
+       FROM invoices i
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
+       WHERE i.status = 'Filled'
+         AND i.account_id = ?
+         AND i.created_at >= datetime('now', '-26 weeks')
        GROUP BY week
        ORDER BY week ASC`
     ).bind(accountId).all(),
@@ -15174,7 +15394,7 @@ const handleGetRevenueAnalytics: Handler = async (request, env) => {
               MAX(i.created_at) as last_sold_at
        FROM products p
        LEFT JOIN invoice_line_items ili ON ili.product_id = p.id
-       LEFT JOIN invoices i ON i.id = ili.invoice_id AND i.status = 'fulfilled' AND i.account_id = ?
+       LEFT JOIN invoices i ON i.id = ili.invoice_id AND i.status = 'Filled' AND i.account_id = ?
        WHERE p.status = 'Active' AND p.is_public = 1 AND p.account_id = ?
        GROUP BY p.id
        HAVING last_sold_at IS NULL OR last_sold_at < datetime('now', '-90 days')
@@ -15200,10 +15420,11 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT c.id, c.name, c.email,
               COUNT(DISTINCT i.id) as order_count,
-              COALESCE(SUM(i.total_usd), 0) as lifetime_usd,
+              COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) as lifetime_usd,
               MAX(i.created_at) as last_order_at
        FROM customers c
-       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled'
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE c.account_id = ?
        GROUP BY c.id
        ORDER BY lifetime_usd DESC
@@ -15212,9 +15433,10 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT c.id, c.name, c.email,
               MAX(i.created_at) as last_order_at,
-              COALESCE(SUM(i.total_usd), 0) as lifetime_usd
+              COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) as lifetime_usd
        FROM customers c
-       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled'
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE c.account_id = ?
        GROUP BY c.id
        HAVING last_order_at < datetime('now', '-90 days')
@@ -15224,9 +15446,10 @@ const handleGetCustomerRFM: Handler = async (request, env) => {
     env.DB.prepare(
       `SELECT c.id, c.name, c.email,
               MIN(i.created_at) as first_order_at,
-              COALESCE(SUM(i.total_usd), 0) as lifetime_usd
+              COALESCE(SUM(ili.quantity * ili.price_at_sale), 0) as lifetime_usd
        FROM customers c
-       JOIN invoices i ON i.customer_id = c.id AND i.status = 'fulfilled'
+       JOIN invoices i ON i.customer_id = c.id AND i.status = 'Filled'
+       JOIN invoice_line_items ili ON ili.invoice_id = i.id
        WHERE c.account_id = ?
        GROUP BY c.id
        HAVING first_order_at >= datetime('now', '-30 days')
@@ -16635,6 +16858,17 @@ const handleUnsaveCollection: Handler = async (request, env, params) => {
 // A draft is never a committed order: stock is NOT deducted here (inventory_deducted=0),
 // status='Draft'. The operator promotes/fulfils it in the admin UI.
 const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
+  // Public, unauthenticated, and it creates invoices: rate limit so a link
+  // holder cannot spam a customer's order history or burn the invoice sequence.
+  const ccpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (env.LOGIN_LIMITER) {
+    const { success } = await env.LOGIN_LIMITER.limit({ key: `confirmpicks:${ccpIp}` });
+    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+  if (!checkRateLimit(`confirmpicks:${ccpIp}`, 10, 60000)) {
+    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
+  }
+
   const pub = await env.DB.prepare(
     `SELECT id, collection_id, unpublished_at, recipients_json
        FROM collection_publications WHERE slug = ?`
@@ -16721,11 +16955,17 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
       lineTotal = 0;
     }
 
+    // price_at_sale is a PER-UNIT rate: every invoice reader computes
+    // quantity × price_at_sale. Storing the line total here inflates the
+    // invoice by a factor of quantity (the K1 bug). Store the per-unit rate;
+    // lineTotal / quantity reproduces exactly the total the recipient confirmed.
+    const unitPrice = quantity > 0 ? lineTotal / quantity : 0;
+
     lineItems.push({
       product_id: row.product_id,
       custom_name: null,
       quantity,
-      price_at_sale: lineTotal,
+      price_at_sale: unitPrice,
       label: `${row.product_name} × ${quantity}${isTeaware ? '' : 'g'}`,
     });
   }
@@ -18974,6 +19214,7 @@ const routes: [string, string, Handler][] = [
   // AI
   ['POST', '/api/extract-from-image', handleExtractFromImage],
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
+  ['POST', '/api/generate-chinese-name', handleGenerateChineseName],
   ['POST', '/api/transcribe', handleTranscribe],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 

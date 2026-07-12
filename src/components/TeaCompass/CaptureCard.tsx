@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Minus, Plus, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
-import { TEA_TYPE_COLORS } from '../../designTokens';
+import { TEA_TYPE_COLORS, TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { CurateReceiptProposal, InventoryPurposeValue, ReceiptAcquisitionKind, TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
@@ -31,6 +31,8 @@ import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
 import { EncounterContext } from './EncounterContext';
 import { DecisionControl } from './DecisionControl';
+import { CaptureContextChips } from './CaptureContextChips';
+import { CaptureVerdictRow } from './CaptureVerdictRow';
 
 type ParseableField = 'type' | 'form' | 'year' | 'season' | 'storage' | 'region';
 
@@ -66,22 +68,12 @@ interface CaptureCardProps {
    *  CTA so the user has share + commit colocated in the action area
    *  (rather than share floating up in the page header). */
   onShare?: () => void;
+  /** Rapid batch-entry mode state, surfaced inside the Run chip's sheet */
+  batchMode?: boolean;
+  onToggleBatchMode?: () => void;
 }
 
 const EMPTY_TASTING: TastingData = {};
-
-/** One-line descriptions shown next to each type in the picker, for beginners */
-const TEA_TYPE_DESCRIPTIONS: Record<string, string> = {
-  Green:  'Unoxidized · grassy, fresh, vegetal',
-  White:  'Minimal processing · delicate, floral',
-  Yellow: 'Rare, slow-dried · mellow, honeyed',
-  Oolong: 'Partially oxidized · floral to roasted',
-  Red:    'Fully oxidized (called "black" in West)',
-  Dark:   'Aged & fermented heicha (non-puerh)',
-  Sheng:  'Raw puerh · young or aged',
-  Shou:   'Ripe puerh · fermented, earthy',
-  Herbal: 'Flowers, roots & tisanes (no tea leaf)',
-};
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   NT: 'NT$', USD: '$', Yuan: 'CN¥', MYR: 'RM', IDR: 'Rp', JPY: 'JP¥', HKD: 'HK$', UNK: '?',
@@ -134,7 +126,7 @@ function RetailPricePreview({
                 setEditingShipping(false);
               }
             }}
-            className="w-16 bg-tea-elevated text-tea-text text-ui-11 px-1.5 py-0.5 rounded border border-tea-border outline-none focus:border-tea-gold/40 tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="w-16 bg-transparent text-tea-text text-ui-11 px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-tea-text-dim">/kg</span>
         </span>
@@ -157,27 +149,11 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
   return { bg: `${color}20`, text: color };
 }
 
-/** The brand's editorial eyebrow — Cormorant italic small-caps in gold.
- *  Borrowed from the magazine card eyebrow so the section markers read in the
- *  same museum-caption register as the rest of the brand, not as form labels. */
-const CAPTURE_EYEBROW_STYLE: React.CSSProperties = {
-  fontFamily: 'var(--font-display)',
-  fontSize: 13,
-  fontStyle: 'italic',
-  fontWeight: 500,
-  fontVariant: 'all-small-caps',
-  letterSpacing: '0.08em',
-  color: 'var(--tea-gold)',
-};
-
-/** Section eyebrow divider — warm gold hairline + small-caps gold label.
- *  `ornament` adds a single centered gold dot (use sparingly, once). */
-const SectionDivider: React.FC<{ label: string; ornament?: boolean }> = ({ label, ornament }) => (
-  <div className="flex items-center gap-3 pt-2">
-    <div className={`relative flex-1 divider-warm${ornament ? ' divider-ornament' : ''}`} />
-    <span style={CAPTURE_EYEBROW_STYLE} className="shrink-0">{label}</span>
-    <div className="flex-1 divider-warm" />
-  </div>
+/** Quiet section eyebrow — replaces the retired gold hairline SectionDivider.
+ *  Groups content by whitespace, not by a gold rule; used sparingly (Notes
+ *  always; Profile only when tasting data exists) so gold stays scarce. */
+const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
+  <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
 );
 
 /** Inline status mark — Want/Buy/Sample/Taste tile inside the form.
@@ -202,7 +178,7 @@ const EntryMark: React.FC<{
         : 'bg-transparent border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
     }`}
   >
-    <span className={`pointer-events-none font-display text-ui-15 ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
+    <span className={`pointer-events-none font-sans font-medium text-base ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
       {label}
     </span>
     <span className="pointer-events-none text-ui-11 leading-snug text-tea-text-dim">
@@ -211,7 +187,7 @@ const EntryMark: React.FC<{
   </button>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -250,6 +226,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [tastingOverlayOpen, setTastingOverlayOpen] = useState(false);
   const [localTasting, setLocalTasting] = useState<TastingData>(EMPTY_TASTING);
+
+  // Vendor picker visibility. The chip in the context row is the trigger;
+  // the VendorStrip itself stays collapsed until asked for (1b re-houses it
+  // as a proper bottom sheet).
+  const [vendorOpen, setVendorOpen] = useState(false);
+
+  // One-tap Chinese-name generation (the operator can't type hanzi).
+  const [generatingChinese, setGeneratingChinese] = useState(false);
 
   // Buying quantity picker state
   const [buyingQty, setBuyingQty] = useState(100);
@@ -732,20 +716,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const shellClass = 'surface-warm relative px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
-  // Mobile shell flows the warm surface (gradient + grain) PAST the Done footer
-  // and BEHIND the floating bottom-nav pill, rather than stopping short above
-  // it. The earlier flat pb-6 ended the surface in a hard line that read as
-  // "cut off early". The base is pb-nav-gap-lg (2rem + nav + safe-area); the
-  // arbitrary override adds 30px more so there's a touch of extra scroll past
-  // the end of the card. Both reset to a flat 2rem on lg+, where there is no
-  // bottom nav. A slightly larger top buffer mirrors that breath up top so the
-  // card opens and closes with the same softened rhythm.
-  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg [padding-bottom:calc(2rem+80px+30px+env(safe-area-inset-bottom,0px))] lg:[padding-bottom:2rem]`;
+  // Mobile shell flows the warm surface PAST the inline Done and BEHIND the
+  // floating bottom-nav pill. pb-nav-gap-lg gives 2rem + nav + safe-area so the
+  // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
+  // no bottom nav.
+  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
   const sourceShellClass = 'px-0 py-1';
   const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
   const selectClass = (selected: boolean) =>
-    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm border border-tea-border transition-colors ${
+    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base border border-tea-border transition-colors ${
       selected
         ? 'text-tea-text font-medium bg-tea-accent-sub'
         : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -876,6 +856,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const handleVendorSelect = (vendorId: string | undefined, vendorName: string) => {
     update({ vendorName, vendorId });
     setLastVendor(vendorId || null, vendorName);
+    // Picked a vendor: fold the strip back down so the chip carries it.
+    setVendorOpen(false);
   };
 
   const handleVendorClear = () => {
@@ -936,6 +918,29 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const newTasting: TastingData = { ...(entry.tasting ?? {}), quality: entry.tasting?.quality === q ? undefined : q };
     setLocalTasting(newTasting);
     update({ tasting: newTasting });
+  };
+
+  // Ask the AI to fill the Chinese name from the tea's name + context. Known
+  // teas fill on their own (variety map / autocomplete / label scan); this is
+  // the fallback so the operator never has to type hanzi. Result is written to
+  // the field for review, never committed silently.
+  const handleGenerateChineseName = async () => {
+    if (!entry.name?.trim() || generatingChinese) return;
+    setGeneratingChinese(true);
+    try {
+      const res = await api.generateChineseName({
+        name: entry.name.trim(),
+        type: entry.type,
+        originRegion: entry.originRegion,
+        year: entry.year,
+      });
+      const cn = (res as { chineseName?: string })?.chineseName?.trim();
+      if (cn) update({ chineseName: cn });
+    } catch {
+      // Offline or no provider — leave the field as-is; the operator can retry.
+    } finally {
+      setGeneratingChinese(false);
+    }
   };
 
   // ── Teaware card layout ──────────────────────────────────────────────
@@ -1027,47 +1032,46 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     return (
       <div className={mobileShellClass}>
 
-        {/* "Source" header — vendor + photos read as a single header card
-            with a faint gold inner glow and a subtle hairline between the
-            vendor row and the photo row. Treats the two rows as one
-            cohesive header rather than two stacked widgets. */}
+        {/* Context chips row + photo hero: same header treatment as the tea
+            variant so both forms open with one rhythm. The vendor picker
+            collapses behind the Vendor chip. */}
         <div className={sourceShellClass}>
-          {/* Photo counter floats top-right of the card when photos exist;
-              otherwise the card opens directly with the vendor strip. The
-              SOURCE label that used to sit on the left was removed —
-              the bordered card with its faint gold inner glow is enough
-              visual grouping on its own. */}
-          {entry.photos.length > 0 && (
-            <div className="flex items-center justify-end mb-1">
-              <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
-                {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
-              </span>
+          <CaptureContextChips
+            category={entry.category}
+            vendorName={entry.vendorName}
+            vendorOpen={vendorOpen}
+            onToggleVendor={() => setVendorOpen((v) => !v)}
+            batchMode={batchMode}
+            onToggleBatchMode={onToggleBatchMode}
+          />
+
+          {vendorOpen && (
+            <div className="mt-2.5">
+              <VendorStrip
+                vendorName={entry.vendorName}
+                vendorId={entry.vendorId}
+                vendorDetails={entry.vendorDetails}
+                onVendorSelect={handleVendorSelect}
+                onClear={handleVendorClear}
+                onDetailsChange={handleVendorDetailsChange}
+                linkedCustomerId={entry.linkedCustomerId}
+                onLinkedCustomerChange={handleLinkedCustomerChange}
+              />
             </div>
           )}
-
-          <VendorStrip
-            vendorName={entry.vendorName}
-            vendorId={entry.vendorId}
-            vendorDetails={entry.vendorDetails}
-            onVendorSelect={handleVendorSelect}
-            onClear={handleVendorClear}
-            onDetailsChange={handleVendorDetailsChange}
-            linkedCustomerId={entry.linkedCustomerId}
-            onLinkedCustomerChange={handleLinkedCustomerChange}
-          />
 
           <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
 
           <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
 
-          <div className="flex items-center min-h-[44px]">
+          <div className="mt-3">
             <PhotoCapture
               onExtracted={handleExtracted}
               onPhotoTaken={handlePhotoTaken}
               onPhotoReplaced={handlePhotoReplaced}
               photos={entry.photos}
               onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-              size="lg"
+              variant="strip"
             />
           </div>
         </div>
@@ -1113,7 +1117,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   setMaterialPopoverOpen(true);
                   setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
                 }}
-                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors ${
+                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors ${
                   entry.material
                     ? 'text-tea-text font-medium bg-tea-accent-sub'
                     : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1131,7 +1135,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 <button
                   type="button"
                   onClick={() => setClaySheetOpen(true)}
-                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
+                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-base font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
                   aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
                 >
                   <span
@@ -1172,7 +1176,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setEraSheetOpen(true)}
-              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-sm border border-tea-border transition-colors tabular-nums ${
+              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors tabular-nums ${
                 entry.era
                   ? 'text-tea-text font-medium bg-tea-accent-sub'
                   : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -1252,7 +1256,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold disabled:opacity-40 transition-opacity"
+                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-11 font-medium disabled:opacity-40 transition-opacity"
                   >
                     Add
                   </button>
@@ -1359,8 +1363,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     </div>
                     <div className="w-full min-w-0">
                       <div
-                        className={`text-base truncate ${sel ? 'text-tea-gold font-semibold' : 'text-tea-text font-medium'}`}
-                        style={{ fontFamily: 'var(--font-display)' }}
+                        className={`font-sans text-base truncate ${sel ? 'text-tea-gold font-medium' : 'text-tea-text font-medium'}`}
                       >
                         {clay.label}
                       </div>
@@ -1400,6 +1403,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
           larger
+          sans
         />
 
         {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
@@ -1420,9 +1424,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           );
         })()}
 
-        {/* Action footer — Share + Done colocated. Same pattern as the
-            tea variant so both forms have the share affordance in the
-            commit area instead of the page header. */}
+        {/* Action footer — Done. Share lives in the Library, not at capture. */}
         {(() => {
           // Done is enabled whenever the entry holds anything worth keeping —
           // a name, a photo, notes, or tasting data — matching exactly what
@@ -1431,22 +1433,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           const ready = entryHasContent(entry);
           return (
             <div className="flex items-center gap-2 mt-1">
-              {onShare && (
-                <button
-                  type="button"
-                  onClick={onShare}
-                  className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-                  aria-label="Share this entry"
-                  title="Share this entry"
-                >
-                  Share
-                </button>
-              )}
               <button
                 type="button"
                 onClick={handleCommit}
                 disabled={!ready}
-                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-sans font-medium tracking-[0.06em] text-base transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Done, commit this entry"
               >
                 Done
@@ -1460,6 +1451,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Status helpers ────────────────────────
   const isWant = entry.status === 'want';
+  const isPass = entry.status === 'pass';
 const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
@@ -1529,6 +1521,15 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
     }
   };
 
+  // Underline fields — TEA layout only. Typed identity/pricing fields lose
+  // their boxes; only pickers (Type, Form) stay chips, so "picked" reads
+  // differently from "typed" (the wayfinding contrast the redesign relies on).
+  const underlineFieldClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 font-sans text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  // Tea name — the hero. Large display serif, still just a bottom hairline.
+  // This is the ONE serif element in the capture form — everything else
+  // below is font-sans so the form reads as one typographic system.
+  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-sans text-ui-20 font-medium text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+
   // ── Tea card layout ────────────────────────
   return (
     <div className={mobileShellClass}>
@@ -1546,69 +1547,65 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
 
       <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
 
-      {/* SOURCE header — same card the teaware variant uses, so both forms
-          open with an identical vendor + photo cluster. Photo strip uses
-          the lg size so thumbnails render at full visibility, and the
-          right-side counter mirrors what Teaware shows. */}
+      {/* Context chips row: Run + Vendor. Both stay sticky across a burst of
+          captures (run via the session id, vendor via lastVendor seeding), so
+          reopening the card mid-visit costs nothing. The old always-open
+          "Select vendor" box collapses behind the Vendor chip. */}
       <div className={sourceShellClass}>
-          {/* Photo counter floats top-right of the card when photos exist;
-              otherwise the card opens directly with the vendor strip. The
-              SOURCE label that used to sit on the left was removed —
-              the bordered card with its faint gold inner glow is enough
-              visual grouping on its own. */}
-          {entry.photos.length > 0 && (
-            <div className="flex items-center justify-end mb-1">
-              <span className="text-ui-9 uppercase tracking-[0.14em] text-tea-text-sec tabular-nums">
-                {entry.photos.length} {entry.photos.length === 1 ? 'photo' : 'photos'}
-              </span>
-            </div>
-          )}
-
-        <VendorStrip
+        <CaptureContextChips
+          category={entry.category}
           vendorName={entry.vendorName}
-          vendorId={entry.vendorId}
-          vendorDetails={entry.vendorDetails}
-          onVendorSelect={handleVendorSelect}
-          onClear={handleVendorClear}
-          onDetailsChange={handleVendorDetailsChange}
-          linkedCustomerId={entry.linkedCustomerId}
-          onLinkedCustomerChange={handleLinkedCustomerChange}
+          vendorOpen={vendorOpen}
+          onToggleVendor={() => setVendorOpen((v) => !v)}
+          batchMode={batchMode}
+          onToggleBatchMode={onToggleBatchMode}
         />
+
+        {vendorOpen && (
+          <div className="mt-2.5">
+            <VendorStrip
+              vendorName={entry.vendorName}
+              vendorId={entry.vendorId}
+              vendorDetails={entry.vendorDetails}
+              onVendorSelect={handleVendorSelect}
+              onClear={handleVendorClear}
+              onDetailsChange={handleVendorDetailsChange}
+              linkedCustomerId={entry.linkedCustomerId}
+              onLinkedCustomerChange={handleLinkedCustomerChange}
+            />
+          </div>
+        )}
 
         <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
 
-        <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
-
-        <div className="flex items-center min-h-[44px]">
+        {/* Photo strip: a compact row of thumbnails plus scan + camera, not a
+            dominant tile. The details are the focus; the photo is supporting
+            evidence you can add a few of. Scanning a label still fills the
+            fields (including the Chinese name when it's printed). */}
+        <div className="mt-3">
           <PhotoCapture
             onExtracted={handleExtracted}
             onPhotoTaken={handlePhotoTaken}
             onPhotoReplaced={handlePhotoReplaced}
             photos={entry.photos}
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-            size="lg"
+            variant="strip"
           />
         </div>
-        {/* Nudge a second angle once the first shot lands — a bag label plus
-            the dry leaves (or brewed cup) makes a photo-only capture far more
-            identifiable later. */}
-        {entry.photos.length === 1 && (
-          <p className="mt-1.5 text-ui-11 text-tea-text-dim">
-            Add a second shot — the dry leaves or the brewed cup.
-          </p>
-        )}
       </div>
 
-      {/* ─── IDENTITY ─── */}
-      <SectionDivider label="Tea" />
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
+      {/* ─── IDENTITY — the hero. Tea name is the one dominant element on the
+          screen; Type demotes to a small colored text tag beneath it (color
+          carries meaning, no swatch/box) so the picker vs. typed contrast
+          starts right here. ─── */}
+      <div className="space-y-5 pt-1">
+        <div>
           <AutocompleteInput
             value={entry.name}
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
             placeholder={entry.type ? `${entry.type} name (e.g., Tieguanyin, Bingdao…)` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
-            className={`w-full min-w-0 ${fieldClass}`}
+            className={`w-full ${nameHeadlineClass}`}
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
             hintSuggestions={hintSuggestions}
@@ -1616,22 +1613,13 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium bg-tea-surface text-tea-text-sec border border-tea-border hover:bg-tea-accent-sub hover:text-tea-text active:bg-tea-accent-sub transition-colors"
+            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium uppercase transition-opacity hover:opacity-80"
+            style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            <span>{entry.type || 'Type'}</span>
-            <ChevronDown size={14} />
+            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11 uppercase">+ Type</span>}
+            <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
-
-        {/* Photo-first reassurance — when there's a photo or a source but no
-            name yet, the entry is already complete enough to save. Signals the
-            name is optional rather than a missing required field. */}
-        {!entry.name.trim() && (entry.photos.length > 0 || !!entry.vendorName) && (
-          <p className="flex items-center gap-1.5 text-ui-11 text-tea-gold/70">
-            <Check size={11} strokeWidth={2.5} />
-            Photo + source is enough — name optional.
-          </p>
-        )}
 
         {/* Type — bottom sheet. Each tea type carries a one-line description
             and a colour dot taken from the type chip palette so the picker
@@ -1642,7 +1630,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           title="Tea type"
           description="What kind of tea is this?"
         >
-          <div className="grid grid-cols-1 gap-2 px-1 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2 px-1">
             {TEA_TYPES.map((type) => {
               const chipStyle = getTypeChipStyle(type);
               const selected = entry.type === type;
@@ -1651,24 +1639,19 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                   key={type}
                   type="button"
                   onClick={() => handleTypeSelect(type)}
-                  className={`flex min-h-[76px] items-start gap-3 rounded-md border px-3 py-3 text-left transition-colors ${
+                  className={`flex min-h-[52px] items-center gap-2 rounded-md border px-3 py-2 text-left transition-colors ${
                     selected
                       ? 'border-tea-gold/30 bg-tea-accent-sub text-tea-text'
                       : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                   }`}
                 >
                   <span
-                    className="mt-1 block h-3 w-3 rounded-full shrink-0"
+                    className="block h-3 w-3 rounded-full shrink-0"
                     style={{ backgroundColor: chipStyle.text }}
                     aria-hidden
                   />
-                  <span className="min-w-0">
-                    <span className="block text-ui-13 font-medium">{type}</span>
-                    <span className="mt-1 block text-ui-11 leading-[1.35] text-tea-text-sec">
-                      {TEA_TYPE_DESCRIPTIONS[type]}
-                    </span>
-                  </span>
-                  {selected && <Check size={13} className="ml-auto mt-0.5 shrink-0 text-tea-gold" />}
+                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{type}</span>
+                  {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );
             })}
@@ -1676,8 +1659,15 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </BottomSheet>
 
 
-        {/* Year + Region */}
-        <div className="flex items-center gap-2">
+        {/* Region + Year (year sits to the right of origin) — underline fields */}
+        <div className="flex items-baseline gap-4">
+          <AutocompleteInput
+            value={entry.originRegion || ''}
+            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+            suggestions={availableRegions}
+            placeholder="Origin"
+            className={`w-full ${underlineFieldClass}`}
+          />
           <input
             type="number"
             inputMode="numeric"
@@ -1688,45 +1678,63 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
               const val = e.target.value;
               update({ year: val === '' ? undefined : Number(val) });
             }}
-            className={`w-20 shrink-0 tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+            className={`w-24 shrink-0 tabular-nums text-center ${underlineFieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
             style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-          />
-          <AutocompleteInput
-            value={entry.originRegion || ''}
-            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
-            suggestions={availableRegions}
-            placeholder="Origin"
-            className={`w-full ${fieldClass}`}
           />
         </div>
 
-
-        <SectionDivider label="Pricing" />
-
-        <PricingRow
-          priceAmount={entry.priceAmount}
-          priceCurrency={entry.priceCurrency}
-          onPriceChange={(priceAmount) => update({ priceAmount })}
-          onCurrencyChange={handleCurrencyChange}
-          unit={{
-            mode: 'grams',
-            pricePerUnitGrams: entry.pricePerUnitGrams,
-            onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
-            form: entry.form,
-            onFormChange: handleFormSelect,
-          }}
-        />
-
-        {/* Retail price preview — only for tea with cost + grams entered */}
-        {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
-          <RetailPricePreview
-            costAmount={entry.priceAmount}
-            grams={entry.pricePerUnitGrams}
-            currency={entry.priceCurrency}
-            shippingRatePerKg={shippingRatePerKg}
-            onShippingRateChange={setShippingRatePerKg}
+        {/* Chinese name — under Origin. Fills automatically from known teas and
+            from label scans; the Suggest button asks the AI to write it from
+            the name + origin, since the operator won't type hanzi. */}
+        <div className="flex items-baseline gap-4">
+          <input
+            type="text"
+            value={entry.chineseName || ''}
+            onChange={(e) => update({ chineseName: e.target.value || undefined })}
+            placeholder="中文名 · Chinese name"
+            className={`flex-1 min-w-0 ${underlineFieldClass}`}
           />
-        )}
+          <button
+            type="button"
+            onClick={handleGenerateChineseName}
+            disabled={!entry.name?.trim() || generatingChinese}
+            className="pill-quiet pill-quiet-on tap-target font-sans shrink-0 disabled:opacity-40"
+            aria-label="Suggest Chinese name"
+            title="Suggest Chinese name"
+          >
+            {generatingChinese ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} strokeWidth={1.5} />}
+            <span>Suggest</span>
+          </button>
+        </div>
+
+        {/* Pricing — same space-y-5 rhythm as the rows above; the retail
+            preview line stays tucked close under the pricing row itself. */}
+        <div className="space-y-2">
+          <PricingRow
+            priceAmount={entry.priceAmount}
+            priceCurrency={entry.priceCurrency}
+            onPriceChange={(priceAmount) => update({ priceAmount })}
+            onCurrencyChange={handleCurrencyChange}
+            unit={{
+              mode: 'grams',
+              pricePerUnitGrams: entry.pricePerUnitGrams,
+              onGramsChange: (pricePerUnitGrams) => update({ pricePerUnitGrams }),
+              form: entry.form,
+              onFormChange: handleFormSelect,
+            }}
+          />
+
+          {/* Retail price preview — only for tea with cost + grams entered */}
+          {entry.category === 'tea' && entry.priceAmount && entry.pricePerUnitGrams && !unitBased && (
+            <RetailPricePreview
+              costAmount={entry.priceAmount}
+              grams={entry.pricePerUnitGrams}
+              currency={entry.priceCurrency}
+              shippingRatePerKg={shippingRatePerKg}
+              onShippingRateChange={setShippingRatePerKg}
+            />
+          )}
+        </div>
       </div>
 
       {/* Duplicate nudge */}
@@ -1765,71 +1773,75 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
       </AnimatePresence>
 
 
+      {/* These sections render inline, always visible — Adrian uses them
+          regularly (tasting profile, notes, intent, storage, sell price) and
+          asked that they never sit behind a second tap. ─── */}
+
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       {hasTasting && entry.tasting && (
-        <>
-          <SectionDivider label="Profile" />
-          <div className="space-y-2.5">
-            {/* Quality 1–10 — same segment toggle as TastingSession */}
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-ui-11 text-tea-text-sec" style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.04em' }}>Quality</span>
-                <span className="text-ui-11 text-tea-gold tabular-nums" style={{ fontFamily: 'var(--font-mono)' }}>
-                  {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
-                </span>
-              </div>
-              <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
-                {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
-                  const isSelected = entry.tasting!.quality === v;
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => handleQualityChange(v)}
-                      role="radio"
-                      aria-checked={isSelected}
-                      className={`flex-1 py-2.5 text-ui-12 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
-                        isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
-                      }${i < 9 ? ' weight-seg-div' : ''}`}
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        background: isSelected
-                          ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
-                          : 'transparent',
-                      }}
-                    >
-                      {v}
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="pt-6 space-y-2.5">
+          <QuietEyebrow label="Profile" />
+          {/* Quality 1–10 — same segment toggle as TastingSession */}
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-sans text-ui-11 text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
+              <span className="font-sans text-ui-11 text-tea-gold tabular-nums font-medium">
+                {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
+              </span>
             </div>
-            {/* Brewing metadata */}
-            {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
-              <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
-                {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
-                {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
-                {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
-              </div>
-            )}
-            {/* Tag cloud */}
-            <TastingProfileStrip
-              value={entry.tasting}
-              onRemove={handleTastingStripRemove}
-              variant="cloud"
-            />
+            <div className="tasting-segment-toggle" role="radiogroup" aria-label="Quality rating">
+              {[1,2,3,4,5,6,7,8,9,10].map((v, i) => {
+                const isSelected = entry.tasting!.quality === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => handleQualityChange(v)}
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`font-sans tabular-nums flex-1 py-2.5 text-ui-11 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                      isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
+                    }${i < 9 ? ' weight-seg-div' : ''}`}
+                    style={{
+                      background: isSelected
+                        ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
+                        : 'transparent',
+                    }}
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </>
+          {/* Brewing metadata */}
+          {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
+            <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
+              {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
+              {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
+              {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
+            </div>
+          )}
+          {/* Tag cloud */}
+          <TastingProfileStrip
+            value={entry.tasting}
+            onRemove={handleTastingStripRemove}
+            variant="cloud"
+          />
+        </div>
       )}
 
       {/* ─── Notes zone ─── */}
-      <SectionDivider label="Notes" ornament />
-      <NoteThread
-        compassEntryId={entry.id}
-        teaKey={entry.teaKey ?? undefined}
-        compact
-        hideTastingArtifacts
-      />
+      <div className="pt-6 space-y-2">
+        <QuietEyebrow label="Notes" />
+        <NoteThread
+          compassEntryId={entry.id}
+          teaKey={entry.teaKey ?? undefined}
+          compact
+          hideTastingArtifacts
+          sans
+        />
+      </div>
 
       <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
 
@@ -1851,6 +1863,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
           </div>
         </>
       )}
+
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
       <div className="space-y-2">
@@ -1891,7 +1904,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         type="number"
                         value={buyingQty}
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-11 text-center text-tea-text text-sm font-semibold bg-transparent border-none outline-none"
+                        className="w-11 text-center text-tea-text text-base font-normal bg-transparent border-none outline-none"
                       />
                       <span className="text-tea-text-dim text-ui-11">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
@@ -1906,11 +1919,11 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                     </button>
                   </div>
                   {totalPrice != null ? (
-                    <span className="text-tea-text-dim text-xs">
+                    <span className="text-tea-text-dim text-ui-11">
                       = <span className="text-tea-text-sec font-medium">{totalPrice.toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : entry.priceAmount && unitBased ? (
-                    <span className="text-tea-text-dim text-xs">
+                    <span className="text-tea-text-dim text-ui-11">
                       = <span className="text-tea-text-sec font-medium">{(buyingQty * entry.priceAmount).toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : null}
@@ -1923,7 +1936,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-ui-10 tabular-nums transition-colors ${
+                        className={`py-0.5 px-2 rounded text-ui-11 tabular-nums transition-colors ${
                           buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
                       >
@@ -2009,92 +2022,39 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
         </AnimatePresence>
       </div>
 
-      {/* Mobile entry marks — primary action row, sized to read as a
-          first-class control surface (not a status chip strip). */}
-      <div className="lg:hidden grid grid-cols-2 gap-2">
-        <EntryMark
-          label={hasTasting ? 'Tasted' : 'Taste'}
-          hint={hasTasting ? 'Tasting recorded' : 'Record a tasting'}
-          active={!!hasTasting}
-          onClick={openTastingOverlay}
-        />
-        <EntryMark
-          label={isWant ? 'Wanted' : 'Want'}
-          hint={isWant ? 'On your wishlist' : 'Save to your wishlist'}
-          active={isWant}
-          onClick={() => update({ status: isWant ? 'noted' : 'want' })}
-        />
-        <EntryMark
-          label="Buy"
-          hint="Add to your inventory"
-          active={showBuyPicker}
-          onClick={() => {
-            const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
-            if (!showBuyPicker) setBuyingQty(defaultQty);
-            setShowBuyPicker((v) => !v);
-          }}
-        />
-        <EntryMark
-          label={sampleCartHas ? 'Listed' : 'Sample'}
-          hint={sampleCartHas ? 'In your sample queue' : 'Queue as a sample'}
-          active={sampleCartHas}
-          onClick={() => {
-            if (sampleCartHas) {
-              removeSampleCartItem(entryId);
-              update({ isSample: false, sampleState: null });
-            } else {
-              addSampleCartItem({
-                id: entryId,
-                name: entry.name,
-                chineseName: entry.chineseName,
-                type: entry.type,
-                vendorName: entry.vendorName,
-                compassEntryId: entryId,
-                teaKey: entry.teaKey,
-              });
-              // Mark the entry itself so the library's Queue (which keys on
-              // isSample) tracks it — the cart alone is invisible to Browse.
-              update({ isSample: true, sampleState: 'requested' });
-            }
-          }}
-        />
-      </div>
-
-      {/* Mobile action footer — Share (small icon button) on the left,
-          Done (gold-gradient primary) flex-1 on the right. Share lives
-          here so the user has commit + share colocated in the action
-          area, rather than share floating up in the page header. */}
-      {(() => {
-        // Done is enabled whenever the entry holds anything worth keeping — a
-        // name, a photo, notes (incl. thread notes), or tasting data — matching
-        // exactly what commitEntry() will persist. Requiring a name blocked
-        // saving an entry that already had notes/flavor, which read as broken.
-        const ready = entryHasContent(entry);
-        return (
-          <div className="lg:hidden flex items-center gap-2 mt-1">
-            {onShare && (
-              <button
-                type="button"
-                onClick={onShare}
-                className="tap-target shrink-0 inline-flex items-center px-3 py-2 rounded-md text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
-                aria-label="Share this entry"
-                title="Share this entry"
-              >
-                Share
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleCommit}
-              disabled={!ready}
-              className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-display font-semibold tracking-[0.06em] text-ui-14 transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Done, commit this entry"
-            >
-              Done
-            </button>
-          </div>
-        );
-      })()}
+      {/* Verdict + Done: inline at the end of the card (part of the scroll),
+          not a fixed bar stacked over the app nav. A decision, or none — which
+          saves as a plain capture. Done is enabled by a photo OR a name. */}
+      <CaptureVerdictRow
+        tasted={!!hasTasting}
+        onTasted={openTastingOverlay}
+        want={isWant}
+        onWant={() => update({ status: isWant ? 'noted' : 'want' })}
+        pass={isPass}
+        onPass={() => update({ status: isPass ? 'noted' : 'pass' })}
+        bagged={sampleCartHas}
+        onBagIt={() => {
+          if (sampleCartHas) {
+            removeSampleCartItem(entryId);
+            update({ isSample: false });
+          } else {
+            addSampleCartItem({
+              id: entryId,
+              name: entry.name,
+              chineseName: entry.chineseName,
+              type: entry.type,
+            vendorName: entry.vendorName,
+            compassEntryId: entryId,
+            teaKey: entry.teaKey,
+            });
+            // Mark the entry itself so the library's Queue (which keys on
+            // isSample) tracks it; the cart alone is invisible to Browse.
+            update({ isSample: true, sampleState: 'requested' });
+          }
+        }}
+        doneEnabled={entryHasContent(entry)}
+        onDone={handleCommit}
+      />
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

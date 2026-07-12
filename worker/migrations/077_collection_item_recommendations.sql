@@ -8,9 +8,12 @@
 --   loose-leaf  -> grams as a number-string, e.g. "100"
 --   cake/teaware -> unit count, e.g. "2"
 -- recommended_price_usd is the TOTAL price for the recommended quantity of this
--- one tea (a per-collection override, e.g. a friend/bundle rate), in USD. It maps
--- directly to invoice_line_items.price_at_sale (which is also a line total in USD,
--- stored as REAL). Null = no override; fall back to the catalog price.
+-- one tea (a per-collection override, e.g. a friend/bundle rate), in USD.
+-- CORRECTION (supersedes the original note here): invoice_line_items.price_at_sale
+-- is a PER-UNIT rate, NOT a line total. Every reader computes
+-- quantity * price_at_sale, so the confirm-picks writer must divide the recommended
+-- total by the picked quantity before storing it. Null = no override; fall back to
+-- the catalog price.
 
 ALTER TABLE collection_items ADD COLUMN recommended_quantity TEXT;
 ALTER TABLE collection_items ADD COLUMN recommended_price_usd REAL;

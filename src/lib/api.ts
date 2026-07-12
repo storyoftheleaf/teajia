@@ -1305,6 +1305,15 @@ export const api = {
     });
   },
 
+  // One-tap Chinese name for a captured tea (the operator can't type hanzi).
+  // Returns { chineseName, confident }.
+  generateChineseName: async (params: { name: string; type?: string; originRegion?: string; year?: number }) => {
+    return authedFetch(`${API_URL}/api/generate-chinese-name`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  },
+
   extractFromImage: async (file: File, opts?: { skipUpload?: boolean }) => {
     const formData = new FormData();
     formData.append('file', file);

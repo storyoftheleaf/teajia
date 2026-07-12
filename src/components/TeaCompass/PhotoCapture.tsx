@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
-import { Camera, Check, ChevronLeft, ChevronRight, Edit3, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
+import { Camera, Check, ChevronLeft, ChevronRight, Edit3, ImagePlus, Maximize2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { compressImage } from '../../lib/imageCompressor';
@@ -30,6 +30,10 @@ interface PhotoCaptureProps {
   /** 'lg' renders the inline strip with larger thumbs + 44×44 action buttons,
    *  used by the teaware capture card where the top of the form needs breathing room. */
   size?: 'default' | 'lg';
+  /** 'hero' renders the full-width 4:3 camera tile that leads the capture
+   *  card: tap anywhere to open the camera before a photo exists; after a
+   *  photo, it fills the tile with scan/add actions overlaid bottom-right. */
+  variant?: 'strip' | 'hero';
 }
 
 interface PendingPreview {
@@ -40,6 +44,27 @@ interface PendingPreview {
 
 type ScanStep = 'camera' | 'scanning' | 'result' | 'denied';
 
+/** Structured scan failures from the worker. The old callers swallowed every
+ *  failure with .catch(() => null), so "no key", "provider down" and
+ *  "unreadable label" all looked identical. Now each gets its own quiet
+ *  state; an empty result on a leaf photo is NOT an error and stays silent. */
+type ScanErrorCode = 'no_ai_provider' | 'provider_error' | 'extract_failed';
+
+function classifyScanError(err: unknown): ScanErrorCode {
+  const msg = err instanceof Error ? err.message : String(err ?? '');
+  if (msg.includes('no_ai_provider')) return 'no_ai_provider';
+  if (msg.includes('extract_failed')) return 'extract_failed';
+  // Anything else (provider_error, network, timeout) reads as the scanner
+  // being unreachable right now.
+  return 'provider_error';
+}
+
+const SCAN_ERROR_COPY: Record<ScanErrorCode, string> = {
+  no_ai_provider: 'Scanner unavailable',
+  provider_error: 'Scanner unavailable, try again shortly',
+  extract_failed: "Couldn't read this label",
+};
+
 function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   const data: ExtractedTeaData = {};
   if (r.name || r.givenName || r.given_name) data.name = r.name || r.givenName || r.given_name;
@@ -48,21 +73,28 @@ function parseExtractResult(r: Record<string, any>): ExtractedTeaData {
   if (r.form) data.form = r.form;
   if (r.year) data.year = typeof r.year === 'number' ? r.year : parseInt(r.year, 10) || undefined;
   if (r.season) data.season = r.season;
-  if (r.region || r.originRegion || r.origin_region) data.region = r.region || r.originRegion || r.origin_region;
-  if (r.price || r.priceAmount || r.price_amount) {
-    const pv = r.price || r.priceAmount || r.price_amount;
-    data.price = typeof pv === 'number' ? pv : parseFloat(pv) || undefined;
+  // Region first, falling back to country when no specific region is on the label.
+  if (r.region || r.originRegion || r.origin_region || r.originCountry || r.origin_country)
+    data.region = r.region || r.originRegion || r.origin_region || r.originCountry || r.origin_country;
+  // Price: the worker/Gemini contract returns `costAmount`; earlier keys kept for compat.
+  // Guard against 0 — the model emits 0 when no price is visible, which must not auto-fill.
+  const priceRaw = r.price ?? r.priceAmount ?? r.price_amount ?? r.costAmount ?? r.cost_amount;
+  if (priceRaw !== undefined && priceRaw !== null && priceRaw !== '' && priceRaw !== 0) {
+    data.price = typeof priceRaw === 'number' ? priceRaw : parseFloat(priceRaw) || undefined;
   }
-  if (r.grams || r.weight) {
-    const gv = r.grams || r.weight;
-    data.grams = typeof gv === 'number' ? gv : parseFloat(gv) || undefined;
+  // Grams: the worker/Gemini contract returns `quantityPurchased` (always grams).
+  const gramsRaw = r.grams ?? r.weight ?? r.quantityPurchased ?? r.quantity_purchased;
+  if (gramsRaw !== undefined && gramsRaw !== null && gramsRaw !== '' && gramsRaw !== 0) {
+    data.grams = typeof gramsRaw === 'number' ? gramsRaw : parseFloat(gramsRaw) || undefined;
   }
   const extras: string[] = [];
   if (r.awards) extras.push(`Awards: ${r.awards}`);
   if (r.elevation || r.altitude) extras.push(`Elevation: ${r.elevation || r.altitude}`);
   if (r.farm || r.garden) extras.push(`Farm: ${r.farm || r.garden}`);
+  if (r.productName || r.product_name) extras.push(`Cultivar: ${r.productName || r.product_name}`);
   if (r.vendor) extras.push(`Vendor: ${r.vendor}`);
   if (r.description) extras.push(r.description);
+  if (r.notes) extras.push(r.notes);
   if (extras.length > 0) data.extraNotes = extras.join(' · ');
   return data;
 }
@@ -74,15 +106,16 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   photos,
   onRemovePhoto,
   size = 'default',
+  variant = 'strip',
 }) => {
   const isLg = size === 'lg';
-  const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-14 h-14';
-  const btnCls = isLg
-    ? 'w-11 h-11 rounded-md'  // 44×44 — meets WCAG 2.5.5 floor without tap-target padding
-    : 'w-7 h-7 rounded-md';
-  const btnIcon = isLg ? 18 : 12;
-  const btnGap = isLg ? 'gap-2' : 'gap-1';
-  const stripGap = isLg ? 'gap-2' : 'gap-1.5';
+  // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
+  // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
+  const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-11 h-11';
+  const btnCls = isLg ? 'w-11 h-11 rounded-md' : 'w-11 h-11 rounded-md';
+  const btnIcon = isLg ? 18 : 16;
+  const btnGap = 'gap-1.5';
+  const stripGap = 'gap-2';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
@@ -103,6 +136,37 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const [capturedDataUrl, setCapturedDataUrl] = useState<string | null>(null);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
   const [extractedPreview, setExtractedPreview] = useState<ExtractedTeaData | null>(null);
+
+  // Quiet scan-failure state, surfaced under the photo area. Cleared when a
+  // new scan starts. lastScanFile lets extract_failed offer a Retry without
+  // re-taking the photo. Never blocks capture; the form stays usable.
+  const [scanError, setScanError] = useState<ScanErrorCode | null>(null);
+  const [lastScanFile, setLastScanFile] = useState<File | null>(null);
+  const [retryingScan, setRetryingScan] = useState(false);
+
+  const runExtract = useCallback(
+    async (file: File): Promise<{ data: ExtractedTeaData | null; error: ScanErrorCode | null }> => {
+      try {
+        const result = await api.extractFromImage(file, { skipUpload: true });
+        return { data: result ? parseExtractResult(result as Record<string, any>) : null, error: null };
+      } catch (err) {
+        return { data: null, error: classifyScanError(err) };
+      }
+    },
+    []
+  );
+
+  const handleRetryScan = useCallback(async () => {
+    if (!lastScanFile || retryingScan) return;
+    setRetryingScan(true);
+    const { data, error } = await runExtract(lastScanFile);
+    setRetryingScan(false);
+    setScanError(error);
+    if (!error && data && Object.keys(data).length > 0) {
+      onExtracted(data);
+      setJustExtracted(true);
+    }
+  }, [lastScanFile, retryingScan, runExtract, onExtracted]);
 
   const validPhotos = (photos ?? []).filter(Boolean);
   const allPhotos = [
@@ -167,6 +231,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     setCapturedDataUrl(null);
     setCapturedImageUrl(null);
     setExtractedPreview(null);
+    setScanError(null);
     setScanStep('camera');
     setScannerOpen(true);
   };
@@ -193,16 +258,19 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
     canvas.toBlob(async (blob) => {
       if (!blob) { setScanStep('result'); return; }
       const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+      setScanError(null);
+      setLastScanFile(file);
 
-      const [imageUrl, result] = await Promise.all([
+      const [imageUrl, extract] = await Promise.all([
         api.uploadImage(file).catch(() => null),
-        // uploadImage already stores the photo — skip the extract endpoint's
-        // own R2 write so each scan stores one object, not two.
-        api.extractFromImage(file, { skipUpload: true }).catch(() => null),
+        // uploadImage already stores the photo, so skip the extract
+        // endpoint's own R2 write; each scan stores one object, not two.
+        runExtract(file),
       ]);
 
       if (imageUrl) setCapturedImageUrl(imageUrl);
-      if (result) setExtractedPreview(parseExtractResult(result as Record<string, any>));
+      if (extract.data) setExtractedPreview(extract.data);
+      setScanError(extract.error);
       setScanStep('result');
     }, 'image/jpeg', 0.9);
   };
@@ -279,17 +347,18 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
         // Gallery-added photos get the same label read as the scanner.
         // Fire-and-forget: the form fills only empty fields the user hasn't
-        // touched (handleExtracted's contract), so a wrong read costs nothing.
-        api.extractFromImage(compressedFile, { skipUpload: true })
-          .then((result) => {
-            if (!result) return;
-            const parsed = parseExtractResult(result as Record<string, any>);
-            if (Object.keys(parsed).length > 0) {
-              onExtracted(parsed);
-              setJustExtracted(true);
-            }
-          })
-          .catch(() => { /* photo is already saved — a failed read is fine */ });
+        // touched (handleExtracted's contract), so a wrong read costs
+        // nothing. The photo is already saved either way; a failure only
+        // sets the quiet scan-error line, never blocks the capture.
+        setScanError(null);
+        setLastScanFile(compressedFile);
+        void runExtract(compressedFile).then(({ data, error }) => {
+          setScanError(error);
+          if (!error && data && Object.keys(data).length > 0) {
+            onExtracted(data);
+            setJustExtracted(true);
+          }
+        });
       } else {
         // Upload failed — never persist a blob: URL into the entry (it dies on
         // refresh and syncs a broken link). Surface a retry/dismiss instead.
@@ -488,12 +557,16 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             className="shrink-0 bg-tea-surface rounded-t-xl px-4 pt-4 pb-6 text-center space-y-3"
           >
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-2" />
-            <p className="text-ui-13 text-tea-text-sec">Couldn't read the label.</p>
+            <p className="text-ui-13 text-tea-text-sec">
+              {scanError && scanError !== 'extract_failed'
+                ? SCAN_ERROR_COPY[scanError]
+                : "Couldn't read the label."}
+            </p>
             <p className="text-ui-12 text-tea-text-dim">
               {capturedImageUrl
-                ? 'No problem — the photo is saved. Keep it as-is, or retake for a cleaner read.'
+                ? 'No problem, the photo is saved. Keep it as-is, or retake for a cleaner read.'
                 : capturedDataUrl
-                  ? "The photo hasn't reached the server yet — you can still keep it; it uploads in the background."
+                  ? "The photo hasn't reached the server yet. You can still keep it; it uploads in the background."
                   : 'Try moving closer, better lighting, or a flatter angle.'}
             </p>
             <div className="flex gap-2">
@@ -603,18 +676,186 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
       )
     : null;
 
-  // ── Inline row ─────────────────────────────────────────────────────────────
-  return (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
+  // ── Quiet scan-failure line ─────────────────────────────────────────────
+  // Rendered under the photo area in both variants. Three distinct states:
+  // scanner unavailable (no provider), scanner unreachable (provider error),
+  // and unreadable label (with Retry). An empty read stays silent.
+  const scanErrorLine = scanError ? (
+    <div className="flex items-center gap-2 pt-1.5" role="status">
+      <span className="text-ui-11 text-tea-text-dim italic">{SCAN_ERROR_COPY[scanError]}</span>
+      {scanError === 'extract_failed' && lastScanFile && (
+        <button
+          type="button"
+          onClick={handleRetryScan}
+          disabled={retryingScan}
+          className="tap-target text-ui-11 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
+        >
+          {retryingScan ? 'Retrying' : 'Retry'}
+        </button>
+      )}
+    </div>
+  ) : null;
 
-      <div className={`flex items-center ${stripGap} ${isLg ? 'flex-1 min-w-0 flex-wrap' : 'shrink-0'}`}>
+  // ── Hero tile pieces ──────────────────────────────────────────────────────
+  // The newest upload-in-flight owns the tile while it lands; otherwise the
+  // most recent stored photo does. Earlier shots drop to a thumb row below.
+  const heroPending = pendingPreviews.filter((p) => !p.failed).slice(-1)[0] ?? null;
+  const heroValidUrl = !heroPending && validPhotos.length > 0 ? validPhotos[validPhotos.length - 1] : null;
+  const heroExtraCount =
+    validPhotos.length + pendingPreviews.length - (heroPending || heroValidUrl ? 1 : 0);
+
+  const heroArea = (
+    <div className="w-full">
+      <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-tea-elevated">
+        {heroPending ? (
+          <>
+            <img
+              src={heroPending.localUrl}
+              alt="Uploading photo"
+              className={`h-full w-full object-cover ${heroPending.uploading ? 'opacity-60' : 'opacity-40'}`}
+            />
+            {heroPending.uploading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-5 w-5 animate-spin rounded-full border border-tea-border border-t-transparent" />
+              </div>
+            )}
+            {heroPending.failed && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== heroPending.localUrl))
+                }
+                className="absolute inset-0 flex items-center justify-center text-tea-error"
+                aria-label="Upload failed, tap to dismiss"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </>
+        ) : heroValidUrl ? (
+          <button
+            type="button"
+            onClick={() => setMenuPhotoIndex(validPhotos.length - 1)}
+            className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
+            aria-haspopup="menu"
+            aria-label="Photo actions"
+            title="Tap for options"
+          >
+            <img
+              src={mediaUrl(heroValidUrl)}
+              alt="Capture photo"
+              className="pointer-events-none h-full w-full object-cover"
+            />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={openScanner}
+            className="flex h-full w-full flex-col items-center justify-center gap-2 text-tea-text-sec transition-colors hover:text-tea-text focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
+            aria-label="Open camera"
+          >
+            <Camera size={30} strokeWidth={1.25} className="text-tea-gold" />
+            <span className="text-ui-11 uppercase tracking-[0.16em]">Photo</span>
+          </button>
+        )}
+
+        {/* Overlay actions, bottom-right of the tile. Before a photo only the
+            camera-roll glyph shows (the tile itself is the camera); after a
+            photo the scan action joins it for retake/rescan. */}
+        <div className="absolute bottom-2.5 right-2.5 flex gap-2">
+          {(heroValidUrl || heroPending) && (
+            <button
+              type="button"
+              onClick={openScanner}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-tea-bg/70 text-tea-gold backdrop-blur-sm transition-colors hover:bg-tea-bg/90"
+              aria-label="Scan label"
+              title="Scan label"
+            >
+              {justExtracted ? <Check size={18} /> : <Sparkles size={18} strokeWidth={1.5} />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-tea-bg/70 text-tea-text-sec backdrop-blur-sm transition-colors hover:bg-tea-bg/90 hover:text-tea-text"
+            aria-label="Add from camera roll"
+            title="Add from camera roll"
+          >
+            <ImagePlus size={18} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {allPhotos.length > 1 && (
+          <span className="absolute right-2.5 top-2.5 rounded-full bg-tea-bg/70 px-2 py-0.5 text-ui-10 tabular-nums text-tea-text-sec backdrop-blur-sm">
+            {allPhotos.length} photos
+          </span>
+        )}
+      </div>
+
+      {/* Earlier shots + uploads in flight, as small thumbs under the hero. */}
+      {heroExtraCount > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {validPhotos.map((url, i) =>
+            url === heroValidUrl ? null : (
+              <button
+                key={url}
+                type="button"
+                onClick={() => setMenuPhotoIndex(i)}
+                className={`w-[60px] h-[60px] relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
+                  menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
+                }`}
+                aria-haspopup="menu"
+                aria-expanded={menuPhotoIndex === i}
+                aria-label="Photo actions"
+                title="Tap for options"
+              >
+                <img
+                  src={mediaUrl(url)}
+                  alt={`Photo ${i + 1}`}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+              </button>
+            )
+          )}
+          {pendingPreviews.map((preview, i) =>
+            preview === heroPending ? null : (
+              <div key={preview.localUrl} className="relative shrink-0">
+                <img
+                  src={preview.localUrl}
+                  alt={`Uploading ${i + 1}`}
+                  className={`w-[60px] h-[60px] rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+                />
+                {preview.uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-md">
+                    <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {preview.failed && (
+                  <button
+                    type="button"
+                    onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
+                    className="absolute inset-0 flex items-center justify-center rounded-md text-tea-error"
+                    aria-label="Upload failed"
+                  >
+                    <X size={10} />
+                  </button>
+                )}
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {scanErrorLine}
+    </div>
+  );
+
+  // ── Inline row ─────────────────────────────────────────────────────────────
+  // Wrapped in a recessed tray so the thumbnails + scan/camera actions read as
+  // one contained unit instead of loose buttons floating on the page.
+  const stripRow = (
+    <>
+      <div className={`field-recessed bg-tea-elevated rounded-xl p-1.5 inline-flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : 'w-fit'}`}>
         {validPhotos.map((url, i) => (
           <button
             key={url}
@@ -636,10 +877,82 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           </button>
         ))}
 
-        {/* Action menu — bottom sheet so it never clips at the viewport edge
-            and gives big thumb-friendly rows. Renders once outside the
-            thumbnail loop so we can address any photo by index. */}
-        <BottomSheet
+        {pendingPreviews.map((preview, i) => (
+          <div key={preview.localUrl} className="relative shrink-0">
+            <img
+              src={preview.localUrl}
+              alt={`Uploading ${i + 1}`}
+              className={`${thumbCls} rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
+            />
+            {preview.uploading && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/20">
+                <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {preview.failed && (
+              <button
+                type="button"
+                onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
+                className="absolute inset-0 flex items-center justify-center rounded-md bg-tea-error/20 text-tea-error"
+                aria-label="Upload failed"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
+        ))}
+
+
+        <div className={`flex flex-row ${isLg ? 'ml-auto' : ''} ${btnGap} shrink-0`}>
+          {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity) —
+              gold only lights up on the just-scanned success tick. */}
+          <button
+            type="button"
+            onClick={openScanner}
+            className={`${btnCls} flex items-center justify-center border shrink-0 transition-all ${
+              justExtracted
+                ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
+                : 'bg-tea-surface border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
+            }`}
+            aria-label="Scan label"
+            title="Scan label"
+          >
+            {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
+          </button>
+
+          {/* Camera icon = plain gallery picker. Quieter visual weight so
+              the eye lands on the Sparkles scan button first. */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`${btnCls} flex items-center justify-center bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 shrink-0 transition-colors`}
+            aria-label="Add photo"
+            title="Add photo"
+          >
+            <Camera size={btnIcon} strokeWidth={1.5} />
+          </button>
+        </div>
+      </div>
+      {scanErrorLine}
+    </>
+  );
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {variant === 'hero' ? heroArea : stripRow}
+
+      {/* Action menu: a bottom sheet so it never clips at the viewport edge
+          and gives big thumb-friendly rows. Renders once outside the
+          thumbnail loop so we can address any photo by index. */}
+      <BottomSheet
           open={menuPhotoIndex !== null}
           onOpenChange={(open) => { if (!open) setMenuPhotoIndex(null); }}
           title="Photo"
@@ -684,75 +997,6 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             )}
           </div>
         </BottomSheet>
-
-        {pendingPreviews.map((preview, i) => (
-          <div key={preview.localUrl} className="relative shrink-0">
-            <img
-              src={preview.localUrl}
-              alt={`Uploading ${i + 1}`}
-              className={`${thumbCls} rounded-md object-cover ${preview.uploading ? 'opacity-60' : 'opacity-40'}`}
-            />
-            {preview.uploading && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/20">
-                <div className="w-4 h-4 border border-tea-border border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-            {preview.failed && (
-              <button
-                type="button"
-                onClick={() => setPendingPreviews((prev) => prev.filter((p) => p.localUrl !== preview.localUrl))}
-                className="absolute inset-0 flex items-center justify-center rounded-md bg-tea-error/20 text-tea-error"
-                aria-label="Upload failed"
-              >
-                <X size={10} />
-              </button>
-            )}
-          </div>
-        ))}
-
-        {validPhotos.length === 0 && pendingPreviews.length === 0 && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Add photo"
-            className="w-[60px] h-[60px] rounded-md border border-dashed border-tea-border text-tea-text-dim hover:text-tea-text-sec hover:border-tea-gold/30 flex flex-col items-center justify-center gap-0.5 shrink-0 transition-colors"
-          >
-            <Camera size={16} strokeWidth={1.5} />
-            <span className="text-ui-9 uppercase tracking-[1.2px]">Photo</span>
-          </button>
-        )}
-
-        <div className={`flex ${isLg ? 'flex-row ml-auto' : 'flex-col'} ${btnGap} shrink-0`}>
-          {/* Sparkles = AI label scanner. Carries a subtle gold accent at
-              rest so it reads as the "magic" primary action — distinct
-              from the plain Camera button which is just a gallery picker. */}
-          <button
-            type="button"
-            onClick={openScanner}
-            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center border shrink-0 transition-all ${
-              justExtracted
-                ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
-                : 'border-tea-gold/30 bg-tea-gold/[0.06] text-tea-gold hover:bg-tea-gold/[0.12] hover:border-tea-gold/50'
-            }`}
-            aria-label="Scan label"
-            title="Scan label"
-          >
-            {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
-          </button>
-
-          {/* Camera icon = plain gallery picker. Quieter visual weight so
-              the eye lands on the Sparkles scan button first. */}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} ${isLg ? '' : 'tap-target'} flex items-center justify-center bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 shrink-0 transition-colors`}
-            aria-label="Add photo"
-            title="Add photo"
-          >
-            <Camera size={btnIcon} strokeWidth={1.5} />
-          </button>
-        </div>
-      </div>
 
       {scannerModal}
       {lightbox}

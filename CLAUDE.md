@@ -11,7 +11,7 @@ last_reviewed: 2026-07-08
 
 # Teajia — flagship e-commerce + content platform
 
-> **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/ROADMAP.md](docs/ROADMAP.md). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
+> **Documentation hub:** start at [docs/INDEX.md](docs/INDEX.md). Architecture in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Current state in [docs/STATE_OF_THE_SITE.md](docs/STATE_OF_THE_SITE.md). What's next in [docs/CONSOLIDATED_DIRECTION.md](docs/CONSOLIDATED_DIRECTION.md) (the single directional list; per-track build queues in [docs/tracks/](docs/tracks/)). What shipped in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## What this is
 Professional tea infrastructure — sourcing, inventory, education, events, and multi-store management. This is NOT a wellness app, social network, or franchise. Adrian's curation is the engine (139 products). WhatsApp checkout is intentional — every order is a personal conversation. The app works before/after tea sessions, never during (no phone-at-the-table features).
@@ -37,7 +37,7 @@ Professional tea infrastructure — sourcing, inventory, education, events, and 
 - **Color tokens** → `tailwind.config.ts` + `src/styles/card-utilities.css`
 - **Types** → `src/types.ts` (global), `src/admin/types.ts` (admin)
 - **Multi-store plan** → `docs/MULTI_STORE_PLAN.md`
-- **Product strategy** → `docs/VISION.md`, `docs/ROADMAP.md`
+- **Product strategy** → `docs/VISION.md`, `docs/CONSOLIDATED_DIRECTION.md`
 
 ## MANDATORY styling rules
 Read `docs/COLOR_RULES.md` before writing any component styles.
@@ -162,7 +162,7 @@ A held write scope implicitly grants its read scope, so pre-`sales:read` tokens 
 **AI discoverability:** `public/llms.txt` indexes the public MCP + shop + journal; Organization/WebSite JSON-LD in `index.html`, Product JSON-LD on `ProductPage`, Article JSON-LD on `ArticlePage`.
 
 ## Open work
-See `docs/ROADMAP.md` for build sequence and `docs/MULTI_STORE_PLAN.md` for multi-tenancy rollout.
+See `docs/CONSOLIDATED_DIRECTION.md` (single directional list) and `docs/tracks/` (per-track build queues) for the build sequence, and `docs/MULTI_STORE_PLAN.md` for multi-tenancy rollout.
 
 ## Desktop / mobile layout principles
 - **Mobile:** AccountPanel (person icon, top-right) is the primary engagement hub — everything personal lives there.

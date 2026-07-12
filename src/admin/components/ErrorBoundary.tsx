@@ -1,4 +1,5 @@
 import React from 'react';
+import { recoverAndReload } from '../../lib/recoverFromChunkError';
 
 interface Props {
   children: React.ReactNode;
@@ -33,7 +34,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               {this.state.error?.message || 'An unexpected error occurred.'}
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => { void recoverAndReload(); }}
               className="bg-tea-gold text-tea-bg px-6 py-3 rounded-xl text-sm font-medium hover:bg-tea-gold/90 transition-colors"
             >
               Reload Application
