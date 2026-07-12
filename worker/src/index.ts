@@ -11,7 +11,7 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
-import { deriveConfirmedInvoiceLine } from './invoiceDomain';
+import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 
 interface Env {
   DB: D1Database;
@@ -18938,6 +18938,96 @@ const handleAdoptProfile: Handler = async (request, env, params) => {
   return json({ ok: true, decision });
 };
 
+type InvoiceRepairRow = {
+  account_id: string;
+  invoice_id: string;
+  line_item_id: string;
+  quantity: number;
+  price_at_sale: number;
+  source_collection_id: string;
+  recommended_quantity: number | null;
+  recommended_price_usd: number | null;
+  catalog_price: number | null;
+};
+
+type InvoiceRepairPreview = {
+  invoice_id: string;
+  line_item_id: string;
+  old_price_at_sale: number;
+  new_price_at_sale: number;
+  current_total_usd: number;
+  corrected_total_usd: number;
+};
+
+async function invoiceRepairPreview(env: Env, accountId: string): Promise<{ candidates: InvoiceRepairPreview[]; preview_key: string }> {
+  const result = await env.DB.prepare(`
+    SELECT ili.account_id, ili.invoice_id, ili.id AS line_item_id, ili.quantity,
+           ili.price_at_sale, i.source_collection_id,
+           ci.recommended_quantity, ci.recommended_price_usd,
+           p.fixed_retail_price_usd AS catalog_price
+    FROM invoice_line_items ili
+    JOIN invoices i ON i.id = ili.invoice_id AND i.account_id = ili.account_id
+    JOIN collection_items ci
+      ON ci.collection_id = i.source_collection_id AND ci.product_id = ili.product_id
+    LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
+    LEFT JOIN invoice_line_repairs ilr ON ilr.line_item_id = ili.id
+    WHERE i.account_id = ? AND i.source_collection_id IS NOT NULL AND ilr.id IS NULL
+  `).bind(accountId).all<InvoiceRepairRow>();
+  const candidates = (result.results || []).flatMap(row => {
+    const repair = repairCandidate({
+      sourceCollectionId: row.source_collection_id,
+      quantity: Number(row.quantity),
+      storedPriceAtSale: Number(row.price_at_sale),
+      recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
+      recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
+      catalogUnitPriceUsd: row.catalog_price == null ? null : Number(row.catalog_price),
+    });
+    return repair ? [{
+      invoice_id: row.invoice_id,
+      line_item_id: row.line_item_id,
+      old_price_at_sale: Number(row.price_at_sale),
+      new_price_at_sale: repair.correctedUnitPriceUsd,
+      current_total_usd: repair.currentLineTotalUsd,
+      corrected_total_usd: repair.correctedLineTotalUsd,
+    }] : [];
+  }).sort((a, b) => a.line_item_id.localeCompare(b.line_item_id));
+  const tuples = candidates.map(row => `${row.line_item_id}:${row.old_price_at_sale}:${row.new_price_at_sale}`).join('\n');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tuples));
+  const preview_key = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return { candidates, preview_key };
+}
+
+async function handlePreviewInvoiceLineRepair(request: Request, env: Env): Promise<Response> {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json(await invoiceRepairPreview(env, ctx.accountId));
+}
+
+async function handleApplyInvoiceLineRepair(request: Request, env: Env): Promise<Response> {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as { confirm?: boolean; preview_key?: string } | null;
+  if (body?.confirm !== true || typeof body.preview_key !== 'string') return json({ error: 'confirm and preview_key are required' }, 400);
+  const preview = await invoiceRepairPreview(env, ctx.accountId);
+  // Once all matching rows have an audit record, retrying a confirmed operation is a no-op.
+  if (preview.candidates.length === 0) return json({ changed_lines: 0, preview_key: body.preview_key });
+  if (body.preview_key !== preview.preview_key) return json({ error: 'Repair preview is stale', preview_key: preview.preview_key }, 409);
+  const statements = preview.candidates.flatMap(candidate => {
+    const repairKey = `${candidate.line_item_id}:${candidate.old_price_at_sale}:${candidate.new_price_at_sale}`;
+    return [
+      env.DB.prepare(`UPDATE invoice_line_items SET price_at_sale = ? WHERE id = ? AND invoice_id = ? AND account_id = ? AND price_at_sale = ?`)
+        .bind(candidate.new_price_at_sale, candidate.line_item_id, candidate.invoice_id, ctx.accountId, candidate.old_price_at_sale),
+      env.DB.prepare(`INSERT OR IGNORE INTO invoice_line_repairs
+        (id, account_id, invoice_id, line_item_id, repair_key, old_price_at_sale, new_price_at_sale, old_line_total, new_line_total, repaired_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), ctx.accountId, candidate.invoice_id, candidate.line_item_id, repairKey, candidate.old_price_at_sale, candidate.new_price_at_sale, candidate.current_total_usd, candidate.corrected_total_usd, ctx.userId),
+    ];
+  });
+  const results = await env.DB.batch(statements);
+  const changed_lines = results.filter((_result, index) => index % 2 === 0).reduce((sum, result) => sum + Number(result.meta?.changes || 0), 0);
+  return json({ changed_lines, preview_key: preview.preview_key });
+}
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -19036,6 +19126,8 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/users/:id/role', handleUpdateUserRole],
   ['DELETE', '/api/admin/users/:id', handleDeleteUser],
   ['POST', '/api/admin/reset-token', handleCreateResetToken],
+  ['GET', '/api/admin/repairs/invoice-lines', handlePreviewInvoiceLineRepair],
+  ['POST', '/api/admin/repairs/invoice-lines', handleApplyInvoiceLineRepair],
 
   // Public — venues/spaces
   ['GET', '/api/venues/public', handleGetPublicVenues],
