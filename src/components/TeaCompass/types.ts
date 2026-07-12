@@ -26,6 +26,7 @@ export type BrowseLayout = 'list' | 'photos';
 // Post-tasting verdict — the single organizing signal used by the triage
 // review. Generalizes the sample-only sampleVerdict (kept as a read fallback).
 export type CompassVerdict = 'love' | 'like' | 'neutral' | 'pass';
+export type CompassDecision = 'considering' | 'selected' | 'passed_on';
 
 export interface VendorDetails {
   businessCardUrl?: string;
@@ -104,6 +105,9 @@ export interface TeaCompassEntry {
   // Drives the triage review and the "Loved" lens. Reads fall back to
   // sampleVerdict for legacy sample entries that predate this field.
   verdict?: CompassVerdict;
+  // Deliberate sourcing choice. Independent from tasting verdict, stock status,
+  // and storefront publication; never inferred from those fields.
+  decision?: CompassDecision | null;
   // Capture session — entries created in one capture run share this id, so a
   // batch review can group "the teas I just tasted". Column reserved by 071.
   sessionId?: string;

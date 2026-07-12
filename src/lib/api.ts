@@ -1,4 +1,7 @@
 import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, DbArticle, PlatformRole } from '../types';
+import type { CompassDecision } from '../components/TeaCompass/types';
+
+type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
 
 export interface AuditLogEntry {
   id: string;
@@ -1776,13 +1779,13 @@ export const api = {
       const qs = qp.toString();
       return authedFetch(`${API_URL}/api/compass/entries${qs ? `?${qs}` : ''}`)
     },
-    create: async (entry: Record<string, any>) => {
+    create: async (entry: CompassWrite) => {
       return authedFetch(`${API_URL}/api/compass/entries`, {
         method: 'POST',
         body: JSON.stringify(entry),
       });
     },
-    update: async (id: string, updates: Record<string, any>) => {
+    update: async (id: string, updates: CompassWrite) => {
       // PUT by id — idempotent, safe to retry through a GFW timeout.
       return authedFetch(`${API_URL}/api/compass/entries/${id}`, {
         method: 'PUT',
@@ -1797,8 +1800,9 @@ export const api = {
         retryTimeouts: true,
       });
     },
-    sync: async (entries: Record<string, any>[]) => {
-      // Worker uses INSERT OR REPLACE keyed by entry id — idempotent.
+    sync: async (entries: CompassWrite[]) => {
+      // Worker uses an ownership-scoped upsert keyed by entry id — idempotent
+      // without replacing server-owned or omitted fields.
       return authedFetch(`${API_URL}/api/compass/sync`, {
         method: 'POST',
         body: JSON.stringify({ entries }),

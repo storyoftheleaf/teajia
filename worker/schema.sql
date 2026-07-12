@@ -384,6 +384,7 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   source_entry_id TEXT,
   session_id TEXT,
   verdict TEXT,
+  decision TEXT CHECK (decision IS NULL OR decision IN ('considering', 'selected', 'passed_on')),
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -393,6 +394,7 @@ CREATE INDEX IF NOT EXISTS idx_compass_status ON tea_compass_entries(status);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_source ON tea_compass_entries(source_entry_id);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_session ON tea_compass_entries(session_id);
 CREATE INDEX IF NOT EXISTS idx_compass_entries_verdict ON tea_compass_entries(verdict);
+CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(account_id, decision);
 
 CREATE TABLE IF NOT EXISTS compass_shares (
   id TEXT PRIMARY KEY,

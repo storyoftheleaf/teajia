@@ -8536,6 +8536,42 @@ const handleGetTeawareCategories: Handler = async (request, env) => {
 
 // ── Tea Compass (personal field notes, scoped per account + user) ──
 
+const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips']);
+const COMPASS_DECISIONS = new Set(['considering', 'selected', 'passed_on']);
+const COMPASS_COLUMNS = [
+  'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
+  'origin_region', 'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
+  'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
+  'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
+  'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'session_id',
+  'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
+] as const;
+type CompassColumn = typeof COMPASS_COLUMNS[number];
+
+function encodeCompassValue(column: CompassColumn, value: unknown): unknown {
+  if (!COMPASS_JSON_COLUMNS.has(column) || value == null || typeof value === 'string') return value ?? null;
+  return JSON.stringify(value);
+}
+
+function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolean):
+  | { values: Partial<Record<CompassColumn, unknown>> }
+  | { error: Response } {
+  const allowed = new Set<string>(COMPASS_COLUMNS);
+  const ownership = new Set(['id', 'user_id', 'account_id']);
+  const unknown = Object.keys(body).filter(key => !allowed.has(key) && !ownership.has(key));
+  if (rejectUnknown && unknown.length > 0) {
+    return { error: json({ error: `Unknown Compass field: ${unknown[0]}` }, 400) };
+  }
+  if (body.decision !== undefined && body.decision !== null && !COMPASS_DECISIONS.has(String(body.decision))) {
+    return { error: json({ error: 'decision must be considering, selected, passed_on, or null' }, 400) };
+  }
+  const values: Partial<Record<CompassColumn, unknown>> = {};
+  for (const column of COMPASS_COLUMNS) {
+    if (body[column] !== undefined) values[column] = encodeCompassValue(column, body[column]);
+  }
+  return { values };
+}
+
 const handleGetCompassEntries: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
@@ -8567,29 +8603,22 @@ const handleCreateCompassEntry: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
-  delete body.account_id;
+  const body = await request.json() as Record<string, unknown>;
+  const decoded = decodeCompassWrite(body, false);
+  if ('error' in decoded) return decoded.error;
 
-  const id = body.id || crypto.randomUUID();
-  const cols = [
-    'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
-    'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
-    'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
-    'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
-    'draft_product_id', 'tea_key', 'created_at', 'updated_at',
-  ];
-  const present = cols.filter(c => body[c] !== undefined);
+  const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
+  const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   const placeholders = ['id', 'user_id', 'account_id', ...present].map(() => '?').join(', ');
   const colNames = ['id', 'user_id', 'account_id', ...present].join(', ');
 
   await env.DB.prepare(
     `INSERT INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-  ).bind(id, userId, accountId, ...present.map(c => body[c] ?? null)).run();
+  ).bind(id, userId, accountId, ...present.map(column => decoded.values[column])).run();
 
   const created = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
-  ).bind(id, accountId).first();
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
+  ).bind(id, userId, accountId).first();
   return json(created, 201);
 };
 
@@ -8598,30 +8627,28 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
-  const body = await request.json() as Record<string, any>;
-  delete body.id;
-  delete body.user_id;
-  delete body.account_id;
-
-  const cols = Object.keys(body);
+  const body = await request.json() as Record<string, unknown>;
+  const decoded = decodeCompassWrite(body, true);
+  if ('error' in decoded) return decoded.error;
+  const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
     `UPDATE tea_compass_entries SET ${sets}, updated_at = datetime('now')
      WHERE id = ? AND user_id = ? AND account_id = ?`
-  ).bind(...cols.map(c => body[c] ?? null), params.id, userId, accountId).run();
+  ).bind(...cols.map(column => decoded.values[column]), params.id, userId, accountId).run();
 
   const updated = await env.DB.prepare(
-    'SELECT * FROM tea_compass_entries WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first() as Record<string, any> | null;
+    'SELECT * FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?'
+  ).bind(params.id, userId, accountId).first() as Record<string, any> | null;
 
   // Feature 2: Propagate tasting data to the linked draft product when tasting is updated.
   // If this compass entry has a promoted product (draft_product_id) and the update includes
   // tasting data, keep the product's tasting field in sync so compass notes are never lost.
-  if (updated && updated.draft_product_id && body.tasting !== undefined) {
+  if (updated && updated.draft_product_id && decoded.values.tasting !== undefined) {
     try {
-      const tastingJson = typeof body.tasting === 'string' ? body.tasting : JSON.stringify(body.tasting);
+      const tastingJson = decoded.values.tasting;
       await env.DB.prepare(
         `UPDATE products SET tasting = ?, updated_at = datetime('now')
          WHERE id = ? AND account_id = ?`
@@ -8850,32 +8877,24 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
     return json({ error: 'entries array required' }, 400);
   }
 
-  const allCols = [
-    'id', 'user_id', 'account_id', 'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
-    'origin_region', 'price_amount', 'price_currency', 'price_per_unit_grams',
-    'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
-    'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-    'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'session_id',
-    'draft_product_id', 'created_at', 'updated_at',
-    // tea_key (migration 022) and source_entry_id (071) were missing here even
-    // though the single-create handler writes tea_key — bulk sync (the main
-    // write path) nulled tea_key on every INSERT OR REPLACE, orphaning notes
-    // anchored to it and breaking cross-account review pooling.
-    'tea_key', 'source_entry_id',
-  ];
-  const placeholders = allCols.map(() => '?').join(', ');
-  const colNames = allCols.join(', ');
-
-  const stmts = body.entries.map(entry => {
-    const values = allCols.map(c => {
-      if (c === 'user_id') return userId;
-      if (c === 'account_id') return accountId;
-      return entry[c] ?? null;
-    });
-    return env.DB.prepare(
-      `INSERT OR REPLACE INTO tea_compass_entries (${colNames}) VALUES (${placeholders})`
-    ).bind(...values);
-  });
+  const stmts: D1PreparedStatement[] = [];
+  for (const entry of body.entries) {
+    const decoded = decodeCompassWrite(entry, false);
+    if ('error' in decoded) return decoded.error;
+    if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
+    const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
+    const columns = ['id', 'user_id', 'account_id', ...present];
+    const updates = present
+      .filter(column => column !== 'created_at')
+      .map(column => `${column} = excluded.${column}`);
+    const conflictAction = updates.length > 0
+      ? `DO UPDATE SET ${updates.join(', ')} WHERE tea_compass_entries.user_id = excluded.user_id AND tea_compass_entries.account_id = excluded.account_id`
+      : 'DO NOTHING';
+    stmts.push(env.DB.prepare(
+      `INSERT INTO tea_compass_entries (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
+       ON CONFLICT(id) ${conflictAction}`
+    ).bind(entry.id, userId, accountId, ...present.map(column => decoded.values[column])));
+  }
 
   if (stmts.length > 0) {
     await env.DB.batch(stmts);

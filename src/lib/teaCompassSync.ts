@@ -39,6 +39,9 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
 
     const snakeKey = CAMEL_TO_SNAKE[key] || key;
 
+    // `decision` intentionally passes through unchanged: unlike status and
+    // verdict it is an independent sourcing choice with matching API/DB naming.
+
     // Serialize arrays/objects to JSON strings for D1
     if (snakeKey === 'photos' || snakeKey === 'audio_clips' || snakeKey === 'tasting') {
       result[snakeKey] = value != null ? JSON.stringify(value) : null;
