@@ -12,6 +12,7 @@ import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type Co
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
+import { deliverVerificationCode } from './verificationDelivery';
 
 interface Env {
   DB: D1Database;
@@ -10528,126 +10529,119 @@ const handleVerifyRequest: Handler = async (request, env) => {
     return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
   }
 
-  const body = await request.json() as { contact: string; method: 'whatsapp' | 'email' };
-  if (!body.contact) return json({ error: 'contact is required' }, 400);
-  if (!body.method || !['whatsapp', 'email'].includes(body.method)) {
-    return json({ error: 'method must be whatsapp or email' }, 400);
+  const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
+  const contact = body.contact?.trim().toLowerCase() || '';
+  const purpose = body.purpose || 'event';
+  if (!contact) return json({ error: 'contact is required' }, 400);
+  if (!['signin', 'event'].includes(purpose)) return json({ error: 'purpose must be signin or event' }, 400);
+  if (body.method && body.method !== 'email') return json({ error: 'method must be email' }, 400);
+
+  const recent = await env.DB.prepare(
+    `SELECT id FROM verification_challenges
+     WHERE contact_normalized = ? AND purpose = ?
+       AND created_at > datetime('now', '-60 seconds')
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(contact, purpose).first();
+  if (recent) {
+    return json({ error: 'Please wait before requesting another code' }, 429);
   }
 
-  // Generate 6-digit code
+  let eventOwnerAccountId: string | null = null;
+  if (purpose === 'event') {
+    const ownerAccount = await env.DB.prepare('SELECT id FROM accounts WHERE is_platform_owner = 1 LIMIT 1').first();
+    if (!ownerAccount) return json({ error: 'Verification is not available' }, 503);
+    eventOwnerAccountId = ownerAccount.id as string;
+  }
+
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const delivery = await deliverVerificationCode(env, { email: contact, code, purpose });
+  if (!delivery.delivered) return json({ error: 'We could not send the code.', retryable: delivery.retryable }, 503);
 
-  // Quiet-account customers live under the platform-owner account — same
-  // scoping as /api/products/public and the public events list. Without this,
-  // lookups match (and leak) customers from other accounts with the same
-  // contact, and new customers are created with no account_id at all.
-  const ownerAccount = await env.DB.prepare(`SELECT id FROM accounts WHERE is_platform_owner = 1 LIMIT 1`).first();
-  if (!ownerAccount) return json({ error: 'Verification is not available' }, 503);
-  const ownerAccountId = ownerAccount.id as string;
-
-  // Find or create customer by contact
-  const isEmail = body.method === 'email';
-  const existingCustomer = isEmail
-    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ? AND account_id = ?`).bind(body.contact, ownerAccountId).first()
-    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`)
-        .bind(body.contact, body.contact, ownerAccountId).first();
-
-  // Rate limit: if a non-expired code was issued less than 60 seconds ago, reject
-  if (existingCustomer && existingCustomer.verification_code && existingCustomer.verification_expires) {
-    const expiresAt = new Date(existingCustomer.verification_expires as string);
-    const now = new Date();
-    if (expiresAt > now) {
-      // Code expires in at most 10 minutes from creation; if more than 9 minutes remain, it was issued < 60s ago
-      const msRemaining = expiresAt.getTime() - now.getTime();
-      if (msRemaining > 9 * 60 * 1000) {
-        return json({ error: 'Please wait before requesting another code' }, 429);
-      }
+  if (eventOwnerAccountId) {
+    const customer = await env.DB.prepare(
+      'SELECT id FROM customers WHERE lower(email) = lower(?) AND account_id = ?'
+    ).bind(contact, eventOwnerAccountId).first();
+    if (!customer) {
+      await env.DB.prepare(
+        `INSERT INTO customers (id, account_id, name, email, contact_preference)
+         VALUES (?, ?, NULL, ?, 'email')`
+      ).bind(crypto.randomUUID(), eventOwnerAccountId, contact).run();
     }
   }
 
-  if (existingCustomer) {
-    await env.DB.prepare(
-      `UPDATE customers SET verification_code = ?, verification_expires = ? WHERE id = ?`
-    ).bind(code, expires, existingCustomer.id).run();
-  } else {
-    const newId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      newId,
-      ownerAccountId,
-      null,
-      isEmail ? null : body.contact,
-      isEmail ? body.contact : null,
-      isEmail ? null : body.contact,
-      body.method,
-      code,
-      expires
-    ).run();
-  }
+  const codeHash = await hashPassword(code);
+  const deliveredAt = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO verification_challenges
+     (id, contact_normalized, purpose, code_hash, expires_at, delivered_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), contact, purpose, codeHash, expires, deliveredAt).run();
 
-  // WhatsApp/email delivery is not built yet. The code is only echoed back
-  // under an explicit dev flag — echoing it in production would let anyone
-  // verify as any contact.
+  const response: Record<string, unknown> = { success: true, expires, retryable: true };
   if (env.DEV_RETURN_VERIFY_CODES === 'true') {
-    return json({ success: true, code, expires, _note: 'DEV_RETURN_VERIFY_CODES enabled — code echoed for development only' });
+    response.code = code;
   }
-  return json({ success: true, expires });
+  return json(response, 202);
 };
 
 // POST /api/verify/confirm
 const handleVerifyConfirm: Handler = async (request, env) => {
-  const body = await request.json() as { contact: string; code: string };
-  if (!body.contact || !body.code) return json({ error: 'contact and code are required' }, 400);
+  const body = await request.json().catch(() => ({})) as { contact?: string; code?: string; purpose?: 'signin' | 'event' };
+  const contact = body.contact?.trim().toLowerCase() || '';
+  const purpose = body.purpose || 'event';
+  if (!contact || !body.code) return json({ error: 'contact and code are required' }, 400);
+  if (!['signin', 'event'].includes(purpose)) return json({ error: 'purpose must be signin or event' }, 400);
 
-  // Same platform-owner scoping as handleVerifyRequest — never match a
-  // customer that belongs to another account.
-  const customer = await env.DB.prepare(
-    `SELECT id, name, phone, email, verification_code, verification_expires
-     FROM customers
-     WHERE (phone = ? OR whatsapp = ? OR email = ?)
-       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
-  ).bind(body.contact, body.contact, body.contact).first();
-
-  if (!customer) return json({ error: 'No account found for this contact' }, 404);
-
-  const expires = customer.verification_expires ? new Date(customer.verification_expires as string) : null;
-  if (!expires || expires <= new Date()) {
-    return json({ error: 'Verification code has expired' }, 401);
-  }
-
-  // Parse attempt-prefixed code: stored as "N:123456" where N is fail count, or plain "123456"
-  const storedRaw = (customer.verification_code as string) || '';
-  let failCount = 0;
-  let storedCode = storedRaw;
-  const prefixMatch = storedRaw.match(/^(\d+):(.+)$/);
-  if (prefixMatch) {
-    failCount = parseInt(prefixMatch[1], 10);
-    storedCode = prefixMatch[2];
-  }
-
-  if (storedCode !== body.code) {
-    failCount += 1;
-    if (failCount >= 3) {
-      // Invalidate the code after 3 failed attempts
-      await env.DB.prepare(
-        `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
-      ).bind(customer.id).run();
-      return json({ error: 'Too many attempts. Please request a new code.' }, 429);
-    }
-    // Store incremented fail count back
+  const challenge = await env.DB.prepare(
+    `SELECT id, code_hash, expires_at, failed_attempts, consumed_at
+     FROM verification_challenges
+     WHERE contact_normalized = ? AND purpose = ? AND consumed_at IS NULL
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(contact, purpose).first();
+  const genericError = { error: 'Invalid or expired verification code' };
+  if (!challenge || Number(challenge.failed_attempts) >= 3 || new Date(challenge.expires_at as string) <= new Date()) return json(genericError, 401);
+  const codeHash = await hashPassword(body.code);
+  if (codeHash !== challenge.code_hash) {
+    const nextFailedAttempts = Number(challenge.failed_attempts) + 1;
     await env.DB.prepare(
-      `UPDATE customers SET verification_code = ? WHERE id = ?`
-    ).bind(`${failCount}:${storedCode}`, customer.id).run();
-    return json({ error: 'Invalid verification code' }, 401);
+      `UPDATE verification_challenges
+       SET failed_attempts = failed_attempts + 1,
+           consumed_at = CASE WHEN failed_attempts + 1 >= 3 THEN datetime('now') ELSE consumed_at END
+       WHERE id = ? AND consumed_at IS NULL`
+    ).bind(challenge.id).run();
+    return nextFailedAttempts >= 3
+      ? json({ error: 'Too many attempts. Please request a new code.' }, 429)
+      : json(genericError, 401);
+  }
+  const consumed = await env.DB.prepare(
+    `UPDATE verification_challenges SET consumed_at = datetime('now')
+     WHERE id = ? AND code_hash = ? AND consumed_at IS NULL
+       AND expires_at > datetime('now') AND failed_attempts < 3`
+  ).bind(challenge.id, codeHash).run();
+  if (!consumed.meta?.changes) return json(genericError, 401);
+
+  if (purpose === 'signin') {
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+    if (!user) return json(genericError, 401);
+    const memberships = await loadMemberships(env, user.id as string);
+    const activeAccountId = memberships[0]?.account_id || null;
+    const platformRole = (user.platform_role as PlatformRole) ?? null;
+    const token = await createToken(env.JWT_SECRET, {
+      sub: user.id as string, email: user.email as string, role: user.role as string,
+      platform_role: platformRole, name: user.name as string,
+      username: (user.username as string | null) ?? null, memberships,
+      active_account_id: activeAccountId,
+    });
+    return json({ token, user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role, platform_role: platformRole }, memberships, active_account_id: activeAccountId });
   }
 
-  // Clear the code after successful verify
-  await env.DB.prepare(
-    `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
-  ).bind(customer.id).run();
+  const customer = await env.DB.prepare(
+    `SELECT id, name, phone, email FROM customers
+     WHERE (phone = ? OR whatsapp = ? OR lower(email) = lower(?))
+       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
+  ).bind(contact, contact, contact).first();
+  if (!customer) return json({ error: 'No account found for this contact' }, 404);
 
   // Fetch all magic tokens for this customer's event attendees
   const attendees = await env.DB.prepare(
@@ -10656,7 +10650,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
      JOIN events e ON e.id = ea.event_id
      WHERE ea.phone_number = ? OR ea.email = ?
      ORDER BY e.event_date DESC`
-  ).bind(body.contact, body.contact).all();
+  ).bind(contact, contact).all();
 
   return json({
     customer: {
