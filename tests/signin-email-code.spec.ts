@@ -149,3 +149,32 @@ test('event verification defaults to email and sends the event purpose', async (
   await expect(page.getByRole('heading', { name: '1 gathering' })).toBeVisible();
   expect(new URL(journeyUrl).searchParams.get('token')).toBe('event-token');
 });
+
+test('event verification with no attendance offers recovery without calling Journey', async ({ page }) => {
+  let journeyRequests = 0;
+  await page.route('**/api/verify/request', route => route.fulfill({
+    status: 202, contentType: 'application/json', body: JSON.stringify({ accepted: true }),
+  }));
+  await page.route('**/api/verify/confirm', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ customer: { email: 'new@example.com' }, attendances: [] }),
+  }));
+  await page.route('**/api/journey/**', route => {
+    journeyRequests += 1;
+    return route.fulfill({ status: 500, body: '{}' });
+  });
+
+  await page.goto('/journey');
+  await page.getByLabel('Email address').fill('new@example.com');
+  await page.getByRole('button', { name: 'Send code' }).click();
+  for (let digit = 1; digit <= 6; digit += 1) {
+    await page.getByLabel(`Code digit ${digit}`).fill(String(digit));
+  }
+
+  await expect(page.getByRole('alert')).toContainText("We couldn't find an event history for this email");
+  expect(journeyRequests).toBe(0);
+  await page.getByRole('button', { name: 'Try another email' }).click();
+  await expect(page.getByLabel('Email address')).toBeVisible();
+  await expect(page.getByLabel('Email address')).toHaveValue('');
+});

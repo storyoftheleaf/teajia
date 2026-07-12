@@ -20,6 +20,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
   const [step, setStep] = useState<'contact' | 'code'>('contact');
   const [contact, setContact] = useState('');
   const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '']);
+  const [completionError, setCompletionError] = useState('');
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [dragY, setDragY] = useState(0);
@@ -55,13 +56,19 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
 
   const requestMutation = useMutation({
     mutationFn: () => api.verify.requestCode(contact.trim(), 'event'),
-    onSuccess: () => setStep('code'),
+    onSuccess: () => { setCompletionError(''); setStep('code'); },
   });
 
   const confirmMutation = useMutation({
     mutationFn: (submittedCode?: string) => api.verify.confirmCode(contact.trim(), submittedCode ?? codeDigits.join(''), 'event'),
     onSuccess: (data: any) => {
-      onVerified(contact.trim(), data.sessionToken ?? data.attendances?.[0]?.magic_token ?? '');
+      const token = data.sessionToken ?? data.attendances?.[0]?.magic_token;
+      if (!token) {
+        setCompletionError("We couldn't find an event history for this email. Try another email or contact the tea house.");
+        return;
+      }
+      setCompletionError('');
+      onVerified(contact.trim(), token);
     },
   });
 
@@ -70,6 +77,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     const next = [...codeDigits];
     next[idx] = digit;
     setCodeDigits(next);
+    setCompletionError('');
     if (digit && idx < 5) {
       codeRefs.current[idx + 1]?.focus();
     }
@@ -220,7 +228,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 Code sent to <span className="text-tea-text">{contact}</span>.
                 <button
                   type="button"
-                  onClick={() => setStep('contact')}
+                  onClick={() => { setCompletionError(''); setStep('contact'); }}
                   className="ml-2 text-tea-gold hover:text-tea-text transition-colors font-semibold"
                 >
                   Change
@@ -258,6 +266,26 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 <p role="alert" className="text-ui-12 text-tea-error text-center">
                   {(confirmMutation.error as Error)?.message || 'Incorrect code. Please try again.'}
                 </p>
+              )}
+
+              {completionError && (
+                <div role="alert" className="rounded-md border border-tea-border bg-tea-bg p-3 text-center">
+                  <p className="text-ui-12 text-tea-text-sec">{completionError}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCompletionError('');
+                      setContact('');
+                      setCodeDigits(['', '', '', '', '', '']);
+                      confirmMutation.reset();
+                      requestMutation.reset();
+                      setStep('contact');
+                    }}
+                    className="mt-3 min-h-11 px-3 text-ui-13 font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    Try another email
+                  </button>
+                </div>
               )}
 
               {/* Footer — Cancel-left, primary-right */}

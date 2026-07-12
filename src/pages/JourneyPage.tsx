@@ -344,6 +344,10 @@ const JourneyPage: React.FC = () => {
   });
 
   const handleVerified = (contact: string, token: string) => {
+    if (!token) {
+      setShowVerify(true);
+      return;
+    }
     sessionStorage.setItem('journey_contact', contact);
     sessionStorage.setItem('journey_token', token);
     setVerifiedContact(contact);

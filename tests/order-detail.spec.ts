@@ -15,7 +15,7 @@ const history = {
 
 const detail = {
   id: 'inv-a', invoice_number: 'A-001', status: 'Filled', created_at: '2026-07-01T00:00:00.000Z',
-  payment_date: '2026-07-02T00:00:00.000Z', fulfilled_at: null, currency: 'USD',
+  payment_date: '2026-07-02T00:00:00.000Z', fulfilled_at: '2026-07-03T00:00:00.000Z', currency: 'USD',
   items: [
     { id: 'line-1', product_id: 'product-1', name: 'Oolong', quantity: 2, unit_price_usd: 4, line_total_usd: 8 },
     { id: 'line-2', product_id: null, name: 'Tea tin', quantity: 1, unit_price_usd: 5, line_total_usd: 5 },
@@ -24,8 +24,10 @@ const detail = {
   contact: { whatsapp: '+62 800', email: 'orders@store.test' },
 };
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
+test.beforeEach(async ({ page }, testInfo) => {
+  if (!testInfo.title.includes('unauthenticated')) {
+    await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
+  }
 });
 
 async function mockHistory(page: Page) {
@@ -53,6 +55,7 @@ test('detail shows loading then the complete inquiry journey above mobile naviga
   await expect(page.getByText('Oolong', { exact: true })).toBeVisible();
   await expect(page.getByText('Tea tin', { exact: true })).toBeVisible();
   await expect(page.getByText('Jul 2, 2026')).toBeVisible();
+  await expect(page.getByText('Jul 3, 2026')).toBeVisible();
   await expect(page.getByText('$16.00', { exact: true })).toBeVisible();
   const contact = page.getByRole('link', { name: 'Ask about this order on WhatsApp' });
   await expect(contact).toBeVisible();
@@ -65,6 +68,11 @@ test('detail shows loading then the complete inquiry journey above mobile naviga
     return action && nav ? action.bottom <= nav.top : false;
   });
   expect(clearance).toBe(true);
+});
+
+test('unauthenticated detail redirects with an encoded return path', async ({ page }) => {
+  await page.goto('/account/orders/inv-a');
+  await expect(page).toHaveURL(/\/signin\?returnTo=%2Faccount%2Forders%2Finv-a$/);
 });
 
 test('retryable detail error can recover', async ({ page }) => {
