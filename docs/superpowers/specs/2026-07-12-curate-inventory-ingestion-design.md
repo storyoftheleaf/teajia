@@ -1,11 +1,11 @@
 # Curate and Inventory Ingestion Design
 
-**Status:** Approved design implemented and verified
+**Status:** Approved design implemented and verified locally on the feature branch; not yet deployed
 **Date:** 2026-07-12
 **Surfaces:** Curate (`/admin/compass`), Inventory (`/admin/stock`), existing sample workflows, imports, purchase records
 **Primary user:** Adrian sourcing tea and teaware in person, through WeChat, vendor lists, labels, photographs, and invoices
 
-**Implemented boundary (2026-07-12):** Text, TXT, CSV, and JSON evidence can be extracted into reviewed import drafts. Images and PDFs are preserved as original evidence for manual review; OCR is not claimed. Accepted acquisitions become reviewed Inventory receipt proposals, possession is derived only after receipt acceptance, and transfers require a destination holding linked to the same identity. Additive migrations `099`–`107` carry the account-scoped, retry-safe schema. Tasks 1–18, migration rehearsals, full automated verification, and both independent final reviews are complete.
+**Implemented boundary (2026-07-12):** Text, TXT, CSV, and JSON evidence can be extracted into reviewed import drafts. Images and PDFs are preserved as original evidence for manual review; OCR is not claimed. Accepted acquisitions become reviewed Inventory receipt proposals, possession is derived only after receipt acceptance, and transfers require a destination holding linked to the same identity. Additive migrations `099`–`107` carry the account-scoped, retry-safe schema. Tasks 1–18, migration rehearsals, full automated verification, and both independent final reviews are complete locally on the feature branch. This status does not claim a push or production deployment.
 
 ## 1. Why this work exists
 
