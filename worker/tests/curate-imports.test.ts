@@ -18,6 +18,7 @@ class ImportStatement {
     if (table && sql.includes('where id = ?')) {
       const row = table.get(String(this.values[0]));
       if (!row) return null;
+      if (sql.includes('batch_id = ?') && row.batch_id !== this.values[1]) return null;
       const accountIndex = sql.includes('account_id = ?') ? this.values.length - 1 : -1;
       if (accountIndex >= 0 && row.account_id !== this.values[accountIndex]) return null;
       return { ...row };
@@ -118,10 +119,25 @@ describe('Curate import provenance API', () => {
       batch: { title: 'WeChat July 12', created_by_user_id: 'user-a' },
       sources: [{ kind: 'wechat', pasted_text: pasted }],
       items: [
-        { position: 0, raw_text: 'NT$ 800 / 25g', confidence: 0.31, uncertainty: { name: true } },
-        { position: 1, raw_text: '2019 老班章', confidence: 0.72, uncertainty: { year: ['2018', '2019'] } },
+        { position: 0, source_id: body.sources[0].id, raw_text: 'NT$ 800 / 25g', confidence: 0.31, uncertainty: { name: true } },
+        { position: 1, source_id: body.sources[0].id, raw_text: '2019 老班章', confidence: 0.72, uncertainty: { year: ['2018', '2019'] } },
       ],
     });
+  });
+
+  it('links an item only to a source in the same account and batch', async () => {
+    const db = new ImportDb();
+    const first = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'First', source_kind: 'paste', pasted_text: 'one', items: [{ name: 'One' }] }) });
+    const second = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Second', source_kind: 'paste', pasted_text: 'two', items: [{ name: 'Two' }] }) });
+    const a = await first.json() as any;
+    const b = await second.json() as any;
+    const crossBatch = await request(db, `/api/curate/imports/${a.batch.id}/items/${a.items[0].id}`, { method: 'PUT', body: JSON.stringify({ source_id: b.sources[0].id }) });
+    expect(crossBatch.status).toBe(400);
+
+    const foreign = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Foreign', source_kind: 'paste', pasted_text: 'private', items: [{ name: 'Private' }] }) }, 'account-b', 'user-b');
+    const foreignBody = await foreign.json() as any;
+    const crossAccount = await request(db, `/api/curate/imports/${a.batch.id}/items/${a.items[0].id}`, { method: 'PUT', body: JSON.stringify({ source_id: foreignBody.sources[0].id }) });
+    expect(crossAccount.status).toBe(400);
   });
 
   it.each(['wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste'])('accepts %s sources while storing object keys instead of file bytes', async kind => {
@@ -132,6 +148,20 @@ describe('Curate import provenance API', () => {
     expect(response.status).toBe(201);
     expect(JSON.stringify([...db.sources.values()])).not.toContain('base64');
     expect(await response.json()).toMatchObject({ kind, r2_object_key: `curate/${batch.id}/scan.jpg`, metadata: { page: 1 } });
+  });
+
+  it.each([
+    { metadata: { attachment: { base64: 'aGVsbG8=' } } },
+    { metadata: { pages: [{ preview: 'data:image/png;base64,aGVsbG8=' }] } },
+    { metadata: { nested: { file_bytes: [1, 2, 3] } } },
+    { metadata: { nested: [{ data: 'aGVsbG8=' }] } },
+  ])('recursively rejects embedded binary payloads: %j', async unsafe => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Unsafe' }) });
+    const { batch } = await created.json() as any;
+    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'file', r2_object_key: 'curate/safe-key', ...unsafe }) });
+    expect(response.status).toBe(400);
+    expect(db.sources.size).toBe(0);
   });
 
   it('accepts once, creates exactly one Compass entry, and never creates product or stock', async () => {
@@ -147,6 +177,33 @@ describe('Curate import provenance API', () => {
     expect(db.compass.size).toBe(1);
     expect([...db.compass.values()][0]).toMatchObject({ name: 'Ruby 18', category: 'tea', account_id: 'account-a', user_id: 'user-a' });
     expect((db as any).products).toBeUndefined();
+  });
+
+  it('maps corrected structured fields through the Compass allowlist without accepting ownership or stock fields', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Corrected invoice', source_kind: 'invoice', pasted_text: '春 2021, 25g, NT$800',
+      items: [{
+        name: 'Spring Shan Lin Xi', raw_text: '春 2021, 25g, NT$800', category: 'tea',
+        parsed_data: {
+          chinese_name: '杉林溪', type: 'oolong', year: 2021, season: 'spring', origin_region: 'Nantou',
+          price_amount: 800, price_currency: 'TWD', price_per_unit_grams: 25,
+          vendor_id: 'vendor-1', vendor_name: 'Lin Tea', buy_quantity_grams: 25, buy_total: 800,
+          account_id: 'account-b', user_id: 'user-b', id: 'attacker', stock_grams: 999, draft_product_id: 'product-x',
+        },
+      }],
+    }) });
+    const { batch, items } = await created.json() as any;
+    const accepted = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
+    expect(accepted.status).toBe(201);
+    expect([...db.compass.values()][0]).toMatchObject({
+      account_id: 'account-a', user_id: 'user-a', name: 'Spring Shan Lin Xi', chinese_name: '杉林溪',
+      type: 'oolong', year: 2021, season: 'spring', origin_region: 'Nantou', price_amount: 800,
+      price_currency: 'TWD', price_per_unit_grams: 25, vendor_id: 'vendor-1', vendor_name: 'Lin Tea',
+      buy_quantity_grams: 25, buy_total: 800, category: 'tea', notes: '春 2021, 25g, NT$800',
+    });
+    expect([...db.compass.values()][0]).not.toHaveProperty('stock_grams');
+    expect([...db.compass.values()][0]).not.toMatchObject({ draft_product_id: 'product-x' });
   });
 
   it('merges into an owned Compass entry without creating another and rejects abandoned items', async () => {

@@ -8,6 +8,7 @@ import {
   mergeCurateImportItem, updateCurateImportItem,
   type CurateImportContext,
 } from './curateImports';
+import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 
 interface Env {
   DB: D1Database;
@@ -8677,41 +8678,13 @@ const handleDeleteCurateVisit: Handler = async (request, env, params) => {
 
 // ── Tea Compass (personal field notes, scoped per account + user) ──
 
-const COMPASS_JSON_COLUMNS = new Set(['tasting', 'photos', 'audio_clips']);
-const COMPASS_DECISIONS = new Set(['considering', 'selected', 'passed_on']);
-const COMPASS_COLUMNS = [
-  'name', 'chinese_name', 'type', 'form', 'year', 'season', 'storage',
-  'origin_region', 'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
-  'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
-  'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-  'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'session_id',
-  'journey_id', 'visit_id',
-  'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
-] as const;
-type CompassColumn = typeof COMPASS_COLUMNS[number];
-
-function encodeCompassValue(column: CompassColumn, value: unknown): unknown {
-  if (!COMPASS_JSON_COLUMNS.has(column) || value == null || typeof value === 'string') return value ?? null;
-  return JSON.stringify(value);
-}
-
 function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolean):
   | { values: Partial<Record<CompassColumn, unknown>> }
   | { error: Response } {
-  const allowed = new Set<string>(COMPASS_COLUMNS);
-  const ownership = new Set(['id', 'user_id', 'account_id']);
-  const unknown = Object.keys(body).filter(key => !allowed.has(key) && !ownership.has(key));
-  if (rejectUnknown && unknown.length > 0) {
-    return { error: json({ error: `Unknown Compass field: ${unknown[0]}` }, 400) };
-  }
-  if (body.decision !== undefined && body.decision !== null && !COMPASS_DECISIONS.has(String(body.decision))) {
-    return { error: json({ error: 'decision must be considering, selected, passed_on, or null' }, 400) };
-  }
-  const values: Partial<Record<CompassColumn, unknown>> = {};
-  for (const column of COMPASS_COLUMNS) {
-    if (body[column] !== undefined) values[column] = encodeCompassValue(column, body[column]);
-  }
-  return { values };
+  const decoded = decodeCompassWriteCodec(body, rejectUnknown);
+  if ('unknownField' in decoded) return { error: json({ error: `Unknown Compass field: ${decoded.unknownField}` }, 400) };
+  if ('invalidDecision' in decoded) return { error: json({ error: 'decision must be considering, selected, passed_on, or null' }, 400) };
+  return decoded;
 }
 
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {

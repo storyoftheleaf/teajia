@@ -33,6 +33,7 @@ CREATE INDEX IF NOT EXISTS idx_curate_import_sources_batch
 CREATE TABLE IF NOT EXISTS curate_import_items (
   id TEXT PRIMARY KEY,
   batch_id TEXT NOT NULL,
+  source_id TEXT,
   account_id TEXT NOT NULL,
   created_by_user_id TEXT NOT NULL,
   position INTEGER NOT NULL CHECK (position >= 0),
@@ -48,7 +49,8 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
   reviewed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  FOREIGN KEY (batch_id) REFERENCES curate_import_batches(id) ON DELETE CASCADE
+  FOREIGN KEY (batch_id) REFERENCES curate_import_batches(id) ON DELETE CASCADE,
+  FOREIGN KEY (source_id) REFERENCES curate_import_sources(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_curate_import_items_batch

@@ -14,7 +14,7 @@ export interface CurateImportSource {
   pasted_text: string | null; r2_object_key: string | null; metadata: Record<string, unknown>;
 }
 export interface CurateImportItem {
-  id: string; batch_id: string; position: number; category: 'tea' | 'teaware';
+  id: string; batch_id: string; source_id: string | null; position: number; category: 'tea' | 'teaware';
   name: string | null; raw_text: string | null; parsed_data: Record<string, unknown>;
   confidence: number | null; uncertainty: Record<string, unknown>;
   review_state: 'pending' | 'reviewing' | 'accepted' | 'merged' | 'abandoned';

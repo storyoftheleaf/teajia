@@ -1,3 +1,5 @@
+import { compassValuesFromImport } from './compassCodec';
+
 export interface CurateImportContext {
   accountId: string;
   userId: string;
@@ -27,6 +29,15 @@ function jsonField(value: unknown, fallback: unknown) {
   if (value == null) return JSON.stringify(fallback);
   JSON.stringify(value);
   return JSON.stringify(value);
+}
+
+function containsEmbeddedBinary(value: unknown, key = ''): boolean {
+  const normalizedKey = key.toLowerCase().replace(/[-\s]/g, '_');
+  if (['base64', 'data', 'file_bytes', 'filebytes', 'bytes', 'binary', 'blob'].includes(normalizedKey) && value != null) return true;
+  if (typeof value === 'string') return /^data:[^,]*;base64,/i.test(value.trim());
+  if (Array.isArray(value)) return value.some(entry => containsEmbeddedBinary(entry));
+  const record = object(value);
+  return record ? Object.entries(record).some(([childKey, child]) => containsEmbeddedBinary(child, childKey)) : false;
 }
 
 function parseJson(value: unknown, fallback: unknown) {
@@ -70,6 +81,7 @@ async function fullBatch(env: ImportEnv, id: string, accountId: string) {
 export async function createCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext) {
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  if (containsEmbeddedBinary(body)) return response({ error: 'Upload files to object storage; provide only r2_object_key' }, 400);
   try {
     const title = text(body.title, 240, true)!;
     const journeyId = text(body.journey_id, 100);
@@ -84,11 +96,13 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
       `INSERT INTO curate_import_batches (id, account_id, created_by_user_id, title, review_state, journey_id, visit_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).bind(batchId, ctx.accountId, ctx.userId, title, 'pending', journeyId, visitId)];
+    let initialSourceId: string | null = null;
     if (pastedText != null) {
+      initialSourceId = crypto.randomUUID();
       statements.push(env.DB.prepare(
         `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(crypto.randomUUID(), batchId, ctx.accountId, ctx.userId, sourceKind ?? 'paste', pastedText, null, '{}'));
+      ).bind(initialSourceId, batchId, ctx.accountId, ctx.userId, sourceKind ?? 'paste', pastedText, null, '{}'));
     }
     for (let index = 0; index < rawItems.length; index++) {
       const raw = object(rawItems[index]);
@@ -100,9 +114,9 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
       if (confidence != null && (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)) return response({ error: `Invalid confidence at index ${index}` }, 400);
       statements.push(env.DB.prepare(
         `INSERT INTO curate_import_items
-           (id, batch_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).bind(crypto.randomUUID(), batchId, ctx.accountId, ctx.userId, position, category,
+           (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(crypto.randomUUID(), batchId, initialSourceId, ctx.accountId, ctx.userId, position, category,
         text(raw.name, 500), text(raw.raw_text, 20_000), jsonField(raw.parsed_data, {}), confidence,
         jsonField(raw.uncertainty, {}), 'pending', null));
     }
@@ -128,7 +142,7 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
     if (!SOURCE_KINDS.has(kind)) return response({ error: 'Unsupported source kind' }, 400);
     const pastedText = text(body.pasted_text, 250_000);
     const objectKey = text(body.r2_object_key, 1000);
-    if (body.base64 != null || body.data != null) return response({ error: 'Upload files to object storage; provide only r2_object_key' }, 400);
+    if (containsEmbeddedBinary(body)) return response({ error: 'Upload files to object storage; provide only r2_object_key' }, 400);
     if (pastedText == null && objectKey == null) return response({ error: 'pasted_text or r2_object_key is required' }, 400);
     const id = crypto.randomUUID();
     const metadataJson = jsonField(body.metadata, {});
@@ -149,13 +163,22 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
   if (!current) return response({ error: 'Import item not found' }, 404);
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
-  const allowed = new Set(['position', 'category', 'name', 'raw_text', 'parsed_data', 'confidence', 'uncertainty', 'review_state']);
+  const allowed = new Set(['source_id', 'position', 'category', 'name', 'raw_text', 'parsed_data', 'confidence', 'uncertainty', 'review_state']);
   if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown update field' }, 400);
   const updates: string[] = [];
   const values: unknown[] = [];
   try {
     for (const [key, value] of Object.entries(body)) {
-      if (key === 'review_state') {
+      if (key === 'source_id') {
+        if (value !== null && typeof value !== 'string') return response({ error: 'Invalid source_id' }, 400);
+        if (value !== null) {
+          const source = await env.DB.prepare(
+            'SELECT id FROM curate_import_sources WHERE id = ? AND batch_id = ? AND account_id = ?'
+          ).bind(value, params.id, ctx.accountId).first();
+          if (!source) return response({ error: 'Source must belong to this import' }, 400);
+        }
+        updates.push('source_id = ?'); values.push(value);
+      } else if (key === 'review_state') {
         if (typeof value !== 'string' || !ITEM_STATES.has(value) || value === 'accepted' || value === 'merged') return response({ error: 'Invalid review_state' }, 400);
         updates.push('review_state = ?'); values.push(value);
       } else if (key === 'category') {
@@ -188,11 +211,21 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
   if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
   const compassId = `curate-import:${params.itemId}`;
+  const parsed = parseJson(item.parsed_data_json, {});
+  const structured = object(parsed) ? compassValuesFromImport(parsed as Record<string, unknown>) : {};
+  const compassValues = {
+    ...structured,
+    name: item.name ?? null,
+    category: item.category ?? 'tea',
+    notes: item.raw_text ?? null,
+    status: 'logged',
+  };
+  const compassColumns = Object.keys(compassValues);
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, name, category, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(compassId, ctx.userId, ctx.accountId, item.name ?? null, item.category ?? 'tea', item.raw_text ?? null, 'logged'),
+      `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, ${compassColumns.join(', ')})
+       VALUES (?, ?, ?, ${compassColumns.map(() => '?').join(', ')})`
+    ).bind(compassId, ctx.userId, ctx.accountId, ...compassColumns.map(column => compassValues[column as keyof typeof compassValues])),
     env.DB.prepare(
       `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
        WHERE id = ? AND account_id = ?`
