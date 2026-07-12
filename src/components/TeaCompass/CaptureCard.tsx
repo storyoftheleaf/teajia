@@ -1958,6 +1958,7 @@ const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as s
                 type: entry.type,
                 vendorName: entry.vendorName,
                 compassEntryId: entryId,
+                teaKey: entry.teaKey,
               });
               // Mark the entry itself so the library's Queue (which keys on
               // isSample) tracks it — the cart alone is invisible to Browse.

@@ -11,6 +11,7 @@ export interface SampleCartItem {
   // Links back to source
   compassEntryId?: string;
   productId?: string;
+  teaKey?: string;
 }
 
 interface SampleCartState {

@@ -1676,6 +1676,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                               type: activeEntry.type,
                               vendorName: activeEntry.vendorName,
                               compassEntryId: activeEntryId,
+                              teaKey: activeEntry.teaKey,
                             });
                             // Mark the entry too — the library Queue keys on
                             // isSample; the cart alone is invisible to Browse.

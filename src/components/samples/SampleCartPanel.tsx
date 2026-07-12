@@ -123,6 +123,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
       s.grams = item.grams;
       s.compassEntryId = item.compassEntryId;
       s.productId = item.productId;
+      s.teaKey = item.teaKey;
       return s;
     });
 

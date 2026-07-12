@@ -712,6 +712,14 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
   const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
   const [customerQuery, setCustomerQuery] = useState('');
   const [ledgerPromptName, setLedgerPromptName] = useState<string | null>(null);
+
+  // Persisted Zustand state may hydrate after a direct /admin/samples?set=…
+  // route renders. Reconcile the requested historical set when it appears.
+  useEffect(() => {
+    if (!initialSetId || !sampleSets.some(set => set.id === initialSetId && !set.archived)) return;
+    setActiveSetId(initialSetId);
+    setView('batch');
+  }, [initialSetId, sampleSets]);
   const nestedTriggerRef = React.useRef<HTMLElement | null>(null);
   const closeLabels = useCallback(() => {
     setShowLabels(false);
