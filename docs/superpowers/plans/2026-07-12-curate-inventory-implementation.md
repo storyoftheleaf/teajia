@@ -75,7 +75,7 @@ await expect(page.getByPlaceholder('Price')).toBeVisible();
 await expect(page.getByRole('tab', { name: 'Teaware' })).toBeVisible();
 ```
 
-Also assert session switching, no horizontal document overflow, bottom-nav clearance, Samples opening `SampleCartPanel`, empty-cart start, count-bearing nonempty cart, saving a set, historical `/admin/samples`, labels, and tasting access.
+Also assert session switching, no horizontal document overflow, bottom-nav clearance, Samples opening `SampleCartPanel`, empty-cart start, count-bearing nonempty cart, and durable sample-set storage. Characterize the current `/admin/samples` redirect honestly. If historical set, label, or tasting UI is not runtime-reachable, record that verified baseline gap explicitly rather than fabricating coverage; Task 8 must integrate it before Samples moves.
 
 - [ ] **Step 3: Run preservation tests**
 
@@ -84,7 +84,7 @@ npx playwright test tests/compass-capture.spec.ts tests/compass-responsive.spec.
 npx playwright test tests/compass-capture.spec.ts tests/compass-responsive.spec.ts tests/compass-samples-parity.spec.ts --project="Mobile Chrome" --reporter=list
 ```
 
-Expected: existing behavior tests pass. Any baseline failure must be recorded before feature work.
+Expected: existing behavior tests pass. Any baseline product gap must be recorded explicitly before feature work, and future desired behavior belongs in the task that implements it.
 
 - [ ] **Step 4: Commit**
 
@@ -428,6 +428,8 @@ git commit -m "feat(curate): separate decisions and Library filters"
 - [ ] **Step 1: Write failing parity and replacement tests**
 
 Require contextual empty-cart start, count-bearing `Sample order (N)`, existing panel, Save as Set, `/admin/samples`, labels, tastings, events/panels/customer purposes, product/Compass links, focus return, and accessibility. Then assert Tea/Teaware/Import in both responsive paths and absence of Samples from the capture-method row.
+
+This task must first make historical sample sets, label generation, and tasting management runtime-reachable if Task 1 confirmed they are currently dead exports or redirect-only behavior. The capture-row replacement cannot proceed while those workflows remain unreachable.
 
 - [ ] **Step 2: Verify RED**
 

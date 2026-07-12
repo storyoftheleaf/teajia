@@ -7,7 +7,7 @@ export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' })
 export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[] }) {
   await page.addInitScript(({ token, items }) => {
     localStorage.setItem('teajia_token', token);
-    localStorage.setItem('teajia-storage', JSON.stringify({ state: { activeAccountId: 'acct-bali' }, version: 0 }));
+    localStorage.removeItem('teajia-storage');
     localStorage.setItem('teajia-sample-cart', JSON.stringify({ state: { items }, version: 0 }));
     localStorage.removeItem('teajia-samples');
   }, { token: COMPASS_TOKEN, items: options?.sampleCart ?? [] });
@@ -19,15 +19,22 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       '/api/accounts/me': { memberships, active_account_id: 'acct-bali' },
       '/api/accounts/acct-bali': { id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali', default_currency: 'USD' },
       '/api/products': [], '/api/rates': [{ currency: 'USD', rate_to_usd: 1 }],
+      '/api/products/public': [], '/api/user/favorites': { favorites: [] },
+      '/api/tasting-journal': { entries: [] }, '/api/tea-discovery': { profile: null },
+      '/api/notes': { notes: [] },
+      '/api/customers': [],
       '/api/compass/incoming': [], '/api/compass/entries': [], '/api/compass/sync': [],
       '/api/vendors': [], '/api/sources': [], '/api/admin/events': [],
     };
-    if (!(path in responses)) return route.fulfill({ status: 501, contentType: 'application/json', body: JSON.stringify({ error: `Unhandled Compass test API route: ${path}` }) });
+    if (!(path in responses)) {
+      console.error(`[compass-harness] unhandled ${route.request().method()} ${path}`);
+      return route.fulfill({ status: 501, contentType: 'application/json', body: JSON.stringify({ error: `Unhandled Compass test API route: ${path}` }) });
+    }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[path]) });
   });
 }
 
 export async function openCompass(page: Page) {
   await page.goto('/admin/compass', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 15_000 });
 }
