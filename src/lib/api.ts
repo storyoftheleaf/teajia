@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, CurateReceiptProposal, DbArticle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
@@ -3116,6 +3116,10 @@ export const api = {
       }>;
     }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/me/orders`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
+    order: async (id: string): Promise<CustomerOrderDetail> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/orders/${encodeURIComponent(id)}`, { headers: authHeaders() });
       return handleResponse(res);
     },
     samples: async (): Promise<{

@@ -1313,3 +1313,25 @@ export interface CurateReceiptProposal {
   proposed_by_user_id: string; reviewed_by_user_id?: string | null; reviewed_at?: string | null;
   created_at: string; updated_at: string;
 }
+
+export interface CustomerOrderDetail {
+  id: string;
+  invoice_number: string;
+  status: string;
+  created_at: string;
+  payment_date: string | null;
+  fulfilled_at: string | null;
+  currency: string;
+  items: Array<{
+    id: string;
+    product_id: string | null;
+    name: string;
+    quantity: number;
+    unit_price_usd: number;
+    line_total_usd: number;
+  }>;
+  subtotal_amount_usd: number;
+  shipping_amount_usd: number;
+  total_amount_usd: number;
+  contact: { whatsapp: string | null; email: string | null };
+}
