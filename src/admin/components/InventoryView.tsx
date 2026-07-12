@@ -4,7 +4,7 @@ import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
-  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History
+  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History, PackageCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -59,6 +59,7 @@ import { InventoryActionRail, INVENTORY_ACTION_RAIL_WIDTH } from './inventory/In
 import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
+import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
 
 interface InventoryViewProps {
   products: Product[];
@@ -1583,6 +1584,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(newSet.id)}`);
   };
 
+  if (searchParams.get('incoming') === '1') {
+    return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); setSearchParams(next); }} /></div>;
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center text-center max-w-sm mx-auto py-20 px-6">
@@ -1625,6 +1630,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div
       className="h-full flex flex-col overflow-hidden bg-tea-bg"
     >
+      <div className="flex justify-end px-4 py-2 border-b border-tea-border bg-tea-bg">
+        <button onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); }} className="min-h-11 px-3 inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-accent-sub">
+          <PackageCheck size={16} aria-hidden="true" /> Incoming
+        </button>
+      </div>
 
       {/* --- VENDOR FILTER BANNER --- */}
       {vendorFilter && (

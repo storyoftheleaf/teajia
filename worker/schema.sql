@@ -301,6 +301,7 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     note TEXT,                        -- Human-readable description
     batch_id TEXT,                    -- FK to batches: which intake shipment/session this arrival belonged to
     receipt_proposal_id TEXT REFERENCES curate_receipt_proposals(id) ON DELETE SET NULL,
+    inventory_receipt_line_id TEXT REFERENCES inventory_receipt_lines(id) ON DELETE SET NULL,
     movement_unit TEXT CHECK (movement_unit IS NULL OR movement_unit IN ('gram', 'unit')),
     account_id TEXT,
     created_at TEXT DEFAULT (datetime('now'))
@@ -717,3 +718,15 @@ CREATE TABLE IF NOT EXISTS oauth_authorize_requests (
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_authorize_requests_expires ON oauth_authorize_requests(expires_at);
+-- Expected inventory is normalized separately from physical on-hand stock.
+CREATE TABLE IF NOT EXISTS inventory_receipts (
+  id TEXT PRIMARY KEY, account_id TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'planned', vendor_name TEXT,
+  source_kind TEXT NOT NULL, source_ref TEXT, eta TEXT, created_by_user_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS inventory_receipt_lines (
+  id TEXT PRIMARY KEY, receipt_id TEXT NOT NULL, account_id TEXT NOT NULL, product_id TEXT NOT NULL,
+  expected_quantity REAL NOT NULL, received_quantity REAL NOT NULL DEFAULT 0, cancelled_quantity REAL NOT NULL DEFAULT 0,
+  unit TEXT NOT NULL, intended_purpose TEXT NOT NULL, source_kind TEXT NOT NULL, source_ref TEXT, intake_batch_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

@@ -15,6 +15,9 @@ export interface CurateReceiptProposal {
   proposed_by_user_id: string; reviewed_by_user_id?: string | null; reviewed_at?: string | null;
   created_at: string; updated_at: string;
 }
+export type InventoryReceiptState = 'planned' | 'ordered' | 'in_transit' | 'partially_received' | 'received' | 'cancelled';
+export interface InventoryReceiptLine { id: string; product_id: string; product_name: string; expected_quantity: number; received_quantity: number; cancelled_quantity: number; unit: 'g' | 'unit'; intended_purpose: InventoryPurpose; source_kind?: string; source_ref?: string | null; }
+export interface InventoryReceipt { id: string; state: InventoryReceiptState; vendor_name?: string | null; source_kind: string; source_ref?: string | null; eta?: string | null; legacy?: boolean; lines: InventoryReceiptLine[]; }
 
 import type { TastingData } from '../types';
 

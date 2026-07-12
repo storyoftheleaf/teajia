@@ -788,6 +788,12 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
 }
 
 export const api = {
+  inventoryReceipts: {
+    list: (includeClosed = false) => authedFetch(`${API_URL}/api/inventory/receipts?include_closed=${includeClosed ? '1' : '0'}`),
+    create: (body: Record<string, unknown>) => authedFetch(`${API_URL}/api/inventory/receipts`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true }),
+    receive: (lineId: string, quantity?: number) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify(quantity == null ? {} : { quantity }), retryTimeouts: true }),
+    cancelRemaining: (lineId: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/cancel-remaining`, { method: 'POST', retryTimeouts: true }),
+  },
   // Working Feature Guide — admin-only internal build tracker.
   featureStatus: {
     /** Map of feature_id → { stage, works, tested, visual, notes, updated_at }. */

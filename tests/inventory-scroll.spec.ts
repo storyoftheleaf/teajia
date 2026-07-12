@@ -130,6 +130,19 @@ async function mockInventoryApi(page: Page) {
     contentType: 'application/json',
     body: JSON.stringify([]),
   }));
+  await page.route('**/api/accounts/acct-bali', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ id: 'acct-bali', name: 'Teajia Bali', slug: 'teajia-bali' }),
+  }));
+  await page.route('**/api/batches**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }));
+  for (const endpoint of ['user/favorites', 'tea-discovery', 'compass/entries', 'tasting-journal', 'notes', 'customers']) {
+    await page.route(`**/api/${endpoint}**`, route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
+    }));
+  }
 }
 
 async function shot(page: Page, name: string) {
