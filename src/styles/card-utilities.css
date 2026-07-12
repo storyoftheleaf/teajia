@@ -2350,6 +2350,27 @@ input[type="number"]::-webkit-outer-spin-button {
   justify-content: center;
 }
 
+/* Dense inventory ledger controls keep a compact visual footprint on phones
+   while an absolutely positioned hit area preserves the 44px touch floor. */
+@media (max-width: 767px) {
+  .inventory-compact-target {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    height: 40px;
+  }
+
+  .inventory-compact-target::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(44px, 100%);
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* ============================================
    Gram Slider — a precision gauge for the Curate capture form (reused by the
    quick-sale sheet). Continuous value with soft magnetic snap to presets; see

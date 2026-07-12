@@ -219,6 +219,30 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(primary.getByRole('button', { name: /search/i })).toBeVisible();
     await expect(primary.getByRole('button', { name: /inventory actions/i })).toBeVisible();
 
+    if (testInfo.project.name === 'Mobile Chrome') {
+      const rowBox = await primary.boundingBox();
+      expect(rowBox).not.toBeNull();
+      const controls = [
+        primary.getByText('Tea', { exact: true }),
+        primary.getByText('Wares', { exact: true }),
+        primary.getByRole('button', { name: /search inventory/i }),
+        primary.getByText('Incoming', { exact: true }),
+        primary.getByRole('button', { name: /switch price mode/i }),
+        primary.getByRole('button', { name: 'Group inventory' }),
+        primary.getByRole('button', { name: 'Sort inventory' }),
+        primary.locator('[title="Teajia Bali"]'),
+        primary.getByRole('combobox', { name: 'Select currency' }),
+        primary.getByRole('button', { name: /inventory actions/i }),
+      ];
+      for (const control of controls) {
+        const box = await control.boundingBox();
+        expect(box, `Missing geometry for ${await control.getAttribute('aria-label') || await control.textContent()}`).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(rowBox!.x - 0.5);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width + 0.5);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(390.5);
+      }
+    }
+
     for (const name of ['Purpose', 'All', 'Working', 'Samples', 'Personal', 'Needs attention']) {
       await expect(purpose.getByText(name, { exact: true })).toBeVisible();
     }
