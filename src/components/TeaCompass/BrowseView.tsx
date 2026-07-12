@@ -628,7 +628,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       return true;
     });
     return result;
-  }, [entries, searchResults, libraryFilters]);
+  }, [entries, searchResults, libraryFilters, entryPossession, possessionLoading, possessionError]);
 
   const filteredForView = useMemo(() => {
     switch (browseFilter) {

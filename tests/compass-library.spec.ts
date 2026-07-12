@@ -190,6 +190,7 @@ test.describe('Curate Library decisions and retrieval', () => {
     await installCompassHarness(page, { products: [
       { id: 'product-cloud', is_public: 1, shown_in_shop: 0, status: 'Draft', given_name: 'Cloud Peak' },
       { id: 'product-held', source_compass_entry_id: 'held-sample', inventory_purpose: 'sample', stock_grams: 10, given_name: 'Held Sample' },
+      { id: 'product-old', source_compass_entry_id: 'passed', inventory_purpose: 'working', quantity_units: 1, given_name: 'Old Kiln Cup' },
     ] });
     await openCompass(page);
     // Hydration is intentionally asynchronous. Seed fixtures only after its
