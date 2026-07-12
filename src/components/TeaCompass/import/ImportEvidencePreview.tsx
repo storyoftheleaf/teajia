@@ -15,4 +15,3 @@ export const ImportEvidencePreview: React.FC<{ evidence: ImportEvidence[] }> = (
     </ul>
   );
 };
-

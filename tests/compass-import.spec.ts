@@ -31,7 +31,9 @@ async function installImportApi(page: Page) {
     if (method === 'GET' && contentMatch) {
       const source = sources.find(candidate => candidate.id === contentMatch[1])!;
       const type = String((source.metadata as Record<string, unknown>).content_type);
-      const body = type.startsWith('image/') ? Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') : Buffer.from('%PDF-test');
+      const body = type.startsWith('image/') ? Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+        : type === 'application/json' ? Buffer.from('[{"name":"Ali Shan","price":600},{"name":"Red Jade","price":450}]')
+        : Buffer.from('%PDF-test');
       return route.fulfill({ status: 200, contentType: type, body });
     }
     if (method === 'GET' && /^\/api\/curate\/imports\/[^/]+$/.test(path)) {
@@ -69,7 +71,8 @@ async function installImportApi(page: Page) {
       }
       const clientId = request.headers()['x-client-evidence-id'];
       const filename = decodeURIComponent(request.headers()['x-filename']);
-      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: request.headers()['content-type'] === 'application/pdf' ? 'invoice' : 'photo', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: request.headers()['content-type'], size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
+      const contentType = request.headers()['content-type'];
+      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
       sources.push(source);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
@@ -196,6 +199,26 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
     await expect(page.getByText('Saved · extraction not available · needs review').first()).toBeVisible();
     await expect(page.getByAltText('Evidence preview: vendor-board.jpg')).toBeVisible();
+  });
+
+  test('extracts selected JSON into reviewed rows and keeps the original evidence retrievable', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    const original = '[{"name":"Ali Shan","price":600},{"name":"Red Jade","price":450}]';
+    await page.getByLabel('Add files or invoices').setInputFiles({
+      name: 'vendor-list.json', mimeType: 'application/json', buffer: Buffer.from(original),
+    });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(page.getByTestId('import-item-row')).toHaveCount(2);
+    await expect(page.getByTestId('import-item-row').nth(0)).toContainText('Ali Shan');
+    await expect(page.getByTestId('import-item-row').nth(1)).toContainText('Red Jade');
+    await expect(page.getByText('vendor-list.json')).toBeVisible();
+    const retrieval = page.waitForResponse(response => response.request().method() === 'GET'
+      && /\/sources\/evidence-\d+\/content$/.test(new URL(response.url()).pathname));
+    await page.getByRole('button', { name: 'Open vendor-list.json' }).click();
+    const response = await retrieval;
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('application/json');
   });
 
   test('persists corrections and opens the exact accepted server Compass identity', async ({ page }) => {

@@ -314,6 +314,54 @@ describe('Curate import provenance API', () => {
     expect((await request(db, `/api/curate/imports/${batch.id}/sources/${source.id}/content`, {}, 'account-b', 'user-b', bucket)).status).toBe(404);
   });
 
+  it('stores and retrieves JSON evidence with bounded metadata and a content-addressed json key', async () => {
+    const db = new ImportDb();
+    const objects = new Map<string, { value: ArrayBuffer; options: any }>();
+    const bucket = {
+      put: async (key: string, value: ArrayBuffer, options: unknown) => { objects.set(key, { value, options }); },
+      delete: async (key: string) => { objects.delete(key); },
+      get: async (key: string) => {
+        const stored = objects.get(key);
+        return stored ? { body: new Response(stored.value).body } : null;
+      },
+    } as unknown as R2Bucket;
+    const created = await request(db, '/api/curate/imports', {
+      method: 'POST', body: JSON.stringify({ title: 'JSON vendor list' }),
+    }, 'account-a', 'user-a', bucket);
+    const { batch } = await created.json() as any;
+    const original = JSON.stringify([{ name: 'Ali Shan', price: 600 }, { name: 'Red Jade', price: 450 }]);
+    const uploaded = await request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST',
+      headers: {
+        'X-Filename': encodeURIComponent('vendor-list.json'),
+        'X-Client-Evidence-Id': 'json-one',
+        'Content-Type': 'application/json',
+      },
+      body: original,
+    }, 'account-a', 'user-a', bucket);
+    expect(uploaded.status).toBe(201);
+    const source = await uploaded.json() as any;
+    expect(source).toMatchObject({
+      kind: 'file',
+      metadata: {
+        filename: 'vendor-list.json', content_type: 'application/json',
+        size: new TextEncoder().encode(original).byteLength,
+        extraction_status: 'not_available', client_evidence_id: 'json-one',
+      },
+    });
+    expect(source.r2_object_key).toMatch(new RegExp(`^curate/account-a/${batch.id}/json-one-[a-f0-9]{64}\\.json$`));
+    expect(objects.get(source.r2_object_key)?.options).toMatchObject({
+      httpMetadata: { contentType: 'application/json' },
+      customMetadata: { account_id: 'account-a', batch_id: batch.id, source_id: source.id },
+    });
+    const opened = await request(db, `/api/curate/imports/${batch.id}/sources/${source.id}/content`, {}, 'account-a', 'user-a', bucket);
+    expect(opened.status).toBe(200);
+    expect(opened.headers.get('Content-Type')).toBe('application/json');
+    expect(opened.headers.get('Content-Disposition')).toContain('attachment;');
+    expect(opened.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(await opened.text()).toBe(original);
+  });
+
   it('rejects unsupported, oversized, unbound, and cross-account evidence without persisting a source', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Evidence' }) });
@@ -322,6 +370,7 @@ describe('Curate import provenance API', () => {
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf' }, body: 'x' })).status).toBe(503);
     const bucket = { put: async () => {} } as unknown as R2Bucket;
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.exe', 'Content-Type': 'application/octet-stream' }, body: 'x' }, 'account-a', 'user-a', bucket)).status).toBe(415);
+    expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.json', 'X-Client-Evidence-Id': 'invalid-json', 'Content-Type': 'application/json' }, body: '{invalid' }, 'account-a', 'user-a', bucket)).status).toBe(415);
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf', 'Content-Length': String(10 * 1024 * 1024 + 1) }, body: 'x' }, 'account-a', 'user-a', bucket)).status).toBe(413);
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf' }, body: 'x' }, 'account-b', 'user-b', bucket)).status).toBe(404);
     expect(db.sources.size).toBe(0);

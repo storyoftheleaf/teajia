@@ -252,7 +252,7 @@ async function refreshImportBatchState(env: ImportEnv, batchId: string, accountI
 
 const EVIDENCE_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
-  'application/pdf', 'text/plain', 'text/csv', 'application/csv',
+  'application/pdf', 'application/json', 'text/plain', 'text/csv', 'application/csv',
   'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
@@ -282,6 +282,10 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const head = new Uint8Array(bytes.slice(0, 16));
   const ascii = new TextDecoder().decode(head);
   const matchesType = contentType === 'application/pdf' ? ascii.startsWith('%PDF-')
+    : contentType === 'application/json' ? (() => {
+      try { JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); return true; }
+      catch { return false; }
+    })()
     : contentType === 'image/jpeg' ? head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff
     : contentType === 'image/png' ? [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => head[index] === byte)
     : contentType === 'image/webp' ? ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP'
@@ -290,7 +294,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
     : contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? ascii.startsWith('PK')
     : true;
   if (!matchesType) return response({ error: 'Evidence content does not match its declared file type' }, 415);
-  const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'application/pdf': 'pdf', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+  const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'application/pdf': 'pdf', 'application/json': 'json', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
   const key = `curate/${ctx.accountId}/${params.id}/${clientEvidenceId}-${digest}.${extensionByType[contentType]}`;
   const sourceId = crypto.randomUUID();

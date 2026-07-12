@@ -8,7 +8,6 @@ export interface ImportDraft {
   evidence: ImportEvidence[];
   sourceKind: CurateImportSourceKind;
 }
-
 export interface ImportPanelState {
   phase: ImportPhase;
   detail: CurateImportDetail | null;
@@ -16,4 +15,3 @@ export interface ImportPanelState {
 }
 
 export type ImportReviewItem = CurateImportItem;
-
