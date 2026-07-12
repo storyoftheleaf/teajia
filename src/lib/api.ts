@@ -1458,6 +1458,8 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
+    createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
+      authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
     duplicate: async (id: string, newSlug: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/duplicate`, {
         method: 'POST',

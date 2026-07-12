@@ -481,6 +481,30 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [publishing, setPublishing] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    }
+    setArticleId(initialData?.id ?? null);
+    setTitle(initialData?.title ?? '');
+    setStatus(initialData?.status ?? 'draft');
+    setBlocks(initialData?.blocks ?? []);
+    setSubtitle(initialData?.subtitle ?? '');
+    setAuthor(initialData?.author_id ?? '');
+    setCategory(initialData?.category ?? '');
+    setTagsInput((initialData?.tags ?? []).join(', '));
+    setCoverImageUrl(initialData?.cover_image_url ?? '');
+    setLayoutTemplate(initialData?.layout_template ?? 'default');
+    setSaveState('idle');
+    setPublishing(false);
+    setPasteOpen(false);
+    setPasteText('');
+    setPasteWarnings([]);
+    setRightTab('metadata');
+    setAddBlockOpen(false);
+  }, [initialData?.id]);
+
   // Close add-block dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
