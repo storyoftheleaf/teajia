@@ -20,7 +20,13 @@ class ReceiptStatement {
       return [...this.db.proposals.values()].find(row => row.account_id === this.values[0] && row.idempotency_key === this.values[1]) ?? null;
     }
     if (sql.includes('from curate_receipt_proposals where id = ? and account_id = ?')) return scoped(this.db.proposals, this.values[0], sql, this.values);
-    if (sql.includes('from products where id = ? and account_id = ?')) return scoped(this.db.products, this.values[0], sql, this.values);
+    if (sql.includes('from products where id') && sql.includes('account_id')) return scoped(this.db.products, this.values[0], sql, this.values);
+    if (sql.includes('from inventory_receipt_lines l join inventory_receipts r')) {
+      const line = scoped(this.db.receiptLines, this.values[0], sql, this.values);
+      const receipt = line && this.db.receipts.get(String(line.receipt_id));
+      return line && receipt ? { ...line, receipt_state: receipt.state, vendor_name: receipt.vendor_name } : null;
+    }
+    if (sql.includes('from inventory_receipts where id') && sql.includes('account_id')) return scoped(this.db.receipts, this.values[0], sql, this.values);
     if (sql.includes('from batches where id = ? and account_id = ?')) return scoped(this.db.batches, this.values[0], sql, this.values);
     if (sql.includes('from curate_import_items where id = ? and account_id = ?')) return scoped(this.db.importItems, this.values[0], sql, this.values);
     if (sql.includes('from curate_import_batches where id = ? and account_id = ?')) return scoped(this.db.imports, this.values[0], sql, this.values);
@@ -30,7 +36,16 @@ class ReceiptStatement {
     }
     return null;
   }
-  async all() { return { results: [] }; }
+  async all() {
+    const sql = norm(this.sql);
+    if (sql.includes('from inventory_receipts where account_id = ?')) {
+      const includeClosed = !sql.includes("state not in ('received','cancelled')");
+      return { results: [...this.db.receipts.values()].filter(row => row.account_id === this.values[0] && (includeClosed || !['received', 'cancelled'].includes(row.state))) };
+    }
+    if (sql.includes('from inventory_receipt_lines l join products p')) return { results: [...this.db.receiptLines.values()].filter(row => row.receipt_id === this.values[0] && row.account_id === this.values[1]).map(row => { const product = this.db.products.get(String(row.product_id)); return { ...row, product_name: product?.given_name ?? product?.product_name ?? 'Unnamed item', current_on_hand: row.unit === 'g' ? Number(product?.stock_grams ?? 0) : Number(product?.quantity_units ?? 0) }; }) };
+    if (sql.includes('from products where account_id=? and in_transit=1')) return { results: [...this.db.products.values()].filter(row => row.account_id === this.values[0] && row.in_transit === 1 && Number(row.in_transit_grams) > 0).map(row => ({ id: row.id, product_name: row.given_name ?? row.product_name ?? 'Unnamed item', expected_quantity: row.in_transit_grams, current_on_hand: Number(row.stock_grams ?? 0), eta: row.in_transit_eta, intended_purpose: row.inventory_purpose })) };
+    return { results: [] };
+  }
   async run() {
     const sql = norm(this.sql);
     if (sql.startsWith('insert into curate_receipt_proposals')) return insertColumns(this.db.proposals, this.sql, this.values);
@@ -38,6 +53,10 @@ class ReceiptStatement {
     if (sql.startsWith('insert into tea_profiles')) return insertColumns(this.db.profiles, this.sql, this.values);
     if (sql.startsWith('insert into product_listings')) return insertColumns(this.db.listings, this.sql, this.values);
     if (sql.startsWith('insert into stock_ledger')) {
+      if (sql.includes('inventory_receipt_line_id')) {
+        const row = { id: this.values[0], product_id: this.values[1], delta: this.values[2], balance_after: this.values[3], movement_unit: this.values[4], reason: 'PURCHASE_RECEIPT', user_email: this.values[5], note: this.values[6], batch_id: this.values[7], account_id: this.values[8], inventory_receipt_line_id: this.values[9] };
+        this.db.ledger.push(row); return { success: true, meta: { changes: 1 } };
+      }
       const existing = sql.includes('(select stock_grams') || sql.includes('(select quantity_units');
       const offset = existing ? 2 : 1;
       const row = {
@@ -49,6 +68,32 @@ class ReceiptStatement {
       if (this.db.ledger.some(item => item.receipt_proposal_id === row.receipt_proposal_id)) throw new Error('UNIQUE receipt ledger');
       this.db.ledger.push(row); return { success: true, meta: { changes: 1 } };
     }
+    if (sql.startsWith('insert into inventory_receipts')) return insertColumns(this.db.receipts, this.sql, this.values);
+    if (sql.startsWith('insert into inventory_receipt_lines')) {
+      const result = insertColumns(this.db.receiptLines, this.sql, this.values);
+      const row = this.db.receiptLines.get(String(this.values[0]))!;
+      Object.assign(row, { received_quantity: 0, cancelled_quantity: 0, intake_batch_id: null });
+      return result;
+    }
+    if (sql.startsWith('insert into batches')) return insertColumns(this.db.batches, this.sql, this.values);
+    if (sql.startsWith('update inventory_receipt_lines set')) {
+      const row = this.db.receiptLines.get(String(this.values.at(-2)));
+      if (!row || row.account_id !== this.values.at(-1)) return { success: true, meta: { changes: 0 } };
+      if (sql.includes('received_quantity=received_quantity+?')) { row.received_quantity += Number(this.values[0]); row.intake_batch_id = this.values[1]; }
+      else if (sql.includes('cancelled_quantity=cancelled_quantity+?')) row.cancelled_quantity += Number(this.values[0]);
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (sql.startsWith('update inventory_receipts set state=case')) {
+      const receiptId = String(this.values.at(-2)); const accountId = this.values.at(-1);
+      const receipt = this.db.receipts.get(receiptId);
+      if (!receipt || receipt.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+      const lines = [...this.db.receiptLines.values()].filter(row => row.receipt_id === receiptId && row.account_id === accountId);
+      const remaining = lines.reduce((sum, row) => sum + row.expected_quantity - row.received_quantity - row.cancelled_quantity, 0);
+      const received = lines.reduce((sum, row) => sum + row.received_quantity, 0);
+      if (remaining === 0) receipt.state = received > 0 ? 'received' : 'cancelled'; else if (received > 0) receipt.state = 'partially_received';
+      return { success: true, meta: { changes: 1 } };
+    }
+    if (sql.startsWith('update inventory_receipts set state=?')) return updateRow(this.db.receipts, this.sql, this.values);
     if (sql.startsWith('update curate_receipt_proposals set')) return updateRow(this.db.proposals, this.sql, this.values);
     if (sql.startsWith('update products set') && sql.includes('coalesce(')) return incrementRow(this.db.products, this.sql, this.values, false);
     if (sql.startsWith('update products set')) return updateRow(this.db.products, this.sql, this.values);
@@ -76,7 +121,7 @@ function scoped(map: Map<string, Row>, id: unknown, sql: string, values: unknown
   const row = map.get(String(id));
   if (!row) return null;
   const accountIndex = 1;
-  if (sql.includes('account_id = ?') && row.account_id !== values[accountIndex]) return null;
+  if (/account_id\s*=\s*\?/.test(sql) && row.account_id !== values[accountIndex]) return null;
   if (sql.includes('user_id = ?') && row.user_id !== values[2]) return null;
   return { ...row };
 }
@@ -105,7 +150,7 @@ function insertColumns(target: Map<string, Row> | Row[], sql: string, values: un
 function updateRow(target: Map<string, Row>, sql: string, values: unknown[]) {
   const normalized = norm(sql);
   const guarded = /where id = \? and account_id = \? and stock_grams = \?/.test(normalized);
-  const accountScoped = normalized.includes('where id = ? and account_id = ?');
+  const accountScoped = /where id\s*=\s*\? and account_id\s*=\s*\?/.test(normalized);
   const id = String(values.at(guarded ? -3 : accountScoped ? -2 : -1));
   const accountId = accountScoped ? values.at(guarded ? -2 : -1) : undefined;
   const row = target.get(id);
@@ -135,6 +180,7 @@ export class ReceiptDb {
   entries = new Map<string, Row>(); proposals = new Map<string, Row>(); products = new Map<string, Row>();
   profiles = new Map<string, Row>(); listings = new Map<string, Row>(); ledger: Row[] = [];
   batches = new Map<string, Row>(); imports = new Map<string, Row>(); importItems = new Map<string, Row>();
+  receipts = new Map<string, Row>(); receiptLines = new Map<string, Row>(); teaSamples: Row[] = [];
   failBatchAt: number | null = null;
   static seeded() {
     const db = new ReceiptDb();
@@ -143,15 +189,24 @@ export class ReceiptDb {
     db.batches.set('batch-a', { id: 'batch-a', account_id: 'account-a' }); db.batches.set('batch-b', { id: 'batch-b', account_id: 'account-b' });
     return db;
   }
+  static seededWithReceipt(secondLine = false) {
+    const db = ReceiptDb.seeded();
+    db.products.set('product-a', { id: 'product-a', account_id: 'account-a', given_name: 'Spring Oolong', stock_grams: 5, quantity_units: 0 });
+    db.receipts.set('receipt-a', { id: 'receipt-a', account_id: 'account-a', state: 'planned', vendor_name: 'Lin', source_kind: 'invoice', source_ref: 'INV-4' });
+    db.receiptLines.set('line-a', { id: 'line-a', receipt_id: 'receipt-a', account_id: 'account-a', product_id: 'product-a', expected_quantity: 100, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: 'working', source_kind: 'invoice', source_ref: 'INV-4', intake_batch_id: null });
+    if (secondLine) db.receiptLines.set('line-b', { ...db.receiptLines.get('line-a'), id: 'line-b', expected_quantity: 20 });
+    return db;
+  }
   prepare(sql: string) { return new ReceiptStatement(sql, this); }
   async batch(statements: ReceiptStatement[]) {
-    const snapshot = structuredClone({ entries: [...this.entries], proposals: [...this.proposals], products: [...this.products], profiles: [...this.profiles], listings: [...this.listings], ledger: this.ledger });
+    const snapshot = structuredClone({ entries: [...this.entries], proposals: [...this.proposals], products: [...this.products], profiles: [...this.profiles], listings: [...this.listings], ledger: this.ledger, batches: [...this.batches], receipts: [...this.receipts], receiptLines: [...this.receiptLines] });
     try {
       const results = [];
       for (let i = 0; i < statements.length; i++) { if (this.failBatchAt === i) throw new Error('Injected D1 batch failure'); results.push(await statements[i].run()); }
       return results;
     } catch (error) {
       this.entries = new Map(snapshot.entries); this.proposals = new Map(snapshot.proposals); this.products = new Map(snapshot.products); this.profiles = new Map(snapshot.profiles); this.listings = new Map(snapshot.listings); this.ledger = snapshot.ledger;
+      this.batches = new Map(snapshot.batches); this.receipts = new Map(snapshot.receipts); this.receiptLines = new Map(snapshot.receiptLines);
       throw error;
     }
   }

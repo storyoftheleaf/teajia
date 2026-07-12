@@ -9110,10 +9110,10 @@ const handleListInventoryReceipts: Handler = async (request, env) => {
   const includeClosed = url.searchParams.get('include_closed') === '1';
   const legacy = url.searchParams.get('include_legacy') !== '0';
   const rows = await env.DB.prepare(`SELECT * FROM inventory_receipts WHERE account_id = ? ${includeClosed ? '' : "AND state NOT IN ('received','cancelled')"} ORDER BY created_at DESC`).bind(ctx.accountId).all();
-  const receipts = await Promise.all((rows.results || []).map(async (receipt: any) => ({ ...receipt, lines: (await env.DB.prepare(`SELECT l.*, COALESCE(p.given_name,p.product_name,'Unnamed item') product_name FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? ORDER BY l.created_at`).bind(receipt.id, ctx.accountId).all()).results || [] })));
+  const receipts = await Promise.all((rows.results || []).map(async (receipt: any) => ({ ...receipt, lines: (await env.DB.prepare(`SELECT l.*, COALESCE(p.given_name,p.product_name,'Unnamed item') product_name, CASE WHEN l.unit='g' THEN COALESCE(p.stock_grams,0) ELSE COALESCE(p.quantity_units,0) END current_on_hand FROM inventory_receipt_lines l JOIN products p ON p.id=l.product_id AND p.account_id=l.account_id WHERE l.receipt_id=? AND l.account_id=? ORDER BY l.created_at`).bind(receipt.id, ctx.accountId).all()).results || [] })));
   if (legacy) {
-    const old = await env.DB.prepare(`SELECT id, COALESCE(given_name,product_name,'Unnamed item') product_name, COALESCE(in_transit_grams,0) expected_quantity, in_transit_eta eta, inventory_purpose intended_purpose FROM products WHERE account_id=? AND in_transit=1 AND COALESCE(in_transit_grams,0)>0`).bind(ctx.accountId).all();
-    for (const item of old.results || []) receipts.push({ id: `legacy:${item.id}`, account_id: ctx.accountId, state: 'in_transit', source_kind: 'legacy', eta: item.eta, legacy: true, lines: [{ id: `legacy:${item.id}`, product_id: item.id, product_name: item.product_name, expected_quantity: item.expected_quantity, received_quantity: 0, cancelled_quantity: 0, unit: 'g', intended_purpose: item.intended_purpose || 'working' }] });
+    const old = await env.DB.prepare(`SELECT id, COALESCE(given_name,product_name,'Unnamed item') product_name, COALESCE(in_transit_grams,0) expected_quantity, COALESCE(stock_grams,0) current_on_hand, in_transit_eta eta, inventory_purpose intended_purpose FROM products WHERE account_id=? AND in_transit=1 AND COALESCE(in_transit_grams,0)>0`).bind(ctx.accountId).all();
+    for (const item of old.results || []) receipts.push({ id: `legacy:${item.id}`, account_id: ctx.accountId, state: 'in_transit', source_kind: 'legacy', eta: item.eta, legacy: true, lines: [{ id: `legacy:${item.id}`, product_id: item.id, product_name: item.product_name, expected_quantity: item.expected_quantity, received_quantity: 0, cancelled_quantity: 0, current_on_hand: item.current_on_hand, unit: 'g', intended_purpose: item.intended_purpose || 'working' }] });
   }
   return json(receipts);
 };
@@ -9129,6 +9129,22 @@ const handleCreateInventoryReceipt: Handler = async (request, env) => {
   const id = crypto.randomUUID(); const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id,account_id,state,vendor_name,source_kind,source_ref,eta,created_by_user_id) VALUES (?,?,?,?,?,?,?,?)`).bind(id,ctx.accountId,state,body.vendor_name||null,body.source_kind,body.source_ref||null,body.eta||null,ctx.userId)];
   for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id,receipt_id,account_id,product_id,expected_quantity,unit,intended_purpose,source_kind,source_ref) VALUES (?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,ctx.accountId,line.product_id,line.quantity,line.unit,line.intended_purpose,line.source_kind,line.source_ref));
   await env.DB.batch(statements); return json({ id, state }, 201);
+};
+
+const MANUAL_RECEIPT_TRANSITIONS: Record<string, string[]> = {
+  planned: ['ordered'],
+  ordered: ['in_transit'],
+};
+
+const handleUpdateInventoryReceiptState: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  const receipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(params.id, ctx.accountId).first() as any;
+  if (!receipt) return json({ error: 'Receipt not found' }, 404);
+  const body = await request.json().catch(() => ({})) as any;
+  const state = String(body.state || '');
+  if (!(MANUAL_RECEIPT_TRANSITIONS[receipt.state] || []).includes(state)) return json({ error: `Cannot move receipt from ${receipt.state} to ${state}` }, 409);
+  await env.DB.prepare("UPDATE inventory_receipts SET state=?, updated_at=datetime('now') WHERE id=? AND account_id=?").bind(state, receipt.id, ctx.accountId).run();
+  return json({ ...receipt, state });
 };
 
 const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.DB.prepare(`SELECT l.*, r.state receipt_state, r.vendor_name FROM inventory_receipt_lines l JOIN inventory_receipts r ON r.id=l.receipt_id AND r.account_id=l.account_id WHERE l.id=? AND l.account_id=?`).bind(id,accountId).first() as Promise<any>;
@@ -9153,7 +9169,9 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
       THEN CASE WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'received' ELSE 'cancelled' END
     WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'partially_received'
     ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId));
-  await env.DB.batch(statements); return json({ received_quantity:newReceived, remaining_quantity:remaining-quantity,state,ledger_id:ledgerId,batch_id:batchId });
+  await env.DB.batch(statements);
+  const persistedReceipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
+  return json({ received_quantity:newReceived, remaining_quantity:remaining-quantity,state:persistedReceipt?.state || state,ledger_id:ledgerId,batch_id:batchId });
 };
 
 const handleCancelInventoryLine: Handler = async (request, env, params) => {
@@ -9166,7 +9184,8 @@ const handleCancelInventoryLine: Handler = async (request, env, params) => {
       THEN CASE WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'received' ELSE 'cancelled' END
     WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'partially_received'
     ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId)]);
-  return json({ cancelled_quantity:Number(line.cancelled_quantity)+remaining,state });
+  const persistedReceipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
+  return json({ cancelled_quantity:Number(line.cancelled_quantity)+remaining,state:persistedReceipt?.state || state });
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -18898,6 +18917,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/curate/receipt-proposals/:id/reject', handleRejectReceiptProposal],
   ['GET', '/api/inventory/receipts', handleListInventoryReceipts],
   ['POST', '/api/inventory/receipts', handleCreateInventoryReceipt],
+  ['PUT', '/api/inventory/receipts/:id/state', handleUpdateInventoryReceiptState],
   ['POST', '/api/inventory/receipt-lines/:id/receive', handleReceiveInventoryLine],
   ['POST', '/api/inventory/receipt-lines/:id/cancel-remaining', handleCancelInventoryLine],
 
