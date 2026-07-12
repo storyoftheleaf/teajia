@@ -428,7 +428,7 @@ export interface LearnPath {
   modules: string[]; // Module IDs
 }
 
-export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY' | 'PAGE_READER';
+export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY';
 
 export interface CartItem {
   id: string;

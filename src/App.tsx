@@ -423,7 +423,9 @@ const AppContent = () => {
       setSelectedStory(story);
       setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
       if (story.type === ContentType.Article) {
-        setViewState('PAGE_READER');
+        const slug = (story as Story & { slug?: string }).slug || story.id;
+        navigate(`/article/${encodeURIComponent(slug)}`);
+        return;
       } else if (story.type === ContentType.PhotoEssay) {
         setViewState('PHOTO_ESSAY');
       } else {
@@ -433,7 +435,7 @@ const AppContent = () => {
     window.addEventListener('openArticle', handler);
     return () => window.removeEventListener('openArticle', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, magazineDefaultTab]);
+  }, [activeSection, magazineDefaultTab, navigate]);
 
   // Cart persistence handled by Zustand persist middleware
 
@@ -551,15 +553,13 @@ const AppContent = () => {
        setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
     }
 
-    let newViewState: ViewState;
     if (story.type === ContentType.Article) {
-      newViewState = 'PAGE_READER';
-    } else if (story.type === ContentType.PhotoEssay) {
-      newViewState = 'PHOTO_ESSAY';
-    } else {
-      newViewState = 'STORY_VIEW';
+      const slug = (story as Story & { slug?: string }).slug || story.id;
+      navigate(`/article/${encodeURIComponent(slug)}`);
+      return;
     }
-    setViewState(newViewState);
+
+    setViewState(story.type === ContentType.PhotoEssay ? 'PHOTO_ESSAY' : 'STORY_VIEW');
   };
 
   const handleBackToBrowse = () => {
@@ -1099,7 +1099,7 @@ const AppContent = () => {
 
       {/* --- Full Screen Views --- */}
 
-      {/* Legacy 'PAGE_READER' overlay removed — articles route through /article/:slug. */}
+      {/* Legacy article overlay removed — articles route through /article/:slug. */}
 
       {viewState === 'READER' && selectedStory && (
          <ImagePreloaderProvider>
