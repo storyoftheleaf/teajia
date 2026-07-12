@@ -9,3 +9,6 @@ playwright-report/
 
 # Agent brainstorm scratch (never commit)
 .superpowers/
+
+# Isolated agent implementation worktrees
+.worktrees/
