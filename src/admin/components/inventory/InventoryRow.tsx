@@ -33,6 +33,7 @@ export interface InventoryRowProps {
   onOpenPanel: (product: Product) => void;
   onToggleDropdown: (productId: string | null) => void;
   onStockHistory: (id: string, name: string) => void;
+  onStockMovement: (product: Product, trigger: HTMLElement) => void;
   onRestock: (product: Product) => void;
   onDeleteRequest: (product: Product) => void;
   showToast: (msg: string, type: string, opts?: any) => void;
@@ -48,7 +49,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, stickyFirstCol, alignLeft, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
-    onOpenPanel, onToggleDropdown, onStockHistory, onRestock, onDeleteRequest, showToast, navigate,
+    onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
   void onLongPressSelect; // retained in the prop type; long-press now routes to quick-edit
 
@@ -205,9 +206,14 @@ function InventoryRowBase(props: InventoryRowProps) {
                 were removed: stock history opens from the column-header link,
                 and the recount flag lives in the side action bar / edit panel.
                 The number now gets the full column width so it never clips. */}
-            <div className="block" onClick={(e) => e.stopPropagation()}>
-              <GhostInput id={ghostId(colIndex)} ariaLabel="Stock grams" value={isOut ? 0 : Math.round(product.stockGrams)} onSave={(val) => onProductUpdate(product.id, 'stockGrams', val)} type="number" align={numInputAlign} className={`num text-ui-13 w-full ${stockTone}`} />
-            </div>
+            <button
+              type="button"
+              aria-label={`Change stock for ${product.productName || product.givenName}`}
+              onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }}
+              className={`tap-target w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
+            >
+              {isOut ? 0 : Math.round(product.stockGrams)}
+            </button>
           </td>
         );
       }

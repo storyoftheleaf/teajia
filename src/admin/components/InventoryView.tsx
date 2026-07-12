@@ -60,6 +60,7 @@ import { useInventoryProducts } from './inventory/useInventoryProducts';
 import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
 import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
+import { StockMovementPanel } from './inventory/StockMovementPanel';
 
 interface InventoryViewProps {
   products: Product[];
@@ -478,6 +479,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showEnrichConfirm, setShowEnrichConfirm] = useState(false);
   const [showVerificationResetConfirm, setShowVerificationResetConfirm] = useState(false);
   const [stockHistoryProduct, setStockHistoryProduct] = useState<{ id: string; name: string } | null>(null);
+  const [stockMovement, setStockMovement] = useState<{ product: Product; trigger: HTMLElement | null; initialType?: 'recount' } | null>(null);
 
   // Permanent single-product delete (mistyped/junk row). deleteTarget holds the
   // product being confirmed; deleteInput must equal "delete" before it fires.
@@ -807,6 +809,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const stableStockHistory = useCallback((id: string, name: string) => {
     setStockHistoryProduct({ id, name });
   }, []);
+
+  const stableStockMovement = useCallback((product: Product, trigger: HTMLElement) => {
+    setStockHistoryProduct(null);
+    setStockMovement({ product, trigger });
+  }, []);
+
+  const stableStockRecount = useCallback((product: Product, trigger: HTMLElement) => {
+    setStockHistoryProduct(null);
+    setStockMovement({ product, trigger, initialType: 'recount' });
+  }, []);
+
+  const handleMovementRecorded = useCallback((productId: string, afterBalance: number) => {
+    setLocalProducts(prev => prev.map(product => product.id === productId
+      ? { ...product, stockGrams: afterBalance, stockKnownAt: new Date().toISOString() }
+      : product));
+    setPanelProduct(prev => prev?.id === productId ? { ...prev, stockGrams: afterBalance, stockKnownAt: new Date().toISOString() } : prev);
+    setStockMovement(prev => prev?.product.id === productId ? { ...prev, product: { ...prev.product, stockGrams: afterBalance, stockKnownAt: new Date().toISOString() } } : prev);
+    onRefresh();
+  }, [onRefresh, setLocalProducts]);
 
   // GENERIC UPDATE HANDLER (Optimistic + DB)
   // Restock: create a pre-filled Tea Compass entry from a product and navigate
@@ -2786,6 +2807,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onOpenPanel={stableOpenPanel}
                                   onToggleDropdown={stableToggleDropdown}
                                   onStockHistory={stableStockHistory}
+                                  onStockMovement={stableStockMovement}
                                   onRestock={handleRestock}
                                   onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showToast}
@@ -2802,6 +2824,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                     onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                     rates={rates}
                                     onClose={() => setExpandedRowId(null)}
+                                    onStockMovement={stableStockRecount}
                                   />
                                 )}
                               </React.Fragment>
@@ -2867,6 +2890,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onOpenPanel={stableOpenPanel}
                               onToggleDropdown={stableToggleDropdown}
                               onStockHistory={stableStockHistory}
+                              onStockMovement={stableStockMovement}
                               onRestock={handleRestock}
                               onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showToast}
@@ -2882,7 +2906,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                 onTasting={(p) => { setTastingEditorProduct(p); setExpandedRowId(null); }}
                                 onFullEdit={(p) => { setPanelProduct(p); setExpandedRowId(null); }}
                                 rates={rates}
-                                    onClose={() => setExpandedRowId(null)}
+                                onClose={() => setExpandedRowId(null)}
+                                onStockMovement={stableStockRecount}
                               />
                             )}
                           </React.Fragment>
@@ -3022,8 +3047,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onNavigate={(p) => setPanelProduct(p)}
         filterLabel={filterType !== 'All' ? (VIEW_FILTER_LABELS[filterType] || filterType) : undefined}
         onShowStorePreview={(p) => setDetailsProduct(p)}
+        onOpenStockMovement={stableStockMovement}
         rightOffset={panelRightOffset}
       />
+
+      {stockMovement && (
+        <StockMovementPanel
+          product={stockMovement.product}
+          products={localProducts}
+          trigger={stockMovement.trigger}
+          onClose={() => setStockMovement(null)}
+          onRecorded={(after) => handleMovementRecorded(stockMovement.product.id, after)}
+          initialMovementType={stockMovement.initialType}
+        />
+      )}
 
       <InventoryBulkToolbar
         selectedCount={selectedIds.size}

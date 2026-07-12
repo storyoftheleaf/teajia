@@ -24,6 +24,8 @@ export interface QuickEditFieldsProps {
   rates: ExchangeRate[];
   /** Collapses the panel. Wired to setExpandedRowId(null) in the parent. */
   onClose?: () => void;
+  /** Opens explicit stock movement entry; spreadsheet stock edits are recounts. */
+  onStockMovement?: (product: Product, trigger: HTMLElement) => void;
 }
 
 // A single editable value, sitting in its own column cell directly under the
@@ -68,7 +70,7 @@ const CellInput = ({
 // the two actions ride in the wide Product (first) column. Saves route through
 // onUpdate (same path as the table's inline edits), so persistence is unchanged.
 export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
-  product, cols, onUpdate, onTasting, onFullEdit, rates, onClose,
+  product, cols, onUpdate, onTasting, onFullEdit, rates, onClose, onStockMovement,
 }) => {
   void rates; // accepted for forward-compatible pricing display; basic fields don't need it yet
   const retailValue = product.fixedRetailPriceUSD ?? product.pricePerGramUSD ?? '';
@@ -80,11 +82,14 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
     switch (key) {
       case 'stockGrams':
         return (
-          <CellInput
-            ariaLabel="Stock grams" suffix="g"
-            value={Math.round(product.stockGrams ?? 0)}
-            onSave={(val) => onUpdate(product.id, 'stockGrams', val)}
-          />
+          <button
+            type="button"
+            aria-label={`Recount stock for ${product.productName || product.givenName}`}
+            onClick={(event) => onStockMovement?.(product, event.currentTarget)}
+            className="tap-target w-full rounded-md bg-tea-bg border border-tea-border px-2 py-1 text-ui-13 text-right num text-tea-text hover:border-tea-gold transition-colors"
+          >
+            {Math.round(product.stockGrams ?? 0)}g · Recount
+          </button>
         );
       case 'year':
         return (

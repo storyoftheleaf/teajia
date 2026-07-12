@@ -19,6 +19,12 @@ const REASON_LABELS: Record<string, string> = {
   CREATION: 'Created',
   WASTE: 'Waste',
   SAMPLE: 'Sample',
+  SAMPLE_USE: 'Sample use',
+  GIFT: 'Gift',
+  RETURN: 'Return',
+  RECOUNT: 'Recount',
+  TRANSFER: 'Transfer',
+  RECEIPT: 'Received',
   PERSONAL: 'Personal',
 };
 
@@ -60,15 +66,18 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
           <div className="space-y-1.5 max-h-[40vh] overflow-y-auto custom-scrollbar">
             {entries.map((entry: any) => {
               const isPositive = entry.delta > 0;
+              const before = entry.balance_before ?? Number(entry.balance_after) - Number(entry.delta);
+              const reference = entry.source_invoice_number || entry.reference;
               return (
-                <div key={entry.id} className="flex items-center gap-2 py-1.5 border-b border-tea-border last:border-0">
+                <article key={entry.id} className="py-2 border-b border-tea-border last:border-0">
+                  <div className="flex flex-wrap items-center gap-2">
                   <div className={`flex items-center gap-0.5 w-16 shrink-0 ${isPositive ? 'text-tea-gold' : 'text-tea-text-sec'}`}>
                     {isPositive ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
                     <span className="text-ui-11 num font-medium">
                       {isPositive ? '+' : ''}{entry.delta}g
                     </span>
                   </div>
-                  <span className="text-ui-11 text-tea-text-sec num w-14 shrink-0">{entry.balance_after}g</span>
+                  <span className="text-ui-11 text-tea-text-sec num shrink-0" aria-label={`Balance ${before} grams to ${entry.balance_after} grams`}>{before}g → {entry.balance_after}g</span>
                   <span className="badge-status badge-status-default text-ui-11">
                     {REASON_LABELS[entry.reason] || entry.reason}
                   </span>
@@ -77,18 +86,25 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                       {entry.batch_label}
                     </span>
                   )}
-                  {entry.source_invoice_number && (
+                  {reference && (
                     <button
-                      onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(entry.source_invoice_number)}`)}
+                      onClick={() => navigate(`/admin/orders?search=${encodeURIComponent(reference)}`)}
                       className="text-ui-10 text-tea-text-sec hover:text-tea-gold num truncate transition-colors"
                     >
-                      {entry.source_invoice_number}
+                      {reference}
                     </button>
                   )}
-                  <span className="text-ui-11 text-tea-text-sec/50 ml-auto shrink-0">
+                  <span className="text-ui-11 text-tea-text-sec ml-auto shrink-0">
                     {new Date(entry.created_at).toLocaleDateString()}
                   </span>
-                </div>
+                  </div>
+                  {(entry.note || entry.user_email || entry.actor_email) && (
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-ui-11 text-tea-text-sec">
+                      {(entry.user_email || entry.actor_email) && <span>{entry.user_email || entry.actor_email}</span>}
+                      {entry.note && <span className="text-tea-text">{entry.note}</span>}
+                    </div>
+                  )}
+                </article>
               );
             })}
           </div>
@@ -99,6 +115,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
               <span className="text-xs text-tea-text-sec">{offset + 1}–{Math.min(offset + limit, total)} of {total}</span>
               <div className="flex gap-1">
                 <button
+                  aria-label="Previous stock history page"
                   onClick={() => setOffset(Math.max(0, offset - limit))}
                   disabled={!hasPrev}
                   className="p-2.5 text-tea-text-sec hover:text-tea-text disabled:opacity-50 transition-colors"
@@ -106,6 +123,7 @@ export const StockLedgerPanel: React.FC<StockLedgerPanelProps> = ({
                   <ChevronLeft size={14} />
                 </button>
                 <button
+                  aria-label="Next stock history page"
                   onClick={() => setOffset(offset + limit)}
                   disabled={!hasNext}
                   className="p-2.5 text-tea-text-sec hover:text-tea-text disabled:opacity-50 transition-colors"

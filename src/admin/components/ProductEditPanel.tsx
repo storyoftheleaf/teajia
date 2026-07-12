@@ -958,6 +958,8 @@ export interface ProductEditPanelProps {
   /** Open the store preview (the Alcove / shop-card view) for this product.
    *  Surfaced high in the panel so full edit shows how it looks in the shop. */
   onShowStorePreview?: (product: Product) => void;
+  /** Opens movement-first stock entry instead of directly overwriting stock. */
+  onOpenStockMovement?: (product: Product, trigger: HTMLElement) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -977,6 +979,7 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   filterLabel,
   rightOffset = 0,
   onShowStorePreview,
+  onOpenStockMovement,
 }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -1603,7 +1606,14 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
                         </span>
                       }
                     >
-                      <GhostInput variant="bordered" value={stock} onSave={(val) => handleUpdate(product.id, 'stockGrams', val)} type="number" className={`tabular-nums ${isOut ? '!text-tea-error' : ''}`} />
+                      <button
+                        type="button"
+                        aria-label={`Change stock for ${product.productName || product.givenName}`}
+                        onClick={(event) => onOpenStockMovement?.(product, event.currentTarget)}
+                        className={`tap-target admin-input w-full text-left tabular-nums hover:border-tea-gold transition-colors ${isOut ? '!text-tea-error' : ''}`}
+                      >
+                        {stock}g · Record movement
+                      </button>
                     </FieldCell>
                     <FieldCell label="Low alert g">
                       <GhostInput variant="bordered" value={threshold} onSave={(val) => handleUpdate(product.id, 'lowStockThreshold', val)} type="number" className="tabular-nums" />
