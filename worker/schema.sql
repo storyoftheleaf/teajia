@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS products (
     status TEXT DEFAULT 'Active',
     vendor TEXT,
     stock_grams INTEGER DEFAULT 0,
+    stock_movement_guard TEXT,
     cost_amount REAL DEFAULT 0,
     cost_currency TEXT DEFAULT 'USD',
     shipping_rate_per_kg REAL DEFAULT 0,

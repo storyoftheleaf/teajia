@@ -52,7 +52,7 @@ class MovementStatement {
     if (sql.includes('select status from accounts')) return { status: 'active' };
     if (sql.includes('from stock_ledger where account_id = ? and idempotency_key = ?')) return this.db.ledger.find(row => row.account_id === this.values[0] && row.idempotency_key === this.values[1]) || null;
     if (sql.includes('from inventory_receipt_lines l join inventory_receipts r')) { const line = this.db.receiptLines.get(this.values[0]); return line?.account_id === this.values[1] ? { ...line } : null; }
-    if (sql.includes('from products where id = ? and account_id = ?') || sql.includes('from products where id=? and account_id=?')) { const row = this.db.products.get(this.values[0]); return row?.account_id === this.values[1] ? { ...row } : null; }
+    if (sql.includes('from products where id = ? and account_id = ?') || sql.includes('from products where id=? and account_id=?')) { const row = this.db.products.get(this.values[0]); const copy = row?.account_id === this.values[1] ? { ...row } : null; await this.db.waitForConcurrentProductRead(); return copy; }
     if (sql.includes('from batches where id = ? and account_id = ?')) return this.values[0] === 'batch' && this.values[1] === 'account-a' ? { id: 'batch' } : null;
     if (sql.includes('from tea_compass_entries where id = ? and account_id = ?')) return this.values[0] === 'entry' && this.values[1] === 'account-a' ? { id: 'entry' } : null;
     if (sql.includes('from invoices where id = ? and account_id = ?')) return this.values[0] === 'inv' && this.values[1] === 'account-a' ? { id: 'inv' } : null;
@@ -64,34 +64,34 @@ class MovementStatement {
     if (sql.startsWith('update products set')) {
       if (this.db.forceStale) return { meta: { changes: 0 } };
       if (sql.includes('case when id = ?')) {
-        const [sourceId, sourceAfter, destinationAfter, knownAt, account, , destinationId, , , sourceBefore, , , destinationBefore] = this.values;
+        const [sourceId, sourceAfter, destinationAfter, knownAt, movementGuard, account, , destinationId, , , sourceBefore, , , destinationBefore] = this.values;
         const source = this.db.products.get(sourceId); const destination = this.db.products.get(destinationId);
         const column = sql.includes('quantity_units') ? 'quantity_units' : 'stock_grams';
         if (!source || !destination || source.account_id !== account || destination.account_id !== account || Number(source[column] || 0) !== Number(sourceBefore) || Number(destination[column] || 0) !== Number(destinationBefore)) return { meta: { changes: 0 } };
-        source[column] = sourceAfter; destination[column] = destinationAfter; source.stock_known_at = knownAt; destination.stock_known_at = knownAt;
+        source[column] = sourceAfter; destination[column] = destinationAfter; source.stock_known_at = knownAt; destination.stock_known_at = knownAt; source.stock_movement_guard = movementGuard; destination.stock_movement_guard = movementGuard;
         return { meta: { changes: 2 } };
       }
-      const [newBalance, knownAt, id, account, expected] = this.values;
+      const [newBalance, knownAt, movementGuard, id, account, expected] = this.values;
       const row = this.db.products.get(id); if (!row || row.account_id !== account) return { meta: { changes: 0 } };
       const column = sql.includes('quantity_units') ? 'quantity_units' : 'stock_grams';
       if (Number(row[column] || 0) !== Number(expected)) return { meta: { changes: 0 } };
-      row[column] = newBalance; row.stock_known_at = knownAt; return { meta: { changes: 1 } };
+      row[column] = newBalance; row.stock_known_at = knownAt; row.stock_movement_guard = movementGuard; return { meta: { changes: 1 } };
     }
     if (sql.startsWith('update product_listings')) {
       const [newBalance, productId, account, guard] = this.values;
       const product = this.db.products.get(productId);
-      if (product?.account_id === account && product.stock_known_at === guard) this.db.listings.set(productId, newBalance);
+      if (product?.account_id === account && product.stock_movement_guard === guard) this.db.listings.set(productId, newBalance);
       return { meta: { changes: 1 } };
     }
     if (sql.startsWith('insert into stock_ledger')) {
-      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_known_at === guard)) return { meta: { changes: 0 } };
+      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
       const [id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, , movement_fingerprint] = this.values;
       if (this.db.ledger.some(row => row.account_id === account_id && row.idempotency_key === idempotency_key)) throw new Error('UNIQUE idempotency');
       this.db.ledger.push({ id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint });
       return { meta: { changes: 1 } };
     }
-    if ((sql.startsWith('insert into batches') || sql.startsWith('update inventory_receipt')) && sql.includes('stock_known_at')) {
-      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_known_at === guard)) return { meta: { changes: 0 } };
+    if ((sql.startsWith('insert into batches') || sql.startsWith('update inventory_receipt')) && sql.includes('stock_movement_guard')) {
+      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
       this.db.receiptSideEffects++; return { meta: { changes: 1 } };
     }
     return { meta: { changes: 1 } };
@@ -106,6 +106,9 @@ class MovementDb {
   ]);
   ledger: Row[] = []; listings = new Map<string, number>([['tea', 20], ['destination', 5]]); failBatchAt: number | null = null;
   receiptLines = new Map<string, Row>(); receiptSideEffects = 0; forceStale = false;
+  private productReadCount = 0; private productReadTarget = 0; private releaseProductReads: (() => void) | null = null; private productReads: Promise<void> | null = null;
+  synchronizeProductReads(count: number) { this.productReadTarget=count; this.productReads=new Promise(resolve => { this.releaseProductReads=resolve; }); }
+  async waitForConcurrentProductRead() { if (!this.productReads) return; this.productReadCount++; if (this.productReadCount >= this.productReadTarget) this.releaseProductReads?.(); await this.productReads; }
   prepare(sql: string) { return new MovementStatement(sql, this); }
   async batch(statements: MovementStatement[]) {
     const snapshot = structuredClone({ products: [...this.products], ledger: this.ledger, listings: [...this.listings] });
@@ -118,6 +121,7 @@ function b64(input: string | Uint8Array) { const bytes = typeof input === 'strin
 async function jwt(account = 'account-a') { const now = Math.floor(Date.now() / 1000); const data = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify({ sub: 'actor', email: 'actor@example.com', active_account_id: account, iat: now, exp: now + 3600 }))}`; const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return `${data}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))))}`; }
 async function movementRequest(db: MovementDb, product: string, body: Row, account = 'account-a') { return worker.fetch(new Request(`https://test/api/products/${product}/movements`, { method: 'POST', headers: { Authorization: `Bearer ${await jwt(account)}`, 'X-Teajia-Account': account, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: SECRET } as any); }
 async function receiveRequest(db: MovementDb, lineId: string, requestBody: Row) { return worker.fetch(new Request(`https://test/api/inventory/receipt-lines/${lineId}/receive`, { method:'POST', headers:{ Authorization:`Bearer ${await jwt()}`, 'X-Teajia-Account':'account-a', 'Content-Type':'application/json' }, body:JSON.stringify(requestBody) }), { DB:db, JWT_SECRET:SECRET } as any); }
+async function legacyStockRequest(db: MovementDb, productId: string, stock_grams: number) { return worker.fetch(new Request(`https://test/api/products/${productId}`, { method:'PUT', headers:{ Authorization:`Bearer ${await jwt()}`, 'X-Teajia-Account':'account-a', 'Content-Type':'application/json', 'Idempotency-Key':'legacy-recount' }, body:JSON.stringify({ stock_grams }) }), { DB:db, JWT_SECRET:SECRET } as any); }
 const body = (movement_type: string, extra: Row = {}) => ({ movement_type, quantity: 3, unit: 'g', expected_balance: 20, idempotency_key: `${movement_type}-1`, note: 'field note', ...extra });
 
 describe('POST product stock movements', () => {
@@ -185,5 +189,16 @@ describe('POST product stock movements', () => {
     const db = new MovementDb(); db.receiptLines.set('line', { id:'line',receipt_id:'receipt',account_id:'account-a',product_id:'tea',expected_quantity:10,received_quantity:0,cancelled_quantity:0,unit:'g',intended_purpose:'working',intake_batch_id:'batch',receipt_state:'in_transit' }); db.forceStale=true;
     const response = await receiveRequest(db,'line',{ quantity:10,idempotency_key:'receipt-stale' });
     expect(response.status).toBe(409); expect(db.receiptSideEffects).toBe(0); expect(db.ledger).toHaveLength(0);
+  });
+  it('uses a stable initial intake batch so concurrent same-key receipt requests converge idempotently', async () => {
+    const db = new MovementDb(); db.synchronizeProductReads(2); db.receiptLines.set('line', { id:'line',receipt_id:'receipt',account_id:'account-a',product_id:'tea',expected_quantity:10,received_quantity:0,cancelled_quantity:0,unit:'g',intended_purpose:'working',intake_batch_id:null,receipt_state:'in_transit' });
+    const responses = await Promise.all([receiveRequest(db,'line',{ quantity:10,idempotency_key:'same-receipt' }),receiveRequest(db,'line',{ quantity:10,idempotency_key:'same-receipt' })]);
+    expect(responses.map(response => response.status)).toEqual([200,200]);
+    expect((await Promise.all(responses.map(response => response.json() as Promise<any>))).map(result => result.already_received).sort()).toEqual([false,true]);
+    expect(db.ledger).toHaveLength(1); expect(db.ledger[0].batch_id).toBe('receipt-line-line');
+  });
+  it('routes legacy absolute stock editing through exactly one recount ledger movement', async () => {
+    const db = new MovementDb(); const response = await legacyStockRequest(db,'tea',12);
+    expect(response.status).toBe(200); expect(db.products.get('tea')?.stock_grams).toBe(12); expect(db.ledger).toHaveLength(1); expect(db.ledger[0]).toMatchObject({ movement_type:'recount',delta:-8,idempotency_key:'legacy-recount' });
   });
 });
