@@ -5,7 +5,7 @@ import {
 } from './mcp';
 import {
   acceptCurateImportItem, addCurateImportSource, createCurateImport, getCurateImport,
-  listIncompleteCurateImports, mergeCurateImportItem, updateCurateImportItem, uploadCurateImportEvidence,
+  getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem, updateCurateImportItem, uploadCurateImportEvidence,
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
@@ -18614,6 +18614,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/curate/imports', withCurateImportAccount(listIncompleteCurateImports)],
   ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
   ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence)],
+  ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
   ['POST', '/api/curate/imports/:id/sources', withCurateImportAccount(addCurateImportSource)],
   ['PUT', '/api/curate/imports/:id/items/:itemId', withCurateImportAccount(updateCurateImportItem)],
   ['POST', '/api/curate/imports/:id/items/:itemId/accept', withCurateImportAccount(acceptCurateImportItem)],
@@ -18806,7 +18807,7 @@ export default {
     if (request.method === 'OPTIONS') {
       const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Teajia-Account, X-Filename, X-Client-Evidence-Id',
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin',
       };

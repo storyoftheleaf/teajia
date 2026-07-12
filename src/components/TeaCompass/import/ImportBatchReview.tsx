@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
 import { ImportItemRow } from './ImportItemRow';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
+import { ImportEvidenceCard } from './ImportEvidenceCard';
 
 interface ImportBatchReviewProps {
   detail: CurateImportDetail;
@@ -27,7 +28,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, bu
       </div>
       {detail.sources.filter(source => source.r2_object_key).length > 0 && (
         <div className="space-y-2" aria-label="Saved evidence">
-          {detail.sources.filter(source => source.r2_object_key).map(source => <div key={source.id} className="rounded-md border border-tea-border bg-tea-surface px-3 py-2"><p className="truncate text-ui-13 text-tea-text">{String(source.metadata?.filename || 'Evidence')}</p><p className="text-ui-11 text-tea-text-dim">Saved · extraction not available · needs review</p></div>)}
+          {detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} />)}
         </div>
       )}
       <div className="space-y-2">

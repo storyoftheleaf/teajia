@@ -205,6 +205,12 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const declaredSize = Number(request.headers.get('Content-Length') || 0);
   if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 10 MB or smaller' }, 413);
   const encodedFilename = request.headers.get('X-Filename') || '';
+  const clientEvidenceId = request.headers.get('X-Client-Evidence-Id') || '';
+  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(clientEvidenceId)) return response({ error: 'Invalid client evidence identity' }, 400);
+  const existing = await env.DB.prepare(
+    "SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND json_extract(metadata_json, '$.client_evidence_id') = ?"
+  ).bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();
+  if (existing) return response({ ...sourceRow(existing), already_uploaded: true });
   let filename = '';
   try { filename = decodeURIComponent(encodedFilename); } catch { return response({ error: 'Invalid evidence filename' }, 400); }
   if (!filename || filename.length > 500 || /[\u0000-\u001f\u007f]/.test(filename)) return response({ error: 'Invalid evidence filename' }, 400);
@@ -226,7 +232,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const key = `curate/${ctx.accountId}/${params.id}/${crypto.randomUUID()}.${extensionByType[contentType]}`;
   const sourceId = crypto.randomUUID();
   const kind = contentType.startsWith('image/') ? 'photo' : contentType === 'application/pdf' ? 'invoice' : 'file';
-  const metadata = { filename, content_type: contentType, size: bytes.byteLength, extraction_status: 'not_available' };
+  const metadata = { filename, content_type: contentType, size: bytes.byteLength, extraction_status: 'not_available', client_evidence_id: clientEvidenceId };
   await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType }, customMetadata: { account_id: ctx.accountId, batch_id: params.id, source_id: sourceId } });
   try {
     await env.DB.prepare(
@@ -239,6 +245,28 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   }
   const row = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND account_id = ?').bind(sourceId, ctx.accountId).first<Record<string, unknown>>();
   return response(sourceRow(row!), 201);
+}
+
+export async function getCurateImportEvidence(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  if (!env.MEDIA_BUCKET) return response({ error: 'Evidence storage is not configured' }, 503);
+  const source = await env.DB.prepare(
+    'SELECT * FROM curate_import_sources WHERE id = ? AND batch_id = ? AND account_id = ?'
+  ).bind(params.sourceId, params.id, ctx.accountId).first<Record<string, unknown>>();
+  if (!source?.r2_object_key || typeof source.r2_object_key !== 'string' || !safeR2ObjectKey(source.r2_object_key, ctx.accountId, params.id)) {
+    return response({ error: 'Evidence not found' }, 404);
+  }
+  const objectBody = await env.MEDIA_BUCKET.get(source.r2_object_key);
+  if (!objectBody) return response({ error: 'Evidence not found' }, 404);
+  const metadata = parseJson(source.metadata_json, {}) as Record<string, unknown>;
+  const contentType = typeof metadata.content_type === 'string' && EVIDENCE_TYPES.has(metadata.content_type) ? metadata.content_type : 'application/octet-stream';
+  const filename = typeof metadata.filename === 'string' ? metadata.filename : 'evidence';
+  const disposition = contentType.startsWith('image/') ? 'inline' : 'attachment';
+  return new Response(objectBody.body, { headers: {
+    'Content-Type': contentType,
+    'Content-Disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': 'private, no-store',
+  } });
 }
 
 export async function addCurateImportSource(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {

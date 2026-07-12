@@ -40,7 +40,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') return onClose();
       if (event.key !== 'Tab' || !panelRef.current) return;
-      const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), textarea, input:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('hidden'));
+      const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), textarea, input:not([disabled]):not([tabindex="-1"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('hidden') && el.getAttribute('aria-hidden') !== 'true');
       if (!controls.length) return;
       const first = controls[0]; const last = controls[controls.length - 1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
@@ -62,9 +62,14 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
         });
         setState(current => ({ ...current, detail }));
       }
-      const savedFilenames = new Set(detail.sources.map(source => String(source.metadata?.filename || '')));
+      const savedEvidenceIds = new Set(detail.sources.map(source => String(source.metadata?.client_evidence_id || '')).filter(Boolean));
       for (const evidence of draft.evidence) {
-        if (!savedFilenames.has(evidence.file.name)) await api.curateImports.uploadEvidence(detail.batch.id, evidence.file);
+        if (savedEvidenceIds.has(evidence.id)) continue;
+        const source = await api.curateImports.uploadEvidence(detail.batch.id, evidence.file, evidence.id);
+        detail = { ...detail, sources: [...detail.sources, source] };
+        savedEvidenceIds.add(evidence.id);
+        setState(current => ({ ...current, detail }));
+        onDetailChange(detail);
       }
       detail = await api.curateImports.get(detail.batch.id);
       setState({ phase: 'review', detail, error: null });

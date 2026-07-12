@@ -14,7 +14,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
   const photoRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const addFiles = (files: FileList | null, kind: ImportEvidence['kind']) => {
-    const additions = Array.from(files || []).map(file => ({ id: `${kind}-${file.name}-${file.lastModified}`, file, kind }));
+    const additions = Array.from(files || []).map(file => ({ id: crypto.randomUUID(), file, kind }));
     onChange({ ...draft, evidence: [...draft.evidence, ...additions] });
   };
   const canSubmit = draft.text.trim().length > 0 || draft.evidence.length > 0;
@@ -32,11 +32,11 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <input ref={photoRef} className="sr-only" type="file" accept="image/*" multiple aria-label="Add photos" onChange={event => addFiles(event.target.files, 'photo')} />
+        <input ref={photoRef} tabIndex={-1} className="sr-only" type="file" accept="image/*" multiple aria-label="Add photos" onChange={event => addFiles(event.target.files, 'photo')} />
         <button type="button" onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">
           <Camera size={16} /> Add photos
         </button>
-        <input ref={fileRef} className="sr-only" type="file" accept=".pdf,.csv,.txt,.doc,.docx,application/pdf,text/csv,text/plain" multiple aria-label="Add files or invoices" onChange={event => addFiles(event.target.files, 'file')} />
+        <input ref={fileRef} tabIndex={-1} className="sr-only" type="file" accept=".pdf,.csv,.txt,.doc,.docx,application/pdf,text/csv,text/plain" multiple aria-label="Add files or invoices" onChange={event => addFiles(event.target.files, 'file')} />
         <button type="button" onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">
           <FileUp size={16} /> Add files or invoices
         </button>
@@ -49,4 +49,3 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
     </div>
   );
 };
-

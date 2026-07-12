@@ -703,6 +703,16 @@ async function authedFetch(url: string, init: ApiRequestInit = {}): Promise<any>
   return handleResponse(res);
 }
 
+async function authedBlobFetch(url: string): Promise<Blob> {
+  const response = await fetchWithTimeout(url, { headers: authHeadersFor(undefined) });
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try { const body = await response.json(); if (typeof body?.error === 'string') message = body.error; } catch { /* use status */ }
+    throw new Error(message);
+  }
+  return response.blob();
+}
+
 export interface TokenClaims {
   sub: string;
   email: string;
@@ -1915,9 +1925,10 @@ export const api = {
     get: (id: string): Promise<CurateImportDetail> => authedFetch(`${API_URL}/api/curate/imports/${id}`),
     addSource: (id: string, source: { kind: CurateImportSourceKind; pasted_text?: string; r2_object_key?: string; metadata?: Record<string, unknown> }): Promise<CurateImportSource> =>
       authedFetch(`${API_URL}/api/curate/imports/${id}/sources`, { method: 'POST', body: JSON.stringify(source), retryTimeouts: true }),
-    uploadEvidence: (id: string, file: File): Promise<CurateImportSource> => authedFetch(`${API_URL}/api/curate/imports/${id}/evidence`, {
-      method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name) }, retryTimeouts: true,
+    uploadEvidence: (id: string, file: File, clientEvidenceId: string): Promise<CurateImportSource> => authedFetch(`${API_URL}/api/curate/imports/${id}/evidence`, {
+      method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name), 'X-Client-Evidence-Id': clientEvidenceId }, retryTimeouts: true,
     }),
+    getEvidence: (batchId: string, sourceId: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/imports/${batchId}/sources/${sourceId}/content`),
     updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
     acceptItem: (batchId: string, itemId: string): Promise<CurateImportItem & { already_accepted?: boolean }> =>

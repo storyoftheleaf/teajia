@@ -26,6 +26,13 @@ async function installImportApi(page: Page) {
       const detail = batch ? { batch, sources, items } : null;
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports: detail ? [detail] : [] }) });
     }
+    const contentMatch = path.match(/\/api\/curate\/imports\/batch-1\/sources\/(evidence-\d+)\/content$/);
+    if (method === 'GET' && contentMatch) {
+      const source = sources.find(candidate => candidate.id === contentMatch[1])!;
+      const type = String((source.metadata as Record<string, unknown>).content_type);
+      const body = type.startsWith('image/') ? Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64') : Buffer.from('%PDF-test');
+      return route.fulfill({ status: 200, contentType: type, body });
+    }
     if (method === 'GET' && /^\/api\/curate\/imports\/[^/]+$/.test(path)) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batch, sources, items }) });
     }
@@ -54,7 +61,7 @@ async function installImportApi(page: Page) {
     }
     if (method === 'POST' && /\/evidence$/.test(path)) {
       const filename = decodeURIComponent(request.headers()['x-filename']);
-      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: request.headers()['content-type'] === 'application/pdf' ? 'invoice' : 'photo', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: request.headers()['content-type'], size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available' } };
+      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: request.headers()['content-type'] === 'application/pdf' ? 'invoice' : 'photo', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: request.headers()['content-type'], size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
       sources.push(source);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
@@ -92,6 +99,8 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
     await page.keyboard.press('Shift+Tab');
     await expect(page.locator('button').filter({ hasText: 'Add files or invoices' })).toBeFocused();
+    await expect(page.getByLabel('Add photos')).toHaveAttribute('tabindex', '-1');
+    await expect(page.getByLabel('Add files or invoices')).toHaveAttribute('tabindex', '-1');
     await page.getByRole('button', { name: 'Close Import' }).click();
     await expect(trigger).toBeFocused();
     await expect(name).toHaveValue('Field tea');
@@ -138,6 +147,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
     await expect(page.getByText('Saved · extraction not available · needs review').first()).toBeVisible();
+    await expect(page.getByAltText('Evidence preview: vendor-board.jpg')).toBeVisible();
   });
 
   test('persists corrections and opens the exact accepted server Compass identity', async ({ page }) => {
@@ -183,6 +193,32 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('button', { name: /invoice: 0 items, 0 reviewed, 0 remaining/ })).toBeVisible();
     await page.getByRole('button', { name: /invoice: 0 items/ }).click();
     await expect(page.getByText('invoice.pdf')).toBeVisible();
+    const retrieval = page.waitForRequest(request => request.method() === 'GET' && request.url().includes('/sources/evidence-0/content'));
+    await page.getByRole('button', { name: 'Open invoice.pdf' }).click();
+    await retrieval;
+  });
+
+  test('retries only a failed attachment and preserves same-name files as distinct evidence', async ({ page }) => {
+    const attempts = new Map<string, number>();
+    let secondId: string | null = null;
+    await page.route('**/api/curate/imports/batch-1/evidence', route => {
+      const id = route.request().headers()['x-client-evidence-id'];
+      attempts.set(id, (attempts.get(id) || 0) + 1);
+      if (!secondId && attempts.size === 2) secondId = id;
+      if (id === secondId && attempts.get(id) === 1) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary evidence failure' }) });
+      return route.fallback();
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles([
+      { name: 'same.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-one') },
+      { name: 'same.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') },
+    ]);
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(page.getByText('Temporary evidence failure')).toBeVisible();
+    await page.getByRole('button', { name: 'Retry import' }).click();
+    await expect(page.getByText('same.pdf')).toHaveCount(2);
+    expect([...attempts.values()].sort()).toEqual([1, 2]);
   });
 
   test('keeps a 30-item batch grouped instead of flooding the capture session', async ({ page }) => {

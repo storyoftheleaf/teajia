@@ -14,6 +14,9 @@ class ImportStatement {
     if (sql.includes('select platform_role from users')) return { platform_role: null };
     if (sql.includes('from account_members am join accounts')) return { role: 'owner', permissions: '{}', kind: 'location' };
     if (sql.includes('select status from accounts')) return { status: 'active' };
+    if (sql.includes("json_extract(metadata_json, '$.client_evidence_id')")) {
+      return [...this.db.sources.values()].find(row => row.batch_id === this.values[0] && row.account_id === this.values[1] && JSON.parse(String(row.metadata_json)).client_evidence_id === this.values[2]) ?? null;
+    }
     const table = this.db.tableFor(sql);
     if (table && sql.includes('where id = ?')) {
       const row = table.get(String(this.values[0]));
@@ -127,20 +130,37 @@ describe('Curate import provenance API', () => {
     const bucket = {
       put: async (key: string, value: ArrayBuffer, options: unknown) => { objects.set(key, { value, options }); },
       delete: async (key: string) => { objects.delete(key); },
+      get: async (key: string) => {
+        const stored = objects.get(key);
+        return stored ? { body: new Response(stored.value).body } : null;
+      },
     } as unknown as R2Bucket;
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Invoice evidence' }) }, 'account-a', 'user-a', bucket);
     const { batch } = await created.json() as any;
     const uploaded = await request(db, `/api/curate/imports/${batch.id}/evidence`, {
-      method: 'POST', headers: { 'X-Filename': encodeURIComponent('台灣 invoice.pdf'), 'Content-Type': 'application/pdf' }, body: '%PDF-test',
+      method: 'POST', headers: { 'X-Filename': encodeURIComponent('台灣 invoice.pdf'), 'X-Client-Evidence-Id': 'client-one', 'Content-Type': 'application/pdf' }, body: '%PDF-test',
     }, 'account-a', 'user-a', bucket);
     expect(uploaded.status).toBe(201);
     const source = await uploaded.json() as any;
-    expect(source).toMatchObject({ kind: 'invoice', metadata: { filename: '台灣 invoice.pdf', content_type: 'application/pdf', size: 9, extraction_status: 'not_available' } });
+    expect(source).toMatchObject({ kind: 'invoice', metadata: { filename: '台灣 invoice.pdf', content_type: 'application/pdf', size: 9, extraction_status: 'not_available', client_evidence_id: 'client-one' } });
     expect(source.r2_object_key).toMatch(new RegExp(`^curate/account-a/${batch.id}/`));
     expect(objects.has(source.r2_object_key)).toBe(true);
+    const retried = await request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST', headers: { 'X-Filename': encodeURIComponent('台灣 invoice.pdf'), 'X-Client-Evidence-Id': 'client-one', 'Content-Type': 'application/pdf' }, body: '%PDF-test',
+    }, 'account-a', 'user-a', bucket);
+    expect(retried.status).toBe(200);
+    expect(await retried.json()).toMatchObject({ id: source.id, already_uploaded: true });
+    expect(objects.size).toBe(1);
+    expect(db.sources.size).toBe(1);
     const listed = await request(db, '/api/curate/imports?state=incomplete', {}, 'account-a', 'user-a', bucket);
     expect(listed.status).toBe(200);
     expect(await listed.json()).toMatchObject({ imports: [{ batch: { id: batch.id }, sources: [{ id: source.id }], items: [] }] });
+    const opened = await request(db, `/api/curate/imports/${batch.id}/sources/${source.id}/content`, {}, 'account-a', 'user-a', bucket);
+    expect(opened.status).toBe(200);
+    expect(opened.headers.get('Content-Disposition')).toContain("attachment; filename*=UTF-8''");
+    expect(opened.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await opened.text()).toBe('%PDF-test');
+    expect((await request(db, `/api/curate/imports/${batch.id}/sources/${source.id}/content`, {}, 'account-b', 'user-b', bucket)).status).toBe(404);
   });
 
   it('rejects unsupported, oversized, unbound, and cross-account evidence without persisting a source', async () => {
