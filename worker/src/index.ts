@@ -9,6 +9,7 @@ import {
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
+import { validateCurateContextPair } from './curateContextValidation';
 
 interface Env {
   DB: D1Database;
@@ -8688,20 +8689,8 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
 }
 
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
-  const journeyId = values.journey_id !== undefined ? values.journey_id : existing?.journey_id;
-  const visitId = values.visit_id !== undefined ? values.visit_id : existing?.visit_id;
-  if (journeyId != null) {
-    const journey = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(journeyId, accountId).first();
-    if (!journey) return json({ error: 'Journey does not belong to the active account' }, 400);
-  }
-  if (visitId != null) {
-    const visit = await env.DB.prepare('SELECT id, journey_id FROM curate_visits WHERE id = ? AND account_id = ?').bind(visitId, accountId).first() as { journey_id?: string | null } | null;
-    if (!visit) return json({ error: 'Visit does not belong to the active account' }, 400);
-    if (journeyId != null && visit.journey_id != null && visit.journey_id !== journeyId) {
-      return json({ error: 'Visit is not part of the selected Journey' }, 400);
-    }
-  }
-  return null;
+  const error = await validateCurateContextPair(env, accountId, values, existing);
+  return error ? json({ error }, 400) : null;
 }
 
 const handleGetCompassEntries: Handler = async (request, env) => {

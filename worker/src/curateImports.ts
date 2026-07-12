@@ -1,4 +1,5 @@
 import { compassValuesFromImport } from './compassCodec';
+import { validateCurateContextPair } from './curateContextValidation';
 
 export interface CurateImportContext {
   accountId: string;
@@ -31,13 +32,49 @@ function jsonField(value: unknown, fallback: unknown) {
   return JSON.stringify(value);
 }
 
-function containsEmbeddedBinary(value: unknown, key = ''): boolean {
-  const normalizedKey = key.toLowerCase().replace(/[-\s]/g, '_');
-  if (['base64', 'data', 'file_bytes', 'filebytes', 'bytes', 'binary', 'blob'].includes(normalizedKey) && value != null) return true;
-  if (typeof value === 'string') return /^data:[^,]*;base64,/i.test(value.trim());
-  if (Array.isArray(value)) return value.some(entry => containsEmbeddedBinary(entry));
-  const record = object(value);
-  return record ? Object.entries(record).some(([childKey, child]) => containsEmbeddedBinary(child, childKey)) : false;
+type PayloadInspection = 'safe' | 'binary' | 'too_complex';
+
+function binaryShaped(value: unknown): boolean {
+  if (typeof value === 'string') {
+    const candidate = value.trim();
+    return /^data:[^,]*;base64,/i.test(candidate)
+      || (candidate.length >= 8 && candidate.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(candidate));
+  }
+  return Array.isArray(value) && value.length > 0 && value.every(entry => Number.isInteger(entry) && Number(entry) >= 0 && Number(entry) <= 255);
+}
+
+function inspectStructuredPayload(root: unknown): PayloadInspection {
+  const stack: Array<{ value: unknown; key: string; depth: number }> = [{ value: root, key: '', depth: 0 }];
+  let visited = 0;
+  while (stack.length) {
+    const current = stack.pop()!;
+    if (++visited > 5000 || current.depth > 24) return 'too_complex';
+    const normalizedKey = current.key.toLowerCase().replace(/[-\s]/g, '_');
+    if (typeof current.value === 'string') {
+      const candidate = current.value.trim();
+      if (/^data:[^,]*;base64,/i.test(candidate) || (candidate.length >= 128 && binaryShaped(candidate))) return 'binary';
+    }
+    if (['base64', 'file_bytes', 'filebytes', 'bytes', 'binary', 'blob'].includes(normalizedKey) && current.value != null) return 'binary';
+    if (normalizedKey === 'data' && binaryShaped(current.value)) return 'binary';
+    if (Array.isArray(current.value)) {
+      for (const child of current.value) stack.push({ value: child, key: '', depth: current.depth + 1 });
+    } else {
+      const record = object(current.value);
+      if (record) for (const [key, child] of Object.entries(record)) stack.push({ value: child, key, depth: current.depth + 1 });
+    }
+  }
+  return 'safe';
+}
+
+function safeR2ObjectKey(key: string, accountId: string, batchId: string): boolean {
+  const prefix = `curate/${accountId}/${batchId}/`;
+  return key.startsWith(prefix)
+    && key.length > prefix.length
+    && key.length <= 1000
+    && !/[\u0000-\u001f\u007f\\]/.test(key)
+    && !/%(?:00|2e|2f|5c)/i.test(key)
+    && !key.includes('//')
+    && key.split('/').every(segment => segment !== '.' && segment !== '..');
 }
 
 function parseJson(value: unknown, fallback: unknown) {
@@ -81,11 +118,14 @@ async function fullBatch(env: ImportEnv, id: string, accountId: string) {
 export async function createCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext) {
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
-  if (containsEmbeddedBinary(body)) return response({ error: 'Upload files to object storage; provide only r2_object_key' }, 400);
+  const bodyInspection = inspectStructuredPayload(body);
+  if (bodyInspection !== 'safe') return response({ error: bodyInspection === 'binary' ? 'Upload files to object storage; provide only r2_object_key' : 'Import payload is too deeply nested or too large' }, 400);
   try {
     const title = text(body.title, 240, true)!;
     const journeyId = text(body.journey_id, 100);
     const visitId = text(body.visit_id, 100);
+    const contextError = await validateCurateContextPair(env, ctx.accountId, { journey_id: journeyId, visit_id: visitId });
+    if (contextError) return response({ error: contextError }, 400);
     const sourceKind = body.source_kind == null ? null : text(body.source_kind, 40, true);
     const pastedText = body.pasted_text == null ? null : text(body.pasted_text, 250_000);
     if (sourceKind && !SOURCE_KINDS.has(sourceKind)) return response({ error: 'Unsupported source kind' }, 400);
@@ -142,8 +182,10 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
     if (!SOURCE_KINDS.has(kind)) return response({ error: 'Unsupported source kind' }, 400);
     const pastedText = text(body.pasted_text, 250_000);
     const objectKey = text(body.r2_object_key, 1000);
-    if (containsEmbeddedBinary(body)) return response({ error: 'Upload files to object storage; provide only r2_object_key' }, 400);
+    const inspection = inspectStructuredPayload(body);
+    if (inspection !== 'safe') return response({ error: inspection === 'binary' ? 'Upload files to object storage; provide only r2_object_key' : 'Source metadata is too deeply nested or too large' }, 400);
     if (pastedText == null && objectKey == null) return response({ error: 'pasted_text or r2_object_key is required' }, 400);
+    if (objectKey != null && !safeR2ObjectKey(objectKey, ctx.accountId, params.id)) return response({ error: 'r2_object_key must be scoped to this account and import batch' }, 400);
     const id = crypto.randomUUID();
     const metadataJson = jsonField(body.metadata, {});
     await env.DB.prepare(
@@ -221,18 +263,23 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
     status: 'logged',
   };
   const compassColumns = Object.keys(compassValues);
-  await env.DB.batch([
+  const results = await env.DB.batch([
     env.DB.prepare(
       `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, ${compassColumns.join(', ')})
        VALUES (?, ?, ?, ${compassColumns.map(() => '?').join(', ')})`
     ).bind(compassId, ctx.userId, ctx.accountId, ...compassColumns.map(column => compassValues[column as keyof typeof compassValues])),
+    // The ownership EXISTS is part of the same D1 transaction as the insert.
+    // A global id collision owned by anyone else makes this update a no-op.
     env.DB.prepare(
       `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
-       WHERE id = ? AND account_id = ?`
-    ).bind('accepted', compassId, ctx.userId, params.itemId, ctx.accountId),
+       WHERE id = ? AND account_id = ? AND compass_entry_id IS NULL
+         AND EXISTS (SELECT 1 FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?)`
+    ).bind('accepted', compassId, ctx.userId, params.itemId, ctx.accountId, compassId, ctx.userId, ctx.accountId),
   ]);
+  const linkedChanges = results[1]?.meta.changes ?? 0;
   const updated = await scopedItem(env, params.id, params.itemId, ctx.accountId);
-  return response(itemRow(updated!), 201);
+  if (!updated?.compass_entry_id) return response({ error: 'Compass entry id is unavailable' }, 409);
+  return response({ ...itemRow(updated), ...(linkedChanges ? {} : { already_accepted: true }) }, linkedChanges ? 201 : 200);
 }
 
 export async function mergeCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {

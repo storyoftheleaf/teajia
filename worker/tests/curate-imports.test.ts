@@ -19,6 +19,7 @@ class ImportStatement {
       const row = table.get(String(this.values[0]));
       if (!row) return null;
       if (sql.includes('batch_id = ?') && row.batch_id !== this.values[1]) return null;
+      if (sql.includes('user_id = ?') && row.user_id !== this.values.at(-2)) return null;
       const accountIndex = sql.includes('account_id = ?') ? this.values.length - 1 : -1;
       if (accountIndex >= 0 && row.account_id !== this.values[accountIndex]) return null;
       return { ...row };
@@ -41,15 +42,26 @@ class ImportStatement {
     if (table && sql.startsWith('insert')) {
       const columns = this.sql.match(/\(([^)]+)\)\s*values/i)?.[1].split(',').map(value => value.trim()) ?? [];
       const row = Object.fromEntries(columns.map((column, index) => [column, this.values[index]])) as Row;
-      if (table.has(String(row.id))) throw new Error('UNIQUE constraint failed');
+      if (table.has(String(row.id))) {
+        if (sql.startsWith('insert or ignore')) return { success: true, meta: { changes: 0 } };
+        throw new Error('UNIQUE constraint failed');
+      }
       table.set(String(row.id), row);
       return { success: true, meta: { changes: 1 } };
     }
     if (table && sql.startsWith('update')) {
-      const id = String(this.values.at(-2));
-      const accountId = this.values.at(-1);
+      const verifiesCompassOwnership = sql.includes('exists (select 1 from tea_compass_entries');
+      const id = String(verifiesCompassOwnership ? this.values[3] : this.values.at(-2));
+      const accountId = verifiesCompassOwnership ? this.values[4] : this.values.at(-1);
       const row = table.get(id);
       if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+      if (sql.includes('compass_entry_id is null') && row.compass_entry_id != null) return { success: true, meta: { changes: 0 } };
+      if (verifiesCompassOwnership) {
+        const compass = this.db.compass.get(String(this.values[5]));
+        if (!compass || compass.user_id !== this.values[6] || compass.account_id !== this.values[7]) {
+          return { success: true, meta: { changes: 0 } };
+        }
+      }
       const set = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
       const columns = [...set.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
       columns.forEach((column, index) => { row[column] = this.values[index]; });
@@ -64,19 +76,27 @@ class ImportDb {
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
   compass = new Map<string, Row>();
+  journeys = new Map<string, Row>();
+  visits = new Map<string, Row>();
   tableFor(sql: string) {
     if (sql.includes('curate_import_batches')) return this.batches;
     if (sql.includes('curate_import_sources')) return this.sources;
     if (sql.includes('curate_import_items')) return this.items;
     if (sql.includes('tea_compass_entries')) return this.compass;
+    if (sql.includes('curate_journeys')) return this.journeys;
+    if (sql.includes('curate_visits')) return this.visits;
     return null;
   }
   prepare(sql: string) { return new ImportStatement(sql, this); }
   async batch(statements: ImportStatement[]) {
-    const snapshots = [this.batches, this.sources, this.items, this.compass].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
-    try { return await Promise.all(statements.map(statement => statement.run())); }
+    const snapshots = [this.batches, this.sources, this.items, this.compass, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
+    try {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    }
     catch (error) {
-      [this.batches, this.sources, this.items, this.compass] = snapshots;
+      [this.batches, this.sources, this.items, this.compass, this.journeys, this.visits] = snapshots;
       throw error;
     }
   }
@@ -144,24 +164,52 @@ describe('Curate import provenance API', () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: kind }) });
     const { batch } = await created.json() as any;
-    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind, r2_object_key: `curate/${batch.id}/scan.jpg`, metadata: { page: 1 } }) });
+    const key = `curate/account-a/${batch.id}/scan.jpg`;
+    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind, r2_object_key: key, metadata: { page: 1, data: 'ordinary metadata' } }) });
     expect(response.status).toBe(201);
     expect(JSON.stringify([...db.sources.values()])).not.toContain('base64');
-    expect(await response.json()).toMatchObject({ kind, r2_object_key: `curate/${batch.id}/scan.jpg`, metadata: { page: 1 } });
+    expect(await response.json()).toMatchObject({ kind, r2_object_key: key, metadata: { page: 1, data: 'ordinary metadata' } });
+  });
+
+  it.each([
+    '../escape.jpg',
+    'curate/account-b/BATCH/scan.jpg',
+    'curate/account-a/BATCH/../scan.jpg',
+    'curate/account-a/BATCH/%2e%2e/scan.jpg',
+    'curate/account-a/BATCH//scan.jpg',
+    'curate/account-a/BATCH/scan\u0000.jpg',
+  ])('rejects an unsafe or out-of-tenant R2 key: %s', async template => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'R2' }) });
+    const { batch } = await created.json() as any;
+    const key = template.replace('BATCH', batch.id);
+    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'file', r2_object_key: key }) });
+    expect(response.status).toBe(400);
   });
 
   it.each([
     { metadata: { attachment: { base64: 'aGVsbG8=' } } },
     { metadata: { pages: [{ preview: 'data:image/png;base64,aGVsbG8=' }] } },
+    { metadata: { pages: [{ preview: 'A'.repeat(128) }] } },
     { metadata: { nested: { file_bytes: [1, 2, 3] } } },
     { metadata: { nested: [{ data: 'aGVsbG8=' }] } },
   ])('recursively rejects embedded binary payloads: %j', async unsafe => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Unsafe' }) });
     const { batch } = await created.json() as any;
-    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'file', r2_object_key: 'curate/safe-key', ...unsafe }) });
+    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'file', r2_object_key: `curate/account-a/${batch.id}/safe-key`, ...unsafe }) });
     expect(response.status).toBe(400);
     expect(db.sources.size).toBe(0);
+  });
+
+  it('returns 400 for source structures beyond traversal limits instead of overflowing or returning 500', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Deep' }) });
+    const { batch } = await created.json() as any;
+    let metadata: Record<string, unknown> = { leaf: true };
+    for (let index = 0; index < 40; index++) metadata = { child: metadata };
+    const response = await request(db, `/api/curate/imports/${batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'file', r2_object_key: `curate/account-a/${batch.id}/deep`, metadata }) });
+    expect(response.status).toBe(400);
   });
 
   it('accepts once, creates exactly one Compass entry, and never creates product or stock', async () => {
@@ -177,6 +225,43 @@ describe('Curate import provenance API', () => {
     expect(db.compass.size).toBe(1);
     expect([...db.compass.values()][0]).toMatchObject({ name: 'Ruby 18', category: 'tea', account_id: 'account-a', user_id: 'user-a' });
     expect((db as any).products).toBeUndefined();
+  });
+
+  it('does not link an item when its deterministic Compass id collides with another owner', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Collision', items: [{ name: 'Protected' }] }) });
+    const { batch, items } = await created.json() as any;
+    const compassId = `curate-import:${items[0].id}`;
+    db.compass.set(compassId, { id: compassId, account_id: 'account-b', user_id: 'user-b', name: 'Foreign' });
+    const accepted = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
+    expect(accepted.status).toBe(409);
+    expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: null, review_state: 'pending' });
+    expect(db.compass.get(compassId)).toMatchObject({ account_id: 'account-b', user_id: 'user-b', name: 'Foreign' });
+  });
+
+  it('makes concurrent accepts converge on one owned Compass link', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Concurrent', items: [{ name: 'One tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const path = `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`;
+    const responses = await Promise.all([request(db, path, { method: 'POST' }), request(db, path, { method: 'POST' })]);
+    expect(responses.map(result => result.status).sort()).toEqual([200, 201]);
+    expect(db.compass.size).toBe(1);
+    expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: `curate-import:${items[0].id}`, review_state: 'accepted' });
+  });
+
+  it('rejects foreign or mismatched journey/visit context on import creation', async () => {
+    const db = new ImportDb();
+    (db as any).journeys = new Map([['journey-a', { id: 'journey-a', account_id: 'account-a' }]]);
+    (db as any).visits = new Map([
+      ['visit-a', { id: 'visit-a', account_id: 'account-a', journey_id: 'journey-a' }],
+      ['visit-other', { id: 'visit-other', account_id: 'account-a', journey_id: 'journey-other' }],
+      ['visit-foreign', { id: 'visit-foreign', account_id: 'account-b', journey_id: null }],
+    ]);
+    expect((await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Bad', journey_id: 'missing' }) })).status).toBe(400);
+    expect((await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Bad', visit_id: 'visit-foreign' }) })).status).toBe(400);
+    expect((await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Bad', journey_id: 'journey-a', visit_id: 'visit-other' }) })).status).toBe(400);
+    expect((await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Good', journey_id: 'journey-a', visit_id: 'visit-a' }) })).status).toBe(201);
   });
 
   it('maps corrected structured fields through the Compass allowlist without accepting ownership or stock fields', async () => {
