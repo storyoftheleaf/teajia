@@ -1668,7 +1668,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           of the first phone screen before any tea was visible; letting it scroll
           reclaims that height. The backdrop-blur is kept for the brief moment it
           overlaps the rail slide-in. */}
-      <div className="hidden">
+      {false && <div className="hidden">
         {/* Shift the whole bar clear of the action rail when it slides in from the
             right, matching the rail's 200ms slide so the tabs/sort row are never
             painted over. Mirrors the desktop toolbar's paddingRight treatment. */}
@@ -1883,7 +1883,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           </div>
         </div>
         </div>
-      </div>
+      </div>}
 
       {/* Group-by and Sort dropdowns moved INTO the controls row as AnchoredMenu
           (so they track their trigger when the band scrolls). The old detached
@@ -1946,7 +1946,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           The right action cluster carries paddingRight = INVENTORY_ACTION_RAIL_WIDTH
           when railOpen (with a 200ms transition matching the rail's slide-in) so the
           icons shift clear of the rail when a row is selected. */}
-      <div className="hidden">
+      {false && <div className="hidden">
         {(() => {
           const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           // Everyday filters stay inline; the rest fold into "More" so the row never overflows.
@@ -2343,7 +2343,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </div>
             </div>
         </div>
-      </div>
+      </div>}
 
       {/* ENRICHMENT PROGRESS BANNER */}
       {enrichProgress && (
@@ -2661,7 +2661,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div
               data-testid="inventory-primary-row"
               data-inventory-header-row
-              className="static flex h-10 w-full max-w-full items-center gap-0 px-0.5 md:px-4 border-b border-tea-border text-ui-8 md:text-ui-10 uppercase tracking-normal md:tracking-[0.06em] whitespace-nowrap overflow-hidden"
+              className="static flex h-10 w-full max-w-full items-center gap-0 px-0.5 md:px-4 text-ui-8 md:text-ui-10 uppercase tracking-normal md:tracking-[0.06em] whitespace-nowrap overflow-hidden"
             >
               <button type="button" aria-pressed={inventoryCategory === 'tea'} onClick={() => onCategoryChange?.('tea')} className={`tap-target px-1 ${inventoryCategory === 'tea' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Tea</button>
               <button type="button" aria-pressed={inventoryCategory === 'teaware'} onClick={() => onCategoryChange?.('teaware')} className={`tap-target px-1 ${inventoryCategory === 'teaware' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Wares</button>
@@ -2684,11 +2684,23 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <button ref={mobileSearchTriggerRef} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target px-1 text-tea-text-sec hover:text-tea-text"><Search size={13} /></button>
                   <button type="button" onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); }} className="tap-target px-1 text-tea-text-sec hover:text-tea-text">Incoming</button>
                   <button type="button" onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')} aria-label={`Showing ${priceMode} prices, switch price mode`} className="tap-target px-1 text-tea-text-sec hover:text-tea-text">{priceMode === 'retail' ? 'Retail' : 'Cost'}</button>
-                  <AnchoredMenu align="right" width={160} open={showMobileGroupBy} onOpenChange={setShowMobileGroupBy} trigger={(props) => <button {...props} className="tap-target px-1 text-tea-text-sec hover:text-tea-text" aria-label="Group inventory">Group</button>}>
-                    {(close) => GROUPBY_OPTIONS.map(opt => <button key={opt.value} role="menuitem" onClick={() => { setInventoryGroupBy(opt.value || null); close(); }} className={`w-full px-3 py-2 text-left text-ui-12 ${inventoryGroupBy === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{opt.label}</button>)}
+                  <AnchoredMenu align="right" width={160} role="listbox" open={showMobileGroupBy} onOpenChange={setShowMobileGroupBy} trigger={(props) => <button {...props} className="tap-target px-1 text-tea-text-sec hover:text-tea-text" aria-label="Group inventory">Group</button>}>
+                    {(close) => GROUPBY_OPTIONS.map(opt => {
+                      const selected = (inventoryGroupBy || '') === opt.value;
+                      return <button key={opt.value} role="option" aria-selected={selected} onClick={() => { setInventoryGroupBy(opt.value || null); close(); }} className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-ui-12 ${selected ? 'text-tea-gold' : 'text-tea-text-sec'}`}><span>{opt.label}</span>{selected && <Check size={13} aria-hidden="true" />}</button>;
+                    })}
                   </AnchoredMenu>
-                  <AnchoredMenu align="right" width={176} open={showMobileSort} onOpenChange={setShowMobileSort} trigger={(props) => <button {...props} className="tap-target px-1 text-tea-text-sec hover:text-tea-text" aria-label="Sort inventory">Sort</button>}>
-                    {(close) => ([['productName', 'Name'], ['stockGrams', 'Stock'], ['pricePerGramUSD', 'Price'], ['year', 'Year']] as const).map(([key, label]) => <button key={key} role="menuitem" onClick={() => { setInventorySortConfig([{ key, direction: 'asc' }]); close(); }} className="w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec">{label}</button>)}
+                  <AnchoredMenu align="right" width={192} role="listbox" open={showMobileSort} onOpenChange={setShowMobileSort} trigger={(props) => <button {...props} className="tap-target px-1 text-tea-text-sec hover:text-tea-text" aria-label="Sort inventory">Sort</button>}>
+                    {(close) => ([
+                      ['type', 'Type'], ['productName', 'Name'], ['stockGrams', 'Stock'],
+                      ['pricePerGramUSD', 'Price/g'], ['costAmount', 'Cost'], ['costPerGramUSD', 'Cost/g'],
+                      ['year', 'Year'], ['originRegion', 'Origin'], ['vendor', 'Source'],
+                    ] as const).map(([key, label]) => {
+                      const current = inventorySortConfig[0];
+                      const selected = current?.key === key;
+                      const direction = selected ? current.direction : null;
+                      return <button key={key} role="option" aria-selected={selected} aria-label={`${label}, ${direction ? (direction === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`} onClick={() => { setInventorySortConfig([{ key, direction: selected && current.direction === 'asc' ? 'desc' : 'asc' }]); close(); }} className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-ui-12 ${selected ? 'text-tea-gold' : 'text-tea-text-sec'}`}><span>{label}</span>{selected && (direction === 'asc' ? <ArrowUp size={13} aria-hidden="true" /> : <ArrowDown size={13} aria-hidden="true" />)}</button>;
+                    })}
                   </AnchoredMenu>
                   <span className="inline-flex shrink-0 items-center gap-0.5 px-0.5 text-tea-text-sec normal-case tracking-normal" title={activeAccountName}><MapPin size={11} className="shrink-0" /><span>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span></span>
                   <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target w-7 md:w-12 shrink-0 appearance-none bg-transparent px-0 text-ui-8 md:text-ui-10 text-tea-text-sec outline-none">{rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}</select>

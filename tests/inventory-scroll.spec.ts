@@ -247,10 +247,25 @@ test.describe('Inventory page — scroll regression guard', () => {
     await primary.getByRole('button', { name: /switch price mode/i }).click();
     await expect(primary.getByText('Cost', { exact: true })).toBeVisible();
     await primary.getByRole('button', { name: 'Group inventory' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Type', exact: true }).first()).toBeVisible();
+    const typeGroup = page.getByRole('option', { name: 'Type', exact: true }).first();
+    await expect(typeGroup).toBeVisible();
+    await expect(typeGroup).toHaveAttribute('aria-selected', 'false');
+    await expect(page.getByRole('option', { name: 'None', exact: true }).first()).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('option', { name: 'None', exact: true }).first().locator('svg')).toHaveCount(1);
     await page.keyboard.press('Escape');
     await primary.getByRole('button', { name: 'Sort inventory' }).click();
-    await expect(page.getByRole('menuitem', { name: 'Stock', exact: true }).first()).toBeVisible();
+    for (const choice of ['Type', 'Name', 'Stock', 'Price/g', 'Cost', 'Cost/g', 'Year', 'Origin', 'Source']) {
+      await expect(page.getByRole('option', { name: new RegExp(`^${choice}`) }).first()).toBeVisible();
+    }
+    const nameSort = page.getByRole('option', { name: /^Name/ }).first();
+    await nameSort.click();
+    await primary.getByRole('button', { name: 'Sort inventory' }).click();
+    await expect(page.getByRole('option', { name: /^Name/ }).first()).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('option', { name: /^Name/ }).first().locator('svg')).toHaveCount(1);
+    const directionBefore = await page.getByRole('option', { name: /^Name/ }).first().getAttribute('aria-label');
+    await page.getByRole('option', { name: /^Name/ }).first().click();
+    await primary.getByRole('button', { name: 'Sort inventory' }).click();
+    await expect(page.getByRole('option', { name: /^Name/ }).first()).not.toHaveAttribute('aria-label', directionBefore || '');
     await page.keyboard.press('Escape');
     await primary.getByRole('button', { name: /inventory actions/i }).click();
     await expect(primary.getByRole('button', { name: /inventory actions/i })).toHaveAttribute('aria-expanded', 'true');
@@ -285,7 +300,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(page.locator('[data-testid="inventory-filter-banner"]')).toHaveCount(0);
 
     await page.getByTestId('inventory-primary-row').getByRole('button', { name: 'Group inventory' }).click();
-    await page.getByRole('menuitem', { name: 'Type', exact: true }).first().click();
+    await page.getByRole('option', { name: 'Type', exact: true }).first().click();
     await expect(page.getByTestId('inventory-column-row')).toBeVisible();
 
     await page.getByTestId('inventory-primary-row').getByText('Incoming', { exact: true }).click();
