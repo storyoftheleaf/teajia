@@ -6,6 +6,7 @@ type Line = { account_id: string; invoice_id: string; line_item_id: string; quan
 
 class RepairDb {
   role: 'owner' | 'staff' = 'owner';
+  mutateLineBeforeNextBatch = false;
   lines: Line[] = [
     { account_id: 'account-a', invoice_id: 'inv-a', line_item_id: 'line-a', quantity: 50, price_at_sale: 12, source_collection_id: 'collection-a', recommended_quantity: 50, recommended_price_usd: 12, catalog_price: 0.3 },
     { account_id: 'account-a', invoice_id: 'inv-b', line_item_id: 'line-b', quantity: 50, price_at_sale: 0.24, source_collection_id: 'collection-b', recommended_quantity: 50, recommended_price_usd: 12, catalog_price: 0.3 },
@@ -29,8 +30,12 @@ class RepairDb {
           if (!line) return { success: true, meta: { changes: 0 } }; line.price_at_sale = Number(price); return { success: true, meta: { changes: 1 } };
         }
         if (normalized.startsWith('insert or ignore into invoice_line_repairs')) {
-          const columns = sql.match(/\(([^)]+)\)\s*values/i)![1].split(',').map(v => v.trim());
+          const columns = sql.match(/\(([^)]+)\)\s*(?:values|select)/i)![1].split(',').map(v => v.trim());
           const row = Object.fromEntries(columns.map((column, i) => [column, values[i]]));
+          if (normalized.includes('from invoice_line_items')) {
+            const line = this.lines.find(candidate => candidate.line_item_id === values[10] && candidate.invoice_id === values[11] && candidate.account_id === values[12] && candidate.price_at_sale === values[13]);
+            if (!line) return { success: true, meta: { changes: 0 } };
+          }
           if (this.repairs.some(repair => repair.repair_key === row.repair_key)) return { success: true, meta: { changes: 0 } };
           this.repairs.push(row); return { success: true, meta: { changes: 1 } };
         }
@@ -38,7 +43,13 @@ class RepairDb {
       },
     }; return stmt;
   }
-  async batch(statements: any[]) { return Promise.all(statements.map(statement => statement.run())); }
+  async batch(statements: any[]) {
+    if (this.mutateLineBeforeNextBatch) {
+      this.mutateLineBeforeNextBatch = false;
+      this.lines[0].price_at_sale = 11;
+    }
+    return Promise.all(statements.map(statement => statement.run()));
+  }
 }
 
 function b64(input: string | Uint8Array) { const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input; return btoa(String.fromCharCode(...bytes)); }
@@ -61,6 +72,11 @@ describe('invoice line repair', () => {
     expect(db.repairs).toEqual([]);
     const applied = await request(db, 'POST', 'account-a', { confirm: true, preview_key: preview.preview_key });
     expect(await applied.json()).toMatchObject({ changed_lines: 1 }); expect(db.lines[0].price_at_sale).toBe(0.24); expect(db.repairs).toHaveLength(1);
+    expect(db.repairs[0]).toMatchObject({
+      account_id: 'account-a', invoice_id: 'inv-a', line_item_id: 'line-a',
+      repair_key: 'line-a:12:0.24', old_price_at_sale: 12, new_price_at_sale: 0.24,
+      old_line_total: 600, new_line_total: 12, repaired_by: 'user-account-a',
+    });
     const repeated = await request(db, 'POST', 'account-a', { confirm: true, preview_key: preview.preview_key });
     expect(await repeated.json()).toMatchObject({ changed_lines: 0 });
     expect((await (await request(db, 'GET', 'account-b')).json() as any).candidates).toEqual([
@@ -69,4 +85,15 @@ describe('invoice line repair', () => {
   });
 
   it('requires owner tier', async () => { const db = new RepairDb(); db.role = 'staff'; expect((await request(db, 'GET', 'account-a')).status).toBe(403); });
+
+  it('does not audit a line whose price changes after preview', async () => {
+    const db = new RepairDb();
+    const preview = await (await request(db, 'GET', 'account-a')).json() as any;
+    db.mutateLineBeforeNextBatch = true;
+    const applied = await request(db, 'POST', 'account-a', { confirm: true, preview_key: preview.preview_key });
+    expect(applied.status).toBe(409);
+    expect(await applied.json()).toMatchObject({ changed_lines: 0 });
+    expect(db.lines[0].price_at_sale).toBe(11);
+    expect(db.repairs).toEqual([]);
+  });
 });

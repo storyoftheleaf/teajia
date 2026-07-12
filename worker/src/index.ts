@@ -19015,16 +19015,20 @@ async function handleApplyInvoiceLineRepair(request: Request, env: Env): Promise
   const statements = preview.candidates.flatMap(candidate => {
     const repairKey = `${candidate.line_item_id}:${candidate.old_price_at_sale}:${candidate.new_price_at_sale}`;
     return [
-      env.DB.prepare(`UPDATE invoice_line_items SET price_at_sale = ? WHERE id = ? AND invoice_id = ? AND account_id = ? AND price_at_sale = ?`)
-        .bind(candidate.new_price_at_sale, candidate.line_item_id, candidate.invoice_id, ctx.accountId, candidate.old_price_at_sale),
       env.DB.prepare(`INSERT OR IGNORE INTO invoice_line_repairs
         (id, account_id, invoice_id, line_item_id, repair_key, old_price_at_sale, new_price_at_sale, old_line_total, new_line_total, repaired_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(crypto.randomUUID(), ctx.accountId, candidate.invoice_id, candidate.line_item_id, repairKey, candidate.old_price_at_sale, candidate.new_price_at_sale, candidate.current_total_usd, candidate.corrected_total_usd, ctx.userId),
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        FROM invoice_line_items
+        WHERE id = ? AND invoice_id = ? AND account_id = ? AND price_at_sale = ?`)
+        .bind(crypto.randomUUID(), ctx.accountId, candidate.invoice_id, candidate.line_item_id, repairKey, candidate.old_price_at_sale, candidate.new_price_at_sale, candidate.current_total_usd, candidate.corrected_total_usd, ctx.userId,
+          candidate.line_item_id, candidate.invoice_id, ctx.accountId, candidate.old_price_at_sale),
+      env.DB.prepare(`UPDATE invoice_line_items SET price_at_sale = ? WHERE id = ? AND invoice_id = ? AND account_id = ? AND price_at_sale = ?`)
+        .bind(candidate.new_price_at_sale, candidate.line_item_id, candidate.invoice_id, ctx.accountId, candidate.old_price_at_sale),
     ];
   });
   const results = await env.DB.batch(statements);
-  const changed_lines = results.filter((_result, index) => index % 2 === 0).reduce((sum, result) => sum + Number(result.meta?.changes || 0), 0);
+  const changed_lines = results.filter((_result, index) => index % 2 === 1).reduce((sum, result) => sum + Number(result.meta?.changes || 0), 0);
+  if (changed_lines !== preview.candidates.length) return json({ error: 'Repair targets changed during apply', changed_lines }, 409);
   return json({ changed_lines, preview_key: preview.preview_key });
 }
 
