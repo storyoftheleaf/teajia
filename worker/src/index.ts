@@ -9206,13 +9206,15 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
 
   let destination: any = null; let destinationBefore = 0; let destinationAfter = 0;
   if (input.movement_type === 'transfer') {
-    return { status: 400, value: { error: 'Transfer requires an explicit holding relationship; matching product type is not sufficient' } };
-    /* Explicit holding relationships are not yet represented in the product schema.
     if (input.destination_product_id === productId) return { status: 400, value: { error: 'Transfer destination must differ from source' } };
     destination = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(input.destination_product_id, ctx.accountId).first() as any;
     if (!destination) return { status: 404, value: { error: 'Transfer destination not found' } };
+    const sameIdentity = product.source_compass_entry_id && product.source_compass_entry_id === destination.source_compass_entry_id;
+    const sourceCategory = product.type === 'Teaware' ? 'teaware' : 'tea';
+    const destinationCategory = destination.type === 'Teaware' ? 'teaware' : 'tea';
+    const compatibleUnit = (input.unit === 'unit') === (sourceCategory === 'teaware') && sourceCategory === destinationCategory;
+    if (!sameIdentity || !compatibleUnit) return { status: 400, value: { error: 'Transfer destination must be a separate holding of the same Curate identity and stock unit' } };
     destinationBefore = Number(destination[column] ?? 0); destinationAfter = destinationBefore + input.quantity!;
-    */
   }
 
   const id = crypto.randomUUID(); const knownAt = new Date().toISOString(); const movementGuard = crypto.randomUUID();

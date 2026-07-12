@@ -32,8 +32,11 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   product, products, trigger, onClose, onRecorded, initialMovementType = 'receipt',
 }) => {
   const queryClient = useQueryClient();
-  void products; // Transfers remain unavailable until holdings have an explicit relation.
   const movementUnit: 'g' | 'unit' = product.type === 'Teaware' ? 'unit' : 'g';
+  const transferDestinations = products.filter(candidate => candidate.id !== product.id
+    && !!product.sourceCompassEntryId
+    && candidate.sourceCompassEntryId === product.sourceCompassEntryId
+    && (candidate.type === 'Teaware') === (product.type === 'Teaware'));
   const initialBalance = movementUnit === 'unit' ? Number(product.quantityUnits || 0) : Number(product.stockGrams || 0);
   const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -45,6 +48,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const [currentBalance, setCurrentBalance] = useState(initialBalance);
   const [note, setNote] = useState('');
   const [reference, setReference] = useState('');
+  const [destinationId, setDestinationId] = useState(transferDestinations[0]?.id || '');
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +60,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const invalidQuantity = movementType !== 'recount' && (!Number.isFinite(amount) || amount <= 0);
   const invalidBalance = movementType === 'recount' && (!Number.isFinite(next) || next < 0);
   const insufficient = OUTWARD.has(movementType) && Number.isFinite(amount) && amount > current;
-  const transferUnavailable = movementType === 'transfer';
+  const transferUnavailable = movementType === 'transfer' && !destinationId;
   const canSubmit = !saving && !invalidQuantity && !invalidBalance && !insufficient && !transferUnavailable;
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
@@ -101,6 +105,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
         expected_balance: current,
         idempotency_key: idempotencyKey,
         ...(movementType === 'recount' ? { balance: next } : { quantity: amount }),
+        ...(movementType === 'transfer' ? { destination_product_id: destinationId } : {}),
         ...(note.trim() ? { note: note.trim() } : {}),
         ...(reference.trim() ? { source_invoice_number: reference.trim() } : {}),
       });
@@ -176,7 +181,13 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               />
             </label>
 
-            {transferUnavailable && <p className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-text-sec">Transfer is unavailable until holdings can be explicitly related. Matching tea type alone is not a safe destination.</p>}
+            {movementType === 'transfer' && transferDestinations.length > 0 && <label className="block text-ui-12 text-tea-text-sec">
+              Destination holding
+              <select aria-label="Transfer destination" value={destinationId} onChange={event => setDestinationId(event.target.value)} className="admin-input mt-1 w-full">
+                {transferDestinations.map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.givenName || candidate.productName} · {movementUnit === 'unit' ? Number(candidate.quantityUnits || 0) : Number(candidate.stockGrams || 0)}{unit}</option>)}
+              </select>
+            </label>}
+            {transferUnavailable && <p className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-text-sec">Transfer is unavailable because there is no separate holding linked to this Curate item.</p>}
 
             <div aria-live="polite" className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-14 text-tea-text tabular-nums">
               {Number.isFinite(next) ? `${current}${unit} → ${next}${unit}` : `${current}${unit} → —`}

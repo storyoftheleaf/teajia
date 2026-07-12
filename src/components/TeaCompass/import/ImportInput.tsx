@@ -36,12 +36,13 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
         <button type="button" onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">
           <Camera size={16} /> Add photos
         </button>
-        <input ref={fileRef} tabIndex={-1} className="sr-only" type="file" accept=".pdf,.csv,.txt,.doc,.docx,application/pdf,text/csv,text/plain" multiple aria-label="Add files or invoices" onChange={event => addFiles(event.target.files, 'file')} />
+        <input ref={fileRef} tabIndex={-1} className="sr-only" type="file" accept=".pdf,.csv,.json,.txt,.doc,.docx,application/pdf,application/json,text/csv,text/plain" multiple aria-label="Add files or invoices" onChange={event => addFiles(event.target.files, 'file')} />
         <button type="button" onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">
           <FileUp size={16} /> Add files or invoices
         </button>
       </div>
       <ImportEvidencePreview evidence={draft.evidence} />
+      {draft.evidence.some(item => item.kind === 'photo' || /\.(pdf|docx?)$/i.test(item.file.name)) && <p className="text-ui-12 leading-relaxed text-tea-text-sec">Photos and scanned documents stay attached as exact evidence. Add item names manually during review; this import does not guess from images.</p>}
       <p className="text-ui-12 leading-relaxed text-tea-text-dim">Nothing is added to your Library until you review it. Uncertain fields stay visibly marked.</p>
       <button ref={submitRef} type="button" disabled={!canSubmit} onClick={onSubmit} className="tap-target ml-auto flex min-h-11 items-center justify-center rounded-md bg-tea-gold px-5 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">
         Start import

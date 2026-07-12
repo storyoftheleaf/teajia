@@ -5,6 +5,7 @@ import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
 import type { ImportDraft, ImportPanelState } from './importTypes';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
+import { extractImportEvidence } from './importEvidence';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -58,12 +59,14 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     setState(current => ({ ...current, phase: 'parsing', error: null }));
     await new Promise(resolve => window.setTimeout(resolve, 250));
     try {
+      const attachmentText = (await Promise.all(draft.evidence.map(item => extractImportEvidence(item.file)))).filter(Boolean).join('\n');
+      const reviewText = [draft.text.trim(), attachmentText].filter(Boolean).join('\n');
       let detail = state.detail;
       if (!detail) {
         detail = await api.curateImports.create({
           idempotency_key: createIdempotencyKey.current,
           title: draft.evidence[0]?.file.name || 'Imported list', source_kind: draft.text.trim() ? 'paste' : evidenceKind,
-          pasted_text: draft.text.trim() || undefined, items: parseDraftItems(draft),
+          pasted_text: reviewText || undefined, items: parseDraftItems({ ...draft, text: reviewText }),
         });
         setState(current => ({ ...current, detail }));
       }

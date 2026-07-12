@@ -54,7 +54,7 @@ class MovementStatement {
     if (sql.includes('from inventory_receipt_lines l join inventory_receipts r')) { const line = this.db.receiptLines.get(this.values[0]); return line?.account_id === this.values[1] ? { ...line } : null; }
     if (sql.includes('from products where id = ? and account_id = ?') || sql.includes('from products where id=? and account_id=?')) { const row = this.db.products.get(this.values[0]); const copy = row?.account_id === this.values[1] ? { ...row } : null; await this.db.waitForConcurrentProductRead(); return copy; }
     if (sql.includes('from batches where id = ? and account_id = ?')) return this.values[0] === 'batch' && this.values[1] === 'account-a' ? { id: 'batch' } : null;
-    if (sql.includes('from tea_compass_entries where id = ? and account_id = ?')) return this.values[0] === 'entry' && this.values[1] === 'account-a' ? { id: 'entry' } : null;
+    if (sql.includes('from tea_compass_entries where id = ? and account_id = ?')) return ['entry', 'identity-a'].includes(this.values[0]) && this.values[1] === 'account-a' ? { id: this.values[0] } : null;
     if (sql.includes('from invoices where id = ? and account_id = ?')) return this.values[0] === 'inv' && this.values[1] === 'account-a' ? { id: 'inv' } : null;
     return null;
   }
@@ -84,6 +84,11 @@ class MovementStatement {
       return { meta: { changes: 1 } };
     }
     if (sql.startsWith('insert into stock_ledger')) {
+      if (sql.includes('select ?, ?, ?, ?, ?, ?, ?, null')) {
+        const [id, product_id, delta, balance_after, movement_unit, reason, movement_type, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint] = this.values;
+        this.db.ledger.push({ id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key: null, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint });
+        return { meta: { changes: 1 } };
+      }
       const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_movement_guard === guard)) return { meta: { changes: 0 } };
       const [id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, , movement_fingerprint] = this.values;
       if (this.db.ledger.some(row => row.account_id === account_id && row.idempotency_key === idempotency_key)) throw new Error('UNIQUE idempotency');
@@ -99,9 +104,10 @@ class MovementStatement {
 }
 class MovementDb {
   products = new Map<string, Row>([
-    ['tea', { id: 'tea', account_id: 'account-a', stock_grams: 20, quantity_units: null }],
-    ['destination', { id: 'destination', account_id: 'account-a', stock_grams: 5, quantity_units: null }],
-    ['pot', { id: 'pot', account_id: 'account-a', stock_grams: 0, quantity_units: 4 }],
+    ['tea', { id: 'tea', account_id: 'account-a', type: 'Oolong', source_compass_entry_id: 'identity-a', stock_grams: 20, quantity_units: null }],
+    ['destination', { id: 'destination', account_id: 'account-a', type: 'Oolong', source_compass_entry_id: 'identity-b', stock_grams: 5, quantity_units: null }],
+    ['same-tea', { id: 'same-tea', account_id: 'account-a', type: 'Oolong', source_compass_entry_id: 'identity-a', stock_grams: 5, quantity_units: null }],
+    ['pot', { id: 'pot', account_id: 'account-a', type: 'Teaware', source_compass_entry_id: 'pot-a', stock_grams: 0, quantity_units: 4 }],
     ['other', { id: 'other', account_id: 'account-b', stock_grams: 10, quantity_units: null }],
   ]);
   ledger: Row[] = []; listings = new Map<string, number>([['tea', 20], ['destination', 5]]); failBatchAt: number | null = null;
@@ -158,15 +164,21 @@ describe('POST product stock movements', () => {
   });
   it('enforces product, destination, and account scope', async () => {
     expect((await movementRequest(new MovementDb(), 'other', body('sale'))).status).toBe(404);
-    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'other' }))).status).toBe(400);
-    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'missing' }))).status).toBe(400);
+    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'other' }))).status).toBe(404);
+    expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'missing' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { batch_id: 'foreign-batch' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { source_compass_entry_id: 'foreign-entry' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { source_invoice_id: 'foreign-invoice' }))).status).toBe(404);
   });
   it('rejects unrelated products as transfer destinations', async () => {
     const db = new MovementDb(); const response = await movementRequest(db, 'tea', body('transfer', { quantity: 4, destination_product_id: 'destination' }));
-    expect(response.status).toBe(400); expect(await response.json()).toMatchObject({ error: expect.stringMatching(/explicit holding relationship/) }); expect(db.products.get('tea')?.stock_grams).toBe(20); expect(db.products.get('destination')?.stock_grams).toBe(5); expect(db.ledger).toHaveLength(0);
+    expect(response.status).toBe(400); expect(await response.json()).toMatchObject({ error: expect.stringMatching(/same Curate identity/) }); expect(db.products.get('tea')?.stock_grams).toBe(20); expect(db.products.get('destination')?.stock_grams).toBe(5); expect(db.ledger).toHaveLength(0);
+  });
+  it('atomically transfers between separate holdings of the same Curate identity', async () => {
+    const db = new MovementDb(); const response = await movementRequest(db, 'tea', body('transfer', { quantity: 4, destination_product_id: 'same-tea' }));
+    expect(response.status).toBe(201); expect(await response.json()).toMatchObject({ after_balance: 16, destination_product_id: 'same-tea', destination_after_balance: 9 });
+    expect(db.products.get('tea')?.stock_grams).toBe(16); expect(db.products.get('same-tea')?.stock_grams).toBe(9);
+    expect(db.ledger.map(row => [row.product_id, row.delta, row.balance_after])).toEqual([['tea', -4, 16], ['same-tea', 4, 9]]);
   });
   it('preserves invoice, batch, and compass provenance', async () => {
     const db = new MovementDb(); await movementRequest(db, 'tea', body('receipt', { source_invoice_id: 'inv', source_invoice_number: 'INV-1', batch_id: 'batch', source_compass_entry_id: 'entry' }));
