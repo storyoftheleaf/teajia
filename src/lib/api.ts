@@ -1863,7 +1863,7 @@ export const api = {
       purpose: 'working' | 'sample' | 'personal'; quantity: number; unit: 'g' | 'unit';
       acquisition_kind: 'purchase' | 'free_sample' | 'gift' | 'transfer' | 'other';
       idempotency_key: string; product_id?: string; batch_id?: string;
-      product_name?: string; product_type?: string;
+      product_name?: string; product_type?: string; import_id?: string; import_item_id?: string;
     }): Promise<CurateReceiptProposal> => authedFetch(`${API_URL}/api/compass/entries/${entryId}/receipt-proposals`, {
       method: 'POST', body: JSON.stringify(proposal), retryTimeouts: true,
     }),

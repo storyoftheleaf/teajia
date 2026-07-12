@@ -8969,23 +8969,33 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   }
   const key = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
   if (!key) return json({ error: 'idempotency_key is required' }, 400);
+  const requestedProductId = body.product_id ?? entry.draft_product_id ?? null;
+  const requestedName = body.product_name ?? entry.name ?? null;
+  const requestedType = body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null;
+  const matchesRequest = (candidate: any) => candidate.compass_entry_id === params.id
+    && (candidate.import_id ?? null) === importId && (candidate.import_item_id ?? null) === importItemId
+    && (candidate.product_id ?? null) === requestedProductId && (candidate.batch_id ?? null) === (body.batch_id ?? null)
+    && (candidate.product_name ?? null) === requestedName && (candidate.product_type ?? null) === requestedType
+    && candidate.purpose === decoded.purpose && Number(candidate.quantity) === decoded.quantity
+    && candidate.unit === decoded.unit && candidate.acquisition_kind === decoded.acquisition_kind;
   const existing = await env.DB.prepare(
     'SELECT * FROM curate_receipt_proposals WHERE account_id = ? AND idempotency_key = ?'
   ).bind(ctx.accountId, key).first();
-  if (existing) return json(existing);
+  if (existing) {
+    return matchesRequest(existing) ? json(existing) : json({ error: 'idempotency_key already used for a different receipt proposal' }, 409);
+  }
   const id = crypto.randomUUID();
   try {
     await env.DB.prepare(`INSERT INTO curate_receipt_proposals
       (id, account_id, compass_entry_id, import_id, import_item_id, product_id, batch_id, product_name, product_type,
        purpose, quantity, unit, acquisition_kind, idempotency_key, proposed_by_user_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, ctx.accountId, params.id, importId, importItemId, body.product_id ?? entry.draft_product_id ?? null,
-        body.batch_id ?? null, body.product_name ?? entry.name ?? null,
-        body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null,
+      .bind(id, ctx.accountId, params.id, importId, importItemId, requestedProductId,
+        body.batch_id ?? null, requestedName, requestedType,
         decoded.purpose, decoded.quantity, decoded.unit, decoded.acquisition_kind, key, ctx.userId).run();
   } catch (error) {
     const raced = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, key).first();
-    if (raced) return json(raced);
+    if (raced) return matchesRequest(raced) ? json(raced) : json({ error: 'idempotency_key already used for a different receipt proposal' }, 409);
     throw error;
   }
   return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first(), 201);
@@ -9047,12 +9057,13 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [];
   if (existingProduct) {
-    const nextStock = decoded.unit === 'g' ? Number(existingProduct.stock_grams ?? 0) + decoded.quantity : Number(existingProduct.stock_grams ?? 0);
-    const nextUnits = decoded.unit === 'unit' ? Number(existingProduct.quantity_units ?? 0) + decoded.quantity : existingProduct.quantity_units;
-    statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, stock_grams = ?, quantity_units = ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
-      .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, nextStock, nextUnits ?? null, now, productId, ctx.accountId));
-    statements.push(env.DB.prepare(`UPDATE product_listings SET inventory_purpose = ?, is_sample = ?, is_personal = ?, stock_grams = ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ?`)
-      .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, nextStock, now, productId, ctx.accountId));
+    const amountColumn = decoded.unit === 'g' ? 'stock_grams' : 'quantity_units';
+    statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ?, ${amountColumn} = COALESCE(${amountColumn}, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+      .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, decoded.quantity, now, productId, ctx.accountId));
+    if (decoded.unit === 'g') {
+      statements.push(env.DB.prepare(`UPDATE product_listings SET inventory_purpose = ?, is_sample = ?, is_personal = ?, stock_grams = COALESCE(stock_grams, 0) + ?, stock_known_at = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ?`)
+        .bind(inventory.inventory_purpose, inventory.is_sample, inventory.is_personal, decoded.quantity, now, productId, ctx.accountId));
+    }
   } else {
     const name = String(proposal.product_name || 'Unnamed item');
     const type = String(proposal.product_type || (decoded.unit === 'unit' ? 'Teaware' : 'Misc'));
@@ -9070,11 +9081,14 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
       source_compass_entry_id: proposal.compass_entry_id ?? null, owner_user_id: ctx.userId,
     }));
   }
-  const balanceAfter = decoded.unit === 'g' ? Number(existingProduct?.stock_grams ?? 0) + decoded.quantity : Number(existingProduct?.quantity_units ?? 0) + decoded.quantity;
+  const movementUnit = decoded.unit === 'g' ? 'gram' : 'unit';
+  const balanceExpression = existingProduct
+    ? `(SELECT ${decoded.unit === 'g' ? 'stock_grams' : 'quantity_units'} FROM products WHERE id = ? AND account_id = ?)`
+    : '?';
   statements.push(env.DB.prepare(`INSERT INTO stock_ledger
-    (id, product_id, delta, balance_after, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
-    VALUES (?, ?, ?, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
-    .bind(ledgerId, productId, decoded.quantity, balanceAfter, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
+    (id, product_id, delta, balance_after, movement_unit, reason, user_email, note, batch_id, account_id, receipt_proposal_id)
+    VALUES (?, ?, ?, ${balanceExpression}, ?, 'PURCHASE_RECEIPT', ?, ?, ?, ?, ?)`)
+    .bind(ledgerId, productId, decoded.quantity, ...(existingProduct ? [productId, ctx.accountId] : [decoded.quantity]), movementUnit, ctx.email ?? null, `Curate ${decoded.acquisition_kind}`, proposal.batch_id ?? null, ctx.accountId, proposal.id));
   if (proposal.compass_entry_id) statements.push(env.DB.prepare('UPDATE tea_compass_entries SET draft_product_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(productId, proposal.compass_entry_id, ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE curate_receipt_proposals SET status = 'accepted', product_id = ?, ledger_id = ?, reviewed_by_user_id = ?, reviewed_at = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'pending'`)
     .bind(productId, ledgerId, ctx.userId, now, now, proposal.id, ctx.accountId));

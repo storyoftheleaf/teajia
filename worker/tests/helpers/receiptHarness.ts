@@ -37,16 +37,39 @@ class ReceiptStatement {
     if (sql.startsWith('insert into products')) return insertColumns(this.db.products, this.sql, this.values);
     if (sql.startsWith('insert into tea_profiles')) return insertColumns(this.db.profiles, this.sql, this.values);
     if (sql.startsWith('insert into product_listings')) return insertColumns(this.db.listings, this.sql, this.values);
-    if (sql.startsWith('insert into stock_ledger')) return insertColumns(this.db.ledger, this.sql, this.values);
+    if (sql.startsWith('insert into stock_ledger')) {
+      const existing = sql.includes('(select stock_grams') || sql.includes('(select quantity_units');
+      const offset = existing ? 2 : 1;
+      const row = {
+        id: this.values[0], product_id: this.values[1], delta: this.values[2],
+        balance_after: existing ? (sql.includes('stock_grams') ? this.db.products.get(String(this.values[3]))?.stock_grams : this.db.products.get(String(this.values[3]))?.quantity_units) : this.values[3],
+        movement_unit: this.values[3 + offset], reason: 'PURCHASE_RECEIPT', user_email: this.values[4 + offset], note: this.values[5 + offset],
+        batch_id: this.values[6 + offset], account_id: this.values[7 + offset], receipt_proposal_id: this.values[8 + offset],
+      };
+      if (this.db.ledger.some(item => item.receipt_proposal_id === row.receipt_proposal_id)) throw new Error('UNIQUE receipt ledger');
+      this.db.ledger.push(row); return { success: true, meta: { changes: 1 } };
+    }
     if (sql.startsWith('update curate_receipt_proposals set')) return updateRow(this.db.proposals, this.sql, this.values);
+    if (sql.startsWith('update products set') && sql.includes('coalesce(')) return incrementRow(this.db.products, this.sql, this.values, false);
     if (sql.startsWith('update products set')) return updateRow(this.db.products, this.sql, this.values);
     if (sql.startsWith('update product_listings set')) {
+      if (sql.includes('coalesce(')) return incrementRow(this.db.listings, this.sql, this.values, true);
       if (sql.includes('where legacy_product_id = ?')) return updateByLegacy(this.db.listings, this.sql, this.values);
       return updateRow(this.db.listings, this.sql, this.values);
     }
     if (sql.startsWith('update tea_compass_entries set')) return updateRow(this.db.entries, this.sql, this.values);
     return { success: true, meta: { changes: 1 } };
   }
+}
+
+function incrementRow(target: Map<string, Row>, sql: string, values: unknown[], legacy: boolean) {
+  const row = legacy
+    ? [...target.values()].find(item => item.legacy_product_id === values.at(-2) && item.account_id === values.at(-1))
+    : target.get(String(values.at(-2)));
+  if (!row || row.account_id !== values.at(-1)) return { success: true, meta: { changes: 0 } };
+  const amountColumn = norm(sql).includes('quantity_units = coalesce') ? 'quantity_units' : 'stock_grams';
+  Object.assign(row, { inventory_purpose: values[0], is_sample: values[1], is_personal: values[2], [amountColumn]: Number(row[amountColumn] ?? 0) + Number(values[3]), stock_known_at: values[4] });
+  return { success: true, meta: { changes: 1 } };
 }
 
 function scoped(map: Map<string, Row>, id: unknown, sql: string, values: unknown[]) {
@@ -91,7 +114,8 @@ function updateRow(target: Map<string, Row>, sql: string, values: unknown[]) {
   let bind = 0;
   for (const part of set.split(',')) {
     const column = part.trim().match(/^([a-z_]+)/i)?.[1]; if (!column) continue;
-    if (part.includes('?')) row[column] = values[bind++];
+    if (/coalesce\s*\(/i.test(part) && part.includes('?')) row[column] = Number(row[column] ?? 0) + Number(values[bind++]);
+    else if (part.includes('?')) row[column] = values[bind++];
     else if (/status\s*=\s*'accepted'/i.test(part)) row.status = 'accepted';
     else if (/status\s*=\s*'rejected'/i.test(part)) row.status = 'rejected';
   }
@@ -103,7 +127,7 @@ function updateByLegacy(target: Map<string, Row>, sql: string, values: unknown[]
   const row = [...target.values()].find(value => value.legacy_product_id === productId && value.account_id === accountId);
   if (!row) return { success: true, meta: { changes: 0 } };
   const columns = [...(sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '').matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(m => m[1]);
-  columns.forEach((column, index) => { row[column] = values[index]; });
+  columns.forEach((column, index) => { row[column] = /coalesce\s*\(/i.test(sql) && column === 'stock_grams' ? Number(row[column] ?? 0) + Number(values[index]) : values[index]; });
   return { success: true, meta: { changes: 1 } };
 }
 

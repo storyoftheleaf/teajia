@@ -300,19 +300,20 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     user_email TEXT,
     note TEXT,                        -- Human-readable description
     batch_id TEXT,                    -- FK to batches: which intake shipment/session this arrival belonged to
-    receipt_proposal_id TEXT,
+    receipt_proposal_id TEXT REFERENCES curate_receipt_proposals(id) ON DELETE SET NULL,
+    movement_unit TEXT CHECK (movement_unit IS NULL OR movement_unit IN ('gram', 'unit')),
     account_id TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS curate_receipt_proposals (
     id TEXT PRIMARY KEY,
-    account_id TEXT NOT NULL,
-    compass_entry_id TEXT,
-    import_id TEXT,
-    import_item_id TEXT,
-    product_id TEXT,
-    batch_id TEXT,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    compass_entry_id TEXT REFERENCES tea_compass_entries(id) ON DELETE SET NULL,
+    import_id TEXT REFERENCES curate_import_batches(id) ON DELETE SET NULL,
+    import_item_id TEXT REFERENCES curate_import_items(id) ON DELETE SET NULL,
+    product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
+    batch_id TEXT REFERENCES batches(id) ON DELETE SET NULL,
     product_name TEXT,
     product_type TEXT,
     purpose TEXT NOT NULL CHECK (purpose IN ('working', 'sample', 'personal')),
@@ -321,9 +322,9 @@ CREATE TABLE IF NOT EXISTS curate_receipt_proposals (
     acquisition_kind TEXT NOT NULL CHECK (acquisition_kind IN ('purchase', 'free_sample', 'gift', 'transfer', 'other')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
     idempotency_key TEXT NOT NULL,
-    ledger_id TEXT,
-    proposed_by_user_id TEXT NOT NULL,
-    reviewed_by_user_id TEXT,
+    ledger_id TEXT REFERENCES stock_ledger(id) ON DELETE SET NULL,
+    proposed_by_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    reviewed_by_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
     reviewed_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
