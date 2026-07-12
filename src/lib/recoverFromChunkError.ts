@@ -18,7 +18,7 @@ export async function clearStaleAppCaches(): Promise<void> {
       // font runtime caches alone so offline reads survive.
       await Promise.all(
         keys
-          .filter((k) => k.includes('precache') || k.includes('workbox'))
+          .filter((k) => k.includes('precache') || k.includes('workbox') || k === 'assets-cache')
           .map((k) => caches.delete(k))
       );
     }

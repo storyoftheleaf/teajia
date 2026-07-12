@@ -8,7 +8,6 @@ import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import './styles/tailwind.css';
 import './styles/card-utilities.css';
-import { startVersionCheck } from './lib/versionCheck';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,22 +29,6 @@ const persister = createSyncStoragePersister({
 // substrings in its query key is excluded from disk.
 const NEVER_PERSIST = ['auth', 'session', 'me', 'magic'];
 const NEVER_PERSIST_ADMIN_KEYS = ['customers', 'activity_logs', 'stock_ledger'];
-
-// Reload once when a preloaded chunk fails (e.g. after a new deployment).
-// Only runs in production — in dev, Vite HMR handles chunk invalidation natively
-// and forcing a reload here would cause spurious full reloads on every file save.
-if (import.meta.env.PROD) {
-  window.addEventListener('vite:preloadError', () => {
-    if (!sessionStorage.getItem('chunkReloaded')) {
-      sessionStorage.setItem('chunkReloaded', '1');
-      window.location.reload();
-    }
-  });
-  // Clear the flag once the app has loaded cleanly
-  window.addEventListener('load', () => {
-    sessionStorage.removeItem('chunkReloaded');
-  });
-}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -79,5 +62,3 @@ root.render(
     </HelmetProvider>
   </React.StrictMode>
 );
-
-startVersionCheck();
