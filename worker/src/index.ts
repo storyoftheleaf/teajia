@@ -10,7 +10,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, type InventoryReceiptState } from './inventoryDomain';
+import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 
 interface Env {
   DB: D1Database;
@@ -2450,22 +2450,19 @@ async function applyProductUpdate(
     }
   }
 
-  // When stock_grams is being set, we record the expected old value so the
-  // products UPDATE below can be made conditional (M11 — absolute-set race).
-  let stockExpectedOld: number | null = null;
+  // Legacy absolute stock editing is preserved, but now travels through the
+  // canonical movement primitive as a Recount instead of writing around it.
   if (body.stock_grams !== undefined) {
     const current = await env.DB.prepare(
       'SELECT stock_grams, low_stock_threshold, given_name, product_name, source_compass_entry_id FROM products WHERE id = ? AND account_id = ?'
     ).bind(params.id, accountId).first();
     if (current) {
       const oldStock = Number(current.stock_grams) || 0;
-      stockExpectedOld = oldStock;
       const newStock = Number(body.stock_grams);
       const delta = newStock - oldStock;
       const threshold = Number(current.low_stock_threshold) || 0;
       if (delta !== 0) {
         const name = (current.given_name || current.product_name || params.id) as string;
-        extraStmts.push(buildStockLedgerEntry(env, params.id, delta, newStock, 'MANUAL_ADJUST', userEmail, null, null, `Manual: ${oldStock}→${newStock}`, accountId));
         extraStmts.push(buildActivityLog(env, 'STOCK_ADJUSTED', `${name}: ${oldStock}g → ${newStock}g (${delta > 0 ? '+' : ''}${delta}g)`, userEmail, 'product', params.id, accountId));
         // Low-stock alert when stock transitions below the threshold
         if (threshold > 0 && newStock < threshold && oldStock >= threshold) {
@@ -2489,7 +2486,12 @@ async function applyProductUpdate(
             );
           }
         }
+        const recount = decodeStockMovement({ movement_type: 'recount', balance: newStock, unit: 'g', expected_balance: oldStock, idempotency_key: request.headers.get('Idempotency-Key') || crypto.randomUUID(), note: `Manual: ${oldStock}→${newStock}`, source_compass_entry_id: current.source_compass_entry_id || null });
+        const movement = await applyStockMovement(env, ctx, params.id, recount, { statements: extraStmts.splice(0) });
+        if (movement.status >= 400) return json(movement.value, movement.status);
       }
+      delete body.stock_grams;
+      delete body.stock_known_at;
     } else {
       return json({ error: 'Product not found' }, 404);
     }
@@ -2504,47 +2506,13 @@ async function applyProductUpdate(
   // profile/listing exists) since the UPDATE WHERE clauses won't match.
   const mirrorStmts = buildProductMirrorStmts(env, params.id, body);
 
-  // M11 — absolute stock set is a read-modify-write race. When this update
-  // writes stock_grams, guard the WHERE on the value we read so a concurrent
-  // adjustment can't be silently clobbered. RETURNING lets us detect a stale
-  // write (no row matched) and retry once after re-reading.
-  const guardStock = body.stock_grams !== undefined && stockExpectedOld !== null;
-  const buildUpdateStmt = (expectedOld: number | null) => {
-    const where = expectedOld !== null
-      ? `WHERE id = ? AND account_id = ? AND stock_grams = ?`
-      : `WHERE id = ? AND account_id = ?`;
-    const binds = expectedOld !== null
-      ? [...cols.map(c => body[c] ?? null), params.id, accountId, expectedOld]
-      : [...cols.map(c => body[c] ?? null), params.id, accountId];
-    return env.DB.prepare(`UPDATE products SET ${sets} ${where}${guardStock ? ' RETURNING stock_grams' : ''}`)
-      .bind(...binds);
-  };
-
-  if (guardStock) {
-    // Run the guarded stock update on its own first so we can verify it matched
-    // before committing the dependent ledger/mirror/log statements.
-    let updated = await buildUpdateStmt(stockExpectedOld).first();
-    if (!updated) {
-      // Lost the race — re-read and retry once with the fresh value.
-      const fresh = await env.DB.prepare('SELECT stock_grams FROM products WHERE id = ? AND account_id = ?')
-        .bind(params.id, accountId).first();
-      if (!fresh) return json({ error: 'Product not found' }, 404);
-      const freshOld = Number(fresh.stock_grams) || 0;
-      updated = await buildUpdateStmt(freshOld).first();
-      if (!updated) {
-        return json({ error: 'stale_stock', message: 'Stock changed concurrently — please retry' }, 409);
-      }
-    }
-    const dependent = [...extraStmts, ...mirrorStmts];
-    if (dependent.length > 0) await env.DB.batch(dependent);
+  const updateStmt = env.DB.prepare(`UPDATE products SET ${sets} WHERE id = ? AND account_id = ?`)
+    .bind(...cols.map(c => body[c] ?? null), params.id, accountId);
+  const allStmts = [updateStmt, ...extraStmts, ...mirrorStmts];
+  if (allStmts.length > 1) {
+    await env.DB.batch(allStmts);
   } else {
-    const updateStmt = buildUpdateStmt(null);
-    const allStmts = [updateStmt, ...extraStmts, ...mirrorStmts];
-    if (allStmts.length > 1) {
-      await env.DB.batch(allStmts);
-    } else {
-      await updateStmt.run();
-    }
+    await updateStmt.run();
   }
 
   await auditPlatformActingWrite(env, ctx, auditAction, 'product', params.id, {
@@ -9104,6 +9072,83 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
 
 const RECEIPT_STATES = new Set(['planned', 'ordered', 'in_transit', 'partially_received', 'received', 'cancelled']);
 
+type MovementContext = { accountId: string; userId: string; email?: string | null };
+type MovementExtras = { statements?: D1PreparedStatement[]; inventoryReceiptLineId?: string | null; allowNewBatchId?: boolean };
+
+async function applyStockMovement(env: Env, ctx: MovementContext, productId: string, input: StockMovementInput, extras: MovementExtras = {}) {
+  const existing = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
+  const requestedDelta = movementDelta(input, input.expected_balance);
+  if (existing) {
+    const sameEffect = input.movement_type === 'recount'
+      ? Number(existing.balance_after) === input.balance
+      : Number(existing.delta) === requestedDelta;
+    const same = existing.product_id === productId && existing.movement_type === input.movement_type && sameEffect &&
+      (existing.source_invoice_id || null) === input.source_invoice_id && (existing.batch_id || null) === input.batch_id &&
+      (existing.source_compass_entry_id || null) === input.source_compass_entry_id;
+    return same
+      ? { status: 200, value: { ...existing, before_balance: Number(existing.balance_after) - Number(existing.delta), after_balance: Number(existing.balance_after), already_applied: true } }
+      : { status: 409, value: { error: 'idempotency_key already used for a different stock movement' } };
+  }
+  const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(productId, ctx.accountId).first() as any;
+  if (!product) return { status: 404, value: { error: 'Product not found' } };
+  if (input.batch_id && !extras.allowNewBatchId && !await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(input.batch_id, ctx.accountId).first()) return { status: 404, value: { error: 'Batch not found' } };
+  if (input.source_compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(input.source_compass_entry_id, ctx.accountId).first()) return { status: 404, value: { error: 'Curate entry not found' } };
+  const column = input.unit === 'g' ? 'stock_grams' : 'quantity_units';
+  const current = Number(product[column] ?? 0);
+  if (current !== input.expected_balance) return { status: 409, value: { error: 'Stock balance changed', current_balance: current } };
+  const delta = movementDelta(input, current); const after = current + delta;
+  if (after < 0) return { status: 409, value: { error: 'Stock movement would create a negative balance', current_balance: current } };
+
+  let destination: any = null; let destinationBefore = 0; let destinationAfter = 0;
+  if (input.movement_type === 'transfer') {
+    if (input.destination_product_id === productId) return { status: 400, value: { error: 'Transfer destination must differ from source' } };
+    destination = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(input.destination_product_id, ctx.accountId).first() as any;
+    if (!destination) return { status: 404, value: { error: 'Transfer destination not found' } };
+    destinationBefore = Number(destination[column] ?? 0); destinationAfter = destinationBefore + input.quantity!;
+  }
+
+  const id = crypto.randomUUID(); const knownAt = new Date().toISOString();
+  const reason = input.movement_type.toUpperCase();
+  const stockUpdate = destination
+    ? env.DB.prepare(`UPDATE products SET ${column} = CASE WHEN id = ? THEN ? ELSE ? END, stock_known_at = ?, updated_at = datetime('now')
+        WHERE account_id = ? AND id IN (?, ?) AND
+          (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ? AND
+          (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ?`)
+      .bind(productId, after, destinationAfter, knownAt, ctx.accountId, productId, destination.id, productId, ctx.accountId, current, destination.id, ctx.accountId, destinationBefore)
+    : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`).bind(after, knownAt, productId, ctx.accountId, current);
+  const statements: D1PreparedStatement[] = [
+    stockUpdate,
+    env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND COALESCE(${column}, 0) = ?)`).bind(after, productId, ctx.accountId, after),
+    env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, inventory_receipt_line_id) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND COALESCE(${column}, 0) = ?)`).bind(id, productId, delta, after, input.unit === 'g' ? 'gram' : 'unit', reason, input.movement_type, input.idempotency_key, input.source_invoice_id, input.source_invoice_number, ctx.email || null, input.note, input.batch_id, ctx.accountId, input.source_compass_entry_id, extras.inventoryReceiptLineId || null, productId, ctx.accountId, after),
+  ];
+  if (destination) {
+    const destinationLedgerId = crypto.randomUUID();
+    statements.push(
+      env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND COALESCE(${column}, 0) = ?)`).bind(destinationAfter, destination.id, ctx.accountId, destinationAfter),
+      env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, user_email, note, batch_id, account_id, source_compass_entry_id) SELECT ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND COALESCE(${column}, 0) = ?)`).bind(destinationLedgerId, destination.id, input.quantity, destinationAfter, input.unit === 'g' ? 'gram' : 'unit', reason, 'transfer', ctx.email || null, input.note || `Transfer from ${productId}`, input.batch_id, ctx.accountId, input.source_compass_entry_id, destination.id, ctx.accountId, destinationAfter),
+    );
+  }
+  statements.push(...(extras.statements || []));
+  try {
+    const results = await env.DB.batch(statements);
+    if (Number((results[0] as any)?.meta?.changes || 0) !== (destination ? 2 : 1)) return { status: 409, value: { error: 'Stock balance changed' } };
+  } catch (error) {
+    const raced = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
+    if (raced && raced.product_id === productId && raced.movement_type === input.movement_type && Number(raced.delta) === delta) return { status: 200, value: { ...raced, already_applied: true } };
+    throw error;
+  }
+  return { status: 201, value: { id, product_id: productId, movement_type: input.movement_type, delta, before_balance: current, after_balance: after, unit: input.unit, destination_product_id: destination?.id || null, destination_after_balance: destination ? destinationAfter : null } };
+}
+
+const handleCreateStockMovement: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
+  let input: StockMovementInput;
+  try { input = decodeStockMovement(await request.json() as Record<string, unknown>); }
+  catch (error) { return json({ error: (error as Error).message }, 400); }
+  try { const result = await applyStockMovement(env, ctx, params.id, input); return json(result.value, result.status); }
+  catch (error) { console.error('Stock movement failed', error); return json({ error: 'Stock movement failed' }, 500); }
+};
+
 const handleListInventoryReceipts: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
   const url = new URL(request.url);
@@ -9161,22 +9206,27 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remaining || (line.unit === 'unit' && !Number.isInteger(quantity))) return json({ error: 'invalid receive quantity' }, 400);
   const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id,ctx.accountId).first() as any; if (!product) return json({ error: 'Product not found' },404);
   const existingReceiptBatch = line.intake_batch_id ? null : await env.DB.prepare('SELECT intake_batch_id FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=? AND intake_batch_id IS NOT NULL LIMIT 1').bind(line.receipt_id,ctx.accountId).first() as any;
-  const batchId = line.intake_batch_id || existingReceiptBatch?.intake_batch_id || crypto.randomUUID(); const ledgerId = crypto.randomUUID(); const now = new Date().toISOString();
+  const batchId = line.intake_batch_id || existingReceiptBatch?.intake_batch_id || crypto.randomUUID();
+  const createsBatch = !line.intake_batch_id && !existingReceiptBatch;
   const amountCol = line.unit === 'g' ? 'stock_grams' : 'quantity_units'; const newBalance = Number(product[amountCol] || 0) + quantity;
   const newReceived = Number(line.received_quantity) + quantity; const state = deriveReceiptState(line.receipt_state as InventoryReceiptState,Number(line.expected_quantity),newReceived,Number(line.cancelled_quantity));
   const statements: D1PreparedStatement[] = [];
-  if (!line.intake_batch_id && !existingReceiptBatch) statements.push(env.DB.prepare(`INSERT INTO batches (id,account_id,label,intake_date,vendor,note) VALUES (?,?,?,date('now'),?,'Inventory receipt')`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null));
-  statements.push(env.DB.prepare(`UPDATE products SET ${amountCol}=?, inventory_purpose=?, is_sample=?, is_personal=?, stock_known_at=?, updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(newBalance,line.intended_purpose,line.intended_purpose==='sample'?1:0,line.intended_purpose==='personal'?1:0,now,line.product_id,ctx.accountId));
-  statements.push(env.DB.prepare(`INSERT INTO stock_ledger (id,product_id,delta,balance_after,movement_unit,reason,user_email,note,batch_id,account_id,inventory_receipt_line_id) VALUES (?,?,?,?,?,'PURCHASE_RECEIPT',?,?,?,?,?)`).bind(ledgerId,line.product_id,quantity,newBalance,line.unit==='g'?'gram':'unit',ctx.email||null,'Received incoming stock',batchId,ctx.accountId,line.id));
+  if (createsBatch) statements.push(env.DB.prepare(`INSERT INTO batches (id,account_id,label,intake_date,vendor,note) VALUES (?,?,?,date('now'),?,'Inventory receipt')`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null));
+  statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose=?, is_sample=?, is_personal=? WHERE id=? AND account_id=?`).bind(line.intended_purpose,line.intended_purpose==='sample'?1:0,line.intended_purpose==='personal'?1:0,line.product_id,ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity=received_quantity+?,intake_batch_id=?,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(quantity,batchId,line.id,ctx.accountId));
   statements.push(env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
     WHEN (SELECT COALESCE(SUM(expected_quantity-received_quantity-cancelled_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)=0
       THEN CASE WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'received' ELSE 'cancelled' END
     WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'partially_received'
     ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId));
-  await env.DB.batch(statements);
-  const persistedReceipt = await env.DB.prepare('SELECT * FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
-  return json({ received_quantity:newReceived, remaining_quantity:remaining-quantity,state:persistedReceipt?.state || state,ledger_id:ledgerId,batch_id:batchId });
+  const movement = decodeStockMovement({ movement_type:'receipt', quantity, unit:line.unit, expected_balance:Number(product[amountCol] || 0), idempotency_key:body.idempotency_key || `receipt-line:${line.id}:received:${newReceived}`, note:'Received incoming stock', batch_id:batchId });
+  try {
+    const result = await applyStockMovement(env,ctx,line.product_id,movement,{ statements, inventoryReceiptLineId:line.id, allowNewBatchId:createsBatch });
+    if (result.status >= 400) return json(result.value,result.status);
+    const alreadyReceived = result.status===200;
+    const persistedReceipt = await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
+    return json({ received_quantity:alreadyReceived?Number(line.received_quantity):newReceived, remaining_quantity:alreadyReceived?remaining:remaining-quantity,state:persistedReceipt?.state || state,ledger_id:(result.value as any).id,batch_id:batchId,already_received:alreadyReceived });
+  } catch (error) { console.error('Receipt stock movement failed',error); return json({ error:'Receipt failed' },500); }
 };
 
 const handleCancelInventoryLine: Handler = async (request, env, params) => {
@@ -18925,6 +18975,7 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/inventory/receipts/:id/state', handleUpdateInventoryReceiptState],
   ['POST', '/api/inventory/receipt-lines/:id/receive', handleReceiveInventoryLine],
   ['POST', '/api/inventory/receipt-lines/:id/cancel-remaining', handleCancelInventoryLine],
+  ['POST', '/api/products/:id/movements', handleCreateStockMovement],
 
   // Notes — unified thread
   ['GET',  '/api/notes',              handleGetNotes],

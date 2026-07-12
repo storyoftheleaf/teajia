@@ -99,6 +99,11 @@ class ReceiptStatement {
     if (sql.startsWith('update products set') && sql.includes('coalesce(')) return incrementRow(this.db.products, this.sql, this.values, false);
     if (sql.startsWith('update products set')) return updateRow(this.db.products, this.sql, this.values);
     if (sql.startsWith('update product_listings set')) {
+      if (sql.includes('exists (select 1 from products')) {
+        const row = [...this.db.listings.values()].find(item => item.legacy_product_id === this.values[1] && item.account_id === this.values[2]);
+        if (row) row.stock_grams = this.values[0];
+        return { success: true, meta: { changes: row ? 1 : 0 } };
+      }
       if (sql.includes('coalesce(')) return incrementRow(this.db.listings, this.sql, this.values, true);
       if (sql.includes('where legacy_product_id = ?')) return updateByLegacy(this.db.listings, this.sql, this.values);
       return updateRow(this.db.listings, this.sql, this.values);

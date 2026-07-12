@@ -83,3 +83,55 @@ export function deriveReceiptState(base: InventoryReceiptState, expected: number
   if (received > 0) return 'partially_received';
   return base === 'partially_received' || base === 'received' || base === 'cancelled' ? 'in_transit' : base;
 }
+
+export type StockMovementType = 'receipt' | 'sale' | 'sample_use' | 'gift' | 'waste' | 'return' | 'recount' | 'transfer';
+export interface StockMovementInput {
+  movement_type: StockMovementType;
+  unit: ReceiptUnit;
+  quantity: number | null;
+  balance: number | null;
+  expected_balance: number;
+  idempotency_key: string;
+  destination_product_id: string | null;
+  note: string | null;
+  batch_id: string | null;
+  source_invoice_id: string | null;
+  source_invoice_number: string | null;
+  source_compass_entry_id: string | null;
+}
+
+const MOVEMENT_TYPES = new Set<StockMovementType>(['receipt', 'sale', 'sample_use', 'gift', 'waste', 'return', 'recount', 'transfer']);
+const optionalText = (value: unknown): string | null => typeof value === 'string' && value.trim() ? value.trim() : null;
+
+export function decodeStockMovement(body: Record<string, unknown>): StockMovementInput {
+  const movement_type = body.movement_type as StockMovementType;
+  if (!MOVEMENT_TYPES.has(movement_type)) throw new Error('invalid movement_type');
+  if (body.unit !== 'g' && body.unit !== 'unit') throw new Error('unit must be g or unit');
+  const expected_balance = Number(body.expected_balance);
+  if (!Number.isFinite(expected_balance) || expected_balance < 0) throw new Error('expected_balance must be a non-negative finite number');
+  if (body.unit === 'unit' && !Number.isInteger(expected_balance)) throw new Error('unit expected_balance must be a whole number');
+  const idempotency_key = optionalText(body.idempotency_key);
+  if (!idempotency_key || idempotency_key.length > 200) throw new Error('idempotency_key is required and must be at most 200 characters');
+  const balance = movement_type === 'recount' ? Number(body.balance) : null;
+  const quantity = movement_type === 'recount' ? null : Number(body.quantity);
+  if (movement_type === 'recount') {
+    if (!Number.isFinite(balance) || balance! < 0) throw new Error('balance must be a non-negative finite number');
+    if (body.unit === 'unit' && !Number.isInteger(balance)) throw new Error('unit balance must be a whole number');
+  } else {
+    if (!Number.isFinite(quantity) || quantity! <= 0) throw new Error('quantity must be a finite number greater than zero');
+    if (body.unit === 'unit' && !Number.isInteger(quantity)) throw new Error('unit quantity must be a whole number');
+  }
+  const destination_product_id = optionalText(body.destination_product_id);
+  if (movement_type === 'transfer' && !destination_product_id) throw new Error('destination_product_id is required for transfer');
+  return {
+    movement_type, unit: body.unit, quantity, balance, expected_balance, idempotency_key,
+    destination_product_id, note: optionalText(body.note), batch_id: optionalText(body.batch_id),
+    source_invoice_id: optionalText(body.source_invoice_id), source_invoice_number: optionalText(body.source_invoice_number),
+    source_compass_entry_id: optionalText(body.source_compass_entry_id),
+  };
+}
+
+export function movementDelta(input: StockMovementInput, currentBalance: number): number {
+  if (input.movement_type === 'recount') return input.balance! - currentBalance;
+  return (input.movement_type === 'receipt' || input.movement_type === 'return' ? 1 : -1) * input.quantity!;
+}

@@ -303,6 +303,9 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     receipt_proposal_id TEXT REFERENCES curate_receipt_proposals(id) ON DELETE SET NULL,
     inventory_receipt_line_id TEXT REFERENCES inventory_receipt_lines(id) ON DELETE SET NULL,
     movement_unit TEXT CHECK (movement_unit IS NULL OR movement_unit IN ('gram', 'unit')),
+    movement_type TEXT CHECK (movement_type IS NULL OR movement_type IN ('receipt','sale','sample_use','gift','waste','return','recount','transfer')),
+    idempotency_key TEXT,
+    source_compass_entry_id TEXT REFERENCES tea_compass_entries(id) ON DELETE SET NULL,
     account_id TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
@@ -562,6 +565,8 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_account_created ON activity_logs(ac
 -- Inventory & attribution lookups (migration 086, audit H7/M8)
 CREATE INDEX IF NOT EXISTS idx_stock_ledger_product ON stock_ledger(product_id);
 CREATE INDEX IF NOT EXISTS idx_stock_ledger_source_invoice ON stock_ledger(source_invoice_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_ledger_account_idempotency ON stock_ledger(account_id, idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_stock_ledger_compass_entry ON stock_ledger(account_id, source_compass_entry_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_account_customer ON invoices(account_id, customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_source_event ON invoices(source_event_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_source_collection ON invoices(source_collection_id);

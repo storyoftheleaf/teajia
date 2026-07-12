@@ -792,8 +792,16 @@ export const api = {
     list: (includeClosed = false) => authedFetch(`${API_URL}/api/inventory/receipts?include_closed=${includeClosed ? '1' : '0'}`),
     create: (body: Record<string, unknown>) => authedFetch(`${API_URL}/api/inventory/receipts`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true }),
     updateState: (receiptId: string, state: 'ordered' | 'in_transit') => authedFetch(`${API_URL}/api/inventory/receipts/${receiptId}/state`, { method: 'PUT', body: JSON.stringify({ state }), retryTimeouts: true }),
-    receive: (lineId: string, quantity?: number) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify(quantity == null ? {} : { quantity }), retryTimeouts: true }),
+    receive: (lineId: string, quantity?: number) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/receive`, { method: 'POST', body: JSON.stringify({ ...(quantity == null ? {} : { quantity }), idempotency_key: crypto.randomUUID() }), retryTimeouts: true }),
     cancelRemaining: (lineId: string) => authedFetch(`${API_URL}/api/inventory/receipt-lines/${lineId}/cancel-remaining`, { method: 'POST', retryTimeouts: true }),
+  },
+  stockMovements: {
+    create: (productId: string, body: {
+      movement_type: 'receipt' | 'sale' | 'sample_use' | 'gift' | 'waste' | 'return' | 'recount' | 'transfer';
+      unit: 'g' | 'unit'; expected_balance: number; idempotency_key: string;
+      quantity?: number; balance?: number; destination_product_id?: string;
+      note?: string; batch_id?: string; source_invoice_id?: string; source_invoice_number?: string; source_compass_entry_id?: string;
+    }) => authedFetch(`${API_URL}/api/products/${productId}/movements`, { method: 'POST', body: JSON.stringify(body), retryTimeouts: true }),
   },
   // Working Feature Guide — admin-only internal build tracker.
   featureStatus: {
