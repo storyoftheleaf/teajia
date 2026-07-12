@@ -91,6 +91,11 @@ describe('getTeaReadiness', () => {
       missing: ['stock_amount'],
     });
   });
+
+  it('rejects non-finite stock even when the quantity has a known-at timestamp', () => {
+    expect(getTeaReadiness(product({ stockGrams: Number.NaN })).missing).toContain('stock_amount');
+    expect(getTeaReadiness(product({ stockGrams: Number.POSITIVE_INFINITY })).missing).toContain('stock_amount');
+  });
 });
 
 describe('publication', () => {

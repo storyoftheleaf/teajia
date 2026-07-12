@@ -48,7 +48,7 @@ export function getTeaReadiness(product: Product): TeaReadiness {
   if (!product.description.trim()) missing.push('description');
   if (!hasPositiveRetail(product)) missing.push('retail_price');
   if (product.type === 'Misc' || product.type === 'MISSING_TYPE') missing.push('classification');
-  if (!product.stockKnownAt) missing.push('stock_amount');
+  if (!product.stockKnownAt || !Number.isFinite(product.stockGrams)) missing.push('stock_amount');
 
   return missing.length > 0
     ? { state: 'not_ready', missing }
