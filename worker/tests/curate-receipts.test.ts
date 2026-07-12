@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeReceiptProposal, receiptInventoryValues } from '../src/inventoryDomain';
-import { readFileSync } from 'node:fs';
+import { receiptRequest, ReceiptDb } from './helpers/receiptHarness';
 
 describe('reviewed Curate receipts', () => {
   it('decodes a free 10g sample without making it public', () => {
@@ -28,16 +28,69 @@ describe('reviewed Curate receipts', () => {
     expect(() => decodeReceiptProposal({ purpose: 'sample', quantity: 10, unit: 'kg', acquisition_kind: 'purchase' })).toThrow(/unit/);
   });
 
-  it('pins account scope, idempotency, provenance, atomic review, and no auto-publication in the Worker contract', () => {
-    const source = readFileSync(new URL('../src/index.ts', import.meta.url), 'utf8');
-    const migration = readFileSync(new URL('../migrations/103_inventory_purpose_receipts.sql', import.meta.url), 'utf8');
-    expect(migration).toContain('UNIQUE(account_id, idempotency_key)');
-    expect(migration).toContain('UNIQUE INDEX idx_stock_ledger_receipt_proposal');
-    expect(migration).toContain('proposed_by_user_id TEXT NOT NULL');
-    expect(migration).toContain('reviewed_by_user_id TEXT');
-    expect(source).toContain("WHERE id = ? AND account_id = ? AND status = 'pending'");
-    expect(source).toContain('await env.DB.batch(statements)');
-    expect(source).toContain("'Draft', ?, ?, ?, ?, ?, ?, 0, 0");
-    expect(source).toContain("if (proposal.status === 'accepted')");
+  it('creates, edits, rejects, and account-scopes proposals through HTTP', async () => {
+    const db = ReceiptDb.seeded();
+    const created = await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample', idempotency_key: 'free-10g' }) });
+    expect(created.status).toBe(201);
+    const proposal = await created.json() as any;
+    expect(proposal).toMatchObject({ account_id: 'account-a', quantity: 10, purpose: 'sample' });
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ purpose: 'working', batch_id: 'batch-a' }) })).status).toBe(200);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/reject`, { method: 'POST' })).status).toBe(200);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).status).toBe(409);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', accountId: 'account-b', body: JSON.stringify({ purpose: 'personal' }) })).status).toBe(404);
+  });
+
+  it('requires operation idempotency and permits distinct acquisitions for one entry', async () => {
+    const db = ReceiptDb.seeded();
+    const body = { purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample' };
+    expect((await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify(body) })).status).toBe(400);
+    const first = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: 'acq-1' }) })).json() as any;
+    const retry = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: 'acq-1' }) })).json() as any;
+    const later = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: 'acq-2' }) })).json() as any;
+    expect(retry.id).toBe(first.id); expect(later.id).not.toBe(first.id);
+  });
+
+  it('validates replacement product and batch ownership on PUT', async () => {
+    const db = ReceiptDb.seeded();
+    const proposal = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: 'working', quantity: 20, unit: 'g', acquisition_kind: 'purchase', idempotency_key: 'links' }) })).json() as any;
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ product_id: 'product-b' }) })).status).toBe(404);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ batch_id: 'batch-b' }) })).status).toBe(404);
+  });
+
+  it('accepts free samples, working tea, and teaware and retries without duplicates', async () => {
+    for (const [entry, body] of [['entry-a', { purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample', idempotency_key: 'sample' }], ['entry-work', { purpose: 'working', quantity: 50, unit: 'g', acquisition_kind: 'purchase', idempotency_key: 'work' }], ['entry-pot', { purpose: 'personal', quantity: 2, unit: 'unit', acquisition_kind: 'purchase', idempotency_key: 'pot' }]] as const) {
+      const db = ReceiptDb.seeded();
+      const proposal = await (await receiptRequest(db, `/api/compass/entries/${entry}/receipt-proposals`, { method: 'POST', body: JSON.stringify(body) })).json() as any;
+      const first = await (await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).json() as any;
+      const retry = await (await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).json() as any;
+      expect(retry).toMatchObject({ product_id: first.product_id, ledger_id: first.ledger_id, alreadyAccepted: true });
+      expect(db.ledger).toHaveLength(1);
+      expect(db.products.get(first.product_id)).toMatchObject({ inventory_purpose: body.purpose, is_public: 0, shown_in_shop: 0 });
+      if (body.unit === 'unit') expect(db.products.get(first.product_id)?.quantity_units).toBe(2);
+      else expect(db.products.get(first.product_id)?.stock_grams).toBe(body.quantity);
+    }
+  });
+
+  it('rolls back every acceptance write when D1 batch fails', async () => {
+    const db = ReceiptDb.seeded();
+    const proposal = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample', idempotency_key: 'fail' }) })).json() as any;
+    const productIds = [...db.products.keys()];
+    db.failBatchAt = 2;
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).status).toBe(500);
+    expect([...db.products.keys()]).toEqual(productIds); expect(db.listings).toHaveLength(0); expect(db.ledger).toHaveLength(0);
+    expect(db.proposals.get(proposal.id)?.status).toBe('pending');
+  });
+
+  it('collapses concurrent acceptance retries to one product and ledger movement', async () => {
+    const db = ReceiptDb.seeded();
+    const proposal = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: 'working', quantity: 30, unit: 'g', acquisition_kind: 'purchase', idempotency_key: 'concurrent' }) })).json() as any;
+    const [a, b] = await Promise.all([
+      receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' }),
+      receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' }),
+    ]);
+    const [one, two] = await Promise.all([a.json(), b.json()]) as any[];
+    expect(one.product_id).toBe(two.product_id); expect(one.ledger_id).toBe(two.ledger_id);
+    expect(db.ledger).toHaveLength(1);
+    expect([...db.products.values()].filter(row => row.account_id === 'account-a')).toHaveLength(1);
   });
 });

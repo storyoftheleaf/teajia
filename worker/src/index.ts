@@ -841,6 +841,8 @@ const LISTING_MIRROR_COLUMNS: Record<string, string> = {
   tasting_source:        'tasting_source',
   owner_user_id:         'owner_user_id',   // stock spine step 1 — NULL = location-owned
   shown_in_shop:         'shown_in_shop',   // stock spine step 2 — owner's curation gate
+  inventory_purpose:     'inventory_purpose',
+  stock_known_at:        'stock_known_at',
 };
 
 // Build mirror statements for a product update. Pass the SAME body the
@@ -8965,21 +8967,27 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
   } else if (importId != null && !await env.DB.prepare('SELECT id FROM curate_import_batches WHERE id = ? AND account_id = ?').bind(importId, ctx.accountId).first()) {
     return json({ error: 'Import not found' }, 404);
   }
-  const key = typeof body.idempotency_key === 'string' && body.idempotency_key.trim()
-    ? body.idempotency_key.trim() : `compass:${params.id}`;
+  const key = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
+  if (!key) return json({ error: 'idempotency_key is required' }, 400);
   const existing = await env.DB.prepare(
     'SELECT * FROM curate_receipt_proposals WHERE account_id = ? AND idempotency_key = ?'
   ).bind(ctx.accountId, key).first();
   if (existing) return json(existing);
   const id = crypto.randomUUID();
-  await env.DB.prepare(`INSERT INTO curate_receipt_proposals
-    (id, account_id, compass_entry_id, import_id, import_item_id, product_id, batch_id, product_name, product_type,
-     purpose, quantity, unit, acquisition_kind, idempotency_key, proposed_by_user_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .bind(id, ctx.accountId, params.id, importId, importItemId, body.product_id ?? entry.draft_product_id ?? null,
-      body.batch_id ?? null, body.product_name ?? entry.name ?? null,
-      body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null,
-      decoded.purpose, decoded.quantity, decoded.unit, decoded.acquisition_kind, key, ctx.userId).run();
+  try {
+    await env.DB.prepare(`INSERT INTO curate_receipt_proposals
+      (id, account_id, compass_entry_id, import_id, import_item_id, product_id, batch_id, product_name, product_type,
+       purpose, quantity, unit, acquisition_kind, idempotency_key, proposed_by_user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, ctx.accountId, params.id, importId, importItemId, body.product_id ?? entry.draft_product_id ?? null,
+        body.batch_id ?? null, body.product_name ?? entry.name ?? null,
+        body.product_type ?? (entry.category === 'teaware' ? 'Teaware' : entry.type) ?? null,
+        decoded.purpose, decoded.quantity, decoded.unit, decoded.acquisition_kind, key, ctx.userId).run();
+  } catch (error) {
+    const raced = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, key).first();
+    if (raced) return json(raced);
+    throw error;
+  }
   return json(await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first(), 201);
 };
 
@@ -8992,6 +9000,12 @@ const handleUpdateReceiptProposal: Handler = async (request, env, params) => {
   const existing = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
   if (!existing) return json({ error: 'Receipt proposal not found' }, 404);
   if (existing.status !== 'pending') return json({ error: 'Reviewed receipt proposals cannot be edited' }, 409);
+  if (body.product_id !== undefined && body.product_id != null && !await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(body.product_id, ctx.accountId).first()) {
+    return json({ error: 'Product not found' }, 404);
+  }
+  if (body.batch_id !== undefined && body.batch_id != null && !await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(body.batch_id, ctx.accountId).first()) {
+    return json({ error: 'Batch not found' }, 404);
+  }
   let decoded;
   try { decoded = decodeReceiptProposal({ ...existing, ...body }); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
