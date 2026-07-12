@@ -8610,8 +8610,11 @@ const handleCreateCurateVisit: Handler = async (request, env) => {
   const body = await request.json() as Record<string, unknown>;
   if (!await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
   if (body.vendor_id != null) {
-    const vendor = await env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string } | null;
+    const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string; tags?: string } | null;
     if (!vendor) return json({ error: 'Vendor not found' }, 404);
+    let tags: unknown[] = [];
+    try { tags = JSON.parse(vendor.tags || '[]'); } catch { tags = []; }
+    if (!tags.includes('vendor')) return json({ error: 'Selected customer is not tagged as a vendor' }, 400);
     body.vendor_name = vendor.name ?? null;
   }
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
@@ -8630,8 +8633,11 @@ const handleUpdateCurateVisit: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, unknown>;
   if (body.journey_id !== undefined && !await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
   if (body.vendor_id !== undefined && body.vendor_id != null) {
-    const vendor = await env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string } | null;
+    const vendor = await env.DB.prepare('SELECT id, name, tags FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string; tags?: string } | null;
     if (!vendor) return json({ error: 'Vendor not found' }, 404);
+    let tags: unknown[] = [];
+    try { tags = JSON.parse(vendor.tags || '[]'); } catch { tags = []; }
+    if (!tags.includes('vendor')) return json({ error: 'Selected customer is not tagged as a vendor' }, 400);
     body.vendor_name = vendor.name ?? null;
   }
   const fields: string[] = VISIT_FIELDS.filter(field => body[field] !== undefined);
@@ -8693,15 +8699,17 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
   return { values };
 }
 
-async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>): Promise<Response | null> {
-  if (values.journey_id != null) {
-    const journey = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(values.journey_id, accountId).first();
+async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
+  const journeyId = values.journey_id !== undefined ? values.journey_id : existing?.journey_id;
+  const visitId = values.visit_id !== undefined ? values.visit_id : existing?.visit_id;
+  if (journeyId != null) {
+    const journey = await env.DB.prepare('SELECT id FROM curate_journeys WHERE id = ? AND account_id = ?').bind(journeyId, accountId).first();
     if (!journey) return json({ error: 'Journey does not belong to the active account' }, 400);
   }
-  if (values.visit_id != null) {
-    const visit = await env.DB.prepare('SELECT id, journey_id FROM curate_visits WHERE id = ? AND account_id = ?').bind(values.visit_id, accountId).first() as { journey_id?: string | null } | null;
+  if (visitId != null) {
+    const visit = await env.DB.prepare('SELECT id, journey_id FROM curate_visits WHERE id = ? AND account_id = ?').bind(visitId, accountId).first() as { journey_id?: string | null } | null;
     if (!visit) return json({ error: 'Visit does not belong to the active account' }, 400);
-    if (values.journey_id != null && visit.journey_id != null && visit.journey_id !== values.journey_id) {
+    if (journeyId != null && visit.journey_id != null && visit.journey_id !== journeyId) {
       return json({ error: 'Visit is not part of the selected Journey' }, 400);
     }
   }
@@ -8768,7 +8776,8 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   const body = await request.json() as Record<string, unknown>;
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
-  const contextError = await validateCompassContext(env, accountId, decoded.values);
+  const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
@@ -9021,7 +9030,8 @@ const handleSyncCompassEntries: Handler = async (request, env) => {
   for (const entry of body.entries) {
     const decoded = decodeCompassWrite(entry, false);
     if ('error' in decoded) return decoded.error;
-    const contextError = await validateCompassContext(env, accountId, decoded.values);
+    const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(entry.id, userId, accountId).first() as Record<string, unknown> | null;
+    const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
     if (contextError) return contextError;
     if (typeof entry.id !== 'string' || !entry.id) return json({ error: 'Compass entry id required' }, 400);
     const present = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);

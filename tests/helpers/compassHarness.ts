@@ -3,10 +3,12 @@ import { expect, type Page } from '@playwright/test';
 const enc = (s: string) => Buffer.from(s).toString('base64url');
 const memberships = [{ account_id: 'acct-bali', account_name: 'Teajia Bali', role: 'owner', slug: 'teajia-bali' }];
 const unhandledByPage = new WeakMap<Page, string[]>();
+const requestCounts = new WeakMap<Page, Map<string, number>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean; contextFailOnce?: boolean }) {
   unhandledByPage.set(page, []);
+  requestCounts.set(page, new Map());
   await page.addInitScript(({ token, items }) => {
     localStorage.setItem('teajia_token', token);
     localStorage.removeItem('teajia-storage');
@@ -16,6 +18,11 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname;
     const requestKey = `${route.request().method()} ${path}`;
+    const counts = requestCounts.get(page)!;
+    counts.set(requestKey, (counts.get(requestKey) ?? 0) + 1);
+    if (options?.contextFailOnce && requestKey === 'POST /api/curate/journeys' && counts.get(requestKey) === 1) {
+      return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary failure' }) });
+    }
     const responses: Record<string, unknown> = {
       'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
       'POST /api/auth/refresh': { token: COMPASS_TOKEN },
@@ -46,6 +53,10 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responses[requestKey]) });
   });
+}
+
+export function compassRequestCount(page: Page, requestKey: string): number {
+  return requestCounts.get(page)?.get(requestKey) ?? 0;
 }
 
 export async function expectNoUnhandledCompassApi(page: Page) {

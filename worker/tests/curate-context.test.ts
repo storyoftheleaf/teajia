@@ -20,7 +20,7 @@ describe('Curate Journey and Visit context', () => {
     expect(await journey.clone().json()).toMatchObject({ created_by_user_id: 'user-a' });
 
     for (const [id, vendor_name] of [['visit-chen', 'Chen Family'], ['visit-lin', 'Lin Tea House']]) {
-      db.customers.set(`${id}-vendor`, { id: `${id}-vendor`, account_id: 'account-a', name: vendor_name });
+      db.customers.set(`${id}-vendor`, { id: `${id}-vendor`, account_id: 'account-a', name: vendor_name, tags: '["vendor"]' });
       const response = await compassRequest(db, '/api/curate/visits', {
         method: 'POST', body: JSON.stringify({ id, journey_id: 'taiwan-2026', vendor_id: `${id}-vendor`, vendor_name, place: 'Taipei' }),
       });
@@ -33,7 +33,7 @@ describe('Curate Journey and Visit context', () => {
 
   it('allows a Visit without a Journey and preserves its vendor snapshot when edited', async () => {
     const db = new FakeDb();
-    db.customers.set('vendor-1', { id: 'vendor-1', account_id: 'account-a', name: 'Authoritative Shop' });
+    db.customers.set('vendor-1', { id: 'vendor-1', account_id: 'account-a', name: 'Authoritative Shop', tags: '["vendor"]' });
     const created = await compassRequest(db, '/api/curate/visits', {
       method: 'POST', body: JSON.stringify({ id: 'walk-in', vendor_id: 'vendor-1', vendor_name: 'Caller Spoof' }),
     });
@@ -77,5 +77,21 @@ describe('Curate Journey and Visit context', () => {
       method: 'PUT', body: JSON.stringify({ journey_id: null, visit_id: null }),
     });
     expect(await cleared.json()).toMatchObject({ session_id: 'sitting', journey_id: null, visit_id: null });
+  });
+
+  it('validates the resulting Journey and Visit pair for partial entry updates in both directions', async () => {
+    const db = new FakeDb();
+    for (const id of ['trip-a', 'trip-b']) await compassRequest(db, '/api/curate/journeys', { method: 'POST', body: JSON.stringify({ id, name: id }) });
+    for (const [id, journey_id] of [['visit-a', 'trip-a'], ['visit-b', 'trip-b']]) await compassRequest(db, '/api/curate/visits', { method: 'POST', body: JSON.stringify({ id, journey_id }) });
+    await compassRequest(db, '/api/compass/entries', { method: 'POST', body: JSON.stringify({ id: 'paired', journey_id: 'trip-a', visit_id: 'visit-a' }) });
+    expect((await compassRequest(db, '/api/compass/entries/paired', { method: 'PUT', body: JSON.stringify({ journey_id: 'trip-b' }) })).status).toBe(400);
+    expect((await compassRequest(db, '/api/compass/entries/paired', { method: 'PUT', body: JSON.stringify({ visit_id: 'visit-b' }) })).status).toBe(400);
+  });
+
+  it('rejects a customer without the vendor tag as a Visit vendor', async () => {
+    const db = new FakeDb();
+    db.customers.set('ordinary', { id: 'ordinary', account_id: 'account-a', name: 'Tea Friend', tags: '["customer"]' });
+    const response = await compassRequest(db, '/api/curate/visits', { method: 'POST', body: JSON.stringify({ vendor_id: 'ordinary' }) });
+    expect(response.status).toBe(400);
   });
 });

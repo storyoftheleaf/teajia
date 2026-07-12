@@ -28,6 +28,8 @@ interface TeaCompassState {
   // Optional encounter context. Separate from capture-session grouping.
   encounterContextByAccount: Record<string, { journeyId: string | null; visitId: string | null }>;
   setEncounterContext: (entryId: string, journeyId: string | null, visitId: string | null) => void;
+  clearJourneyReferences: (journeyId: string) => void;
+  clearVisitReferences: (visitId: string) => void;
 
   // Browse state
   browseGrouping: BrowseGrouping;
@@ -430,6 +432,20 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           entries: state.entries.map(apply),
           encounterContextByAccount: { ...state.encounterContextByAccount, [scope]: update },
         };
+      }),
+      clearJourneyReferences: (journeyId) => set((state) => {
+        const clear = (entry: TeaCompassEntry) => entry.journeyId === journeyId
+          ? { ...entry, journeyId: null, synced: false, updatedAt: new Date().toISOString() }
+          : entry;
+        const contexts = Object.fromEntries(Object.entries(state.encounterContextByAccount).map(([account, context]) => [account, context.journeyId === journeyId ? { ...context, journeyId: null } : context]));
+        return { entries: state.entries.map(clear), pendingEntries: state.pendingEntries.map(clear), encounterContextByAccount: contexts };
+      }),
+      clearVisitReferences: (visitId) => set((state) => {
+        const clear = (entry: TeaCompassEntry) => entry.visitId === visitId
+          ? { ...entry, visitId: null, synced: false, updatedAt: new Date().toISOString() }
+          : entry;
+        const contexts = Object.fromEntries(Object.entries(state.encounterContextByAccount).map(([account, context]) => [account, context.visitId === visitId ? { ...context, visitId: null } : context]));
+        return { entries: state.entries.map(clear), pendingEntries: state.pendingEntries.map(clear), encounterContextByAccount: contexts };
       }),
 
       setBrowseGrouping: (grouping) => set({ browseGrouping: grouping }),

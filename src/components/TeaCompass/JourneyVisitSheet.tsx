@@ -3,6 +3,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import type { CurateJourney, CurateVisit } from './types';
 import { BottomSheet, SheetOption } from '../shared/BottomSheet';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
 
 interface Props {
   open: boolean;
@@ -28,6 +29,10 @@ export const JourneyVisitSheet: React.FC<Props> = ({ open, journeyId, visitId, o
   const [year, setYear] = useState('');
   const [vendorId, setVendorId] = useState('');
   const [place, setPlace] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const publish = (nextJourneys: CurateJourney[], nextVisits: CurateVisit[]) => {
     setJourneys(nextJourneys); setVisits(nextVisits); onLoaded?.(nextJourneys, nextVisits);
@@ -35,16 +40,18 @@ export const JourneyVisitSheet: React.FC<Props> = ({ open, journeyId, visitId, o
   useEffect(() => {
     if (!open) return;
     setSelectedJourney(journeyId ?? null); setSelectedVisit(visitId ?? null); setEditor(null);
+    setLoading(true); setError(null);
     let active = true;
     Promise.all([api.curateContext.listJourneys(), api.curateContext.listVisits(), api.customers.list()])
       .then(([j, v, customers]) => {
         if (!active) return;
         publish(j.journeys, v.visits);
         const rows = Array.isArray(customers) ? customers : customers.customers ?? [];
-        setVendors(rows.filter((row: any) => !row.tags || String(row.tags).includes('vendor')).map((row: any) => ({ id: row.id, name: row.name })));
-      }).catch(() => { /* Context is optional; capture stays usable offline. */ });
+        setVendors(rows.filter((row: any) => { try { return JSON.parse(row.tags || '[]').includes('vendor'); } catch { return false; } }).map((row: any) => ({ id: row.id, name: row.name })));
+        setLoading(false);
+      }).catch(() => { if (active) { setLoading(false); setError('Could not load context. Check the connection and retry.'); } });
     return () => { active = false; };
-  }, [open, journeyId, visitId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, journeyId, visitId, reloadToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openJourneyEditor = (item?: CurateJourney) => {
     setEditor({ kind: 'journey', item }); setName(item?.name ?? ''); setSeason(item?.season ?? ''); setYear(item?.year ? String(item.year) : '');
@@ -54,45 +61,50 @@ export const JourneyVisitSheet: React.FC<Props> = ({ open, journeyId, visitId, o
     if (item) setSelectedJourney(item.journey_id ?? null);
   };
   const saveJourney = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || pendingAction) return;
+    setPendingAction(true); setError(null);
     const payload = { name: name.trim(), season: season.trim() || null, year: year ? Number(year) : null };
-    const saved = editor?.kind === 'journey' && editor.item
-      ? await api.curateContext.updateJourney(editor.item.id, payload)
-      : await api.curateContext.createJourney(payload);
-    const next = editor?.kind === 'journey' && editor.item ? journeys.map(j => j.id === saved.id ? saved : j) : [...journeys, saved];
-    publish(next, visits); setSelectedJourney(saved.id); setEditor(null);
+    try { const saved = editor?.kind === 'journey' && editor.item ? await api.curateContext.updateJourney(editor.item.id, payload) : await api.curateContext.createJourney(payload);
+      const next = editor?.kind === 'journey' && editor.item ? journeys.map(j => j.id === saved.id ? saved : j) : [...journeys, saved]; publish(next, visits); setSelectedJourney(saved.id); setEditor(null);
+    } catch { setError('Could not save the journey. Your form is preserved; retry when ready.'); } finally { setPendingAction(false); }
   };
   const saveVisit = async () => {
+    if (pendingAction) return;
+    setPendingAction(true); setError(null);
     const payload = { journey_id: selectedJourney, vendor_id: vendorId || null, place: place.trim() || null };
-    const saved = editor?.kind === 'visit' && editor.item
-      ? await api.curateContext.updateVisit(editor.item.id, payload)
-      : await api.curateContext.createVisit(payload);
-    const next = editor?.kind === 'visit' && editor.item ? visits.map(v => v.id === saved.id ? saved : v) : [...visits, saved];
-    publish(journeys, next); setSelectedVisit(saved.id); setSelectedJourney(saved.journey_id ?? null); setEditor(null);
+    try { const saved = editor?.kind === 'visit' && editor.item ? await api.curateContext.updateVisit(editor.item.id, payload) : await api.curateContext.createVisit(payload);
+      const next = editor?.kind === 'visit' && editor.item ? visits.map(v => v.id === saved.id ? saved : v) : [...visits, saved]; publish(journeys, next); setSelectedVisit(saved.id); setSelectedJourney(saved.journey_id ?? null); setEditor(null);
+    } catch { setError('Could not save the visit. Your form is preserved; retry when ready.'); } finally { setPendingAction(false); }
   };
   const deleteJourney = async (item: CurateJourney) => {
-    await api.curateContext.deleteJourney(item.id);
+    if (pendingAction) return; setPendingAction(true); setError(null);
+    try { await api.curateContext.deleteJourney(item.id);
+    useTeaCompassStore.getState().clearJourneyReferences(item.id);
     const nextVisits = visits.map(v => v.journey_id === item.id ? { ...v, journey_id: null } : v);
     publish(journeys.filter(j => j.id !== item.id), nextVisits);
     if (selectedJourney === item.id) setSelectedJourney(null);
+    } catch { setError('Could not delete the journey. Nothing was removed; retry when ready.'); } finally { setPendingAction(false); }
   };
   const deleteVisit = async (item: CurateVisit) => {
-    await api.curateContext.deleteVisit(item.id); publish(journeys, visits.filter(v => v.id !== item.id));
-    if (selectedVisit === item.id) setSelectedVisit(null);
+    if (pendingAction) return; setPendingAction(true); setError(null);
+    try { await api.curateContext.deleteVisit(item.id); useTeaCompassStore.getState().clearVisitReferences(item.id); publish(journeys, visits.filter(v => v.id !== item.id)); if (selectedVisit === item.id) setSelectedVisit(null);
+    } catch { setError('Could not delete the visit. Nothing was removed; retry when ready.'); } finally { setPendingAction(false); }
   };
   const visibleVisits = useMemo(() => visits.filter(v => !selectedJourney || !v.journey_id || v.journey_id === selectedJourney), [visits, selectedJourney]);
 
   return <BottomSheet open={open} onOpenChange={onOpenChange} title="Journey & visit" description="Optional context for where this was encountered" large>
     <div className="space-y-5 px-1">
+      {loading && <p role="status" className="px-3 py-3 text-ui-13 text-tea-text-sec">Loading context…</p>}
+      {error && <div role="alert" className="mx-3 rounded-md border border-tea-border bg-tea-accent-sub p-3 text-ui-13 text-tea-text"><p>{error}</p>{!editor && <button className="tap-target mt-2 text-tea-gold" onClick={() => setReloadToken(value => value + 1)}>Retry</button>}</div>}
       {editor?.kind === 'journey' && <div className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3">
         <input aria-label="Journey name" className={inputClass} value={name} onChange={e => setName(e.target.value)} placeholder="Journey name" />
         <div className="grid grid-cols-2 gap-2"><input aria-label="Journey season" className={inputClass} value={season} onChange={e => setSeason(e.target.value)} placeholder="Season" /><input aria-label="Journey year" inputMode="numeric" className={inputClass} value={year} onChange={e => setYear(e.target.value)} placeholder="Year" /></div>
-        <div className="flex justify-between"><button className="tap-target text-ui-14 text-tea-text-sec" onClick={() => setEditor(null)}>Cancel</button><button className="min-h-11 rounded-md bg-tea-gold px-4 text-ui-14 text-tea-bg" onClick={saveJourney}>Save journey</button></div>
+        <div className="flex justify-between"><button className="tap-target text-ui-14 text-tea-text-sec" onClick={() => setEditor(null)}>Cancel</button><button disabled={pendingAction} className="min-h-11 rounded-md bg-tea-gold px-4 text-ui-14 text-tea-bg disabled:opacity-50" onClick={saveJourney}>{pendingAction ? 'Saving…' : 'Save journey'}</button></div>
       </div>}
       {editor?.kind === 'visit' && <div className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3">
         <select aria-label="Visit vendor" className={inputClass} value={vendorId} onChange={e => setVendorId(e.target.value)}><option value="">No vendor</option>{vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}</select>
         <input aria-label="Visit place" className={inputClass} value={place} onChange={e => setPlace(e.target.value)} placeholder="Place" />
-        <div className="flex justify-between"><button className="tap-target text-ui-14 text-tea-text-sec" onClick={() => setEditor(null)}>Cancel</button><button className="min-h-11 rounded-md bg-tea-gold px-4 text-ui-14 text-tea-bg" onClick={saveVisit}>Save visit</button></div>
+        <div className="flex justify-between"><button className="tap-target text-ui-14 text-tea-text-sec" onClick={() => setEditor(null)}>Cancel</button><button disabled={pendingAction} className="min-h-11 rounded-md bg-tea-gold px-4 text-ui-14 text-tea-bg disabled:opacity-50" onClick={saveVisit}>{pendingAction ? 'Saving…' : 'Save visit'}</button></div>
       </div>}
       <section aria-labelledby="journey-heading">
         <div className="flex min-h-11 items-center justify-between px-3"><h3 id="journey-heading" className="text-ui-11 uppercase tracking-[1.2px] text-tea-text-dim">Journey</h3><button className="tap-target flex items-center gap-1 text-ui-12 text-tea-gold" onClick={() => openJourneyEditor()}><Plus size={14} />New journey</button></div>
