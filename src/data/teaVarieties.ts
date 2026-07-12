@@ -516,7 +516,7 @@ export function buildVarietyDataMap(
 ): Record<string, { type?: string; originRegion?: string; chineseName?: string }> {
   const map: Record<string, { type?: string; originRegion?: string; chineseName?: string }> = {};
   const categories = type
-    ? ([[type, TEA_VARIETIES[type]]] as [string, TeaVariety[]][])
+    ? (Array.isArray(TEA_VARIETIES[type]) ? [[type, TEA_VARIETIES[type]]] : []) as [string, TeaVariety[]][]
     : (Object.entries(TEA_VARIETIES) as [string, TeaVariety[]][]);
   for (const [teaType, entries] of categories) {
     for (const v of entries) {

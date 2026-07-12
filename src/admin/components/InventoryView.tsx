@@ -1962,7 +1962,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
           // Everyday filters stay inline; the rest fold into "More" so the row never overflows.
           // Custom saved views (non-default ids) always stay inline — the operator made them.
-          const PRIMARY_FILTERS = new Set(['All', 'ForSale', 'Alerts', 'Unverified']);
+          const PRIMARY_FILTERS = new Set(['All', 'Working', 'Samples', 'Personal']);
           const isInline = (v: typeof allViews[number]) =>
             !v.id.startsWith('default-') || PRIMARY_FILTERS.has(v.filterType);
           const inlineViews = allViews.filter(isInline);
@@ -1989,6 +1989,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
           return (
             <>
+              <span className="text-ui-10 uppercase tracking-[0.1em] text-tea-text-sec mr-1">Purpose</span>
               {inlineViews.map(view => (
                 <button
                   key={view.id}
@@ -2028,6 +2029,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                             : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-surface'
                         }`}
                       >
+                        <span className="text-ui-10 normal-case tracking-normal text-tea-text-sec">Needs attention</span>
                         {activeIsInMore
                           ? (VIEW_FILTER_LABELS[moreViews.find(v => v.id === activeViewId)!.filterType] || 'More')
                           : 'More'}

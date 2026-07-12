@@ -333,7 +333,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
 const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
-  'session_reserve_grams',
+  'session_reserve_grams', 'inventory_purpose', 'stock_known_at', 'storage_location',
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([

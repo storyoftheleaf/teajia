@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   X as XIcon, ChevronLeft, ChevronRight, ChevronDown, QrCode, Eye, EyeOff, Star, Sparkles,
-  FlaskConical, RefreshCw, User, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
+  FlaskConical, RefreshCw, Pencil, Plus, Loader2, Check, Globe, Receipt, BookOpen,
   Camera, Upload, Crop, Download, MoreHorizontal, Trash2, Wand2, Mic, Square, Store,
 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -22,6 +22,7 @@ import { AutocompleteInput } from '../../components/TeaCompass/AutocompleteInput
 import { buildVarietyDataMap, getTeaVarietySuggestions } from '../../data/teaVarieties';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { getThemeColor } from '../themeUtils';
+import { effectivePurpose, getEffectivePublication, getTeaReadiness } from './inventory/domain';
 import {
   flattenTastingNotes,
   resolveTermLabel,
@@ -909,6 +910,7 @@ export function buildProductUpdatePayload(field: keyof Product, value: any): Rec
     case 'canReorder': return { can_reorder: value ? 1 : 0 };
     case 'isCurated': return { is_curated: value ? 1 : 0 };
     case 'isSample': return { is_sample: value ? 1 : 0 };
+    case 'inventoryPurpose': return { inventory_purpose: value };
     case 'isCustomWisdom': return { is_custom_wisdom: value ? 1 : 0 };
     case 'fixedRetailPriceUSD': return { fixed_retail_price_usd: value ? Number(value) : null };
     case 'shippingRatePerKg': return { shipping_rate_per_kg: Number(value) };
@@ -982,6 +984,16 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
   // Stock spine step 2: only the location owner curates what shows in the shop.
   const isOwnerTier = useAppStore(selectIsOwnerTier);
   const compassEntries = useTeaCompassStore((s) => s.entries);
+  const readiness = product ? getTeaReadiness(product) : null;
+  const publication = product ? getEffectivePublication(product) : null;
+  const readinessLabels: Record<string, string> = {
+    description: 'description', retail_price: 'retail price', classification: 'classification', stock_amount: 'stock amount',
+  };
+  const missingSentence = readiness?.missing.map(key => readinessLabels[key]).reduce((text, item, index, all) => {
+    if (index === 0) return item;
+    if (index === all.length - 1) return `${text}${all.length > 2 ? ',' : ''} and ${item}`;
+    return `${text}, ${item}`;
+  }, '') || '';
 
   // Local state for modals mounted inside the panel
   const [tastingEditorProduct, setTastingEditorProduct] = useState<Product | null>(null);
@@ -1289,6 +1301,42 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               </div>
             </div>
 
+            <div className="px-3 pb-3 space-y-2">
+              <div role="group" aria-label="Inventory purpose" className="flex flex-wrap items-center gap-1.5">
+                <span className="text-ui-10 uppercase tracking-[0.08em] text-admin-text-sec mr-1">Purpose</span>
+                {(['working', 'sample', 'personal'] as const).map((purpose) => (
+                  <button
+                    key={purpose}
+                    aria-label={`${purpose[0].toUpperCase()}${purpose.slice(1)} purpose`}
+                    aria-pressed={effectivePurpose(product) === purpose}
+                    onClick={() => handleUpdate(product.id, 'inventoryPurpose', purpose)}
+                    className={`admin-pill ${effectivePurpose(product) === purpose ? 'admin-pill-on' : ''}`}
+                  >
+                    {purpose === 'working' ? 'Working' : purpose === 'sample' ? 'Sample holding' : 'Personal'}
+                  </button>
+                ))}
+              </div>
+              {readiness?.state !== 'not_applicable' && (
+                <div className="text-ui-12 text-admin-text-sec">
+                  Readiness: {readiness?.state === 'ready' ? 'Ready' : `Missing ${missingSentence}`}
+                </div>
+              )}
+              {publication && (
+                <div className="text-ui-12 text-admin-text-sec">
+                  Publication: {publication.state === 'published' ? 'Published' : `Hidden — ${publication.operatorGate ? 'listing on' : 'listing off'}; ${publication.locationGate ? 'location shown' : 'location held'}`}
+                </div>
+              )}
+              {readiness?.state === 'not_ready' && (
+                <button
+                  data-compass-entry-id={product.sourceCompassEntryId || undefined}
+                  onClick={() => navigate(product.sourceCompassEntryId
+                    ? `/admin/compass?tab=buying&entry=${encodeURIComponent(product.sourceCompassEntryId)}&develop=1`
+                    : `/admin/compass?developProduct=${encodeURIComponent(product.id)}`)}
+                  className="min-h-11 inline-flex items-center text-ui-12 text-admin-text-sec hover:text-admin-text"
+                >Develop in Curate</button>
+              )}
+            </div>
+
             {/* Visibility / promotion / classification toggles.
                   Lives directly under the identity card — these get toggled
                   daily and shouldn't be hidden in a collapsible. Single flex-wrap
@@ -1319,14 +1367,11 @@ const ProductEditPanelImpl: React.FC<ProductEditPanelProps> = ({
               <button onClick={() => handleUpdate(product.id, 'isCurated', !product.isCurated)} className={`admin-pill ${product.isCurated ? 'admin-pill-on' : ''}`} title="Top Pick — featured on the storefront">
                 <Sparkles size={10} /> Top Pick
               </button>
-              <button onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`} title="Sample-size offering">
-                <FlaskConical size={10} /> Sample
+              <button aria-label="Sample-size offering" onClick={() => handleUpdate(product.id, 'isSample', !product.isSample)} className={`admin-pill ${product.isSample ? 'admin-pill-on' : ''}`} title="Sample-size offering">
+                <FlaskConical size={10} /> Sample size
               </button>
               <button onClick={() => handleUpdate(product.id, 'canReorder', !product.canReorder)} className={`admin-pill ${product.canReorder ? 'admin-pill-on' : ''}`} title="Restockable when sold out">
                 <RefreshCw size={10} /> Restockable
-              </button>
-              <button onClick={() => handleUpdate(product.id, 'isPersonal', !product.isPersonal)} className={`admin-pill ${product.isPersonal ? 'admin-pill-on' : ''}`} title="Personal stock — not for sale">
-                <User size={10} /> Mine
               </button>
               <CollectionPill productId={product.id} />
             </div>

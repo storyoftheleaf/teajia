@@ -58,6 +58,7 @@ export interface Product {
   isSample?: boolean; // Sample/trial tea not yet committed to inventory
   inventoryPurpose?: InventoryPurpose | null; // Canonical purpose; legacy flags remain during migration
   stockKnownAt?: string | null; // Set when the on-hand quantity is known, including a known zero
+  inventoryLocation?: string | null; // Physical shelf/bin; blank holdings surface in Missing location
   inTransit?: boolean; // Stock ordered but not yet physically arrived
   inTransitGrams?: number; // Quantity currently in transit (grams)
   inTransitEta?: string; // Expected arrival date (ISO date string)

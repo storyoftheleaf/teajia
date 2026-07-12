@@ -7,6 +7,7 @@ import {
   TEA_COLUMN_DEFS,
   TEAWARE_COLUMN_DEFS,
 } from './config';
+import { effectivePurpose, getTeaReadiness } from './domain';
 import type { InventoryCategory, InventorySortDirection } from './types';
 
 type UseInventoryProductsArgs = {
@@ -94,6 +95,16 @@ export function useInventoryProducts({
 
     if (filterType === 'Alerts') {
       result = result.filter(p => p.status === 'Draft' || p.stockGrams <= p.lowStockThreshold || p.pricePerGramUSD === 0 || p.recheckStock);
+    } else if (filterType === 'NeedsDevelopment') {
+      result = result.filter(p => getTeaReadiness(p).state === 'not_ready');
+    } else if (filterType === 'ToTaste') {
+      result = result.filter(p => p.tastingSource !== 'owner');
+    } else if (filterType === 'Reorder') {
+      result = result.filter(p => p.canReorder && p.stockGrams <= p.lowStockThreshold);
+    } else if (filterType === 'LowStock') {
+      result = result.filter(p => p.stockGrams <= p.lowStockThreshold);
+    } else if (filterType === 'MissingLocation') {
+      result = result.filter(p => !p.inventoryLocation?.trim());
     } else if (filterType === 'Drafts') {
       result = result.filter(p => p.status === 'Draft');
     } else if (filterType === 'Pending') {
@@ -103,11 +114,11 @@ export function useInventoryProducts({
     } else if (filterType === 'Unpublished') {
       result = result.filter(p => !p.isPublic);
     } else if (filterType === 'Samples') {
-      result = result.filter(p => p.isSample);
+      result = result.filter(p => effectivePurpose(p) === 'sample');
     } else if (filterType === 'Personal') {
-      result = result.filter(p => p.isPersonal);
-    } else if (filterType === 'ForSale') {
-      result = result.filter(p => !p.isPersonal && !p.isSample);
+      result = result.filter(p => effectivePurpose(p) === 'personal');
+    } else if (filterType === 'Working' || filterType === 'ForSale') {
+      result = result.filter(p => effectivePurpose(p) === 'working');
     } else if (filterType === 'Untasted') {
       result = result.filter(p => p.tastingSource !== 'owner');
     } else if (filterType === 'Archived') {
