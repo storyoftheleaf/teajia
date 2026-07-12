@@ -3226,7 +3226,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   );
 
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ?")
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')) WHERE id = ? AND account_id = ?")
       .bind(invoice_id, accountId)
   );
 
@@ -13729,15 +13729,19 @@ const MY_ORDER_OWNERSHIP_SQL = `(
   OR (? != '' AND i.customer_id IN (
     SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
   ))
-  OR (? != '' AND i.customer_whatsapp = ?)
+  OR (? != '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(i.customer_whatsapp, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?)
 )`;
+
+function normalizeOrderPhone(value: string | null | undefined): string {
+  return (value || '').replace(/[ \-()+]/g, '');
+}
 
 async function loadMyOrderOwnership(env: Env, userId: string, accountId: string) {
   const userRow = await env.DB.prepare(
     'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
   ).bind(userId).first() as { email: string | null; phone: string | null } | null;
   const email = (userRow?.email || '').trim().toLowerCase();
-  const phone = (userRow?.phone || '').trim();
+  const phone = normalizeOrderPhone(userRow?.phone);
   return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, accountId, email, email, accountId, phone, phone] };
 }
 
@@ -13796,7 +13800,7 @@ const handleGetMyOrderDetail: Handler = async (request, env, params) => {
   const ownership = await loadMyOrderOwnership(env, userId, accountId);
   const invoice = await env.DB.prepare(
     `SELECT i.id, i.invoice_number, i.status, i.created_at, i.payment_date,
-            NULL AS fulfilled_at, i.display_currency, i.shipping_cost_usd
+            i.fulfilled_at, i.display_currency, i.shipping_cost_usd
      FROM invoices i
      WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
        AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}

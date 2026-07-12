@@ -203,6 +203,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_status TEXT DEFAULT 'unpaid',    -- unpaid | partial | paid
     payment_date TEXT,
     payment_method TEXT,
+    fulfilled_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 

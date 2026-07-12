@@ -1391,8 +1391,8 @@ async function commitRecordSale(env: Env, m: Extract<PendingMutation, { kind: 'r
   stmts.push(env.DB.prepare(
     `INSERT INTO invoices
        (id, account_id, invoice_number, customer_name, customer_whatsapp, customer_id,
-        display_currency, shipping_cost_usd, status, inventory_deducted, notes, payment_status)
-     VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Filled', 1, ?, 'unpaid')`
+        display_currency, shipping_cost_usd, status, inventory_deducted, fulfilled_at, notes, payment_status)
+     VALUES (?, ?, ?, ?, ?, ?, 'USD', 0, 'Filled', 1, datetime('now'), ?, 'unpaid')`
   ).bind(
     invoiceId, m.accountId, invoiceNumber,
     m.customerName, m.customerWhatsapp, m.customerId, m.notes,
@@ -2570,7 +2570,7 @@ async function commitFulfillInvoice(
       .bind(m.invoiceId, m.accountId)
   );
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ?")
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')) WHERE id = ? AND account_id = ?")
       .bind(m.invoiceId, m.accountId)
   );
   stmts.push(

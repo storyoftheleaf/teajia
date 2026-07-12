@@ -22,6 +22,7 @@ type FakeDbState = {
     status: string;
     payment_status: string;
     payment_date: string | null;
+    fulfilled_at: string | null;
     inventory_deducted: number;
   };
   lineItems: Array<{ product_id: string | null; quantity: number }>;
@@ -168,6 +169,7 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
   if (sql.startsWith("update invoices set status = 'filled', inventory_deducted = 1")) {
     state.invoice.status = 'Filled';
     state.invoice.inventory_deducted = 1;
+    state.invoice.fulfilled_at ||= '2026-07-13 00:00:00';
     return { success: true, meta: { changes: 1 } };
   }
 
@@ -183,6 +185,7 @@ function makeState(stockGrams: number): FakeDbState {
       status: 'Pending',
       payment_status: 'unpaid',
       payment_date: null,
+      fulfilled_at: null,
       inventory_deducted: 0,
     },
     lineItems: [
@@ -245,6 +248,8 @@ describe('MCP invoice fulfillment', () => {
     expect(result.items_fulfilled).toBe(1);
     expect(state.invoice.status).toBe('Filled');
     expect(state.invoice.inventory_deducted).toBe(1);
+    expect(state.invoice.fulfilled_at).toBe('2026-07-13 00:00:00');
+    expect(state.batchedSql.some(sql => sql.includes("fulfilled_at = coalesce(fulfilled_at, datetime('now'))"))).toBe(true);
 
     const ledgerIndex = state.batchedSql.findIndex(sql => sql.startsWith('insert into stock_ledger'));
     const invoiceIndex = state.batchedSql.findIndex(sql => sql.startsWith('update invoices set status ='));
@@ -282,6 +287,14 @@ describe('MCP invoice fulfillment', () => {
     expect(state.ledger).toEqual([]);
     expect(state.invoice.status).toBe('Filled');
     expect(state.invoice.inventory_deducted).toBe(1);
+  });
+
+  it('preserves an existing fulfillment timestamp', async () => {
+    const state = makeState(100);
+    state.invoice.fulfilled_at = '2026-07-01 01:02:03';
+    const result = await fulfillInvoice(state);
+    expect(result.committed).toBe(true);
+    expect(state.invoice.fulfilled_at).toBe('2026-07-01 01:02:03');
   });
 
   it('deducts only product-backed lines when custom lines are present', async () => {

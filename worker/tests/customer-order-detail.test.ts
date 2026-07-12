@@ -3,11 +3,12 @@ import worker from '../src/index';
 
 const JWT_SECRET = 'order-detail-secret';
 const invoices = [
-  { id: 'inv-a', account_id: 'acct-a', invoice_number: 'A-001', customer_id: 'customer-a', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 3, created_at: '2026-07-01', payment_date: '2026-07-02', deleted_at: null },
+  { id: 'inv-a', account_id: 'acct-a', invoice_number: 'A-001', customer_id: 'customer-a', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 3, created_at: '2026-07-01', payment_date: '2026-07-02', fulfilled_at: '2026-07-03T04:05:06Z', deleted_at: null },
   { id: 'inv-other-user', account_id: 'acct-a', invoice_number: 'A-002', customer_id: 'customer-other', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
   { id: 'inv-other-account', account_id: 'acct-b', invoice_number: 'B-001', customer_id: 'customer-a-b', customer_whatsapp: null, status: 'Filled', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
   { id: 'inv-draft', account_id: 'acct-a', invoice_number: 'A-D', customer_id: 'customer-a', customer_whatsapp: null, status: 'Draft', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
   { id: 'inv-void', account_id: 'acct-a', invoice_number: 'A-V', customer_id: 'customer-a', customer_whatsapp: null, status: 'Void', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-01', payment_date: null, deleted_at: null },
+  { id: 'inv-phone', account_id: 'acct-a', invoice_number: 'A-P', customer_id: null, customer_whatsapp: '+1 (23)', status: 'Filled', display_currency: 'USD', shipping_cost_usd: 0, created_at: '2026-07-04', payment_date: null, fulfilled_at: '2026-07-04', deleted_at: null },
 ];
 const customers = [
   { id: 'customer-a', account_id: 'acct-a', user_id: 'user-a', email: 'member@example.com' },
@@ -17,33 +18,53 @@ const customers = [
 const lines = [
   { id: 'line-1', account_id: 'acct-a', invoice_id: 'inv-a', product_id: 'product-1', custom_name: null, product_name: 'Oolong', quantity: 2, price_at_sale: 4 },
   { id: 'line-2', account_id: 'acct-a', invoice_id: 'inv-a', product_id: null, custom_name: 'Tea tin', product_name: null, quantity: 1, price_at_sale: 5 },
+  { id: 'line-cross', account_id: 'acct-b', invoice_id: 'inv-a', product_id: null, custom_name: 'Other tenant', product_name: null, quantity: 1, price_at_sale: 100 },
 ];
 
 class OrderDb {
+  statements: Array<{ sql: string; values: any[] }> = [];
+  private ownershipValid(sql: string, values: any[], offset: number) {
+    const expected = ['user-a', 'acct-a', 'member@example.com', 'member@example.com', 'acct-a', '123', '123'];
+    return sql.includes('select id from customers where user_id = ? and account_id = ?')
+      && sql.includes('select id from customers where lower(email) = ? and account_id = ?')
+      && sql.includes("replace(replace(replace(replace(replace(coalesce(i.customer_whatsapp, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?")
+      && JSON.stringify(values.slice(offset)) === JSON.stringify(expected);
+  }
+  private listTotalsValid(sql: string) {
+    return sql.includes('select invoice_id, account_id')
+      && sql.includes('group by invoice_id, account_id')
+      && sql.includes('t.invoice_id = i.id and t.account_id = i.account_id');
+  }
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
-      bind: (...input: any[]) => { values = input; return statement; },
+      bind: (...input: any[]) => { values = input; this.statements.push({ sql: normalized, values: [...input] }); return statement; },
       first: async () => {
         if (normalized === 'select platform_role from users where id = ?') return { platform_role: null };
         if (normalized.includes('from account_members am')) return { role: 'owner', permissions: '{}', kind: 'location' };
         if (normalized.includes('select status from accounts')) return { status: 'active' };
-        if (normalized.includes('select email, phone from users')) return { email: 'Member@Example.com', phone: '+123' };
+        if (normalized.includes('select email, phone from users')) return { email: 'Member@Example.com', phone: '+1 (23)' };
         if (normalized.includes('select whatsapp_number, contact_email from accounts')) return { whatsapp_number: '+62800', contact_email: 'orders@store.test' };
         if (normalized.includes('from invoices i')) {
           const [id, accountId] = values;
+          if (!this.ownershipValid(normalized, values, 2)) return null;
           const invoice = invoices.find(row => row.id === id && row.account_id === accountId && !row.deleted_at && !['Draft', 'Void'].includes(row.status));
           if (!invoice) return null;
           const customer = customers.find(row => row.id === invoice.customer_id && row.account_id === accountId);
-          return customer?.user_id === 'user-a' || customer?.email.toLowerCase() === 'member@example.com' || invoice.customer_whatsapp === '+123' ? { ...invoice } : null;
+          return customer?.user_id === 'user-a' || customer?.email.toLowerCase() === 'member@example.com' || invoice.customer_whatsapp?.replace(/[^0-9]/g, '') === '123' ? { ...invoice } : null;
         }
         return null;
       },
       all: async () => {
-        if (normalized.includes('from invoice_line_items ili')) return { results: lines.filter(row => row.invoice_id === values[0] && row.account_id === values[1]).map(row => ({ ...row })) };
+        if (normalized.includes('from invoice_line_items ili')) {
+          const scoped = normalized.includes('where ili.invoice_id = ? and ili.account_id = ?') && values[0] === 'inv-a' && values[1] === 'acct-a';
+          return { results: lines.filter(row => row.invoice_id === values[0] && (!scoped || row.account_id === values[1])).map(row => ({ ...row })) };
+        }
         if (normalized.includes('from invoices i')) {
           const accountId = values[0];
-          return { results: invoices.filter(row => row.account_id === accountId && row.customer_id === 'customer-a' && !['Draft', 'Void'].includes(row.status)).map(row => ({ ...row, line_total: 13, line_count: 2 })) };
+          if (!this.ownershipValid(normalized, values, 1)) return { results: invoices.filter(row => row.account_id === accountId).map(row => ({ ...row, line_total: 13, line_count: 2 })) };
+          const totalsSafe = this.listTotalsValid(normalized);
+          return { results: invoices.filter(row => row.account_id === accountId && (row.customer_id === 'customer-a' || row.customer_whatsapp?.replace(/[^0-9]/g, '') === '123') && !['Draft', 'Void'].includes(row.status)).map(row => ({ ...row, line_total: row.id === 'inv-a' ? (totalsSafe ? 13 : 113) : 0, line_count: row.id === 'inv-a' ? (totalsSafe ? 2 : 3) : 0 })) };
         }
         return { results: [] };
       },
@@ -60,7 +81,7 @@ describe('customer order detail', () => {
     const list = await (await get()).json() as any;
     const response = await get('inv-a'); expect(response.status).toBe(200);
     const detail = await response.json() as any;
-    expect(detail).toMatchObject({ id: 'inv-a', invoice_number: 'A-001', status: 'Filled', created_at: '2026-07-01', payment_date: '2026-07-02', fulfilled_at: null, currency: 'USD', subtotal_amount_usd: 13, shipping_amount_usd: 3, total_amount_usd: 16, contact: { whatsapp: '+62800', email: 'orders@store.test' } });
+    expect(detail).toMatchObject({ id: 'inv-a', invoice_number: 'A-001', status: 'Filled', created_at: '2026-07-01', payment_date: '2026-07-02', fulfilled_at: '2026-07-03T04:05:06Z', currency: 'USD', subtotal_amount_usd: 13, shipping_amount_usd: 3, total_amount_usd: 16, contact: { whatsapp: '+62800', email: 'orders@store.test' } });
     expect(detail.items).toEqual([
       { id: 'line-1', product_id: 'product-1', name: 'Oolong', quantity: 2, unit_price_usd: 4, line_total_usd: 8 },
       { id: 'line-2', product_id: null, name: 'Tea tin', quantity: 1, unit_price_usd: 5, line_total_usd: 5 },
@@ -69,4 +90,16 @@ describe('customer order detail', () => {
   });
 
   it.each(['inv-other-user', 'inv-other-account', 'inv-draft', 'inv-void'])('hides unowned or unavailable invoice %s', async id => { expect((await get(id)).status).toBe(404); });
+
+  it('uses the same normalized-phone ownership predicate and bindings for list and detail', async () => {
+    const db = new OrderDb();
+    const listResponse = await worker.fetch(new Request('https://test.dev/api/me/orders', { headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': 'acct-a' } }), { DB: db, JWT_SECRET } as any);
+    expect((await listResponse.json() as any).orders.map((order: any) => order.id)).toContain('inv-phone');
+    const detailResponse = await worker.fetch(new Request('https://test.dev/api/me/orders/inv-phone', { headers: { Authorization: `Bearer ${await token()}`, 'X-Teajia-Account': 'acct-a' } }), { DB: db, JWT_SECRET } as any);
+    expect(detailResponse.status).toBe(200);
+    const invoiceQueries = db.statements.filter(statement => statement.sql.includes('from invoices i'));
+    expect(invoiceQueries).toHaveLength(2);
+    expect(invoiceQueries[0].values.slice(1)).toEqual(['user-a', 'acct-a', 'member@example.com', 'member@example.com', 'acct-a', '123', '123']);
+    expect(invoiceQueries[1].values.slice(2)).toEqual(invoiceQueries[0].values.slice(1));
+  });
 });
