@@ -143,9 +143,17 @@ test.describe('Curate field capture preservation', () => {
   });
 
   test('keeps the single Done commit affordance', async ({ page }) => {
+    let promotions = 0;
+    await page.route('**/api/compass/entries/*/promote', route => {
+      promotions += 1;
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'unexpected-product' }) });
+    });
     await openCompass(page);
+    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Encounter only');
     await expect(page.getByRole('button', { name: /Done/ }).first()).toBeVisible();
     await expect(page.locator('[data-testid="save-mode-personal"], [data-testid="save-mode-inventory"]')).toHaveCount(0);
+    await page.getByRole('button', { name: /Done/ }).first().click();
+    await expect.poll(() => promotions).toBe(0);
   });
 
   test('begins immediately with no Journey or Visit setup gate', async ({ page }) => {

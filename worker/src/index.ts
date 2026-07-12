@@ -8866,6 +8866,10 @@ const handlePromoteCompassEntry: Handler = async (request, env, params) => {
     // edits never lose it. Replaceable deliberately, never displaced.
     bag_photo_url: photos[0] ?? null,
     status: 'Draft',
+    // Inventory creation and storefront publication are independent choices.
+    // Schema defaults predate that boundary, so private must be explicit.
+    is_public: 0,
+    shown_in_shop: 0,
     vendor: entry.vendor_name ?? null,
     vendor_id: vendorId,
     stock_grams: stockGrams,

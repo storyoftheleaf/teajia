@@ -18,7 +18,6 @@ import { CompassIcon } from './CompassIcon';
 import { SyncIndicator } from './SyncIndicator';
 import { SessionStack } from './SessionStack';
 import { CaptureCard, type CaptureCardActions } from './CaptureCard';
-import { useCommitAndPromote } from './useCommitAndPromote';
 import { BrowseView } from './BrowseView';
 import { LedgerView } from './LedgerView';
 import { useVoiceRecorder } from './useVoiceRecorder';
@@ -110,29 +109,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Every Compass save auto-promotes to a Draft product. The decision
-  // (personal note vs. for-sale) moves to /admin/capture triage time;
-  // capture itself stays friction-free.
-  const { commitAndPromote, busy: promoting, lastResult: promoteResult } = useCommitAndPromote();
-  const [justPromoted, setJustPromoted] = useState(false);
-  // Promote hit a dead connection — the entry is queued and the sync
-  // heartbeat will keep retrying. Tell the user instead of staying silent
-  // (the old behavior looked like the capture vanished).
-  const [promoteQueued, setPromoteQueued] = useState(false);
-
-  useEffect(() => {
-    if (!promoteResult) return;
-    if (promoteResult.promoted) {
-      setJustPromoted(true);
-      const t = setTimeout(() => setJustPromoted(false), 2200);
-      return () => clearTimeout(t);
-    }
-    if (promoteResult.promotionError) {
-      setPromoteQueued(true);
-      const t = setTimeout(() => setPromoteQueued(false), 6000);
-      return () => clearTimeout(t);
-    }
-  }, [promoteResult]);
 
   // Mode: sourcing (editing an entry), library (browse past captures), or buying (ledger).
   // Tasting (the Tasting Journal) is its own surface at /account/journal — not a Compass mode.
@@ -409,10 +385,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     // Capture committed entry info before it's removed from session
     const committed = activeEntryId ? getEntry(activeEntryId) : null;
 
-    // If save mode is 'inventory', sync + promote in the background. Runs once
-    // per commit regardless of which Done button (tea or teaware) was clicked.
-    if (activeEntryId) void commitAndPromote(activeEntryId);
-
     // If this compass entry is linked to a sample, write tasting data back
     if (committed && entryIsSample(committed) && committed.id && committed.tasting &&
         Object.values(committed.tasting).some((v) => Array.isArray(v) ? v.length > 0 : v != null)) {
@@ -462,7 +434,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         activeEntryId ? getEntry(activeEntryId)?.category || 'tea' : 'tea'
       );
     }
-  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary, commitAndPromote]);
+  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary]);
 
   const handleDoneClick = useCallback(() => {
     if (!activeEntryId) return;
@@ -1190,22 +1162,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             )}
           </AnimatePresence>
 
-          {/* Floating "Added to drafts" toast — replaces the inline strip
-              that used to live in the gone mobile action bar. */}
-          <AnimatePresence>
-            {justPromoted && (
-              <motion.div
-                key="promote-toast"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                className="lg:hidden fixed left-1/2 -translate-x-1/2 z-30 bottom-nav-gap inline-flex items-center gap-1.5 text-ui-11 text-tea-gold bg-tea-surface border border-tea-border rounded-full px-3 py-1.5 shadow-lg"
-              >
-                <Check size={11} /> Added to drafts
-              </motion.div>
-            )}
-          </AnimatePresence>
-
         </div>
         {/* END MOBILE */}
 
@@ -1673,21 +1629,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   )}
                 </AnimatePresence>
 
-                {showCaptureActionBar && justPromoted && (
-                  <div className="flex items-center justify-end px-3 py-1.5 bg-tea-bg border-b border-tea-border">
-                    <span className="text-ui-11 text-tea-gold inline-flex items-center gap-1">
-                      <Check size={11} /> Added to drafts
-                    </span>
-                  </div>
-                )}
-                {showCaptureActionBar && promoteQueued && !justPromoted && (
-                  <div className="flex items-center justify-end px-3 py-1.5 bg-tea-bg border-b border-tea-border">
-                    <span className="text-ui-11 text-tea-text-sec">
-                      Saved on this phone — drafts will update when the connection returns
-                    </span>
-                  </div>
-                )}
-
                 <div className="flex items-stretch bg-tea-surface">
                   {/* Taste / Want / Buy */}
                   {showCaptureActionBar && (
@@ -1817,13 +1758,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   <button
                     type="button"
                     onClick={handleDoneClick}
-                    disabled={!activeEntryId || promoting}
+                    disabled={!activeEntryId}
                     data-testid="compass-done-desktop"
                     className="flex-[1.4] flex items-center justify-center py-2.5 text-tea-gold font-bold text-ui-13 disabled:opacity-30 transition-opacity"
                     style={{ fontFamily: 'var(--font-display)', letterSpacing: '0.1em' }}
                     aria-label="Done"
                   >
-                    {promoting ? <Loader2 size={14} className="animate-spin" /> : 'Done'}
+                    Done
                   </button>
                 </div>
               </div>

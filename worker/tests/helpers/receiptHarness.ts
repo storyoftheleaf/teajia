@@ -149,9 +149,11 @@ function incrementRow(target: Map<string, Row>, sql: string, values: unknown[], 
 function scoped(map: Map<string, Row>, id: unknown, sql: string, values: unknown[]) {
   const row = map.get(String(id));
   if (!row) return null;
-  const accountIndex = 1;
-  if (/account_id\s*=\s*\?/.test(sql) && row.account_id !== values[accountIndex]) return null;
-  if (sql.includes('user_id = ?') && row.user_id !== values[2]) return null;
+  const keys = [...norm(sql).matchAll(/\b(id|account_id|user_id)\s*=\s*\?/g)].map(match => match[1]);
+  const accountIndex = keys.indexOf('account_id');
+  const userIndex = keys.indexOf('user_id');
+  if (accountIndex >= 0 && row.account_id !== values[accountIndex]) return null;
+  if (userIndex >= 0 && row.user_id !== values[userIndex]) return null;
   return { ...row };
 }
 

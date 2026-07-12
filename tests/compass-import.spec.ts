@@ -199,6 +199,11 @@ test.describe('Curate Import panel', () => {
   });
 
   test('persists corrections and opens the exact accepted server Compass identity', async ({ page }) => {
+    let promotions = 0;
+    await page.route('**/api/compass/entries/*/promote', route => {
+      promotions += 1;
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'unexpected-product' }) });
+    });
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Paste a list or invoice text').fill('Wrong Name — 12');
@@ -214,6 +219,7 @@ test.describe('Curate Import panel', () => {
       const state = JSON.parse(localStorage.getItem('teajia-compass') || '{}').state;
       return state?.entries?.some((entry: { id: string }) => entry.id === 'compass-0');
     })).toBe(true);
+    expect(promotions).toBe(0);
     const synced = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname === '/api/compass/sync' && (request.postData() || '').includes('compass-0'));
     await page.getByPlaceholder(/Teaware name/).filter({ visible: true }).fill('Correct Name Edited');
     await synced;

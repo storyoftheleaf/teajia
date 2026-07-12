@@ -502,7 +502,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           draftsByAccount,
         };
       },
-      version: 5,
+      version: 6,
       migrate: migrateCompassPersistedState,
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
@@ -548,6 +548,11 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
             : entry;
           previous.entries = (previous.entries ?? []).map(migrateSample);
           previous.pendingEntries = (previous.pendingEntries ?? []).map(migrateSample);
+        }
+        if (version < 6) {
+          // Older builds queued automatic Done-time promotions. They are not
+          // evidence of a deliberate Inventory choice, so never replay them.
+          previous.pendingPromotions = [];
         }
         return previous;
 }

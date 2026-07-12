@@ -104,7 +104,7 @@ export function compassHasPendingWork(): boolean {
     || s.entries.some(e => !e.synced);
 }
 
-/** Retry promote-to-draft for entries whose promotion failed at commit time.
+/** Retry explicit Inventory creation requests that failed after the user chose it.
  *  Runs after entry sync so the worker can see the entry. Promotion is
  *  idempotent server-side (returns the existing draft), so retries are safe. */
 async function retryPendingPromotions(): Promise<void> {
@@ -160,7 +160,7 @@ export async function syncCompassEntries(): Promise<number> {
   const unsynced = store.entries.filter(e => !e.synced);
 
   if (unsynced.length === 0) {
-    // Nothing to push, but a failed promote may still be queued.
+    // Nothing to push, but an explicit Inventory creation may still be queued.
     await retryPendingPromotions();
     return 0;
   }

@@ -70,6 +70,8 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
     }
   };
 
+  // Buying records acquisition intent. Inventory starts only when a receipt
+  // is accepted, or from the explicit action in the Curate Library.
   const handleConfirmAdd = useCallback(() => {
     if (!entry) return;
 

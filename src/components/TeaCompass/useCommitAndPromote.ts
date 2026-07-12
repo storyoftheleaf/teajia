@@ -10,12 +10,7 @@ export interface CommitResult {
   promotionError?: string;
 }
 
-/**
- * Commits a Compass entry locally, then syncs it to D1 and promotes it to
- * a Draft product so it lands in /admin/capture for triage. The decision
- * about whether the tea is for sale or a private note happens in triage,
- * not at capture time — capture is friction-free.
- */
+/** Explicitly creates an Inventory record for an already captured encounter. */
 export function useCommitAndPromote() {
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const addPendingPromotion = useTeaCompassStore((s) => s.addPendingPromotion);
@@ -23,7 +18,7 @@ export function useCommitAndPromote() {
   const [busy, setBusy] = useState(false);
   const [lastResult, setLastResult] = useState<CommitResult | null>(null);
 
-  const commitAndPromote = useCallback(
+  const createInventoryRecord = useCallback(
     async (entryId: string): Promise<CommitResult> => {
       if (!hasToken()) {
         const result: CommitResult = { promoted: false };
@@ -63,5 +58,5 @@ export function useCommitAndPromote() {
     [updateEntry, addPendingPromotion, removePendingPromotion],
   );
 
-  return { commitAndPromote, busy, lastResult };
+  return { createInventoryRecord, busy, lastResult };
 }
