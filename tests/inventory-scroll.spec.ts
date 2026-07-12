@@ -406,4 +406,31 @@ test.describe('Inventory page — scroll regression guard', () => {
     await primary.getByText('Wares', { exact: true }).click();
     await expect(primary.getByRole('textbox', { name: /search teaware/i })).toHaveValue('');
   });
+
+  test('desktop edit mode places Done last and Type beside the product name', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'Desktop Chrome', 'Desktop edit toolbar behavior');
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+
+    const primary = page.getByTestId('inventory-primary-row');
+    await primary.getByText('Edit', { exact: true }).click();
+
+    const done = page.getByTestId('inventory-done');
+    const more = primary.getByRole('button', { name: 'Open inventory actions' });
+    const [doneLeft, moreRight] = await Promise.all([
+      done.evaluate(el => el.getBoundingClientRect().left),
+      more.evaluate(el => el.getBoundingClientRect().right),
+    ]);
+    expect(doneLeft).toBeGreaterThanOrEqual(moreRight);
+
+    const inlineTypes = page.getByTestId('inline-type-selector');
+    const inlineTypeCount = await inlineTypes.count();
+    expect(inlineTypeCount).toBeGreaterThan(0);
+    await expect(page.getByRole('combobox', { name: 'Tea type' })).toHaveCount(0);
+
+    const firstInlineType = inlineTypes.first();
+    await expect(firstInlineType).toHaveValue('');
+    expect(await firstInlineType.locator('option').count()).toBeGreaterThan(2);
+    await shot(page, 'Desktop-Chrome-edit-mode-inline-type');
+  });
 });

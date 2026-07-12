@@ -1733,7 +1733,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   {(vendorFilter || batchFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-12 truncate px-0.5 normal-case tracking-normal text-tea-gold">{vendorFilter || activeBatch?.label || 'Batch'} ×</button>}
                   <div className="hidden md:flex items-center gap-1 ml-auto">
                     <button type="button" onClick={() => setGlossaryMode(!glossaryMode)} aria-pressed={glossaryMode} className="tap-target px-2 text-tea-text-sec hover:text-tea-text">Glossary</button>
-                    <button type="button" onClick={() => setIsEditMode(!isEditMode)} aria-pressed={isEditMode} className="tap-target px-2 text-tea-text-sec hover:text-tea-text">{isEditMode ? 'Done' : 'Edit'}</button>
+                    {!isEditMode && <button type="button" onClick={() => setIsEditMode(true)} aria-pressed={false} className="tap-target px-2 text-tea-text-sec hover:text-tea-text">Edit</button>}
                     <button type="button" onClick={onAddClick} aria-label="Add new tea" className="tap-target px-2 text-tea-text-sec hover:text-tea-text">Add</button>
                     <AnchoredMenu align="right" width={176} open={showColumnsPopover} onOpenChange={setShowColumnsPopover} trigger={(props) => <button {...props} className="tap-target px-2 text-tea-text-sec hover:text-tea-text" aria-label="Show or hide columns">Cols</button>}>
                       {() => activeColumnDefs.map(col => <label key={col.key} role="menuitem" className="flex items-center gap-2 px-3 py-2 text-ui-11 text-tea-text-sec"><input type="checkbox" checked={inventoryColumns.includes(col.key)} onChange={() => !('alwaysVisible' in col && col.alwaysVisible) && toggleInventoryColumn(col.key)} disabled={'alwaysVisible' in col && col.alwaysVisible} className="accent-tea-gold" />{col.label}</label>)}
@@ -1743,6 +1743,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     </AnchoredMenu>
                   </div>
                   <button type="button" onClick={() => setShowOptions(!showOptions)} aria-label="Open inventory actions" aria-expanded={showOptions} className="tap-target px-0.5 text-tea-text-sec hover:text-tea-text"><MoreHorizontal size={14} /></button>
+                  {!isMobile && isEditMode && <button data-testid="inventory-done" type="button" onClick={() => setIsEditMode(false)} aria-pressed={true} className="tap-target ml-auto px-2 text-tea-text-sec hover:text-tea-text">Done</button>}
                 </>
               )}
             </div>
