@@ -193,4 +193,41 @@ test.describe('Inventory page — scroll regression guard', () => {
       await shot(page, `${testInfo.project.name}-scrolled`);
     }
   });
+
+  test('three-row inventory header keeps only column headings sticky', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'Mobile Chrome', 'Narrow inventory header contract');
+    await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
+
+    const primary = page.getByTestId('inventory-primary-row');
+    const purpose = page.getByTestId('inventory-purpose-row');
+    const columns = page.getByTestId('inventory-column-row').first();
+
+    await expect(primary).toBeVisible();
+    await expect(purpose).toBeVisible();
+    await expect(columns).toBeVisible();
+
+    for (const name of ['Tea', 'Wares', 'Incoming', 'Retail', 'Group', 'Sort', 'Bali']) {
+      await expect(primary.getByText(name, { exact: true })).toBeVisible();
+    }
+    await expect(primary.getByRole('combobox', { name: 'Select currency' })).toBeVisible();
+    await expect(primary.getByRole('combobox', { name: 'Select currency' })).toHaveValue('USD');
+    await expect(primary.getByRole('button', { name: /search/i })).toBeVisible();
+    await expect(primary.getByRole('button', { name: /inventory actions/i })).toBeVisible();
+
+    for (const name of ['Purpose', 'All', 'Working', 'Samples', 'Personal', 'Needs attention']) {
+      await expect(purpose.getByText(name, { exact: true })).toBeVisible();
+    }
+
+    await expect(primary).toHaveCSS('position', 'static');
+    await expect(purpose).toHaveCSS('position', 'static');
+    await expect(columns).toHaveCSS('position', 'sticky');
+
+    await primary.getByRole('button', { name: /search/i }).click();
+    await expect(primary.getByRole('textbox', { name: /search tea or source/i })).toBeVisible();
+    await expect(page.getByTestId('inventory-primary-row')).toHaveCount(1);
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
 });

@@ -557,7 +557,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       )}
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
-        {isOnInventory && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 flex items-center gap-2 flex-none relative">
+        {isOnInventory && <div className="z-modal bg-tea-surface/90 backdrop-blur-xl px-3 md:px-6 py-1.5 hidden md:flex items-center gap-2 flex-none relative">
            {/* Inventory: Tea / Teaware toggle + search */}
            {isOnInventory ? (
              <>
@@ -754,6 +754,9 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
                       onRefresh={refetchProducts}
                       externalCategory={inventoryCategory}
                       externalSearchQuery={inventorySearchQuery}
+                      onSearchQueryChange={setInventorySearchQuery}
+                      onCategoryChange={setInventoryCategory}
+                      activeAccountName={activeMembership?.account_name || ''}
                       externalShowOptions={inventoryOptionsOpen}
                       onOptionsToggle={setInventoryOptionsOpen}
                     />

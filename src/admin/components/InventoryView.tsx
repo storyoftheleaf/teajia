@@ -4,7 +4,7 @@ import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
-  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History, PackageCheck
+  AlertTriangle, Archive, Pencil, ArrowUpDown, ArrowUp, ArrowDown, Layers, Settings, MoreHorizontal, Check, X as XIcon, Eye, EyeOff, Star, Sparkles, FlaskConical, RefreshCw, ChevronDown, ChevronRight, ChevronLeft, MapPin, Search, Columns, Square, CheckSquare, Leaf, Image as ImageIcon, Globe, Tag, PenLine, User, Receipt, History, PackageCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
@@ -74,6 +74,9 @@ interface InventoryViewProps {
   externalCategory?: 'tea' | 'teaware';
   /** Search query controlled from parent top bar */
   externalSearchQuery?: string;
+  onSearchQueryChange?: (query: string) => void;
+  onCategoryChange?: (category: 'tea' | 'teaware') => void;
+  activeAccountName?: string;
   /** Options menu controlled from parent top bar */
   externalShowOptions?: boolean;
   onOptionsToggle?: (open: boolean) => void;
@@ -107,7 +110,8 @@ const SavedPill: React.FC<{ isVisible: boolean }> = ({ isVisible }) => {
 export const InventoryView: React.FC<InventoryViewProps> = ({
   products, isLoading, isError, error, onImportClick, onAddClick, onRefresh,
   externalCategory = 'tea', externalSearchQuery = '',
-  externalShowOptions, onOptionsToggle,
+  externalShowOptions, onOptionsToggle, onSearchQueryChange, onCategoryChange,
+  activeAccountName = '',
 }) => {
   const { showToast } = useToast();
 
@@ -176,6 +180,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [showGroupByDropdown, setShowGroupByDropdown] = useState(false);
   const [glossaryMode, setGlossaryMode] = useState(false);
   const [viewTabsExpanded, setViewTabsExpanded] = useState(false);
+  const [mobileSearchExpanded, setMobileSearchExpanded] = useState(false);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchTriggerRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (mobileSearchExpanded) mobileSearchInputRef.current?.focus();
+  }, [mobileSearchExpanded]);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   // Viewport width, tracked so the action rail can tuck against the left edge of
   // the ProductEditPanel (whose width is responsive: md 360, lg 420, xl 440).
@@ -1651,7 +1661,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     <div
       className="h-full flex flex-col overflow-hidden bg-tea-bg"
     >
-      <div className="flex justify-end px-4 py-2 border-b border-tea-border bg-tea-bg">
+      <div className="hidden md:flex justify-end px-4 py-2 border-b border-tea-border bg-tea-bg">
         <button onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); }} className="min-h-11 px-3 inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text rounded-md hover:bg-tea-accent-sub">
           <PackageCheck size={16} aria-hidden="true" /> Incoming
         </button>
@@ -1659,7 +1669,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* --- VENDOR FILTER BANNER --- */}
       {vendorFilter && (
-        <div className="flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
+        <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
           <button
             onClick={() => navigate('/admin/people')}
             className="flex items-center gap-1.5 text-xs text-tea-text-sec hover:text-tea-text transition-colors"
@@ -1685,7 +1695,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       )}
 
       {batchFilter && (
-        <div className="flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
+        <div className="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-tea-surface/60 border-b border-tea-accent-sub">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Layers size={14} className="text-tea-gold flex-shrink-0" />
             <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec">Batch</span>
@@ -1713,7 +1723,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           of the first phone screen before any tea was visible; letting it scroll
           reclaims that height. The backdrop-blur is kept for the brief moment it
           overlaps the rail slide-in. */}
-      <div className={`md:hidden bg-tea-bg/95 backdrop-blur-md transition-colors ${isEditMode ? 'bg-tea-surface/95' : ''}`}>
+      <div className="hidden">
         {/* Shift the whole bar clear of the action rail when it slides in from the
             right, matching the rail's 200ms slide so the tabs/sort row are never
             painted over. Mirrors the desktop toolbar's paddingRight treatment. */}
@@ -2702,6 +2712,63 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               maxHeight: 'calc(100dvh - 100px)',
             } : undefined}
           >
+          <div className="md:hidden bg-tea-bg">
+            <div
+              data-testid="inventory-primary-row"
+              className="static flex h-10 w-screen max-w-[100vw] items-center gap-0 px-0.5 border-b border-tea-border text-ui-8 uppercase tracking-normal whitespace-nowrap overflow-hidden"
+            >
+              <button type="button" aria-pressed={inventoryCategory === 'tea'} onClick={() => onCategoryChange?.('tea')} className={`tap-target px-1 ${inventoryCategory === 'tea' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Tea</button>
+              <button type="button" aria-pressed={inventoryCategory === 'teaware'} onClick={() => onCategoryChange?.('teaware')} className={`tap-target px-1 ${inventoryCategory === 'teaware' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Wares</button>
+              {mobileSearchExpanded ? (
+                <div className="flex flex-1 min-w-0 items-center gap-1 px-1">
+                  <Search size={12} className="shrink-0 text-tea-text-sec" aria-hidden="true" />
+                  <input
+                    ref={mobileSearchInputRef}
+                    value={searchQuery}
+                    onChange={(event) => onSearchQueryChange?.(event.target.value)}
+                    onKeyDown={(event) => { if (event.key === 'Escape' || event.key === 'Enter') { setMobileSearchExpanded(false); requestAnimationFrame(() => mobileSearchTriggerRef.current?.focus()); } }}
+                    aria-label={inventoryCategory === 'tea' ? 'Search tea or source' : 'Search teaware'}
+                    placeholder={inventoryCategory === 'tea' ? 'Search tea or source…' : 'Search teaware…'}
+                    className="min-w-0 flex-1 bg-transparent text-ui-12 normal-case tracking-normal text-tea-text outline-none placeholder:text-tea-text-dim"
+                  />
+                  <button type="button" onClick={() => { setMobileSearchExpanded(false); requestAnimationFrame(() => mobileSearchTriggerRef.current?.focus()); }} aria-label="Close inventory search" className="tap-target text-tea-text-sec hover:text-tea-text"><XIcon size={12} /></button>
+                </div>
+              ) : (
+                <>
+                  <button ref={mobileSearchTriggerRef} type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target px-1 text-tea-text-sec hover:text-tea-text"><Search size={13} /></button>
+                  <button type="button" onClick={() => { const next = new URLSearchParams(searchParams); next.set('incoming', '1'); setSearchParams(next); }} className="tap-target px-1 text-tea-text-sec hover:text-tea-text">Incoming</button>
+                  <button type="button" onClick={() => setPriceMode(priceMode === 'retail' ? 'cost' : 'retail')} aria-label={`Showing ${priceMode} prices, switch price mode`} className="tap-target px-1 text-tea-text-sec hover:text-tea-text">{priceMode === 'retail' ? 'Retail' : 'Cost'}</button>
+                  <AnchoredMenu align="right" width={160} open={showMobileGroupBy} onOpenChange={setShowMobileGroupBy} trigger={(props) => <button {...props} className="tap-target px-1 text-tea-text-sec hover:text-tea-text" aria-label="Group inventory">Group</button>}>
+                    {(close) => GROUPBY_OPTIONS.map(opt => <button key={opt.value} role="menuitem" onClick={() => { setInventoryGroupBy(opt.value || null); close(); }} className={`w-full px-3 py-2 text-left text-ui-12 ${inventoryGroupBy === opt.value ? 'text-tea-gold' : 'text-tea-text-sec'}`}>{opt.label}</button>)}
+                  </AnchoredMenu>
+                  <AnchoredMenu align="right" width={176} open={showMobileSort} onOpenChange={setShowMobileSort} trigger={(props) => <button {...props} className="tap-target px-1 text-tea-text-sec hover:text-tea-text" aria-label="Sort inventory">Sort</button>}>
+                    {(close) => ([['productName', 'Name'], ['stockGrams', 'Stock'], ['pricePerGramUSD', 'Price'], ['year', 'Year']] as const).map(([key, label]) => <button key={key} role="menuitem" onClick={() => { setInventorySortConfig([{ key, direction: 'asc' }]); close(); }} className="w-full px-3 py-2 text-left text-ui-12 text-tea-text-sec">{label}</button>)}
+                  </AnchoredMenu>
+                  <span className="inline-flex shrink-0 items-center gap-0.5 px-0.5 text-tea-text-sec normal-case tracking-normal" title={activeAccountName}><MapPin size={11} className="shrink-0" /><span>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span></span>
+                  <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target w-7 shrink-0 appearance-none bg-transparent px-0 text-ui-8 text-tea-text-sec outline-none"><option value={currency}>{currency}</option></select>
+                  {(vendorFilter || batchFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-12 truncate px-0.5 normal-case tracking-normal text-tea-gold">{vendorFilter || activeBatch?.label || 'Batch'} ×</button>}
+                  <button type="button" onClick={() => setShowOptions(!showOptions)} aria-label="Open inventory actions" aria-expanded={showOptions} className="tap-target px-0.5 text-tea-text-sec hover:text-tea-text"><MoreHorizontal size={14} /></button>
+                </>
+              )}
+            </div>
+
+            {(() => {
+              const allViews = savedViews.length > 0 ? savedViews.filter(v => inventoryCategory === 'teaware' ? v.id.includes('teaware') : !v.id.includes('teaware')) : activeDefaultViews;
+              const purposeNames = ['All', 'Working', 'Samples', 'Personal'];
+              const purposeViews = purposeNames.map(name => allViews.find(view => view.filterType === name)).filter((view): view is NonNullable<typeof view> => Boolean(view));
+              const purposeIds = new Set(purposeViews.map(view => view.id));
+              const attentionViews = allViews.filter(view => !purposeIds.has(view.id));
+              const selectView = (view: typeof allViews[number]) => { setGlossaryMode(false); setActiveView(view.id); setInventoryColumns(view.columns); setInventorySortConfig(view.sortConfig); setFilterType(view.filterType); setInventoryGroupBy(view.groupBy); };
+              return (
+                <div data-testid="inventory-purpose-row" className="static flex h-10 w-screen max-w-[100vw] items-center gap-0 px-0.5 border-b border-tea-border whitespace-nowrap text-ui-9 uppercase tracking-normal overflow-hidden">
+                  <span className="px-1 text-tea-text-dim">Purpose</span>
+                  {purposeViews.map(view => <button key={view.id} type="button" onClick={() => selectView(view)} aria-pressed={activeViewId === view.id} className={`tap-target relative px-1.5 ${activeViewId === view.id ? 'text-tea-gold after:absolute after:inset-x-1 after:bottom-1 after:h-px after:bg-tea-gold' : 'text-tea-text-sec hover:text-tea-text'}`}>{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}
+                  <button type="button" onClick={() => setViewTabsExpanded(!viewTabsExpanded)} aria-expanded={viewTabsExpanded} className="tap-target ml-auto inline-flex items-center gap-0.5 px-1 text-tea-text-sec hover:text-tea-text"><span>Needs attention</span><Plus size={10} /></button>
+                  {viewTabsExpanded && attentionViews.length > 0 && <div role="menu" className="absolute right-1 top-20 z-popover w-44 rounded-md border border-tea-border bg-tea-elevated py-1 shadow-xl">{attentionViews.map(view => <button key={view.id} role="menuitem" onClick={() => { selectView(view); setViewTabsExpanded(false); }} className="block w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec hover:bg-tea-accent-sub">{view.name || VIEW_FILTER_LABELS[view.filterType] || view.filterType}</button>)}</div>}
+                </div>
+              );
+            })()}
+          </div>
           {/* Top strip — the orienting line: which view + how many (left), with
               stock-history demoted to a quiet trailing link (right) rather than a
               loud leading verb. It lives INSIDE the scroll box (above the table)
@@ -2709,7 +2776,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               column header row pinned — this is the single statement of "what am
               I looking at," so the count is not repeated in the controls band. */}
           {processedProducts.length > 0 && (
-            <div className="flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
+            <div className="hidden md:flex items-center justify-between gap-3 px-4 py-2 border-b border-tea-border">
               <div className="flex items-baseline gap-2 min-w-0">
                 {(() => {
                   const activeView = [...(savedViews.length > 0 ? savedViews : (inventoryCategory === 'teaware' ? DEFAULT_TEAWARE_VIEWS : DEFAULT_TEA_VIEWS))].find(v => v.id === activeViewId);
@@ -2746,7 +2813,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
-                <thead className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
+                <thead data-testid="inventory-column-row" className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
                   <tr>
                     {renderCols.map((col, i) => (
                       <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
@@ -2852,7 +2919,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </colgroup>
 
                 {/* Canonical header — auto-aligned: numerics right, others left. */}
-                <thead className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
+                <thead data-testid="inventory-column-row" className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
                     <tr>
                         {splitView ? (
                           renderSplitCols.map(col => (
