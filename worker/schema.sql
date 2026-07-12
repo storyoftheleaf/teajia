@@ -401,6 +401,7 @@ CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(a
 CREATE TABLE IF NOT EXISTS curate_journeys (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
   name TEXT NOT NULL,
   season TEXT,
   year INTEGER,
@@ -415,6 +416,7 @@ CREATE INDEX IF NOT EXISTS idx_curate_journeys_account ON curate_journeys(accoun
 CREATE TABLE IF NOT EXISTS curate_visits (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL,
+  created_by_user_id TEXT NOT NULL,
   journey_id TEXT,
   vendor_id TEXT,
   vendor_name TEXT,

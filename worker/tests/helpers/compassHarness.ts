@@ -47,6 +47,10 @@ class FakeStatement {
         return row && row.account_id === this.values[1] ? { ...row } : null;
       }
     }
+    if (sql.includes('from customers where id = ? and account_id = ?')) {
+      const row = this.db.customers.get(String(this.values[0]));
+      return row && row.account_id === this.values[1] ? { ...row } : null;
+    }
     return null;
   }
 
@@ -146,6 +150,7 @@ export class FakeDb {
   rows = new Map<string, CompassRow>();
   journeys = new Map<string, Record<string, unknown>>();
   visits = new Map<string, Record<string, unknown>>();
+  customers = new Map<string, Record<string, unknown>>();
 
   prepare(sql: string) {
     return new FakeStatement(sql, this);

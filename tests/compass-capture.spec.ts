@@ -158,7 +158,7 @@ test.describe('Curate field capture preservation', () => {
     await openCompass(page);
     await page.getByRole('button', { name: 'Add journey or visit context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
-    await page.getByRole('button', { name: /Chen Family/ }).click();
+    await page.getByRole('button', { name: 'Chen Family Taipei' }).click();
     await page.getByRole('button', { name: 'Apply context' }).click();
     await expect(page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ })).toBeVisible();
 

@@ -8537,7 +8537,7 @@ const handleGetTeawareCategories: Handler = async (request, env) => {
 // ── Curate encounter context (optional Journey + Visit) ──
 
 const JOURNEY_FIELDS = ['name', 'season', 'year', 'started_at', 'ended_at', 'notes'] as const;
-const VISIT_FIELDS = ['journey_id', 'vendor_id', 'vendor_name', 'place', 'visited_at', 'notes'] as const;
+const VISIT_FIELDS = ['journey_id', 'vendor_id', 'place', 'visited_at', 'notes'] as const;
 
 const handleListCurateJourneys: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
@@ -8556,8 +8556,8 @@ const handleCreateCurateJourney: Handler = async (request, env) => {
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
   const present = JOURNEY_FIELDS.filter(field => body[field] !== undefined);
   await env.DB.prepare(
-    `INSERT INTO curate_journeys (id, account_id, ${present.join(', ')}) VALUES (${['?', '?', ...present.map(() => '?')].join(', ')})`
-  ).bind(id, ctx.accountId, ...present.map(field => body[field] ?? null)).run();
+    `INSERT INTO curate_journeys (id, account_id, created_by_user_id, ${present.join(', ')}) VALUES (${['?', '?', '?', ...present.map(() => '?')].join(', ')})`
+  ).bind(id, ctx.accountId, ctx.userId, ...present.map(field => body[field] ?? null)).run();
   const created = await env.DB.prepare('SELECT * FROM curate_journeys WHERE id = ? AND account_id = ?')
     .bind(id, ctx.accountId).first();
   return json(created, 201);
@@ -8609,10 +8609,16 @@ const handleCreateCurateVisit: Handler = async (request, env) => {
   if ('error' in ctx) return ctx.error;
   const body = await request.json() as Record<string, unknown>;
   if (!await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
+  if (body.vendor_id != null) {
+    const vendor = await env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string } | null;
+    if (!vendor) return json({ error: 'Vendor not found' }, 404);
+    body.vendor_name = vendor.name ?? null;
+  }
   const id = typeof body.id === 'string' && body.id ? body.id : crypto.randomUUID();
-  const present = VISIT_FIELDS.filter(field => body[field] !== undefined);
-  await env.DB.prepare(`INSERT INTO curate_visits (id, account_id${present.length ? `, ${present.join(', ')}` : ''}) VALUES (${['?', '?', ...present.map(() => '?')].join(', ')})`)
-    .bind(id, ctx.accountId, ...present.map(field => body[field] ?? null)).run();
+  const present: string[] = VISIT_FIELDS.filter(field => body[field] !== undefined);
+  if (body.vendor_id != null) present.push('vendor_name');
+  await env.DB.prepare(`INSERT INTO curate_visits (id, account_id, created_by_user_id${present.length ? `, ${present.join(', ')}` : ''}) VALUES (${['?', '?', '?', ...present.map(() => '?')].join(', ')})`)
+    .bind(id, ctx.accountId, ctx.userId, ...present.map(field => body[field] ?? null)).run();
   return json(await env.DB.prepare('SELECT * FROM curate_visits WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first(), 201);
 };
 
@@ -8623,7 +8629,13 @@ const handleUpdateCurateVisit: Handler = async (request, env, params) => {
   if (!owned) return json({ error: 'Visit not found' }, 404);
   const body = await request.json() as Record<string, unknown>;
   if (body.journey_id !== undefined && !await curateJourneyOwned(env, ctx.accountId, body.journey_id)) return json({ error: 'Journey not found' }, 404);
-  const fields = VISIT_FIELDS.filter(field => body[field] !== undefined);
+  if (body.vendor_id !== undefined && body.vendor_id != null) {
+    const vendor = await env.DB.prepare('SELECT id, name FROM customers WHERE id = ? AND account_id = ?').bind(body.vendor_id, ctx.accountId).first() as { name?: string } | null;
+    if (!vendor) return json({ error: 'Vendor not found' }, 404);
+    body.vendor_name = vendor.name ?? null;
+  }
+  const fields: string[] = VISIT_FIELDS.filter(field => body[field] !== undefined);
+  if (body.vendor_id != null) fields.push('vendor_name');
   if (fields.length === 0) return json({ error: 'No fields to update' }, 400);
   await env.DB.prepare(`UPDATE curate_visits SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
     .bind(...fields.map(field => body[field] ?? null), params.id, ctx.accountId).run();

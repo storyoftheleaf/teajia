@@ -17,8 +17,10 @@ describe('Curate Journey and Visit context', () => {
       method: 'POST', body: JSON.stringify({ id: 'taiwan-2026', name: 'Taiwan', season: 'Spring', year: 2026 }),
     });
     expect(journey.status).toBe(201);
+    expect(await journey.clone().json()).toMatchObject({ created_by_user_id: 'user-a' });
 
     for (const [id, vendor_name] of [['visit-chen', 'Chen Family'], ['visit-lin', 'Lin Tea House']]) {
+      db.customers.set(`${id}-vendor`, { id: `${id}-vendor`, account_id: 'account-a', name: vendor_name });
       const response = await compassRequest(db, '/api/curate/visits', {
         method: 'POST', body: JSON.stringify({ id, journey_id: 'taiwan-2026', vendor_id: `${id}-vendor`, vendor_name, place: 'Taipei' }),
       });
@@ -31,14 +33,17 @@ describe('Curate Journey and Visit context', () => {
 
   it('allows a Visit without a Journey and preserves its vendor snapshot when edited', async () => {
     const db = new FakeDb();
+    db.customers.set('vendor-1', { id: 'vendor-1', account_id: 'account-a', name: 'Authoritative Shop' });
     const created = await compassRequest(db, '/api/curate/visits', {
-      method: 'POST', body: JSON.stringify({ id: 'walk-in', vendor_id: 'vendor-1', vendor_name: 'Old Shop' }),
+      method: 'POST', body: JSON.stringify({ id: 'walk-in', vendor_id: 'vendor-1', vendor_name: 'Caller Spoof' }),
     });
     expect(created.status).toBe(201);
+    expect(await created.clone().json()).toMatchObject({ created_by_user_id: 'user-a', vendor_name: 'Authoritative Shop' });
+    db.customers.get('vendor-1')!.name = 'Renamed Shop';
     const updated = await compassRequest(db, '/api/curate/visits/walk-in', {
       method: 'PUT', body: JSON.stringify({ place: 'Yingge' }),
     });
-    expect(await updated.json()).toMatchObject({ journey_id: null, vendor_id: 'vendor-1', vendor_name: 'Old Shop', place: 'Yingge' });
+    expect(await updated.json()).toMatchObject({ journey_id: null, vendor_id: 'vendor-1', vendor_name: 'Authoritative Shop', place: 'Yingge' });
   });
 
   it('scopes reads, updates, and deletes to the active account', async () => {

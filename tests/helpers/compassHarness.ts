@@ -5,7 +5,7 @@ const memberships = [{ account_id: 'acct-bali', account_name: 'Teajia Bali', rol
 const unhandledByPage = new WeakMap<Page, string[]>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[] }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; contextEmpty?: boolean }) {
   unhandledByPage.set(page, []);
   await page.addInitScript(({ token, items }) => {
     localStorage.setItem('teajia_token', token);
@@ -26,11 +26,17 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'GET /api/products/public': [], 'GET /api/user/favorites': { favorites: [] },
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },
-      'GET /api/notes': { notes: [] }, 'GET /api/customers': [],
+      'GET /api/notes': { notes: [] }, 'GET /api/customers': [{ id: 'vendor-chen', name: 'Chen Family', tags: '["vendor"]' }],
       'GET /api/compass/incoming': [], 'GET /api/compass/entries': [], 'POST /api/compass/sync': [],
       'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
-      'GET /api/curate/journeys': { journeys: [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }] },
-      'GET /api/curate/visits': { visits: [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }] },
+      'GET /api/curate/journeys': { journeys: options?.contextEmpty ? [] : [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }] },
+      'GET /api/curate/visits': { visits: options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }] },
+      'POST /api/curate/journeys': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan', season: 'Autumn', year: 2026 },
+      'PUT /api/curate/journeys/journey-created': { id: 'journey-created', account_id: 'acct-bali', name: 'Yunnan edited', season: 'Autumn', year: 2026 },
+      'DELETE /api/curate/journeys/journey-created': { success: true },
+      'POST /api/curate/visits': { id: 'visit-created', account_id: 'acct-bali', journey_id: 'journey-created', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Kunming' },
+      'PUT /api/curate/visits/visit-created': { id: 'visit-created', account_id: 'acct-bali', journey_id: 'journey-created', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Dali' },
+      'DELETE /api/curate/visits/visit-created': { success: true },
     };
     if (!(requestKey in responses)) {
       const diagnostic = requestKey;
