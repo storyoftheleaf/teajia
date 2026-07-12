@@ -70,6 +70,26 @@ describe('reviewed Curate receipts', () => {
     }
   });
 
+  it('honors legacy sample and personal flags when creating and accepting proposals', async () => {
+    for (const legacy of [
+      { is_sample: 1, is_personal: 0, purpose: 'sample' },
+      { is_sample: 0, is_personal: 1, purpose: 'personal' },
+    ] as const) {
+      const db = ReceiptDb.seeded();
+      db.products.set('held', { id: 'held', account_id: 'account-a', type: 'Oolong', stock_grams: 10, inventory_purpose: null, ...legacy });
+      db.entries.get('entry-a')!.draft_product_id = 'held';
+      const create = await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: 'working', quantity: 10, unit: 'g', acquisition_kind: 'purchase', idempotency_key: `legacy-create-${legacy.purpose}` }) });
+      expect(create.status).toBe(409);
+      expect(await create.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: legacy.purpose, intended_purpose: 'working' });
+
+      const proposal = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', { method: 'POST', body: JSON.stringify({ purpose: legacy.purpose, quantity: 10, unit: 'g', acquisition_kind: 'purchase', idempotency_key: `legacy-accept-${legacy.purpose}` }) })).json() as any;
+      db.proposals.get(proposal.id)!.purpose = 'working';
+      const accept = await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' });
+      expect(accept.status).toBe(409);
+      expect(await accept.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: legacy.purpose, intended_purpose: 'working' });
+    }
+  });
+
   it('allows matching purpose and canonically assigns an unclassified legacy holding once', async () => {
     for (const currentPurpose of ['working', null] as const) {
       const db = ReceiptDb.seeded();

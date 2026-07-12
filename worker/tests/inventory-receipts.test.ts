@@ -91,6 +91,25 @@ describe('inventory receipt endpoints', () => {
     expect(db.products.get('product-a')!.stock_grams).toBe(5);
   });
 
+  it('honors legacy sample and personal flags when creating and receiving expected stock', async () => {
+    for (const legacy of [
+      { is_sample: 1, is_personal: 0, purpose: 'sample' },
+      { is_sample: 0, is_personal: 1, purpose: 'personal' },
+    ] as const) {
+      const db = ReceiptDb.seeded();
+      db.products.set('product-a', { id: 'product-a', account_id: 'account-a', stock_grams: 5, inventory_purpose: null, ...legacy });
+      const create = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: `legacy-create-${legacy.purpose}`, source_kind: 'invoice', lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'working' }] }) });
+      expect(create.status).toBe(409);
+      expect(await create.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: legacy.purpose, intended_purpose: 'working' });
+
+      const pending = ReceiptDb.seededWithReceipt();
+      Object.assign(pending.products.get('product-a')!, { inventory_purpose: null, ...legacy });
+      const receive = await receiptRequest(pending, '/api/inventory/receipt-lines/line-a/receive', { method: 'POST', body: JSON.stringify({ quantity: 10 }) });
+      expect(receive.status).toBe(409);
+      expect(await receive.json()).toMatchObject({ code: 'purpose_conflict', current_purpose: legacy.purpose, intended_purpose: 'working' });
+    }
+  });
+
   it('normalizes receipt provenance from consistent lines and rejects missing or mixed sources', async () => {
     const db = ReceiptDb.seeded(); db.products.set('product-a', { id: 'product-a', account_id: 'account-a' });
     const inferred = await receiptRequest(db, '/api/inventory/receipts', { method: 'POST', body: JSON.stringify({ idempotency_key: 'create-receipt:inferred', lines: [{ product_id: 'product-a', quantity: 10, unit: 'g', intended_purpose: 'sample', source_kind: 'vendor-note' }] }) });

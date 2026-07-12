@@ -10,7 +10,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 
 interface Env {
   DB: D1Database;
@@ -8995,8 +8995,12 @@ const RECEIPT_MUTABLE_FIELDS = new Set([
 ]);
 
 function purposeConflict(product: Record<string, any> | null, intendedPurpose: string): Response | null {
-  const currentPurpose = product?.inventory_purpose;
-  if (!currentPurpose || currentPurpose === intendedPurpose) return null;
+  if (!product) return null;
+  // Rows predating both the canonical purpose and legacy flags were genuinely
+  // unclassified; preserve the existing one-time assignment policy for them.
+  if (product.inventory_purpose == null && product.is_sample == null && product.is_personal == null) return null;
+  const currentPurpose = effectiveInventoryPurpose(product).purpose;
+  if (currentPurpose === intendedPurpose) return null;
   return json({
     error: `This holding is ${currentPurpose}; receiving it as ${intendedPurpose} requires a separate holding or deliberate purpose conversion.`,
     code: 'purpose_conflict',
