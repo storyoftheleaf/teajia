@@ -51,15 +51,18 @@ class MovementStatement {
     if (sql.includes('select id, email, platform_role from users')) return { id: this.values[0], email: 'actor@example.com', platform_role: null };
     if (sql.includes('select status from accounts')) return { status: 'active' };
     if (sql.includes('from stock_ledger where account_id = ? and idempotency_key = ?')) return this.db.ledger.find(row => row.account_id === this.values[0] && row.idempotency_key === this.values[1]) || null;
-    if (sql.includes('from products where id = ? and account_id = ?')) { const row = this.db.products.get(this.values[0]); return row?.account_id === this.values[1] ? { ...row } : null; }
+    if (sql.includes('from inventory_receipt_lines l join inventory_receipts r')) { const line = this.db.receiptLines.get(this.values[0]); return line?.account_id === this.values[1] ? { ...line } : null; }
+    if (sql.includes('from products where id = ? and account_id = ?') || sql.includes('from products where id=? and account_id=?')) { const row = this.db.products.get(this.values[0]); return row?.account_id === this.values[1] ? { ...row } : null; }
     if (sql.includes('from batches where id = ? and account_id = ?')) return this.values[0] === 'batch' && this.values[1] === 'account-a' ? { id: 'batch' } : null;
     if (sql.includes('from tea_compass_entries where id = ? and account_id = ?')) return this.values[0] === 'entry' && this.values[1] === 'account-a' ? { id: 'entry' } : null;
+    if (sql.includes('from invoices where id = ? and account_id = ?')) return this.values[0] === 'inv' && this.values[1] === 'account-a' ? { id: 'inv' } : null;
     return null;
   }
   async all() { return { results: [] }; }
   async run() {
     const sql = normalize(this.sql);
     if (sql.startsWith('update products set')) {
+      if (this.db.forceStale) return { meta: { changes: 0 } };
       if (sql.includes('case when id = ?')) {
         const [sourceId, sourceAfter, destinationAfter, knownAt, account, , destinationId, , , sourceBefore, , , destinationBefore] = this.values;
         const source = this.db.products.get(sourceId); const destination = this.db.products.get(destinationId);
@@ -75,16 +78,21 @@ class MovementStatement {
       row[column] = newBalance; row.stock_known_at = knownAt; return { meta: { changes: 1 } };
     }
     if (sql.startsWith('update product_listings')) {
-      const [newBalance, productId, account, expectedProductBalance] = this.values;
+      const [newBalance, productId, account, guard] = this.values;
       const product = this.db.products.get(productId);
-      if (product?.account_id === account && Number(product.stock_grams || 0) === Number(expectedProductBalance)) this.db.listings.set(productId, newBalance);
+      if (product?.account_id === account && product.stock_known_at === guard) this.db.listings.set(productId, newBalance);
       return { meta: { changes: 1 } };
     }
     if (sql.startsWith('insert into stock_ledger')) {
-      const [id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id] = this.values;
+      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_known_at === guard)) return { meta: { changes: 0 } };
+      const [id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, , movement_fingerprint] = this.values;
       if (this.db.ledger.some(row => row.account_id === account_id && row.idempotency_key === idempotency_key)) throw new Error('UNIQUE idempotency');
-      this.db.ledger.push({ id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id });
+      this.db.ledger.push({ id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint });
       return { meta: { changes: 1 } };
+    }
+    if ((sql.startsWith('insert into batches') || sql.startsWith('update inventory_receipt')) && sql.includes('stock_known_at')) {
+      const guard = this.values.at(-1); if (!this.db.products.values().some(row => row.stock_known_at === guard)) return { meta: { changes: 0 } };
+      this.db.receiptSideEffects++; return { meta: { changes: 1 } };
     }
     return { meta: { changes: 1 } };
   }
@@ -93,9 +101,11 @@ class MovementDb {
   products = new Map<string, Row>([
     ['tea', { id: 'tea', account_id: 'account-a', stock_grams: 20, quantity_units: null }],
     ['destination', { id: 'destination', account_id: 'account-a', stock_grams: 5, quantity_units: null }],
+    ['pot', { id: 'pot', account_id: 'account-a', stock_grams: 0, quantity_units: 4 }],
     ['other', { id: 'other', account_id: 'account-b', stock_grams: 10, quantity_units: null }],
   ]);
   ledger: Row[] = []; listings = new Map<string, number>([['tea', 20], ['destination', 5]]); failBatchAt: number | null = null;
+  receiptLines = new Map<string, Row>(); receiptSideEffects = 0; forceStale = false;
   prepare(sql: string) { return new MovementStatement(sql, this); }
   async batch(statements: MovementStatement[]) {
     const snapshot = structuredClone({ products: [...this.products], ledger: this.ledger, listings: [...this.listings] });
@@ -107,6 +117,7 @@ const SECRET = 'test-secret';
 function b64(input: string | Uint8Array) { const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input; let out = ''; for (const byte of bytes) out += String.fromCharCode(byte); return btoa(out); }
 async function jwt(account = 'account-a') { const now = Math.floor(Date.now() / 1000); const data = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify({ sub: 'actor', email: 'actor@example.com', active_account_id: account, iat: now, exp: now + 3600 }))}`; const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return `${data}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))))}`; }
 async function movementRequest(db: MovementDb, product: string, body: Row, account = 'account-a') { return worker.fetch(new Request(`https://test/api/products/${product}/movements`, { method: 'POST', headers: { Authorization: `Bearer ${await jwt(account)}`, 'X-Teajia-Account': account, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: SECRET } as any); }
+async function receiveRequest(db: MovementDb, lineId: string, requestBody: Row) { return worker.fetch(new Request(`https://test/api/inventory/receipt-lines/${lineId}/receive`, { method:'POST', headers:{ Authorization:`Bearer ${await jwt()}`, 'X-Teajia-Account':'account-a', 'Content-Type':'application/json' }, body:JSON.stringify(requestBody) }), { DB:db, JWT_SECRET:SECRET } as any); }
 const body = (movement_type: string, extra: Row = {}) => ({ movement_type, quantity: 3, unit: 'g', expected_balance: 20, idempotency_key: `${movement_type}-1`, note: 'field note', ...extra });
 
 describe('POST product stock movements', () => {
@@ -125,12 +136,29 @@ describe('POST product stock movements', () => {
     expect(first.status).toBe(201); expect(retry.status).toBe(200); expect(db.ledger).toHaveLength(1); expect(db.products.get('tea')?.stock_grams).toBe(17);
     expect((await movementRequest(db, 'tea', body('gift', { expected_balance: 17, idempotency_key: 'sale-1' }))).status).toBe(409);
   });
+  it.each([
+    { note: 'different note' }, { unit: 'unit', quantity: 3 }, { source_invoice_id: 'inv', source_invoice_number: 'INV-1' },
+    { expected_balance: 19 }, { movement_type: 'transfer', destination_product_id: 'destination' },
+  ])('rejects idempotency-key reuse when material fingerprint changes %#', async (change) => {
+    const db = new MovementDb(); expect((await movementRequest(db, 'tea', body('sale'))).status).toBe(201);
+    expect((await movementRequest(db, 'tea', { ...body('sale', { expected_balance: 17 }), ...change, idempotency_key: 'sale-1' })).status).toBe(409);
+  });
+  it('does not mirror unit movements into listing gram stock', async () => {
+    const db = new MovementDb(); db.listings.set('pot', 99); const response = await movementRequest(db, 'pot', body('sale', { unit: 'unit', quantity: 1, expected_balance: 4, idempotency_key: 'pot-sale' }));
+    expect(response.status).toBe(201); expect(db.products.get('pot')?.quantity_units).toBe(3); expect(db.listings.get('pot')).toBe(99);
+  });
+  it('records a zero-to-zero recount and marks stock known', async () => {
+    const db = new MovementDb(); db.products.get('tea')!.stock_grams = 0;
+    const response = await movementRequest(db, 'tea', body('recount', { quantity: undefined, balance: 0, expected_balance: 0, idempotency_key: 'zero-count' }));
+    expect(response.status).toBe(201); expect(db.ledger).toHaveLength(1); expect(db.ledger[0]).toMatchObject({ delta: 0, movement_type: 'recount' }); expect(db.products.get('tea')?.stock_known_at).toBeTruthy();
+  });
   it('enforces product, destination, and account scope', async () => {
     expect((await movementRequest(new MovementDb(), 'other', body('sale'))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'other' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('transfer', { destination_product_id: 'missing' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { batch_id: 'foreign-batch' }))).status).toBe(404);
     expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { source_compass_entry_id: 'foreign-entry' }))).status).toBe(404);
+    expect((await movementRequest(new MovementDb(), 'tea', body('receipt', { source_invoice_id: 'foreign-invoice' }))).status).toBe(404);
   });
   it('transfers only to a valid destination without disappearance', async () => {
     const db = new MovementDb(); const response = await movementRequest(db, 'tea', body('transfer', { quantity: 4, destination_product_id: 'destination' }));
@@ -146,5 +174,16 @@ describe('POST product stock movements', () => {
   it('allows only one concurrent request for the same expected balance', async () => {
     const db = new MovementDb(); const responses = await Promise.all([movementRequest(db, 'tea', body('sale', { idempotency_key: 'a' })), movementRequest(db, 'tea', body('gift', { idempotency_key: 'b' }))]);
     expect(responses.map(r => r.status).sort()).toEqual([201, 409]); expect(db.ledger).toHaveLength(1); expect(db.products.get('tea')?.stock_grams).toBe(17);
+  });
+  it('returns a completed receipt retry before rejecting its zero remaining quantity', async () => {
+    const db = new MovementDb(); db.receiptLines.set('line', { id:'line',receipt_id:'receipt',account_id:'account-a',product_id:'tea',expected_quantity:10,received_quantity:10,cancelled_quantity:0,unit:'g',intended_purpose:'working',intake_batch_id:'batch',receipt_state:'received' });
+    db.ledger.push({ id:'ledger',account_id:'account-a',product_id:'tea',movement_type:'receipt',idempotency_key:'receipt-retry',inventory_receipt_line_id:'line',batch_id:'batch',movement_fingerprint:JSON.stringify({ quantity:10 }) });
+    const response = await receiveRequest(db,'line',{ quantity:10,idempotency_key:'receipt-retry' });
+    expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ already_received:true,received_quantity:10,remaining_quantity:0,ledger_id:'ledger' });
+  });
+  it('does not apply receipt extras when the guarded movement loses a race', async () => {
+    const db = new MovementDb(); db.receiptLines.set('line', { id:'line',receipt_id:'receipt',account_id:'account-a',product_id:'tea',expected_quantity:10,received_quantity:0,cancelled_quantity:0,unit:'g',intended_purpose:'working',intake_batch_id:'batch',receipt_state:'in_transit' }); db.forceStale=true;
+    const response = await receiveRequest(db,'line',{ quantity:10,idempotency_key:'receipt-stale' });
+    expect(response.status).toBe(409); expect(db.receiptSideEffects).toBe(0); expect(db.ledger).toHaveLength(0);
   });
 });

@@ -306,6 +306,7 @@ CREATE TABLE IF NOT EXISTS stock_ledger (
     movement_type TEXT CHECK (movement_type IS NULL OR movement_type IN ('receipt','sale','sample_use','gift','waste','return','recount','transfer')),
     idempotency_key TEXT,
     source_compass_entry_id TEXT REFERENCES tea_compass_entries(id) ON DELETE SET NULL,
+    movement_fingerprint TEXT,
     account_id TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );

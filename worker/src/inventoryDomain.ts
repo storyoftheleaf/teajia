@@ -135,3 +135,12 @@ export function movementDelta(input: StockMovementInput, currentBalance: number)
   if (input.movement_type === 'recount') return input.balance! - currentBalance;
   return (input.movement_type === 'receipt' || input.movement_type === 'return' ? 1 : -1) * input.quantity!;
 }
+
+export function stockMovementFingerprint(input: StockMovementInput): string {
+  return JSON.stringify({
+    movement_type: input.movement_type, unit: input.unit, quantity: input.quantity, balance: input.balance,
+    expected_balance: input.expected_balance, destination_product_id: input.destination_product_id,
+    note: input.note, batch_id: input.batch_id, source_invoice_id: input.source_invoice_id,
+    source_invoice_number: input.source_invoice_number, source_compass_entry_id: input.source_compass_entry_id,
+  });
+}

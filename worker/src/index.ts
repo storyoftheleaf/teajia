@@ -10,7 +10,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { decodeInventoryPurposeWrite, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 
 interface Env {
   DB: D1Database;
@@ -2486,10 +2486,10 @@ async function applyProductUpdate(
             );
           }
         }
-        const recount = decodeStockMovement({ movement_type: 'recount', balance: newStock, unit: 'g', expected_balance: oldStock, idempotency_key: request.headers.get('Idempotency-Key') || crypto.randomUUID(), note: `Manual: ${oldStock}→${newStock}`, source_compass_entry_id: current.source_compass_entry_id || null });
-        const movement = await applyStockMovement(env, ctx, params.id, recount, { statements: extraStmts.splice(0) });
-        if (movement.status >= 400) return json(movement.value, movement.status);
       }
+      const recount = decodeStockMovement({ movement_type: 'recount', balance: newStock, unit: 'g', expected_balance: oldStock, idempotency_key: request.headers.get('Idempotency-Key') || crypto.randomUUID(), note: `Manual: ${oldStock}→${newStock}`, source_compass_entry_id: current.source_compass_entry_id || null });
+      const movement = await applyStockMovement(env, ctx, params.id, recount, { statements: extraStmts.splice(0) });
+      if (movement.status >= 400) return json(movement.value, movement.status);
       delete body.stock_grams;
       delete body.stock_known_at;
     } else {
@@ -9073,18 +9073,13 @@ const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
 const RECEIPT_STATES = new Set(['planned', 'ordered', 'in_transit', 'partially_received', 'received', 'cancelled']);
 
 type MovementContext = { accountId: string; userId: string; email?: string | null };
-type MovementExtras = { statements?: D1PreparedStatement[]; inventoryReceiptLineId?: string | null; allowNewBatchId?: boolean };
+type MovementExtras = { statements?: D1PreparedStatement[]; statementFactory?: (guard: string) => D1PreparedStatement[]; inventoryReceiptLineId?: string | null; allowNewBatchId?: boolean };
 
 async function applyStockMovement(env: Env, ctx: MovementContext, productId: string, input: StockMovementInput, extras: MovementExtras = {}) {
   const existing = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
-  const requestedDelta = movementDelta(input, input.expected_balance);
+  const fingerprint = stockMovementFingerprint(input);
   if (existing) {
-    const sameEffect = input.movement_type === 'recount'
-      ? Number(existing.balance_after) === input.balance
-      : Number(existing.delta) === requestedDelta;
-    const same = existing.product_id === productId && existing.movement_type === input.movement_type && sameEffect &&
-      (existing.source_invoice_id || null) === input.source_invoice_id && (existing.batch_id || null) === input.batch_id &&
-      (existing.source_compass_entry_id || null) === input.source_compass_entry_id;
+    const same = existing.product_id === productId && existing.movement_fingerprint === fingerprint;
     return same
       ? { status: 200, value: { ...existing, before_balance: Number(existing.balance_after) - Number(existing.delta), after_balance: Number(existing.balance_after), already_applied: true } }
       : { status: 409, value: { error: 'idempotency_key already used for a different stock movement' } };
@@ -9093,6 +9088,7 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
   if (!product) return { status: 404, value: { error: 'Product not found' } };
   if (input.batch_id && !extras.allowNewBatchId && !await env.DB.prepare('SELECT id FROM batches WHERE id = ? AND account_id = ?').bind(input.batch_id, ctx.accountId).first()) return { status: 404, value: { error: 'Batch not found' } };
   if (input.source_compass_entry_id && !await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(input.source_compass_entry_id, ctx.accountId).first()) return { status: 404, value: { error: 'Curate entry not found' } };
+  if (input.source_invoice_id && !await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?').bind(input.source_invoice_id, ctx.accountId).first()) return { status: 404, value: { error: 'Invoice not found' } };
   const column = input.unit === 'g' ? 'stock_grams' : 'quantity_units';
   const current = Number(product[column] ?? 0);
   if (current !== input.expected_balance) return { status: 409, value: { error: 'Stock balance changed', current_balance: current } };
@@ -9116,25 +9112,22 @@ async function applyStockMovement(env: Env, ctx: MovementContext, productId: str
           (SELECT COALESCE(${column}, 0) FROM products WHERE id = ? AND account_id = ?) = ?`)
       .bind(productId, after, destinationAfter, knownAt, ctx.accountId, productId, destination.id, productId, ctx.accountId, current, destination.id, ctx.accountId, destinationBefore)
     : env.DB.prepare(`UPDATE products SET ${column} = ?, stock_known_at = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND ${column} = ?`).bind(after, knownAt, productId, ctx.accountId, current);
-  const statements: D1PreparedStatement[] = [
-    stockUpdate,
-    env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND COALESCE(${column}, 0) = ?)`).bind(after, productId, ctx.accountId, after),
-    env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, inventory_receipt_line_id) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND COALESCE(${column}, 0) = ?)`).bind(id, productId, delta, after, input.unit === 'g' ? 'gram' : 'unit', reason, input.movement_type, input.idempotency_key, input.source_invoice_id, input.source_invoice_number, ctx.email || null, input.note, input.batch_id, ctx.accountId, input.source_compass_entry_id, extras.inventoryReceiptLineId || null, productId, ctx.accountId, after),
-  ];
+  const statements: D1PreparedStatement[] = [stockUpdate];
+  if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_known_at = ?)`).bind(after, productId, ctx.accountId, knownAt));
+  statements.push(env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, source_invoice_id, source_invoice_number, user_email, note, batch_id, account_id, source_compass_entry_id, inventory_receipt_line_id, movement_fingerprint) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_known_at = ?)`).bind(id, productId, delta, after, input.unit === 'g' ? 'gram' : 'unit', reason, input.movement_type, input.idempotency_key, input.source_invoice_id, input.source_invoice_number, ctx.email || null, input.note, input.batch_id, ctx.accountId, input.source_compass_entry_id, extras.inventoryReceiptLineId || null, fingerprint, productId, ctx.accountId, knownAt));
   if (destination) {
     const destinationLedgerId = crypto.randomUUID();
-    statements.push(
-      env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND COALESCE(${column}, 0) = ?)`).bind(destinationAfter, destination.id, ctx.accountId, destinationAfter),
-      env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, user_email, note, batch_id, account_id, source_compass_entry_id) SELECT ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND COALESCE(${column}, 0) = ?)`).bind(destinationLedgerId, destination.id, input.quantity, destinationAfter, input.unit === 'g' ? 'gram' : 'unit', reason, 'transfer', ctx.email || null, input.note || `Transfer from ${productId}`, input.batch_id, ctx.accountId, input.source_compass_entry_id, destination.id, ctx.accountId, destinationAfter),
-    );
+    if (input.unit === 'g') statements.push(env.DB.prepare(`UPDATE product_listings SET stock_grams = ?, updated_at = datetime('now') WHERE legacy_product_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = legacy_product_id AND account_id = product_listings.account_id AND stock_known_at = ?)`).bind(destinationAfter, destination.id, ctx.accountId, knownAt));
+    statements.push(env.DB.prepare(`INSERT INTO stock_ledger (id, product_id, delta, balance_after, movement_unit, reason, movement_type, idempotency_key, user_email, note, batch_id, account_id, source_compass_entry_id, movement_fingerprint) SELECT ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_known_at = ?)`).bind(destinationLedgerId, destination.id, input.quantity, destinationAfter, input.unit === 'g' ? 'gram' : 'unit', reason, 'transfer', ctx.email || null, input.note || `Transfer from ${productId}`, input.batch_id, ctx.accountId, input.source_compass_entry_id, fingerprint, destination.id, ctx.accountId, knownAt));
   }
   statements.push(...(extras.statements || []));
+  statements.push(...(extras.statementFactory?.(knownAt) || []));
   try {
     const results = await env.DB.batch(statements);
     if (Number((results[0] as any)?.meta?.changes || 0) !== (destination ? 2 : 1)) return { status: 409, value: { error: 'Stock balance changed' } };
   } catch (error) {
     const raced = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, input.idempotency_key).first() as any;
-    if (raced && raced.product_id === productId && raced.movement_type === input.movement_type && Number(raced.delta) === delta) return { status: 200, value: { ...raced, already_applied: true } };
+    if (raced && raced.product_id === productId && raced.movement_fingerprint === fingerprint) return { status: 200, value: { ...raced, already_applied: true } };
     throw error;
   }
   return { status: 201, value: { id, product_id: productId, movement_type: input.movement_type, delta, before_balance: current, after_balance: after, unit: input.unit, destination_product_id: destination?.id || null, destination_after_balance: destination ? destinationAfter : null } };
@@ -9201,7 +9194,18 @@ const loadReceiptLine = async (env: Env, id: string, accountId: string) => env.D
 const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env); if ('error' in ctx) return ctx.error;
   const line = await loadReceiptLine(env, params.id, ctx.accountId); if (!line) return json({ error: 'Receipt line not found' }, 404);
-  const body = await request.json().catch(() => ({})) as any; const remaining = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
+  const body = await request.json().catch(() => ({})) as any;
+  if (typeof body.idempotency_key === 'string' && body.idempotency_key.trim()) {
+    const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId,body.idempotency_key.trim()).first() as any;
+    if (prior) {
+      let priorInput: any = null; try { priorInput = JSON.parse(prior.movement_fingerprint || 'null'); } catch { /* legacy row */ }
+      const sameQuantity = body.quantity == null || Number(body.quantity) === Number(priorInput?.quantity);
+      if (prior.inventory_receipt_line_id !== line.id || prior.movement_type !== 'receipt' || !sameQuantity) return json({ error:'idempotency_key already used for a different receipt' },409);
+      const remainingNow = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
+      return json({ received_quantity:Number(line.received_quantity),remaining_quantity:remainingNow,state:line.receipt_state,ledger_id:prior.id,batch_id:prior.batch_id,already_received:true });
+    }
+  }
+  const remaining = remainingReceiptQuantity(Number(line.expected_quantity),Number(line.received_quantity),Number(line.cancelled_quantity));
   const quantity = body.quantity == null ? remaining : Number(body.quantity);
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remaining || (line.unit === 'unit' && !Number.isInteger(quantity))) return json({ error: 'invalid receive quantity' }, 400);
   const product = await env.DB.prepare('SELECT * FROM products WHERE id=? AND account_id=?').bind(line.product_id,ctx.accountId).first() as any; if (!product) return json({ error: 'Product not found' },404);
@@ -9210,18 +9214,21 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
   const createsBatch = !line.intake_batch_id && !existingReceiptBatch;
   const amountCol = line.unit === 'g' ? 'stock_grams' : 'quantity_units'; const newBalance = Number(product[amountCol] || 0) + quantity;
   const newReceived = Number(line.received_quantity) + quantity; const state = deriveReceiptState(line.receipt_state as InventoryReceiptState,Number(line.expected_quantity),newReceived,Number(line.cancelled_quantity));
-  const statements: D1PreparedStatement[] = [];
-  if (createsBatch) statements.push(env.DB.prepare(`INSERT INTO batches (id,account_id,label,intake_date,vendor,note) VALUES (?,?,?,date('now'),?,'Inventory receipt')`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null));
-  statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose=?, is_sample=?, is_personal=? WHERE id=? AND account_id=?`).bind(line.intended_purpose,line.intended_purpose==='sample'?1:0,line.intended_purpose==='personal'?1:0,line.product_id,ctx.accountId));
-  statements.push(env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity=received_quantity+?,intake_batch_id=?,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(quantity,batchId,line.id,ctx.accountId));
-  statements.push(env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
+  const statementFactory = (guard: string): D1PreparedStatement[] => {
+    const statements: D1PreparedStatement[] = [];
+    if (createsBatch) statements.push(env.DB.prepare(`INSERT INTO batches (id,account_id,label,intake_date,vendor,note) SELECT ?,?,?,date('now'),?,'Inventory receipt' WHERE EXISTS (SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_known_at=?)`).bind(batchId,ctx.accountId,`Receipt · ${line.vendor_name || 'Incoming'}`,line.vendor_name||null,line.product_id,ctx.accountId,guard));
+    statements.push(env.DB.prepare(`UPDATE products SET inventory_purpose=?, is_sample=?, is_personal=? WHERE id=? AND account_id=? AND stock_known_at=?`).bind(line.intended_purpose,line.intended_purpose==='sample'?1:0,line.intended_purpose==='personal'?1:0,line.product_id,ctx.accountId,guard));
+    statements.push(env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity=received_quantity+?,intake_batch_id=?,updated_at=datetime('now') WHERE id=? AND account_id=? AND EXISTS (SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_known_at=?)`).bind(quantity,batchId,line.id,ctx.accountId,line.product_id,ctx.accountId,guard));
+    statements.push(env.DB.prepare(`UPDATE inventory_receipts SET state=CASE
     WHEN (SELECT COALESCE(SUM(expected_quantity-received_quantity-cancelled_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)=0
       THEN CASE WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'received' ELSE 'cancelled' END
     WHEN (SELECT COALESCE(SUM(received_quantity),0) FROM inventory_receipt_lines WHERE receipt_id=? AND account_id=?)>0 THEN 'partially_received'
-    ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=?`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId));
+    ELSE state END,updated_at=datetime('now') WHERE id=? AND account_id=? AND EXISTS (SELECT 1 FROM products WHERE id=? AND account_id=? AND stock_known_at=?)`).bind(line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.receipt_id,ctx.accountId,line.product_id,ctx.accountId,guard));
+    return statements;
+  };
   const movement = decodeStockMovement({ movement_type:'receipt', quantity, unit:line.unit, expected_balance:Number(product[amountCol] || 0), idempotency_key:body.idempotency_key || `receipt-line:${line.id}:received:${newReceived}`, note:'Received incoming stock', batch_id:batchId });
   try {
-    const result = await applyStockMovement(env,ctx,line.product_id,movement,{ statements, inventoryReceiptLineId:line.id, allowNewBatchId:createsBatch });
+    const result = await applyStockMovement(env,ctx,line.product_id,movement,{ statementFactory, inventoryReceiptLineId:line.id, allowNewBatchId:createsBatch });
     if (result.status >= 400) return json(result.value,result.status);
     const alreadyReceived = result.status===200;
     const persistedReceipt = await env.DB.prepare('SELECT state FROM inventory_receipts WHERE id=? AND account_id=?').bind(line.receipt_id,ctx.accountId).first() as any;
