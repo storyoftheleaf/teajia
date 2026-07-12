@@ -20,6 +20,11 @@ test.describe('structured stock import review', () => {
   test.beforeEach(async ({ page }) => setup(page));
 
   test('filters issues, edits required fields, applies purpose, and previews opening movements', async ({ page }) => {
+    let submitted: Record<string, any> | null = null;
+    await page.route('**/api/products/bulk', async route => {
+      submitted = route.request().postDataJSON();
+      await route.fulfill({ json: { inserted: 2, movements: 1, skipped: 0 } });
+    });
     await page.goto('/admin/stock');
     await page.getByRole('button', { name: 'Open inventory actions' }).first().click();
     await page.getByRole('menuitem', { name: /Import CSV/i }).first().click({ force: true });
@@ -32,10 +37,22 @@ test.describe('structured stock import review', () => {
     await expect(page.getByText('1 Issues')).toBeVisible();
     await expect(page.getByText('2 opening balances')).toBeVisible();
     await page.getByRole('button', { name: /1 Issues/ }).click();
-    const type = page.locator('input[aria-label^="Type"]').first();
+    if ((page.viewportSize()?.width || 1000) < 768) await page.getByRole('button', { name: /Unnamed Row/ }).click();
+    const type = page.locator('input[aria-label^="Type"]:visible').first();
     await type.fill('White');
     await expect(page.getByText('0 Issues')).toBeVisible();
+    await page.getByRole('button', { name: /3 Total/ }).click();
+    const typeInputs = page.locator('input[aria-label^="Type"]:visible');
+    const whiteIndex = await typeInputs.evaluateAll(inputs => inputs.findIndex(input => (input as HTMLInputElement).value === 'White'));
+    await typeInputs.nth(whiteIndex).fill('');
     await page.getByLabel('Purpose for all rows').selectOption('working');
     await page.getByLabel('Receipt / invoice label').fill('Invoice 88');
+    await page.getByRole('button', { name: 'Import Ready (2)' }).click();
+    await expect.poll(() => submitted).not.toBeNull();
+    expect(submitted?.receipt_label).toBe('Invoice 88');
+    expect(submitted?.products).toHaveLength(2);
+    expect(submitted?.products.every((row: any) => row.inventory_purpose === 'working')).toBe(true);
+    await expect(page.getByText('1 Total')).toBeVisible();
+    await expect(page.getByText('1 Issues')).toBeVisible();
   });
 });

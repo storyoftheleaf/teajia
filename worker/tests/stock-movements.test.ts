@@ -78,7 +78,7 @@ class MovementStatement {
       row[column] = newBalance; row.stock_known_at = knownAt; row.stock_movement_guard = movementGuard; return { meta: { changes: 1 } };
     }
     if (sql.startsWith('update product_listings')) {
-      const [newBalance, productId, account, guard] = this.values;
+      const [newBalance, , productId, account, guard] = this.values;
       const product = this.db.products.get(productId);
       if (product?.account_id === account && product.stock_movement_guard === guard) this.db.listings.set(productId, newBalance);
       return { meta: { changes: 1 } };

@@ -390,9 +390,18 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             setUploadProgress(processedCount);
         }
 
-        // Success
+        // Keep unresolved lines in the review surface; a ready-only commit must
+        // never discard evidence merely because other lines were complete.
         onComplete();
-        onClose();
+        const unresolved = stagingData.filter(row => !row.isValid);
+        if (unresolved.length > 0) {
+          setStagingData(unresolved);
+          setIssueFilter('issues');
+          setStage('staging');
+          showToast(`${processedCount} ready row${processedCount === 1 ? '' : 's'} imported. ${unresolved.length} still need review.`, 'success');
+        } else {
+          onClose();
+        }
 
     } catch (error: any) {
         showToast(`Import stopped: ${error.message}`, 'error');

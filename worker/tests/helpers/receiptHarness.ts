@@ -46,6 +46,9 @@ class ReceiptStatement {
   }
   async all() {
     const sql = norm(this.sql);
+    if (sql.includes('select id, product_name, given_name, chinese_name, type from products where account_id = ?')) {
+      return { results: [...this.db.products.values()].filter(row => row.account_id === this.values[0]) };
+    }
     if (sql.includes('from inventory_receipts where account_id = ?')) {
       const includeClosed = !sql.includes("state not in ('received','cancelled')");
       return { results: [...this.db.receipts.values()].filter(row => row.account_id === this.values[0] && (includeClosed || !['received', 'cancelled'].includes(row.state))) };
@@ -124,8 +127,11 @@ class ReceiptStatement {
     if (sql.startsWith('update products set')) return updateRow(this.db.products, this.sql, this.values);
     if (sql.startsWith('update product_listings set')) {
       if (sql.includes('exists (select 1 from products')) {
-        const row = [...this.db.listings.values()].find(item => item.legacy_product_id === this.values[1] && item.account_id === this.values[2]);
-        if (row) row.stock_grams = this.values[0];
+        const hasKnownAt = sql.includes('stock_known_at = ?');
+        const productId = this.values[hasKnownAt ? 2 : 1];
+        const accountId = this.values[hasKnownAt ? 3 : 2];
+        const row = [...this.db.listings.values()].find(item => item.legacy_product_id === productId && item.account_id === accountId);
+        if (row) Object.assign(row, { stock_grams: this.values[0], ...(hasKnownAt ? { stock_known_at: this.values[1] } : {}) });
         return { success: true, meta: { changes: row ? 1 : 0 } };
       }
       if (sql.includes('coalesce(')) return incrementRow(this.db.listings, this.sql, this.values, true);
@@ -199,12 +205,13 @@ function insertColumns(target: Map<string, Row> | Row[], sql: string, values: un
 
 function updateRow(target: Map<string, Row>, sql: string, values: unknown[]) {
   const normalized = norm(sql);
-  const guarded = /where id = \? and account_id = \? and stock_grams = \?/.test(normalized);
+  const guarded = /where id = \? and account_id = \? and (?:stock_grams|quantity_units) = \?/.test(normalized);
   const accountScoped = /where id\s*=\s*\? and account_id\s*=\s*\?/.test(normalized);
   const id = String(values.at(guarded ? -3 : accountScoped ? -2 : -1));
   const accountId = accountScoped ? values.at(guarded ? -2 : -1) : undefined;
   const row = target.get(id);
-  if (!row || (accountScoped && row.account_id !== accountId) || (guarded && row.stock_grams !== values.at(-1)) || (normalized.includes("status = 'pending'") && row.status !== 'pending')) return { success: true, meta: { changes: 0 } };
+  const guardedColumn = normalized.includes('quantity_units = ?') ? 'quantity_units' : 'stock_grams';
+  if (!row || (accountScoped && row.account_id !== accountId) || (guarded && row[guardedColumn] !== values.at(-1)) || (normalized.includes("status = 'pending'") && row.status !== 'pending')) return { success: true, meta: { changes: 0 } };
   const set = sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
   let bind = 0;
   for (const part of set.split(',')) {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   decodeInventoryImportRow,
   inventoryImportIdempotencyKey,
+  inventoryImportProductId,
   summarizeInventoryImport,
 } from '../src/inventoryDomain';
 
@@ -30,6 +31,13 @@ describe('structured inventory import', () => {
     const a = inventoryImportIdempotencyKey('invoice-88', row, 3);
     expect(inventoryImportIdempotencyKey('invoice-88', row, 3)).toBe(a);
     expect(inventoryImportIdempotencyKey('invoice-89', row, 3)).not.toBe(a);
+  });
+
+  it('reserves the same product identity for every retry of an import line', () => {
+    const key = inventoryImportIdempotencyKey('invoice-88', { product_name: 'Tea', type: 'Green', stock_grams: 20 }, 0);
+    expect(inventoryImportProductId('account-a', key)).toBe(inventoryImportProductId('account-a', key));
+    expect(inventoryImportProductId('account-b', key)).not.toBe(inventoryImportProductId('account-a', key));
+    expect(inventoryImportProductId('account-a', key)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 
   it('returns exact ready, issue, and physical counts', () => {

@@ -42,5 +42,30 @@ describe('inventory purpose compatibility', () => {
     expect(response.status).toBe(200);
     const product = [...db.products.values()].find(row => row.product_name === 'CSV Tea')!;
     expect(db.listings.get(`list_${product.id}`)).toMatchObject({ inventory_purpose: 'working', stock_known_at: product.stock_known_at, stock_grams: 25 });
+
+    const replay = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Invoice 88', products: [{ product_name: 'Retry Tea', type: 'Red', inventory_purpose: 'sample', stock_grams: 10 }] }) });
+    expect(replay.status).toBe(200);
+    const retryAgain = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({ receipt_label: 'Invoice 88', products: [{ product_name: 'Retry Tea', type: 'Red', inventory_purpose: 'sample', stock_grams: 10 }] }) });
+    expect(retryAgain.status).toBe(200);
+    expect(await retryAgain.json()).toMatchObject({ inserted: 0, replayed: 1, movements: 1 });
+    expect([...db.products.values()].filter(row => row.product_name === 'Retry Tea')).toHaveLength(1);
+    expect(db.ledger.filter(row => row.note === 'Imported · Invoice 88')).toHaveLength(1);
+  });
+
+  it('commits purpose defaults and exactly one receipt ledger row per physical import line', async () => {
+    const db = ReceiptDb.seeded();
+    const response = await receiptRequest(db, '/api/products/bulk', { method: 'POST', body: JSON.stringify({
+      receipt_label: 'WeChat delivery 14',
+      products: [
+        { product_name: 'Field Sample', type: 'White', inventory_purpose: 'sample', stock_grams: 8 },
+        { product_name: 'Travel Cup', type: 'Teaware', quantity_units: 2 },
+      ],
+    }) });
+    const result = await response.json() as any;
+    expect(response.status, JSON.stringify(result)).toBe(200);
+    expect(result).toMatchObject({ inserted: 2, movements: 2, skipped: 0 });
+    expect([...db.products.values()].find(row => row.product_name === 'Field Sample')).toMatchObject({ inventory_purpose: 'sample', stock_grams: 8 });
+    expect([...db.products.values()].find(row => row.product_name === 'Travel Cup')).toMatchObject({ inventory_purpose: 'working', quantity_units: 2 });
+    expect(db.ledger.filter(row => row.note === 'Imported · WeChat delivery 14')).toHaveLength(2);
   });
 });

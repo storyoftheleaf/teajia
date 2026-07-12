@@ -182,9 +182,18 @@ export function decodeInventoryImportRow(
 
 export function inventoryImportIdempotencyKey(receiptLabel: string, row: Record<string, unknown>, rowIndex: number): string {
   const canonical = JSON.stringify({ receiptLabel: receiptLabel.trim(), rowIndex, row: Object.keys(row).sort().map(key => [key, row[key]]) });
-  let hash = 2166136261;
-  for (let i = 0; i < canonical.length; i += 1) hash = Math.imul(hash ^ canonical.charCodeAt(i), 16777619);
-  return `inventory-import:${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  return `inventory-import:${stableImportHash(canonical)}`;
+}
+
+const stableImportHash = (input: string) => [2166136261, 2246822519, 3266489917, 668265263].map(seed => {
+  let hash = seed >>> 0;
+  for (let i = 0; i < input.length; i += 1) hash = Math.imul(hash ^ input.charCodeAt(i), 16777619);
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}).join('');
+
+export function inventoryImportProductId(accountId: string, idempotencyKey: string): string {
+  const hex = stableImportHash(`${accountId}\u0000${idempotencyKey}`);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-${((parseInt(hex[16], 16) & 3) | 8).toString(16)}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
 export function summarizeInventoryImport(rows: DecodedInventoryImportRow[]) {
