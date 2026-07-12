@@ -234,12 +234,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
   useEffect(() => {
     if (importAccountId !== activeAccountId) return;
-    if (importDetail?.batch.review_state === 'completed') {
+    if (importDetail?.batch.review_state === 'completed' || importDetail?.batch.review_state === 'abandoned') {
       setImportDetails(current => current.filter(detail => detail.batch.id !== importDetail.batch.id));
       return;
     }
     const imports = incompleteImports?.imports ?? [];
-    const selected = importPointerId && pointedImport && pointedImport.batch.review_state !== 'completed' ? pointedImport : imports[0] ?? null;
+    const selected = importPointerId && pointedImport && pointedImport.batch.review_state !== 'completed' && pointedImport.batch.review_state !== 'abandoned' ? pointedImport : imports[0] ?? null;
     setImportDetails(selected && !imports.some(detail => detail.batch.id === selected.batch.id) ? [selected, ...imports] : imports);
     if (!importDetail) setImportDetail(selected);
   }, [activeAccountId, importAccountId, importDetail, importPointerId, incompleteImports, pointedImport]);

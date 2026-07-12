@@ -101,6 +101,9 @@ async function scopedBatch(env: ImportEnv, id: string, accountId: string) {
   return env.DB.prepare('SELECT * FROM curate_import_batches WHERE id = ? AND account_id = ?').bind(id, accountId).first<Record<string, unknown>>();
 }
 
+function batchIsTerminal(batch: Record<string, unknown>) { return batch.review_state === 'completed' || batch.review_state === 'abandoned'; }
+function terminalResponse() { return response({ error: 'Completed or abandoned imports cannot be changed' }, 409); }
+
 async function scopedItem(env: ImportEnv, batchId: string, itemId: string, accountId: string) {
   return env.DB.prepare('SELECT * FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ?').bind(itemId, batchId, accountId).first<Record<string, unknown>>();
 }
@@ -183,7 +186,9 @@ export async function getCurateImport(_request: Request, env: ImportEnv, ctx: Cu
 }
 
 export async function addCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
-  if (!await scopedBatch(env, params.id, ctx.accountId)) return response({ error: 'Import not found' }, 404);
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   const category = typeof body.category === 'string' ? body.category : 'tea';
@@ -205,7 +210,11 @@ export async function addCurateImportItem(request: Request, env: ImportEnv, ctx:
 export async function abandonCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);
-  await env.DB.prepare("UPDATE curate_import_batches SET review_state = 'abandoned', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(params.id, ctx.accountId).run();
+  if (batchIsTerminal(batch)) return terminalResponse();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE curate_import_items SET review_state = 'abandoned', updated_at = datetime('now') WHERE batch_id = ? AND account_id = ? AND review_state IN ('pending', 'reviewing')").bind(params.id, ctx.accountId),
+    env.DB.prepare("UPDATE curate_import_batches SET review_state = 'abandoned', updated_at = datetime('now') WHERE id = ? AND account_id = ?").bind(params.id, ctx.accountId),
+  ]);
   return response({ success: true, id: params.id, review_state: 'abandoned' });
 }
 
@@ -233,7 +242,9 @@ const EVIDENCE_TYPES = new Set([
 const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
 
 export async function uploadCurateImportEvidence(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
-  if (!await scopedBatch(env, params.id, ctx.accountId)) return response({ error: 'Import not found' }, 404);
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
   if (!env.MEDIA_BUCKET) return response({ error: 'Evidence storage is not configured. Your file was not saved.' }, 503);
   const contentType = (request.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
   if (!EVIDENCE_TYPES.has(contentType)) return response({ error: 'Unsupported evidence file type' }, 415);
@@ -311,7 +322,9 @@ export async function getCurateImportEvidence(_request: Request, env: ImportEnv,
 }
 
 export async function addCurateImportSource(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
-  if (!await scopedBatch(env, params.id, ctx.accountId)) return response({ error: 'Import not found' }, 404);
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   try {
@@ -340,6 +353,9 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
 }
 
 export async function updateCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
   const current = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!current) return response({ error: 'Import item not found' }, 404);
   let body: Record<string, unknown>;
@@ -388,11 +404,14 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
 }
 
 export async function acceptCurateImportItem(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
   const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!item) return response({ error: 'Import item not found' }, 404);
+  if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
+  if (batchIsTerminal(batch)) return terminalResponse();
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
   if (Object.keys(parseJson(item.uncertainty_json, {})).length > 0) return response({ error: 'Review uncertain fields before accepting this item' }, 409);
-  if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
   const compassId = typeof item.reserved_compass_entry_id === 'string' ? item.reserved_compass_entry_id : '';
   if (!compassId) return response({ error: 'Import item has no Compass reservation' }, 409);
   const parsed = parseJson(item.parsed_data_json, {});
@@ -426,6 +445,9 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
 }
 
 export async function mergeCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
   const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!item) return response({ error: 'Import item not found' }, 404);
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be merged' }, 409);

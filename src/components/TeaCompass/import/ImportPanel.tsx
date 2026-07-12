@@ -120,11 +120,12 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     const remaining = state.detail?.items.filter(item => (item.review_state === 'pending' || item.review_state === 'reviewing') && Object.keys(item.uncertainty || {}).length === 0) || [];
     for (const item of remaining) await accept(item, false);
   };
-  const addItem = async (name: string, category: 'tea' | 'teaware') => {
-    if (!state.detail || busyId) return;
+  const addItem = async (name: string, category: 'tea' | 'teaware', onSuccess: () => void) => {
+    if (!state.detail || busyId) return false;
     setBusyId('__add');
-    try { setOperationError(null); await api.curateImports.addItem(state.detail.batch.id, { name, category, source_id: state.detail.sources[0]?.id }); await refreshDetail(state.detail.batch.id); }
-    catch (error) { setOperationError(error instanceof Error ? error.message : 'Could not add review item'); }
+    const action = async () => { await api.curateImports.addItem(state.detail!.batch.id, { name, category, source_id: state.detail!.sources[0]?.id }); await refreshDetail(state.detail!.batch.id); onSuccess(); };
+    try { setOperationError(null); await action(); return true; }
+    catch (error) { retryAction.current = action; setOperationError(error instanceof Error ? error.message : 'Could not add review item'); return false; }
     finally { setBusyId(null); }
   };
   const abandon = async () => {

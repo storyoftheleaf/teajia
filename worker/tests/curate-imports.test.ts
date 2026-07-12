@@ -55,6 +55,11 @@ class ImportStatement {
       return { success: true, meta: { changes: 1 } };
     }
     if (table && sql.startsWith('update')) {
+      if (table === this.db.items && sql.includes('where batch_id = ?') && sql.includes("review_state in ('pending', 'reviewing')")) {
+        let changes = 0;
+        for (const row of table.values()) if (row.batch_id === this.values[0] && row.account_id === this.values[1] && (row.review_state === 'pending' || row.review_state === 'reviewing')) { row.review_state = 'abandoned'; changes += 1; }
+        return { success: true, meta: { changes } };
+      }
       const verifiesCompassOwnership = sql.includes('exists (select 1 from tea_compass_entries');
       const id = String(verifiesCompassOwnership ? this.values[3] : this.values.at(-2));
       const accountId = verifiesCompassOwnership ? this.values[4] : this.values.at(-1);
@@ -133,11 +138,33 @@ describe('Curate import provenance API', () => {
     const { batch } = await created.json() as any;
     const added = await request(db, `/api/curate/imports/${batch.id}/items`, { method: 'POST', body: JSON.stringify({ name: 'Manual tea', category: 'tea' }) });
     expect(added.status).toBe(201);
-    expect(await added.json()).toMatchObject({ name: 'Manual tea', category: 'tea', review_state: 'pending' });
+    const addedItem = await added.json() as any;
+    expect(addedItem).toMatchObject({ name: 'Manual tea', category: 'tea', review_state: 'pending' });
     const abandoned = await request(db, `/api/curate/imports/${batch.id}/abandon`, { method: 'POST' });
     expect(abandoned.status).toBe(200);
     expect(db.batches.get(batch.id)?.review_state).toBe('abandoned');
+    expect(db.items.get(addedItem.id)?.review_state).toBe('abandoned');
     expect((await (await request(db, '/api/curate/imports?state=incomplete')).json() as any).imports).toHaveLength(0);
+  });
+
+  it('rejects every stale mutation after a batch reaches a terminal state', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Terminal', items: [{ name: 'Only' }] }) });
+    const { batch, items } = await created.json() as any;
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(201);
+    const mutations: Array<[string, string, unknown?]> = [
+      ['POST', `/api/curate/imports/${batch.id}/items`, { name: 'Late', category: 'tea' }],
+      ['POST', `/api/curate/imports/${batch.id}/sources`, { kind: 'paste', pasted_text: 'late' }],
+      ['POST', `/api/curate/imports/${batch.id}/evidence`],
+      ['PUT', `/api/curate/imports/${batch.id}/items/${items[0].id}`, { name: 'Late' }],
+      ['POST', `/api/curate/imports/${batch.id}/items/${items[0].id}/merge`, { compass_entry_id: 'x' }],
+      ['POST', `/api/curate/imports/${batch.id}/abandon`],
+    ];
+    for (const [method, path, body] of mutations) expect((await request(db, path, { method, body: body ? JSON.stringify(body) : undefined })).status, path).toBe(409);
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(200);
+    db.items.set('stale-pending', { ...db.items.get(items[0].id), id: 'stale-pending', compass_entry_id: null, review_state: 'pending' } as Row);
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/stale-pending/accept`, { method: 'POST' })).status).toBe(409);
+    expect(db.batches.get(batch.id)?.review_state).toBe('completed');
   });
 
   it('rejects acceptance until uncertainty is explicitly cleared on the server', async () => {
