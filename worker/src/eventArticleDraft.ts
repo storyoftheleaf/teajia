@@ -43,7 +43,9 @@ export function buildEventArticleDraft(event: SourceRow, postSession: SourceRow 
   const subtitle = nonEmpty(event.subtitle);
   const source = postSession || {};
   const gallery = parseArray(source.gallery_images).map(nonEmpty).filter((url): url is string => !!url);
-  const sessionNotes = nonEmpty(source.session_notes) || nonEmpty(source.host_notes);
+  const sessionNotes = nonEmpty(source.session_notes);
+  const hostNotes = nonEmpty(source.host_notes);
+  const hostChanges = nonEmpty(source.host_changes);
   const energy = nonEmpty(source.energy);
   const teas = parseArray(source.tea_ledger).filter((tea): tea is SourceRow => !!tea && typeof tea === 'object' && !Array.isArray(tea));
   const notes = sharedNotes(source.shared_tasting_notes);
@@ -57,6 +59,8 @@ export function buildEventArticleDraft(event: SourceRow, postSession: SourceRow 
   }];
 
   if (sessionNotes) blocks.push({ type: 'intro', text: sessionNotes });
+  if (hostNotes) blocks.push({ type: 'paragraph', text: hostNotes });
+  if (hostChanges) blocks.push({ type: 'paragraph', text: hostChanges });
   for (const tea of teas) {
     const name = nonEmpty(tea.name) || nonEmpty(tea.product_name) || nonEmpty(tea.custom_name);
     const detail = nonEmpty(tea.notes) || nonEmpty(tea.description) || nonEmpty(tea.tasting_notes);

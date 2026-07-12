@@ -16,6 +16,7 @@ async function jwt() {
 class Db {
   articles: Record<string, any>[] = [];
   writes: Array<{ sql: string; values: any[] }> = [];
+  postSessionExists = true;
   constructor(readonly bundles = ['gather', 'publish']) {}
   prepare(sql: string) { return new Statement(this, sql); }
 }
@@ -33,7 +34,7 @@ class Statement {
       const [id, account] = this.values;
       return id === 'event-1' && account === 'a' ? { id, account_id: account, title: 'Cliff Tea Evening', subtitle: 'Wuyi after rain' } : null;
     }
-    if (sql.includes('from event_post_session')) return { event_id: 'event-1', account_id: 'a', session_notes: 'Quiet table.', energy: 'contemplative', gallery_images: '["https://uploads.test/e.jpg"]', shared_tasting_notes: '["Warm rock"]', tea_ledger: '[]' };
+    if (sql.includes('from event_post_session')) return this.db.postSessionExists ? { event_id: 'event-1', account_id: 'a', session_notes: 'Quiet table.', host_notes: 'Host kept the rinse short.', host_changes: 'Start cooler next time.', energy: 'contemplative', gallery_images: '["https://uploads.test/e.jpg"]', shared_tasting_notes: '["Warm rock"]', tea_ledger: '[]' } : null;
     if (sql.includes('from articles where account_id = ? and source_event_id = ?')) {
       const [account, event] = this.values;
       return this.db.articles.find(article => article.account_id === account && article.source_event_id === event) || null;
@@ -83,10 +84,31 @@ describe('event article draft endpoint', () => {
 
   it('persists energy and shared tasting notes with the existing post-session fields', async () => {
     const db = new Db();
-    const response = await postSession(db, { tea_ledger: [], gallery_images: ['https://uploads.test/e.jpg'], session_notes: 'Quiet.', playlist_url: 'https://playlist.test', energy: 'contemplative', shared_tasting_notes: ['Warm rock'] });
+    const response = await postSession(db, { tea_ledger: [], gallery_images: ['https://uploads.test/e.jpg'], session_notes: 'Quiet.', host_notes: 'Host observation.', host_changes: 'Use cooler water.', playlist_url: 'https://playlist.test', energy: 'contemplative', shared_tasting_notes: ['Warm rock'] });
     expect(response.status).toBe(200);
     const update = db.writes.find(write => write.sql.startsWith('update event_post_session'))!;
-    expect(update.sql).toContain('energy = ?, shared_tasting_notes = ?');
-    expect(update.values).toEqual(['[]', 'https://playlist.test', '["https://uploads.test/e.jpg"]', 'Quiet.', 'contemplative', '["Warm rock"]', 'event-1', 'a']);
+    expect(update.sql).toContain('host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ?');
+    expect(update.values).toEqual(['[]', 'https://playlist.test', '["https://uploads.test/e.jpg"]', 'Quiet.', 'Host observation.', 'Use cooler water.', 'contemplative', '["Warm rock"]', 'event-1', 'a']);
+  });
+
+  it('retrieves persisted host metadata as separate draft blocks', async () => {
+    const db = new Db();
+    const response = await request(db);
+    const body = await response.json() as any;
+    expect(body.article.blocks).toEqual(expect.arrayContaining([
+      { type: 'intro', text: 'Quiet table.' },
+      { type: 'paragraph', text: 'Host kept the rinse short.' },
+      { type: 'paragraph', text: 'Start cooler next time.' },
+    ]));
+  });
+
+  it('persists host metadata when creating the post-session row', async () => {
+    const db = new Db();
+    db.postSessionExists = false;
+    const response = await postSession(db, { session_notes: 'Shared.', host_notes: 'Host.', host_changes: 'Change.', energy: 'warm' });
+    expect(response.status).toBe(200);
+    const insert = db.writes.find(write => write.sql.startsWith('insert into event_post_session'))!;
+    expect(insert.sql).toContain('session_notes, host_notes, host_changes, energy');
+    expect(insert.values.slice(6)).toEqual(['Shared.', 'Host.', 'Change.', 'warm', null]);
   });
 });

@@ -7,6 +7,8 @@ describe('event article draft builder', () => {
       { id: 'e1', title: 'Cliff Tea Evening', subtitle: 'Wuyi after rain' },
       {
         session_notes: 'A quiet table that opened slowly.',
+        host_notes: 'I kept the first infusion deliberately brief.',
+        host_changes: 'Next time, begin with the Shui Xian.',
         energy: 'contemplative',
         gallery_images: JSON.stringify(['https://media.teajia.co/a.jpg']),
         shared_tasting_notes: 'Warm rock and longan',
@@ -22,10 +24,25 @@ describe('event article draft builder', () => {
     expect(draft.blocks).toEqual([
       { type: 'cover', title: 'Cliff Tea Evening', subtitle: 'Wuyi after rain', image: 'https://media.teajia.co/a.jpg', kicker: 'contemplative' },
       { type: 'intro', text: 'A quiet table that opened slowly.' },
+      { type: 'paragraph', text: 'I kept the first infusion deliberately brief.' },
+      { type: 'paragraph', text: 'Next time, begin with the Shui Xian.' },
       { type: 'section_heading', text: 'Rou Gui' },
       { type: 'paragraph', text: 'Charcoal and cassia.' },
       { type: 'image', url: 'https://media.teajia.co/a.jpg', description: '' },
       { type: 'quote', text: 'Warm rock and longan' },
+    ]);
+  });
+
+  it('keeps host notes when session notes are also present', () => {
+    const draft = buildEventArticleDraft(
+      { id: 'e4', title: 'Two Perspectives' },
+      { session_notes: 'Shared recap.', host_notes: 'Host observation.', host_changes: 'Use cooler water.' },
+    );
+    expect(draft.blocks).toEqual([
+      { type: 'cover', title: 'Two Perspectives' },
+      { type: 'intro', text: 'Shared recap.' },
+      { type: 'paragraph', text: 'Host observation.' },
+      { type: 'paragraph', text: 'Use cooler water.' },
     ]);
   });
 

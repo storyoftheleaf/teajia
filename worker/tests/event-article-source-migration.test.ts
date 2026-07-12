@@ -40,7 +40,10 @@ describe('event article source migration 114', () => {
     for (const sql of [canonical, through114]) {
       const path = db(sql);
       expect(query(path, `PRAGMA table_info('articles')`).map((row: any) => row.name)).toContain('source_event_id');
-      expect(query(path, `PRAGMA table_info('event_post_session')`).map((row: any) => row.name)).toContain('shared_tasting_notes');
+      const postSessionColumns = query(path, `PRAGMA table_info('event_post_session')`).map((row: any) => row.name);
+      expect(postSessionColumns).toContain('shared_tasting_notes');
+      expect(postSessionColumns).toContain('host_notes');
+      expect(postSessionColumns).toContain('host_changes');
     }
   });
 });

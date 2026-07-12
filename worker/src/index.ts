@@ -7402,13 +7402,13 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   if (existing) {
     await env.DB.prepare(
-      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
-    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
+      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
+    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
   } else {
     await env.DB.prepare(
-      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, energy, shared_tasting_notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.energy || null, sharedTastingNotes).run();
+      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, host_notes, host_changes, energy, shared_tasting_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes).run();
   }
 
   return json({ success: true });
