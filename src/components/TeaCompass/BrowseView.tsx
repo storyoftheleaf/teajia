@@ -14,6 +14,8 @@ import { isUntriaged, entryDisplayTitle } from './types';
 import type { TeaCompassEntry, BrowseFilter, BrowseSort } from './types';
 import { LibraryFilterSheet } from './LibraryFilterSheet';
 import { ActiveFilterSummary, activeLibraryFilterCount } from './ActiveFilterSummary';
+import { api } from '../../lib/api';
+import type { CurateJourney, CurateVisit } from './types';
 
 const SORT_LABELS: Record<BrowseSort, string> = {
   recent: 'Most recent',
@@ -144,7 +146,25 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [journeys, setJourneys] = useState<CurateJourney[]>([]);
+  const [visits, setVisits] = useState<CurateVisit[]>([]);
   const sampleSets = useSampleStore((s) => s.sampleSets);
+
+  React.useEffect(() => {
+    let active = true;
+    Promise.all([api.curateContext.listJourneys(), api.curateContext.listVisits()])
+      .then(([journeyData, visitData]) => { if (active) { setJourneys(journeyData.journeys); setVisits(visitData.visits); } })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const journeyMap = useMemo(() => new Map(journeys.map((journey) => [journey.id, journey])), [journeys]);
+  const visitMap = useMemo(() => new Map(visits.map((visit) => [visit.id, visit])), [visits]);
+  const contextText = React.useCallback((entry: TeaCompassEntry) => {
+    const journey = entry.journeyId ? journeyMap.get(entry.journeyId) : undefined;
+    const visit = entry.visitId ? visitMap.get(entry.visitId) : undefined;
+    return [journey?.name, journey?.season, journey?.year, visit?.place, visit?.vendor_name, visit?.notes].filter(Boolean).join(' ');
+  }, [journeyMap, visitMap]);
 
   // Reusable sort applied to flat lists (and to "All" when not sorting by date).
   const sortEntries = React.useCallback((list: TeaCompassEntry[]): TeaCompassEntry[] => {
@@ -195,8 +215,11 @@ export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCaptur
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
-    return new Set(fuseInstance.search(searchQuery.trim()).map((r) => r.item.id));
-  }, [searchQuery, fuseInstance]);
+    const query = searchQuery.trim().toLowerCase();
+    const ids = new Set(fuseInstance.search(searchQuery.trim()).map((r) => r.item.id));
+    entries.forEach((entry) => { if (contextText(entry).toLowerCase().includes(query)) ids.add(entry.id); });
+    return ids;
+  }, [searchQuery, fuseInstance, entries, contextText]);
 
   // ─── Counts (for filter pills) ────────────────────────────────────────────
 
@@ -525,19 +548,34 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
     result = result.filter((e) => {
       if (f.decision && (f.decision === 'none' ? e.decision != null : e.decision !== f.decision)) return false;
       if (f.verdict && (e.verdict ?? e.sampleVerdict) !== f.verdict) return false;
-      if (f.possession && (f.possession === 'none'
-        ? ['incoming', 'in_stock', 'depleted'].includes(e.status)
-        : e.status !== f.possession)) return false;
-      if (f.journey && !`${e.journeyId ?? ''} ${e.notes}`.toLowerCase().includes(f.journey.toLowerCase())) return false;
+      if (f.possession) {
+        const possessed = e.isSample || ['incoming', 'in_stock', 'depleted'].includes(e.status);
+        if (f.possession === 'none' && possessed) return false;
+        if (f.possession === 'sample' && !e.isSample) return false;
+        if (f.possession === 'stock' && !['incoming', 'in_stock', 'depleted'].includes(e.status)) return false;
+      }
+      if (f.journey && e.journeyId !== f.journey) return false;
       if (f.vendor && !`${e.vendorName ?? ''} ${e.vendorId ?? ''}`.toLowerCase().includes(f.vendor.toLowerCase())) return false;
-      if (f.place && !`${e.visitId ?? ''} ${e.notes}`.toLowerCase().includes(f.place.toLowerCase())) return false;
-      if (f.date && !e.createdAt.startsWith(f.date)) return false;
+      if (f.place && e.visitId !== f.place) return false;
+      if (f.date) {
+        const created = new Date(e.createdAt);
+        const now = new Date();
+        const days = (now.getTime() - created.getTime()) / 86_400_000;
+        if (f.date === 'today' && created.toDateString() !== now.toDateString()) return false;
+        if (f.date === '7_days' && days > 7) return false;
+        if (f.date === '30_days' && days > 30) return false;
+        if (f.date === 'this_year' && created.getFullYear() !== now.getFullYear()) return false;
+      }
       if (f.category && e.category !== f.category) return false;
       if (f.type && !`${e.type ?? ''} ${e.teawareCategory ?? ''}`.toLowerCase().includes(f.type.toLowerCase())) return false;
       if (f.origin && !(e.originRegion ?? '').toLowerCase().includes(f.origin.toLowerCase())) return false;
       if (f.year && String(e.year ?? '') !== f.year) return false;
       if (f.price && (f.price === 'known' ? e.priceAmount == null : e.priceAmount != null)) return false;
-      if (f.sampleState && (f.sampleState === 'sample' ? !e.isSample : !!e.isSample)) return false;
+      if (f.sampleState) {
+        if (!e.isSample) return false;
+        if (f.sampleState === 'received' && !['incoming', 'in_stock', 'depleted'].includes(e.status)) return false;
+        if (f.sampleState === 'tasted' && !hasTastingData(e)) return false;
+      }
       if (f.photos && (f.photos === 'with' ? !e.photos.some(Boolean) : e.photos.some(Boolean))) return false;
       if (f.missing) {
         const missing = f.missing === 'name' ? !e.name.trim()
@@ -787,7 +825,17 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </div>
       </BottomSheet>
 
-      <LibraryFilterSheet open={filterSheetOpen} filters={libraryFilters} onOpenChange={setFilterSheetOpen} onApply={setLibraryFilters} />
+      <LibraryFilterSheet
+        open={filterSheetOpen}
+        filters={libraryFilters}
+        onOpenChange={setFilterSheetOpen}
+        onApply={setLibraryFilters}
+        contextOptions={{
+          journey: journeys.map((journey) => ({ value: journey.id, label: [journey.name, journey.season, journey.year].filter(Boolean).join(', ') })),
+          vendor: Array.from(new Set([...entries.map((entry) => entry.vendorName), ...visits.map((visit) => visit.vendor_name)].filter((value): value is string => !!value))).map((value) => ({ value, label: value })),
+          place: visits.map((visit) => ({ value: visit.id, label: [visit.place, visit.vendor_name].filter(Boolean).join(' · ') })),
+        }}
+      />
 
       {/* Batch tasting review — full-screen triage of untriaged tastings */}
       {reviewOpen && (

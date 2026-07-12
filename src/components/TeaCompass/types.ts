@@ -31,17 +31,17 @@ export type CompassDecision = 'considering' | 'selected' | 'passed_on';
 export interface LibraryFilters {
   decision?: CompassDecision | 'none';
   verdict?: CompassVerdict;
-  possession?: 'none' | 'incoming' | 'in_stock' | 'depleted';
+  possession?: 'none' | 'sample' | 'stock';
   journey?: string;
   vendor?: string;
   place?: string;
-  date?: string;
+  date?: 'today' | '7_days' | '30_days' | 'this_year';
   category?: CompassCategory;
   type?: string;
   origin?: string;
   year?: string;
   price?: 'known' | 'missing';
-  sampleState?: 'sample' | 'not_sample';
+  sampleState?: 'requested' | 'received' | 'tasted';
   photos?: 'with' | 'without';
   missing?: 'name' | 'price' | 'type' | 'origin' | 'notes';
 }

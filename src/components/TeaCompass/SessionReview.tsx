@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ThumbsUp, Minus, ThumbsDown, X, BookmarkPlus, Check } from 'lucide-react';
+import { Heart, ThumbsUp, Minus, ThumbsDown, X } from 'lucide-react';
 import { getTeaColor } from '../../designTokens';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { resolveVerdict } from './types';
 import type { TeaCompassEntry, CompassVerdict } from './types';
+import { DecisionControl } from './DecisionControl';
 
 interface SessionReviewProps {
   /** The teas to sort through — typically "tasted but not yet given a verdict". */
@@ -53,14 +54,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
     updateEntry(id, { verdict: current === v ? undefined : v });
   };
 
-  // Keepers = anything you loved or liked. The footer turns them into Want.
-  const keepers = rows.filter((e) => e.verdict === 'love' || e.verdict === 'like');
-  const keepersToAdd = keepers.filter((e) => e.status !== 'want' && e.status !== 'in_stock' && e.status !== 'incoming');
   const verdictedCount = rows.filter((e) => !!e.verdict).length;
-
-  const addKeepersToWant = () => {
-    keepersToAdd.forEach((e) => updateEntry(e.id, { status: 'want' }));
-  };
 
   return createPortal(
     <AnimatePresence>
@@ -87,7 +81,7 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
           <div className="flex-1 min-w-0">
             <p className="text-ui-13 font-serif text-tea-text leading-tight">Sort your tasting</p>
             <p className="text-ui-11 text-tea-text-dim leading-tight">
-              {verdictedCount}/{rows.length} sorted · keepers become your want list
+              {verdictedCount}/{rows.length} tasted · sourcing decisions stay explicit
             </p>
           </div>
         </div>
@@ -181,6 +175,9 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
                         );
                       })}
                     </div>
+                    <div className="border-t border-tea-border px-2 py-2">
+                      <DecisionControl value={entry.decision} onChange={(decision) => updateEntry(entry.id, { decision })} compact />
+                    </div>
                   </motion.div>
                 );
               })}
@@ -195,40 +192,12 @@ export const SessionReview: React.FC<SessionReviewProps> = ({ entries, onClose }
           </div>
         </div>
 
-        {/* Sticky footer — keepers → want. pb-nav-gap resets to pb-4 on desktop. */}
+        {/* Sticky footer — review never infers sourcing intent from a verdict. */}
         {rows.length > 0 && (
           <div className="shrink-0 border-t border-tea-border bg-tea-bg px-4 pt-3 pb-nav-gap">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-ui-12 text-tea-text-sec">
-                  {keepers.length === 0
-                    ? 'Mark the ones worth keeping'
-                    : `${keepers.length} keeper${keepers.length !== 1 ? 's' : ''} · ${rows.length - keepers.length} set aside`}
-                </p>
-              </div>
-              {keepersToAdd.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={addKeepersToWant}
-                  className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors"
-                >
-                  <BookmarkPlus size={14} />
-                  Want {keepersToAdd.length}
-                </button>
-              ) : keepers.length > 0 ? (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-md bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold">
-                  <Check size={14} />
-                  On want list
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="shrink-0 px-4 py-2.5 rounded-md border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:text-tea-text hover:bg-tea-elevated transition-colors"
-                >
-                  Done
-                </button>
-              )}
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-ui-12 text-tea-text-sec">Verdict and sourcing decision are separate.</p>
+              <button type="button" onClick={onClose} className="tap-target min-h-11 shrink-0 rounded-md border border-tea-border px-4 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-elevated hover:text-tea-text">Done</button>
             </div>
           </div>
         )}
