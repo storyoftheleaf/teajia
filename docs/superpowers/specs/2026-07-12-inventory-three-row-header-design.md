@@ -73,6 +73,8 @@ The approved information architecture applies below `md`, including the narrow l
 
 At widths where row one cannot fit in its normal state, the layout uses the available full width and compact spacing. Search expansion is the only allowed temporary replacement state. There is no horizontal page scroll.
 
+At phone width (390px), the same three-row information architecture redistributes the operational triggers without removing them: row one contains Tea, Wares, Search, Incoming, location, currency, and More; Retail/Cost, Group, and Sort follow Needs attention in row two. Every interactive control keeps a distinct, non-overlapping 44-by-44-pixel box. This responsive redistribution does not create a fourth row or move any control into overflow.
+
 Desktop may keep its current broader toolbar geometry where it already presents the controls in a single compact surface, but its hierarchy should match the same three groups: global/operations, views, and columns.
 
 ## Interaction and state requirements
