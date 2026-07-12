@@ -490,7 +490,7 @@ export async function mergeCurateImportItem(request: Request, env: ImportEnv, ct
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   const compassId = typeof body.compass_entry_id === 'string' ? body.compass_entry_id : '';
   if (!compassId) return response({ error: 'compass_entry_id is required' }, 400);
-  const compass = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ?').bind(compassId, ctx.accountId).first();
+  const compass = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(compassId, ctx.userId, ctx.accountId).first();
   if (!compass) return response({ error: 'Compass entry not found' }, 404);
   if (item.compass_entry_id && item.compass_entry_id !== compassId) return response({ error: 'Import item is already linked' }, 409);
   const changed = await env.DB.prepare(

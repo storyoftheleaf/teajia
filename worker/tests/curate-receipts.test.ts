@@ -40,6 +40,45 @@ describe('reviewed Curate receipts', () => {
     expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', accountId: 'account-b', body: JSON.stringify({ purpose: 'personal' }) })).status).toBe(404);
   });
 
+  it('requires catalog to edit or reject and stock to accept without mutating denied state', async () => {
+    const db = ReceiptDb.seeded();
+    const proposal = await (await receiptRequest(db, '/api/compass/entries/entry-a/receipt-proposals', {
+      method: 'POST', body: JSON.stringify({ purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample', idempotency_key: 'permissions' }),
+    })).json() as any;
+    db.role = 'staff';
+
+    db.bundles = ['stock'];
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ purpose: 'working' }) })).status).toBe(403);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/reject`, { method: 'POST' })).status).toBe(403);
+    expect(db.proposals.get(proposal.id)).toMatchObject({ purpose: 'sample', status: 'pending' });
+
+    db.role = 'staff';
+    db.bundles = ['catalog'];
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).status).toBe(403);
+    expect(db.proposals.get(proposal.id)?.status).toBe('pending');
+    expect(db.ledger).toHaveLength(0);
+
+    db.role = 'viewer';
+    db.bundles = [];
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ purpose: 'personal' }) })).status).toBe(403);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/reject`, { method: 'POST' })).status).toBe(403);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/accept`, { method: 'POST' })).status).toBe(403);
+    expect(db.proposals.get(proposal.id)).toMatchObject({ purpose: 'sample', status: 'pending' });
+    expect(db.ledger).toHaveLength(0);
+
+    db.role = 'staff';
+    db.bundles = ['catalog'];
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}`, { method: 'PUT', body: JSON.stringify({ purpose: 'working' }) })).status).toBe(200);
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${proposal.id}/reject`, { method: 'POST' })).status).toBe(200);
+
+    const stockProposal = await (await receiptRequest(db, '/api/compass/entries/entry-work/receipt-proposals', {
+      method: 'POST', body: JSON.stringify({ purpose: 'working', quantity: 20, unit: 'g', acquisition_kind: 'purchase', idempotency_key: 'stock-permission' }),
+    })).json() as any;
+    db.bundles = ['stock'];
+    expect((await receiptRequest(db, `/api/curate/receipt-proposals/${stockProposal.id}/accept`, { method: 'POST' })).status).toBe(200);
+    expect(db.proposals.get(stockProposal.id)?.status).toBe('accepted');
+  });
+
   it('requires operation idempotency and permits distinct acquisitions for one entry', async () => {
     const db = ReceiptDb.seeded();
     const body = { purpose: 'sample', quantity: 10, unit: 'g', acquisition_kind: 'free_sample' };

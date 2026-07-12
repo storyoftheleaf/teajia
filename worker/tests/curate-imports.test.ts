@@ -565,6 +565,18 @@ describe('Curate import provenance API', () => {
     expect(db.compass.size).toBe(1);
   });
 
+  it('refuses to merge into another user\'s Compass entry in the same account', async () => {
+    const db = new ImportDb();
+    db.compass.set('other-user-entry', { id: 'other-user-entry', account_id: 'account-a', user_id: 'user-b', name: 'Private encounter' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Invoice', items: [{ name: 'Line one' }] }) });
+    const { batch, items } = await created.json() as any;
+    const merged = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/merge`, {
+      method: 'POST', body: JSON.stringify({ compass_entry_id: 'other-user-entry' }),
+    });
+    expect(merged.status).toBe(404);
+    expect(db.items.get(items[0].id)).toMatchObject({ review_state: 'pending', compass_entry_id: null });
+  });
+
   it('returns 404 for every foreign-account batch or item operation', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Private', items: [{ position: 0, name: 'Secret' }] }) });

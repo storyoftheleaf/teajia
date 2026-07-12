@@ -12,6 +12,7 @@ const migrationNames = [
   '103_inventory_purpose_receipts.sql',
   '104_inventory_receipts.sql',
   '105_stock_movements.sql',
+  '107_curate_import_idempotency.sql',
 ] as const;
 
 const migrations = migrationNames.map(name =>
@@ -156,7 +157,7 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 
-  it('matches the canonical schema for every table changed or created by migrations 099-106', () => {
+  it('matches the canonical schema for every table changed or created by migrations 099-107', () => {
     const upgraded = databaseFor(
       'teajia-upgraded-schema-',
       schemaThrough098 + migrations + promotionMigration,
@@ -176,5 +177,31 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(upgraded, 'PRAGMA foreign_key_check;')).toEqual([]);
     expect(query(canonical, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
     expect(query(canonical, 'PRAGMA foreign_key_check;')).toEqual([]);
+  });
+
+  it('enforces account-scoped import idempotency in a fresh canonical database', () => {
+    const database = databaseFor('teajia-fresh-import-schema-', canonicalSchema);
+    execFileSync('sqlite3', [database], { input: `
+      INSERT INTO curate_import_batches
+        (id, account_id, created_by_user_id, title, client_idempotency_key, request_fingerprint)
+      VALUES
+        ('batch-a', 'account-a', 'user-a', 'A', 'device-key', 'fingerprint-a'),
+        ('batch-b', 'account-b', 'user-b', 'B', 'device-key', 'fingerprint-b');
+      INSERT INTO curate_import_sources
+        (id, batch_id, account_id, created_by_user_id, kind, pasted_text, client_idempotency_key, request_fingerprint)
+      VALUES
+        ('source-a', 'batch-a', 'account-a', 'user-a', 'paste', 'one', 'source-key', 'source-fingerprint-a'),
+        ('source-b', 'batch-b', 'account-b', 'user-b', 'paste', 'two', 'source-key', 'source-fingerprint-b');
+    ` });
+    expect(() => execFileSync('sqlite3', [database], { input: `
+      INSERT INTO curate_import_batches
+        (id, account_id, created_by_user_id, title, client_idempotency_key, request_fingerprint)
+      VALUES ('batch-c', 'account-a', 'user-a', 'C', 'device-key', 'changed');
+    ` })).toThrow();
+    expect(() => execFileSync('sqlite3', [database], { input: `
+      INSERT INTO curate_import_sources
+        (id, batch_id, account_id, created_by_user_id, kind, pasted_text, client_idempotency_key, request_fingerprint)
+      VALUES ('source-c', 'batch-a', 'account-a', 'user-a', 'paste', 'three', 'source-key', 'changed');
+    ` })).toThrow();
   });
 });

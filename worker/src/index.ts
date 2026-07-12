@@ -9077,7 +9077,7 @@ const handleCreateReceiptProposal: Handler = async (request, env, params) => {
 };
 
 const handleUpdateReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const body = await request.json() as Record<string, unknown>;
   const unknown = Object.keys(body).filter(key => !RECEIPT_MUTABLE_FIELDS.has(key));
@@ -9103,7 +9103,7 @@ const handleUpdateReceiptProposal: Handler = async (request, env, params) => {
 };
 
 const handleRejectReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const existing = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
   if (!existing) return json({ error: 'Receipt proposal not found' }, 404);
@@ -9115,7 +9115,7 @@ const handleRejectReceiptProposal: Handler = async (request, env, params) => {
 };
 
 const handleAcceptReceiptProposal: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'stock');
   if ('error' in ctx) return ctx.error;
   const proposal = await env.DB.prepare('SELECT * FROM curate_receipt_proposals WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first() as Record<string, any> | null;
   if (!proposal) return json({ error: 'Receipt proposal not found' }, 404);

@@ -691,10 +691,15 @@ CREATE TABLE IF NOT EXISTS curate_import_batches (
   review_state TEXT NOT NULL DEFAULT 'pending' CHECK (review_state IN ('pending', 'reviewing', 'completed', 'abandoned')),
   journey_id TEXT,
   visit_id TEXT,
+  client_idempotency_key TEXT,
+  request_fingerprint TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_curate_import_batches_account ON curate_import_batches(account_id, updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_curate_import_batch_idempotency
+  ON curate_import_batches(account_id, client_idempotency_key)
+  WHERE client_idempotency_key IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS curate_import_sources (
   id TEXT PRIMARY KEY,
@@ -705,6 +710,8 @@ CREATE TABLE IF NOT EXISTS curate_import_sources (
   pasted_text TEXT,
   r2_object_key TEXT,
   client_evidence_id TEXT,
+  client_idempotency_key TEXT,
+  request_fingerprint TEXT,
   metadata_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   CHECK (pasted_text IS NOT NULL OR r2_object_key IS NOT NULL),
@@ -712,6 +719,9 @@ CREATE TABLE IF NOT EXISTS curate_import_sources (
   UNIQUE (account_id, batch_id, client_evidence_id)
 );
 CREATE INDEX IF NOT EXISTS idx_curate_import_sources_batch ON curate_import_sources(account_id, batch_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_curate_import_source_idempotency
+  ON curate_import_sources(account_id, client_idempotency_key)
+  WHERE client_idempotency_key IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS curate_import_items (
   id TEXT PRIMARY KEY,
