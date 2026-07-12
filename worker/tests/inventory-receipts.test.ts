@@ -23,9 +23,16 @@ describe('inventory receipt endpoints', () => {
   it('allows viewers to list receipts but denies inventory mutations', async () => {
     const db = ReceiptDb.seededWithReceipt(); db.role = 'viewer';
     expect((await receiptRequest(db, '/api/inventory/receipts')).status).toBe(200);
-    expect((await receiptRequest(db, '/api/inventory/receipts/receipt-a/state', { method: 'PUT', body: JSON.stringify({ state: 'ordered' }) })).status).toBe(403);
-    expect((await receiptRequest(db, '/api/inventory/receipt-lines/line-a/cancel-remaining', { method: 'POST' })).status).toBe(403);
+    const mutations: Array<[string, string, unknown?]> = [
+      ['POST', '/api/inventory/receipts', { idempotency_key: 'viewer-receipt', source_kind: 'invoice', lines: [{ product_id: 'product-a', quantity: 1, unit: 'g', intended_purpose: 'working' }] }],
+      ['PUT', '/api/inventory/receipts/receipt-a/state', { state: 'ordered' }],
+      ['POST', '/api/inventory/receipt-lines/line-a/receive', { quantity: 1, idempotency_key: 'viewer-receive' }],
+      ['POST', '/api/inventory/receipt-lines/line-a/cancel-remaining'],
+      ['POST', '/api/products/product-a/movements', { movement_type: 'receipt', quantity: 1, unit: 'g', expected_balance: 5, idempotency_key: 'viewer-movement' }],
+    ];
+    for (const [method, path, body] of mutations) expect((await receiptRequest(db, path, { method, body: body ? JSON.stringify(body) : undefined })).status, path).toBe(403);
     expect(db.receipts.get('receipt-a')?.state).toBe('planned');
+    expect(db.products.get('product-a')?.stock_grams).toBe(5);
   });
   it('persists normalized receipt lines and keeps accounts isolated', async () => {
     const db = ReceiptDb.seeded();

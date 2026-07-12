@@ -37,6 +37,8 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const initialBalance = movementUnit === 'unit' ? Number(product.quantityUnits || 0) : Number(product.stockGrams || 0);
   const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  const triggerRef = useRef(trigger);
   const [movementType, setMovementType] = useState<MovementType>(initialMovementType);
   const [quantity, setQuantity] = useState('');
   const [balance, setBalance] = useState(String(Math.round(initialBalance)));
@@ -57,10 +59,19 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const transferUnavailable = movementType === 'transfer';
   const canSubmit = !saving && !invalidQuantity && !invalidBalance && !insufficient && !transferUnavailable;
 
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   useEffect(() => {
-    closeRef.current?.focus();
+    const frame = requestAnimationFrame(() => closeRef.current?.focus());
+    return () => {
+      cancelAnimationFrame(frame);
+      requestAnimationFrame(() => triggerRef.current?.focus());
+    };
+  }, []);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
+      if (event.key === 'Escape') { event.preventDefault(); onCloseRef.current(); return; }
       if (event.key !== 'Tab' || !panelRef.current) return;
       const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')).filter(element => !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true');
       if (!controls.length) return;
@@ -69,11 +80,8 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      requestAnimationFrame(() => trigger?.focus());
-    };
-  }, [onClose, trigger]);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   const selectAction = (value: MovementType) => {
     setMovementType(value);

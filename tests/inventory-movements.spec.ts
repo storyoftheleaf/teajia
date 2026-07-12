@@ -283,8 +283,8 @@ test('stock movement dialog traps keyboard focus and Escape restores its trigger
   const close = page.getByRole('button', { name: 'Close stock movement' });
   await expect(close).toBeFocused();
   await close.press('Shift+Tab');
-  await expect(dialog.getByRole('button', { name: 'Record movement' })).toBeFocused();
-  await dialog.getByRole('button', { name: 'Record movement' }).press('Tab');
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await dialog.getByRole('button', { name: 'Cancel' }).press('Tab');
   await expect(close).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);

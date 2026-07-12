@@ -155,10 +155,24 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
 
 describe('Curate import provenance API', () => {
   it('allows viewers to read imports but denies every import mutation', async () => {
-    const db = new ImportDb(); db.role = 'viewer';
+    const db = new ImportDb();
+    const seeded = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Seed', idempotency_key: 'owner-seed', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await seeded.json() as any;
+    db.role = 'viewer';
     expect((await request(db, '/api/curate/imports')).status).toBe(200);
-    expect((await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Denied', idempotency_key: 'viewer-create' }) })).status).toBe(403);
-    expect(db.batches).toHaveLength(0);
+    const mutations: Array<[string, string, unknown?]> = [
+      ['POST', '/api/curate/imports', { title: 'Denied', idempotency_key: 'viewer-create' }],
+      ['POST', `/api/curate/imports/${batch.id}/abandon`],
+      ['POST', `/api/curate/imports/${batch.id}/items`, { name: 'Denied' }],
+      ['POST', `/api/curate/imports/${batch.id}/evidence`],
+      ['POST', `/api/curate/imports/${batch.id}/sources`, { kind: 'paste', pasted_text: 'Denied', idempotency_key: 'viewer-source' }],
+      ['PUT', `/api/curate/imports/${batch.id}/items/${items[0].id}`, { name: 'Denied' }],
+      ['POST', `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`],
+      ['POST', `/api/curate/imports/${batch.id}/items/${items[0].id}/merge`, { compass_entry_id: 'denied' }],
+    ];
+    for (const [method, path, body] of mutations) expect((await request(db, path, { method, body: body ? JSON.stringify(body) : undefined })).status, path).toBe(403);
+    expect(db.batches).toHaveLength(1);
+    expect(db.items.get(items[0].id)?.name).toBe('Tea');
   });
   it('replays import creation and source addition after response loss and rejects key reuse with changed content', async () => {
     const db = new ImportDb();
@@ -171,9 +185,10 @@ describe('Curate import provenance API', () => {
     expect((await create('Different list')).status).toBe(409);
 
     const add = (text: string) => request(db, `/api/curate/imports/${original.batch.id}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'paste', pasted_text: text, idempotency_key: 'source-device-1' }) });
-    const source = await add('one tea');
-    const sourceId = (await source.json() as any).id;
-    expect((await (await add('one tea')).json() as any).id).toBe(sourceId);
+    const sources = await Promise.all([add('one tea'), add('one tea')]);
+    expect(sources.map(result => result.status).sort()).toEqual([200, 201]);
+    const sourceIds = await Promise.all(sources.map(async result => (await result.json() as any).id));
+    expect(new Set(sourceIds).size).toBe(1);
     expect((await add('changed tea')).status).toBe(409);
     expect(db.batches).toHaveLength(1);
     expect(db.sources).toHaveLength(1);

@@ -363,10 +363,19 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
     if (replay) return replay.request_fingerprint === fingerprint
       ? response(sourceRow(replay))
       : response({ error: 'idempotency_key already used for a different source' }, 409);
-    const inserted = await env.DB.prepare(
-      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json, client_idempotency_key, request_fingerprint)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
-    ).bind(id, params.id, ctx.accountId, ctx.userId, kind, pastedText, objectKey, metadataJson, idempotencyKey, fingerprint, params.id, ctx.accountId).run();
+    let inserted: D1Result<unknown>;
+    try {
+      inserted = await env.DB.prepare(
+        `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json, client_idempotency_key, request_fingerprint)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+      ).bind(id, params.id, ctx.accountId, ctx.userId, kind, pastedText, objectKey, metadataJson, idempotencyKey, fingerprint, params.id, ctx.accountId).run();
+    } catch (error) {
+      const raced = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE account_id = ? AND client_idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first<Record<string, unknown>>();
+      if (raced) return raced.request_fingerprint === fingerprint
+        ? response(sourceRow(raced))
+        : response({ error: 'idempotency_key already used for a different source' }, 409);
+      throw error;
+    }
     if (!(inserted.meta.changes ?? 0)) return terminalResponse();
     const row = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, unknown>>();
     return response(sourceRow(row!), 201);
