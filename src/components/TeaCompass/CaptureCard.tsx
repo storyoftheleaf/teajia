@@ -155,37 +155,6 @@ const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
   <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
 );
 
-/** Inline status mark — Want/Buy/Sample/Taste tile inside the form.
- *  Text-only (no icons): a label plus one quiet helper line that says
- *  what the action does, so the four are legible on first encounter.
- *  Transparent bg at rest; gold-tint border + accent-sub when active. */
-const EntryMark: React.FC<{
-  label: string;
-  hint: string;
-  active: boolean;
-  onClick: () => void;
-  ariaLabel?: string;
-}> = ({ label, hint, active, onClick, ariaLabel }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-pressed={active}
-    aria-label={ariaLabel || label}
-    className={`group relative flex flex-col items-start justify-center gap-0.5 min-h-[64px] px-3 py-2.5 rounded-md border text-left transition-colors ${
-      active
-        ? 'bg-tea-accent-sub border-tea-gold/30 text-tea-text'
-        : 'bg-transparent border-tea-border text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
-    }`}
-  >
-    <span className={`pointer-events-none font-sans font-medium text-base ${active ? 'text-tea-text' : 'text-tea-text-sec'}`}>
-      {label}
-    </span>
-    <span className="pointer-events-none text-ui-11 leading-snug text-tea-text-dim">
-      {hint}
-    </span>
-  </button>
-);
-
 export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -1398,24 +1367,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           larger
           sans
         />
-
-        {/* Teaware entry marks — only Want applies (Taste / Buy / Sample
-            are tea concepts: no brewing session, no ml-based buy picker,
-            no sample cart). Showing the irrelevant ones as disabled
-            placeholders just looks broken — render only what's actionable. */}
-        {(() => {
-          const isWantTeaware = entry.status === 'want';
-          return (
-            <div className="lg:hidden">
-              <EntryMark
-                label={isWantTeaware ? 'Wanted' : 'Want'}
-                hint={isWantTeaware ? 'On your wishlist' : 'Save to your wishlist'}
-                active={isWantTeaware}
-                onClick={() => update({ status: isWantTeaware ? 'noted' : 'want' })}
-              />
-            </div>
-          );
-        })()}
 
         {/* Action footer — Done. Share lives in the Library, not at capture. */}
         {(() => {

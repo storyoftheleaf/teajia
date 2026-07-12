@@ -71,6 +71,14 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toBeVisible();
   });
 
+  test('teaware capture has no legacy Want control', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+
+    await expect(page.getByRole('button', { name: 'Want', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Wanted', exact: true })).toHaveCount(0);
+  });
+
   test('keeps Teaware selected when a teaware draft is restored after refresh', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
