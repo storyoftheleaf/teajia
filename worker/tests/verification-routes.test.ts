@@ -58,16 +58,28 @@ afterEach(() => { vi.restoreAllMocks(); deliveryCalls.length = 0; vi.useRealTime
 describe('purpose-aware verification routes', () => {
   it('delivers normalized sign-in codes, stores only a hash, and issues password-equivalent claims', async () => {
     const db = new VerificationDb(); let issuedCode = '';
+    const mathRandom = vi.spyOn(Math, 'random').mockImplementation(() => { throw new Error('Math.random must not be used'); });
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation((array: any) => { array[0] = 42; return array; });
     vi.stubGlobal('fetch', vi.fn(async (_url, init) => { const payload = JSON.parse(String(init?.body)); deliveryCalls.push(payload); issuedCode = payload.html.match(/<strong>(\d{6})<\/strong>/)[1]; return new Response(JSON.stringify({ id: 'email-1' }), { status: 200 }); }));
     const requested = await api(db, 'request', { contact: ' Member@Example.com ', purpose: 'signin' });
     expect(requested).toMatchObject({ status: 202, body: { success: true, retryable: true } });
     expect(requested.body).not.toHaveProperty('code');
     expect(deliveryCalls[0]).toMatchObject({ to: ['member@example.com'] });
     expect(db.challenges[0].code_hash).not.toBe(issuedCode);
+    const plainDigest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(issuedCode)))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+    expect(db.challenges[0].code_hash).not.toBe(plainDigest);
+    expect(mathRandom).not.toHaveBeenCalled();
     expect(new Date(db.challenges[0].expires_at).getTime() - new Date(db.challenges[0].created_at).getTime()).toBeCloseTo(600_000, -2);
     const confirmed = await api(db, 'confirm', { contact: 'member@example.com', code: issuedCode, purpose: 'signin' });
     expect(confirmed).toMatchObject({ status: 200, body: { token: expect.any(String), memberships: [expect.objectContaining({ account_id: 'account-1' })], active_account_id: 'account-1' } });
     expect((await api(db, 'confirm', { contact: 'member@example.com', code: issuedCode, purpose: 'signin' })).status).toBe(401);
+  });
+
+  it('rejects the right code when verified with the wrong HMAC secret', async () => {
+    const db = new VerificationDb();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ id: 'email-1' }), { status: 200 })));
+    const requested = await api(db, 'request', { contact: 'member@example.com', purpose: 'signin' }, { DEV_RETURN_VERIFY_CODES: 'true', VERIFICATION_CODE_SECRET: 'secret-a' });
+    expect((await api(db, 'confirm', { contact: 'member@example.com', code: requested.body.code, purpose: 'signin' }, { VERIFICATION_CODE_SECRET: 'secret-b' })).status).toBe(401);
   });
 
   it('keeps event confirmation response compatibility and dev echo explicit', async () => {

@@ -23,6 +23,7 @@ type FakeDbState = {
     payment_status: string;
     payment_date: string | null;
     fulfilled_at: string | null;
+    fulfillment_claim_token: string | null;
     inventory_deducted: number;
   };
   lineItems: Array<{ product_id: string | null; quantity: number }>;
@@ -65,6 +66,11 @@ class FakeStatement {
     }
     if (sql.includes('from products where id = ? and account_id = ?')) {
       return this.state.products.get(String(this.values[0])) || null;
+    }
+    if (sql.startsWith('update invoices set fulfillment_claim_token = ?')) {
+      if (this.state.invoice.inventory_deducted || this.state.invoice.fulfillment_claim_token) return null;
+      this.state.invoice.fulfillment_claim_token = String(this.values[0]);
+      return { id: this.state.invoice.id };
     }
     if (sql.startsWith('update mcp_confirmation_tickets set consumed_at')) {
       // consumeConfirmationToken binds (now, token_hash, now)
@@ -167,9 +173,15 @@ function runStatement(state: FakeDbState, statement: FakeStatement) {
   // Single-statement commit: status and inventory_deducted are set together
   // inside the batch (atomicity comes from DB.batch, not a -1 claim phase).
   if (sql.startsWith("update invoices set status = 'filled', inventory_deducted = 1")) {
+    if (state.invoice.fulfillment_claim_token !== values[2]) return { success: true, meta: { changes: 0 } };
     state.invoice.status = 'Filled';
     state.invoice.inventory_deducted = 1;
     state.invoice.fulfilled_at ||= '2026-07-13 00:00:00';
+    state.invoice.fulfillment_claim_token = null;
+    return { success: true, meta: { changes: 1 } };
+  }
+  if (sql.startsWith('update invoices set fulfillment_claim_token = null')) {
+    if (state.invoice.fulfillment_claim_token === values[2]) state.invoice.fulfillment_claim_token = null;
     return { success: true, meta: { changes: 1 } };
   }
 
@@ -186,6 +198,7 @@ function makeState(stockGrams: number): FakeDbState {
       payment_status: 'unpaid',
       payment_date: null,
       fulfilled_at: null,
+      fulfillment_claim_token: null,
       inventory_deducted: 0,
     },
     lineItems: [
@@ -295,6 +308,20 @@ describe('MCP invoice fulfillment', () => {
     const result = await fulfillInvoice(state);
     expect(result.committed).toBe(true);
     expect(state.invoice.fulfilled_at).toBe('2026-07-01 01:02:03');
+  });
+
+  it('allows only one of two competing confirmations to deduct stock', async () => {
+    const state = makeState(100);
+    const firstPreview = await callMcp(state, { invoice_id: 'inv_test' });
+    const secondPreview = await callMcp(state, { invoice_id: 'inv_test' });
+    const [first, second] = await Promise.all([
+      callMcp(state, { invoice_id: 'inv_test', confirm: firstPreview.confirmation_token }),
+      callMcp(state, { invoice_id: 'inv_test', confirm: secondPreview.confirmation_token }),
+    ]);
+    expect([first, second].filter(result => result.committed)).toHaveLength(1);
+    expect(state.products.get('prod_test')?.stock_grams).toBe(20);
+    expect(state.ledger).toHaveLength(1);
+    expect(state.invoice.fulfilled_at).toBe('2026-07-13 00:00:00');
   });
 
   it('deducts only product-backed lines when custom lines are present', async () => {

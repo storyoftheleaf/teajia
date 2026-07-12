@@ -32,6 +32,7 @@ OAUTH_REDIRECT_ORIGIN = "https://api.teajia.com"
 # Secrets (set via `wrangler secret put`, never committed):
 #   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  — Google OAuth (local dev reads them from worker/.dev.vars)
 #   JWT_SECRET, ADMIN_PASSWORD_HASH         — auth
+#   VERIFICATION_CODE_SECRET                — HMAC key for verification-code digests
 #   SENDER_EMAIL, SENDER_NAME, RESEND_API_KEY — email (Resend)
 # These must NOT be declared as [vars] — a [vars] entry would shadow the secret
 # with an empty string on every deploy and break OAuth.

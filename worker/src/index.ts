@@ -19,6 +19,7 @@ interface Env {
   MEDIA_BUCKET: R2Bucket;
   ADMIN_PASSWORD_HASH: string;
   JWT_SECRET: string;
+  VERIFICATION_CODE_SECRET?: string;
   ANTHROPIC_API_KEY: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
@@ -3071,7 +3072,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
-  if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 400);
+  if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 409);
 
   const items = await env.DB.prepare(
     'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
@@ -3107,6 +3108,17 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
   }
 
+  const fulfillmentClaim = crypto.randomUUID();
+  const claimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?
+     WHERE id = ? AND account_id = ? AND inventory_deducted = 0 AND fulfillment_claim_token IS NULL
+     RETURNING id`
+  ).bind(fulfillmentClaim, invoice_id, accountId).first();
+  if (!claimed) return json({ error: 'Invoice fulfillment is already in progress' }, 409);
+  const releaseClaim = () => env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoice_id, accountId, fulfillmentClaim).run();
+
   // ── Phase A: atomic, guarded stock deduction ───────────────────────────
   // Each deduct is conditional on `stock_grams >= qty`. If a concurrent
   // fulfillment drained stock since the pre-check, the row won't match and
@@ -3126,6 +3138,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     try {
       deductResults = await env.DB.batch(deductStmts);
     } catch (err: any) {
+      await releaseClaim().catch(() => {});
       console.error('handleFulfillInvoice deduct batch failed:', err);
       return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
     }
@@ -3148,6 +3161,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       if (restoreStmts.length > 0) {
         try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment rollback failed:', e); }
       }
+      await releaseClaim().catch(() => {});
       const failed = deductLines[failedIdx];
       const product = products.get(failed.product_id as string);
       return json({
@@ -3226,8 +3240,8 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   );
 
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')) WHERE id = ? AND account_id = ?")
-      .bind(invoice_id, accountId)
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
+      .bind(invoice_id, accountId, fulfillmentClaim)
   );
 
   stmts.push(buildActivityLog(
@@ -3250,6 +3264,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
       );
       try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment Phase-B rollback failed:', e); }
     }
+    await releaseClaim().catch(() => {});
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
 
@@ -10533,6 +10548,31 @@ const handleEventInterest: Handler = async (request, env, params) => {
   return json({ success: true }, 201);
 };
 
+const VERIFICATION_CODE_RANGE = 900_000;
+const UINT32_RANGE = 0x1_0000_0000;
+const VERIFICATION_REJECTION_LIMIT = Math.floor(UINT32_RANGE / VERIFICATION_CODE_RANGE) * VERIFICATION_CODE_RANGE;
+
+function generateVerificationCode(): string {
+  const sample = new Uint32Array(1);
+  do crypto.getRandomValues(sample); while (sample[0] >= VERIFICATION_REJECTION_LIMIT);
+  return String(100_000 + (sample[0] % VERIFICATION_CODE_RANGE));
+}
+
+async function verificationHmacKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+}
+
+async function signVerificationCode(code: string, secret: string): Promise<string> {
+  const signature = await crypto.subtle.sign('HMAC', await verificationHmacKey(secret), new TextEncoder().encode(code));
+  return [...new Uint8Array(signature)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyVerificationCode(code: string, signatureHex: string, secret: string): Promise<boolean> {
+  if (!/^[0-9a-f]{64}$/i.test(signatureHex)) return false;
+  const signature = Uint8Array.from(signatureHex.match(/../g) || [], byte => parseInt(byte, 16));
+  return crypto.subtle.verify('HMAC', await verificationHmacKey(secret), signature, new TextEncoder().encode(code));
+}
+
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -10568,7 +10608,7 @@ const handleVerifyRequest: Handler = async (request, env) => {
     eventOwnerAccountId = ownerAccount.id as string;
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = generateVerificationCode();
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const delivery = await deliverVerificationCode(env, { email: contact, code, purpose });
   if (!delivery.delivered) return json({ error: 'We could not send the code.', retryable: delivery.retryable }, 503);
@@ -10585,7 +10625,7 @@ const handleVerifyRequest: Handler = async (request, env) => {
     }
   }
 
-  const codeHash = await hashPassword(code);
+  const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
   const deliveredAt = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO verification_challenges
@@ -10616,8 +10656,8 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   ).bind(contact, purpose).first();
   const genericError = { error: 'Invalid or expired verification code' };
   if (!challenge || Number(challenge.failed_attempts) >= 3 || new Date(challenge.expires_at as string) <= new Date()) return json(genericError, 401);
-  const codeHash = await hashPassword(body.code);
-  if (codeHash !== challenge.code_hash) {
+  const codeValid = await verifyVerificationCode(body.code, challenge.code_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  if (!codeValid) {
     const nextFailedAttempts = Number(challenge.failed_attempts) + 1;
     await env.DB.prepare(
       `UPDATE verification_challenges
@@ -10633,7 +10673,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
     `UPDATE verification_challenges SET consumed_at = datetime('now')
      WHERE id = ? AND code_hash = ? AND consumed_at IS NULL
        AND expires_at > datetime('now') AND failed_attempts < 3`
-  ).bind(challenge.id, codeHash).run();
+  ).bind(challenge.id, challenge.code_hash).run();
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {

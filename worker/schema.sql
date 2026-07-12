@@ -204,6 +204,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_date TEXT,
     payment_method TEXT,
     fulfilled_at TEXT,
+    fulfillment_claim_token TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -221,6 +222,8 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_account_invoice_number_active
   ON invoices(account_id, invoice_number)
   WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_invoices_fulfillment_claim
+  ON invoices(account_id, fulfillment_claim_token);
 
 -- 5. Users Table
 CREATE TABLE IF NOT EXISTS users (

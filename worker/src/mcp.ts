@@ -2488,6 +2488,16 @@ async function commitFulfillInvoice(
   invoice: Record<string, any>,
   lineItems: any[],
 ) {
+  const fulfillmentClaim = crypto.randomUUID();
+  const claimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?
+     WHERE id = ? AND account_id = ? AND inventory_deducted = 0 AND fulfillment_claim_token IS NULL
+     RETURNING id`
+  ).bind(fulfillmentClaim, m.invoiceId, m.accountId).first();
+  if (!claimed) return { error: 'invoice_fulfillment_already_claimed' };
+  const releaseClaim = () => env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(m.invoiceId, m.accountId, fulfillmentClaim).run();
   const stmts: D1PreparedStatement[] = [];
 
   for (const item of lineItems) {
@@ -2502,6 +2512,7 @@ async function commitFulfillInvoice(
     const currentStock = Number(product.stock_grams || 0);
     const qty = Number(item.quantity) || 0;
     if (qty > currentStock) {
+      await releaseClaim().catch(() => {});
       // Abort — stock changed between preview and confirm.
       return {
         error: 'stock_underflow_at_commit',
@@ -2570,8 +2581,8 @@ async function commitFulfillInvoice(
       .bind(m.invoiceId, m.accountId)
   );
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')) WHERE id = ? AND account_id = ?")
-      .bind(m.invoiceId, m.accountId)
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
+      .bind(m.invoiceId, m.accountId, fulfillmentClaim)
   );
   stmts.push(
     env.DB.prepare(
@@ -2584,7 +2595,12 @@ async function commitFulfillInvoice(
     )
   );
 
-  await env.DB.batch(stmts);
+  try {
+    await env.DB.batch(stmts);
+  } catch (error) {
+    await releaseClaim().catch(() => {});
+    throw error;
+  }
 
   return {
     committed: true,
