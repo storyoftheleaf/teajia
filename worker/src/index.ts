@@ -13217,19 +13217,60 @@ const handleUpdateAccountMember: Handler = async (request, env, params) => {
   const current = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
     .bind(params.id, params.userId).first();
   if (!current) return restError(404, 'Membership not found', 'membership_not_found');
-  const removesOwner = current.role === 'owner' && (body.role && body.role !== 'owner' || body.status && body.status !== 'active');
-  if (removesOwner) {
-    const ownerCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM account_members WHERE account_id = ? AND role = 'owner' AND status = 'active'")
-      .bind(params.id).first();
-    if (Number(ownerCount?.count || 0) <= 1) return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
-  }
+  const removesActiveOwner = (body.role !== undefined && body.role !== 'owner')
+    || (body.status !== undefined && body.status !== 'active');
 
   binds.push(params.id, params.userId);
-  await env.DB.batch([
-    env.DB.prepare(`UPDATE account_members SET ${updates.join(', ')} WHERE account_id = ? AND user_id = ?`).bind(...binds),
-    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
-      .bind(params.id, params.userId),
+  const ownerFloorGuard = removesActiveOwner
+    ? ` AND (
+          account_members.role != 'owner'
+          OR account_members.status != 'active'
+          OR EXISTS (
+            SELECT 1
+            FROM account_members AS other
+            WHERE other.account_id = account_members.account_id
+              AND other.user_id != account_members.user_id
+              AND other.role = 'owner'
+              AND other.status = 'active'
+          )
+        )`
+    : '';
+  const desiredMembershipChecks: string[] = [];
+  const desiredMembershipBinds: any[] = [params.id, params.userId];
+  if (body.role !== undefined) {
+    desiredMembershipChecks.push('role = ?');
+    desiredMembershipBinds.push(body.role);
+  }
+  if (body.status !== undefined) {
+    desiredMembershipChecks.push('status = ?');
+    desiredMembershipBinds.push(body.status);
+  }
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE account_members
+       SET ${updates.join(', ')}
+       WHERE account_id = ? AND user_id = ?${ownerFloorGuard}`
+    ).bind(...binds),
+    env.DB.prepare(
+      `UPDATE mcp_tokens
+       SET revoked_at = datetime('now')
+       WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM account_members
+           WHERE account_id = ? AND user_id = ? AND ${desiredMembershipChecks.join(' AND ')}
+         )`
+    ).bind(params.id, params.userId, ...desiredMembershipBinds),
   ]);
+
+  if (Number(results[0]?.meta?.changes || 0) === 0) {
+    const after = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+      .bind(params.id, params.userId).first();
+    if (!after) return restError(404, 'Membership not found', 'membership_not_found');
+    if (removesActiveOwner && after.role === 'owner' && after.status === 'active') {
+      return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
+    }
+    return restError(409, 'Membership changed before the update could be applied', 'membership_update_conflict');
+  }
 
   return json({ success: true });
 };
@@ -13249,17 +13290,42 @@ const handleDeleteAccountMember: Handler = async (request, env, params) => {
   if (target.role === 'owner' && ctx.role !== 'owner' && !ctx.isPlatform) {
     return restError(403, 'Only an owner can remove an account owner', 'owner_assignment_denied');
   }
-  if (target.role === 'owner' && target.status === 'active') {
-    const ownerCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM account_members WHERE account_id = ? AND role = 'owner' AND status = 'active'")
-      .bind(params.id).first();
-    if (Number(ownerCount?.count || 0) <= 1) return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
-  }
-
-  await env.DB.batch([
-    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
-      .bind(params.id, params.userId),
-    env.DB.prepare('DELETE FROM account_members WHERE account_id = ? AND user_id = ?').bind(params.id, params.userId),
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      `DELETE FROM account_members
+       WHERE account_id = ? AND user_id = ?
+         AND (
+           account_members.role != 'owner'
+           OR account_members.status != 'active'
+           OR EXISTS (
+             SELECT 1
+             FROM account_members AS other
+             WHERE other.account_id = account_members.account_id
+               AND other.user_id != account_members.user_id
+               AND other.role = 'owner'
+               AND other.status = 'active'
+           )
+         )`
+    ).bind(params.id, params.userId),
+    env.DB.prepare(
+      `UPDATE mcp_tokens
+       SET revoked_at = datetime('now')
+       WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM account_members WHERE account_id = ? AND user_id = ?
+         )`
+    ).bind(params.id, params.userId, params.id, params.userId),
   ]);
+
+  if (Number(results[0]?.meta?.changes || 0) === 0) {
+    const after = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+      .bind(params.id, params.userId).first();
+    if (!after) return restError(404, 'Membership not found', 'membership_not_found');
+    if (after.role === 'owner' && after.status === 'active') {
+      return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
+    }
+    return restError(409, 'Membership changed before removal could be applied', 'membership_delete_conflict');
+  }
 
   return json({ success: true });
 };
