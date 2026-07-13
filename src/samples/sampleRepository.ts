@@ -3,12 +3,14 @@ import {
   isTokenScopedToAccount,
   type SampleApiRow,
   type SampleApiWrite,
+  type SampleTastingApiRow,
   type SampleSetApiRow,
   type SampleSetApiWrite,
 } from '../lib/api';
 import type { TeaForm, TeaType, VendorDetails } from '../components/TeaCompass/types';
 import { useSampleStore } from './sampleStore';
-import type { SampleSet, SampleSetPurpose, SampleStatus, TeaSample } from './types';
+import type { SampleSet, SampleSetPurpose, SampleStatus, SampleTasting, TeaSample } from './types';
+import type { TastingData } from '../types';
 
 export type SyncedTeaSample = TeaSample & { accountId: string };
 export type SyncedSampleSet = SampleSet & { accountId: string; synced: true };
@@ -25,6 +27,7 @@ export interface SampleRemoteApi {
     create: (sample: SampleApiWrite) => Promise<SampleApiRow>;
     update: (id: string, updates: Partial<SampleApiWrite>) => Promise<SampleApiRow>;
     remove: (id: string) => Promise<{ success: true }>;
+    addTasting?: (id: string, tasting: import('../lib/api').SampleTastingApiWrite) => Promise<SampleTastingApiRow>;
   };
 }
 
@@ -53,7 +56,7 @@ export function sampleFromApi(row: SampleApiRow): SyncedTeaSample {
     compassEntryId: row.compass_entry_id,
     teaKey: row.tea_key,
     setId: row.set_id,
-    tastings: [],
+    tastings: (row.tastings ?? []).map(tastingFromApi),
     status: SAMPLE_STATUSES.has(row.status as SampleStatus) ? row.status as SampleStatus : 'untasted',
     grams: row.grams,
     notes: row.notes,
@@ -62,6 +65,20 @@ export function sampleFromApi(row: SampleApiRow): SyncedTeaSample {
     updatedAt: row.updated_at,
     createdBy: row.created_by === 'customer' ? 'customer' : 'admin',
     synced: true,
+  };
+}
+
+function tastingFromApi(row: SampleTastingApiRow): SampleTasting {
+  return {
+    id: row.id,
+    tasterId: row.taster_id,
+    tasterName: row.taster_name,
+    tasting: row.tasting as TastingData,
+    rating: row.rating,
+    verdict: row.verdict as SampleTasting['verdict'],
+    wouldBuy: Boolean(row.would_buy),
+    personalNote: row.personal_note,
+    createdAt: row.created_at,
   };
 }
 
@@ -77,6 +94,7 @@ export function sampleSetFromApi(row: SampleSetApiRow, samples: TeaSample[]): Sy
     sharedWith: arrayValue(row.shared_with),
     panelAccountIds: arrayValue(row.panel_account_ids),
     notes: row.notes,
+    archived: Boolean(row.archived),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     synced: true,
@@ -93,6 +111,7 @@ function sampleSetToApi(sampleSet: SampleSet): SampleSetApiWrite {
     notes: sampleSet.notes,
     shared_with: sampleSet.sharedWith,
     panel_account_ids: sampleSet.panelAccountIds,
+    archived: sampleSet.archived,
   };
 }
 
@@ -121,8 +140,8 @@ function sampleToApi(sample: TeaSample): SampleApiWrite {
 }
 
 function sampleSetUpdatesToApi(updates: Partial<SampleSet>): Partial<SampleSetApiWrite> {
-  const keys: Array<keyof SampleSet> = ['name', 'sourceId', 'sourceName', 'purpose', 'notes', 'sharedWith', 'panelAccountIds'];
-  const apiKeys: Array<keyof SampleSetApiWrite> = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids'];
+  const keys: Array<keyof SampleSet> = ['name', 'sourceId', 'sourceName', 'purpose', 'notes', 'sharedWith', 'panelAccountIds', 'archived'];
+  const apiKeys: Array<keyof SampleSetApiWrite> = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids', 'archived'];
   const output: Partial<SampleSetApiWrite> = {};
   keys.forEach((key, index) => { if (key in updates) output[apiKeys[index]] = updates[key] as never; });
   return output;
@@ -147,7 +166,7 @@ export function createSampleRepository(options: {
   isReady?: (accountId: string) => boolean;
   store?: typeof useSampleStore;
 } = {}) {
-  const remote = options.remote ?? { sampleSets: api.sampleSets, samples: api.samples };
+  const remote: SampleRemoteApi = options.remote ?? { sampleSets: api.sampleSets, samples: api.samples };
   const isReady = options.isReady ?? isTokenScopedToAccount;
   const store = options.store ?? useSampleStore;
   let operationGeneration = 0;
@@ -216,10 +235,34 @@ export function createSampleRepository(options: {
           throw new Error(`Cannot sync sample ${sample.id}: set ${sample.setId} is not persisted`);
         }
         const persisted = sample.accountId === accountId || remoteSamplesById.has(sample.id);
+        const previous = remoteSamplesById.get(sample.id);
         const row = persisted && remoteSamplesById.has(sample.id)
           ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample))
           : await remote.samples.create(sampleToApi(sample));
-        remoteSamplesById.set(row.id, row);
+        remoteSamplesById.set(row.id, {
+          ...row,
+          tastings: row.tastings ?? previous?.tastings ?? [],
+        });
+      }
+      for (const sample of snapshot.samples) {
+        const remoteSample = remoteSamplesById.get(sample.id);
+        if (!remoteSample) continue;
+        const remoteTastingIds = new Set((remoteSample.tastings ?? []).map((tasting) => tasting.id));
+        for (const tasting of sample.tastings.filter((item) => !remoteTastingIds.has(item.id))) {
+          if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+          if (!remote.samples.addTasting) throw new Error('Sample tasting persistence is unavailable');
+          const created = await remote.samples.addTasting(sample.id, {
+            id: tasting.id,
+            tasting: tasting.tasting,
+            rating: tasting.rating,
+            verdict: tasting.verdict,
+            wouldBuy: tasting.wouldBuy,
+            personalNote: tasting.personalNote,
+            tasterName: tasting.tasterName,
+          });
+          remoteTastingIds.add(created.id);
+          remoteSample.tastings = [...(remoteSample.tastings ?? []), created];
+        }
       }
 
       const [finalSets, finalSamples] = await Promise.all([

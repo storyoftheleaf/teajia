@@ -7,6 +7,7 @@ const remoteSet = {
   id: 'server-set', account_id: 'acct-a', name: 'Spring requests', source_id: 'vendor-1',
   source_name: 'Wuyi vendor', purpose: 'sourcing', notes: 'Fresh arrivals', shared_with: ['member-1'],
   panel_account_ids: [], created_at: '2026-03-01 10:00:00', updated_at: '2026-03-02 10:00:00',
+  archived: false,
 };
 const remoteSample = {
   id: 'server-sample', account_id: 'acct-a', name: 'Rou Gui', chinese_name: '肉桂', type: 'Oolong',
@@ -14,6 +15,7 @@ const remoteSample = {
   compass_entry_id: 'compass-1', set_id: 'server-set', status: 'untasted', grams: 8, notes: 'Floral',
   photos: ['photo.jpg'], created_at: '2026-03-01 10:00:00', updated_at: '2026-03-02 10:00:00',
   created_by: 'admin',
+  tastings: [],
 };
 
 describe('sample repository', () => {
@@ -38,6 +40,7 @@ describe('sample repository', () => {
     expect(set).toMatchObject({
       id: 'server-set', accountId: 'acct-a', sourceName: 'Wuyi vendor',
       sharedWith: ['member-1'], sampleIds: ['server-sample'], synced: true,
+      archived: false,
     });
   });
 
@@ -202,6 +205,11 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().getSampleSet('local-set')).toMatchObject({ accountId: 'acct-a', synced: true });
     expect(useSampleStore.getState().getSample('local-sample')).toMatchObject({ accountId: 'acct-a', synced: true });
 
+    useSampleStore.getState().archiveSampleSet('local-set');
+    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(sets.get('local-set')?.archived).toBe(true);
+    expect(useSampleStore.getState().getSampleSet('local-set')?.archived).toBe(true);
+
     useSampleStore.getState().updateSampleSet('local-set', { name: 'Edited set' });
     useSampleStore.getState().updateSample('local-sample', { grams: 12 });
     expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
@@ -261,5 +269,44 @@ describe('sample repository', () => {
     expect(useSampleStore.getState().sampleSets).toEqual([]);
     useSampleStore.getState().switchAccount('acct-a');
     expect(useSampleStore.getState().getSampleSet('switch-set')?.synced).toBe(false);
+  });
+
+  it('uploads tasting outbox records idempotently and preserves them through rehydrate', async () => {
+    const serverSample: any = { ...remoteSample, tastings: [] };
+    let tastingCalls = 0;
+    let simulateLostResponse = true;
+    const remote = {
+      sampleSets: { list: vi.fn(async () => ({ sets: [remoteSet] })), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+      samples: {
+        list: vi.fn(async () => ({ samples: [serverSample] })), create: vi.fn(),
+        update: vi.fn(async (_id: string, write: any) => Object.assign(serverSample, write)), remove: vi.fn(),
+        addTasting: vi.fn(async (_id: string, write: any) => {
+          tastingCalls += 1;
+          const row = {
+            id: write.id, sample_id: 'server-sample', taster_id: 'admin', tasting: write.tasting,
+            rating: write.rating, verdict: write.verdict, would_buy: write.wouldBuy ? 1 : 0,
+            personal_note: write.personalNote, created_at: '2026-03-04',
+          };
+          serverSample.tastings.push(row);
+          if (simulateLostResponse) { simulateLostResponse = false; throw new Error('response lost'); }
+          return row;
+        }),
+      },
+    };
+    const repository = createSampleRepository({ remote, isReady: () => true });
+    useSampleStore.getState().switchAccount('acct-a');
+    expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
+    useSampleStore.getState().addTasting('server-sample', {
+      id: 'tasting-local', tasterId: 'admin', tasting: { flavor: ['orchid'] }, rating: 9,
+      verdict: 'love', wouldBuy: true, personalNote: 'Long finish', createdAt: '2026-03-04',
+    });
+
+    await expect(repository.sync('acct-a')).rejects.toThrow('response lost');
+    expect(await repository.sync('acct-a')).toEqual({ status: 'synced' });
+    expect(tastingCalls).toBe(1);
+    expect(await repository.hydrate('acct-a')).toEqual({ status: 'hydrated' });
+    expect(useSampleStore.getState().getSample('server-sample')?.tastings).toEqual([
+      expect.objectContaining({ id: 'tasting-local', verdict: 'love', wouldBuy: true, personalNote: 'Long finish' }),
+    ]);
   });
 });

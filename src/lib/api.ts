@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole, TastingData } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
@@ -888,6 +888,7 @@ export interface SampleSetApiWrite {
   notes?: string;
   shared_with?: string[];
   panel_account_ids?: string[];
+  archived?: boolean;
 }
 
 export interface SampleSetApiRow extends SampleSetApiWrite {
@@ -933,6 +934,30 @@ export interface SampleApiRow extends SampleApiWrite {
   updated_at: string;
   created_by: string;
   user_id?: string;
+  tastings?: SampleTastingApiRow[];
+}
+
+export interface SampleTastingApiWrite {
+  id?: string;
+  tasting: TastingData;
+  rating?: number;
+  verdict: string;
+  wouldBuy: boolean;
+  personalNote?: string;
+  tasterName?: string;
+}
+
+export interface SampleTastingApiRow {
+  id: string;
+  sample_id: string;
+  taster_id: string;
+  taster_name?: string;
+  tasting: TastingData;
+  rating?: number;
+  verdict: string;
+  would_buy: number | boolean;
+  personal_note?: string;
+  created_at: string;
 }
 
 export const api = {
@@ -2298,7 +2323,7 @@ export const api = {
       return handleResponse(res);
     },
     // Public/guest: add a tasting to a sample
-    addTasting: async (sampleId: string, data: { tasting: Record<string, any>; rating?: number; verdict: string; wouldBuy: boolean; personalNote?: string; tasterName?: string }) => {
+    addTasting: async (sampleId: string, data: SampleTastingApiWrite): Promise<SampleTastingApiRow> => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia_token');
       if (token) headers['Authorization'] = `Bearer ${token}`;

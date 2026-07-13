@@ -652,6 +652,7 @@ CREATE TABLE IF NOT EXISTS tea_sample_sets (
   shared_with TEXT DEFAULT '[]',
   account_id TEXT,
   panel_account_ids TEXT,
+  archived INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   user_id TEXT

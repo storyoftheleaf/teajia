@@ -97,6 +97,7 @@ class AdminSampleDb {
     ['set-other', { id: 'set-other', account_id: 'another-account', name: 'Other', purpose: 'sourcing', shared_with: '[]', panel_account_ids: '[]', created_at: '2026-01-01', updated_at: '2026-01-01' }],
   ]);
   samples = new Map<string, Record<string, unknown>>();
+  tastings = new Map<string, Record<string, unknown>>();
 
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -126,6 +127,11 @@ class AdminSampleDb {
           const row = this.sampleSets.get(String(values[0]));
           return row?.account_id === values[1] ? row : null;
         }
+        if (normalized.includes('select sample_id from tea_sample_tastings where id = ?')) {
+          const row = this.tastings.get(String(values[0]));
+          return row ? { sample_id: row.sample_id } : null;
+        }
+        if (normalized.includes('select * from tea_sample_tastings where id = ?')) return this.tastings.get(String(values[0])) ?? null;
         return null;
       },
       all: async () => ({ results: [] }),
@@ -152,6 +158,11 @@ class AdminSampleDb {
             const columns = sql.match(/set\s+(.+),\s*updated_at/i)?.[1].split(',').map((assignment) => assignment.split('=')[0].trim()) ?? [];
             columns.forEach((column, index) => { row[column] = values[index]; });
           }
+        } else if (normalized.startsWith('insert or ignore into tea_sample_tastings') || normalized.startsWith('insert into tea_sample_tastings')) {
+          const columns = sql.match(/tea_sample_tastings\s*\(([^)]+)\)/i)?.[1].split(',').map((column) => column.trim()) ?? [];
+          const row = Object.fromEntries(columns.map((column, index) => [column, values[index]]));
+          row.created_at = '2026-01-01';
+          if (!this.tastings.has(String(row.id))) this.tastings.set(String(row.id), row);
         }
         return { success: true, meta: { changes: 1 } };
       },
@@ -215,6 +226,18 @@ describe('customer sample requests', () => {
     expect(db.sampleSets).toHaveLength(2);
     expect(db.samples[2].set_id).toBe(openId);
   });
+
+  it('uses the first unused deterministic suffix when closed history has a gap', async () => {
+    const db = new SampleRequestDb();
+    expect((await requestSample(db)).status).toBe(201);
+    db.sampleSets[0].notes = JSON.stringify({ open: false });
+    const prefix = String(db.sampleSets[0].id).replace(/:\d+$/, '');
+    db.sampleSets.push({ ...db.sampleSets[0], id: `${prefix}:2` });
+
+    expect((await requestSample(db)).status).toBe(201);
+    expect(db.sampleSets.some((set) => set.id === `${prefix}:1`)).toBe(true);
+    expect(db.samples.at(-1)?.set_id).toBe(`${prefix}:1`);
+  });
 });
 
 describe('admin sample persistence contracts', () => {
@@ -253,17 +276,28 @@ describe('admin sample persistence contracts', () => {
   it('round-trips panel_account_ids on sample-set create and update', async () => {
     const db = new AdminSampleDb();
     const created = await adminRequest(db, '/api/admin/sample-sets', 'POST', {
-      id: 'panel-set', name: 'Panel', purpose: 'panel', panel_account_ids: ['panel-a', 'panel-b'],
+      id: 'panel-set', name: 'Panel', purpose: 'panel', panel_account_ids: ['panel-a', 'panel-b'], archived: true,
     });
     expect(created.status).toBe(201);
-    expect(await created.json()).toMatchObject({ panel_account_ids: ['panel-a', 'panel-b'] });
+    expect(await created.json()).toMatchObject({ panel_account_ids: ['panel-a', 'panel-b'], archived: true });
     expect(db.sampleSets.get('panel-set')?.panel_account_ids).toBe('["panel-a","panel-b"]');
 
     const updated = await adminRequest(db, '/api/admin/sample-sets/panel-set', 'PUT', {
-      panel_account_ids: ['panel-c'],
+      panel_account_ids: ['panel-c'], archived: false,
     });
     expect(updated.status).toBe(200);
-    expect(await updated.json()).toMatchObject({ panel_account_ids: ['panel-c'] });
+    expect(await updated.json()).toMatchObject({ panel_account_ids: ['panel-c'], archived: false });
     expect(db.sampleSets.get('panel-set')?.panel_account_ids).toBe('["panel-c"]');
+  });
+
+  it('accepts client tasting ids idempotently', async () => {
+    const db = new AdminSampleDb();
+    db.samples.set('sample-admin', { id: 'sample-admin', account_id: ACCOUNT_ID, tea_key: null });
+    const body = { id: 'tasting-client', tasting: { aroma: ['orchid'] }, verdict: 'love', wouldBuy: true };
+    const first = await adminRequest(db, '/api/samples/sample-admin/tastings', 'POST', body);
+    const retry = await adminRequest(db, '/api/samples/sample-admin/tastings', 'POST', body);
+    expect(first.status).toBe(201);
+    expect(retry.status).toBe(200);
+    expect(db.tastings.size).toBe(1);
   });
 });

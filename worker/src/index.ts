@@ -11661,6 +11661,7 @@ function parseSampleSetRow(row: Record<string, any>): Record<string, any> {
     ...row,
     shared_with: row.shared_with ? JSON.parse(row.shared_with) : [],
     panel_account_ids: row.panel_account_ids ? JSON.parse(row.panel_account_ids) : [],
+    archived: Boolean(row.archived),
   };
 }
 
@@ -11728,7 +11729,20 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   const accountId = (sample.account_id as string) || BALI_ACCOUNT_ID;
 
   const body = await request.json() as Record<string, any>;
-  const id = crypto.randomUUID();
+  const requestedId = typeof body.id === 'string' && body.id ? body.id : null;
+  if (requestedId) {
+    const existing = await env.DB.prepare(
+      'SELECT sample_id FROM tea_sample_tastings WHERE id = ?'
+    ).bind(requestedId).first() as { sample_id?: string } | null;
+    if (existing?.sample_id && existing.sample_id !== params.id) {
+      return json({ error: 'Tasting id belongs to another sample' }, 409);
+    }
+    if (existing?.sample_id === params.id) {
+      const prior = await env.DB.prepare('SELECT * FROM tea_sample_tastings WHERE id = ?').bind(requestedId).first();
+      return json(parseTastingRow(prior as Record<string, any>), 200);
+    }
+  }
+  const id = requestedId || crypto.randomUUID();
 
   let tasterId = 'guest_' + crypto.randomUUID().slice(0, 8);
   let tasterName = body.tasterName || 'Guest';
@@ -11743,7 +11757,7 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   }
 
   await env.DB.prepare(
-    `INSERT INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
+    `INSERT OR IGNORE INTO tea_sample_tastings (id, account_id, sample_id, taster_id, taster_name, tasting, rating, verdict, would_buy, personal_note)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
@@ -11761,41 +11775,6 @@ const handleAddSampleTasting: Handler = async (request, env, params) => {
   await env.DB.prepare(
     "UPDATE tea_samples SET updated_at = datetime('now') WHERE id = ?"
   ).bind(params.id).run();
-
-  // Mirror to tea_reviews for authenticated admins so tastings aggregate cross-account
-  const authedToken = isAuthed(request);
-  if (authedToken) {
-    const authedClaims = parseToken(authedToken);
-    const reviewUserId = authedClaims?.sub;
-    const reviewAccountId = authedClaims?.active_account_id || accountId;
-    // Derive tea_key from the sample (use stored tea_key or fall back to sample id)
-    const sampleFull = await env.DB.prepare(
-      'SELECT tea_key, name, type, year FROM tea_samples WHERE id = ?'
-    ).bind(params.id).first() as Record<string, any> | null;
-    const teaKey = sampleFull?.tea_key ||
-      `${(sampleFull?.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}-${sampleFull?.year || 'unknown'}`;
-
-    if (reviewUserId && teaKey) {
-      const reviewId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const voiceNotes = body.voiceNotes || (body.personalNote ? [body.personalNote] : null);
-      await env.DB.prepare(
-        `INSERT INTO tea_reviews (id, tea_key, author_user_id, author_account_id,
-          visibility, tasting, voice_notes, rating, verdict, would_buy,
-          source_sample_id, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'network', ?, ?, ?, ?, ?, ?, 'submitted', ?, ?)`
-      ).bind(
-        reviewId, teaKey, reviewUserId, reviewAccountId,
-        JSON.stringify(body.tasting || {}),
-        voiceNotes ? JSON.stringify(voiceNotes) : null,
-        body.rating ?? null,
-        body.verdict || 'neutral',
-        body.wouldBuy ? 1 : 0,
-        params.id,
-        now, now,
-      ).run();
-    }
-  }
 
   // ── Feature 3: Auto-tag customer from sample verdict ─────────────────────
   const verdict = body.verdict || 'neutral';
@@ -12697,8 +12676,12 @@ const handleRequestSample: Handler = async (request, env) => {
     'SHA-256',
     new TextEncoder().encode(`${accountId}\u0000${claims.sub}\u0000customer-request`),
   );
-  const deterministicRequestSetId = `customer-request:${Array.from(new Uint8Array(requestSetDigest))
-    .map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 32)}:${candidateRows.length}`;
+  const deterministicRequestSetPrefix = `customer-request:${Array.from(new Uint8Array(requestSetDigest))
+    .map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 32)}`;
+  const candidateIds = new Set(candidateRows.map((candidate) => candidate.id).filter(Boolean));
+  let generation = 0;
+  while (candidateIds.has(`${deterministicRequestSetPrefix}:${generation}`)) generation += 1;
+  const deterministicRequestSetId = `${deterministicRequestSetPrefix}:${generation}`;
   const setId = openRequestSet?.id || deterministicRequestSetId;
   const setName = `Sample requests — ${claims.email || 'customer'}`;
   const setNotes = JSON.stringify({ kind: 'customer-request', open: true, requested_by_user_id: claims.sub });
@@ -12742,7 +12725,19 @@ const handleListSamples: Handler = async (request, env) => {
   query += ' ORDER BY created_at DESC';
 
   const result = await env.DB.prepare(query).bind(...binds).all();
-  return json({ samples: (result.results as Record<string, any>[]).map(parseSampleRow) });
+  const rows = result.results as Record<string, any>[];
+  const tastings = await env.DB.prepare(
+    `SELECT tst.* FROM tea_sample_tastings tst
+     JOIN tea_samples s ON s.id = tst.sample_id
+     WHERE s.account_id = ? ORDER BY tst.created_at ASC`
+  ).bind(accountId).all();
+  const tastingsBySample = new Map<string, Record<string, any>[]>();
+  for (const tasting of tastings.results as Record<string, any>[]) {
+    const list = tastingsBySample.get(tasting.sample_id as string) ?? [];
+    list.push(parseTastingRow(tasting));
+    tastingsBySample.set(tasting.sample_id as string, list);
+  }
+  return json({ samples: rows.map((row) => ({ ...parseSampleRow(row), tastings: tastingsBySample.get(row.id as string) ?? [] })) });
 };
 
 // Admin: POST /api/admin/samples
@@ -12891,7 +12886,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
   delete body.account_id;
   const id = body.id || crypto.randomUUID();
 
-  const cols = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids', 'user_id'];
+  const cols = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids', 'archived', 'user_id'];
   const present = cols.filter(c => body[c] !== undefined);
   const allCols = ['id', 'account_id', ...present];
   if (!present.includes('user_id')) allCols.push('user_id');
@@ -12905,6 +12900,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
     if ((c === 'shared_with' || c === 'panel_account_ids') && typeof val === 'object') {
       val = JSON.stringify(val);
     }
+    if (c === 'archived') val = val ? 1 : 0;
     values.push(val);
   }
   if (!present.includes('user_id')) values.push(userId);
@@ -12925,6 +12921,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
 // Admin: PUT /api/admin/sample-sets/:id
 const SAMPLE_SET_UPDATE_FIELDS = new Set([
   'name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids',
+  'archived',
 ]);
 
 const handleUpdateSampleSet: Handler = async (request, env, params) => {
@@ -12944,6 +12941,7 @@ const handleUpdateSampleSet: Handler = async (request, env, params) => {
   if (cols.includes('panel_account_ids') && typeof body.panel_account_ids === 'object') {
     body.panel_account_ids = JSON.stringify(body.panel_account_ids);
   }
+  if (cols.includes('archived')) body.archived = body.archived ? 1 : 0;
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
