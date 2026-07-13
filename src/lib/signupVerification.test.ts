@@ -121,6 +121,7 @@ describe('email-verified signup API', () => {
     const rotated = await api.auth.resendSignup(pending);
 
     expect(rotated).toMatchObject({ email: pending.email, signupToken: 'rotated-secret' });
+    expect(rotated.recoverableUntil).toBe(pending.recoverableUntil);
     expect(restorePendingSignup()).toEqual(rotated);
     expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/auth\/signup\/resend$/), expect.objectContaining({
       body: JSON.stringify({ email: pending.email, signup_token: 'old-secret' }),

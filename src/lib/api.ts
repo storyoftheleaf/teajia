@@ -958,7 +958,9 @@ export const api = {
         email: pending.email,
         signupToken: result.signup_token,
         expiresAt: Date.now() + PENDING_SIGNUP_TTL_MS,
-        recoverableUntil: Date.now() + PENDING_SIGNUP_RECOVERY_MS,
+        // Resending rotates the proof and code, but the Worker recovery window
+        // remains anchored to the original signup identity creation time.
+        recoverableUntil: pending.recoverableUntil,
       });
     },
     /** Explicit refresh — rarely needed directly; prefer `ensureTokenRefreshed`. */
