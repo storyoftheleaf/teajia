@@ -40,9 +40,10 @@ export interface CurateImportVendorGroup {
   confidence?: number | null; vendor_confidence?: number | null; uncertainty: Record<string, unknown>;
 }
 export interface CurateImportFinalizeResult {
-  batch: CurateImportBatch;
+  batch?: CurateImportBatch;
+  batchId?: string; idempotencyKey?: string;
   receipts: Array<{ id: string; vendor_group_id?: string; [key: string]: unknown }>;
-  items: CurateImportItem[];
+  items: Array<CurateImportItem | { id: string; compassEntryId: string; productId: string; movementId: string }>;
 }
 export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[]; groups: CurateImportVendorGroup[] }
 

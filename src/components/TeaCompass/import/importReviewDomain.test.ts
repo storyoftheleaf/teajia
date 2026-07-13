@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
 import { buildImportReviewModel, importBlockingMessage } from './importReviewDomain';
+import { filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, resolveImportBlockingFields, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   id: 'item-1', batch_id: 'batch-1', source_id: null, vendor_group_id: 'group-1', position: 0,
@@ -60,5 +61,43 @@ describe('importBlockingMessage', () => {
 
   it('does not treat descriptive uncertainty as blocking', () => {
     expect(importBlockingMessage(item({ uncertainty: { description: 'Translation could be refined' }, blocking_fields: [] }))).toBeNull();
+  });
+
+  it('names identity, holding, and physical-stock blockers precisely', () => {
+    expect(importBlockingMessage(item({ blocking_fields: ['duplicateIdentity', 'productId', 'acquisitionState'] })))
+      .toBe('Confirm tea identity, Inventory holding, and physical stock status.');
+  });
+});
+
+describe('review navigation and journey helpers', () => {
+  it('searches sourcing runs by name, season, or year', () => {
+    const journeys = [
+      { id: 'spring', account_id: 'a', name: 'Yunnan sourcing', season: 'Spring', year: 2026 },
+      { id: 'winter', account_id: 'a', name: 'Taiwan visit', season: 'Winter', year: 2025 },
+    ];
+    expect(filterImportJourneys(journeys, '2026').map(journey => journey.id)).toEqual(['spring']);
+    expect(filterImportJourneys(journeys, 'winter').map(journey => journey.id)).toEqual(['winter']);
+  });
+
+  it('opens the first created Inventory holding after finalization', () => {
+    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', receipts: [], items: [{ id: 'i', compassEntryId: 'c', productId: 'product-7', movementId: 'm' }] })).toBe('product-7');
+    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', receipts: [], items: [] })).toBeNull();
+  });
+
+  it('clears only blockers explicitly resolved by edited values', () => {
+    expect(resolveImportBlockingFields(['packCount', 'priceBasis', 'duplicateIdentity', 'productId', 'acquisitionState', 'year'], {
+      packCount: 2, priceBasis: 'per_pack', compassEntryId: 'new', productId: 'new', acquiredIntoStock: true,
+    })).toEqual(['year']);
+  });
+
+  it('omits derived arithmetic and blockers from correction payloads', () => {
+    expect(withoutImportDerivedFields({ englishName: 'Tea', totalQuantityGrams: 1000, lineCost: 80, unitCost: 0.08, blockingFields: ['priceBasis'] }))
+      .toEqual({ englishName: 'Tea' });
+  });
+
+  it('uses category-aware Inventory action nouns', () => {
+    expect(importItemNoun([{ category: 'tea' }], 1)).toBe('tea');
+    expect(importItemNoun([{ category: 'teaware' }], 1)).toBe('teaware item');
+    expect(importItemNoun([{ category: 'tea' }, { category: 'teaware' }], 2)).toBe('items');
   });
 });

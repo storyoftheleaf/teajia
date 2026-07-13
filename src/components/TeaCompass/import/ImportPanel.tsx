@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
-import { api, ApiError, type CurateImportDetail, type CurateImportItem, type CurateImportSourceKind } from '../../../lib/api';
+import { api, ApiError, type CurateImportDetail, type CurateImportFinalizeResult, type CurateImportItem, type CurateImportSourceKind } from '../../../lib/api';
 import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
 import type { ImportDraft, ImportPanelState } from './importTypes';
@@ -11,9 +11,8 @@ import type { ImportVendorOption } from './ImportVendorGroup';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
-  activeCompassEntryId: string | null;
   onDetailChange: (detail: CurateImportDetail) => void;
-  onAccepted: (item: CurateImportItem) => void | Promise<void>;
+  onFinalized: (result: CurateImportFinalizeResult) => void | Promise<void>;
   onClose: () => void;
   onNew: () => void;
 }
@@ -64,7 +63,7 @@ const errorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
 };
 
-export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeCompassEntryId: _activeCompassEntryId, onDetailChange, onAccepted, onClose, onNew }) => {
+export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetailChange, onFinalized, onClose, onNew }) => {
   const [draft, setDraft] = useState<ImportDraft>({ text: '', evidence: [], sourceKind: 'paste', journeyId: null });
   const [state, setState] = useState<ImportPanelState>({ phase: initialDetail ? 'review' : 'input', detail: initialDetail, error: null });
   const [journeys, setJourneys] = useState<CurateJourney[]>([]);
@@ -73,7 +72,6 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
   const [operationError, setOperationError] = useState<string | null>(null);
   const retryAction = useRef<null | (() => Promise<void>)>(null);
   const createIdempotencyKey = useRef(crypto.randomUUID());
-  const finalizeIdempotencyKey = useRef(crypto.randomUUID());
   const closeRef = useRef<HTMLButtonElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -153,36 +151,62 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not save correction')); return false; }
     finally { setBusyId(null); }
   };
-  const setJourney = async (journeyId: string | null) => {
-    if (!state.detail || busyId) return;
+  const setJourney = async (journeyId: string | null): Promise<boolean> => {
+    if (!state.detail || busyId) return false;
     setBusyId('__journey');
-    try { setOperationError(null); const detail = normalizedDetail(await api.curateImports.setJourney(state.detail.batch.id, journeyId)); setState(current => ({ ...current, detail })); onDetailChange(detail); }
-    catch (error) { setOperationError(errorMessage(error, 'Could not change sourcing run')); }
+    const action = async () => { const detail = normalizedDetail(await api.curateImports.setJourney(state.detail!.batch.id, journeyId)); setState(current => ({ ...current, detail })); onDetailChange(detail); };
+    try { setOperationError(null); await action(); return true; }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not change sourcing run')); return false; }
     finally { setBusyId(null); }
   };
-  const changeVendor = async (groupId: string, vendorId: string) => {
-    if (!state.detail || busyId) return;
-    setBusyId(`group:${groupId}`);
-    try { setOperationError(null); await api.curateImports.updateGroup(state.detail.batch.id, groupId, { resolved_vendor_customer_id: vendorId }); await refreshDetail(state.detail.batch.id); }
-    catch (error) { setOperationError(errorMessage(error, 'Could not change vendor')); }
+  const createJourney = async (input: { name: string; season?: string; year?: number }): Promise<boolean> => {
+    if (busyId) return false;
+    setBusyId('__create-journey');
+    let journey: CurateJourney | null = null;
+    const action = async () => {
+      journey = journey || await api.curateContext.createJourney(input);
+      setJourneys(current => current.some(candidate => candidate.id === journey.id) ? current : [...current, journey]);
+      setDraft(current => ({ ...current, journeyId: journey.id }));
+      if (state.detail) {
+        const detail = normalizedDetail(await api.curateImports.setJourney(state.detail.batch.id, journey.id));
+        setState(current => ({ ...current, detail })); onDetailChange(detail);
+      }
+    };
+    try { setOperationError(null); await action(); return true; }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not create sourcing run')); return false; }
     finally { setBusyId(null); }
   };
-  const createVendor = async (groupId: string, name: string) => {
-    if (!state.detail || busyId) return;
+  const changeVendor = async (groupId: string, vendorId: string): Promise<boolean> => {
+    if (!state.detail || busyId) return false;
     setBusyId(`group:${groupId}`);
-    try { setOperationError(null); await api.curateImports.createVendorForGroup(state.detail.batch.id, groupId, { name }); await refreshDetail(state.detail.batch.id); }
-    catch (error) { setOperationError(errorMessage(error, 'Could not create vendor')); }
+    const action = async () => { await api.curateImports.updateGroup(state.detail!.batch.id, groupId, { resolved_vendor_customer_id: vendorId }); await refreshDetail(state.detail!.batch.id); };
+    try { setOperationError(null); await action(); return true; }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not change vendor')); return false; }
+    finally { setBusyId(null); }
+  };
+  const createVendor = async (groupId: string, name: string): Promise<boolean> => {
+    if (!state.detail || busyId) return false;
+    setBusyId(`group:${groupId}`);
+    const action = async () => { await api.curateImports.createVendorForGroup(state.detail!.batch.id, groupId, { name }); await refreshDetail(state.detail!.batch.id); };
+    try { setOperationError(null); await action(); return true; }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not create vendor')); return false; }
+    finally { setBusyId(null); }
+  };
+  const retryAnalysis = async () => {
+    if (!state.detail || busyId) return;
+    setBusyId('__analysis');
+    const action = async () => { const detail = normalizedDetail(await api.curateImports.analyze(state.detail!.batch.id)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
+    try { setOperationError(null); await action(); }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not analyze saved evidence')); }
     finally { setBusyId(null); }
   };
   const finalize = async () => {
     if (!state.detail || busyId) return;
     setBusyId('__finalize');
     const action = async () => {
-      const result = await api.curateImports.finalize(state.detail!.batch.id, finalizeIdempotencyKey.current);
-      const detail = normalizedDetail({ ...state.detail!, batch: result.batch, items: result.items });
-      setState(current => ({ ...current, detail })); onDetailChange(detail);
-      if (result.items[0]) await onAccepted(result.items[0]);
-      onClose();
+      const batchId = state.detail!.batch.id;
+      const result = await api.curateImports.finalize(batchId, `curate-import-finalize:${batchId}`);
+      await onFinalized(result);
     };
     try { setOperationError(null); await action(); }
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not add this import to Inventory')); }
@@ -204,11 +228,11 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, activeC
           <div><h2 id="curate-import-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Import into Curate</h2><p className="text-ui-11 text-tea-text-dim">Capture now. Decide later.</p></div>
         </header>
         <div className="pb-nav flex-1 overflow-y-auto px-4 py-5 sm:px-6" aria-live="polite">
-          {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeys={journeys} />}
+          {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeys={journeys} onCreateJourney={createJourney} />}
           {state.phase === 'parsing' && <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your evidence…</div>}
           {state.phase === 'error' && <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p><button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button></div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizedDetail(state.detail)} journeys={journeys} vendorOptions={vendorOptions} busyId={busyId} onUpdate={updateItem} onSetJourney={setJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
+          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizedDetail(state.detail)} journeys={journeys} vendorOptions={vendorOptions} busyId={busyId} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
         </div>
       </div>
     </div>

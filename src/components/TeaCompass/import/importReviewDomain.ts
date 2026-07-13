@@ -1,4 +1,5 @@
-import type { CurateImportDetail, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
+import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
+import type { CurateJourney } from '../types';
 
 export interface ImportReviewItemRow {
   item: CurateImportItem;
@@ -28,6 +29,48 @@ const BLOCKING_LABELS: Record<string, string> = {
   pack_weight: 'weight or unit', weight_unit: 'weight or unit', total_quantity_grams: 'weight or unit', total_units: 'quantity',
   price_amount: 'price', line_cost: 'price', price_basis: 'price interpretation', currency: 'currency',
   acquired: 'physical stock status', acquisition_state: 'physical stock status',
+  duplicateIdentity: 'tea identity', compassEntryId: 'tea identity', productId: 'Inventory holding',
+  acquisitionState: 'physical stock status', physicalStock: 'physical stock status', acquiredIntoStock: 'physical stock status',
+};
+
+export const filterImportJourneys = (journeys: CurateJourney[], query: string) => {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return journeys;
+  return journeys.filter(journey => [journey.name, journey.season, journey.year].filter(value => value != null).join(' ').toLocaleLowerCase().includes(needle));
+};
+
+export const inventoryTargetFromFinalize = (result: CurateImportFinalizeResult): string | null => {
+  const first = result.items[0];
+  if (!first) return null;
+  if ('productId' in first && typeof first.productId === 'string') return first.productId;
+  return 'proposed_product_id' in first && typeof first.proposed_product_id === 'string' ? first.proposed_product_id : null;
+};
+
+const normalizedBlocker = (field: string) => field.replace(/_/g, '').toLocaleLowerCase();
+export const resolveImportBlockingFields = (fields: string[], values: Record<string, unknown>) => fields.filter(field => {
+  const key = normalizedBlocker(field);
+  if (key === 'packcount') return !(typeof values.packCount === 'number' && values.packCount > 0);
+  if (key === 'packweight') return !(typeof values.packWeight === 'number' && values.packWeight > 0);
+  if (key === 'weightunit') return !values.weightUnit;
+  if (key === 'priceamount') return !(typeof values.priceAmount === 'number' && values.priceAmount >= 0);
+  if (key === 'pricebasis') return !values.priceBasis || values.priceBasis === 'unknown';
+  if (key === 'currency') return !values.currency;
+  if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return !values.compassEntryId;
+  if (['productid', 'proposedproductid', 'inventoryholding'].includes(key)) return !values.productId;
+  if (['acquisitionstate', 'physicalstock', 'acquiredintostock', 'acquired'].includes(key)) return values.acquiredIntoStock !== true;
+  if (['purpose', 'inventorypurpose'].includes(key)) return !values.inventoryPurpose;
+  return true;
+});
+
+export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => {
+  const { totalQuantityGrams: _grams, totalUnits: _units, lineCost: _lineCost, unitCost: _unitCost, blockingFields: _blocking, ...editable } = parsed;
+  return editable;
+};
+
+export const importItemNoun = (items: Array<Pick<CurateImportItem, 'category'>>, count = items.length) => {
+  if (items.every(item => item.category === 'tea')) return count === 1 ? 'tea' : 'teas';
+  if (items.every(item => item.category === 'teaware')) return count === 1 ? 'teaware item' : 'teaware items';
+  return count === 1 ? 'item' : 'items';
 };
 
 const joinLabels = (labels: string[]) => {

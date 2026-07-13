@@ -11,7 +11,7 @@ import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
-import { api, hasToken, type CurateImportDetail, type CurateImportItem } from '../../lib/api';
+import { api, hasToken, type CurateImportDetail, type CurateImportFinalizeResult } from '../../lib/api';
 import type { CompassCategory, TeaType } from './types';
 import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
@@ -27,6 +27,7 @@ import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
 import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { ImportPanel } from './import/ImportPanel';
 import { ImportBatchChip } from './ImportBatchChip';
+import { inventoryTargetFromFinalize } from './import/importReviewDomain';
 import { SampleOrderAction } from './SampleOrderAction';
 import { CaptureActionFooter } from './CaptureActionFooter';
 
@@ -381,16 +382,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     window.requestAnimationFrame(() => importTriggerRef.current?.focus());
   }, []);
 
-  const openAcceptedImportItem = useCallback(async (item: CurateImportItem) => {
-    if (!item.compass_entry_id) throw new Error('Accepted import did not return its Compass identity');
-    await hydrateCompassEntries();
-    const accepted = useTeaCompassStore.getState().getEntry(item.compass_entry_id);
-    if (!accepted) throw new Error('Accepted Compass entry could not be loaded');
-    setActiveEntry(item.compass_entry_id);
-    setCaptureOption(accepted.category);
-    setMode('sourcing');
+  const openFinalizedImport = useCallback(async (result: CurateImportFinalizeResult) => {
+    const productId = inventoryTargetFromFinalize(result);
     closeImport();
-  }, [closeImport, setActiveEntry]);
+    navigate(productId ? `/admin/stock?panel=${encodeURIComponent(productId)}` : '/admin/stock');
+  }, [closeImport, navigate]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -1668,9 +1664,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         <ImportPanel
           key={importPanelVersion}
           initialDetail={importDetail}
-          activeCompassEntryId={activeEntryId}
           onDetailChange={rememberImportDetail}
-          onAccepted={openAcceptedImportItem}
+          onFinalized={openFinalizedImport}
           onClose={closeImport}
           onNew={beginNewImport}
         />
