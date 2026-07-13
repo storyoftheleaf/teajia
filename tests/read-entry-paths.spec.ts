@@ -28,27 +28,14 @@ test.beforeEach(async ({ page }) => {
   await mockArticleApi(page);
 });
 
-test('archived magazine cards open the published article reader', async ({ page }) => {
+test('retired magazine archive is no longer a public route', async ({ page }) => {
   await page.goto('/magazine-archive');
-  await page.getByRole('button', { name: /Live Story/ }).click();
-
-  await expect(page).toHaveURL('/article/live-story');
-  await expect(page.getByRole('heading', { name: 'Live Story' }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: '404' })).toBeVisible();
+  await expect(page.getByText('Page not found')).toBeVisible();
 });
 
-test('legacy openArticle events route Article stories by slug', async ({ page }) => {
-  await page.goto('/magazine-archive');
-  await page.evaluate(() => window.dispatchEvent(new CustomEvent('openArticle', {
-    detail: {
-      story: {
-        id: 'legacy-id',
-        slug: 'live-story',
-        title: 'Live Story',
-        type: 'Article',
-      },
-    },
-  })));
-
+test('published D1 articles remain available after archive retirement', async ({ page }) => {
+  await page.goto('/article/live-story');
   await expect(page).toHaveURL('/article/live-story');
   await expect(page.getByRole('heading', { name: 'Live Story' }).first()).toBeVisible();
 });
@@ -68,9 +55,4 @@ test('retired article destinations stay absent from public entry points', async 
     await expect(page.getByText('Article not found', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Live Story' })).toHaveCount(0);
   }
-
-  await page.goto('/magazine-archive');
-  await page.locator('#main-content').getByRole('button', { name: 'Your Table' }).click();
-  await expect(page.getByRole('link', { name: 'Saved stories' })).toHaveCount(0);
-  await expect(page.getByRole('link', { name: 'Reading history' })).toHaveCount(0);
 });

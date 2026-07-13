@@ -61,47 +61,47 @@ Verified checked-in media reviewed: `public/og-image.png`, `public/favicon.svg`,
 | `src/data/readingList.ts:98` | /learn library | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/readingList.ts:107` | /learn library | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/readingList.ts:117` | /learn library | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/vessels-and-light.ts:10` | /read photo essay: vessels-and-light | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/vessels-and-light.ts:15` | /read photo essay: vessels-and-light | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/vessels-and-light.ts:16` | /read photo essay: vessels-and-light | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/vessels-and-light.ts:17` | /read photo essay: vessels-and-light | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/vessels-and-light.ts:18` | /read photo essay: vessels-and-light | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/ritual-moments.ts:10` | /read photo essay: ritual-moments | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/ritual-moments.ts:15` | /read photo essay: ritual-moments | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/ritual-moments.ts:16` | /read photo essay: ritual-moments | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/ritual-moments.ts:17` | /read photo essay: ritual-moments | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/ritual-moments.ts:18` | /read photo essay: ritual-moments | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:10` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:15` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:16` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:17` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:18` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:19` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:20` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:21` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:22` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:23` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:24` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:25` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:26` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:27` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:28` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:29` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:30` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:31` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:32` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:33` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/the-potters-week.ts:34` | /read photo essay: the-potters-week | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
+| `src/content/photo-essays/vessels-and-light.ts:10` | /read photo essay: vessels-and-light | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/vessels-and-light.ts:15` | /read photo essay: vessels-and-light | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/vessels-and-light.ts:16` | /read photo essay: vessels-and-light | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/vessels-and-light.ts:17` | /read photo essay: vessels-and-light | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/vessels-and-light.ts:18` | /read photo essay: vessels-and-light | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/ritual-moments.ts:10` | /read photo essay: ritual-moments | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/ritual-moments.ts:15` | /read photo essay: ritual-moments | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/ritual-moments.ts:16` | /read photo essay: ritual-moments | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/ritual-moments.ts:17` | /read photo essay: ritual-moments | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/ritual-moments.ts:18` | /read photo essay: ritual-moments | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:10` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:15` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:16` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:17` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:18` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:19` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:20` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:21` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:22` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:23` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:24` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:25` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:26` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:27` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:28` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:29` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:30` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:31` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:32` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:33` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/the-potters-week.ts:34` | /read photo essay: the-potters-week | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
 | `src/data/communityMembers.ts:21` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/communityMembers.ts:32` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/communityMembers.ts:42` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/communityMembers.ts:53` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/communityMembers.ts:63` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/hands-of-craft.ts:10` | /read photo essay: hands-of-craft | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/hands-of-craft.ts:15` | /read photo essay: hands-of-craft | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/hands-of-craft.ts:16` | /read photo essay: hands-of-craft | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/hands-of-craft.ts:17` | /read photo essay: hands-of-craft | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/hands-of-craft.ts:18` | /read photo essay: hands-of-craft | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
+| `src/content/photo-essays/hands-of-craft.ts:10` | /read photo essay: hands-of-craft | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/hands-of-craft.ts:15` | /read photo essay: hands-of-craft | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/hands-of-craft.ts:16` | /read photo essay: hands-of-craft | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/hands-of-craft.ts:17` | /read photo essay: hands-of-craft | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/hands-of-craft.ts:18` | /read photo essay: hands-of-craft | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
 | `public/_headers:7` | public CSP image-host policy | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `public/_headers:7` | public CSP image-host policy | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/collectionItems.ts:11` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
@@ -116,25 +116,25 @@ Verified checked-in media reviewed: `public/og-image.png`, `public/favicon.svg`,
 | `src/data/collectionItems.ts:140` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/collectionItems.ts:153` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/collectionItems.ts:166` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:10` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:15` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:16` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:17` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:18` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:19` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:20` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:21` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:22` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:23` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:24` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:25` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:26` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:27` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:28` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:29` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:30` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:31` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/journey-through-yunnan.ts:32` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
+| `src/content/photo-essays/journey-through-yunnan.ts:10` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:15` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:16` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:17` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:18` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:19` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:20` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:21` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:22` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:23` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:24` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:25` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:26` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:27` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:28` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:29` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:30` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:31` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/journey-through-yunnan.ts:32` | /read photo essay: journey-through-yunnan | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
 | `src/data/incense.ts:20` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/incense.ts:38` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/incense.ts:56` | /shop or /collection catalog demo data | `picsum.photos` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
@@ -150,11 +150,11 @@ Verified checked-in media reviewed: `public/og-image.png`, `public/favicon.svg`,
 | `src/data/teaInspire.ts:211` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/teaInspire.ts:227` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/data/teaInspire.ts:246` | browser-delivered community/gallery content | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/tea-fields-in-spring.ts:10` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/tea-fields-in-spring.ts:15` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/tea-fields-in-spring.ts:16` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/tea-fields-in-spring.ts:17` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
-| `src/content/photo-essays/tea-fields-in-spring.ts:18` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
+| `src/content/photo-essays/tea-fields-in-spring.ts:10` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/tea-fields-in-spring.ts:15` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/tea-fields-in-spring.ts:16` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/tea-fields-in-spring.ts:17` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
+| `src/content/photo-essays/tea-fields-in-spring.ts:18` | /read photo essay: tea-fields-in-spring | `images.unsplash.com` | removed | — | Removed with the retired /magazine-archive runtime graph. |
 | `src/components/LearnLibrary.tsx:48` | /learn library | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/components/LearnLibrary.tsx:49` | /learn library | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
 | `src/components/LearnLibrary.tsx:50` | /learn library | `images.unsplash.com` | blocked-editorial | — | No content-matched checked-in asset exists; pending Adrian-owned media. |
@@ -185,12 +185,12 @@ Verified checked-in media reviewed: `public/og-image.png`, `public/favicon.svg`,
 
 - Initial runtime stock-media occurrences: **174**
 - `owned-existing`: **0**
-- `remove`: **8**
-- `blocked-editorial`: **166**
-- Remaining source/public occurrences after safe removals: **166**
+- `remove`: **68** (including 60 retired photo-essay references)
+- `blocked-editorial`: **106**
+- Remaining source/public occurrences after archive removal: **106**
 
 ## Launch blockers and affected routes
 
-Owned media is still required for **/about**, **/read** photo essays and legacy story catalog, **/learn**, **/shop**, **/collection**, and **/advise**. Browser-delivered legacy community/gallery surfaces are also blocked even where they do not currently have a standalone route, because they remain in the runtime source graph. The CSP host entry in `public/_headers` remains pending until those runtime references are removed.
+The current **/read** route family has zero Unsplash or Picsum dependencies. The retired `/magazine-archive` route and its six legacy photo essays were removed on 2026-07-13. Remaining stock-host references require a separate reachability pass: confirmed live use includes **/about** and Shop starter cards, while several Learn, collection, Advise, community, and demo datasets may be dormant. The CSP host entry in `public/_headers` remains pending until the actually reachable remainder is removed or rehosted.
 
 Task 4 remains pending. The China dependency audit must continue to fail while any blocked row remains.
