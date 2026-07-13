@@ -322,6 +322,20 @@ describe('worker authorization boundaries', () => {
     });
   });
 
+  it.each(['/api/products', '/api/products/bulk'])('rejects request-derived SQL identifiers for product creation at %s', async (path) => {
+    const malicious = 'product_name) VALUES (\'owned\'); --';
+    const product = { product_name: 'Safe tea', type: 'Oolong', [malicious]: 'attacker-controlled' };
+    const body = path.endsWith('/bulk') ? { products: [product] } : product;
+    const response = await worker.fetch(await authedRequest(path, {
+      method: 'POST', body: JSON.stringify(body),
+    }), makeEnv({ role: 'staff', bundles: ['catalog'] }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      code: 'validation_failed', details: { fields: [malicious] },
+    });
+  });
+
   it.each([
     ['buyer', 'sell'],
     ['vendor', 'catalog'],

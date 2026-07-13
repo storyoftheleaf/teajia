@@ -45,6 +45,12 @@ class Db {
         if (normalized.startsWith('delete from private_recordings')) this.recording = null;
         return { success: true, meta: { changes: 1 } };
       },
+      all: async () => {
+        if (normalized.includes('from private_recordings') && normalized.includes('expires_at <=')) {
+          return { results: this.recording ? [{ id: this.recording.id, object_key: this.recording.object_key }] : [] };
+        }
+        return { results: [] };
+      },
     };
     return statement;
   }
@@ -73,6 +79,7 @@ describe('private transcription persistence', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Recovered transcript' })));
     const retried = await worker.fetch(await request(`/api/transcriptions/${failure.recording_id}/retry`), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq' } as any);
     expect(await retried.json()).toMatchObject({ text: 'Recovered transcript', recording_id: failure.recording_id });
+    expect(bucket.objects.size).toBe(0);
   });
 
   it('denies cross-account access, supports discard, and never serves private audio publicly', async () => {
@@ -86,5 +93,16 @@ describe('private transcription persistence', () => {
     expect((await worker.fetch(await request('/api/transcriptions/rec-1', 'DELETE'), env)).status).toBe(200);
     expect(db.recording).toBeNull();
     expect(bucket.objects.size).toBe(0);
+  });
+
+  it('deletes expired private audio and its database row during scheduled cleanup', async () => {
+    const db = new Db(); const bucket = new Bucket();
+    db.recording = { id: 'expired-1', account_id: 'account-1', user_id: 'user-1', object_key: 'private-recordings/account-1/user-1/expired-1.webm', mime_type: 'audio/webm' };
+    bucket.objects.set(db.recording.object_key, { bytes: new ArrayBuffer(1), type: 'audio/webm' });
+
+    await worker.scheduled({} as ScheduledEvent, { DB: db, MEDIA_BUCKET: bucket } as any, {} as ExecutionContext);
+
+    expect(bucket.objects.size).toBe(0);
+    expect(db.recording).toBeNull();
   });
 });

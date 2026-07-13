@@ -2216,6 +2216,10 @@ const handleCreateProduct: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  const unknownFields = Object.keys(body).filter(key => !PRODUCT_CREATE_COLUMNS.has(key));
+  if (unknownFields.length > 0) {
+    return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
+  }
   let purposeWrite;
   try { purposeWrite = decodeInventoryPurposeWrite(body); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -2316,6 +2320,13 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
 
   if (!Array.isArray(products) || products.length > 100) {
     return new Response(JSON.stringify({ error: 'Bulk create limited to 100 products per request' }), { status: 400 });
+  }
+
+  for (const raw of products) {
+    const unknownFields = Object.keys(raw).filter(key => key !== 'client_row_id' && !PRODUCT_CREATE_COLUMNS.has(key));
+    if (unknownFields.length > 0) {
+      return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
+    }
   }
 
   // The whole import attaches to one intake batch (defaults to Unsorted).
@@ -2496,6 +2507,15 @@ const PRODUCT_PUBLICATION_UPDATE_COLUMNS = new Set([
 // see handleUpdateProductVisibility — so a staff seller cannot self-approve
 // their own tea into the shop.
 const PRODUCT_VISIBILITY_UPDATE_COLUMNS = new Set(['shown_in_shop']);
+
+const PRODUCT_CREATE_COLUMNS = new Set([
+  ...PRODUCT_CATALOG_UPDATE_COLUMNS,
+  ...PRODUCT_STOCK_UPDATE_COLUMNS,
+  ...PRODUCT_COMMERCIAL_UPDATE_COLUMNS,
+  ...PRODUCT_PUBLICATION_UPDATE_COLUMNS,
+  ...PRODUCT_VISIBILITY_UPDATE_COLUMNS,
+  'owner_user_id', 'sourced_by', 'roasted_by', 'vouched_by',
+]);
 
 async function applyProductUpdate(
   request: Request,
@@ -5875,6 +5895,7 @@ const handleTranscribe: Handler = async (request, env) => {
       .bind(transcribed.code, recordingId).run();
     return json({ error: transcribed.error, code: transcribed.code, recording_id: recordingId, retryable: true }, transcribed.status);
   }
+  await env.MEDIA_BUCKET.delete(recordingKey);
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(transcribed.text, recordingId).run();
   return json({ text: transcribed.text, recording_id: recordingId });
@@ -5894,10 +5915,9 @@ async function transcribePrivateRecording(env: Env, file: File): Promise<{ text:
   });
 
   if (!groqRes.ok) {
-    const errText = await groqRes.text();
-    // Log the upstream detail; return a generic message so the raw Groq error
-    // body (which can carry request internals) never reaches the client.
-    console.error(`Transcription upstream error: ${groqRes.status} — ${errText}`);
+    // Provider bodies can contain request internals. Record only the status
+    // needed for operational diagnosis.
+    console.error(`Transcription upstream error: ${groqRes.status}`);
     return { error: 'Transcription failed', code: 'provider_error', status: 502 };
   }
 
@@ -5925,6 +5945,7 @@ const handleRetryTranscription: Handler = async (request, env, params) => {
       .bind(result.code, params.id).run();
     return json({ error: result.error, code: result.code, recording_id: params.id, retryable: true }, result.status);
   }
+  await env.MEDIA_BUCKET.delete(row.object_key as string);
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?")
     .bind(result.text, params.id).run();
   return json({ text: result.text, recording_id: params.id });
@@ -15329,22 +15350,23 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
     'SELECT COUNT(*) as c FROM tasting_session_members WHERE session_id = ?'
   ).bind(session.id).first<{ c: number }>();
 
-  // Find or create the user.
+  // A join code proves possession of a session invitation, not ownership of
+  // an email address. Never inherit an existing account's privileges here.
   let user = await env.DB.prepare(
-    'SELECT id, email, name, username, role, platform_role FROM users WHERE lower(email) = ?'
+    'SELECT id FROM users WHERE lower(email) = ?'
   ).bind(email).first() as Record<string, any> | null;
-  let isNewUser = false;
-
-  if (!user) {
-    // password_hash is NOT NULL in the schema; sentinel until the guest
-    // sets a real password via forgot-password later.
-    const newUserId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-    await env.DB.prepare(
-      `INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'JOIN_ONLY', 'user')`
-    ).bind(newUserId, email, firstName).run();
-    user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null };
-    isNewUser = true;
+  if (user) {
+    return restError(409, 'This email already has an account. Sign in before joining the session.', 'existing_account_requires_sign_in');
   }
+
+  // password_hash is NOT NULL in the schema; sentinel until the guest sets a
+  // real password via forgot-password later.
+  const newUserId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+  await env.DB.prepare(
+    `INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'JOIN_ONLY', 'user')`
+  ).bind(newUserId, email, firstName).run();
+  user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null, session_version: 0 };
+  const isNewUser = true;
 
   // Check membership: existing members can re-redeem freely; new members
   // count toward capacity.
@@ -20661,6 +20683,28 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    // Retry audio is temporary. Delete the object before its ledger row so a
+    // failed R2 deletion remains visible and will be retried on the next tick.
+    if (env.MEDIA_BUCKET) {
+      try {
+        const expired = await env.DB.prepare(
+          `SELECT id, object_key FROM private_recordings
+           WHERE expires_at <= datetime('now')
+           ORDER BY expires_at ASC LIMIT 100`
+        ).all();
+        for (const row of expired.results) {
+          try {
+            await env.MEDIA_BUCKET.delete(row.object_key as string);
+            await env.DB.prepare('DELETE FROM private_recordings WHERE id = ?').bind(row.id).run();
+          } catch {
+            console.error('Private recording expiry cleanup failed');
+          }
+        }
+      } catch {
+        console.error('Private recording expiry query failed');
+      }
+    }
+
     // Generate checkin reminder notifications for events happening tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
