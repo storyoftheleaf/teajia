@@ -253,6 +253,11 @@ export function clearToken() {
   _invalidateClaimsCache();
 }
 
+export type PendingSignup = {
+  email: string;
+  signupToken: string;
+};
+
 export function hasToken(): boolean {
   return !!getToken();
 }
@@ -872,11 +877,27 @@ export const api = {
       });
       return handleResponse(res);
     },
-    signup: async (email: string, password: string, name: string, username?: string | null) => {
+    signup: async (email: string, password: string, name: string, username?: string | null): Promise<PendingSignup> => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, username: username || undefined }),
+      });
+      const result = await handleResponse(res) as { verification_required?: boolean; signup_token?: string };
+      if (!result.verification_required || !result.signup_token) {
+        throw new Error('Signup verification could not be started. Please try again.');
+      }
+      return { email, signupToken: result.signup_token };
+    },
+    verifySignup: async (pending: PendingSignup, code: string): Promise<{ token: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/signup/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pending.email,
+          code,
+          signup_token: pending.signupToken,
+        }),
       });
       return handleResponse(res);
     },

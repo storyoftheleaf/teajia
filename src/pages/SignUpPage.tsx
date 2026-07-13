@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
-import { API_URL } from '../lib/api';
+import { API_URL, type PendingSignup } from '../lib/api';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -27,6 +27,8 @@ export default function SignUpPage() {
   const [whatOpen, setWhatOpen] = useState(false);
   const [contactPlatform, setContactPlatform] = useState<ContactPlatform | null>(null);
   const [contactPhone, setContactPhone] = useState('');
+  const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,23 @@ export default function SignUpPage() {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
     try {
-      await auth.signup(email, password, name, username.trim() || null);
+      const pending = await auth.signup(email, password, name, username.trim() || null);
+      setPendingSignup(pending);
+      setVerificationCode('');
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Account creation failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingSignup || verificationCode.length !== 6) return;
+    setError('');
+    setLoading(true);
+    try {
+      await auth.verifySignup(pendingSignup, verificationCode);
       if (contactPlatform) {
         localStorage.setItem('teajia_contact_platform', contactPlatform);
         if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
@@ -46,6 +64,54 @@ export default function SignUpPage() {
       setLoading(false);
     }
   };
+
+  if (pendingSignup) {
+    return (
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap-lg">
+        <div className="text-center mb-8">
+          <p className="label-caps text-tea-gold mb-2">One last step</p>
+          <h1 className="h2">Check your email</h1>
+          <p id="signup-code-help" className="subtitle mt-2">
+            Enter the six-digit code sent to <span className="text-tea-text">{pendingSignup.email}</span>.
+          </p>
+        </div>
+        <form onSubmit={handleVerifySignup} className="space-y-4">
+          <div>
+            <label htmlFor="signup-verification-code" className={labelClass}>Verification code</label>
+            <input
+              id="signup-verification-code"
+              type="text"
+              value={verificationCode}
+              onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className={`${inputClass} text-center tracking-[0.35em]`}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              aria-describedby="signup-code-help"
+              autoFocus
+              required
+            />
+          </div>
+          {error && <p role="alert" className="text-ui-12 text-tea-gold">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading || verificationCode.length !== 6}
+            className="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Verifying…' : 'Verify email'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setPendingSignup(null); setVerificationCode(''); setError(''); }}
+            className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Edit email
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap-lg">
@@ -211,7 +277,7 @@ export default function SignUpPage() {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
+          <div role="alert" className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
             <Icons.AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-tea-error" />
             <span className="text-ui-12 text-tea-error">{error}</span>
           </div>
