@@ -1140,6 +1140,23 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function validatedUpdateFields(
+  body: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+): { fields: string[] } | { error: Response } {
+  const unknown = Object.keys(body).filter(field => !allowed.has(field));
+  if (unknown.length > 0) {
+    return {
+      error: json({
+        error: 'Unsupported fields for this update',
+        code: 'validation_failed',
+        details: { fields: unknown },
+      }, 400),
+    };
+  }
+  return { fields: Object.keys(body) };
+}
+
 function cachedJson(data: unknown, maxAge: number, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -8150,16 +8167,20 @@ const handleCreateVenueSpace: Handler = async (request, env, params) => {
   return json({ id, name: body.name }, 201);
 };
 
+const VENUE_SPACE_UPDATE_FIELDS = new Set([
+  'name', 'capacity', 'description', 'photos', 'tea_styles', 'sort_order',
+]);
+
 const handleUpdateVenueSpace: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
-  delete body.account_id;
-  delete body.venue_id;
+  const validated = validatedUpdateFields(body, VENUE_SPACE_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
   if (body.photos && typeof body.photos !== 'string') body.photos = JSON.stringify(body.photos);
   if (body.tea_styles && typeof body.tea_styles !== 'string') body.tea_styles = JSON.stringify(body.tea_styles);
-  const cols = Object.keys(body);
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
@@ -8958,14 +8979,21 @@ const handleCreateTeawareItem: Handler = async (request, env) => {
   return json({ id }, 201);
 };
 
+const TEAWARE_ITEM_UPDATE_FIELDS = new Set([
+  'name', 'chinese_name', 'category', 'material', 'capacity_ml', 'origin',
+  'artist', 'year_acquired', 'purchase_price', 'purchase_currency', 'description',
+  'condition', 'is_favorite', 'notes',
+]);
+
 const handleUpdateTeawareItem: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
-  delete body.account_id;
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, TEAWARE_ITEM_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -9046,6 +9074,8 @@ const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+const TEAWARE_PHOTO_UPDATE_FIELDS = new Set(['url', 'caption', 'is_primary', 'sort_order']);
+
 const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
@@ -9054,7 +9084,8 @@ const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
   if (guard) return guard;
 
   const body = await request.json() as Record<string, any>;
-  delete body.account_id;
+  const validated = validatedUpdateFields(body, TEAWARE_PHOTO_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
 
   if (body.is_primary) {
     await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
@@ -9063,7 +9094,7 @@ const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
     body.is_primary = 0;
   }
 
-  const cols = Object.keys(body);
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -12212,18 +12243,21 @@ const handleCreateSample: Handler = async (request, env) => {
 };
 
 // Admin: PUT /api/admin/samples/:id
+const SAMPLE_UPDATE_FIELDS = new Set([
+  'name', 'chinese_name', 'type', 'form', 'year', 'origin_region',
+  'source_id', 'source_name', 'source_contact', 'product_id', 'compass_entry_id',
+  'set_id', 'status', 'grams', 'notes', 'photos', 'tea_key',
+]);
+
 const handleUpdateSample: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
-  delete body.id;
-  delete body.user_id;
-  delete body.created_by;
-  delete body.account_id;
-
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, SAMPLE_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   for (const c of cols) {
@@ -12323,17 +12357,19 @@ const handleCreateSampleSet: Handler = async (request, env) => {
 };
 
 // Admin: PUT /api/admin/sample-sets/:id
+const SAMPLE_SET_UPDATE_FIELDS = new Set([
+  'name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids',
+]);
+
 const handleUpdateSampleSet: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
-  delete body.id;
-  delete body.user_id;
-  delete body.account_id;
-
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, SAMPLE_SET_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   if (cols.includes('shared_with') && typeof body.shared_with === 'object') {
@@ -12555,26 +12591,22 @@ const handleGetAccount: Handler = async (request, env, params) => {
 };
 
 // PUT /api/accounts/:id — update account profile (owner-tier only)
+const ACCOUNT_UPDATE_FIELDS = new Set([
+  'name', 'legal_name', 'tagline', 'description', 'logo_url', 'cover_image_url',
+  'location_city', 'location_country', 'timezone', 'currency_default',
+  'whatsapp_number', 'contact_email', 'public_enabled', 'public_shop_path',
+  'invoice_prefix', 'ships_to_countries',
+]);
+
 const handleUpdateAccount: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
 
   const body = await request.json() as Record<string, any>;
-  // Guard against changing immutable/privileged fields. Secret columns can
-  // only be set via the dedicated /integrations/* routes that handle encryption.
-  delete body.id;
-  delete body.is_platform_owner;
-  delete body.created_at;
-  delete body.openai_api_key_encrypted;
-  delete body.openai_api_key_last4;
-  delete body.has_openai_key;
-  delete body.openai_key_last4;
-  // This mirror is owned exclusively by /api/admin/contributors so both sides
-  // are changed in one D1 batch. Generic account edits must never mutate it.
-  delete body.host_contributor_id;
-
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(

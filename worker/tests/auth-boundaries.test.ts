@@ -85,6 +85,9 @@ class FakeStatement {
     if (sql.includes('select status from accounts where id = ?')) {
       return { status: accountStatus };
     }
+    if (sql.includes('select id from teaware_collection where id = ? and account_id = ?')) {
+      return { id: 'teaware_test' };
+    }
     if (sql.includes('from accounts') && sql.includes('is_platform_owner = 1')) {
       return platformAccountId ? { id: platformAccountId } : null;
     }
@@ -174,6 +177,29 @@ async function authedRequest(
 }
 
 describe('worker authorization boundaries', () => {
+  it.each([
+    ['account', '/api/accounts/acc_test', 'owner'],
+    ['venue space', '/api/admin/venues/venue_test/spaces/space_test', 'gather'],
+    ['teaware item', '/api/admin/teaware/teaware_test', 'catalog'],
+    ['teaware photo', '/api/admin/teaware/teaware_test/photos/photo_test', 'catalog'],
+    ['sample', '/api/admin/samples/sample_test', 'gather'],
+    ['sample set', '/api/admin/sample-sets/set_test', 'gather'],
+  ])('rejects request-derived SQL identifiers for %s updates', async (_label, path, bundle) => {
+    const malicious = 'name = NULL WHERE account_id = ?; --';
+    const request = await authedRequest(path, {
+      method: 'PUT',
+      body: JSON.stringify({ [malicious]: 'attacker-controlled' }),
+    });
+    const response = await worker.fetch(request, makeEnv({ role: bundle === 'owner' ? 'owner' : 'staff', bundles: bundle === 'owner' ? [] : [bundle] }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: expect.any(String),
+      code: 'validation_failed',
+      details: { fields: [malicious] },
+    });
+  });
+
   it('bootstraps a membership-free platform owner into the active platform account', async () => {
     const token = await signJwt({
       platform_role: 'platform_owner',
