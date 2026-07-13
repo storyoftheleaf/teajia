@@ -1,7 +1,8 @@
 import { compassValuesFromImport } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { buildImportAnalysisPrompt, decodeImportAnalysisProposal, normalizeImportProposal, type ImportMatchCandidates } from './curateImportAnalysis';
+import { buildImportAnalysisPrompt, decodeImportAnalysisProposal, normalizeImportProposal, renormalizeImportItemData, type ImportMatchCandidates } from './curateImportAnalysis';
 import { CurateImportFinalizeError, finalizeCurateImport, type CurateFinalizeData, type FinalizeReceiptLine } from './curateImportFinalize';
+import { decodeInventoryReceipt, inventoryPurposeConflict } from './inventoryDomain';
 
 export interface CurateImportContext {
   accountId: string;
@@ -114,7 +115,7 @@ async function scopedBatch(env: ImportEnv, id: string, accountId: string) {
   return env.DB.prepare('SELECT * FROM curate_import_batches WHERE id = ? AND account_id = ?').bind(id, accountId).first<Record<string, unknown>>();
 }
 
-function batchIsTerminal(batch: Record<string, unknown>) { return batch.review_state === 'completed' || batch.review_state === 'abandoned'; }
+function batchIsTerminal(batch: Record<string, unknown>) { return batch.review_state === 'completed' || batch.review_state === 'abandoned' || typeof batch.finalize_idempotency_key === 'string'; }
 function terminalResponse() { return response({ error: 'Completed or abandoned imports cannot be changed' }, 409); }
 
 async function scopedItem(env: ImportEnv, batchId: string, itemId: string, accountId: string) {
@@ -149,6 +150,20 @@ function vendorMatch(name: string | null, vendors: ImportMatchCandidates['vendor
   return best;
 }
 
+function resolveIdentityCandidate(item: ReturnType<typeof renormalizeImportItemData>, candidates: NonNullable<ImportMatchCandidates['identities']>) {
+  const names = [item.englishName, item.originalName, typeof item.chineseName === 'string' ? item.chineseName : null].map(normalizedName).filter(Boolean);
+  const ranked = candidates.map(candidate => {
+    if (candidate.category !== item.category) return { candidate, score: 0 };
+    const candidateNames = [candidate.name, candidate.chineseName].map(normalizedName).filter(Boolean);
+    const exact = names.some(name => candidateNames.includes(name));
+    const weak = names.some(name => candidateNames.some(candidateName => name.includes(candidateName) || candidateName.includes(name)));
+    return { candidate, score: exact ? 1 : weak ? 0.7 : 0 };
+  }).sort((a, b) => b.score - a.score);
+  const best = ranked[0];
+  if (!best || best.score === 0) return { duplicateResolution: 'new' as const, proposedCompassEntryId: null, proposedProductId: null };
+  return { duplicateResolution: best.score === 1 ? 'matched' as const : 'unresolved' as const, proposedCompassEntryId: best.candidate.id, proposedProductId: best.candidate.productId ?? null };
+}
+
 function anthopicText(value: unknown): string {
   const body = object(value);
   const content = body && Array.isArray(body.content) ? body.content : [];
@@ -162,16 +177,25 @@ async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>
   const evidenceSources: Array<{ id: string; kind: string; text?: string | null; mediaType?: string | null; objectKey?: string | null }> = [];
   const media: Array<Record<string, unknown>> = [];
   for (const source of sources) {
-    evidenceSources.push({ id: String(source.id), kind: String(source.kind), text: typeof source.pasted_text === 'string' ? source.pasted_text : null, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null });
-    if (typeof source.r2_object_key !== 'string' || !env.MEDIA_BUCKET) continue;
-    const stored = await env.MEDIA_BUCKET.get(source.r2_object_key);
-    if (!stored) continue;
-    const bytes = new Uint8Array(await new Response(stored.body).arrayBuffer());
-    let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
+    let extractedText = typeof source.pasted_text === 'string' ? source.pasted_text : null;
     const metadata = parseJson(source.metadata_json, {}) as Record<string, unknown>;
     const mediaType = typeof metadata.content_type === 'string' ? metadata.content_type : 'application/octet-stream';
-    if (mediaType.startsWith('image/')) media.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
-    else if (mediaType === 'application/pdf') media.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
+    if (typeof source.r2_object_key === 'string' && env.MEDIA_BUCKET) {
+      const stored = await env.MEDIA_BUCKET.get(source.r2_object_key);
+      if (stored) {
+        const bytes = new Uint8Array(await new Response(stored.body).arrayBuffer());
+        if (bytes.byteLength > 5 * 1024 * 1024) throw new Error('analysis_media_too_large');
+        if (['text/plain', 'text/csv', 'application/csv', 'application/json'].includes(mediaType)) {
+          extractedText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+          if (extractedText.length > 500_000) throw new Error('analysis_text_too_large');
+        } else if (mediaType.startsWith('image/') || mediaType === 'application/pdf') {
+          let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
+          if (mediaType.startsWith('image/')) media.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
+          else media.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
+        }
+      }
+    }
+    evidenceSources.push({ id: String(source.id), kind: String(source.kind), text: extractedText, mediaType, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null });
   }
   return { evidence: { sources: evidenceSources }, media };
 }
@@ -185,19 +209,28 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
   await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
     .bind(params.id, ctx.accountId).run();
   try {
-    const [sourcesResult, vendorsResult, journeysResult, groupsResult, itemsResult] = await Promise.all([
+    const [sourcesResult, vendorsResult, priorVendorEvidenceResult, journeysResult, identitiesResult, productsResult, groupsResult, itemsResult] = await Promise.all([
       env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT id, name, company, tags FROM customers WHERE account_id = ? ORDER BY name').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, name, company, email, phone, whatsapp, tags FROM customers WHERE account_id = ? ORDER BY name').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT proposed_vendor_name, resolved_vendor_customer_id FROM curate_import_vendor_groups WHERE account_id = ? AND resolved_vendor_customer_id IS NOT NULL').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT id, name FROM curate_journeys WHERE account_id = ? ORDER BY created_at DESC').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, name, chinese_name, category, draft_product_id FROM tea_compass_entries WHERE account_id = ? AND user_id = ? ORDER BY updated_at DESC').bind(ctx.accountId, ctx.userId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, source_compass_entry_id, product_name, given_name, type, inventory_purpose FROM products WHERE account_id = ?').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
     ]);
     const vendors = vendorsResult.results.filter(row => {
       const tags = parseJson(row.tags, []); return Array.isArray(tags) && tags.includes('vendor');
-    }).map(row => ({ id: String(row.id), name: String(row.name), aliases: typeof row.company === 'string' && row.company ? [row.company] : [] }));
+    }).map(row => ({
+      id: String(row.id), name: String(row.name),
+      aliases: [row.company, row.email, row.phone, row.whatsapp, ...priorVendorEvidenceResult.results.filter(evidence => evidence.resolved_vendor_customer_id === row.id).map(evidence => evidence.proposed_vendor_name)]
+        .filter(value => typeof value === 'string' && value) as string[],
+    }));
     const candidates: ImportMatchCandidates = {
       vendors,
       journeys: journeysResult.results.map(row => ({ id: String(row.id), name: String(row.name) })),
+      identities: identitiesResult.results.map(row => ({ id: String(row.id), name: typeof row.name === 'string' ? row.name : null, chineseName: typeof row.chinese_name === 'string' ? row.chinese_name : null, category: row.category === 'teaware' ? 'teaware' : 'tea', productId: typeof row.draft_product_id === 'string' ? row.draft_product_id : null })),
+      products: productsResult.results.map(row => ({ id: String(row.id), compassEntryId: typeof row.source_compass_entry_id === 'string' ? row.source_compass_entry_id : null, name: typeof row.given_name === 'string' ? row.given_name : typeof row.product_name === 'string' ? row.product_name : null, category: row.type === 'Teaware' ? 'teaware' : 'tea', purpose: typeof row.inventory_purpose === 'string' ? row.inventory_purpose : null })),
     };
     const { evidence, media } = await analysisEvidence(env, sourcesResult.results);
     const ai = await fetch('https://api.anthropic.com/v1/messages', {
@@ -206,6 +239,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     });
     if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
+    normalized.groups = normalized.groups.map(group => ({ ...group, items: group.items.map(item => renormalizeImportItemData({ ...item, ...resolveIdentityCandidate(item, candidates.identities ?? []) })) }));
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
     const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
     const keptGroupIds = new Set<string>();
@@ -238,16 +272,17 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
         for (const path of manualFields) if (path.startsWith('parsed_data.')) {
           const key = path.slice('parsed_data.'.length); parsed[key] = previousParsed[key];
         }
-        const name = manualFields.includes('name') ? existing?.name : (parsed.englishName ?? parsed.originalName ?? null);
+        const normalizedParsed = renormalizeImportItemData(parsed);
+        const name = manualFields.includes('name') ? existing?.name : (normalizedParsed.englishName ?? normalizedParsed.originalName ?? null);
         const category = manualFields.includes('category') ? existing?.category : proposed.category;
         const uncertainty = manualFields.includes('uncertainty') ? parseJson(existing?.uncertainty_json, {}) : proposed.uncertainty;
         if (existing) statements.push(env.DB.prepare(
           "UPDATE curate_import_items SET vendor_group_id = ?, position = ?, category = ?, name = ?, parsed_data_json = ?, confidence = ?, uncertainty_json = ?, review_state = 'reviewing', updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?"
-        ).bind(groupId, position++, category, name, JSON.stringify(parsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(uncertainty), itemId, params.id, ctx.accountId));
+        ).bind(groupId, position++, category, name, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(uncertainty), itemId, params.id, ctx.accountId));
         else statements.push(env.DB.prepare(
           `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id, vendor_group_id, manually_corrected_fields_json)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reviewing', NULL, ?, ?, '[]')`
-        ).bind(itemId, params.id, null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(parsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId));
+        ).bind(itemId, params.id, null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId));
       }
     }
     for (const row of itemsResult.results) if (!keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
@@ -281,8 +316,8 @@ function parsedFinalizeItem(row: Record<string, unknown>) {
   return {
     id: String(row.id), groupId: String(row.vendor_group_id ?? ''), category,
     name: String(row.name ?? parsed.englishName ?? parsed.originalName ?? ''),
-    compassEntryId: typeof row.compass_entry_id === 'string' ? row.compass_entry_id : null,
-    productId: typeof productId === 'string' ? productId : null,
+    compassEntryId: typeof row.compass_entry_id === 'string' ? row.compass_entry_id : parsed.duplicateResolution === 'matched' && typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : null,
+    productId: typeof productId === 'string' ? productId : parsed.duplicateResolution === 'matched' && typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null,
     quantity: typeof quantity === 'number' ? quantity : null, unit,
     packCount: typeof parsed.packCount === 'number' ? parsed.packCount : null,
     lineCost: typeof parsed.lineCost === 'number' ? parsed.lineCost : null,
@@ -319,15 +354,24 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           groups, items: itemRows.results.map(parsedFinalizeItem),
         } as CurateFinalizeData;
       },
-      loadCompleted: async (batchId, key) => {
+      loadFinalization: async batchId => {
         const batch = await scopedBatch(env, batchId, ctx.accountId);
-        if (!batch || batch.finalize_idempotency_key !== key || typeof batch.finalize_result_json !== 'string') return null;
-        return parseJson(batch.finalize_result_json, null);
+        if (!batch || typeof batch.finalize_idempotency_key !== 'string') return null;
+        return { idempotencyKey: batch.finalize_idempotency_key, result: typeof batch.finalize_result_json === 'string' ? parseJson(batch.finalize_result_json, null) : null };
+      },
+      reserveFinalization: async (batchId, key) => {
+        const changed = await env.DB.prepare('UPDATE curate_import_batches SET finalize_idempotency_key = ? WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)')
+          .bind(key, batchId, ctx.accountId, key).run();
+        if (!(changed.meta.changes ?? 0)) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was already finalized with a different idempotency key');
       },
       ensureIdentity: async (item, batch) => {
         if (item.compassEntryId) {
           const owned = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(item.compassEntryId, ctx.accountId, ctx.userId).first();
-          if (owned) return item.compassEntryId;
+          if (owned) {
+            await env.DB.prepare("UPDATE curate_import_items SET compass_entry_id = ?, review_state = 'merged', reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?")
+              .bind(item.compassEntryId, ctx.userId, item.id, batch.id, ctx.accountId).run();
+            return item.compassEntryId;
+          }
         }
         const row = await scopedItem(env, batch.id, item.id, ctx.accountId);
         if (!row) throw new CurateImportFinalizeError('not_found', 'Import item not found');
@@ -348,16 +392,26 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
       },
       ensureProduct: async (item, compassEntryId) => {
         if (item.productId) {
-          const owned = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(item.productId, ctx.accountId).first();
-          if (owned) return item.productId;
+          const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(item.productId, ctx.accountId).first<Record<string, unknown>>();
+          const categoryMatches = owned && (owned.type === 'Teaware') === (item.category === 'teaware');
+          const identityMatches = owned?.source_compass_entry_id === compassEntryId;
+          if (!owned || !categoryMatches || !identityMatches) throw new CurateImportFinalizeError('validation_failed', 'Selected holding does not belong to this Curate identity', [{ field: 'product', itemId: item.id, message: 'Choose a matching holding' }]);
+          const conflict = inventoryPurposeConflict(owned, item.purpose!);
+          if (conflict) throw new CurateImportFinalizeError('validation_failed', 'Selected holding has a different inventory purpose', [{ field: 'purpose', itemId: item.id, message: `Holding is ${conflict}` }]);
+          return item.productId;
         }
         const entry = await env.DB.prepare('SELECT draft_product_id, type, chinese_name, origin_region, year FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
         if (typeof entry?.draft_product_id === 'string') {
-          const owned = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first();
-          if (owned) return entry.draft_product_id;
+          const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first<Record<string, unknown>>();
+          if (owned && !inventoryPurposeConflict(owned, item.purpose!)) return entry.draft_product_id;
         }
-        const identity = await env.DB.prepare('SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
-        if (identity) return String(identity.id);
+        const identity = await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
+        if (identity) {
+          const categoryMatches = (identity.type === 'Teaware') === (item.category === 'teaware');
+          const conflict = inventoryPurposeConflict(identity, item.purpose!);
+          if (!categoryMatches || conflict) throw new CurateImportFinalizeError('validation_failed', 'Existing identity holding is incompatible with this import', [{ field: conflict ? 'purpose' : 'product', itemId: item.id, message: conflict ? `Holding is ${conflict}` : 'Holding category differs' }]);
+          return String(identity.id);
+        }
         const productId = crypto.randomUUID();
         await env.DB.batch([
           env.DB.prepare(`INSERT OR IGNORE INTO products (id, account_id, type, product_name, given_name, chinese_name, year, origin_region, status, stock_grams, quantity_units, inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id)
@@ -372,6 +426,8 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         return String(canonical.id);
       },
       createReceipt: async (group, lines, key, journeyId) => {
+        if (!lines.length) throw new CurateImportFinalizeError('validation_failed', 'Inventory receipt cannot be empty', [{ field: 'items', groupId: group.id, message: 'Add at least one item' }]);
+        for (const line of lines) decodeInventoryReceipt({ product_id: line.productId, quantity: line.quantity, unit: line.unit, intended_purpose: line.purpose, source_kind: 'curate_import', source_ref: line.itemId });
         const linked = await env.DB.prepare(`SELECT r.inventory_receipt_id FROM curate_import_receipts r WHERE r.account_id = ? AND r.vendor_group_id = ?`).bind(ctx.accountId, group.id).first<Record<string, unknown>>();
         let receiptId = linked ? String(linked.inventory_receipt_id) : '';
         if (!receiptId) {
@@ -527,9 +583,17 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
   let name: string;
   try { name = text(body.name, 240, true)!; } catch { return response({ error: 'Vendor name is required' }, 400); }
-  const vendorId = crypto.randomUUID();
+  if (typeof group.resolved_vendor_customer_id === 'string') {
+    const existing = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(group.resolved_vendor_customer_id, ctx.accountId).first<Record<string, unknown>>();
+    const tags = parseJson(existing?.tags, []);
+    if (existing && Array.isArray(tags) && tags.includes('vendor')) {
+      if (normalizedName(String(existing.name)) !== normalizedName(name)) return response({ error: 'Vendor group already created with a different name' }, 409);
+      return response({ vendor: existing, group: groupRow(group) });
+    }
+  }
+  const vendorId = `curate-vendor-${params.groupId}`;
   const results = await env.DB.batch([
-    env.DB.prepare("INSERT INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[\"vendor\"]', ?, 'curate_import')")
+    env.DB.prepare("INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[\"vendor\"]', ?, 'curate_import')")
       .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000)),
     env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
       .bind(vendorId, params.groupId, ctx.accountId),
@@ -790,11 +854,14 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
         const number = value == null ? null : Number(value); if (number != null && (!Number.isFinite(number) || number < 0 || number > 1)) return response({ error: 'Invalid confidence' }, 400);
         updates.push('confidence = ?'); values.push(number);
       } else if (key === 'parsed_data' || key === 'uncertainty') {
-        updates.push(`${key}_json = ?`); values.push(jsonField(value, {}));
+        const storedValue = key === 'parsed_data' ? renormalizeImportItemData(value) : value;
+        updates.push(`${key}_json = ?`); values.push(jsonField(storedValue, {}));
         if (key === 'parsed_data') {
           const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
-          const after = object(value) ?? {};
+          const after = storedValue as Record<string, unknown>;
+          const derived = new Set(['totalQuantityGrams', 'totalUnits', 'lineCost', 'unitCost', 'blockingFields']);
           for (const field of new Set([...Object.keys(before), ...Object.keys(after)])) {
+            if (derived.has(field)) continue;
             if (JSON.stringify(before[field]) !== JSON.stringify(after[field])) manualFields.add(`parsed_data.${field}`);
           }
         } else if (JSON.stringify(parseJson(current.uncertainty_json, {})) !== JSON.stringify(value ?? {})) manualFields.add('uncertainty');

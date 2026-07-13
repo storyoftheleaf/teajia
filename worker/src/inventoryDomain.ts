@@ -17,6 +17,13 @@ export function effectiveInventoryPurpose(row: Record<string, unknown>): {
   return { purpose: legacy, conflict: legacyConflict, source: 'legacy' };
 }
 
+export function inventoryPurposeConflict(row: Record<string, unknown> | null, intendedPurpose: InventoryPurpose): InventoryPurpose | null {
+  if (!row) return null;
+  if (row.inventory_purpose == null && row.is_sample == null && row.is_personal == null) return null;
+  const current = effectiveInventoryPurpose(row).purpose;
+  return current === intendedPurpose ? null : current;
+}
+
 export function decodeInventoryPurposeWrite(body: Record<string, unknown>): {
   inventory_purpose: InventoryPurpose; is_sample: 0 | 1; is_personal: 0 | 1;
 } {

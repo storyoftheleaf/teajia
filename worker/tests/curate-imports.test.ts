@@ -37,7 +37,8 @@ class ImportStatement {
     if (!table) return { results: [] };
     let rows = [...table.values()];
     if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
-    if (sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values.at(-1));
+    if (sql.includes('account_id = ?') && sql.includes('user_id = ?')) rows = rows.filter(row => row.account_id === this.values[0] && row.user_id === this.values[1]);
+    else if (sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values.at(-1));
     if (sql.includes("review_state != 'completed'")) rows = rows.filter(row => row.review_state !== 'completed' && row.review_state !== 'abandoned');
     if (sql.includes('order by position')) rows.sort((a, b) => Number(a.position) - Number(b.position));
     return { results: rows.map(row => ({ ...row })) };
@@ -116,6 +117,7 @@ class ImportDb {
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
   compass = new Map<string, Row>();
+  products = new Map<string, Row>();
   groups = new Map<string, Row>();
   customers = new Map<string, Row>();
   journeys = new Map<string, Row>();
@@ -126,6 +128,7 @@ class ImportDb {
     if (sql.includes('curate_import_vendor_groups')) return this.groups;
     if (sql.includes('customers')) return this.customers;
     if (sql.includes('tea_compass_entries')) return this.compass;
+    if (sql.includes('products')) return this.products;
     if (sql.includes('curate_import_batches')) return this.batches;
     if (sql.includes('curate_journeys')) return this.journeys;
     if (sql.includes('curate_visits')) return this.visits;
@@ -133,14 +136,14 @@ class ImportDb {
   }
   prepare(sql: string) { return new ImportStatement(sql, this); }
   async batch(statements: ImportStatement[]) {
-    const snapshots = [this.batches, this.sources, this.items, this.compass, this.groups, this.customers, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
+    const snapshots = [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
     try {
       const results = [];
       for (const statement of statements) results.push(await statement.run());
       return results;
     }
     catch (error) {
-      [this.batches, this.sources, this.items, this.compass, this.groups, this.customers, this.journeys, this.visits] = snapshots;
+      [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits] = snapshots;
       throw error;
     }
   }
@@ -174,6 +177,7 @@ function itemProposal(sourceItemId: string) {
     sourceItemId, category: 'tea', originalName: '台灣茶', englishName: 'Taiwan Tea', packWeight: 100,
     weightUnit: 'g', packCount: 1, priceAmount: 20, currency: 'USD', priceBasis: 'line_total',
     confidence: {}, uncertainty: {}, evidenceRefs: ['source'],
+    acquired: true, duplicateResolution: 'unresolved',
   };
 }
 
@@ -225,6 +229,32 @@ describe('Curate import provenance API', () => {
     expect(prompt).not.toContain('vendor-b');
   });
 
+  it('reuses an exact account-scoped Compass identity and holding', async () => {
+    const db = new ImportDb();
+    db.compass.set('entry-exact', { id: 'entry-exact', account_id: 'account-a', user_id: 'user-a', name: 'Taiwan Tea', category: 'tea', draft_product_id: 'product-exact' });
+    db.products.set('product-exact', { id: 'product-exact', account_id: 'account-a', source_compass_entry_id: 'entry-exact', type: 'Oolong', inventory_purpose: 'working' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Identity', pasted_text: 'Taiwan Tea' }) });
+    const { batch } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('identity-source')] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-exact', proposedProductId: 'product-exact' });
+    expect(analyzed.items[0].parsed_data.blockingFields).not.toContain('duplicateResolution');
+  });
+
+  it('sends stored text files as extracted text rather than only an R2 key', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Text file' }) });
+    const { batch } = await created.json() as any;
+    db.sources.set('source-text', { id: 'source-text', batch_id: batch.id, account_id: 'account-a', created_by_user_id: 'user-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/vendor.csv`, metadata_json: '{"content_type":"text/csv"}' });
+    const bucket = { get: async () => ({ body: new Response('name,weight\nTaiwan Tea,500g').body }) } as unknown as R2Bucket;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('csv-1')] }] }) }] }), { status: 200 }));
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket)).status).toBe(200);
+    const aiBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(aiBody.messages[0].content.at(-1).text).toContain('name,weight\\nTaiwan Tea,500g');
+  });
+
   it('preserves manually corrected parsed fields across safe analysis reruns', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Rerun', pasted_text: '500g x2' }) });
@@ -239,6 +269,20 @@ describe('Curate import provenance API', () => {
     expect(rerun.items).toHaveLength(1);
     expect(rerun.items[0].parsed_data.englishName).toBe('My corrected inventory name');
     expect(rerun.items[0].manually_corrected_fields).toContain('parsed_data.englishName');
+  });
+
+  it('recomputes client-edited totals and blockers instead of trusting submitted derived fields', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Derived trust', items: [{
+      name: 'Tea', parsed_data: itemProposal('source-derived'),
+    }] }) });
+    const { batch, items } = await created.json() as any;
+    const malicious = { ...items[0].parsed_data, packCount: null, priceBasis: 'unknown', totalQuantityGrams: 999999, lineCost: 1, unitCost: 0.000001, blockingFields: [] };
+    const updated = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: malicious }) });
+    expect(updated.status).toBe(200);
+    const body = await updated.json() as any;
+    expect(body.parsed_data).toMatchObject({ totalQuantityGrams: null, lineCost: null, unitCost: null });
+    expect(body.parsed_data.blockingFields).toEqual(expect.arrayContaining(['packCount', 'priceBasis']));
   });
 
   it('updates group vendors and the optional journey only within the active account', async () => {
@@ -267,6 +311,11 @@ describe('Curate import provenance API', () => {
     const body = await response.json() as any;
     expect(db.customers.get(body.vendor.id)).toMatchObject({ account_id: 'account-a', name: 'New Tea Farm', tags: '["vendor"]' });
     expect(db.groups.get('group-a')?.resolved_vendor_customer_id).toBe(body.vendor.id);
+    const retry = await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'New Tea Farm' }) });
+    expect(retry.status).toBe(200);
+    expect((await retry.json() as any).vendor.id).toBe(body.vendor.id);
+    expect(db.customers).toHaveLength(1);
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Changed Farm' }) })).status).toBe(409);
   });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();
@@ -592,7 +641,7 @@ describe('Curate import provenance API', () => {
     expect(await second.json()).toMatchObject({ already_accepted: true });
     expect(db.compass.size).toBe(1);
     expect([...db.compass.values()][0]).toMatchObject({ name: 'Ruby 18', category: 'tea', account_id: 'account-a', user_id: 'user-a' });
-    expect((db as any).products).toBeUndefined();
+    expect(db.products).toHaveLength(0);
   });
 
   it('does not link an item when its deterministic Compass id collides with another owner', async () => {

@@ -13,7 +13,7 @@ const migrationNames = [
   '104_inventory_receipts.sql',
   '105_stock_movements.sql',
   '107_curate_import_idempotency.sql',
-  '108_curate_import_analysis.sql',
+  '116_curate_import_analysis.sql',
 ] as const;
 
 const migrations = migrationNames.map(name =>
@@ -160,7 +160,7 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 
-  it('matches the canonical schema for every table changed or created by migrations 099-108', () => {
+  it('matches the canonical schema for every table changed or created by migrations 099-116', () => {
     const upgraded = databaseFor(
       'teajia-upgraded-schema-',
       schemaThrough098 + migrations + promotionMigration,

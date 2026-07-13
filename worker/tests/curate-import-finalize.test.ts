@@ -18,21 +18,31 @@ function data(): CurateFinalizeData {
   };
 }
 
-function harness(importData = data()) {
+function harness(importData = data(), failMovementOnce?: string) {
   const receipts: any[] = [];
   const movements: any[] = [];
+  const receiptByKey = new Map<string, any>();
+  const movementByKey = new Map<string, any>();
+  let failed = false;
   let completed: any = null;
+  let reservedKey: string | null = null;
   const ctx: CurateImportFinalizeContext = {
     accountId: 'account-a', userId: 'user-a',
     loadImport: async batchId => batchId === importData.batch.id && importData.batch.accountId === 'account-a' ? importData : null,
-    loadCompleted: async (_batchId, key) => completed?.idempotencyKey === key ? completed.result : null,
+    loadFinalization: async () => completed ? { idempotencyKey: completed.idempotencyKey, result: completed.result } : reservedKey ? { idempotencyKey: reservedKey, result: null } : null,
+    reserveFinalization: async (_batchId, key) => { reservedKey = key; },
     ensureIdentity: async item => item.compassEntryId ?? `entry-${item.id}`,
     ensureProduct: async (item) => item.productId ?? `product-${item.id}`,
     createReceipt: async (group, lines, key, journeyId) => {
+      if (receiptByKey.has(key)) return receiptByKey.get(key);
       const receipt = { id: `receipt-${group.id}`, groupId: group.id, key, journeyId, lines: lines.map(line => ({ ...line, id: `line-${line.itemId}` })) };
-      receipts.push(receipt); return receipt;
+      receipts.push(receipt); receiptByKey.set(key, receipt); return receipt;
     },
-    receiveLine: async (line, key) => { const value = { movementId: `movement-${line.itemId}`, key }; movements.push(value); return value; },
+    receiveLine: async (line, key) => {
+      if (movementByKey.has(key)) return movementByKey.get(key);
+      if (!failed && line.itemId === failMovementOnce) { failed = true; throw new Error('simulated partial failure'); }
+      const value = { movementId: `movement-${line.itemId}`, key }; movements.push(value); movementByKey.set(key, value); return value;
+    },
     complete: async (_batchId, idempotencyKey, result) => { completed = { idempotencyKey, result }; },
   };
   return { ctx, receipts, movements };
@@ -50,6 +60,13 @@ describe('Curate import finalization', () => {
       expect.objectContaining({ field: 'priceBasis', itemId: 'item-0' }),
       expect.objectContaining({ field: 'currency', itemId: 'item-1' }),
     ]));
+  });
+
+  it('rejects imports with no groups, no items, or an empty vendor receipt', () => {
+    expect(validateImportForFinalization({ ...data(), groups: [] })).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'groups' })]));
+    expect(validateImportForFinalization({ ...data(), items: [] })).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'items' })]));
+    const empty = data(); empty.items = empty.items.filter(item => item.groupId !== 'group-b');
+    expect(validateImportForFinalization(empty)).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'items', groupId: 'group-b' })]));
   });
 
   it('creates one received receipt per vendor and movements through the receipt callback', async () => {
@@ -74,6 +91,22 @@ describe('Curate import finalization', () => {
     expect(receipts).toHaveLength(2);
     expect(movements).toHaveLength(4);
     expect(receipts[0].journeyId).toBeNull();
+  });
+
+  it('rejects a different finalization key before creating any additional records', async () => {
+    const { ctx, receipts, movements } = harness();
+    await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+    await expect(finalizeCurateImport(ctx, 'batch-a', 'different-key')).rejects.toMatchObject({ code: 'idempotency_conflict' });
+    expect(receipts).toHaveLength(2); expect(movements).toHaveLength(4);
+  });
+
+  it('safely resumes a partial same-key failure without duplicating receipts or movements', async () => {
+    const { ctx, receipts, movements } = harness(data(), 'item-1');
+    await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).rejects.toThrow('simulated partial failure');
+    const result = await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+    expect(result.items).toHaveLength(4);
+    expect(receipts).toHaveLength(2);
+    expect(movements).toHaveLength(4);
   });
 
   it('rejects a foreign batch and blocks before any inventory callbacks', async () => {

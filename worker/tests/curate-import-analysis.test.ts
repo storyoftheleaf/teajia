@@ -11,6 +11,7 @@ const item = {
   englishName: 'Yunnan Ancient Tree Raw Pu’er', packWeight: 500,
   weightUnit: 'g' as const, packCount: 2, priceAmount: 380, currency: 'CNY',
   priceBasis: 'per_pack' as const, confidence: {}, uncertainty: {}, evidenceRefs: ['source-1:0-18'],
+  acquired: true, duplicateResolution: 'new' as const,
 };
 
 function proposal(overrides: Partial<typeof item> = {}): ImportAnalysisProposal {
@@ -60,6 +61,17 @@ describe('Curate import analysis domain', () => {
   it('rejects malformed enum and nested records', () => {
     expect(() => decodeImportAnalysisProposal(proposal({ weightUnit: 'jin' as never }))).toThrow(/weightUnit/);
     expect(() => decodeImportAnalysisProposal(proposal({ uncertainty: [] as never }))).toThrow(/uncertainty/);
+  });
+
+  it('rejects unknown fields and empty proposals', () => {
+    expect(() => decodeImportAnalysisProposal({ ...proposal(), injected: true })).toThrow(/Unknown proposal field/);
+    expect(() => decodeImportAnalysisProposal({ overview: 'none', language: 'en', groups: [] })).toThrow(/groups/);
+    expect(() => decodeImportAnalysisProposal(proposal({ injected: true } as never))).toThrow(/Unknown item field/);
+  });
+
+  it('blocks unresolved acquisition and duplicate identity decisions', () => {
+    const normalized = normalizeImportProposal(proposal({ acquired: null, duplicateResolution: 'unresolved' })).groups[0].items[0];
+    expect(normalized.blockingFields).toEqual(expect.arrayContaining(['acquired', 'duplicateResolution']));
   });
 
   it('builds a bounded instruction prompt containing evidence and account-scoped candidates', () => {

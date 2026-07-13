@@ -29,7 +29,8 @@ export interface CurateImportFinalizeContext {
   accountId: string;
   userId: string;
   loadImport(batchId: string): Promise<CurateFinalizeData | null>;
-  loadCompleted(batchId: string, idempotencyKey: string): Promise<CurateFinalizeResult | null>;
+  loadFinalization(batchId: string): Promise<{ idempotencyKey: string; result: CurateFinalizeResult | null } | null>;
+  reserveFinalization(batchId: string, idempotencyKey: string): Promise<void>;
   ensureIdentity(item: CurateFinalizeItem, batch: CurateFinalizeBatch): Promise<string>;
   ensureProduct(item: CurateFinalizeItem, compassEntryId: string): Promise<string>;
   createReceipt(group: CurateFinalizeGroup, lines: FinalizeReceiptLineInput[], idempotencyKey: string, journeyId: string | null): Promise<FinalizeReceipt>;
@@ -43,7 +44,10 @@ export class CurateImportFinalizeError extends Error {
 
 export function validateImportForFinalization(data: CurateFinalizeData): FinalizeValidationIssue[] {
   const issues: FinalizeValidationIssue[] = [];
+  if (!data.groups.length) issues.push({ field: 'groups', message: 'At least one vendor group is required' });
+  if (!data.items.length) issues.push({ field: 'items', message: 'At least one inventory item is required' });
   for (const group of data.groups) if (!group.vendorId) issues.push({ field: 'vendor', groupId: group.id, message: 'Choose a vendor for this group' });
+  for (const group of data.groups) if (!data.items.some(item => item.groupId === group.id)) issues.push({ field: 'items', groupId: group.id, message: 'Vendor receipt cannot be empty' });
   const groupIds = new Set(data.groups.map(group => group.id));
   for (const item of data.items) {
     if (!groupIds.has(item.groupId)) issues.push({ field: 'vendor', itemId: item.id, message: 'Item has no vendor group' });
@@ -62,12 +66,14 @@ export function validateImportForFinalization(data: CurateFinalizeData): Finaliz
 
 export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, batchId: string, idempotencyKey: string): Promise<CurateFinalizeResult> {
   if (!idempotencyKey.trim() || idempotencyKey.length > 200) throw new CurateImportFinalizeError('idempotency_conflict', 'A valid idempotency key is required');
-  const completed = await ctx.loadCompleted(batchId, idempotencyKey);
-  if (completed) return completed;
+  const finalization = await ctx.loadFinalization(batchId);
+  if (finalization && finalization.idempotencyKey !== idempotencyKey) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was already finalized with a different idempotency key');
+  if (finalization?.result) return finalization.result;
   const data = await ctx.loadImport(batchId);
   if (!data || data.batch.accountId !== ctx.accountId) throw new CurateImportFinalizeError('not_found', 'Import not found');
   const issues = validateImportForFinalization(data);
   if (issues.length) throw new CurateImportFinalizeError('validation_failed', 'Review blocking import fields', issues);
+  await ctx.reserveFinalization(batchId, idempotencyKey);
 
   const resolved = new Map<string, { item: CurateFinalizeItem; compassEntryId: string; productId: string }>();
   for (const item of data.items) {

@@ -11,7 +11,7 @@ import {
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
@@ -9483,12 +9483,8 @@ const RECEIPT_MUTABLE_FIELDS = new Set([
 ]);
 
 function purposeConflict(product: Record<string, any> | null, intendedPurpose: string): Response | null {
-  if (!product) return null;
-  // Rows predating both the canonical purpose and legacy flags were genuinely
-  // unclassified; preserve the existing one-time assignment policy for them.
-  if (product.inventory_purpose == null && product.is_sample == null && product.is_personal == null) return null;
-  const currentPurpose = effectiveInventoryPurpose(product).purpose;
-  if (currentPurpose === intendedPurpose) return null;
+  const currentPurpose = inventoryPurposeConflict(product, intendedPurpose as 'working' | 'sample' | 'personal');
+  if (!currentPurpose) return null;
   return json({
     error: `This holding is ${currentPurpose}; receiving it as ${intendedPurpose} requires a separate holding or deliberate purpose conversion.`,
     code: 'purpose_conflict',
@@ -9888,6 +9884,16 @@ const handleFinalizeCurateImport: Handler = async (request, env, params) => {
   return finalizeCurateImportRequest(request, env, { accountId: ctx.accountId, userId: ctx.userId }, params, async (line, idempotencyKey) => {
     const persisted = await loadReceiptLine(env, line.id, ctx.accountId);
     if (!persisted || persisted.receipt_id !== line.receiptId) throw new Error('Receipt line not found');
+    const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first() as Record<string, unknown> | null;
+    if (prior) {
+      let fingerprint: Record<string, unknown> | null = null;
+      try { fingerprint = JSON.parse(String(prior.movement_fingerprint)) as Record<string, unknown>; } catch { /* malformed legacy row cannot replay */ }
+      if (prior.product_id !== line.productId || prior.inventory_receipt_line_id !== line.id || prior.movement_type !== 'receipt'
+        || Number(fingerprint?.quantity) !== line.quantity || fingerprint?.unit !== line.unit || fingerprint?.source_compass_entry_id !== line.compassEntryId) {
+        throw new Error('idempotency_key already used for a different stock movement');
+      }
+      return { movementId: String(prior.id) };
+    }
     const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(line.productId, ctx.accountId).first() as Record<string, any> | null;
     if (!product) throw new Error('Product not found');
     const amountColumn = line.unit === 'g' ? 'stock_grams' : 'quantity_units';
@@ -9905,8 +9911,6 @@ const handleFinalizeCurateImport: Handler = async (request, env, params) => {
         ...(createsBatch ? [env.DB.prepare(`INSERT OR IGNORE INTO batches (id, account_id, label, intake_date, vendor, note)
           SELECT ?, ?, ?, date('now'), ?, 'Curate inventory import' WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
           .bind(batchId, ctx.accountId, `Receipt · ${persisted.vendor_name || 'Curate import'}`, persisted.vendor_name || null, line.productId, ctx.accountId, guard)] : []),
-        env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ? WHERE id = ? AND account_id = ? AND stock_movement_guard = ?`)
-          .bind(line.purpose, line.purpose === 'sample' ? 1 : 0, line.purpose === 'personal' ? 1 : 0, line.productId, ctx.accountId, guard),
         env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity = expected_quantity, intake_batch_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
           .bind(batchId, line.id, ctx.accountId, line.productId, ctx.accountId, guard),
         env.DB.prepare(`UPDATE inventory_receipts SET state = CASE WHEN NOT EXISTS (SELECT 1 FROM inventory_receipt_lines WHERE receipt_id = ? AND account_id = ? AND received_quantity < expected_quantity) THEN 'received' ELSE 'partially_received' END, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
