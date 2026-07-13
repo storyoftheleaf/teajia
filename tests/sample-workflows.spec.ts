@@ -26,7 +26,11 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await page.getByRole('button', { name: /Sample list —/ }).click();
     await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
 
-    await page.getByLabel('Inventory holding').selectOption('holding-1');
+    const holdingSelect = page.getByLabel('Inventory holding');
+    await expect(holdingSelect).toHaveCSS('font-size', '16px');
+    const holdingBox = await holdingSelect.boundingBox();
+    expect(holdingBox?.height).toBeGreaterThanOrEqual(44);
+    await holdingSelect.selectOption('holding-1');
     await page.getByRole('button', { name: 'Save holding link' }).click();
     expect(movements).toHaveLength(0);
     await expect(page.getByText('Linked without changing stock')).toBeVisible();

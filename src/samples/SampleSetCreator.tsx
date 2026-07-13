@@ -1849,7 +1849,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 id={`sample-holding-${sampleId}`}
                 value={holdingProductId}
                 onChange={(event) => { setHoldingProductId(event.target.value); setHoldingMessage(''); }}
-                className="min-w-0 flex-1 bg-tea-bg text-tea-text rounded px-2 py-2 text-ui-12 border border-tea-border focus:border-tea-gold outline-none"
+                className="min-h-11 min-w-0 flex-1 bg-tea-bg text-tea-text rounded px-2 py-2 text-ui-16 border border-tea-border focus:border-tea-gold outline-none"
               >
                 <option value="">No physical holding</option>
                 {products.map((product) => (
