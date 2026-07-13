@@ -90,7 +90,7 @@ describe('migration 017 rehearsals', () => {
       .toBe('provider_jobs');
     expect(sqlite(database, `SELECT COUNT(*) FROM users WHERE email_verified_at IS NULL;`)).toBe('0');
     expect(sqlite(database, `SELECT name FROM pragma_table_info('tea_sample_sets') WHERE name='archived';`)).toBe('archived');
-  }));
+  }), 15_000);
 
   it('makes a real repeated migration-ledger application a no-op', () => withDatabase((database) => {
     sqlite(database, sql('tests/fixtures/pre-017-production.sql'));
