@@ -12,6 +12,12 @@ type ImportItem = {
   total_quantity_grams?: number | null; total_units?: number | null; line_cost?: number | null;
   unit_cost?: number | null; blocking_fields?: string[];
 };
+const workerImportParsedDataKeys = new Set([
+  'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
+  'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
+  'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
+  'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
+]);
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
 
 const analyzedTeaNames = [
@@ -49,7 +55,11 @@ function analyzedImportDetail() {
     vendor_group_id: index < 5 ? 'group-chen' : 'group-lin', position: index, category: 'tea' as const,
     name: englishName, english_name: englishName, original_name: originalName,
     raw_text: `${originalName} 500g ×2 ¥380`,
-    parsed_data: { english_name: englishName, original_name: originalName },
+    parsed_data: {
+      englishName, originalName, type: index < 5 ? 'pu_er' : 'oolong', inventoryPurpose: index === 9 ? null : 'working',
+      acquired: index !== 9, duplicateResolution: index === 9 ? 'unresolved' : 'new',
+      proposedCompassEntryId: null, proposedProductId: null,
+    },
     confidence: index === 9 ? 0.51 : 0.96,
     uncertainty: index === 9 ? {
       pack_count: 'The multiplier is faint in the photograph',
@@ -61,7 +71,10 @@ function analyzedImportDetail() {
     pack_weight: 500, weight_unit: 'g', pack_count: 2, price_amount: index < 5 ? 380 : 600,
     currency: index < 5 ? 'CNY' : 'TWD', price_basis: 'per_pack',
     total_quantity_grams: 1000, total_units: null, line_cost: index < 5 ? 760 : 1200,
-    unit_cost: index < 5 ? 0.76 : 1.2, blocking_fields: index === 9 ? ['pack_count', 'weight_unit', 'price_basis', 'currency'] : [],
+    unit_cost: index < 5 ? 0.76 : 1.2,
+    acquired: index !== 9, duplicate_resolution: index === 9 ? 'unresolved' as const : 'new' as const,
+    proposed_compass_entry_id: null, proposed_product_id: null,
+    blocking_fields: index === 9 ? ['pack_count', 'weight_unit', 'price_basis', 'currency', 'duplicate_identity', 'acquired', 'inventory_purpose'] : [],
     evidence_refs: [`source-analyzed:${index * 20}-${index * 20 + 18}`],
   }));
   return {
@@ -80,18 +93,52 @@ function analyzedImportDetail() {
 async function installAnalyzedImportApi(page: Page) {
   const detail = analyzedImportDetail();
   let finalizeCalls = 0;
+  let detailGetCalls = 0;
+  let journeyPutCalls = 0;
+  const correctionBodies: Array<Record<string, unknown>> = [];
   await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [detail] } }));
   await page.route('**/api/curate/imports/batch-analyzed', async route => {
-    if (route.request().method() === 'GET') return route.fulfill({ json: detail });
+    if (route.request().method() === 'GET') {
+      detailGetCalls += 1;
+      return route.fulfill({ json: detail });
+    }
     return route.fallback();
+  });
+  await page.route('**/api/curate/imports/batch-analyzed/journey', async route => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    journeyPutCalls += 1;
+    const body = route.request().postDataJSON() as { journey_id: string | null };
+    detail.batch.journey_id = body.journey_id;
+    return route.fulfill({ json: detail.batch });
   });
   await page.route('**/api/curate/imports/batch-analyzed/items/*', async route => {
     if (route.request().method() !== 'PUT') return route.fallback();
     const itemId = new URL(route.request().url()).pathname.split('/').at(-1);
     const item = detail.items.find(candidate => candidate.id === itemId)!;
-    Object.assign(item, route.request().postDataJSON());
-    if (item.id === 'analyzed-item-10') {
-      item.blocking_fields = [];
+    const updates = route.request().postDataJSON() as Record<string, unknown> & { parsed_data?: Record<string, unknown> };
+    const parsedData = updates.parsed_data || {};
+    const unknownKeys = Object.keys(parsedData).filter(key => !workerImportParsedDataKeys.has(key));
+    if (unknownKeys.length) {
+      return route.fulfill({ status: 400, json: { error: `Unknown parsed_data fields: ${unknownKeys.join(', ')}` } });
+    }
+    correctionBodies.push(updates);
+    Object.assign(item, updates, {
+      acquired: parsedData.acquired,
+      duplicate_resolution: parsedData.duplicateResolution,
+      proposed_compass_entry_id: parsedData.proposedCompassEntryId,
+      proposed_product_id: parsedData.proposedProductId,
+    });
+    item.blocking_fields = (item.blocking_fields || []).filter(field => {
+      if (field === 'pack_count') return !(typeof parsedData.packCount === 'number' && parsedData.packCount > 0);
+      if (field === 'weight_unit') return !parsedData.weightUnit;
+      if (field === 'price_basis') return !parsedData.priceBasis || parsedData.priceBasis === 'unknown';
+      if (field === 'currency') return !parsedData.currency;
+      if (field === 'duplicate_identity') return parsedData.duplicateResolution !== 'new' && !parsedData.proposedCompassEntryId;
+      if (field === 'acquired') return parsedData.acquired !== true;
+      if (field === 'inventory_purpose') return !parsedData.inventoryPurpose;
+      return true;
+    });
+    if (!item.blocking_fields.length) {
       item.uncertainty = {};
       item.confidence = 0.96;
     }
@@ -102,7 +149,13 @@ async function installAnalyzedImportApi(page: Page) {
     detail.batch.review_state = 'completed';
     return route.fulfill({ json: { batch: detail.batch, receipts: [{ id: 'receipt-chen' }, { id: 'receipt-lin' }], items: detail.items } });
   });
-  return { detail, finalizeCalls: () => finalizeCalls };
+  return {
+    detail,
+    finalizeCalls: () => finalizeCalls,
+    detailGetCalls: () => detailGetCalls,
+    journeyPutCalls: () => journeyPutCalls,
+    correctionBodies,
+  };
 }
 
 async function installImportApi(page: Page) {
@@ -167,7 +220,12 @@ async function installImportApi(page: Page) {
         vendor_group_id: 'group-import', english_name: item.name, pack_weight: 100, weight_unit: 'g', pack_count: 1,
         price_amount: 12, currency: 'USD', price_basis: 'line_total', total_quantity_grams: item.category === 'tea' ? 100 : null,
         total_units: item.category === 'teaware' ? 1 : null, line_cost: 12, unit_cost: item.category === 'tea' ? 0.12 : 12,
-        blocking_fields: [],
+        parsed_data: {
+          category: item.category, englishName: item.name, packWeight: 100, weightUnit: 'g', packCount: 1,
+          priceAmount: 12, currency: 'USD', priceBasis: 'line_total', inventoryPurpose: 'working', acquired: true,
+          duplicateResolution: 'new', proposedCompassEntryId: null, proposedProductId: null,
+        },
+        acquired: true, duplicate_resolution: 'new', blocking_fields: [],
       });
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detail()) });
     }
@@ -429,6 +487,11 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('select[aria-label="Sourcing run"]')).toHaveCount(1);
     await expect(dialog.locator('label').filter({ hasText: 'Sourcing run · optional' })).toHaveCount(1);
+    const detailGetsBeforeJourneyChange = api.detailGetCalls();
+    await dialog.getByLabel('Sourcing run', { exact: true }).selectOption('journey-taiwan');
+    await expect.poll(api.journeyPutCalls).toBe(1);
+    await expect.poll(api.detailGetCalls).toBeGreaterThan(detailGetsBeforeJourneyChange);
+    await expect(dialog.getByLabel('Sourcing run', { exact: true })).toHaveValue('journey-taiwan');
     await expect(dialog.getByTestId('import-vendor-group')).toHaveCount(2);
     await expect(dialog.getByRole('button', { name: /^Change vendor for / })).toHaveCount(2);
     await expect(dialog.getByText('Chen Family Ancient Tree Tea Cooperative of Xishuangbanna', { exact: true })).toBeVisible();
@@ -442,7 +505,8 @@ test.describe('analyzed inventory import review', () => {
     const rows = dialog.getByTestId('import-item-row');
     await expect(rows).toHaveCount(10);
     const compactHeights = await rows.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
-    expect(Math.max(...compactHeights), 'collapsed review rows should stay compact').toBeLessThanOrEqual(120);
+    expect(Math.max(...compactHeights.slice(0, -1)), 'ready collapsed review rows should stay compact').toBeLessThanOrEqual(120);
+    expect(compactHeights.at(-1), 'the row listing all required confirmations should stay compact').toBeLessThanOrEqual(150);
     for (let index = 0; index < analyzedTeaNames.length; index += 1) {
       await rows.nth(index).scrollIntoViewIfNeeded();
       await expect(rows.nth(index)).toContainText(analyzedTeaNames[index][0]);
@@ -450,7 +514,7 @@ test.describe('analyzed inventory import review', () => {
     }
 
     const finalAction = dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ });
-    await expect(dialog.getByText('Confirm pack count, weight or unit, price interpretation, and currency.')).toBeVisible();
+    await expect(dialog.getByText('Confirm pack count, weight or unit, price interpretation, currency, tea identity, physical stock status, and Inventory purpose.')).toBeVisible();
     await expect(finalAction).toBeDisabled();
 
     const readyRow = rows.nth(0);
@@ -466,6 +530,9 @@ test.describe('analyzed inventory import review', () => {
     await uncertainRow.scrollIntoViewIfNeeded();
     await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
     await uncertainRow.getByLabel('Pack count').fill('3');
+    await uncertainRow.getByLabel('Inventory purpose').selectOption('working');
+    await uncertainRow.getByLabel('Compass tea identity').selectOption('new');
+    await uncertainRow.getByLabel('Acquired into physical stock').selectOption('yes');
     await expect(uncertainRow.getByLabel('Sourcing run')).toHaveCount(0);
     await expect(uncertainRow.getByRole('button', { name: /^Change vendor for / })).toHaveCount(0);
 
@@ -479,6 +546,13 @@ test.describe('analyzed inventory import review', () => {
 
     await uncertainRow.getByRole('button', { name: 'Save tea' }).click();
     await expect(finalAction).toBeEnabled();
+    const uncertainCorrection = api.correctionBodies.find(body => body.name === analyzedTeaNames[9][0]);
+    expect(uncertainCorrection).toBeTruthy();
+    expect(uncertainCorrection?.parsed_data).toMatchObject({
+      duplicateResolution: 'new', acquired: true, inventoryPurpose: 'working',
+      proposedCompassEntryId: null, proposedProductId: null,
+    });
+    expect(Object.keys(uncertainCorrection?.parsed_data as Record<string, unknown>).filter(key => !workerImportParsedDataKeys.has(key))).toEqual([]);
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
