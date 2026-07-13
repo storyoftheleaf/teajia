@@ -23,6 +23,38 @@ export interface ImportReviewModel {
   canFinalize: boolean;
 }
 
+export interface ImportMatchOption {
+  id: string;
+  name: string;
+  category?: 'tea' | 'teaware';
+  compassEntryId?: string | null;
+  purpose?: string | null;
+  subtitle?: string | null;
+  matchReason?: string;
+}
+
+const matchTokens = (value: string) => value.toLocaleLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).filter(Boolean);
+
+export const rankImportMatches = <T extends ImportMatchOption>(options: T[], query: string, proposedName = ''): Array<T & { matchReason?: string }> => {
+  const queryTokens = matchTokens(query);
+  const proposedTokens = matchTokens(proposedName);
+  return options.map(option => {
+    const nameTokens = matchTokens(option.name);
+    const queryMatches = queryTokens.filter(token => nameTokens.some(name => name.includes(token) || token.includes(name))).length;
+    const proposalMatches = proposedTokens.filter(token => nameTokens.includes(token)).length;
+    const exact = proposedName.trim() && option.name.trim().toLocaleLowerCase() === proposedName.trim().toLocaleLowerCase();
+    return { option, score: (exact ? 1000 : 0) + proposalMatches * 10 + queryMatches * 20, matchReason: exact || (proposedTokens.length > 0 && proposalMatches / proposedTokens.length >= 0.6) ? 'Closest existing match' : undefined };
+  }).filter(row => !queryTokens.length || queryTokens.every(token => matchTokens(row.option.name).some(name => name.includes(token) || token.includes(name))))
+    .sort((a, b) => b.score - a.score || a.option.name.localeCompare(b.option.name))
+    .map(({ option, matchReason }) => ({ ...option, ...(matchReason ? { matchReason } : {}) }));
+};
+
+export const compatibleImportHoldings = <T extends ImportMatchOption>(options: T[], selection: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }): T[] => options.filter(option =>
+  (!option.category || option.category === selection.category)
+  && (!selection.compassEntryId || option.compassEntryId === selection.compassEntryId)
+  && (!selection.purpose || option.purpose === selection.purpose),
+);
+
 const BLOCKING_LABELS: Record<string, string> = {
   vendor: 'vendor', vendor_group_id: 'vendor', duplicate_identity: 'tea identity', compass_entry_id: 'tea identity',
   product_id: 'Inventory holding', proposed_product_id: 'Inventory holding', pack_count: 'pack count',

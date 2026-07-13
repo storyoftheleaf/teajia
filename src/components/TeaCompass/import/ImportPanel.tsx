@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
-import { api, ApiError, type CurateImportDetail, type CurateImportFinalizeResult, type CurateImportItem, type CurateImportItemUpdate, type CurateImportSourceKind } from '../../../lib/api';
+import { api, ApiError, type CurateImportDetail, type CurateImportFinalizeResult, type CurateImportItem, type CurateImportItemUpdate, type CurateImportSourceKind, type LookupState } from '../../../lib/api';
 import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
 import type { ImportDraft, ImportPanelState } from './importTypes';
@@ -13,6 +13,7 @@ import { clearImportDraft, loadImportDraft, saveImportDraft } from './importDraf
 import { ImportEvidencePreview } from './ImportEvidencePreview';
 import { failedImportSourceIds, unmatchedImportEvidence } from './importEvidenceSelection';
 import { ImportEvidenceCard } from './ImportEvidenceCard';
+import type { ImportHoldingOption, ImportIdentityOption } from './ImportItemRow';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -46,6 +47,13 @@ const errorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const loadingLookup = <T,>(): LookupState<T> => ({ status: 'loading', options: [], error: null });
+const completedLookup = <T,>(options: T[]): LookupState<T> => ({ status: options.length ? 'ready' : 'empty', options, error: null });
+const lookupRows = (result: unknown, key: string): Array<Record<string, unknown>> => Array.isArray(result)
+  ? result as Array<Record<string, unknown>>
+  : result && typeof result === 'object' && key in result && Array.isArray((result as Record<string, unknown>)[key])
+    ? (result as Record<string, unknown>)[key] as Array<Record<string, unknown>> : [];
+
 export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetailChange, onFinalized, onClose, onNew, accountId }) => {
   const [draft, setDraft] = useState<ImportDraft>(() => {
     const saved = initialDetail ? null : loadImportDraft(accountId);
@@ -55,8 +63,10 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     };
   });
   const [state, setState] = useState<ImportPanelState>({ phase: initialDetail ? 'review' : 'input', detail: initialDetail, error: null });
-  const [journeys, setJourneys] = useState<CurateJourney[]>([]);
-  const [vendorOptions, setVendorOptions] = useState<ImportVendorOption[]>([]);
+  const [journeyLookup, setJourneyLookup] = useState<LookupState<CurateJourney>>(loadingLookup);
+  const [vendorLookup, setVendorLookup] = useState<LookupState<ImportVendorOption>>(loadingLookup);
+  const [identityLookup, setIdentityLookup] = useState<LookupState<ImportIdentityOption>>(loadingLookup);
+  const [holdingLookup, setHoldingLookup] = useState<LookupState<ImportHoldingOption>>(loadingLookup);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -85,13 +95,40 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   useEffect(() => {
     if (!initialDetail && draftDirty) preserveDraft();
   }, [accountId, draft, draftDirty, initialDetail]);
-  useEffect(() => {
-    void api.curateContext.listJourneys().then(result => setJourneys(result.journeys)).catch(() => setJourneys([]));
-    void api.customers.list(undefined, 'vendor').then((result: unknown) => {
-      const rows = Array.isArray(result) ? result : result && typeof result === 'object' && 'customers' in result && Array.isArray(result.customers) ? result.customers : [];
-      setVendorOptions(rows.map((row: Record<string, unknown>) => ({ id: String(row.id), name: String(row.name || row.company_name || 'Unnamed vendor') })));
-    }).catch(() => setVendorOptions([]));
-  }, []);
+  const loadJourneys = () => {
+    setJourneyLookup(loadingLookup());
+    void api.curateContext.listJourneys().then(result => setJourneyLookup(completedLookup(result.journeys))).catch(error => setJourneyLookup({ status: 'error', options: [], error: errorMessage(error, 'Could not load sourcing runs') }));
+  };
+  const loadVendors = () => {
+    setVendorLookup(loadingLookup());
+    void api.customers.list(undefined, 'vendor').then((result: unknown) => setVendorLookup(completedLookup(lookupRows(result, 'customers').map(row => ({ id: String(row.id), name: String(row.name || row.company_name || 'Unnamed vendor') })))))
+      .catch(error => setVendorLookup({ status: 'error', options: [], error: errorMessage(error, 'Could not load existing vendors') }));
+  };
+  const loadIdentities = () => {
+    setIdentityLookup(loadingLookup());
+    void api.compass.list().then((result: unknown) => {
+      const options = lookupRows(result, 'entries').map(row => ({
+        id: String(row.id), name: String(row.name || row.english_name || row.chinese_name || 'Unnamed Library identity'),
+        category: row.category === 'teaware' ? 'teaware' as const : 'tea' as const,
+        subtitle: [row.chinese_name, row.year, row.origin_region].filter(Boolean).join(' · ') || null,
+      }));
+      setIdentityLookup(completedLookup(options));
+    }).catch(error => setIdentityLookup({ status: 'error', options: [], error: errorMessage(error, 'Could not load Library identities') }));
+  };
+  const loadHoldings = () => {
+    setHoldingLookup(loadingLookup());
+    void api.products.list().then((result: unknown) => {
+      const options = lookupRows(result, 'products').map(row => ({
+        id: String(row.id), name: String(row.given_name || row.product_name || row.name || 'Unnamed Inventory holding'),
+        category: String(row.type || row.category).toLocaleLowerCase() === 'teaware' ? 'teaware' as const : 'tea' as const,
+        compassEntryId: typeof row.source_compass_entry_id === 'string' ? row.source_compass_entry_id : typeof row.sourceCompassEntryId === 'string' ? row.sourceCompassEntryId : null,
+        purpose: typeof row.inventory_purpose === 'string' ? row.inventory_purpose : typeof row.inventoryPurpose === 'string' ? row.inventoryPurpose : null,
+        subtitle: [row.inventory_purpose || row.inventoryPurpose, row.vendor].filter(Boolean).join(' · ') || null,
+      }));
+      setHoldingLookup(completedLookup(options));
+    }).catch(error => setHoldingLookup({ status: 'error', options: [], error: errorMessage(error, 'Could not load Inventory holdings') }));
+  };
+  useEffect(() => { loadJourneys(); loadVendors(); loadIdentities(); loadHoldings(); }, [accountId]);
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -203,7 +240,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     let journey: CurateJourney | null = null;
     const action = async () => {
       journey = journey || await api.curateContext.createJourney(input);
-      setJourneys(current => current.some(candidate => candidate.id === journey.id) ? current : [...current, journey]);
+      setJourneyLookup(current => completedLookup(current.options.some(candidate => candidate.id === journey!.id) ? current.options : [...current.options, journey!]));
       setDraft(current => ({ ...current, journeyId: journey.id }));
       if (state.detail) {
         const batchId = state.detail.batch.id;
@@ -267,7 +304,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           <div><h2 id="curate-import-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Import into Curate</h2><p className="text-ui-11 text-tea-text-dim">Capture now. Decide later.</p></div>
         </header>
         <div className="pb-nav flex-1 overflow-y-auto px-4 py-5 sm:px-6" aria-live="polite">
-          {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeys={journeys} onCreateJourney={createJourney} />}
+          {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeyLookup={journeyLookup} onRetryJourneys={loadJourneys} onCreateJourney={createJourney} />}
           {state.phase === 'parsing' && <div className="space-y-4"><div role="status" className="flex min-h-32 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your evidence…</div><ImportEvidencePreview evidence={draft.evidence} /></div>}
           {state.phase === 'error' && <div className="space-y-4">
             {persistedEvidenceSources.length > 0 && <div className="space-y-2" aria-label="Persisted evidence outcomes">{persistedEvidenceSources.map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}
@@ -275,7 +312,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
             <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p>{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button>}</div>
           </div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizeImportDetail(state.detail)} journeys={journeys} vendorOptions={vendorOptions} busyId={busyId} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
+          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizeImportDetail(state.detail)} journeyLookup={journeyLookup} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryJourneys={loadJourneys} onRetryVendors={loadVendors} onRetryIdentities={loadIdentities} onRetryHoldings={loadHoldings} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
         </div>
         {confirmClose && <div className="absolute inset-0 z-10 flex items-center justify-center bg-tea-bg/80 p-4" role="alertdialog" aria-modal="true" aria-labelledby="import-draft-close-title" aria-describedby="import-draft-close-copy">
           <div className="w-full max-w-sm rounded-md border border-tea-border bg-tea-elevated p-5">

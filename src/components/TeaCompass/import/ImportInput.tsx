@@ -5,13 +5,15 @@ import type { ImportDraft, ImportEvidence } from './importTypes';
 import type { CurateJourney } from '../types';
 import { ImportJourneyPicker } from './ImportJourneyPicker';
 import { prepareImportEvidenceFile } from './importEvidenceSelection';
+import type { LookupState } from '../../../lib/api';
 
 interface ImportInputProps {
   draft: ImportDraft;
   onChange: React.Dispatch<React.SetStateAction<ImportDraft>>;
   onSubmit: () => void;
   submitRef?: React.RefObject<HTMLButtonElement | null>;
-  journeys: CurateJourney[];
+  journeyLookup: LookupState<CurateJourney>;
+  onRetryJourneys: () => void;
   onCreateJourney: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
 }
 
@@ -20,7 +22,7 @@ const evidenceFromFile = (file: File, kind: ImportEvidence['kind'], id: string =
   return { id, file: prepared.file, kind, name: file.name, size: file.size, type: prepared.file?.type ?? file.type, status: prepared.error ? 'failed' : 'ready', error: prepared.error };
 };
 
-export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSubmit, submitRef, journeys, onCreateJourney }) => {
+export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSubmit, submitRef, journeyLookup, onRetryJourneys, onCreateJourney }) => {
   const photoRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const addFiles = (files: FileList | null, kind: ImportEvidence['kind']) => {
@@ -42,7 +44,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
           className="w-full resize-y rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/20 lg:text-ui-14"
         />
       </div>
-      <ImportJourneyPicker journeys={journeys} journeyId={draft.journeyId} busy={false} onSelect={async journeyId => { onChange(current => ({ ...current, journeyId })); return true; }} onCreate={onCreateJourney} />
+      <ImportJourneyPicker lookup={journeyLookup} journeyId={draft.journeyId} busy={false} onRetry={onRetryJourneys} onSelect={async journeyId => { onChange(current => ({ ...current, journeyId })); return true; }} onCreate={onCreateJourney} />
       <div className="flex flex-wrap gap-2">
         <input ref={photoRef} tabIndex={-1} className="sr-only" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple aria-label="Add photos" onChange={event => { addFiles(event.target.files, 'photo'); event.target.value = ''; }} />
         <button type="button" onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
 import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
-import { filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, resolveImportBlockingFields, withoutImportDerivedFields } from './importReviewDomain';
+import { compatibleImportHoldings, filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   id: 'item-1', batch_id: 'batch-1', source_id: null, vendor_group_id: 'group-1', position: 0,
@@ -77,6 +77,26 @@ describe('importBlockingMessage', () => {
 });
 
 describe('review navigation and journey helpers', () => {
+  it('ranks a proposed vendor name ahead of weaker searchable matches', () => {
+    const ranked = rankImportMatches([
+      { id: 'other', name: 'Mountain Tea Market' },
+      { id: 'chen', name: 'Chen Family Tea' },
+      { id: 'chen-coop', name: 'Chen Family Tea Cooperative' },
+    ], 'family', 'Chen Family Tea Cooperative');
+    expect(ranked.map(option => option.id)).toEqual(['chen-coop', 'chen']);
+    expect(ranked[0].matchReason).toBe('Closest existing match');
+  });
+
+  it('filters holdings to the selected identity, category, and purpose', () => {
+    expect(compatibleImportHoldings([
+      { id: 'working', name: 'Jingmai service tea', category: 'tea', compassEntryId: 'identity-1', purpose: 'working' },
+      { id: 'personal', name: 'Jingmai archive', category: 'tea', compassEntryId: 'identity-1', purpose: 'personal' },
+      { id: 'other-entry', name: 'Other tea', category: 'tea', compassEntryId: 'identity-2', purpose: 'working' },
+      { id: 'pot', name: 'Jingmai pot', category: 'teaware', compassEntryId: 'identity-1', purpose: 'working' },
+      { id: 'unknown-purpose', name: 'Unclassified Jingmai', category: 'tea', compassEntryId: 'identity-1', purpose: null },
+    ], { category: 'tea', compassEntryId: 'identity-1', purpose: 'working' }).map(option => option.id)).toEqual(['working']);
+  });
+
   it('searches sourcing runs by name, season, or year', () => {
     const journeys = [
       { id: 'spring', account_id: 'a', name: 'Yunnan sourcing', season: 'Spring', year: 2026 },

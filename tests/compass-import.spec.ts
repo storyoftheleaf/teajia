@@ -14,7 +14,7 @@ type ImportItem = {
 };
 const workerImportParsedDataKeys = new Set([
   'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
-  'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
+  'priceAmount', 'priceAmountExact', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
   'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
 ]);
@@ -110,6 +110,14 @@ async function installAnalyzedImportApi(page: Page) {
     const body = route.request().postDataJSON() as { journey_id: string | null };
     detail.batch.journey_id = body.journey_id;
     return route.fulfill({ json: detail.batch });
+  });
+  await page.route('**/api/curate/imports/batch-analyzed/groups/*', async route => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    const groupId = new URL(route.request().url()).pathname.split('/').at(-1);
+    const group = detail.groups.find(candidate => candidate.id === groupId)!;
+    const body = route.request().postDataJSON() as { resolved_vendor_customer_id: string };
+    group.resolved_vendor_customer_id = body.resolved_vendor_customer_id;
+    return route.fulfill({ json: group });
   });
   await page.route('**/api/curate/imports/batch-analyzed/items/*', async route => {
     if (route.request().method() !== 'PUT') return route.fallback();
@@ -439,7 +447,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'not-a-tea.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('Evidence storage is not configured. Your file was not saved.')).toBeVisible();
+    await expect(page.getByRole('alert').getByText('Evidence storage is not configured. Your file was not saved.')).toBeVisible();
     await expect(page.getByTestId('import-item-row')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
   });
@@ -461,7 +469,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('Analyzed')).toBeVisible();
+    await expect(page.getByText('Analyzed', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Review later' }).click();
     await page.reload();
     await expect(page.getByRole('button', { name: /invoice: 0 items, 0 reviewed, 0 remaining/ })).toBeVisible();
@@ -524,15 +532,15 @@ test.describe('Curate Import panel', () => {
     expect(ordinal.ordinal).toBe(2);
     await expect.poll(() => analysisAttempts).toBe(1);
     await expect(page.getByText('one.jpg')).toHaveCount(1);
-    await expect(page.getByText('Analyzed')).toBeVisible();
+    await expect(page.getByText('Analyzed', { exact: true })).toBeVisible();
     await expect(page.getByText('two.pdf')).toBeVisible();
-    await expect(page.getByText('Temporary evidence failure')).toBeVisible();
+    await expect(page.getByRole('alert').getByText('Temporary evidence failure')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('one.jpg')).toBeVisible();
     await expect(page.getByText('two.pdf')).toBeVisible();
-    expect([...attempts.values()].sort()).toEqual([1, 2]);
-    expect(ordinal.ordinal).toBe(3);
-    expect(analysisAttempts).toBe(2);
+    await expect.poll(() => [...attempts.values()].sort()).toEqual([1, 2]);
+    await expect.poll(() => ordinal.ordinal).toBe(3);
+    await expect.poll(() => analysisAttempts).toBe(2);
   });
 
   test('preserves separately selected files with the same filename', async ({ page }) => {
@@ -619,7 +627,8 @@ test.describe('analyzed inventory import review', () => {
     await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
     await uncertainRow.getByLabel('Pack count').fill('3');
     await uncertainRow.getByLabel('Inventory purpose').selectOption('working');
-    await uncertainRow.getByLabel('Compass tea identity').selectOption('new');
+    await uncertainRow.getByLabel('Library tea identity').click();
+    await uncertainRow.getByRole('option').filter({ hasText: 'Create new Library identity' }).click();
     await uncertainRow.getByLabel('Acquired into physical stock').selectOption('yes');
     await expect(uncertainRow.getByLabel('Sourcing run')).toHaveCount(0);
     await expect(uncertainRow.getByRole('button', { name: /^Change vendor for / })).toHaveCount(0);
@@ -646,6 +655,110 @@ test.describe('analyzed inventory import review', () => {
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     await finalAction.click();
     await expect.poll(api.finalizeCalls).toBe(1);
+  });
+
+  test('searches ranked vendor, Library identity, and compatible Inventory holding matches', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const proposedItem = api.detail.items[9];
+    proposedItem.proposed_compass_entry_id = 'identity-jingmai';
+    proposedItem.proposed_product_id = 'holding-working';
+    Object.assign(proposedItem.parsed_data, { proposedCompassEntryId: 'identity-jingmai', proposedProductId: 'holding-working', duplicateResolution: 'matched' });
+    await page.route(/\/api\/customers(?:\?|$)/, route => route.fulfill({ json: [
+      { id: 'vendor-other', name: 'Mountain Tea Market' },
+      { id: 'vendor-chen', name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna' },
+    ] }));
+    await page.route('**/api/compass/entries', route => route.fulfill({ json: { entries: [
+      { id: 'identity-jingmai', name: 'Jingmai Mountain Raw Pu’er', chinese_name: '景迈山生普', category: 'tea', year: 2026 },
+      { id: 'identity-pot', name: 'Jingmai clay pot', category: 'teaware' },
+    ] } }));
+    await page.route('**/api/products', route => route.fulfill({ json: [
+      { id: 'holding-working', given_name: 'Jingmai service holding', type: 'tea', source_compass_entry_id: 'identity-jingmai', inventory_purpose: 'working' },
+      { id: 'holding-personal', given_name: 'Jingmai personal holding', type: 'tea', source_compass_entry_id: 'identity-jingmai', inventory_purpose: 'personal' },
+    ] }));
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await dialog.getByRole('button', { name: /^Change vendor for Chen Family/ }).click();
+    const vendorSearch = dialog.getByRole('combobox', { name: /^Vendor for Chen Family/ });
+    await vendorSearch.fill('Chen');
+    await expect(dialog.getByRole('listbox', { name: /Vendor .* matches/ }).getByRole('option').first()).toContainText('Closest existing match');
+    await vendorSearch.press('ArrowDown');
+    await vendorSearch.press('Enter');
+
+    const row = dialog.getByTestId('import-item-row').nth(9);
+    await row.getByRole('button', { name: 'Edit tea' }).click();
+    await expect(row.getByText('Suggested: Jingmai Mountain Raw Pu’er')).toBeVisible();
+    await row.getByLabel('Library tea identity').click();
+    await row.getByRole('option').filter({ hasText: 'Jingmai Mountain Raw Pu’er' }).click();
+    await row.getByLabel('Inventory purpose').selectOption('working');
+    await row.getByLabel('Inventory holding').click();
+    await expect(row.getByRole('option').filter({ hasText: 'Jingmai service holding' })).toBeVisible();
+    await expect(row.getByRole('option').filter({ hasText: 'Jingmai personal holding' })).toHaveCount(0);
+  });
+
+  test('shows failed lookup retries and blocks vendor creation until reuse lookup succeeds', async ({ page }) => {
+    await installAnalyzedImportApi(page);
+    let vendorAvailable = false;
+    await page.route(/\/api\/customers(?:\?|$)/, route => {
+      if (!vendorAvailable) return route.fulfill({ status: 400, json: { error: 'Vendor lookup unavailable' } });
+      return route.fulfill({ json: [{ id: 'vendor-chen', name: 'Chen Family Tea' }] });
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await dialog.getByRole('button', { name: /^Change vendor for Chen Family/ }).click();
+    const lookupAlert = dialog.getByRole('alert').filter({ hasText: 'Vendor lookup unavailable' });
+    await expect(lookupAlert).toBeVisible();
+    await expect(dialog.getByLabel('Create new vendor')).toBeDisabled();
+    vendorAvailable = true;
+    await lookupAlert.getByRole('button', { name: 'Retry' }).click();
+    await expect(dialog.getByRole('combobox', { name: /^Vendor for Chen Family/ })).toBeEnabled({ timeout: 15_000 });
+    await expect(dialog.getByLabel('Create new vendor')).toBeEnabled();
+  });
+
+  test('distinguishes failed and empty sourcing-run lookups and retries without making a run required', async ({ page }) => {
+    await installAnalyzedImportApi(page);
+    let journeyAvailable = false;
+    await page.route('**/api/curate/journeys', route => {
+      if (!journeyAvailable) return route.fulfill({ status: 400, json: { error: 'Sourcing run lookup unavailable' } });
+      return route.fulfill({ json: { journeys: [] } });
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const lookupAlert = dialog.getByRole('alert').filter({ hasText: 'Sourcing run lookup unavailable' });
+    await expect(lookupAlert).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Create new sourcing run' })).toBeDisabled();
+    journeyAvailable = true;
+    await lookupAlert.getByRole('button', { name: 'Retry' }).click();
+    await expect(dialog.getByText('No existing sourcing runs.')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Create new sourcing run' })).toBeEnabled();
+    await expect(dialog.getByLabel('Sourcing run', { exact: true })).toHaveValue('');
+  });
+
+  test('disables every conflicting review control while an item save is active', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    let releaseSave!: () => void;
+    const saveGate = new Promise<void>(resolve => { releaseSave = resolve; });
+    await page.route('**/api/curate/imports/batch-analyzed/items/analyzed-item-1', async route => {
+      if (route.request().method() !== 'PUT') return route.fallback();
+      await saveGate;
+      const updates = route.request().postDataJSON() as Record<string, unknown>;
+      Object.assign(api.detail.items[0], updates);
+      return route.fulfill({ json: api.detail.items[0] });
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const first = dialog.getByTestId('import-item-row').first();
+    await first.getByRole('button', { name: 'Edit tea' }).click();
+    await first.getByRole('button', { name: 'Save tea' }).click();
+    await expect(first.getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    await expect(dialog.getByTestId('import-item-row').nth(1).getByRole('button', { name: 'Edit tea' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: /^Change vendor for / }).first()).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ })).toBeDisabled();
+    releaseSave();
+    await expect(first.getByRole('button', { name: 'Edit tea' })).toBeEnabled();
   });
 
   test('keeps every visible import input at 16px on mobile', async ({ page }, testInfo) => {

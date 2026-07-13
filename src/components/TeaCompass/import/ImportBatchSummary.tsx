@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CurateJourney } from '../types';
+import type { LookupState } from '../../../lib/api';
 import type { ImportReviewModel } from './importReviewDomain';
 import { ImportJourneyPicker } from './ImportJourneyPicker';
 
@@ -7,8 +8,9 @@ interface Props {
   model: ImportReviewModel;
   overview?: string | null;
   journeyId: string | null;
-  journeys: CurateJourney[];
+  journeyLookup: LookupState<CurateJourney>;
   busy: boolean;
+  onRetryJourneys: () => void;
   onJourneyChange: (journeyId: string | null) => Promise<boolean>;
   onCreateJourney: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
   itemNoun: string;
@@ -21,7 +23,7 @@ const quantityLabel = (grams: number, units: number) => {
   return parts.join(' + ') || 'Quantity needs review';
 };
 
-export const ImportBatchSummary: React.FC<Props> = ({ model, overview, journeyId, journeys, busy, onJourneyChange, onCreateJourney, itemNoun }) => (
+export const ImportBatchSummary: React.FC<Props> = ({ model, overview, journeyId, journeyLookup, busy, onRetryJourneys, onJourneyChange, onCreateJourney, itemNoun }) => (
   <section aria-labelledby="import-summary-heading" className="space-y-3 border-b border-tea-border pb-4">
     <div className="flex flex-wrap items-baseline justify-between gap-2">
       <h3 id="import-summary-heading" className="text-ui-14 font-medium text-tea-text">{model.readyCount + model.needsReviewCount} {itemNoun} · {model.groups.length} {model.groups.length === 1 ? 'vendor' : 'vendors'}</h3>
@@ -32,6 +34,6 @@ export const ImportBatchSummary: React.FC<Props> = ({ model, overview, journeyId
       <span>{quantityLabel(model.totalQuantityGrams, model.totalUnits)}</span>
       {model.currencyTotals.map(total => <span key={total.currency}>{total.currency} {total.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>)}
     </div>
-    <ImportJourneyPicker journeys={journeys} journeyId={journeyId} busy={busy} onSelect={onJourneyChange} onCreate={onCreateJourney} />
+    <ImportJourneyPicker lookup={journeyLookup} journeyId={journeyId} busy={busy} onRetry={onRetryJourneys} onSelect={onJourneyChange} onCreate={onCreateJourney} />
   </section>
 );

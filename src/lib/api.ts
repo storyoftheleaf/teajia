@@ -9,6 +9,8 @@ export interface CompassSyncResult {
 }
 
 export type CurateImportSourceKind = 'wechat' | 'invoice' | 'vendor_list' | 'photo' | 'file' | 'paste';
+export type LookupStatus = 'loading' | 'ready' | 'empty' | 'error';
+export interface LookupState<T> { status: LookupStatus; options: T[]; error: string | null }
 export interface CurateImportSource {
   id: string; batch_id: string; kind: CurateImportSourceKind;
   pasted_text: string | null; r2_object_key: string | null; metadata: Record<string, unknown>;
