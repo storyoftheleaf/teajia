@@ -93,6 +93,15 @@ class ImportStatement {
       }
       if (table === this.db.sources && row.client_evidence_id != null && [...table.values()].some(existing => existing.account_id === row.account_id && existing.batch_id === row.batch_id && existing.client_evidence_id === row.client_evidence_id)) throw new Error('UNIQUE constraint failed');
       table.set(String(row.id), row);
+      if (table === this.db.customers && this.db.terminalizeAfterVendorInsert) {
+        this.db.terminalizeAfterVendorInsert = false;
+        const batchId = String(this.values.at(-2));
+        if (this.db.inBatch) this.db.pendingVendorTerminalization = batchId;
+        else {
+          const batch = this.db.batches.get(batchId);
+          if (batch) batch.finalize_idempotency_key = 'finish-key';
+        }
+      }
       return { success: true, meta: { changes: 1 } };
     }
     if (table && sql.startsWith('update')) {
@@ -111,6 +120,10 @@ class ImportStatement {
       const accountId = verifiesCompassOwnership ? this.values[4] : guardedAnalysisBatch ? this.values.at(-1) : this.values[columns.length + 1];
       const row = table.get(id);
       if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+      if (table === this.db.groups && sql.includes('exists (select 1 from customers')) {
+        const vendor = this.db.customers.get(String(this.values[3]));
+        if (!vendor || vendor.account_id !== this.values[4] || vendor.name !== this.values[5]) return { success: true, meta: { changes: 0 } };
+      }
       if (sql.includes("review_state not in ('completed', 'abandoned')")) {
         const guardedBatch = table === this.db.batches ? row : this.db.batches.get(String(this.values.at(-2)));
         if (!guardedBatch || ['completed', 'abandoned'].includes(String(guardedBatch.review_state)) || (sql.includes('finalize_idempotency_key is null') && guardedBatch.finalize_idempotency_key != null)) return { success: true, meta: { changes: 0 } };
@@ -145,6 +158,9 @@ class ImportDb {
   reserveNextGuardedWrite = false;
   vendorWinnerBeforeInsert: Row | null = null;
   evidenceWinnerBeforeGuard = false;
+  terminalizeAfterVendorInsert = false;
+  inBatch = false;
+  pendingVendorTerminalization: string | null = null;
   batches = new Map<string, Row>();
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
@@ -170,11 +186,20 @@ class ImportDb {
   async batch(statements: ImportStatement[]) {
     const snapshots = [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
     try {
+      this.inBatch = true;
       const results = [];
       for (const statement of statements) results.push(await statement.run());
+      this.inBatch = false;
+      if (this.pendingVendorTerminalization) {
+        const batch = this.batches.get(this.pendingVendorTerminalization);
+        if (batch) batch.finalize_idempotency_key = 'finish-key';
+        this.pendingVendorTerminalization = null;
+      }
       return results;
     }
     catch (error) {
+      this.inBatch = false;
+      this.pendingVendorTerminalization = null;
       [this.batches, this.sources, this.items, this.compass, this.products, this.groups, this.customers, this.journeys, this.visits] = snapshots;
       throw error;
     }
@@ -431,6 +456,38 @@ describe('Curate import provenance API', () => {
     expect(loser.status).toBe(409);
     expect(db.customers.get('curate-vendor-group-race')?.name).toBe('First Farm');
     expect(db.groups.get('group-race')?.resolved_vendor_customer_id).toBeNull();
+  });
+
+  it('converges on a same-name deterministic vendor winner under insert contention', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Same vendor race' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-same', { id: 'group-same', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'same', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.vendorWinnerBeforeInsert = { id: 'curate-vendor-group-same', account_id: 'account-a', name: 'Same Farm', tags: '["vendor"]' };
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-same/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Same Farm' }) });
+
+    expect(result.status).toBe(201);
+    expect(db.groups.get('group-same')?.resolved_vendor_customer_id).toBe('curate-vendor-group-same');
+    expect(db.customers).toHaveLength(1);
+  });
+
+  it('never leaves an orphan vendor when finalization is requested after insert but before assignment', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendor terminal race' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-terminal', { id: 'group-terminal', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'terminal', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.terminalizeAfterVendorInsert = true;
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-terminal/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Atomic Farm' }) });
+
+    const vendor = db.customers.get('curate-vendor-group-terminal');
+    const linked = db.groups.get('group-terminal')?.resolved_vendor_customer_id === vendor?.id;
+    if (result.status === 409) expect(vendor).toBeUndefined();
+    else {
+      expect(result.status).toBe(201);
+      expect(linked).toBe(true);
+    }
   });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();
