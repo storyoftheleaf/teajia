@@ -29,6 +29,7 @@ const BLOCKING_LABELS: Record<string, string> = {
   pack_weight: 'weight or unit', weight_unit: 'weight or unit', total_quantity_grams: 'weight or unit', total_units: 'quantity',
   price_amount: 'price', line_cost: 'price', price_basis: 'price interpretation', currency: 'currency',
   acquired: 'physical stock status', acquisition_state: 'physical stock status',
+  inventoryPurpose: 'Inventory purpose', inventory_purpose: 'Inventory purpose',
   duplicateIdentity: 'tea identity', compassEntryId: 'tea identity', productId: 'Inventory holding',
   acquisitionState: 'physical stock status', physicalStock: 'physical stock status', acquiredIntoStock: 'physical stock status',
 };
@@ -55,17 +56,75 @@ export const resolveImportBlockingFields = (fields: string[], values: Record<str
   if (key === 'priceamount') return !(typeof values.priceAmount === 'number' && values.priceAmount >= 0);
   if (key === 'pricebasis') return !values.priceBasis || values.priceBasis === 'unknown';
   if (key === 'currency') return !values.currency;
-  if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return !values.compassEntryId;
-  if (['productid', 'proposedproductid', 'inventoryholding'].includes(key)) return !values.productId;
-  if (['acquisitionstate', 'physicalstock', 'acquiredintostock', 'acquired'].includes(key)) return values.acquiredIntoStock !== true;
+  if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return values.duplicateResolution !== 'new' && !values.proposedCompassEntryId;
+  if (['productid', 'proposedproductid', 'inventoryholding'].includes(key)) return values.duplicateResolution !== 'new' && !values.proposedProductId;
+  if (['acquisitionstate', 'physicalstock', 'acquiredintostock', 'acquired'].includes(key)) return values.acquired !== true;
   if (['purpose', 'inventorypurpose'].includes(key)) return !values.inventoryPurpose;
   return true;
 });
 
-export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => {
-  const { totalQuantityGrams: _grams, totalUnits: _units, lineCost: _lineCost, unitCost: _unitCost, blockingFields: _blocking, ...editable } = parsed;
-  return editable;
+const WORKER_IMPORT_FIELDS = [
+  'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
+  'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
+  'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
+  'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
+] as const;
+
+export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => Object.fromEntries(
+  WORKER_IMPORT_FIELDS.filter(field => field in parsed).map(field => [field, parsed[field]]),
+);
+
+export interface ImportCorrectionDraft {
+  englishName: string | null; originalName: string | null; type: string | null; classification: string | null;
+  year: number | null; form: string | null; originRegion: string | null; description: string | null;
+  inventoryPurpose: string | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
+  packWeight: number | null; weightUnit: string | null; packCount: number | null; priceAmount: number | null;
+  currency: string | null; priceBasis: string;
+}
+
+export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>, draft: ImportCorrectionDraft) => {
+  const createsIdentity = draft.compassSelection === 'new';
+  const proposedCompassEntryId = createsIdentity ? null : draft.compassSelection;
+  const proposedProductId = createsIdentity || draft.productSelection === 'new' ? null : draft.productSelection;
+  return {
+    ...withoutImportDerivedFields(parsed),
+    englishName: draft.englishName, originalName: draft.originalName, type: draft.type,
+    classification: draft.classification, year: draft.year, form: draft.form, originRegion: draft.originRegion,
+    description: draft.description, inventoryPurpose: draft.inventoryPurpose,
+    proposedCompassEntryId, proposedProductId, acquired: draft.acquired,
+    duplicateResolution: createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved',
+    packWeight: draft.packWeight, weightUnit: draft.weightUnit, packCount: draft.packCount,
+    priceAmount: draft.priceAmount, currency: draft.currency, priceBasis: draft.priceBasis,
+  };
 };
+
+export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportDetail => ({
+  ...detail,
+  groups: (detail.groups || []).map(group => ({ ...group, confidence: group.confidence ?? group.vendor_confidence ?? null })),
+  items: detail.items.map(item => {
+    const parsed = item.parsed_data || {};
+    return {
+      ...item,
+      english_name: (parsed.englishName as string | null | undefined) ?? item.english_name,
+      original_name: (parsed.originalName as string | null | undefined) ?? item.original_name,
+      pack_weight: (parsed.packWeight as number | null | undefined) ?? item.pack_weight,
+      weight_unit: (parsed.weightUnit as CurateImportItem['weight_unit']) ?? item.weight_unit,
+      pack_count: (parsed.packCount as number | null | undefined) ?? item.pack_count,
+      price_amount: (parsed.priceAmount as number | null | undefined) ?? item.price_amount,
+      currency: (parsed.currency as string | null | undefined) ?? item.currency,
+      price_basis: (parsed.priceBasis as CurateImportItem['price_basis']) ?? item.price_basis,
+      total_quantity_grams: (parsed.totalQuantityGrams as number | null | undefined) ?? item.total_quantity_grams,
+      total_units: (parsed.totalUnits as number | null | undefined) ?? item.total_units,
+      line_cost: (parsed.lineCost as number | null | undefined) ?? item.line_cost,
+      unit_cost: (parsed.unitCost as number | null | undefined) ?? item.unit_cost,
+      blocking_fields: parsed.blockingFields ? (parsed.blockingFields as string[]).map(field => field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)) : item.blocking_fields ?? [],
+      proposed_compass_entry_id: (parsed.proposedCompassEntryId as string | null | undefined) ?? item.proposed_compass_entry_id,
+      proposed_product_id: (parsed.proposedProductId as string | null | undefined) ?? item.proposed_product_id,
+      acquired: (parsed.acquired as boolean | null | undefined) ?? item.acquired,
+      duplicate_resolution: (parsed.duplicateResolution as CurateImportItem['duplicate_resolution']) ?? item.duplicate_resolution,
+    };
+  }),
+});
 
 export const importItemNoun = (items: Array<Pick<CurateImportItem, 'category'>>, count = items.length) => {
   if (items.every(item => item.category === 'tea')) return count === 1 ? 'tea' : 'teas';
@@ -80,7 +139,9 @@ const joinLabels = (labels: string[]) => {
 };
 
 export const importBlockingMessage = (item: CurateImportItem): string | null => {
-  const labels = Array.from(new Set((item.blocking_fields || []).map(field => BLOCKING_LABELS[field] || field.replace(/_/g, ' '))));
+  const purpose = item.parsed_data?.inventoryPurpose;
+  const fields = [...(item.blocking_fields || []), ...(['working', 'sample', 'personal'].includes(String(purpose)) ? [] : ['inventoryPurpose'])];
+  const labels = Array.from(new Set(fields.map(field => BLOCKING_LABELS[field] || field.replace(/_/g, ' '))));
   return labels.length ? `Confirm ${joinLabels(labels)}.` : null;
 };
 
@@ -98,7 +159,8 @@ export const buildImportReviewModel = (detail: CurateImportDetail): ImportReview
       .filter(item => group.id === '__ungrouped' ? !item.vendor_group_id || !detail.groups?.some(candidate => candidate.id === item.vendor_group_id) : item.vendor_group_id === group.id)
       .sort((a, b) => a.position - b.position)
       .map(item => {
-        const blockingFields = item.blocking_fields || [];
+        const purpose = item.parsed_data?.inventoryPurpose;
+        const blockingFields = [...(item.blocking_fields || []), ...(['working', 'sample', 'personal'].includes(String(purpose)) ? [] : ['inventoryPurpose'])];
         return { item, blockingFields, blockingMessage: importBlockingMessage(item), ready: blockingFields.length === 0 };
       });
     return { ...group, items: rows, vendorResolved: Boolean(group.resolved_vendor_customer_id) };

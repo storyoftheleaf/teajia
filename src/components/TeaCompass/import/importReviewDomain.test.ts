@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
-import { buildImportReviewModel, importBlockingMessage } from './importReviewDomain';
+import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, normalizeImportDetail } from './importReviewDomain';
 import { filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, resolveImportBlockingFields, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   id: 'item-1', batch_id: 'batch-1', source_id: null, vendor_group_id: 'group-1', position: 0,
   category: 'tea', name: 'Yunnan Raw Pu’er', english_name: 'Yunnan Raw Pu’er', original_name: '云南古树生普',
-  raw_text: '500g ×2 ¥380', parsed_data: {}, confidence: 0.94, uncertainty: {}, blocking_fields: [],
+  raw_text: '500g ×2 ¥380', parsed_data: { inventoryPurpose: 'working' }, confidence: 0.94, uncertainty: {}, blocking_fields: [],
   pack_weight: 500, weight_unit: 'g', pack_count: 2, price_amount: 380, currency: 'CNY',
   price_basis: 'per_pack', total_quantity_grams: 1000, total_units: null, line_cost: 760, unit_cost: 0.76,
   review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: 'reserved-1',
@@ -51,6 +51,13 @@ describe('buildImportReviewModel', () => {
     });
     expect(buildImportReviewModel(resolved).canFinalize).toBe(true);
   });
+
+  it('requires inventoryPurpose to exactly match a finalizer-supported value', () => {
+    const missing = detail({ items: [item({ parsed_data: {} })], groups: [detail().groups[1]] });
+    expect(buildImportReviewModel(missing)).toMatchObject({ readyCount: 0, needsReviewCount: 1, canFinalize: false });
+    expect(buildImportReviewModel(detail({ items: [item({ parsed_data: { inventoryPurpose: 'service' } })], groups: [detail().groups[1]] })).canFinalize).toBe(false);
+    expect(buildImportReviewModel(detail({ items: [item({ parsed_data: { inventoryPurpose: 'sample' } })], groups: [detail().groups[1]] })).canFinalize).toBe(true);
+  });
 });
 
 describe('importBlockingMessage', () => {
@@ -86,13 +93,37 @@ describe('review navigation and journey helpers', () => {
 
   it('clears only blockers explicitly resolved by edited values', () => {
     expect(resolveImportBlockingFields(['packCount', 'priceBasis', 'duplicateIdentity', 'productId', 'acquisitionState', 'year'], {
-      packCount: 2, priceBasis: 'per_pack', compassEntryId: 'new', productId: 'new', acquiredIntoStock: true,
+      packCount: 2, priceBasis: 'per_pack', duplicateResolution: 'new', proposedCompassEntryId: null, proposedProductId: null, acquired: true,
     })).toEqual(['year']);
   });
 
   it('omits derived arithmetic and blockers from correction payloads', () => {
-    expect(withoutImportDerivedFields({ englishName: 'Tea', totalQuantityGrams: 1000, lineCost: 80, unitCost: 0.08, blockingFields: ['priceBasis'] }))
+    expect(withoutImportDerivedFields({ englishName: 'Tea', unknownMetadata: true, totalQuantityGrams: 1000, lineCost: 80, unitCost: 0.08, blockingFields: ['priceBasis'] }))
       .toEqual({ englishName: 'Tea' });
+  });
+
+  it('builds correction payloads with only canonical Worker identity and stock keys', () => {
+    const payload = buildImportCorrectionParsedData({ sourceItemId: 'source-1', teaType: 'legacy', compassEntryId: 'legacy', productId: 'legacy', acquiredIntoStock: true }, {
+      englishName: 'Tea', originalName: null, type: 'raw puer', classification: null, year: 2024, form: 'cake',
+      originRegion: 'Yunnan', description: null, inventoryPurpose: 'working', compassSelection: 'compass-1',
+      productSelection: 'product-1', acquired: true, packWeight: 357, weightUnit: 'g', packCount: 1,
+      priceAmount: 80, currency: 'CNY', priceBasis: 'per_pack',
+    });
+    expect(payload).toMatchObject({ type: 'raw puer', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1', acquired: true, duplicateResolution: 'matched' });
+    expect(payload).not.toHaveProperty('teaType');
+    expect(payload).not.toHaveProperty('compassEntryId');
+    expect(payload).not.toHaveProperty('productId');
+    expect(payload).not.toHaveProperty('acquiredIntoStock');
+  });
+
+  it('promotes Worker identity and stock fields into normalized editor aliases', () => {
+    const normalized = normalizeImportDetail(detail({ items: [item({ parsed_data: {
+      inventoryPurpose: 'personal', proposedCompassEntryId: 'compass-2', proposedProductId: 'product-2',
+      acquired: true, duplicateResolution: 'matched',
+    } })] }));
+    expect(normalized.items[0]).toMatchObject({
+      proposed_compass_entry_id: 'compass-2', proposed_product_id: 'product-2', acquired: true, duplicate_resolution: 'matched',
+    });
   });
 
   it('uses category-aware Inventory action nouns', () => {

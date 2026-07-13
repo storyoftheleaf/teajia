@@ -26,6 +26,7 @@ export interface CurateImportItem {
   total_quantity_grams?: number | null; total_units?: number | null; line_cost?: number | null; unit_cost?: number | null;
   blocking_fields?: string[]; manually_corrected_fields?: string[];
   proposed_compass_entry_id?: string | null; proposed_product_id?: string | null;
+  acquired?: boolean | null; duplicate_resolution?: 'new' | 'matched' | 'unresolved' | null;
 }
 export interface CurateImportBatch {
   id: string; title: string; review_state: 'pending' | 'reviewing' | 'completed' | 'abandoned';
@@ -2092,7 +2093,7 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/groups/${groupId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
     createVendorForGroup: (batchId: string, groupId: string, vendor: { name: string; contact?: string | null }): Promise<CurateImportVendorGroup> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/groups/${groupId}/vendor`, { method: 'POST', body: JSON.stringify(vendor), retryTimeouts: true }),
-    setJourney: (id: string, journeyId: string | null): Promise<CurateImportDetail> =>
+    setJourney: (id: string, journeyId: string | null): Promise<CurateImportBatch> =>
       authedFetch(`${API_URL}/api/curate/imports/${id}/journey`, { method: 'PUT', body: JSON.stringify({ journey_id: journeyId }), retryTimeouts: true }),
     finalize: (id: string, idempotencyKey: string): Promise<CurateImportFinalizeResult> =>
       authedFetch(`${API_URL}/api/curate/imports/${id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: idempotencyKey }), retryTimeouts: true }),

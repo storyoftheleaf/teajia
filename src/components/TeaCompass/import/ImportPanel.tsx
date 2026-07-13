@@ -8,6 +8,7 @@ import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { extractImportEvidence } from './importEvidence';
 import type { CurateJourney } from '../types';
 import type { ImportVendorOption } from './ImportVendorGroup';
+import { normalizeImportDetail } from './importReviewDomain';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -29,29 +30,6 @@ const parseDraftItems = (draft: ImportDraft) => {
   });
 };
 
-const normalizedDetail = (detail: CurateImportDetail): CurateImportDetail => ({
-  ...detail,
-  groups: (detail.groups || []).map(group => ({ ...group, confidence: group.confidence ?? group.vendor_confidence ?? null })),
-  items: detail.items.map(item => {
-    const parsed = item.parsed_data || {};
-    return {
-      ...item,
-      english_name: (parsed.englishName as string | null | undefined) ?? item.english_name,
-      original_name: (parsed.originalName as string | null | undefined) ?? item.original_name,
-      pack_weight: (parsed.packWeight as number | null | undefined) ?? item.pack_weight,
-      weight_unit: (parsed.weightUnit as CurateImportItem['weight_unit']) ?? item.weight_unit,
-      pack_count: (parsed.packCount as number | null | undefined) ?? item.pack_count,
-      price_amount: (parsed.priceAmount as number | null | undefined) ?? item.price_amount,
-      currency: (parsed.currency as string | null | undefined) ?? item.currency,
-      price_basis: (parsed.priceBasis as CurateImportItem['price_basis']) ?? item.price_basis,
-      total_quantity_grams: (parsed.totalQuantityGrams as number | null | undefined) ?? item.total_quantity_grams,
-      total_units: (parsed.totalUnits as number | null | undefined) ?? item.total_units,
-      line_cost: (parsed.lineCost as number | null | undefined) ?? item.line_cost,
-      unit_cost: (parsed.unitCost as number | null | undefined) ?? item.unit_cost,
-      blocking_fields: parsed.blockingFields ? (parsed.blockingFields as string[]).map(field => field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)) : item.blocking_fields ?? [],
-    };
-  }),
-});
 const errorMessage = (error: unknown, fallback: string) => {
   if (error instanceof ApiError) {
     const issues = error.data?.issues || error.data?.errors || error.data?.blocking;
@@ -113,7 +91,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           title: draft.evidence[0]?.file.name || 'Imported list', source_kind: draft.text.trim() ? 'paste' : evidenceKind,
           pasted_text: reviewText || undefined, items: parseDraftItems({ ...draft, text: reviewText }),
         });
-        detail = normalizedDetail(detail);
+        detail = normalizeImportDetail(detail);
         setState(current => ({ ...current, detail }));
       }
       const savedEvidenceIds = new Set(detail.sources.map(source => String(source.metadata?.client_evidence_id || '')).filter(Boolean));
@@ -125,7 +103,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
         setState(current => ({ ...current, detail }));
         onDetailChange(detail);
       }
-      detail = normalizedDetail(await api.curateImports.analyze(detail.batch.id));
+      detail = normalizeImportDetail(await api.curateImports.analyze(detail.batch.id));
       setState({ phase: 'review', detail, error: null });
       onDetailChange(detail);
     } catch (error) {
@@ -140,7 +118,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     });
   };
   const refreshDetail = async (batchId: string) => {
-    const detail = normalizedDetail(await api.curateImports.get(batchId));
+    const detail = normalizeImportDetail(await api.curateImports.get(batchId));
     setState(current => ({ ...current, detail })); onDetailChange(detail);
   };
   const updateItem = async (item: CurateImportItem, updates: Partial<CurateImportItem>) => {
@@ -154,7 +132,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const setJourney = async (journeyId: string | null): Promise<boolean> => {
     if (!state.detail || busyId) return false;
     setBusyId('__journey');
-    const action = async () => { const detail = normalizedDetail(await api.curateImports.setJourney(state.detail!.batch.id, journeyId)); setState(current => ({ ...current, detail })); onDetailChange(detail); };
+    const action = async () => { const batchId = state.detail!.batch.id; await api.curateImports.setJourney(batchId, journeyId); await refreshDetail(batchId); };
     try { setOperationError(null); await action(); return true; }
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not change sourcing run')); return false; }
     finally { setBusyId(null); }
@@ -168,8 +146,9 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
       setJourneys(current => current.some(candidate => candidate.id === journey.id) ? current : [...current, journey]);
       setDraft(current => ({ ...current, journeyId: journey.id }));
       if (state.detail) {
-        const detail = normalizedDetail(await api.curateImports.setJourney(state.detail.batch.id, journey.id));
-        setState(current => ({ ...current, detail })); onDetailChange(detail);
+        const batchId = state.detail.batch.id;
+        await api.curateImports.setJourney(batchId, journey.id);
+        await refreshDetail(batchId);
       }
     };
     try { setOperationError(null); await action(); return true; }
@@ -195,7 +174,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const retryAnalysis = async () => {
     if (!state.detail || busyId) return;
     setBusyId('__analysis');
-    const action = async () => { const detail = normalizedDetail(await api.curateImports.analyze(state.detail!.batch.id)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
+    const action = async () => { const detail = normalizeImportDetail(await api.curateImports.analyze(state.detail!.batch.id)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
     try { setOperationError(null); await action(); }
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not analyze saved evidence')); }
     finally { setBusyId(null); }
@@ -232,7 +211,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           {state.phase === 'parsing' && <div role="status" className="flex min-h-48 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your evidence…</div>}
           {state.phase === 'error' && <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p><button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button></div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizedDetail(state.detail)} journeys={journeys} vendorOptions={vendorOptions} busyId={busyId} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
+          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizeImportDetail(state.detail)} journeys={journeys} vendorOptions={vendorOptions} busyId={busyId} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
         </div>
       </div>
     </div>
