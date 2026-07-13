@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-12
 
-**Status:** Releases 1 and 2 implemented and locally verified; Release 3 pending
+**Status:** Releases 1 and 2 locally complete and verified; Release 3 publishing/origin/contact/service-worker work locally verified, owned-media completion blocked; overall program not complete
 
 **Program owner:** Teajia
 
@@ -103,6 +103,14 @@ Known non-blocking issue: after navigating between events, an image upload that 
 - Do not merge the three data models; they represent tasting memory, affinity, and ownership respectively.
 
 ## Release 3 — Reach and publishing
+
+**Implementation checkpoint (2026-07-13):** The contributor publishing workflow, same-origin browser API boundary, configured contact fallback, and service-worker policy are implemented and locally verified. Contributor administration is owner-scoped and account-safe; article authors and pull quotes use contributor IDs with legacy-author fallback; public bylines and profile pull quotes render through deterministic synthetic fixtures. The fixture journey contains no Barry or other real editorial content. No duplicate contributor migration was added: migration `059_contributors.sql` remains the canonical contributor/article-linkage schema, while Release 2's actual additive migrations remain `113_tasting_note_curation.sql` and `114_event_article_source.sql`.
+
+Fresh Release 3 evidence: lint, color lint, and production build passed; the Worker suite passed 336 tests; the dependency scanner passed 7 tests; focused units passed 14 tests; and the Release 3 browser matrix passed 34 tests across Desktop and Mobile Chrome. The source/public/functions audit reports 0 browser API-origin violations, 0 Google Fonts violations, and 166 blocked-media source references. The broader audit reports 242 media findings because it also counts 76 executable built-output duplicates.
+
+**Blocked editorial boundary:** owned-media Task 4 and the corresponding media-host CSP tightening are not complete. The 166 source editorial references affect exactly `/about`, `/read`, `/learn`, `/shop`, `/collection`, and `/advise`, plus legacy content. Approved owned replacements do not yet exist, so the scanner remains strict and CSP intentionally retains the stock-media hosts still required by those references. This is a real release/program blocker, not a waived warning.
+
+Release 1's deployed Resend OTP receipt, real mainland-China network validation, Barry's Adrian-supplied or approved profile/article voice, and the real operator/inquiry gates remain pending. Therefore Release 3 and the overall program are not complete.
 
 ### 1. China reachability
 

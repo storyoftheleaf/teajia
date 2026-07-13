@@ -8,6 +8,12 @@
 
 **Tech Stack:** React 19, TypeScript, React Query, Vite 6/VitePWA, Tailwind v3 design tokens, Cloudflare Pages Functions, Cloudflare Workers, D1, Vitest, Playwright.
 
+**Implementation handoff (2026-07-13):** Publishing/contributor administration, same-origin browser API configuration, contact fallback, and service-worker behavior are implemented and locally verified. Relevant commits include `661eb767` (dependency/media gate), `22ee4fff` (same-origin API and contact handoffs), `de096cd9` (China-safe cache/contact policy), `c9453e3e`, `6b7a7b1d`, `d954db66`, `fa3d0e19`, and `279d0581` (contributor ownership, atomic host mirroring, UI, and publish-safe options), `cb8c9f2a` (article contributor linkage and public rendering), and `f9a056b5` (fully intercepted synthetic publishing journey). Migration `059_contributors.sql` was reused; no duplicate Release 3 migration was created. The integrated Release 2 migrations are `113` and `114`, not the earlier draft numbers.
+
+Verification evidence: lint, color lint, and production build passed; Worker 336; scanner 7; focused units 14; and Release 3 browser coverage 34 across Desktop and Mobile Chrome. The synthetic journey contains no Barry, Rasmussen, or real-editorial marker and writes no persistent production row. The source/public/functions audit is 0 browser API origins, 0 Google Fonts, and 166 media references. The broader 242-item media audit includes those 166 source references plus 76 executable `dist` duplicates.
+
+**Blocked, not complete:** Task 4 owned-media replacement and the dependent media CSP tightening cannot finish until approved owned assets replace 166 editorial source references. The affected live routes are exactly `/about`, `/read`, `/learn`, `/shop`, `/collection`, and `/advise`, plus legacy content. CSP intentionally retains the currently required stock-media hosts; removing them now would break those surfaces. Do not mark Release 3 or the program complete. Deployed Resend OTP receipt, mainland-network testing, real Barry content, and operator/inquiry gates remain pending. Release 2's non-blocking route-switch edge also remains: an image upload finishing after event navigation can briefly place its URL in the next event's in-memory gallery until save, without automatic persistence.
+
 ---
 
 ## File map and sequencing
