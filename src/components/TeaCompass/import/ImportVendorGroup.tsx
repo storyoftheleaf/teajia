@@ -28,6 +28,8 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
   const vendorName = group.resolved_vendor_name || vendorLookup.options.find(vendor => vendor.id === group.resolved_vendor_customer_id)?.name || group.proposed_vendor_name || 'Choose vendor';
   const groupNoun = group.items.every(row => row.item.category === 'tea') ? (group.items.length === 1 ? 'tea' : 'teas') : group.items.every(row => row.item.category === 'teaware') ? (group.items.length === 1 ? 'teaware item' : 'teaware items') : (group.items.length === 1 ? 'item' : 'items');
   const partition = partitionImportItems(group.items.map(row => ({ row, item: { blocking_fields: row.blockingFields } })));
+  const needsReviewHeadingId = `vendor-${group.id}-needs-review-heading`;
+  const readyHeadingId = `vendor-${group.id}-ready-heading`;
   const renderRows = (rows: typeof partition.needsReview) => rows.map(({ row }) => <ImportItemRow key={row.item.id} item={row.item} busy={Boolean(busyId)} identityLookup={identityLookup} holdingLookup={holdingLookup} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdate={updates => onUpdateItem(row.item, updates)} />);
   return (
     <section data-testid="import-vendor-group" aria-labelledby={`vendor-${group.id}`} className="relative space-y-4 border-b border-tea-border pb-6">
@@ -49,8 +51,8 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
         </div>
       )}
       <div className="space-y-4">
-        {partition.needsReview.length > 0 && <div><p className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Needs review</p><div className="divide-y divide-tea-border">{renderRows(partition.needsReview)}</div></div>}
-        {partition.ready.length > 0 && <div><p className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Ready</p><div className="divide-y divide-tea-border">{renderRows(partition.ready)}</div></div>}
+        {partition.needsReview.length > 0 && <section aria-labelledby={needsReviewHeadingId}><h5 id={needsReviewHeadingId} className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Needs review</h5><div className="divide-y divide-tea-border">{renderRows(partition.needsReview)}</div></section>}
+        {partition.ready.length > 0 && <section aria-labelledby={readyHeadingId}><h5 id={readyHeadingId} className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Ready</h5><div className="divide-y divide-tea-border">{renderRows(partition.ready)}</div></section>}
       </div>
     </section>
   );

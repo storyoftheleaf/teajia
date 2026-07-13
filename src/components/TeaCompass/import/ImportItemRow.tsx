@@ -58,6 +58,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
   const productBlocked = blockerKeys.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
   const [draft, setDraft] = useState(() => draftFromItem(item, identityBlocked, productBlocked));
   const label = item.english_name || item.name || item.raw_text || `Item ${item.position + 1}`;
+  const headingId = `import-item-${item.id}-heading`;
   const identityOptions = useMemo(() => identityLookup.options.filter(option => option.category === item.category), [identityLookup.options, item.category]);
   const identityState = useMemo<LookupState<ImportIdentityOption>>(() => ({ ...identityLookup, options: identityOptions, status: identityLookup.status === 'ready' && identityOptions.length === 0 ? 'empty' : identityLookup.status }), [identityLookup, identityOptions]);
   const selectedIdentityId = draft.compass_entry_id && draft.compass_entry_id !== 'new' ? draft.compass_entry_id : null;
@@ -156,11 +157,11 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
     <label className="block text-ui-11 text-tea-text-sec">Original or Chinese name<input value={draft.original_name} onChange={event => set('original_name', event.target.value)} className={fieldClass} /></label>
   </>;
   return (
-    <article data-testid="import-item-row" data-import-item-id={item.id} data-blocked={blocking ? 'true' : 'false'} tabIndex={-1} className="scroll-mt-24 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
+    <article data-testid="import-item-row" data-import-item-id={item.id} data-blocked={blocking ? 'true' : 'false'} aria-labelledby={headingId} tabIndex={-1} className="scroll-mt-24 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
       <div className="flex min-w-0 items-start gap-2">
         <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${blocking ? 'text-tea-gold' : 'bg-tea-accent-sub text-tea-gold'}`} aria-label={blocking ? 'Needs review' : 'Ready'}>{blocking ? <AlertCircle size={16} /> : <Check size={13} />}</span>
         <div className="min-w-0 flex-1">
-          <p className="break-words font-display text-ui-20 leading-snug text-tea-text">{label}</p>
+          <h6 id={headingId} className="break-words font-display text-ui-20 leading-snug text-tea-text">{label}</h6>
           {item.original_name && <p className="break-words font-chinese text-ui-12 text-tea-text-sec">{item.original_name}</p>}
           <p className="mt-0.5 break-words font-mono text-ui-10 text-tea-text-dim">{packEquation(item)}{item.total_quantity_grams ? ` · ${item.total_quantity_grams}g total` : ''}{item.line_cost != null ? ` · ${item.currency || ''} ${item.line_cost}` : ''}</p>
           {blocking && <p role="alert" className="mt-1 text-ui-11 text-tea-gold">{blocking}</p>}

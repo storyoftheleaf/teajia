@@ -738,6 +738,12 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstGroup).not.toHaveClass(/rounded|bg-tea-surface/);
     await expect(firstGroup.getByText('Needs review', { exact: true })).toHaveCount(1);
     await expect(firstGroup.getByText('Ready', { exact: true })).toHaveCount(1);
+    const needsReviewSection = firstGroup.getByRole('region', { name: 'Needs review' });
+    const readySection = firstGroup.getByRole('region', { name: 'Ready' });
+    await expect(needsReviewSection).toBeVisible();
+    await expect(readySection).toBeVisible();
+    await expect(needsReviewSection.getByRole('heading', { name: 'Needs review', level: 5 })).toBeVisible();
+    await expect(readySection.getByRole('heading', { name: 'Ready', level: 5 })).toBeVisible();
 
     const firstGroupRows = firstGroup.getByTestId('import-item-row');
     await expect(firstGroupRows.first()).toHaveAttribute('data-import-item-id', api.detail.items[1].id);
@@ -747,6 +753,8 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstGroupRows.first()).toHaveClass(/scroll-mt/);
     await expect(firstGroupRows.first().getByText(api.detail.items[1].english_name!, { exact: true })).toHaveClass(/font-display/);
     await expect(firstGroupRows.first().getByText(api.detail.items[1].english_name!, { exact: true })).toHaveClass(/text-ui-20/);
+    await expect(firstGroupRows.first().getByRole('heading', { name: api.detail.items[1].english_name!, level: 6 })).toBeVisible();
+    await expect(firstGroupRows.first()).toHaveAccessibleName(api.detail.items[1].english_name!);
     await expect(firstGroupRows.first().locator('.font-mono')).toHaveCount(1);
 
     const secondGroup = groups.nth(1);
@@ -757,7 +765,9 @@ test.describe('analyzed inventory import review', () => {
     const nextIssue = dialog.getByRole('button', { name: 'Next issue' });
     await expect(dialog.getByText('2 unresolved', { exact: true })).toBeVisible();
     await nextIssue.click();
-    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`)).toBeFocused();
+    const firstFocusedIssue = dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`);
+    await expect(firstFocusedIssue).toBeFocused();
+    await expect(firstFocusedIssue).toHaveAccessibleName(api.detail.items[1].english_name!);
     await nextIssue.click();
     await expect(dialog.locator(`[data-import-item-id="${api.detail.items[9].id}"]`)).toBeFocused();
     await nextIssue.click();
