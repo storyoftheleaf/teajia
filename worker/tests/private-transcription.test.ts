@@ -26,6 +26,7 @@ class Bucket {
 
 class Db {
   recording: any = null;
+  failCompletionUpdate = false;
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
@@ -41,6 +42,9 @@ class Db {
         return null;
       },
       run: async () => {
+        if (this.failCompletionUpdate && normalized.startsWith("update private_recordings set status = 'completed'")) {
+          throw new Error('D1 completion write failed');
+        }
         if (normalized.startsWith('insert into private_recordings')) this.recording = { id: values[0], account_id: values[1], user_id: values[2], object_key: values[3], mime_type: values[4], size_bytes: values[5], expires_at: values[6] };
         if (normalized.startsWith('delete from private_recordings')) this.recording = null;
         return { success: true, meta: { changes: 1 } };
@@ -104,5 +108,18 @@ describe('private transcription persistence', () => {
 
     expect(bucket.objects.size).toBe(0);
     expect(db.recording).toBeNull();
+  });
+
+  it('keeps the only audio copy retryable when the completion write fails', async () => {
+    const db = new Db(); const bucket = new Bucket();
+    db.failCompletionUpdate = true;
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ text: 'Transcript not yet durable' })));
+    const form = new FormData();
+    form.set('file', new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2])], 'recording.webm', { type: 'audio/webm' }));
+
+    const response = await worker.fetch(await request('/api/transcribe', 'POST', form), { DB: db, MEDIA_BUCKET: bucket, JWT_SECRET: SECRET, GROQ_API_KEY: 'groq' } as any);
+
+    expect(response.status).toBe(500);
+    expect(bucket.objects.has(db.recording.object_key)).toBe(true);
   });
 });

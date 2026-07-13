@@ -5895,9 +5895,13 @@ const handleTranscribe: Handler = async (request, env) => {
       .bind(transcribed.code, recordingId).run();
     return json({ error: transcribed.error, code: transcribed.code, recording_id: recordingId, retryable: true }, transcribed.status);
   }
-  await env.MEDIA_BUCKET.delete(recordingKey);
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, updated_at = datetime('now') WHERE id = ?")
     .bind(transcribed.text, recordingId).run();
+  try {
+    await env.MEDIA_BUCKET.delete(recordingKey);
+  } catch {
+    console.error('Completed private recording cleanup failed');
+  }
   return json({ text: transcribed.text, recording_id: recordingId });
 };
 
@@ -5945,9 +5949,13 @@ const handleRetryTranscription: Handler = async (request, env, params) => {
       .bind(result.code, params.id).run();
     return json({ error: result.error, code: result.code, recording_id: params.id, retryable: true }, result.status);
   }
-  await env.MEDIA_BUCKET.delete(row.object_key as string);
   await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?")
     .bind(result.text, params.id).run();
+  try {
+    await env.MEDIA_BUCKET.delete(row.object_key as string);
+  } catch {
+    console.error('Completed private recording cleanup failed');
+  }
   return json({ text: result.text, recording_id: params.id });
 };
 
