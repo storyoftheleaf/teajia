@@ -2,63 +2,41 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import { clearStaleAppCaches } from './lib/recoverFromChunkError';
-import { claimChunkRecoveryAttempt, clearChunkRecoveryAttempt } from './lib/chunkRecovery';
 
-// Recover from a failed chunk load. Two distinct failure modes are handled:
+// Retry a failed chunk load in place. A transient fetch failure is common on a
+// jumpy/firewalled connection, especially for the large admin bundle.
 //
-//  1. Transient fetch failure — the chunk exists on the server but the download
-//     didn't complete (a jumpy / firewalled connection dropping a large file
-//     mid-flight; the admin bundle is the biggest chunk in the build). Here a
-//     plain retry of the SAME import usually succeeds, so we retry a few times
-//     with backoff before doing anything drastic. No page reload, no lost state.
-//
-//  2. Stale chunk hash — a new deployment replaced the hashed filenames and the
-//     currently-running page (or a stale service-worker precache) still points
-//     at a name that no longer exists. Retrying the same URL can't fix that, so
-//     after the retries are exhausted we drop any stale caches and reload once.
-//
-// Each lazy bundle gets ONE automatic reload per browser session. The circuit
-// breaker is cleared only after that bundle imports successfully. A time-based
-// cooldown is unsafe here: retries + cache cleanup + startup can outlast the
-// cooldown and turn a missing chunk into an endless reload loop.
-function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
-  scope: string,
+// Never reload automatically from this path. Automatic reload was the mechanism
+// behind the rapid flashing incident: an old shell could fail its AdminApp
+// preload, reload, and immediately repeat. After bounded retries, throw to the
+// root ErrorBoundary; its button is the only explicit recovery navigation.
+function lazyWithRetry<T extends { default: React.ComponentType<unknown> }>(
   factory: () => Promise<T>
 ): React.LazyExoticComponent<T['default']> {
   return lazy(async () => {
     const delays = [400, 1200, 2500]; // ms of backoff between fetch retries
     for (let attempt = 0; ; attempt++) {
       try {
-        const loaded = await factory();
-        clearChunkRecoveryAttempt(sessionStorage, scope);
-        return loaded;
+        return await factory();
       } catch (err) {
         if (attempt < delays.length) {
           await new Promise((r) => setTimeout(r, delays[attempt]));
           continue; // transient blip — retry the same import
         }
-        // Retries exhausted. Assume a stale hash and reload exactly once. If
-        // the next boot still cannot import this bundle, keep the marker and
-        // surface the ErrorBoundary instead of reloading again.
-        if (claimChunkRecoveryAttempt(sessionStorage, scope)) {
-          await clearStaleAppCaches();
-          window.location.reload();
-          return new Promise<T>(() => {}); // page is reloading; brief suspend is fine
-        }
+        // Bounded attempts exhausted: surface the stable recovery screen.
         throw err;
       }
     }
   });
 }
 
-const AdminApp = lazyWithReload('admin', () => import('./admin/AdminApp'));
+const AdminApp = lazyWithRetry(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
 // 4:5 reader at /article/:slug. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
-const Shop = lazyWithReload('shop', () => import('./components/Shop').then(m => ({ default: m.Shop })));
+const Shop = lazyWithRetry(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 
 // Reads :id from the URL and passes it to Shop so the AlcoveModal opens for
 // that product. Defined at module level so React treats it as a stable type.

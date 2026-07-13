@@ -36,6 +36,10 @@ export default defineConfig(({ mode }) => {
         // replaces existing registrations, clears their caches, and unregisters
         // itself. Static assets remain edge-cached by Cloudflare/browser headers.
         selfDestroying: true,
+        // Do not register the cleanup worker in browsers that never had one.
+        // Existing registrations still poll /sw.js and receive the self-
+        // destroying replacement; new visitors remain service-worker-free.
+        injectRegister: null,
         registerType: 'autoUpdate',
         workbox: {
           // Precache ONLY the tiny shell (entry page, icon, fonts) — NOT the

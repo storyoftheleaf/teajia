@@ -15,6 +15,32 @@ import { useAppStore, type AuthUser } from '../lib/store';
 
 export type { AuthUser };
 
+type SessionResponse = Awaited<ReturnType<typeof api.auth.me>>;
+
+// useAuth is mounted by the app shell, sidebar, bottom navigation, and account
+// surfaces. Their mount effects used to call /api/auth/me independently. Share
+// one bootstrap request for the lifetime of the current page/token so entering
+// Admin cannot fan a single session check into several Worker invocations.
+let sessionBootstrapPromise: Promise<SessionResponse> | null = null;
+
+function getSessionBootstrap(): Promise<SessionResponse> {
+  if (!sessionBootstrapPromise) {
+    sessionBootstrapPromise = (async () => {
+      if (shouldProactivelyRefreshToken()) await ensureTokenRefreshed();
+      return api.auth.me();
+    })().catch(error => {
+      // A transient failure must remain retryable later.
+      sessionBootstrapPromise = null;
+      throw error;
+    });
+  }
+  return sessionBootstrapPromise;
+}
+
+function resetSessionBootstrap() {
+  sessionBootstrapPromise = null;
+}
+
 // Hydrate auth user from local JWT claims once, on module load. This runs
 // before any component mounts, so every `useAuth()` call sees the same
 // initial state — fixes the per-component useState hydration race that
@@ -102,13 +128,25 @@ export function useAuth(): UseAuthReturn {
     if (!hasToken()) return;
     let cancelled = false;
     (async () => {
-      if (shouldProactivelyRefreshToken()) {
-        await ensureTokenRefreshed();
+      try {
+        setIsLoading(true);
+        const data = await getSessionBootstrap();
+        if (!cancelled) {
+          setUser({ email: data.email, username: data.username ?? null, name: data.name, role: data.role, phone: data.phone ?? null, canCreateCollections: Boolean(data.can_create_collections) });
+        }
+      } catch (err: any) {
+        const msg = typeof err?.message === 'string' ? err.message : '';
+        if (/\b(401|unauthorized|invalid token|expired)\b/i.test(msg)) {
+          clearToken();
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+        setIsSessionReady(true);
       }
-      if (!cancelled) await checkSession();
     })();
     return () => { cancelled = true; };
-  }, [checkSession]);
+  }, []);
 
   // When the tab returns from background, check the session. Mobile browsers
   // pause JS for long periods — this catches tokens that rolled through the
@@ -131,6 +169,7 @@ export function useAuth(): UseAuthReturn {
   // Clear React auth state when a 401 triggers session expiry
   useEffect(() => {
     const handleSessionExpired = () => {
+      resetSessionBootstrap();
       useAppStore.getState().clearAccountState();
       setUser(null);
     };
@@ -141,6 +180,7 @@ export function useAuth(): UseAuthReturn {
   const login = useCallback(async (identifier: string, password: string) => {
     const result = await api.auth.login(identifier, password);
     setToken(result.token);
+    resetSessionBootstrap();
     hydrateAccountStateFromToken();
     const claims = getTokenClaims();
     if (claims) {
@@ -151,6 +191,7 @@ export function useAuth(): UseAuthReturn {
   const signup = useCallback(async (email: string, password: string, name: string, username?: string | null) => {
     const result = await api.auth.signup(email, password, name, username);
     setToken(result.token);
+    resetSessionBootstrap();
     hydrateAccountStateFromToken();
     const claims = getTokenClaims();
     if (claims) {
@@ -161,6 +202,7 @@ export function useAuth(): UseAuthReturn {
   const redeemJoinCode = useCallback(async (data: { code: string; first_name: string; email: string }) => {
     const result = await api.auth.redeemJoinCode(data);
     setToken(result.token);
+    resetSessionBootstrap();
     hydrateAccountStateFromToken();
     const claims = getTokenClaims();
     if (claims) {
@@ -174,6 +216,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   const logout = useCallback(() => {
+    resetSessionBootstrap();
     clearToken();
     useAppStore.getState().clearAccountState();
     setUser(null);
