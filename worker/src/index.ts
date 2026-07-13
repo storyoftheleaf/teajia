@@ -4534,19 +4534,7 @@ function adminContributor(row: Record<string, any>) {
   return { ...row, links };
 }
 
-async function syncContributorHost(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null) {
-  const contributor = await env.DB.prepare(
-    'SELECT id, face_of_account_id FROM contributors WHERE id = ? AND account_id = ?'
-  ).bind(contributorId, accountId).first<Record<string, any>>();
-  if (!contributor) return { error: json({ error: 'Contributor not found' }, 404) };
-  if (requestedAccountId !== null && requestedAccountId !== accountId) {
-    return { error: json({ error: 'Host account not found' }, 404) };
-  }
-  if (requestedAccountId) {
-    const target = await env.DB.prepare('SELECT id, host_contributor_id FROM accounts WHERE id = ?').bind(requestedAccountId).first();
-    if (!target) return { error: json({ error: 'Host account not found' }, 404) };
-  }
-
+function contributorHostStatements(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null) {
   const statements: D1PreparedStatement[] = [
     env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ? AND host_contributor_id = ?').bind(accountId, contributorId),
     env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE face_of_account_id = ? AND account_id = ? AND id != ?').bind(accountId, accountId, contributorId),
@@ -4555,19 +4543,56 @@ async function syncContributorHost(env: Env, accountId: string, contributorId: s
   if (requestedAccountId) {
     statements.push(env.DB.prepare('UPDATE accounts SET host_contributor_id = ? WHERE id = ?').bind(contributorId, requestedAccountId));
   }
-  await env.DB.batch(statements);
-  return {};
+  return statements;
+}
+
+async function contributorJson(request: Request): Promise<Record<string, unknown> | Response> {
+  try {
+    const body = await request.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'A JSON object is required' }, 400);
+    return body as Record<string, unknown>;
+  } catch {
+    return json({ error: 'Malformed JSON body' }, 400);
+  }
+}
+
+async function validateContributorReferences(env: Env, accountId: string, values: Record<string, string | null>): Promise<Response | null> {
+  if (values.user_id) {
+    const member = await env.DB.prepare(
+      "SELECT user_id FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'"
+    ).bind(values.user_id, accountId).first();
+    if (!member) return json({ error: 'user_id is not available in this account' }, 400);
+  }
+  if (values.pouring_today_product_id) {
+    const product = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+      .bind(values.pouring_today_product_id, accountId).first();
+    if (!product) return json({ error: 'pouring_today_product_id is not available in this account' }, 400);
+  }
+  return null;
+}
+
+function contributorDatabaseError(error: unknown): Response {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/UNIQUE constraint failed: (?:contributors\.(?:id|face_of_account_id)|accounts\.host_contributor_id)/i.test(message)) {
+    return json({ error: 'Contributor slug or account host is unavailable' }, 409);
+  }
+  console.error('Contributor database error:', error);
+  return json({ error: 'Internal server error' }, 500);
 }
 
 const handleCreateAdminContributor: Handler = async (request, env) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  const body = await request.json() as Record<string, unknown>;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const body = bodyResult;
   const id = typeof body.id === 'string' ? body.id.trim() : typeof body.slug === 'string' ? body.slug.trim() : '';
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) return json({ error: 'A lowercase kebab-case contributor slug is required' }, 400);
   const parsed = parseContributorWrite(body);
   if ('error' in parsed) return json({ error: parsed.error }, 400);
   if (!parsed.values.display_name) return json({ error: 'display_name is required' }, 400);
+  const referenceError = await validateContributorReferences(env, ctx.accountId, parsed.values);
+  if (referenceError) return referenceError;
   if ('face_of_account_id' in body) {
     if (body.face_of_account_id !== null && typeof body.face_of_account_id !== 'string') return json({ error: 'face_of_account_id must be a string or null' }, 400);
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
@@ -4577,15 +4602,16 @@ const handleCreateAdminContributor: Handler = async (request, env) => {
     return json({ error: 'Contributor slug is unavailable' }, 409);
   }
   const fields = Object.keys(parsed.values);
-  await env.DB.prepare(
+  const insert = env.DB.prepare(
     `INSERT INTO contributors (id, account_id, ${fields.join(', ')}, is_published, created_at, updated_at)
      VALUES (?, ?, ${fields.map(() => '?').join(', ')}, 0, datetime('now'), datetime('now'))`
-  ).bind(id, ctx.accountId, ...fields.map(field => parsed.values[field])).run();
+  ).bind(id, ctx.accountId, ...fields.map(field => parsed.values[field]));
+  const statements: D1PreparedStatement[] = [insert];
   if ('face_of_account_id' in body) {
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
-    const sync = await syncContributorHost(env, ctx.accountId, id, requested);
-    if (sync.error) return sync.error;
+    statements.push(...contributorHostStatements(env, ctx.accountId, id, requested));
   }
+  try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, any>>();
   return json({ contributor: adminContributor(row || { id, account_id: ctx.accountId, ...parsed.values, is_published: 0 }) }, 201);
 };
@@ -4603,24 +4629,29 @@ const handleUpdateAdminContributor: Handler = async (request, env, params) => {
   if (!await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first()) {
     return json({ error: 'Contributor not found' }, 404);
   }
-  const body = await request.json() as Record<string, unknown>;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const body = bodyResult;
   const parsed = parseContributorWrite(body);
   if ('error' in parsed) return json({ error: parsed.error }, 400);
   if ('display_name' in body && !parsed.values.display_name) return json({ error: 'display_name is required' }, 400);
+  const referenceError = await validateContributorReferences(env, ctx.accountId, parsed.values);
+  if (referenceError) return referenceError;
   if ('face_of_account_id' in body) {
     if (body.face_of_account_id !== null && typeof body.face_of_account_id !== 'string') return json({ error: 'face_of_account_id must be a string or null' }, 400);
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
     if (requested !== null && requested !== ctx.accountId) return json({ error: 'Host account not found' }, 404);
   }
   const fields = Object.keys(parsed.values);
-  if (fields.length) {
-    await env.DB.prepare(`UPDATE contributors SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
-      .bind(...fields.map(field => parsed.values[field]), params.id, ctx.accountId).run();
-  }
+  const statements: D1PreparedStatement[] = [];
+  if (fields.length) statements.push(env.DB.prepare(`UPDATE contributors SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    .bind(...fields.map(field => parsed.values[field]), params.id, ctx.accountId));
   if ('face_of_account_id' in body) {
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
-    const sync = await syncContributorHost(env, ctx.accountId, params.id, requested);
-    if (sync.error) return sync.error;
+    statements.push(...contributorHostStatements(env, ctx.accountId, params.id, requested));
+  }
+  if (statements.length) {
+    try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
   return json({ contributor: adminContributor(row!) });
@@ -12493,6 +12524,9 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
   delete body.openai_api_key_last4;
   delete body.has_openai_key;
   delete body.openai_key_last4;
+  // This mirror is owned exclusively by /api/admin/contributors so both sides
+  // are changed in one D1 batch. Generic account edits must never mutate it.
+  delete body.host_contributor_id;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);

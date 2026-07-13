@@ -36,6 +36,9 @@ class FakeDb {
   role: 'owner' | 'staff' = 'owner';
   failBatchAt: number | null = null;
   batchCalls = 0;
+  failWith: Error | null = null;
+  users = new Map([['user_one', { id: 'user_one', account_id: ACCOUNT_ID }], ['user_other', { id: 'user_other', account_id: 'acc_other' }]]);
+  products = new Map([['tea_one', { id: 'tea_one', account_id: ACCOUNT_ID }], ['tea_other', { id: 'tea_other', account_id: 'acc_other' }]]);
   accounts = new Map<string, { id: string; host_contributor_id: string | null; status: string }>([
     [ACCOUNT_ID, { id: ACCOUNT_ID, host_contributor_id: null, status: 'active' }],
     ['acc_other', { id: 'acc_other', host_contributor_id: null, status: 'active' }],
@@ -51,6 +54,7 @@ class FakeDb {
     try {
       const results = [];
       for (let index = 0; index < statements.length; index += 1) {
+        if (this.failWith) throw this.failWith;
         if (this.failBatchAt === index) throw new Error('simulated atomic batch failure');
         results.push(await statements[index].run());
       }
@@ -74,6 +78,12 @@ class FakeDb {
     }
     if (sql.includes('from contributors where id = ?')) return structuredClone(this.contributors.get(values[0]) ?? null);
     if (sql.includes('from accounts where id = ?')) return structuredClone(this.accounts.get(values[0]) ?? null);
+    if (sql.includes('from account_members') && sql.includes('user_id = ?') && sql.includes('account_id = ?')) {
+      const user = this.users.get(values[0]); return user?.account_id === values[1] ? { user_id: user.id } : null;
+    }
+    if (sql.includes('from products where id = ? and account_id = ?')) {
+      const product = this.products.get(values[0]); return product?.account_id === values[1] ? { id: product.id } : null;
+    }
     return null;
   }
   async all(sqlText: string, values: any[]) {
@@ -214,11 +224,67 @@ describe('account-safe contributor administration', () => {
   it('keeps both host mirrors unchanged when the atomic batch fails', async () => {
     const db = new FakeDb();
     await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'writer', display_name: 'Writer' }) });
+    const batchCallsBeforeFailure = db.batchCalls;
     db.failBatchAt = 2;
     const response = await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ face_of_account_id: ACCOUNT_ID }) });
     expect(response.status).toBe(500);
-    expect(db.batchCalls).toBe(1);
+    expect(db.batchCalls).toBe(batchCallsBeforeFailure + 1);
     expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBeNull();
     expect(db.contributors.get('writer')?.face_of_account_id).toBeNull();
+  });
+
+  it('rolls back contributor creation when host mirroring fails', async () => {
+    const db = new FakeDb(); db.failBatchAt = 2;
+    const response = await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'atomic-host', display_name: 'Atomic', face_of_account_id: ACCOUNT_ID }) });
+    expect(response.status).toBe(500);
+    expect(db.contributors.has('atomic-host')).toBe(false);
+    expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBeNull();
+  });
+
+  it('rolls back ordinary contributor fields when host mirroring fails', async () => {
+    const db = new FakeDb();
+    await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'writer', display_name: 'Before' }) });
+    db.failBatchAt = 2;
+    const response = await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: JSON.stringify({ display_name: 'After', face_of_account_id: ACCOUNT_ID }) });
+    expect(response.status).toBe(500);
+    expect(db.contributors.get('writer')?.display_name).toBe('Before');
+    expect(db.contributors.get('writer')?.face_of_account_id).toBeNull();
+  });
+
+  it('rejects malformed JSON as a client error', async () => {
+    const db = new FakeDb();
+    const response = await request(db, '/api/admin/contributors', { method: 'POST', body: '{bad' });
+    expect(response.status).toBe(400);
+    await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'writer', display_name: 'Writer' }) });
+    const update = await request(db, '/api/admin/contributors/writer', { method: 'PUT', body: '{bad' });
+    expect(update.status).toBe(400);
+  });
+
+  it('prevents generic account updates from mutating the host mirror', async () => {
+    const db = new FakeDb();
+    db.accounts.get(ACCOUNT_ID)!.host_contributor_id = 'existing-host';
+    const response = await request(db, `/api/accounts/${ACCOUNT_ID}`, { method: 'PUT', body: JSON.stringify({ host_contributor_id: 'other-writer' }) });
+    expect(response.status).toBe(400);
+    expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBe('existing-host');
+  });
+
+  it('validates linked users and pouring products within the active account', async () => {
+    const db = new FakeDb();
+    for (const body of [
+      { id: 'bad-user', display_name: 'Bad', user_id: 'user_other' },
+      { id: 'bad-tea', display_name: 'Bad', pouring_today_product_id: 'tea_other' },
+    ]) {
+      const response = await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify(body) });
+      expect(response.status).toBe(400);
+      expect(db.contributors.has(body.id)).toBe(false);
+    }
+    expect((await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'valid-links', display_name: 'Valid', user_id: 'user_one', pouring_today_product_id: 'tea_one' }) })).status).toBe(201);
+  });
+
+  it('maps uniqueness failures to 409 and unrelated database failures to 500', async () => {
+    const uniqueDb = new FakeDb(); uniqueDb.failWith = new Error('D1_ERROR: UNIQUE constraint failed: contributors.id');
+    expect((await request(uniqueDb, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'race', display_name: 'Race' }) })).status).toBe(409);
+    const brokenDb = new FakeDb(); brokenDb.failWith = new Error('D1_ERROR: disk I/O error');
+    expect((await request(brokenDb, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'broken', display_name: 'Broken' }) })).status).toBe(500);
   });
 });
