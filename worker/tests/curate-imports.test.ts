@@ -115,7 +115,9 @@ class ImportStatement {
       if (sql.includes("analysis_state = 'complete'")) { row.analysis_state = 'complete'; row.analysis_version = Number(row.analysis_version ?? 0) + 1; }
       if (sql.includes("analysis_state = 'failed'")) row.analysis_state = 'failed';
       if (sql.includes("review_state = 'reviewing'")) row.review_state = 'reviewing';
+      if (sql.includes("review_state = 'completed'")) row.review_state = 'completed';
       if (sql.includes("set review_state = 'abandoned'")) row.review_state = 'abandoned';
+      if (sql.includes('analysis_attempt_token = null')) row.analysis_attempt_token = null;
       return { success: true, meta: { changes: 1 } };
     }
     return { success: true, meta: { changes: 0 } };
@@ -160,6 +162,16 @@ class ImportDb {
       throw error;
     }
   }
+}
+
+async function reserveImportFinalization(db: ImportDb, batchId: string, key = 'finish-key') {
+  return db.prepare("UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
+    .bind(key, batchId, 'account-a', key).run();
+}
+
+async function completeImportFinalization(db: ImportDb, batchId: string, key = 'finish-key') {
+  return db.prepare("UPDATE curate_import_batches SET review_state = 'completed', finalize_idempotency_key = ?, finalize_result_json = ?, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
+    .bind(key, '{"receipts":[]}', batchId, 'account-a', key).run();
 }
 
 function b64(input: string | Uint8Array) {
@@ -457,7 +469,7 @@ describe('Curate import provenance API', () => {
       ['POST', `/api/curate/imports/${batch.id}/abandon`],
     ];
     for (const [method, path, body] of mutations) expect((await request(db, path, { method, body: body ? JSON.stringify(body) : undefined })).status, path).toBe(409);
-    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(200);
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(409);
     db.items.set('stale-pending', { ...db.items.get(items[0].id), id: 'stale-pending', compass_entry_id: null, review_state: 'pending' } as Row);
     expect((await request(db, `/api/curate/imports/${batch.id}/items/stale-pending/accept`, { method: 'POST' })).status).toBe(409);
     expect(db.batches.get(batch.id)?.review_state).toBe('completed');
@@ -496,10 +508,8 @@ describe('Curate import provenance API', () => {
     const analyzing = request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
     await vi.waitFor(() => expect(db.batches.get(batch.id)?.analysis_state).toBe('analyzing'));
 
-    db.batches.set(batch.id, {
-      ...db.batches.get(batch.id)!, review_state: 'completed', finalize_idempotency_key: 'finish-key',
-      finalize_result_json: '{"receipts":[]}', completed_at: '2026-07-13T12:00:00.000Z', analysis_attempt_token: null,
-    });
+    expect((await reserveImportFinalization(db, batch.id)).meta.changes).toBe(1);
+    expect((await completeImportFinalization(db, batch.id)).meta.changes).toBe(1);
     const completedBatch = { ...db.batches.get(batch.id)! };
     const originalGroups = [...db.groups.values()].map(row => ({ ...row }));
     const originalItems = [...db.items.values()].map(row => ({ ...row }));
@@ -523,14 +533,15 @@ describe('Curate import provenance API', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(resolve => { releaseProvider = resolve; }));
     const analyzing = request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
     await vi.waitFor(() => expect(db.batches.get(batch.id)?.analysis_state).toBe('analyzing'));
-    db.batches.set(batch.id, { ...db.batches.get(batch.id)!, review_state: 'completed', finalize_idempotency_key: 'finish-key', analysis_attempt_token: null, analysis_error: null });
+    expect((await reserveImportFinalization(db, batch.id)).meta.changes).toBe(1);
+    expect((await completeImportFinalization(db, batch.id)).meta.changes).toBe(1);
     releaseProvider(new Response('provider unavailable', { status: 503 }));
 
     const result = await analyzing;
 
     expect(result.status).toBe(409);
     expect(await result.json()).toMatchObject({ code: 'analysis_superseded' });
-    expect(db.batches.get(batch.id)).toMatchObject({ review_state: 'completed', analysis_error: null, finalize_idempotency_key: 'finish-key' });
+    expect(db.batches.get(batch.id)).toMatchObject({ review_state: 'completed', analysis_state: 'analyzing', finalize_idempotency_key: 'finish-key' });
   });
 
   it.each([
@@ -538,6 +549,10 @@ describe('Curate import provenance API', () => {
     ['group update', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) })],
     ['vendor creation', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Late Farm' }) })],
     ['item update', (db: ImportDb, batchId: string, itemId: string) => request(db, `/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: 'Late item' }) })],
+    ['item addition', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/items`, { method: 'POST', body: JSON.stringify({ name: 'Late item' }) })],
+    ['source addition', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/sources`, { method: 'POST', body: JSON.stringify({ kind: 'paste', pasted_text: 'Late source' }) })],
+    ['item acceptance', (db: ImportDb, batchId: string, itemId: string) => request(db, `/api/curate/imports/${batchId}/items/${itemId}/accept`, { method: 'POST' })],
+    ['item merge', (db: ImportDb, batchId: string, itemId: string) => request(db, `/api/curate/imports/${batchId}/items/${itemId}/merge`, { method: 'POST', body: JSON.stringify({ compass_entry_id: 'entry-merge' }) })],
     ['evidence upload', (db: ImportDb, batchId: string, _itemId: string, bucket: R2Bucket) => request(db, `/api/curate/imports/${batchId}/evidence`, { method: 'POST', body: 'late evidence', headers: { 'Content-Type': 'text/plain', 'X-Filename': 'late.txt', 'X-Client-Evidence-Id': 'late-file' } }, 'account-a', 'user-a', bucket)],
     ['abandon', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/abandon`, { method: 'POST' })],
     ['analysis', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/analyze`, { method: 'POST' })],
@@ -547,6 +562,7 @@ describe('Curate import provenance API', () => {
     const { batch, items } = await created.json() as any;
     db.journeys.set('journey-a', { id: 'journey-a', account_id: 'account-a', name: 'Journey' });
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Vendor', tags: '["vendor"]' });
+    db.compass.set('entry-merge', { id: 'entry-merge', account_id: 'account-a', user_id: 'user-a', name: 'Existing identity', category: 'tea' });
     db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'group', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
     const storedObjects = new Map<string, ArrayBuffer>();
     const bucket = {
@@ -577,6 +593,22 @@ describe('Curate import provenance API', () => {
     expect([...db.sources.values()]).toEqual(before.sources);
     expect([...db.customers.values()]).toEqual(before.customers);
     expect(storedObjects.size).toBe(0);
+  });
+
+  it.each([
+    ['reserved', 'reviewing', 'finish-key'],
+    ['completed', 'completed', null],
+  ])('rejects acceptance of an already-linked item when its batch is %s', async (_label, reviewState, finalizeKey) => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Linked terminal item', items: [{ name: 'Linked' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.items.get(items[0].id)!.compass_entry_id = 'entry-linked';
+    db.batches.set(batch.id, { ...db.batches.get(batch.id)!, review_state: reviewState, finalize_idempotency_key: finalizeKey });
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' });
+
+    expect(result.status).toBe(409);
+    expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: 'entry-linked', review_state: 'pending' });
   });
 
   it('rejects acceptance until uncertainty is explicitly cleared on the server', async () => {
@@ -807,8 +839,7 @@ describe('Curate import provenance API', () => {
     const first = await request(db, path, { method: 'POST' });
     const second = await request(db, path, { method: 'POST' });
     expect(first.status).toBe(201);
-    expect(second.status).toBe(200);
-    expect(await second.json()).toMatchObject({ already_accepted: true });
+    expect(second.status).toBe(409);
     expect(db.compass.size).toBe(1);
     expect([...db.compass.values()][0]).toMatchObject({ name: 'Ruby 18', category: 'tea', account_id: 'account-a', user_id: 'user-a' });
     expect(db.products).toHaveLength(0);
@@ -844,7 +875,7 @@ describe('Curate import provenance API', () => {
     const { batch, items } = await created.json() as any;
     const path = `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`;
     const responses = await Promise.all([request(db, path, { method: 'POST' }), request(db, path, { method: 'POST' })]);
-    expect(responses.map(result => result.status).sort()).toEqual([200, 201]);
+    expect(responses.map(result => result.status).sort()).toEqual([201, 409]);
     expect(db.compass.size).toBe(1);
     expect(db.items.get(items[0].id)).toMatchObject({ compass_entry_id: items[0].reserved_compass_entry_id, review_state: 'accepted' });
   });

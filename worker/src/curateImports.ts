@@ -923,8 +923,8 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   if (!batch) return response({ error: 'Import not found' }, 404);
   const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!item) return response({ error: 'Import item not found' }, 404);
-  if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
   if (batchIsTerminal(batch)) return terminalResponse();
+  if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
   if (Object.keys(parseJson(item.uncertainty_json, {})).length > 0) return response({ error: 'Review uncertain fields before accepting this item' }, 409);
   const compassId = typeof item.reserved_compass_entry_id === 'string' ? item.reserved_compass_entry_id : '';
