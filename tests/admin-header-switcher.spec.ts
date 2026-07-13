@@ -1,13 +1,7 @@
 /**
- * Admin header account switcher.
- *
- * A platform owner gets the account switcher in the admin top bar. Tapping it
- * opens a dropdown (downward, since it's a header) listing their tea houses
- * plus "All Network Accounts" — where Teajia Australia lives, since the owner
- * is not a direct member of it. This is the in-app path to operate as Australia.
+ * Admin account-context coverage.
  *
  * No backend required: API mocked via page.route, fake JWT via localStorage.
- * Pattern matches tests/account-switcher-multi-location.spec.ts.
  */
 
 import { test, expect, type Page, type BrowserContext } from '@playwright/test';
@@ -90,6 +84,19 @@ async function mockApi(context: BrowserContext) {
         body: JSON.stringify({ token: tokenFor(newId), active_account_id: newId }),
       });
     }
+    if (url.endsWith(`/api/accounts/${AUS_ID}`) && method === 'GET') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: AUS_ID,
+          name: 'Teajia Australia',
+          slug: 'teajia-australia',
+          location_city: '',
+          currency_default: 'AUD',
+        }),
+      });
+    }
     // Everything else: empty success so the admin shell renders.
     return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
@@ -110,41 +117,21 @@ test('platform owner without membership rows bypasses the invitation gate', asyn
   await expect(page.locator('main')).toBeVisible();
 });
 
-// The admin shell gates on a configured API (VITE_API_URL). The default dev
-// server on :7777 has none, so this test needs a server started with the API
-// URL set, reached via ADMIN_TEST_URL. Without it, skip rather than false-fail.
-//   VITE_API_URL=<worker-url> npx vite --port 7788
-//   ADMIN_TEST_URL=http://localhost:7788 npx playwright test tests/admin-header-switcher.spec.ts
-test('platform owner can reach Teajia Australia from the admin header switcher', async ({ page, context }) => {
+test('keeps operated-account context inside Your Table', async ({ page, context }) => {
   test.skip(!process.env.ADMIN_TEST_URL, 'needs an API-configured admin server (set ADMIN_TEST_URL)');
 
   await mockApi(context);
-  await injectAuth(page, BALI_ID);
+  await injectAuth(page, AUS_ID);
 
   const base = process.env.ADMIN_TEST_URL || '';
   await page.goto(`${base}/admin`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1500);
+  await expect(page.locator('main')).toBeVisible();
+  await page.waitForTimeout(1000);
 
-  // The header switcher is the "Switch account" button.
-  const switcher = page.locator('button[aria-label="Switch account"]').first();
-  await expect(switcher, 'admin header switcher should be present for a platform owner').toBeVisible({ timeout: 10000 });
+  await expect(page.locator('body')).not.toContainText('every action is logged and visible to the account owner');
 
-  await switcher.click();
-  await page.waitForTimeout(800);
-
-  // The dropdown opens downward (header placement) and shows the platform
-  // owner's network section — the path that surfaces Teajia Australia.
-  await expect(page.getByText('Your Tea Houses')).toBeVisible();
-  await expect(page.getByText('All Network Accounts')).toBeVisible();
-
-  await page.screenshot({ path: path.join(SHOTS_DIR, 'dropdown-open.png') });
-
-  // The dropdown sits below the trigger (header opens down, not up).
-  const triggerBox = await switcher.boundingBox();
-  const listBox = await page.locator('[role="listbox"]').boundingBox();
-  expect(triggerBox && listBox && listBox.y >= triggerBox.y, 'dropdown opens downward in the header').toBeTruthy();
-
-  // No horizontal overflow introduced by the new bar.
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
-  expect(overflow, 'no horizontal overflow with the header bar').toBeFalsy();
+  await page.getByRole('button', { name: /Your Table Platform Owner/i }).click();
+  await expect(page.getByText('Logged in to Teajia Australia')).toBeVisible();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(SHOTS_DIR, 'account-context-in-your-table.png') });
 });

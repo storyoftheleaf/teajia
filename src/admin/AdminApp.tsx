@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { PullToRefreshIndicator } from '../components/shared/PullToRefreshIndicator';
 import { EmblemLoader } from '../components/shared/EmblemLoader';
@@ -22,41 +22,6 @@ import {
 } from '../lib/api';
 import { Product } from './types';
 
-// Banner shown across all admin views when a platform owner has switched into
-// an account they're not a member of. Reminds them every action is logged and
-// gives one-click return to their home account.
-const OperatingAsBanner: React.FC<{
-  activeAccountId: string;
-  fallbackName: string;
-  onReturn: () => void;
-  canReturn: boolean;
-}> = ({ activeAccountId, fallbackName, onReturn, canReturn }) => {
-  const [accountName, setAccountName] = useState(fallbackName);
-  useEffect(() => {
-    let cancelled = false;
-    api.accounts.get(activeAccountId)
-      .then((acc: any) => { if (!cancelled && acc?.name) setAccountName(acc.name); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [activeAccountId]);
-  return (
-    <div className="flex-none bg-tea-gold/10 border-b border-tea-gold/30 px-4 py-2 flex items-center gap-3">
-      <ShieldCheck size={14} className="text-tea-gold shrink-0" />
-      <div className="flex-1 min-w-0 text-ui-11 tracking-wide text-tea-text">
-        Operating as <span className="font-semibold">{accountName}</span>
-        <span className="text-tea-text-sec"> — every action is logged and visible to the account owner.</span>
-      </div>
-      {canReturn && (
-        <button
-          onClick={onReturn}
-          className="flex items-center gap-1 text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text px-2 py-1 rounded-md hover:bg-tea-gold/10 transition-colors shrink-0"
-        >
-          <ArrowLeft size={11} /> Return home
-        </button>
-      )}
-    </div>
-  );
-};
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
 import { useAppStore } from './store';
@@ -499,23 +464,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     setInventorySearchQuery('');
   };
 
-  const isPlatformOwner = isPlatformTier;
-  const isOperatingAs = isPlatformOwner && !!activeAccountId && !memberships.some(m => m.account_id === activeAccountId);
-  const operatingAsName = isOperatingAs
-    ? (memberships.find(m => m.account_id === activeAccountId)?.account_name || 'this account')
-    : '';
-
-  const handleReturnHome = async () => {
-    if (memberships.length === 0) return;
-    try {
-      await api.accounts.switch(memberships[0].account_id);
-      hydrateAccountStateFromToken();
-      showToast(`Returned to ${memberships[0].account_name}`, 'info');
-    } catch (err) {
-      console.error('return-home switch failed', err);
-    }
-  };
-
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full bg-tea-bg text-tea-text font-sans selection:bg-tea-gold/30">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} progress={progress} />
@@ -523,15 +471,6 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
       {/* Account / location switching lives inside Your Table (AccountPanel),
           not in a sticky admin bar — see AccountSwitcherChip there. The old
           top switcher bar was removed so no admin screen carries it. */}
-
-      {isOperatingAs && (
-        <OperatingAsBanner
-          activeAccountId={activeAccountId!}
-          fallbackName={operatingAsName}
-          onReturn={handleReturnHome}
-          canReturn={memberships.length > 0}
-        />
-      )}
 
       <main className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
 

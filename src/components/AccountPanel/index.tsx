@@ -394,6 +394,17 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
   // Derived
   const activeMembership = memberships.find(m => m.account_id === activeAccountId);
+  const localAccountContextName =
+    activeMembership?.account_name ||
+    (activeAccount?.id === activeAccountId ? activeAccount.name : null);
+  const { data: accountContext } = useQuery({
+    queryKey: ['panel-account-context', activeAccountId],
+    queryFn: () => api.accounts.get(activeAccountId!),
+    enabled: auth.isAuthenticated && !!activeAccountId && !localAccountContextName,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+  const accountContextName = localAccountContextName || accountContext?.name || null;
   const inactiveMemberships = memberships.filter(m => m.account_id !== activeAccountId);
   const membershipRole = activeMembership?.role;
   const isStaff = membershipRole === 'staff' || membershipRole === 'owner' || auth.isAdmin;
@@ -1042,9 +1053,14 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
           </div>
 
           {/* Centered title — absolutely positioned so it ignores sibling width */}
-          <h2 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h3 truncate max-w-[60%] text-center">
-            {headerTitle}
-          </h2>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] text-center">
+            <h2 className="h3 truncate">{headerTitle}</h2>
+            {!isSubView && (
+              <p className="text-ui-10 text-tea-text-sec truncate mt-0.5">
+                {accountContextName ? `Logged in to ${accountContextName}` : 'Logged in to your account'}
+              </p>
+            )}
+          </div>
 
           {/* Right — theme toggle, demoted */}
           <button
