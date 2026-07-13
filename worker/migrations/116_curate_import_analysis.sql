@@ -46,3 +46,5 @@ ALTER TABLE inventory_receipt_lines ADD COLUMN original_cost_amount REAL;
 ALTER TABLE inventory_receipt_lines ADD COLUMN original_cost_currency TEXT;
 ALTER TABLE inventory_receipt_lines ADD COLUMN original_unit_cost REAL;
 ALTER TABLE inventory_receipt_lines ADD COLUMN pack_count REAL;
+ALTER TABLE inventory_receipt_lines ADD COLUMN original_cost_amount_exact TEXT;
+ALTER TABLE inventory_receipt_lines ADD COLUMN original_unit_cost_exact TEXT;

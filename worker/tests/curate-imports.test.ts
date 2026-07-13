@@ -298,16 +298,59 @@ describe('Curate import provenance API', () => {
 
   it('reuses an exact account-scoped Compass identity and holding', async () => {
     const db = new ImportDb();
-    db.compass.set('entry-exact', { id: 'entry-exact', account_id: 'account-a', user_id: 'user-a', name: 'Taiwan Tea', category: 'tea', draft_product_id: 'product-exact' });
+    db.compass.set('entry-exact', { id: 'entry-exact', account_id: 'account-a', user_id: 'user-a', name: 'Taiwan Tea', chinese_name: '台灣茶', category: 'tea', type: 'Oolong', form: 'loose', year: 2025, origin_region: 'Nantou', vendor_name: 'V', draft_product_id: 'product-exact' });
     db.products.set('product-exact', { id: 'product-exact', account_id: 'account-a', source_compass_entry_id: 'entry-exact', type: 'Oolong', inventory_purpose: 'working' });
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Identity', pasted_text: 'Taiwan Tea' }) });
     const { batch, sources } = await created.json() as any;
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
-      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('identity-source', sources[0].id)] }],
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [{ ...itemProposal('identity-source', sources[0].id), chineseName: '台灣茶', type: 'Oolong', form: 'loose', year: 2025, originRegion: 'Nantou' }] }],
     }) }] }), { status: 200 }));
     const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
     expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-exact', proposedProductId: 'product-exact' });
     expect(analyzed.items[0].parsed_data.blockingFields).not.toContain('duplicateResolution');
+  });
+
+  it('does not auto-match a generic-name tie', async () => {
+    const db = new ImportDb();
+    db.compass.set('entry-a', { id: 'entry-a', account_id: 'account-a', user_id: 'user-a', name: 'Green Tea', category: 'tea', year: 2024, origin_region: 'Zhejiang' });
+    db.compass.set('entry-b', { id: 'entry-b', account_id: 'account-a', user_id: 'user-a', name: 'Green Tea', category: 'tea', year: 2024, origin_region: 'Zhejiang' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Tie', pasted_text: 'Green Tea' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [{ ...itemProposal('tie', sources[0].id), originalName: 'Green Tea', englishName: 'Green Tea', year: 2024, originRegion: 'Zhejiang' }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'unresolved' });
+  });
+
+  it('auto-matches only the unique composite winner and links its holding through source_compass_entry_id', async () => {
+    const db = new ImportDb();
+    db.compass.set('entry-winner', { id: 'entry-winner', account_id: 'account-a', user_id: 'user-a', name: 'Spring Jade', chinese_name: '春玉', category: 'tea', type: 'Green', form: 'loose', year: 2025, origin_region: 'Zhejiang', vendor_name: 'Lin Tea' });
+    db.compass.set('entry-other', { id: 'entry-other', account_id: 'account-a', user_id: 'user-a', name: 'Spring Jade', chinese_name: '春玉', category: 'tea', type: 'White', form: 'cake', year: 2021, origin_region: 'Fujian', vendor_name: 'Other' });
+    db.products.set('product-linked', { id: 'product-linked', account_id: 'account-a', source_compass_entry_id: 'entry-winner', type: 'Green', inventory_purpose: 'working' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Composite', pasted_text: 'Spring Jade' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'lin', proposedVendorName: 'Lin Tea', items: [{ ...itemProposal('winner', sources[0].id), originalName: '春玉', englishName: 'Spring Jade', chineseName: '春玉', type: 'Green', form: 'loose', year: 2025, originRegion: 'Zhejiang' }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-winner', proposedProductId: 'product-linked' });
+  });
+
+  it('bounds locally-selected candidates and excludes vendor contact details from the provider prompt', async () => {
+    const db = new ImportDb();
+    for (let index = 0; index < 80; index++) {
+      db.customers.set(`vendor-${index}`, { id: `vendor-${index}`, account_id: 'account-a', name: `Vendor ${index}`, email: `private${index}@example.com`, phone: `+62812${index}`, whatsapp: `wa-${index}`, tags: '["vendor"]' });
+      db.compass.set(`entry-${index}`, { id: `entry-${index}`, account_id: 'account-a', user_id: 'user-a', name: `Tea ${index}`, category: 'tea' });
+    }
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Private', pasted_text: 'Tea 0' }) });
+    const { batch, sources } = await created.json() as any;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'Vendor 0', items: [itemProposal('private', sources[0].id)] }] }) }] }), { status: 200 }));
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).status).toBe(200);
+    const prompt = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).messages[0].content.at(-1).text;
+    expect(prompt).not.toMatch(/private\d+@example\.com|\+62812|wa-\d+/);
+    expect((prompt.match(/"id":"vendor-/g) ?? [])).toHaveLength(50);
+    expect((prompt.match(/"id":"entry-/g) ?? [])).toHaveLength(50);
   });
 
   it('sends stored text files as extracted text rather than only an R2 key', async () => {

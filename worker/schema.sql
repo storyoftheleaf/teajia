@@ -442,6 +442,8 @@ CREATE TABLE IF NOT EXISTS inventory_receipt_lines (
     original_cost_currency TEXT,
     original_unit_cost REAL,
     pack_count REAL,
+    original_cost_amount_exact TEXT,
+    original_unit_cost_exact TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     CHECK (received_quantity + cancelled_quantity <= expected_quantity)

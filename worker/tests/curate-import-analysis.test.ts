@@ -76,6 +76,43 @@ describe('Curate import analysis domain', () => {
     expect(() => decodeImportAnalysisProposal(proposal({ injected: true } as never))).toThrow(/Unknown item field/);
   });
 
+  it('rejects duplicate group keys and source item identifiers', () => {
+    expect(() => decodeImportAnalysisProposal({ ...proposal(), groups: [proposal().groups[0], { ...proposal().groups[0], items: [{ ...item, sourceItemId: 'item-2' }] }] })).toThrow(/duplicate group key/i);
+    expect(() => decodeImportAnalysisProposal({ ...proposal(), groups: [proposal().groups[0], { ...proposal().groups[0], key: 'other' }] })).toThrow(/duplicate sourceItemId/i);
+  });
+
+  it('blocks Han originals without a separate English translation', () => {
+    const missing = normalizeImportProposal(proposal({ englishName: null })).groups[0].items[0];
+    const stillHan = normalizeImportProposal(proposal({ englishName: '云南古树生普' })).groups[0].items[0];
+    expect(missing.blockingFields).toContain('englishName');
+    expect(stillHan.blockingFields).toContain('englishName');
+  });
+
+  it('blocks low-confidence and explicitly uncertain material fields', () => {
+    const normalized = normalizeImportProposal(proposal({
+      confidence: { priceAmount: 0.6, currency: 0.95, acquired: 0.79 },
+      uncertainty: { packCount: 'could be two or three' },
+    })).groups[0].items[0];
+    expect(normalized.blockingFields).toEqual(expect.arrayContaining(['priceAmount', 'packCount', 'acquired']));
+  });
+
+  it.each([
+    ['usd', 'USD', false],
+    ['cNy', 'CNY', false],
+    ['¥', null, true],
+    ['ZZZ', null, true],
+  ])('canonicalizes supported currency %s to %s and blocked=%s', (currency, expected, blocked) => {
+    const normalized = normalizeImportProposal(proposal({ currency })).groups[0].items[0];
+    expect(normalized.currency).toBe(expected);
+    expect(normalized.blockingFields.includes('currency')).toBe(blocked);
+  });
+
+  it('preserves authoritative decimal provenance through exact arithmetic', () => {
+    const normalized = normalizeImportProposal(proposal({ priceAmount: 0.1, packCount: 3, packWeight: 3 })).groups[0].items[0];
+    expect(normalized).toMatchObject({ priceAmountExact: '0.1', lineCostExact: '0.3', unitCostExact: '0.033333333333333333' });
+    expect(normalized.lineCost).toBe(0.3);
+  });
+
   it('blocks unresolved acquisition and duplicate identity decisions', () => {
     const normalized = normalizeImportProposal(proposal({ acquired: null, duplicateResolution: 'unresolved' })).groups[0].items[0];
     expect(normalized.blockingFields).toEqual(expect.arrayContaining(['acquired', 'duplicateResolution']));
@@ -89,5 +126,21 @@ describe('Curate import analysis domain', () => {
     expect(prompt).toContain('500g ×2 ¥380');
     expect(prompt).toContain('vendor-a');
     expect(prompt).toContain('Never infer priceBasis');
+  });
+
+  it('bounds provider candidates and strips contact aliases', () => {
+    const prompt = buildImportAnalysisPrompt(
+      { sources: [{ id: 'source-1', kind: 'paste', text: 'Taiwan Tea' }] },
+      {
+        vendors: Array.from({ length: 80 }, (_, index) => ({ id: `vendor-${index}`, name: `Vendor ${index}`, aliases: [`person${index}@example.com`, '+62 812 000 000'] })),
+        journeys: Array.from({ length: 80 }, (_, index) => ({ id: `journey-${index}`, name: `Journey ${index}` })),
+        identities: Array.from({ length: 80 }, (_, index) => ({ id: `identity-${index}`, name: `Tea ${index}`, chineseName: null, category: 'tea' })),
+      },
+    );
+    expect(prompt).not.toMatch(/@example\.com|\+62 812|whatsapp/i);
+    expect(prompt).toContain('vendor-49');
+    expect(prompt).not.toContain('vendor-50');
+    expect(prompt).not.toContain('journey-50');
+    expect(prompt).not.toContain('identity-50');
   });
 });

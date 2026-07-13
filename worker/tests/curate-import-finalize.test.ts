@@ -82,6 +82,15 @@ describe('Curate import finalization', () => {
     expect(result.items.map(item => item.productId)).toEqual(['product-existing', 'product-item-1', 'product-item-2', 'product-item-3']);
   });
 
+  it('passes exact decimal provenance to receipts without a binary-float round trip', async () => {
+    const importData = data();
+    importData.items[0].lineCostExact = '0.3';
+    importData.items[0].unitCostExact = '0.001';
+    const { ctx, receipts } = harness(importData);
+    await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+    expect(receipts[0].lines[0]).toMatchObject({ originalCostAmountExact: '0.3', originalUnitCostExact: '0.001' });
+  });
+
   it('owns the finalization reservation before creating any import result', async () => {
     const { ctx } = harness();
     const events: string[] = [];

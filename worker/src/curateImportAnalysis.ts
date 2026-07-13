@@ -43,6 +43,9 @@ export interface NormalizedImportItem extends ImportAnalysisItem {
   totalUnits: number | null;
   lineCost: number | null;
   unitCost: number | null;
+  priceAmountExact: string | null;
+  lineCostExact: string | null;
+  unitCostExact: string | null;
   blockingFields: string[];
 }
 
@@ -59,12 +62,12 @@ export interface ImportEvidenceForAnalysis {
 export interface ImportMatchCandidates {
   vendors: Array<{ id: string; name: string; aliases?: string[] }>;
   journeys: Array<{ id: string; name: string }>;
-  identities?: Array<{ id: string; name: string | null; chineseName?: string | null; category: ImportCategory; productId?: string | null }>;
+  identities?: Array<{ id: string; name: string | null; chineseName?: string | null; category: ImportCategory; productId?: string | null; year?: number | null; originCountry?: string | null; originRegion?: string | null; type?: string | null; form?: string | null; classification?: string | null; vendorName?: string | null }>;
   products?: Array<{ id: string; compassEntryId: string | null; name: string | null; category: ImportCategory; purpose?: string | null }>;
 }
 
 const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose'] as const;
-const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'lineCost', 'unitCost', 'blockingFields'] as const;
+const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields'] as const;
 
 function record(value: unknown, field: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`Invalid ${field}`);
@@ -157,7 +160,7 @@ export function decodeImportAnalysisProposal(value: unknown): ImportAnalysisProp
   const input = record(value, 'proposal');
   rejectUnknown(input, ['overview', 'language', 'groups'], 'proposal');
   if (!Array.isArray(input.groups) || !input.groups.length || input.groups.length > 100) throw new Error('Invalid groups');
-  return {
+  const proposal = {
     overview: string(input.overview, 'overview')!, language: string(input.language, 'language')!,
     groups: input.groups.map((value, groupIndex) => {
       const group = record(value, `groups[${groupIndex}]`);
@@ -173,9 +176,73 @@ export function decodeImportAnalysisProposal(value: unknown): ImportAnalysisProp
       };
     }),
   };
+  const groupKeys = new Set<string>();
+  const sourceItemIds = new Set<string>();
+  for (const group of proposal.groups) {
+    if (groupKeys.has(group.key)) throw new Error(`Duplicate group key: ${group.key}`);
+    groupKeys.add(group.key);
+    for (const item of group.items) {
+      if (sourceItemIds.has(item.sourceItemId)) throw new Error(`Duplicate sourceItemId: ${item.sourceItemId}`);
+      sourceItemIds.add(item.sourceItemId);
+    }
+  }
+  return proposal;
 }
 
 function rounded(value: number) { return Number(value.toFixed(8)); }
+
+const ISO_4217_CODES = new Set([
+  'AED','AUD','BRL','CAD','CHF','CLP','CNY','CZK','DKK','EUR','GBP','HKD','HUF','IDR','ILS','INR','JPY','KRW','LAK','MXN','MYR','NOK','NZD','PHP','PLN','RUB','SAR','SEK','SGD','THB','TRY','TWD','USD','VND','ZAR',
+]);
+const MATERIAL_CONFIDENCE_BLOCKERS: Record<string, string> = {
+  vendor: 'vendor', identity: 'identity', translation: 'englishName', englishName: 'englishName', nameTranslation: 'englishName',
+  packWeight: 'packWeight', weightUnit: 'weightUnit', quantity: 'packCount', packCount: 'packCount', priceBasis: 'priceBasis',
+  price: 'priceAmount', priceAmount: 'priceAmount', currency: 'currency', acquisitionState: 'acquired', acquired: 'acquired',
+};
+const HAN = /\p{Script=Han}/u;
+
+function canonicalCurrency(value: string | null): string | null {
+  if (!value || value === '¥' || value === '￥') return null;
+  const code = value.trim().toUpperCase();
+  return ISO_4217_CODES.has(code) ? code : null;
+}
+
+function decimalParts(value: number | string): { coefficient: bigint; scale: number } {
+  const source = String(value).trim().toLowerCase();
+  const match = source.match(/^([+-]?)(\d+)(?:\.(\d*))?(?:e([+-]?\d+))?$/);
+  if (!match) throw new Error('Invalid decimal');
+  const fraction = match[3] ?? '';
+  const exponent = Number(match[4] ?? 0);
+  let coefficient = BigInt(`${match[1]}${match[2]}${fraction}`);
+  let scale = fraction.length - exponent;
+  if (scale < 0) { coefficient *= 10n ** BigInt(-scale); scale = 0; }
+  return { coefficient, scale };
+}
+
+function decimalString(coefficient: bigint, scale: number): string {
+  const negative = coefficient < 0n;
+  let digits = (negative ? -coefficient : coefficient).toString().padStart(scale + 1, '0');
+  if (scale) digits = `${digits.slice(0, -scale)}.${digits.slice(-scale)}`.replace(/\.?0+$/, '');
+  return `${negative ? '-' : ''}${digits}`;
+}
+
+function exact(value: number | null): string | null {
+  if (value == null) return null;
+  const parsed = decimalParts(value);
+  return decimalString(parsed.coefficient, parsed.scale);
+}
+
+function multiplyExact(left: string, right: number): string {
+  const a = decimalParts(left); const b = decimalParts(right);
+  return decimalString(a.coefficient * b.coefficient, a.scale + b.scale);
+}
+
+function divideExact(left: string, right: number, precision = 18): string {
+  const a = decimalParts(left); const b = decimalParts(right);
+  const numerator = a.coefficient * 10n ** BigInt(b.scale + precision);
+  const denominator = b.coefficient * 10n ** BigInt(a.scale);
+  return decimalString(numerator / denominator, precision);
+}
 
 export function normalizeImportProposal(value: ImportAnalysisProposal): NormalizedImportProposal {
   const proposal = decodeImportAnalysisProposal(value);
@@ -185,25 +252,34 @@ export function normalizeImportProposal(value: ImportAnalysisProposal): Normaliz
       ...group,
       items: group.items.map(item => {
         const blockingFields: string[] = [];
+        const currency = canonicalCurrency(item.currency);
+        const block = (field: string) => { if (!blockingFields.includes(field)) blockingFields.push(field); };
         if (item.packWeight == null || item.packWeight <= 0) blockingFields.push('packWeight');
         if (item.weightUnit == null) blockingFields.push('weightUnit');
         if (item.packCount == null || item.packCount <= 0) blockingFields.push('packCount');
         if (item.priceAmount == null) blockingFields.push('priceAmount');
-        if (!item.currency) blockingFields.push('currency');
+        if (!currency) blockingFields.push('currency');
         if (item.priceBasis === 'unknown') blockingFields.push('priceBasis');
         if (item.acquired !== true) blockingFields.push('acquired');
         if (item.duplicateResolution === 'unresolved') blockingFields.push('duplicateResolution');
+        if (item.originalName && HAN.test(item.originalName) && (!item.englishName || HAN.test(item.englishName))) block('englishName');
+        for (const [field, confidence] of Object.entries(item.confidence)) if (MATERIAL_CONFIDENCE_BLOCKERS[field] && confidence < 0.8) block(MATERIAL_CONFIDENCE_BLOCKERS[field]);
+        for (const field of Object.keys(item.uncertainty)) if (MATERIAL_CONFIDENCE_BLOCKERS[field]) block(MATERIAL_CONFIDENCE_BLOCKERS[field]);
+        if ((group.vendorConfidence != null && group.vendorConfidence < 0.8) || Object.keys(group.uncertainty ?? {}).some(field => field === 'vendor')) block('vendor');
         const quantity = item.packWeight != null && item.packWeight > 0 && item.packCount != null && item.packCount > 0
           ? item.packWeight * item.packCount : null;
         const totalQuantityGrams = quantity != null && item.weightUnit !== 'count'
           ? rounded(quantity * (item.weightUnit === 'kg' ? 1000 : 1)) : null;
         const totalUnits = quantity != null && item.weightUnit === 'count' ? rounded(quantity) : null;
-        const lineCost = item.priceAmount == null || item.priceBasis === 'unknown' || item.packCount == null
-          ? null : rounded(item.priceBasis === 'per_pack' ? item.priceAmount * item.packCount : item.priceAmount);
+        const priceAmountExact = exact(item.priceAmount);
+        const lineCostExact = priceAmountExact == null || item.priceBasis === 'unknown' || item.packCount == null
+          ? null : item.priceBasis === 'per_pack' ? multiplyExact(priceAmountExact, item.packCount) : priceAmountExact;
+        const lineCost = lineCostExact == null ? null : Number(lineCostExact);
         const physicalQuantity = totalQuantityGrams ?? totalUnits;
+        const unitCostExact = lineCostExact != null && physicalQuantity != null && physicalQuantity > 0 ? divideExact(lineCostExact, physicalQuantity) : null;
         return {
-          ...item, totalQuantityGrams, totalUnits, lineCost,
-          unitCost: lineCost != null && physicalQuantity != null && physicalQuantity > 0 ? rounded(lineCost / physicalQuantity) : null,
+          ...item, currency, totalQuantityGrams, totalUnits, priceAmountExact, lineCostExact, unitCostExact, lineCost,
+          unitCost: unitCostExact == null ? null : rounded(Number(unitCostExact)),
           blockingFields,
         };
       }),
@@ -219,13 +295,22 @@ export function renormalizeImportItemData(value: unknown): NormalizedImportItem 
 }
 
 export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, candidates: ImportMatchCandidates): string {
+  const evidenceText = evidence.sources.map(source => source.text ?? '').join(' ').normalize('NFKD').toLowerCase();
+  const bounded = <T extends { name: string | null }>(values: T[]) => values.map((value, index) => ({ value, index, relevant: Boolean(value.name && evidenceText.includes(value.name.normalize('NFKD').toLowerCase())) }))
+    .sort((left, right) => Number(right.relevant) - Number(left.relevant) || left.index - right.index).slice(0, 50).map(entry => entry.value);
+  const providerCandidates = {
+    vendors: bounded(candidates.vendors).map(({ id, name }) => ({ id, name })),
+    journeys: bounded(candidates.journeys).map(({ id, name }) => ({ id, name })),
+    identities: bounded(candidates.identities ?? []).map(({ id, name, chineseName, category, year, originCountry, originRegion, type, form, classification, vendorName }) => ({ id, name, chineseName, category, year, originCountry, originRegion, type, form, classification, vendorName })),
+    products: bounded(candidates.products ?? []).map(({ id, compassEntryId, name, category, purpose }) => ({ id, compassEntryId, name, category, purpose })),
+  };
   return [
     'Extract a Curate inventory import as strict JSON. Preserve original Chinese names and translate to concise English.',
     'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. Use null or "unresolved" instead of guessing.',
     'Never infer priceBasis when the evidence is ambiguous; return "unknown" and explain uncertainty.',
     'Do not calculate totals. Return evidence values only. Application code performs all arithmetic.',
     'Use only vendor and journey candidates supplied for this account. Never invent candidate ids.',
-    `ACCOUNT_CANDIDATES=${JSON.stringify(candidates)}`,
+    `ACCOUNT_CANDIDATES=${JSON.stringify(providerCandidates)}`,
     `EVIDENCE=${JSON.stringify(evidence)}`,
   ].join('\n');
 }

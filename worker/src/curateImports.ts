@@ -153,18 +153,31 @@ function vendorMatch(name: string | null, vendors: ImportMatchCandidates['vendor
   return best;
 }
 
-function resolveIdentityCandidate(item: ReturnType<typeof renormalizeImportItemData>, candidates: NonNullable<ImportMatchCandidates['identities']>) {
-  const names = [item.englishName, item.originalName, typeof item.chineseName === 'string' ? item.chineseName : null].map(normalizedName).filter(Boolean);
+function resolveIdentityCandidate(item: ReturnType<typeof renormalizeImportItemData>, candidates: NonNullable<ImportMatchCandidates['identities']>, vendorName: string | null) {
+  const englishNames = [item.englishName, item.originalName].map(normalizedName).filter(Boolean);
+  const originalName = typeof item.originalName === 'string' ? item.originalName : '';
+  const chineseName = normalizedName(typeof item.chineseName === 'string' ? item.chineseName : /\p{Script=Han}/u.test(originalName) ? originalName : null);
   const ranked = candidates.map(candidate => {
     if (candidate.category !== item.category) return { candidate, score: 0 };
-    const candidateNames = [candidate.name, candidate.chineseName].map(normalizedName).filter(Boolean);
-    const exact = names.some(name => candidateNames.includes(name));
-    const weak = names.some(name => candidateNames.some(candidateName => name.includes(candidateName) || candidateName.includes(name)));
-    return { candidate, score: exact ? 1 : weak ? 0.7 : 0 };
+    const candidateName = normalizedName(candidate.name);
+    const candidateChinese = normalizedName(candidate.chineseName);
+    let score = englishNames.includes(candidateName) && candidateName ? 0.32
+      : englishNames.some(name => candidateName && (name.includes(candidateName) || candidateName.includes(name))) ? 0.16 : 0;
+    if (chineseName && candidateChinese && chineseName === candidateChinese) score += 0.18;
+    if (item.year != null && candidate.year != null && item.year === candidate.year) score += 0.1;
+    if (normalizedName(item.originCountry as string | null) && normalizedName(item.originCountry as string | null) === normalizedName(candidate.originCountry)) score += 0.08;
+    if (normalizedName(item.originRegion as string | null) && normalizedName(item.originRegion as string | null) === normalizedName(candidate.originRegion)) score += 0.1;
+    if (normalizedName(item.type as string | null) && normalizedName(item.type as string | null) === normalizedName(candidate.type)) score += 0.08;
+    if (normalizedName(item.form as string | null) && normalizedName(item.form as string | null) === normalizedName(candidate.form)) score += 0.07;
+    if (normalizedName(item.classification as string | null) && normalizedName(item.classification as string | null) === normalizedName(candidate.classification)) score += 0.07;
+    if (normalizedName(vendorName) && normalizedName(vendorName) === normalizedName(candidate.vendorName)) score += 0.08;
+    return { candidate, score };
   }).sort((a, b) => b.score - a.score);
   const best = ranked[0];
   if (!best || best.score === 0) return { duplicateResolution: 'new' as const, proposedCompassEntryId: null, proposedProductId: null };
-  return { duplicateResolution: best.score === 1 ? 'matched' as const : 'unresolved' as const, proposedCompassEntryId: best.candidate.id, proposedProductId: best.candidate.productId ?? null };
+  const runnerUp = ranked[1]?.score ?? 0;
+  const matched = best.score >= 0.72 && best.score - runnerUp >= 0.15;
+  return { duplicateResolution: matched ? 'matched' as const : 'unresolved' as const, proposedCompassEntryId: best.candidate.id, proposedProductId: matched ? best.candidate.productId ?? null : null };
 }
 
 function anthopicText(value: unknown): string {
@@ -233,11 +246,11 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
   try {
     const [sourcesResult, vendorsResult, priorVendorEvidenceResult, journeysResult, identitiesResult, productsResult, groupsResult, itemsResult] = await Promise.all([
       env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT id, name, company, email, phone, whatsapp, tags FROM customers WHERE account_id = ? ORDER BY name').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, name, company, tags FROM customers WHERE account_id = ? ORDER BY name LIMIT 200').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT proposed_vendor_name, resolved_vendor_customer_id FROM curate_import_vendor_groups WHERE account_id = ? AND resolved_vendor_customer_id IS NOT NULL').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT id, name FROM curate_journeys WHERE account_id = ? ORDER BY created_at DESC').bind(ctx.accountId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT id, name, chinese_name, category, draft_product_id FROM tea_compass_entries WHERE account_id = ? AND user_id = ? ORDER BY updated_at DESC').bind(ctx.accountId, ctx.userId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT id, source_compass_entry_id, product_name, given_name, type, inventory_purpose FROM products WHERE account_id = ?').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, name, chinese_name, category, draft_product_id, year, origin_region, type, form, vendor_name FROM tea_compass_entries WHERE account_id = ? AND user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(ctx.accountId, ctx.userId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, source_compass_entry_id, product_name, given_name, chinese_name, type, form, year, origin_country, origin_region, vendor, inventory_purpose FROM products WHERE account_id = ?').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
     ]);
@@ -245,13 +258,17 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
       const tags = parseJson(row.tags, []); return Array.isArray(tags) && tags.includes('vendor');
     }).map(row => ({
       id: String(row.id), name: String(row.name),
-      aliases: [row.company, row.email, row.phone, row.whatsapp, ...priorVendorEvidenceResult.results.filter(evidence => evidence.resolved_vendor_customer_id === row.id).map(evidence => evidence.proposed_vendor_name)]
+      aliases: [row.company, ...priorVendorEvidenceResult.results.filter(evidence => evidence.resolved_vendor_customer_id === row.id).map(evidence => evidence.proposed_vendor_name)]
         .filter(value => typeof value === 'string' && value) as string[],
     }));
+    const productsByIdentity = new Map(productsResult.results.filter(row => typeof row.source_compass_entry_id === 'string').map(row => [String(row.source_compass_entry_id), row]));
     const candidates: ImportMatchCandidates = {
       vendors,
       journeys: journeysResult.results.map(row => ({ id: String(row.id), name: String(row.name) })),
-      identities: identitiesResult.results.map(row => ({ id: String(row.id), name: typeof row.name === 'string' ? row.name : null, chineseName: typeof row.chinese_name === 'string' ? row.chinese_name : null, category: row.category === 'teaware' ? 'teaware' : 'tea', productId: typeof row.draft_product_id === 'string' ? row.draft_product_id : null })),
+      identities: identitiesResult.results.map(row => {
+        const product = productsByIdentity.get(String(row.id));
+        return { id: String(row.id), name: typeof row.name === 'string' ? row.name : typeof product?.given_name === 'string' ? product.given_name : null, chineseName: typeof row.chinese_name === 'string' ? row.chinese_name : typeof product?.chinese_name === 'string' ? product.chinese_name : null, category: row.category === 'teaware' ? 'teaware' : 'tea', productId: product ? String(product.id) : (typeof row.draft_product_id === 'string' ? row.draft_product_id : null), year: typeof row.year === 'number' ? row.year : typeof product?.year === 'string' ? Number(product.year) : null, originCountry: typeof product?.origin_country === 'string' ? product.origin_country : null, originRegion: typeof row.origin_region === 'string' ? row.origin_region : typeof product?.origin_region === 'string' ? product.origin_region : null, type: typeof row.type === 'string' ? row.type : typeof product?.type === 'string' ? product.type : null, form: typeof row.form === 'string' ? row.form : typeof product?.form === 'string' ? product.form : null, classification: typeof product?.type === 'string' ? product.type : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : typeof product?.vendor === 'string' ? product.vendor : null };
+      }),
       products: productsResult.results.map(row => ({ id: String(row.id), compassEntryId: typeof row.source_compass_entry_id === 'string' ? row.source_compass_entry_id : null, name: typeof row.given_name === 'string' ? row.given_name : typeof row.product_name === 'string' ? row.product_name : null, category: row.type === 'Teaware' ? 'teaware' : 'tea', purpose: typeof row.inventory_purpose === 'string' ? row.inventory_purpose : null })),
     };
     const { evidence, media } = await analysisEvidence(env, sourcesResult.results);
@@ -262,7 +279,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
     validateEvidenceReferences(normalized, evidence);
-    normalized.groups = normalized.groups.map(group => ({ ...group, items: group.items.map(item => renormalizeImportItemData({ ...item, ...resolveIdentityCandidate(item, candidates.identities ?? []) })) }));
+    normalized.groups = normalized.groups.map(group => ({ ...group, items: group.items.map(item => renormalizeImportItemData({ ...item, ...resolveIdentityCandidate(item, candidates.identities ?? [], group.proposedVendorName) })) }));
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
     const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
     const keptGroupIds = new Set<string>();
@@ -352,8 +369,10 @@ function parsedFinalizeItem(row: Record<string, unknown>) {
     quantity: typeof quantity === 'number' ? quantity : null, unit,
     packCount: typeof parsed.packCount === 'number' ? parsed.packCount : null,
     lineCost: typeof parsed.lineCost === 'number' ? parsed.lineCost : null,
+    lineCostExact: typeof parsed.lineCostExact === 'string' ? parsed.lineCostExact : null,
     currency: typeof parsed.currency === 'string' ? parsed.currency : null,
     unitCost: typeof parsed.unitCost === 'number' ? parsed.unitCost : null,
+    unitCostExact: typeof parsed.unitCostExact === 'string' ? parsed.unitCostExact : null,
     purpose: purpose === 'working' || purpose === 'sample' || purpose === 'personal' ? purpose : null,
     blockingFields: Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(value => typeof value === 'string') as string[] : [],
   } as const;
@@ -467,8 +486,8 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           const fingerprint = JSON.stringify({ batch_id: params.id, vendor_group_id: group.id, journey_id: journeyId, lines });
           const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id, account_id, state, vendor_name, source_kind, source_ref, created_by_user_id, idempotency_key, request_fingerprint) VALUES (?, ?, 'in_transit', ?, 'curate_import', ?, ?, ?, ?)`)
             .bind(receiptId, ctx.accountId, group.vendorName, journeyId ?? params.id, ctx.userId, key, fingerprint)];
-          for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id, receipt_id, account_id, product_id, expected_quantity, unit, intended_purpose, source_kind, source_ref, original_cost_amount, original_cost_currency, original_unit_cost, pack_count) VALUES (?, ?, ?, ?, ?, ?, ?, 'curate_import', ?, ?, ?, ?, ?)`)
-            .bind(crypto.randomUUID(), receiptId, ctx.accountId, line.productId, line.quantity, line.unit, line.purpose, line.itemId, line.originalCostAmount, line.originalCostCurrency, line.originalUnitCost, line.packCount));
+          for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id, receipt_id, account_id, product_id, expected_quantity, unit, intended_purpose, source_kind, source_ref, original_cost_amount, original_cost_currency, original_unit_cost, pack_count, original_cost_amount_exact, original_unit_cost_exact) VALUES (?, ?, ?, ?, ?, ?, ?, 'curate_import', ?, ?, ?, ?, ?, ?, ?)`)
+            .bind(crypto.randomUUID(), receiptId, ctx.accountId, line.productId, line.quantity, line.unit, line.purpose, line.itemId, line.originalCostAmount, line.originalCostCurrency, line.originalUnitCost, line.packCount, line.originalCostAmountExact, line.originalUnitCostExact));
           statements.push(env.DB.prepare('INSERT INTO curate_import_receipts (id, account_id, batch_id, vendor_group_id, inventory_receipt_id) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), ctx.accountId, params.id, group.id, receiptId));
           try { await env.DB.batch(statements); } catch (error) {
             const raced = await env.DB.prepare('SELECT inventory_receipt_id FROM curate_import_receipts WHERE account_id = ? AND vendor_group_id = ?').bind(ctx.accountId, group.id).first<Record<string, unknown>>();
@@ -480,7 +499,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           id: String(row.id), receiptId, itemId: String(row.source_ref), productId: String(row.product_id),
           compassEntryId: lines.find(line => line.itemId === row.source_ref)?.compassEntryId ?? '', quantity: Number(row.expected_quantity), unit: row.unit as 'g' | 'unit',
           purpose: row.intended_purpose as 'working' | 'sample' | 'personal', originalCostAmount: Number(row.original_cost_amount), originalCostCurrency: String(row.original_cost_currency),
-          originalUnitCost: Number(row.original_unit_cost), packCount: Number(row.pack_count),
+          originalUnitCost: Number(row.original_unit_cost), packCount: Number(row.pack_count), originalCostAmountExact: String(row.original_cost_amount_exact ?? row.original_cost_amount), originalUnitCostExact: String(row.original_unit_cost_exact ?? row.original_unit_cost),
         })) };
       },
       receiveLine,

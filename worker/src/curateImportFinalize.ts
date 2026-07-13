@@ -9,6 +9,7 @@ export interface CurateFinalizeItem {
   duplicateResolution?: 'new' | 'matched' | 'unresolved';
   quantity: number | null; unit: FinalizeUnit | null; packCount: number | null;
   lineCost: number | null; currency: string | null; unitCost: number | null;
+  lineCostExact?: string | null; unitCostExact?: string | null;
   purpose: FinalizePurpose | null; blockingFields: string[];
 }
 export interface CurateFinalizeData { batch: CurateFinalizeBatch; groups: CurateFinalizeGroup[]; items: CurateFinalizeItem[] }
@@ -18,6 +19,7 @@ export interface FinalizeReceiptLineInput {
   itemId: string; productId: string; compassEntryId: string; quantity: number; unit: FinalizeUnit;
   purpose: FinalizePurpose; originalCostAmount: number; originalCostCurrency: string;
   originalUnitCost: number; packCount: number;
+  originalCostAmountExact?: string; originalUnitCostExact?: string;
 }
 export interface FinalizeReceiptLine extends FinalizeReceiptLineInput { id: string; receiptId?: string }
 export interface FinalizeReceipt { id: string; groupId: string; lines: FinalizeReceiptLine[] }
@@ -101,6 +103,7 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
         itemId: item.id, productId: identity.productId, compassEntryId: identity.compassEntryId,
         quantity: item.quantity!, unit: item.unit!, purpose: item.purpose!, packCount: item.packCount!,
         originalCostAmount: item.lineCost!, originalCostCurrency: item.currency!, originalUnitCost: item.unitCost!,
+        originalCostAmountExact: item.lineCostExact ?? String(item.lineCost!), originalUnitCostExact: item.unitCostExact ?? String(item.unitCost!),
       };
     });
     const receipt = await ctx.createReceipt(group, lines, `${idempotencyKey}:receipt:${group.id}`, data.batch.journeyId);
