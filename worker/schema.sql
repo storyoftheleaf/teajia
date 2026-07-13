@@ -2,7 +2,7 @@
 -- Converted from Postgres db_setup.sql
 --
 -- Multi-account: every tenant-scoped table below has an `account_id TEXT`
--- column (added by migration 017). See migration 017_multi_account.sql for
+-- column (added by migration 017). See migration 017_multi_account_patched.sql for
 -- the full list of scoped tables and the accounts/account_members tables.
 
 -- TODO: Migrate existing Matcha and Flower products to Herbal
@@ -241,10 +241,27 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',  -- legacy: 'owner', 'admin', 'user'
     platform_role TEXT DEFAULT NULL,    -- NULL | 'platform_admin' | 'platform_owner' (one platform_owner max)
+    session_version INTEGER NOT NULL DEFAULT 0,
     admin_request_status TEXT NOT NULL DEFAULT 'none',  -- 'none', 'pending', 'approved', 'denied'
     admin_requested_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS private_recordings (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    object_key TEXT NOT NULL UNIQUE,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    transcript TEXT,
+    last_error_code TEXT,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_private_recordings_owner ON private_recordings(account_id, user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS mcp_confirmation_tickets (
   token_hash TEXT PRIMARY KEY,

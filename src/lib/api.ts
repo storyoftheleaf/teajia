@@ -1356,7 +1356,7 @@ export const api = {
     });
   },
 
-  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
+  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string; recording_id: string }> => {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
@@ -1365,6 +1365,12 @@ export const api = {
       body: formData,
     });
   },
+
+  retryTranscription: async (recordingId: string): Promise<{ text: string; recording_id: string }> =>
+    authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}/retry`, { method: 'POST' }),
+
+  discardTranscription: async (recordingId: string): Promise<{ ok: true }> =>
+    authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}`, { method: 'DELETE' }),
 
   uploadImage: async (
     file: File | Blob,

@@ -32,7 +32,7 @@ describe('inventory purpose compatibility', () => {
     const { id } = await created.json() as any;
     expect(db.products.get(id)).toMatchObject({ inventory_purpose: 'sample', is_sample: 1, is_personal: 0 });
     expect(db.listings.get(`list_${id}`)).toMatchObject({ inventory_purpose: 'sample', stock_known_at: db.products.get(id)?.stock_known_at });
-    expect((await receiptRequest(db, `/api/products/${id}`, { method: 'PUT', body: JSON.stringify({ inventory_purpose: 'personal', stock_grams: 5 }) })).status).toBe(200);
+    expect((await receiptRequest(db, `/api/products/${id}/stock`, { method: 'PUT', body: JSON.stringify({ inventory_purpose: 'personal', stock_grams: 5 }) })).status).toBe(200);
     expect(db.listings.get(`list_${id}`)).toMatchObject({ inventory_purpose: 'personal', is_personal: 1, is_sample: 0, stock_grams: 5 });
   });
 

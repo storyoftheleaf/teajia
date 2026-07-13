@@ -13,7 +13,8 @@ class VerificationDb {
       bind: (...input: any[]) => { values = input; return statement; },
       first: async () => {
         if (normalized.includes('from verification_challenges')) return this.challenges.filter(row => row.contact_normalized === values[0] && row.purpose === values[1]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
-        if (normalized.includes('from users where lower(email)')) return values[0] === this.user.email ? this.user : null;
+        if (normalized.includes('from users where lower(email)')) return values[0] === this.user.email ? { ...this.user, session_version: 0 } : null;
+        if (normalized.includes('select session_version from users where id')) return { session_version: 0 };
         if (normalized.includes('from event_attendees') && normalized.includes('magic_token')) return values[0] === 'magic' && values.includes('guest@example.com') ? { id: 'attendee-1', account_id: 'account-platform', event_id: 'event-1' } : null;
         if (normalized.includes('from customers')) return values.includes('guest@example.com') && (!normalized.includes('account_id = ?') || values.includes('account-platform')) ? { id: 'customer-1', account_id: 'account-platform', name: 'Guest', phone: null, email: 'guest@example.com' } : null;
         if (normalized.includes('from accounts where is_platform_owner')) return { id: 'account-platform' };

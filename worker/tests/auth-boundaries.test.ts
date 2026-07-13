@@ -18,6 +18,8 @@ type FakeDbOptions = {
   customerRelationshipKinds?: string[];
   customerExists?: boolean;
   authDependencyFailure?: boolean;
+  sessionVersion?: number;
+  userExists?: boolean;
 };
 
 function b64encodeUtf8(str: string): string {
@@ -67,7 +69,7 @@ class FakeStatement {
 
   async first() {
     const sql = normalizeSql(this.sql);
-    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists, authDependencyFailure } = this.options;
+    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists, authDependencyFailure, sessionVersion, userExists } = this.options;
 
     if (sql.includes('from mcp_tokens where token_hash = ?')) {
       return {
@@ -79,9 +81,17 @@ class FakeStatement {
         scopes: JSON.stringify(mcpScopes),
       };
     }
-    if (sql.includes('select platform_role from users where id = ?')) {
+    if (sql.includes('select session_version from users where id = ?')) {
       if (authDependencyFailure) throw new Error('D1 unavailable');
-      return { platform_role: platformRole };
+      return userExists ? { session_version: sessionVersion } : null;
+    }
+    if (sql.includes('select platform_role') && sql.includes('from users where id = ?')) {
+      if (authDependencyFailure) throw new Error('D1 unavailable');
+      return userExists ? { platform_role: platformRole, session_version: sessionVersion } : null;
+    }
+    if (sql.includes('select id, email, username, name, role, platform_role, session_version from users where id = ?')) {
+      if (authDependencyFailure) throw new Error('D1 unavailable');
+      return userExists ? { id: userId, email, username: null, name: 'Test User', role: 'staff', platform_role: platformRole, session_version: sessionVersion } : null;
     }
     if (sql.includes('select id, email, platform_role from users where id = ?')) {
       return { id: userId, email, platform_role: platformRole };
@@ -176,6 +186,8 @@ function makeEnv(options: FakeDbOptions = {}) {
     customerRelationshipKinds: options.customerRelationshipKinds ?? ['buyer'],
     customerExists: options.customerExists ?? true,
     authDependencyFailure: options.authDependencyFailure ?? false,
+    sessionVersion: options.sessionVersion ?? 0,
+    userExists: options.userExists ?? true,
   };
   return {
     JWT_SECRET,
@@ -185,9 +197,9 @@ function makeEnv(options: FakeDbOptions = {}) {
 
 async function authedRequest(
   path: string,
-  options: RequestInit & { role?: MembershipRole; bundles?: string[]; platformRole?: string | null } = {},
+  options: RequestInit & { role?: MembershipRole; bundles?: string[]; platformRole?: string | null; tokenSessionVersion?: number } = {},
 ) {
-  const token = await signJwt({ platform_role: options.platformRole ?? null });
+  const token = await signJwt({ platform_role: options.platformRole ?? null, session_version: options.tokenSessionVersion ?? 0 });
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${token}`);
   headers.set('X-Teajia-Account', ACCOUNT_ID);
@@ -196,6 +208,36 @@ async function authedRequest(
 }
 
 describe('worker authorization boundaries', () => {
+  it('rejects deleted and session-invalidated users and fails closed when auth storage is unavailable', async () => {
+    for (const [env, code, status] of [
+      [makeEnv({ userExists: false }), 'auth_user_missing', 401],
+      [makeEnv({ sessionVersion: 2 }), 'auth_session_invalid', 401],
+      [makeEnv({ authDependencyFailure: true }), 'auth_dependency_unavailable', 503],
+    ] as const) {
+      const response = await worker.fetch(await authedRequest('/api/auth/me'), env);
+      expect(response.status).toBe(status);
+      expect(await response.json()).toMatchObject({ code });
+    }
+  });
+
+  it('refreshes only existing users at the current session version and uses the fresh platform role', async () => {
+    const missing = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST' }), makeEnv({ userExists: false }));
+    expect(missing.status).toBe(401);
+    expect(await missing.json()).toMatchObject({ code: 'auth_user_missing' });
+
+    const stale = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST' }), makeEnv({ sessionVersion: 1 }));
+    expect(stale.status).toBe(401);
+    expect(await stale.json()).toMatchObject({ code: 'auth_session_invalid' });
+
+    const unavailable = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST' }), makeEnv({ authDependencyFailure: true }));
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({ code: 'auth_dependency_unavailable' });
+
+    const demoted = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST', platformRole: 'platform_admin' }), makeEnv({ platformRole: null }));
+    expect(demoted.status).toBe(200);
+    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(((await demoted.json()) as any).token.split('.')[1]), c => c.charCodeAt(0))));
+    expect(claims.platform_role).toBeNull();
+  });
   it.each([
     ['/api/generate-chinese-name', 'catalog'],
     ['/api/transcribe', 'catalog'],

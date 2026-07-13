@@ -124,6 +124,7 @@ export interface TokenClaims {
   platform_role?: PlatformRole;
   memberships?: AccountMembership[];
   active_account_id?: string | null;
+  session_version?: number;
   iat?: number;
   exp?: number;
 }
@@ -350,6 +351,7 @@ async function maybeIssueRefreshedToken(
     memberships,
     active_account_id: activeAccountId,
     ...(claims as any).username ? { username: (claims as any).username } : {},
+    session_version: Number(claims.session_version || 0),
   } as Omit<TokenClaims, 'iat' | 'exp'>);
 }
 
@@ -536,10 +538,16 @@ async function getActiveAccount(
   // Tokens are signed and tamper-resistant, but signed claims still go stale.
   let dbPlatformRole: PlatformRole = null;
   try {
-    const userRow = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
+    const userRow = await env.DB.prepare('SELECT platform_role, session_version FROM users WHERE id = ?').bind(claims.sub).first()
+      // Legacy test/local adapters may expose the pre-116 projection. Real D1
+      // returns the first query; the fallback is removable after those adapters converge.
+      || await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
     if (!userRow) {
       // User row missing — treat as fully unauthorized (account deleted, etc.)
       return { error: restError(401, 'Unauthorized', 'auth_invalid') };
+    }
+    if (Number(userRow.session_version || 0) !== Number(claims.session_version || 0)) {
+      return { error: restError(401, 'Unauthorized', 'auth_session_invalid') };
     }
     dbPlatformRole = (userRow.platform_role as PlatformRole) ?? null;
   } catch {
@@ -741,8 +749,8 @@ async function resolveDbPlatformRole(env: Env, userId: string): Promise<Platform
 async function requirePlatformOwner(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
   const dbRole = await resolveDbPlatformRole(env, claims.sub);
@@ -759,8 +767,8 @@ async function requirePlatformOwner(request: Request, env: Env): Promise<Respons
 async function requirePlatformAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
   const dbRole = await resolveDbPlatformRole(env, claims.sub);
@@ -1056,9 +1064,26 @@ function buildProductMirrorInserts(
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  return validateSessionToken(token, env);
+}
+
+async function validateSessionToken(token: string, env: Env): Promise<Response | null> {
   const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
-  return null;
+  if (status !== 'valid') return restError(401, 'Unauthorized', `auth_${status}`);
+  const claims = parseToken(token);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  if (claims.sub === 'env-admin') return null;
+  try {
+    const user = await env.DB.prepare('SELECT session_version FROM users WHERE id = ?').bind(claims.sub).first()
+      || await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
+    if (!user) return restError(401, 'Unauthorized', 'auth_user_missing');
+    if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+      return restError(401, 'Unauthorized', 'auth_session_invalid');
+    }
+    return null;
+  } catch {
+    return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' });
+  }
 }
 
 // Re-read the user's role from the DB rather than trusting the JWT `role`
@@ -1078,8 +1103,8 @@ async function resolveDbUserRole(env: Env, userId: string): Promise<string | nul
 async function requireAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
 
@@ -1319,6 +1344,7 @@ const handleLogin: Handler = async (request, env) => {
         username: (user.username as string | null) ?? null,
         memberships,
         active_account_id: activeAccountId,
+        session_version: Number(user.session_version || 0),
       });
       return json({
         token,
@@ -1356,6 +1382,7 @@ const handleLogin: Handler = async (request, env) => {
       name: 'Dev Admin',
       memberships,
       active_account_id: activeAccountId,
+      session_version: 0,
     });
     return json({
       token,
@@ -1386,6 +1413,7 @@ const handleLogin: Handler = async (request, env) => {
       name: 'Admin',
       memberships,
       active_account_id: BALI_ACCOUNT_ID,
+      session_version: 0,
     });
     return json({
       token,
@@ -1458,6 +1486,7 @@ const handleSignup: Handler = async (request, env) => {
     username,
     memberships,
     active_account_id: null,
+    session_version: 0,
   });
 
   if (env.SENDER_EMAIL) {
@@ -1533,15 +1562,18 @@ const handleRefreshToken: Handler = async (request, env) => {
   let user: Record<string, unknown> | null = null;
   try {
     user = await env.DB.prepare(
-      'SELECT id, email, username, name, role, platform_role FROM users WHERE id = ?'
+      'SELECT id, email, username, name, role, platform_role, session_version FROM users WHERE id = ?'
     ).bind(claims.sub).first() as any;
   } catch {
-    // If the users table is unavailable (e.g., early bootstrap), fall back
-    // to claims so we at least don't kick out the dev admin.
+    return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' });
+  }
+  if (!user) return restError(401, 'Unauthorized', 'auth_user_missing');
+  if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+    return restError(401, 'Unauthorized', 'auth_session_invalid');
   }
 
   const memberships = await loadMemberships(env, claims.sub);
-  const platformRole = (user?.platform_role as PlatformRole) ?? claims.platform_role ?? null;
+  const platformRole = (user.platform_role as PlatformRole) ?? null;
   const activeAccountId = claims.active_account_id
     || await resolveInitialAccountId(env, platformRole, memberships);
 
@@ -1554,6 +1586,7 @@ const handleRefreshToken: Handler = async (request, env) => {
     username: (user?.username as string | null) ?? (claims as any).username ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(user.session_version || 0),
   });
 
   return json({
@@ -1593,7 +1626,7 @@ const handleChangePassword: Handler = async (request, env) => {
   }
 
   const newHash = await hashPasswordPBKDF2(newPassword);
-  await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, claims.sub).run();
+  await env.DB.prepare('UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?').bind(newHash, claims.sub).run();
 
   return json({ ok: true, message: hasExisting ? 'Password changed successfully' : 'Password set successfully' });
 };
@@ -1694,7 +1727,7 @@ const handleUpdateProfile: Handler = async (request, env) => {
   binds.push(claims.sub);
   await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
 
-  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, session_version FROM users WHERE id = ?').bind(claims.sub).first();
 
   // Issue fresh token with updated claims, preserving account context.
   const memberships = await loadMemberships(env, updatedUser!.id as string);
@@ -1709,6 +1742,7 @@ const handleUpdateProfile: Handler = async (request, env) => {
     username: (updatedUser!.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(updatedUser!.session_version || claims.session_version || 0),
   });
 
   return json({ token: newToken, user: updatedUser });
@@ -1911,7 +1945,7 @@ const handleResetPassword: Handler = async (request, env) => {
 
   const newHash = await hashPasswordPBKDF2(newPassword);
   await env.DB.batch([
-    env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, resetRecord.user_id),
+    env.DB.prepare('UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?').bind(newHash, resetRecord.user_id),
     env.DB.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').bind(resetRecord.id),
   ]);
 
@@ -2024,6 +2058,7 @@ const handleGoogleCallback: Handler = async (request, env) => {
     username: (user.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(user.session_version || 0),
   });
 
   return Response.redirect(`${appOrigin}${returnPath}#oauth_token=${token}`, 302);
@@ -5817,7 +5852,32 @@ const handleTranscribe: Handler = async (request, env) => {
   const fileError = await validateUpload(file, 'audio', MAX_AUDIO_BYTES);
   if (fileError) return fileError;
 
-  // Forward to Groq Whisper API
+  if (!env.MEDIA_BUCKET) return restError(503, 'Private recording storage unavailable', 'storage_unavailable');
+  const recordingId = crypto.randomUUID();
+  const recordingKey = `private-recordings/${ctx.accountId}/${ctx.userId}/${recordingId}.${safeUploadExtension(file.type)}`;
+  const bytes = await file.arrayBuffer();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await env.MEDIA_BUCKET.put(recordingKey, bytes, {
+    httpMetadata: { contentType: file.type },
+    customMetadata: { account_id: ctx.accountId, user_id: ctx.userId, expires_at: expiresAt },
+  });
+  await env.DB.prepare(
+    `INSERT INTO private_recordings (id, account_id, user_id, object_key, mime_type, size_bytes, status, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`
+  ).bind(recordingId, ctx.accountId, ctx.userId, recordingKey, file.type, file.size, expiresAt).run();
+
+  const transcribed = await transcribePrivateRecording(env, new File([bytes], file.name || `recording.${safeUploadExtension(file.type)}`, { type: file.type }));
+  if ('error' in transcribed) {
+    await env.DB.prepare("UPDATE private_recordings SET status = 'failed', last_error_code = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(transcribed.code, recordingId).run();
+    return json({ error: transcribed.error, code: transcribed.code, recording_id: recordingId, retryable: true }, transcribed.status);
+  }
+  await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(transcribed.text, recordingId).run();
+  return json({ text: transcribed.text, recording_id: recordingId });
+};
+
+async function transcribePrivateRecording(env: Env, file: File): Promise<{ text: string } | { error: string; code: string; status: number }> {
   const groqForm = new FormData();
   groqForm.append('file', file, file.name || 'recording.webm');
   groqForm.append('model', 'whisper-large-v3-turbo');
@@ -5835,11 +5895,49 @@ const handleTranscribe: Handler = async (request, env) => {
     // Log the upstream detail; return a generic message so the raw Groq error
     // body (which can carry request internals) never reaches the client.
     console.error(`Transcription upstream error: ${groqRes.status} — ${errText}`);
-    return restError(502, 'Transcription failed', 'provider_error');
+    return { error: 'Transcription failed', code: 'provider_error', status: 502 };
   }
 
   const result = await groqRes.json() as { text: string };
-  return json({ text: result.text });
+  return { text: result.text };
+}
+
+const handleRetryTranscription: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
+  if (limited) return limited;
+  if (!env.GROQ_API_KEY) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
+  const row = await env.DB.prepare(
+    'SELECT id, object_key, mime_type FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
+  ).bind(params.id, ctx.accountId, ctx.userId).first();
+  if (!row) return restError(404, 'Recording not found', 'recording_not_found');
+  const object = await env.MEDIA_BUCKET.get(row.object_key as string);
+  if (!object) return restError(410, 'Recording audio is no longer available', 'recording_expired');
+  const bytes = await object.arrayBuffer();
+  const file = new File([bytes], `recording.${safeUploadExtension(row.mime_type as string)}`, { type: row.mime_type as string });
+  const result = await transcribePrivateRecording(env, file);
+  if ('error' in result) {
+    await env.DB.prepare("UPDATE private_recordings SET status = 'failed', last_error_code = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(result.code, params.id).run();
+    return json({ error: result.error, code: result.code, recording_id: params.id, retryable: true }, result.status);
+  }
+  await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?")
+    .bind(result.text, params.id).run();
+  return json({ text: result.text, recording_id: params.id });
+};
+
+const handleDiscardTranscription: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare(
+    'SELECT object_key FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
+  ).bind(params.id, ctx.accountId, ctx.userId).first();
+  if (!row) return restError(404, 'Recording not found', 'recording_not_found');
+  await env.MEDIA_BUCKET.delete(row.object_key as string);
+  await env.DB.prepare('DELETE FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?')
+    .bind(params.id, ctx.accountId, ctx.userId).run();
+  return json({ ok: true });
 };
 
 // ── Migrate Tasting Data (AI-assisted) ──
@@ -6719,6 +6817,9 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
+  const rsvpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${rsvpIp}:create`);
+  if (limited) return limited;
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
@@ -6754,10 +6855,9 @@ const handleRSVP: Handler = async (request, env, params) => {
 
   if (existing) {
     return json({
-      magic_token: existing.magic_token,
-      status: existing.status,
-      redirect_url: `/m/${existing.magic_token}`,
+      ok: true,
       existing: true,
+      message: 'An RSVP already exists. Use RSVP recovery to receive its private link.',
     });
   }
 
@@ -7220,13 +7320,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   // Rate limit: this endpoint accepts a bare phone number / email, so it must
   // not be brute-forceable. Durable limiter when bound; in-memory fallback.
   const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.LOGIN_LIMITER) {
-    const { success } = await env.LOGIN_LIMITER.limit({ key: `findrsvp:${frIp}` });
-    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
-  }
-  if (!checkRateLimit(`findrsvp:${frIp}`, 10, 60000)) {
-    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
-  }
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${frIp}:recover`);
+  if (limited) return limited;
 
   let lookupField: string;
   let lookupValue: string;
@@ -7237,8 +7332,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   const hasBody = contentLength !== null && contentLength !== '0';
 
   if (token && !hasBody) {
-    const status = await classifyToken(token, env.JWT_SECRET);
-    if (status !== 'valid') return json({ error: 'Unauthorized' }, 401);
+    const sessionError = await validateSessionToken(token, env);
+    if (sessionError) return sessionError;
     const claims = parseToken(token);
     if (!claims?.email) return json({ error: 'Account email not found' }, 400);
     lookupField = 'email';
@@ -11077,7 +11172,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
     if (!user) return json(genericError, 401);
     const memberships = await loadMemberships(env, user.id as string);
     const activeAccountId = memberships[0]?.account_id || null;
@@ -11087,6 +11182,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
       platform_role: platformRole, name: user.name as string,
       username: (user.username as string | null) ?? null, memberships,
       active_account_id: activeAccountId,
+      session_version: Number(user.session_version || 0),
     });
     return json({ token, user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role, platform_role: platformRole }, memberships, active_account_id: activeAccountId });
   }
@@ -12678,6 +12774,7 @@ const handleSwitchAccount: Handler = async (request, env) => {
     platform_role: claims.platform_role,
     memberships,
     active_account_id: body.account_id,
+    session_version: Number(claims.session_version || 0),
   });
 
   return json({ token: newToken, active_account_id: body.account_id, memberships });
@@ -15295,6 +15392,7 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
     username: (user.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(user.session_version || 0),
   });
 
   return json({
@@ -20078,6 +20176,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
   ['POST', '/api/generate-chinese-name', handleGenerateChineseName],
   ['POST', '/api/transcribe', handleTranscribe],
+  ['POST', '/api/transcriptions/:id/retry', handleRetryTranscription],
+  ['DELETE', '/api/transcriptions/:id', handleDiscardTranscription],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 
   // Events — Public
@@ -20466,7 +20566,7 @@ export default {
       if (!key) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       // Curate evidence can contain private invoices and vendor conversations.
       // It must never pass through the public product-media endpoint.
-      if (key.startsWith('curate/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      if (key.startsWith('curate/') || key.startsWith('private-recordings/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const obj = await env.MEDIA_BUCKET.get(key);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();

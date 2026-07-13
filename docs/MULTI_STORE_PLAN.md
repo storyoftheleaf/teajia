@@ -36,7 +36,7 @@ A visitor on `/store/teajia-bali` will never see Australia stock. There is **no 
 
 ## Data Model
 
-**New tables** (`worker/migrations/017_multi_account.sql`):
+**New tables** (`worker/migrations/017_multi_account_patched.sql`):
 
 - **`accounts`** — id, slug, name, tagline, description, logo_url, cover_image_url, location_city, location_country, timezone, currency_default, whatsapp_number, contact_email, public_enabled, invoice_prefix, owner_user_id, status, trust_tier, is_platform_owner, ships_to_countries, created_at, updated_at
 - **`account_members`** — (account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status); UNIQUE(account_id, user_id); role ∈ `owner | manager | staff | viewer`
@@ -174,7 +174,7 @@ VALUES ('acc_<id>', '<slug>', '<Display Name>', '<City>', '<Country>', '<Timezon
 
 | File | Purpose |
 |---|---|
-| `worker/migrations/017_multi_account.sql` | Foundation migration: accounts, members, tea_reviews, backfill, seeds |
+| `worker/migrations/017_multi_account_patched.sql` | Foundation migration: accounts, members, tea_reviews, backfill, seeds |
 | `worker/schema.sql` | Canonical schema reference (updated) |
 | `worker/src/index.ts` | JWT claims, `requireAccount`, scoped handlers, new account/network/storefront endpoints |
 | `src/lib/api.ts` | `X-Teajia-Account` header injection, `api.accounts.*`, `hydrateAccountStateFromToken()` |
