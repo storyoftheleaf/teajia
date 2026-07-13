@@ -172,11 +172,11 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
   return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET, MEDIA_BUCKET: bucket, ANTHROPIC_API_KEY: 'test-anthropic-key' } as any);
 }
 
-function itemProposal(sourceItemId: string) {
+function itemProposal(sourceItemId: string, evidenceRef = 'source') {
   return {
     sourceItemId, category: 'tea', originalName: '台灣茶', englishName: 'Taiwan Tea', packWeight: 100,
     weightUnit: 'g', packCount: 1, priceAmount: 20, currency: 'USD', priceBasis: 'line_total',
-    confidence: {}, uncertainty: {}, evidenceRefs: ['source'],
+    confidence: {}, uncertainty: {}, evidenceRefs: [evidenceRef],
     acquired: true, duplicateResolution: 'unresolved',
   };
 }
@@ -189,12 +189,12 @@ describe('Curate import provenance API', () => {
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
       title: 'Chen list', journey_id: null, source_kind: 'paste', pasted_text: '云南古树生普 500g ×2 ¥380',
     }) });
-    const { batch } = await created.json() as any;
+    const { batch, sources } = await created.json() as any;
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
       overview: '1 tea found', language: 'zh', groups: [{ key: 'chen', proposedVendorName: 'Chen Family Tea', items: [{
         sourceItemId: 'line-1', category: 'tea', originalName: '云南古树生普', englishName: 'Yunnan Ancient Tree Raw Pu’er',
         packWeight: 500, weightUnit: 'g', packCount: 2, priceAmount: 380, currency: 'CNY', priceBasis: 'per_pack',
-        confidence: { originalName: 0.99 }, uncertainty: {}, evidenceRefs: ['source:0-15'],
+        confidence: { originalName: 0.99 }, uncertainty: {}, evidenceRefs: [`${sources[0].id}:0-15`],
       }]}],
     }) }] }), { status: 200 }));
     const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
@@ -211,11 +211,11 @@ describe('Curate import provenance API', () => {
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Chen Family Tea', company: 'Chen', tags: '["vendor"]' });
     db.customers.set('vendor-b', { id: 'vendor-b', account_id: 'account-b', name: 'Foreign Vendor', tags: '["vendor"]' });
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendors', pasted_text: 'two lists' }) });
-    const { batch } = await created.json() as any;
+    const { batch, sources } = await created.json() as any;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
       overview: '2 teas', language: 'en', groups: [
-        { key: 'exact', proposedVendorName: 'Chen Family Tea', items: [{ ...itemProposal('one'), sourceItemId: 'one' }] },
-        { key: 'weak', proposedVendorName: 'Chen Family', items: [{ ...itemProposal('two'), sourceItemId: 'two' }] },
+        { key: 'exact', proposedVendorName: 'Chen Family Tea', items: [{ ...itemProposal('one', sources[0].id), sourceItemId: 'one' }] },
+        { key: 'weak', proposedVendorName: 'Chen Family', items: [{ ...itemProposal('two', sources[0].id), sourceItemId: 'two' }] },
       ],
     }) }] }), { status: 200 }));
     const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
@@ -234,9 +234,9 @@ describe('Curate import provenance API', () => {
     db.compass.set('entry-exact', { id: 'entry-exact', account_id: 'account-a', user_id: 'user-a', name: 'Taiwan Tea', category: 'tea', draft_product_id: 'product-exact' });
     db.products.set('product-exact', { id: 'product-exact', account_id: 'account-a', source_compass_entry_id: 'entry-exact', type: 'Oolong', inventory_purpose: 'working' });
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Identity', pasted_text: 'Taiwan Tea' }) });
-    const { batch } = await created.json() as any;
+    const { batch, sources } = await created.json() as any;
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
-      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('identity-source')] }],
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('identity-source', sources[0].id)] }],
     }) }] }), { status: 200 }));
     const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
     expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-exact', proposedProductId: 'product-exact' });
@@ -246,21 +246,69 @@ describe('Curate import provenance API', () => {
   it('sends stored text files as extracted text rather than only an R2 key', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Text file' }) });
-    const { batch } = await created.json() as any;
+    const { batch, sources } = await created.json() as any;
     db.sources.set('source-text', { id: 'source-text', batch_id: batch.id, account_id: 'account-a', created_by_user_id: 'user-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/vendor.csv`, metadata_json: '{"content_type":"text/csv"}' });
     const bucket = { get: async () => ({ body: new Response('name,weight\nTaiwan Tea,500g').body }) } as unknown as R2Bucket;
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('csv-1')] }] }) }] }), { status: 200 }));
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('csv-1', 'source-text')] }] }) }] }), { status: 200 }));
     expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket)).status).toBe(200);
     const aiBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
     expect(aiBody.messages[0].content.at(-1).text).toContain('name,weight\\nTaiwan Tea,500g');
   });
 
+  it('rejects analysis when the batch has no usable evidence', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Empty' }) });
+    const { batch, sources } = await created.json() as any;
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    expect(analyzed.status).toBe(422);
+    expect(await analyzed.json()).toMatchObject({ code: 'analysis_no_usable_evidence' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports DOC and DOCX evidence as unsupported for AI analysis', async () => {
+    for (const contentType of ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']) {
+      const db = new ImportDb();
+      const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Word document' }) });
+      const { batch } = await created.json() as any;
+      db.sources.set('word', { id: 'word', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/file`, metadata_json: JSON.stringify({ content_type: contentType }) });
+      const bucket = { get: async () => ({ body: new Response('binary').body }) } as unknown as R2Bucket;
+      const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket);
+      expect(analyzed.status).toBe(415);
+      expect(await analyzed.json()).toMatchObject({ code: 'analysis_unsupported_document' });
+    }
+  });
+
+  it('caps aggregate evidence source count before calling the AI provider', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Too many', pasted_text: 'seed' }) });
+    const { batch } = await created.json() as any;
+    for (let index = 0; index < 50; index++) db.sources.set(`extra-${index}`, { id: `extra-${index}`, batch_id: batch.id, account_id: 'account-a', kind: 'paste', pasted_text: 'tea', metadata_json: '{}' });
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    expect(analyzed.status).toBe(502);
+    expect(await analyzed.json()).toMatchObject({ code: 'analysis_too_many_sources' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects AI evidence references that do not name a source in the batch', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Refs', pasted_text: 'Taiwan Tea' }) });
+    const { batch } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [{ ...itemProposal('one'), evidenceRefs: ['foreign-source:1-2'] }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    expect(analyzed.status).toBe(502);
+    expect(await analyzed.json()).toMatchObject({ code: 'analysis_invalid_evidence_reference' });
+  });
+
   it('preserves manually corrected parsed fields across safe analysis reruns', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Rerun', pasted_text: '500g x2' }) });
-    const { batch } = await created.json() as any;
+    const { batch, sources } = await created.json() as any;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
-      overview: 'one', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Vendor', items: [itemProposal('stable-source')] }],
+      overview: 'one', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Vendor', items: [itemProposal('stable-source', sources[0].id)] }],
     }) }] }), { status: 200 }));
     const first = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
     const reviewed = { ...first.items[0].parsed_data, englishName: 'My corrected inventory name' };
@@ -316,6 +364,17 @@ describe('Curate import provenance API', () => {
     expect((await retry.json() as any).vendor.id).toBe(body.vendor.id);
     expect(db.customers).toHaveLength(1);
     expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Changed Farm' }) })).status).toBe(409);
+  });
+
+  it('conflicts when a concurrent deterministic vendor winner has a different name', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendor race' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-race', { id: 'group-race', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'race', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.customers.set('curate-vendor-group-race', { id: 'curate-vendor-group-race', account_id: 'account-a', name: 'First Farm', tags: '["vendor"]' });
+    const response = await request(db, `/api/curate/imports/${batch.id}/groups/group-race/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Second Farm' }) });
+    expect(response.status).toBe(409);
+    expect(db.groups.get('group-race')?.resolved_vendor_customer_id).toBeNull();
   });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();

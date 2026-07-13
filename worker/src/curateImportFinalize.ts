@@ -6,6 +6,7 @@ export interface CurateFinalizeGroup { id: string; vendorId: string | null; vend
 export interface CurateFinalizeItem {
   id: string; groupId: string; category: 'tea' | 'teaware'; name: string;
   compassEntryId: string | null; productId: string | null;
+  duplicateResolution?: 'new' | 'matched' | 'unresolved';
   quantity: number | null; unit: FinalizeUnit | null; packCount: number | null;
   lineCost: number | null; currency: string | null; unitCost: number | null;
   purpose: FinalizePurpose | null; blockingFields: string[];
@@ -44,12 +45,14 @@ export class CurateImportFinalizeError extends Error {
 
 export function validateImportForFinalization(data: CurateFinalizeData): FinalizeValidationIssue[] {
   const issues: FinalizeValidationIssue[] = [];
+  if (data.batch.reviewState !== 'reviewing') issues.push({ field: 'reviewState', message: 'Only imports under review can be finalized' });
   if (!data.groups.length) issues.push({ field: 'groups', message: 'At least one vendor group is required' });
   if (!data.items.length) issues.push({ field: 'items', message: 'At least one inventory item is required' });
   for (const group of data.groups) if (!group.vendorId) issues.push({ field: 'vendor', groupId: group.id, message: 'Choose a vendor for this group' });
   for (const group of data.groups) if (!data.items.some(item => item.groupId === group.id)) issues.push({ field: 'items', groupId: group.id, message: 'Vendor receipt cannot be empty' });
   const groupIds = new Set(data.groups.map(group => group.id));
   for (const item of data.items) {
+    if (item.duplicateResolution === 'matched' && (!item.compassEntryId || !item.productId)) issues.push({ field: 'duplicateResolution', itemId: item.id, message: 'Matched identity and holding must both exist' });
     if (!groupIds.has(item.groupId)) issues.push({ field: 'vendor', itemId: item.id, message: 'Item has no vendor group' });
     for (const field of item.blockingFields) issues.push({ field, itemId: item.id, message: `Review ${field}` });
     if (!Number.isFinite(item.quantity) || Number(item.quantity) <= 0) issues.push({ field: 'quantity', itemId: item.id, message: 'Quantity is required' });

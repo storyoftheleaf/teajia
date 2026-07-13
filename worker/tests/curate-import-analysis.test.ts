@@ -63,6 +63,13 @@ describe('Curate import analysis domain', () => {
     expect(() => decodeImportAnalysisProposal(proposal({ uncertainty: [] as never }))).toThrow(/uncertainty/);
   });
 
+  it.each([
+    { year: '2020' }, { year: 10000 }, { form: 42 }, { classification: 'x'.repeat(501) },
+    { description: 'x'.repeat(5001) }, { originRegion: [] },
+  ])('strictly validates optional metadata: %j', override => {
+    expect(() => decodeImportAnalysisProposal(proposal(override as never))).toThrow(/Invalid/);
+  });
+
   it('rejects unknown fields and empty proposals', () => {
     expect(() => decodeImportAnalysisProposal({ ...proposal(), injected: true })).toThrow(/Unknown proposal field/);
     expect(() => decodeImportAnalysisProposal({ overview: 'none', language: 'en', groups: [] })).toThrow(/groups/);

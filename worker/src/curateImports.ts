@@ -174,12 +174,16 @@ function anthopicText(value: unknown): string {
 }
 
 async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>[]) {
+  if (sources.length > 50) throw new Error('analysis_too_many_sources');
   const evidenceSources: Array<{ id: string; kind: string; text?: string | null; mediaType?: string | null; objectKey?: string | null }> = [];
   const media: Array<Record<string, unknown>> = [];
+  let totalText = 0;
+  let totalMediaBytes = 0;
   for (const source of sources) {
     let extractedText = typeof source.pasted_text === 'string' ? source.pasted_text : null;
     const metadata = parseJson(source.metadata_json, {}) as Record<string, unknown>;
     const mediaType = typeof metadata.content_type === 'string' ? metadata.content_type : 'application/octet-stream';
+    if (mediaType === 'application/msword' || mediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') throw new Error('analysis_unsupported_document');
     if (typeof source.r2_object_key === 'string' && env.MEDIA_BUCKET) {
       const stored = await env.MEDIA_BUCKET.get(source.r2_object_key);
       if (stored) {
@@ -189,15 +193,28 @@ async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>
           extractedText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
           if (extractedText.length > 500_000) throw new Error('analysis_text_too_large');
         } else if (mediaType.startsWith('image/') || mediaType === 'application/pdf') {
+          if (media.length >= 20 || (totalMediaBytes += bytes.byteLength) > 20 * 1024 * 1024) throw new Error('analysis_media_total_too_large');
           let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
           if (mediaType.startsWith('image/')) media.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
           else media.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
         }
       }
     }
+    if (extractedText) {
+      totalText += extractedText.length;
+      if (totalText > 1_000_000) throw new Error('analysis_text_total_too_large');
+    }
     evidenceSources.push({ id: String(source.id), kind: String(source.kind), text: extractedText, mediaType, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null });
   }
+  if (!evidenceSources.some(source => Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
   return { evidence: { sources: evidenceSources }, media };
+}
+
+function validateEvidenceReferences(proposal: ReturnType<typeof normalizeImportProposal>, evidence: { sources: Array<{ id: string }> }) {
+  const ids = new Set(evidence.sources.map(source => source.id));
+  for (const item of proposal.groups.flatMap(group => group.items)) {
+    if (!item.evidenceRefs.length || item.evidenceRefs.some(ref => !ids.has(ref.split(':')[0]))) throw new Error('analysis_invalid_evidence_reference');
+  }
 }
 
 export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
@@ -239,6 +256,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     });
     if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
+    validateEvidenceReferences(normalized, evidence);
     normalized.groups = normalized.groups.map(group => ({ ...group, items: group.items.map(item => renormalizeImportItemData({ ...item, ...resolveIdentityCandidate(item, candidates.identities ?? []) })) }));
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
     const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
@@ -300,7 +318,8 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     const message = error instanceof Error ? error.message.slice(0, 500) : 'analysis_failed';
     await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
       .bind(message, params.id, ctx.accountId).run();
-    return response({ error: 'Import analysis failed', code: message }, 502);
+    const status = message === 'analysis_no_usable_evidence' ? 422 : message === 'analysis_unsupported_document' ? 415 : 502;
+    return response({ error: 'Import analysis failed', code: message }, status);
   }
 }
 
@@ -318,6 +337,7 @@ function parsedFinalizeItem(row: Record<string, unknown>) {
     name: String(row.name ?? parsed.englishName ?? parsed.originalName ?? ''),
     compassEntryId: typeof row.compass_entry_id === 'string' ? row.compass_entry_id : parsed.duplicateResolution === 'matched' && typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : null,
     productId: typeof productId === 'string' ? productId : parsed.duplicateResolution === 'matched' && typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null,
+    duplicateResolution: parsed.duplicateResolution === 'matched' || parsed.duplicateResolution === 'new' || parsed.duplicateResolution === 'unresolved' ? parsed.duplicateResolution : 'unresolved',
     quantity: typeof quantity === 'number' ? quantity : null, unit,
     packCount: typeof parsed.packCount === 'number' ? parsed.packCount : null,
     lineCost: typeof parsed.lineCost === 'number' ? parsed.lineCost : null,
@@ -366,12 +386,13 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
       },
       ensureIdentity: async (item, batch) => {
         if (item.compassEntryId) {
-          const owned = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(item.compassEntryId, ctx.accountId, ctx.userId).first();
-          if (owned) {
+          const owned = await env.DB.prepare('SELECT id, category FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(item.compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
+          if (owned?.category === item.category) {
             await env.DB.prepare("UPDATE curate_import_items SET compass_entry_id = ?, review_state = 'merged', reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?")
               .bind(item.compassEntryId, ctx.userId, item.id, batch.id, ctx.accountId).run();
             return item.compassEntryId;
           }
+          if (item.duplicateResolution === 'matched') throw new CurateImportFinalizeError('validation_failed', 'Matched Curate identity is missing or incompatible', [{ field: 'duplicateResolution', itemId: item.id, message: 'Choose a valid matching identity' }]);
         }
         const row = await scopedItem(env, batch.id, item.id, ctx.accountId);
         if (!row) throw new CurateImportFinalizeError('not_found', 'Import item not found');
@@ -592,13 +613,13 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
     }
   }
   const vendorId = `curate-vendor-${params.groupId}`;
-  const results = await env.DB.batch([
-    env.DB.prepare("INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[\"vendor\"]', ?, 'curate_import')")
-      .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000)),
-    env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
-      .bind(vendorId, params.groupId, ctx.accountId),
-  ]);
-  if (!(results[1]?.meta.changes ?? 0)) return response({ error: 'Vendor group not found' }, 404);
+  await env.DB.prepare("INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[\"vendor\"]', ?, 'curate_import')")
+    .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000)).run();
+  const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
+  if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
+  const assigned = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+    .bind(vendorId, params.groupId, ctx.accountId).run();
+  if (!(assigned.meta.changes ?? 0)) return response({ error: 'Vendor group not found' }, 404);
   const [vendor, updated] = await Promise.all([
     env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>(),
     env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>(),

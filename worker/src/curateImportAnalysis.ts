@@ -88,6 +88,18 @@ function finiteNonNegative(value: unknown, field: string): number | null {
   return value;
 }
 
+function optionalText(value: unknown, field: string, max: number): string | null {
+  if (value == null) return null;
+  if (typeof value !== 'string' || value.length > max) throw new Error(`Invalid ${field}`);
+  return value.trim() || null;
+}
+
+function optionalYear(value: unknown): number | null {
+  if (value == null) return null;
+  if (!Number.isInteger(value) || Number(value) < 1000 || Number(value) > 3000) throw new Error('Invalid year');
+  return Number(value);
+}
+
 function stringRecord(value: unknown, field: string): Record<string, string> {
   const source = record(value, field);
   const result: Record<string, string> = {};
@@ -121,10 +133,12 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
   const duplicateResolution = input.duplicateResolution == null ? 'unresolved' : string(input.duplicateResolution, 'duplicateResolution');
   if (duplicateResolution !== 'new' && duplicateResolution !== 'matched' && duplicateResolution !== 'unresolved') throw new Error('Invalid duplicateResolution');
   if (input.acquired != null && typeof input.acquired !== 'boolean') throw new Error('Invalid acquired');
-  const core = new Set(['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId']);
-  const extras = Object.fromEntries(Object.entries(input).filter(([key]) => !core.has(key)));
   return {
-    ...extras,
+    chineseName: optionalText(input.chineseName, 'chineseName', 500),
+    type: optionalText(input.type, 'type', 200), form: optionalText(input.form, 'form', 200),
+    year: optionalYear(input.year), originCountry: optionalText(input.originCountry, 'originCountry', 200),
+    originRegion: optionalText(input.originRegion, 'originRegion', 500), classification: optionalText(input.classification, 'classification', 500),
+    description: optionalText(input.description, 'description', 5000), inventoryPurpose: optionalText(input.inventoryPurpose, 'inventoryPurpose', 100),
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
     packWeight: finiteNonNegative(input.packWeight, 'packWeight'), weightUnit,

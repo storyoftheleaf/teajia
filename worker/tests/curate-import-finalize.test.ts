@@ -115,10 +115,26 @@ describe('Curate import finalization', () => {
     expect(receipts).toHaveLength(0); expect(movements).toHaveLength(0);
   });
 
+  it.each(['abandoned', 'pending', 'completed'])('rejects a %s batch before reserving or creating inventory', async reviewState => {
+    const invalid = data(); invalid.batch.reviewState = reviewState;
+    const { ctx, receipts, movements } = harness(invalid);
+    await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(receipts).toHaveLength(0); expect(movements).toHaveLength(0);
+  });
+
   it('rejects ambiguity before creating identities, products, receipts, or movements', async () => {
     const invalid = data(); invalid.items[0].blockingFields = ['priceBasis'];
     const { ctx, receipts, movements } = harness(invalid);
     await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).rejects.toMatchObject({ code: 'validation_failed' });
     expect(receipts).toHaveLength(0); expect(movements).toHaveLength(0);
+  });
+
+  it('rejects a matched resolution without both existing target identifiers', () => {
+    const invalid = data();
+    invalid.items[0].duplicateResolution = 'matched';
+    invalid.items[0].productId = null;
+    expect(validateImportForFinalization(invalid)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: 'duplicateResolution', itemId: 'item-0' }),
+    ]));
   });
 });
