@@ -4,6 +4,7 @@ import {
   entryHasDeliberateInput,
   restoreCompassDraftsForAccount,
   migrateCompassPersistedState,
+  mergeCompassPersistedState,
   useTeaCompassStore,
 } from './teaCompassStore';
 import { useAppStore } from './store';
@@ -290,5 +291,26 @@ describe('account-scoped committed Curate entries', () => {
     expect(migrated.deletedIdsByAccount).toEqual({ 'acct-active': ['deleted-v7'] });
     expect(migrated.pendingPromotionsByAccount).toEqual({ 'acct-active': ['promote-v7'] });
     expect(migrated.entriesByAccount['acct-old-draft']).toBeUndefined();
+  });
+
+  it('does not restore account A facade data when reloading under account B', () => {
+    useAppStore.setState({ activeAccountId: 'acct-b' });
+    const a = { ...createEmptyEntry('tea'), id: 'persisted-a', name: 'Account A' };
+    const current = useTeaCompassStore.getState();
+
+    const merged = mergeCompassPersistedState({
+      accountScopeId: 'acct-a',
+      entries: [a], deletedIds: ['deleted-a'], pendingPromotions: ['promote-a'],
+      entriesByAccount: { 'acct-a': [a] },
+      deletedIdsByAccount: { 'acct-a': ['deleted-a'] },
+      pendingPromotionsByAccount: { 'acct-a': ['promote-a'] },
+    }, current);
+
+    expect(merged.accountScopeId).toBe('acct-b');
+    expect(merged.entries).toEqual([]);
+    expect(merged.deletedIds).toEqual([]);
+    expect(merged.pendingPromotions).toEqual([]);
+    expect(merged.entriesByAccount['acct-b']).toBeUndefined();
+    expect(merged.entriesByAccount['acct-a']?.map((item) => item.id)).toEqual(['persisted-a']);
   });
 });

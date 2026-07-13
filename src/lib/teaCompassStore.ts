@@ -225,6 +225,7 @@ function snapshotCompassDrafts(state: PersistedCompassDrafts): Required<Persiste
 // New capture run starts after this much idle time. Keeps a single sitting
 // (back-to-back captures) grouped under one sessionId for batch review.
 const SESSION_GAP_MS = 6 * 60 * 60 * 1000; // 6 hours
+const UNSCOPED_LEGACY_ACCOUNT = '__legacy_unscoped__';
 
 export const useTeaCompassStore = create<TeaCompassState>()(
   persist(
@@ -270,14 +271,18 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           pendingPromotionsByAccount[state.accountScopeId] = state.pendingPromotions;
         } else if (
           accountId &&
-          (state.entries.length > 0 || state.deletedIds.length > 0 || state.pendingPromotions.length > 0) &&
+          (state.entries.length > 0 || state.deletedIds.length > 0 || state.pendingPromotions.length > 0 ||
+            entriesByAccount[UNSCOPED_LEGACY_ACCOUNT] !== undefined) &&
           !entriesByAccount[accountId]
         ) {
           // Conservative legacy migration: unscoped data belongs to the first
           // known account only. Never copy it to every account.
-          entriesByAccount[accountId] = state.entries;
-          deletedIdsByAccount[accountId] = state.deletedIds;
-          pendingPromotionsByAccount[accountId] = state.pendingPromotions;
+          entriesByAccount[accountId] = entriesByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.entries;
+          deletedIdsByAccount[accountId] = deletedIdsByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.deletedIds;
+          pendingPromotionsByAccount[accountId] = pendingPromotionsByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.pendingPromotions;
+          delete entriesByAccount[UNSCOPED_LEGACY_ACCOUNT];
+          delete deletedIdsByAccount[UNSCOPED_LEGACY_ACCOUNT];
+          delete pendingPromotionsByAccount[UNSCOPED_LEGACY_ACCOUNT];
         }
 
         const draftsByAccount = { ...state.draftsByAccount };
@@ -586,31 +591,57 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       },
       version: 8,
       migrate: migrateCompassPersistedState,
-      merge: (persistedState, currentState) => {
-        const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
-        const scope = activeAccountScope();
-        const buckets = persisted.draftsByAccount ?? {};
-        const drafts = restoreCompassDraftsForAccount(buckets[scope ?? ''] ?? persisted, scope);
-        const entryBuckets = persisted.entriesByAccount ?? {};
-        const deletedBuckets = persisted.deletedIdsByAccount ?? {};
-        const promotionBuckets = persisted.pendingPromotionsByAccount ?? {};
-        const legacyEntries = (persisted.entries ?? currentState.entries).map(normalizeCompassEntry);
-        return {
-          ...currentState, ...persisted, ...drafts,
-          entries: scope ? (entryBuckets[scope] ?? legacyEntries).map(normalizeCompassEntry) : [],
-          deletedIds: scope ? deletedBuckets[scope] ?? persisted.deletedIds ?? [] : [],
-          pendingPromotions: scope ? promotionBuckets[scope] ?? persisted.pendingPromotions ?? [] : [],
-          entriesByAccount: entryBuckets,
-          deletedIdsByAccount: deletedBuckets,
-          pendingPromotionsByAccount: promotionBuckets,
-          accountScopeId: scope,
-          draftsByAccount: buckets,
-          draftAccountScopeId: scope,
-        } as TeaCompassState;
-      },
+      merge: mergeCompassPersistedState,
     }
   )
 );
+
+export function mergeCompassPersistedState(
+  persistedState: unknown,
+  currentState: TeaCompassState,
+): TeaCompassState {
+  const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
+  const scope = activeAccountScope();
+  const draftBuckets = persisted.draftsByAccount ?? {};
+  const drafts = restoreCompassDraftsForAccount(draftBuckets[scope ?? ''] ?? persisted, scope);
+  const entryBuckets = { ...(persisted.entriesByAccount ?? {}) };
+  const deletedBuckets = { ...(persisted.deletedIdsByAccount ?? {}) };
+  const promotionBuckets = { ...(persisted.pendingPromotionsByAccount ?? {}) };
+  const facadeEntries = (persisted.entries ?? currentState.entries).map(normalizeCompassEntry);
+  const facadeIsUnscoped = persisted.accountScopeId == null && Object.keys(entryBuckets).length === 0;
+  if (facadeIsUnscoped && (facadeEntries.length > 0 || (persisted.deletedIds?.length ?? 0) > 0 || (persisted.pendingPromotions?.length ?? 0) > 0)) {
+    entryBuckets[UNSCOPED_LEGACY_ACCOUNT] = facadeEntries;
+    deletedBuckets[UNSCOPED_LEGACY_ACCOUNT] = persisted.deletedIds ?? [];
+    promotionBuckets[UNSCOPED_LEGACY_ACCOUNT] = persisted.pendingPromotions ?? [];
+  }
+  if (scope && !entryBuckets[scope] && entryBuckets[UNSCOPED_LEGACY_ACCOUNT]) {
+    entryBuckets[scope] = entryBuckets[UNSCOPED_LEGACY_ACCOUNT];
+    deletedBuckets[scope] = deletedBuckets[UNSCOPED_LEGACY_ACCOUNT] ?? [];
+    promotionBuckets[scope] = promotionBuckets[UNSCOPED_LEGACY_ACCOUNT] ?? [];
+    delete entryBuckets[UNSCOPED_LEGACY_ACCOUNT];
+    delete deletedBuckets[UNSCOPED_LEGACY_ACCOUNT];
+    delete promotionBuckets[UNSCOPED_LEGACY_ACCOUNT];
+  }
+  const facadeMatchesScope = !!scope && persisted.accountScopeId === scope;
+  return {
+    ...currentState, ...persisted, ...drafts,
+    entries: scope
+      ? (entryBuckets[scope] ?? (facadeMatchesScope ? facadeEntries : [])).map(normalizeCompassEntry)
+      : [],
+    deletedIds: scope
+      ? deletedBuckets[scope] ?? (facadeMatchesScope ? persisted.deletedIds : deletedBuckets[UNSCOPED_LEGACY_ACCOUNT]) ?? []
+      : [],
+    pendingPromotions: scope
+      ? promotionBuckets[scope] ?? (facadeMatchesScope ? persisted.pendingPromotions : promotionBuckets[UNSCOPED_LEGACY_ACCOUNT]) ?? []
+      : [],
+    entriesByAccount: entryBuckets,
+    deletedIdsByAccount: deletedBuckets,
+    pendingPromotionsByAccount: promotionBuckets,
+    accountScopeId: scope,
+    draftsByAccount: draftBuckets,
+    draftAccountScopeId: scope,
+  } as TeaCompassState;
+}
 
 export function migrateCompassPersistedState(persistedState: unknown, version: number): unknown {
         if (!persistedState || typeof persistedState !== 'object') return persistedState;

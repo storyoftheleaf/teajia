@@ -1,18 +1,23 @@
 import { create } from 'zustand';
 import { persist, type PersistStorage } from 'zustand/middleware';
 import type { TeaSample, SampleSet, SampleTasting, SampleStatus } from './types';
+import { useAppStore } from '../lib/store';
+
+const UNSCOPED_LEGACY_ACCOUNT = '__legacy_unscoped__';
+
+interface SampleAccountData {
+  samples: TeaSample[];
+  sampleSets: SampleSet[];
+  activeSampleId: string | null;
+  activeSetId: string | null;
+}
 
 interface SampleStoreState {
   // Data
   samples: TeaSample[];
   sampleSets: SampleSet[];
   accountScopeId: string | null;
-  dataByAccount: Record<string, {
-    samples: TeaSample[];
-    sampleSets: SampleSet[];
-    activeSampleId: string | null;
-    activeSetId: string | null;
-  }>;
+  dataByAccount: Record<string, SampleAccountData>;
   switchAccount: (accountId: string | null) => void;
 
   // Active selections
@@ -79,15 +84,16 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           };
         } else if (
           accountId &&
-          (state.samples.length > 0 || state.sampleSets.length > 0) &&
+          (state.samples.length > 0 || state.sampleSets.length > 0 || dataByAccount[UNSCOPED_LEGACY_ACCOUNT] !== undefined) &&
           !dataByAccount[accountId]
         ) {
-          dataByAccount[accountId] = {
+          dataByAccount[accountId] = dataByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? {
             samples: state.samples,
             sampleSets: state.sampleSets,
             activeSampleId: state.activeSampleId,
             activeSetId: state.activeSetId,
           };
+          delete dataByAccount[UNSCOPED_LEGACY_ACCOUNT];
         }
         const target = accountId ? dataByAccount[accountId] : undefined;
         return {
@@ -244,6 +250,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
       version: 1,
       migrate: (persisted) => persisted,
       ...(storage ? { storage } : {}),
+      merge: mergeSamplePersistedState,
       partialize: (state) => {
         const dataByAccount = { ...state.dataByAccount };
         if (state.accountScopeId) {
@@ -267,3 +274,39 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
 }
 
 export const useSampleStore = createSampleStore();
+
+function mergeSamplePersistedState(
+  persistedState: unknown,
+  currentState: SampleStoreState,
+): SampleStoreState {
+  const persisted = (persistedState ?? {}) as Partial<SampleStoreState>;
+  const activeAccountId = useAppStore.getState().activeAccountId;
+  const dataByAccount = { ...(persisted.dataByAccount ?? {}) };
+  const facade: SampleAccountData = {
+    samples: persisted.samples ?? [],
+    sampleSets: persisted.sampleSets ?? [],
+    activeSampleId: persisted.activeSampleId ?? null,
+    activeSetId: persisted.activeSetId ?? null,
+  };
+  const isUnscopedLegacy = persisted.accountScopeId == null && Object.keys(dataByAccount).length === 0;
+  if (isUnscopedLegacy && (facade.samples.length > 0 || facade.sampleSets.length > 0)) {
+    dataByAccount[UNSCOPED_LEGACY_ACCOUNT] = facade;
+  }
+  let target = activeAccountId ? dataByAccount[activeAccountId] : undefined;
+  if (!target && activeAccountId && persisted.accountScopeId === activeAccountId) target = facade;
+  if (!target && activeAccountId && dataByAccount[UNSCOPED_LEGACY_ACCOUNT]) {
+    target = dataByAccount[UNSCOPED_LEGACY_ACCOUNT];
+    dataByAccount[activeAccountId] = target;
+    delete dataByAccount[UNSCOPED_LEGACY_ACCOUNT];
+  }
+  return {
+    ...currentState,
+    ...persisted,
+    samples: target?.samples ?? [],
+    sampleSets: target?.sampleSets ?? [],
+    activeSampleId: target?.activeSampleId ?? null,
+    activeSetId: target?.activeSetId ?? null,
+    accountScopeId: activeAccountId,
+    dataByAccount,
+  };
+}

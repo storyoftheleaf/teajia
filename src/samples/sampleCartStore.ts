@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import { persist, type PersistStorage } from 'zustand/middleware';
+import { useAppStore } from '../lib/store';
+
+const UNSCOPED_LEGACY_ACCOUNT = '__legacy_unscoped__';
 
 export interface SampleCartItem {
   id: string;
@@ -39,8 +42,13 @@ export function createSampleCartStore(storage?: PersistStorage<SampleCartState>)
         const itemsByAccount = { ...state.itemsByAccount };
         if (state.accountScopeId) {
           itemsByAccount[state.accountScopeId] = state.items;
-        } else if (accountId && state.items.length > 0 && !itemsByAccount[accountId]) {
-          itemsByAccount[accountId] = state.items;
+        } else if (
+          accountId &&
+          (state.items.length > 0 || itemsByAccount[UNSCOPED_LEGACY_ACCOUNT] !== undefined) &&
+          !itemsByAccount[accountId]
+        ) {
+          itemsByAccount[accountId] = itemsByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? state.items;
+          delete itemsByAccount[UNSCOPED_LEGACY_ACCOUNT];
         }
         return {
           items: accountId ? itemsByAccount[accountId] ?? [] : [],
@@ -72,6 +80,7 @@ export function createSampleCartStore(storage?: PersistStorage<SampleCartState>)
       version: 1,
       migrate: (persisted) => persisted,
       ...(storage ? { storage } : {}),
+      merge: mergeSampleCartPersistedState,
       partialize: (state) => {
         const itemsByAccount = { ...state.itemsByAccount };
         if (state.accountScopeId) itemsByAccount[state.accountScopeId] = state.items;
@@ -87,3 +96,29 @@ export function createSampleCartStore(storage?: PersistStorage<SampleCartState>)
 }
 
 export const useSampleCartStore = createSampleCartStore();
+
+function mergeSampleCartPersistedState(
+  persistedState: unknown,
+  currentState: SampleCartState,
+): SampleCartState {
+  const persisted = (persistedState ?? {}) as Partial<SampleCartState>;
+  const activeAccountId = useAppStore.getState().activeAccountId;
+  const itemsByAccount = { ...(persisted.itemsByAccount ?? {}) };
+  const facade = persisted.items ?? [];
+  const isUnscopedLegacy = persisted.accountScopeId == null && Object.keys(itemsByAccount).length === 0;
+  if (isUnscopedLegacy && facade.length > 0) itemsByAccount[UNSCOPED_LEGACY_ACCOUNT] = facade;
+  let items = activeAccountId ? itemsByAccount[activeAccountId] : undefined;
+  if (!items && activeAccountId && persisted.accountScopeId === activeAccountId) items = facade;
+  if (!items && activeAccountId && itemsByAccount[UNSCOPED_LEGACY_ACCOUNT]) {
+    items = itemsByAccount[UNSCOPED_LEGACY_ACCOUNT];
+    itemsByAccount[activeAccountId] = items;
+    delete itemsByAccount[UNSCOPED_LEGACY_ACCOUNT];
+  }
+  return {
+    ...currentState,
+    ...persisted,
+    items: items ?? [],
+    accountScopeId: activeAccountId,
+    itemsByAccount,
+  };
+}

@@ -4,9 +4,11 @@ import { createEmptySample, createEmptySampleSet } from './types';
 import { createSampleStore, useSampleStore } from './sampleStore';
 import { createSampleCartStore, useSampleCartStore } from './sampleCartStore';
 import { createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { useAppStore } from '../lib/store';
 
 describe('sample account isolation', () => {
   beforeEach(() => {
+    useAppStore.setState({ activeAccountId: null });
     useSampleStore.setState({
       samples: [], sampleSets: [], activeSampleId: null, activeSetId: null,
       accountScopeId: null, dataByAccount: {},
@@ -80,6 +82,7 @@ describe('sample account isolation', () => {
     values.set('teajia-sample-cart', JSON.stringify({
       state: { items: [{ id: 'persisted-cart', name: 'Persisted cart', grams: 10 }] }, version: 0,
     }));
+    useAppStore.setState({ activeAccountId: 'acct-first' });
     const sampleStorage = createJSONStorage<ReturnType<typeof useSampleStore.getState>>(() => storage);
     const cartStorage = createJSONStorage<ReturnType<typeof useSampleCartStore.getState>>(() => storage);
     const rehydratedSamples = createSampleStore(sampleStorage);
@@ -93,5 +96,46 @@ describe('sample account isolation', () => {
     expect(rehydratedCart.getState().itemsByAccount['acct-first']?.map((item) => item.id)).toEqual(['persisted-cart']);
     expect(rehydratedSamples.getState().samples).toEqual([]);
     expect(rehydratedCart.getState().items).toEqual([]);
+  });
+
+  it.each([['acct-b'], [null]])('does not expose persisted account A samples or cart when current account is %s', (activeAccountId) => {
+    const values = new Map<string, string>();
+    const storage: StateStorage = {
+      getItem: (name) => values.get(name) ?? null,
+      setItem: (name, value) => { values.set(name, value); },
+      removeItem: (name) => { values.delete(name); },
+    };
+    const setA = { ...createEmptySampleSet(), id: 'set-a', name: 'A set' };
+    const sampleA = { ...createEmptySample('set-a'), id: 'sample-a', name: 'A sample' };
+    values.set('teajia-samples', JSON.stringify({
+      state: {
+        accountScopeId: 'acct-a', samples: [sampleA], sampleSets: [setA],
+        dataByAccount: { 'acct-a': { samples: [sampleA], sampleSets: [setA], activeSampleId: null, activeSetId: null } },
+      }, version: 1,
+    }));
+    values.set('teajia-sample-cart', JSON.stringify({
+      state: {
+        accountScopeId: 'acct-a', items: [{ id: 'cart-a', name: 'A cart', grams: 10 }],
+        itemsByAccount: { 'acct-a': [{ id: 'cart-a', name: 'A cart', grams: 10 }] },
+      }, version: 1,
+    }));
+    useAppStore.setState({ activeAccountId });
+    const rehydratedSamples = createSampleStore(
+      createJSONStorage<ReturnType<typeof useSampleStore.getState>>(() => storage),
+    );
+    const rehydratedCart = createSampleCartStore(
+      createJSONStorage<ReturnType<typeof useSampleCartStore.getState>>(() => storage),
+    );
+
+    expect(rehydratedSamples.getState().accountScopeId).toBe(activeAccountId);
+    expect(rehydratedSamples.getState().samples).toEqual([]);
+    expect(rehydratedSamples.getState().sampleSets).toEqual([]);
+    expect(rehydratedCart.getState().accountScopeId).toBe(activeAccountId);
+    expect(rehydratedCart.getState().items).toEqual([]);
+
+    rehydratedSamples.getState().switchAccount('acct-a');
+    rehydratedCart.getState().switchAccount('acct-a');
+    expect(rehydratedSamples.getState().samples.map((item) => item.id)).toEqual(['sample-a']);
+    expect(rehydratedCart.getState().items.map((item) => item.id)).toEqual(['cart-a']);
   });
 });
