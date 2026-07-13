@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion, useScroll, useSpring } from 'framer-motion';
 
+export const shouldShowGlobalScrollProgress = (pathname: string) =>
+  pathname !== '/read' && !pathname.startsWith('/read/');
+
 /** Thin gold progress bar fixed at the top of the viewport. */
 export const ScrollProgressBar: React.FC = () => {
   const { scrollYProgress } = useScroll();

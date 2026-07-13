@@ -10,10 +10,17 @@ type FakeDbOptions = {
   role?: MembershipRole;
   bundles?: string[];
   platformRole?: string | null;
+  targetPlatformRole?: string | null;
   accountStatus?: string | null;
   userId?: string;
   email?: string;
   mcpScopes?: string[];
+  platformAccountId?: string | null;
+  customerRelationshipKinds?: string[];
+  customerExists?: boolean;
+  authDependencyFailure?: boolean;
+  sessionVersion?: number;
+  userExists?: boolean;
 };
 
 function b64encodeUtf8(str: string): string {
@@ -63,7 +70,7 @@ class FakeStatement {
 
   async first() {
     const sql = normalizeSql(this.sql);
-    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes } = this.options;
+    const { role, bundles, platformRole, targetPlatformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists, authDependencyFailure, sessionVersion, userExists } = this.options;
 
     if (sql.includes('from mcp_tokens where token_hash = ?')) {
       return {
@@ -75,14 +82,38 @@ class FakeStatement {
         scopes: JSON.stringify(mcpScopes),
       };
     }
-    if (sql.includes('select platform_role from users where id = ?')) {
-      return { platform_role: platformRole };
+    if (sql.includes('select session_version from users where id = ?')) {
+      if (authDependencyFailure) throw new Error('D1 unavailable');
+      return userExists ? { session_version: sessionVersion } : null;
+    }
+    if (sql.includes('select platform_role') && sql.includes('from users where id = ?')) {
+      if (authDependencyFailure) throw new Error('D1 unavailable');
+      return userExists ? { platform_role: platformRole, session_version: sessionVersion } : null;
+    }
+    if (sql.includes('select id, email, username, name, role, platform_role, session_version from users where id = ?')) {
+      if (authDependencyFailure) throw new Error('D1 unavailable');
+      return userExists ? { id: userId, email, username: null, name: 'Test User', role: 'staff', platform_role: platformRole, session_version: sessionVersion } : null;
     }
     if (sql.includes('select id, email, platform_role from users where id = ?')) {
       return { id: userId, email, platform_role: platformRole };
     }
+    if (sql.includes('select id, email, name, platform_role from users where id = ?')) {
+      return { id: this.values[0], email: 'owner@example.com', name: 'Protected Owner', platform_role: targetPlatformRole };
+    }
     if (sql.includes('select status from accounts where id = ?')) {
       return { status: accountStatus };
+    }
+    if (sql.includes('select id from teaware_collection where id = ? and account_id = ?')) {
+      return { id: 'teaware_test' };
+    }
+    if (sql.includes('select id from products where id = ? and account_id = ?')) {
+      return { id: 'prod_test' };
+    }
+    if (sql.includes('from customers where id = ? and account_id = ?')) {
+      return customerExists ? { id: 'cus_test', account_id: ACCOUNT_ID, name: 'Customer', contacts: '[]', tags: '[]' } : null;
+    }
+    if (sql.includes('from accounts') && sql.includes('is_platform_owner = 1')) {
+      return platformAccountId ? { id: platformAccountId } : null;
     }
     if (sql.includes('from account_members am join accounts a on a.id = am.account_id')) {
       return {
@@ -92,11 +123,20 @@ class FakeStatement {
         status: accountStatus,
       };
     }
+    if (sql.includes('from account_members am') && sql.includes("am.status = 'active'")) {
+      return { role, permissions: JSON.stringify({ bundles }) };
+    }
     return null;
   }
 
   async all() {
     const sql = normalizeSql(this.sql);
+    if (sql.includes('from contact_relationships') && sql.includes('customer_id')) {
+      return { results: this.options.customerRelationshipKinds.map(kind => ({ customer_id: 'cus_test', kind })) };
+    }
+    if (sql.includes('from invoices where customer_id = ?')) {
+      return { results: [{ id: 'invoice-private', customer_id: 'cus_test', account_id: ACCOUNT_ID }] };
+    }
     if (sql.includes('from contributors') && sql.includes('display_name')) {
       return { results: [{ id: 'writer', slug: 'writer', display_name: 'Writer', status: 'published' }] };
     }
@@ -145,10 +185,17 @@ function makeEnv(options: FakeDbOptions = {}) {
     role: options.role ?? 'owner',
     bundles: options.bundles ?? [],
     platformRole: options.platformRole ?? null,
+    targetPlatformRole: options.targetPlatformRole ?? null,
     accountStatus: options.accountStatus ?? 'active',
     userId: options.userId ?? 'user_test',
     email: options.email ?? 'staff@example.com',
     mcpScopes: options.mcpScopes ?? ['inventory:read', 'stock:write', 'customers:read', 'sales:write'],
+    platformAccountId: options.platformAccountId ?? null,
+    customerRelationshipKinds: options.customerRelationshipKinds ?? ['buyer'],
+    customerExists: options.customerExists ?? true,
+    authDependencyFailure: options.authDependencyFailure ?? false,
+    sessionVersion: options.sessionVersion ?? 0,
+    userExists: options.userExists ?? true,
   };
   return {
     JWT_SECRET,
@@ -158,24 +205,287 @@ function makeEnv(options: FakeDbOptions = {}) {
 
 async function authedRequest(
   path: string,
-  options: RequestInit & { role?: MembershipRole; bundles?: string[]; platformRole?: string | null } = {},
+  options: RequestInit & { role?: MembershipRole; bundles?: string[]; platformRole?: string | null; tokenSessionVersion?: number } = {},
 ) {
-  const token = await signJwt({ platform_role: options.platformRole ?? null });
+  const token = await signJwt({ platform_role: options.platformRole ?? null, session_version: options.tokenSessionVersion ?? 0 });
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${token}`);
   headers.set('X-Teajia-Account', ACCOUNT_ID);
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   return new Request(`https://worker.test${path}`, { ...options, headers });
 }
 
 describe('worker authorization boundaries', () => {
+  it('rejects deleted and session-invalidated users and fails closed when auth storage is unavailable', async () => {
+    for (const [env, code, status] of [
+      [makeEnv({ userExists: false }), 'auth_user_missing', 401],
+      [makeEnv({ sessionVersion: 2 }), 'auth_session_invalid', 401],
+      [makeEnv({ authDependencyFailure: true }), 'auth_dependency_unavailable', 503],
+    ] as const) {
+      const response = await worker.fetch(await authedRequest('/api/auth/me'), env);
+      expect(response.status).toBe(status);
+      expect(await response.json()).toMatchObject({ code });
+    }
+  });
+
+  it('refreshes only existing users at the current session version and uses the fresh platform role', async () => {
+    const missing = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST' }), makeEnv({ userExists: false }));
+    expect(missing.status).toBe(401);
+    expect(await missing.json()).toMatchObject({ code: 'auth_user_missing' });
+
+    const stale = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST' }), makeEnv({ sessionVersion: 1 }));
+    expect(stale.status).toBe(401);
+    expect(await stale.json()).toMatchObject({ code: 'auth_session_invalid' });
+
+    const unavailable = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST' }), makeEnv({ authDependencyFailure: true }));
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({ code: 'auth_dependency_unavailable' });
+
+    const demoted = await worker.fetch(await authedRequest('/api/auth/refresh', { method: 'POST', platformRole: 'platform_admin' }), makeEnv({ platformRole: null }));
+    expect(demoted.status).toBe(200);
+    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(((await demoted.json()) as any).token.split('.')[1]), c => c.charCodeAt(0))));
+    expect(claims.platform_role).toBeNull();
+  });
+
+  it('allows only the fresh platform owner to generate recovery credentials for a platform owner', async () => {
+    for (const path of ['/api/admin/reset-token', '/api/platform/users/owner_target/resend-invite']) {
+      const body = path.endsWith('reset-token') ? JSON.stringify({ userId: 'owner_target' }) : '{}';
+      const adminRequest = await authedRequest(path, { method: 'POST', body, platformRole: 'platform_admin' });
+      const denied = await worker.fetch(adminRequest, makeEnv({ platformRole: 'platform_admin', targetPlatformRole: 'platform_owner' }));
+      expect(denied.status).toBe(403);
+      expect(await denied.json()).toMatchObject({ code: 'target_tier_denied' });
+
+      const ownerRequest = await authedRequest(path, { method: 'POST', body, platformRole: 'platform_owner' });
+      const allowed = await worker.fetch(ownerRequest, makeEnv({ platformRole: 'platform_owner', targetPlatformRole: 'platform_owner' }));
+      expect(allowed.status).toBe(200);
+    }
+  });
+  it.each([
+    ['/api/generate-chinese-name', 'catalog'],
+    ['/api/transcribe', 'catalog'],
+    ['/api/extract-from-image', 'catalog'],
+    ['/api/upload-image', 'catalog'],
+    ['/api/upload-flyer', 'gather'],
+  ])('requires the %s provider route to have its capability bundle', async (path, bundle) => {
+    const request = await authedRequest(path, { method: 'POST', body: '{}' });
+    const denied = await worker.fetch(request, makeEnv({ role: 'staff', bundles: [] }));
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: bundle } });
+  });
+
+  it.each([
+    [{ product_name: 'Stock tea', stock_grams: 20 }, 'stock'],
+    [{ product_name: 'Priced tea', fixed_retail_price_usd: 20 }, 'sell'],
+    [{ product_name: 'Public tea', is_public: true }, 'publish'],
+  ])('partitions product creation fields by capability', async (payload, requiredBundle) => {
+    const response = await worker.fetch(
+      await authedRequest('/api/products', { method: 'POST', body: JSON.stringify(payload) }),
+      makeEnv({ role: 'staff', bundles: ['catalog'] }),
+    );
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: requiredBundle } });
+  });
+
+  it('reserves product ownership and shop visibility for owner tier', async () => {
+    for (const payload of [
+      { product_name: 'Assigned tea', owner_user_id: 'user_test' },
+      { product_name: 'Shown tea', shown_in_shop: true },
+    ]) {
+      const response = await worker.fetch(
+        await authedRequest('/api/products', { method: 'POST', body: JSON.stringify(payload) }),
+        makeEnv({ role: 'staff', bundles: ['catalog', 'stock', 'sell', 'publish'] }),
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({ code: 'owner_assignment_denied' });
+    }
+  });
+
+  it('bounds provider uploads before and after multipart parsing', async () => {
+    const env = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), MEDIA_BUCKET: { put: async () => undefined } };
+    const oversized = await authedRequest('/api/upload-image', {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': String(12 * 1024 * 1024) },
+      body: '--x--',
+    });
+    const oversizedResponse = await worker.fetch(oversized, env);
+    expect(oversizedResponse.status).toBe(413);
+    expect(await oversizedResponse.json()).toMatchObject({ code: 'upload_too_large' });
+
+    const form = new FormData();
+    form.set('file', new File([new TextEncoder().encode('not really a png')], 'payload.php.png', { type: 'image/png' }));
+    const invalid = await worker.fetch(await authedRequest('/api/upload-image', { method: 'POST', body: form }), env);
+    expect(invalid.status).toBe(415);
+    expect(await invalid.json()).toMatchObject({ code: 'invalid_media_signature' });
+  });
+
+  it('isolates durable provider limits by user and operation and fails closed on binding errors', async () => {
+    const keys: string[] = [];
+    const limiter = { limit: async ({ key }: { key: string }) => { keys.push(key); return { success: false }; } };
+    const env = { ...makeEnv({ role: 'owner', bundles: ['catalog'] }), PROVIDER_LIMITER: limiter };
+    for (const path of ['/api/generate-chinese-name', '/api/transcribe', '/api/products/prod_test/enhance-image', '/api/admin/migrate-tasting']) {
+      const response = await worker.fetch(await authedRequest(path, { method: 'POST', body: '{}' }), env);
+      expect(response.status).toBe(429);
+      expect(await response.json()).toMatchObject({ code: 'rate_limited' });
+    }
+    expect(keys).toEqual([
+      'acc_test:user_test:chinese-name',
+      'acc_test:user_test:transcribe',
+      'acc_test:user_test:enhance-product-image',
+      'acc_test:user_test:migrate-tasting',
+    ]);
+
+    const broken = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), PROVIDER_LIMITER: { limit: async () => { throw new Error('offline'); } } };
+    const response = await worker.fetch(await authedRequest('/api/generate-chinese-name', { method: 'POST', body: '{}' }), broken);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: 'rate_limit_unavailable' });
+  });
+  it('uses stable REST codes for missing auth and auth dependency failures', async () => {
+    const missing = await worker.fetch(new Request('https://worker.test/api/customers'), makeEnv());
+    expect(missing.status).toBe(401);
+    expect(await missing.json()).toEqual({ error: 'Unauthorized', code: 'auth_no_token' });
+
+    const unavailable = await worker.fetch(
+      await authedRequest('/api/customers'),
+      makeEnv({ authDependencyFailure: true }),
+    );
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({
+      error: expect.any(String), code: 'auth_dependency_unavailable', details: { dependency: 'users' },
+    });
+  });
+  it.each([
+    ['account', '/api/accounts/acc_test', 'owner'],
+    ['venue space', '/api/admin/venues/venue_test/spaces/space_test', 'gather'],
+    ['teaware item', '/api/admin/teaware/teaware_test', 'catalog'],
+    ['teaware photo', '/api/admin/teaware/teaware_test/photos/photo_test', 'catalog'],
+    ['sample', '/api/admin/samples/sample_test', 'gather'],
+    ['sample set', '/api/admin/sample-sets/set_test', 'gather'],
+  ])('rejects request-derived SQL identifiers for %s updates', async (_label, path, bundle) => {
+    const malicious = 'name = NULL WHERE account_id = ?; --';
+    const request = await authedRequest(path, {
+      method: 'PUT',
+      body: JSON.stringify({ [malicious]: 'attacker-controlled' }),
+    });
+    const response = await worker.fetch(request, makeEnv({ role: bundle === 'owner' ? 'owner' : 'staff', bundles: bundle === 'owner' ? [] : [bundle] }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: expect.any(String),
+      code: 'validation_failed',
+      details: { fields: [malicious] },
+    });
+  });
+
+  it.each(['/api/products', '/api/products/bulk'])('rejects request-derived SQL identifiers for product creation at %s', async (path) => {
+    const malicious = 'product_name) VALUES (\'owned\'); --';
+    const product = { product_name: 'Safe tea', type: 'Oolong', [malicious]: 'attacker-controlled' };
+    const body = path.endsWith('/bulk') ? { products: [product] } : product;
+    const response = await worker.fetch(await authedRequest(path, {
+      method: 'POST', body: JSON.stringify(body),
+    }), makeEnv({ role: 'staff', bundles: ['catalog'] }));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      code: 'validation_failed', details: { fields: [malicious] },
+    });
+  });
+
+  it.each([
+    ['buyer', 'sell'],
+    ['vendor', 'catalog'],
+    ['event_guest', 'gather'],
+    ['collection_recipient', 'publish'],
+    ['contributor', 'publish'],
+  ])('authorizes %s customer reads and writes with only the %s bundle', async (kind, bundle) => {
+    const env = makeEnv({ role: 'staff', bundles: [bundle], customerRelationshipKinds: [kind] });
+    const read = await worker.fetch(await authedRequest('/api/customers/cus_test'), env);
+    const write = await worker.fetch(await authedRequest('/api/customers/cus_test', {
+      method: 'PUT', body: JSON.stringify({ name: 'Updated' }),
+    }), env);
+    expect(read.status).toBe(200);
+    expect(write.status).toBe(200);
+  });
+
+  it('denies customer reads and writes when no relationship capability matches', async () => {
+    const env = makeEnv({ role: 'staff', bundles: ['gather'], customerRelationshipKinds: ['buyer'] });
+    const read = await worker.fetch(await authedRequest('/api/customers/cus_test'), env);
+    const write = await worker.fetch(await authedRequest('/api/customers/cus_test', {
+      method: 'PUT', body: JSON.stringify({ name: 'Updated' }),
+    }), env);
+    expect(read.status).toBe(403);
+    expect(write.status).toBe(403);
+  });
+
+  it('denies the customer list to a no-bundle member', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers'),
+      makeEnv({ role: 'staff', bundles: [] }),
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it('allows any matching capability for a mixed-relationship customer', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers/cus_test'),
+      makeEnv({ role: 'staff', bundles: ['gather'], customerRelationshipKinds: ['buyer', 'event_guest'] }),
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it('keeps personal connections and destructive customer deletion owner-only', async () => {
+    const staffEnv = makeEnv({ role: 'staff', bundles: ['catalog', 'stock', 'publish', 'gather', 'sell', 'members'], customerRelationshipKinds: ['personal_connection'] });
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test'), staffEnv)).status).toBe(403);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test', { method: 'DELETE' }), staffEnv)).status).toBe(403);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test'), makeEnv({ role: 'owner', customerRelationshipKinds: ['personal_connection'] }))).status).toBe(200);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test'), makeEnv({ platformRole: 'platform_admin', customerRelationshipKinds: ['personal_connection'] }))).status).toBe(200);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test', { method: 'DELETE' }), makeEnv({ role: 'owner' }))).status).toBe(200);
+  });
+
+  it('does not embed customer invoices for a non-sell capability', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers/cus_test'),
+      makeEnv({ role: 'staff', bundles: ['catalog'], customerRelationshipKinds: ['vendor'] }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ orders: [] });
+  });
+
+  it('returns customer not found without disclosing another record', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers/missing'),
+      makeEnv({ role: 'staff', bundles: ['sell'], customerExists: false }),
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it('bootstraps a membership-free platform owner into the active platform account', async () => {
+    const token = await signJwt({
+      platform_role: 'platform_owner',
+      memberships: [],
+      active_account_id: null,
+    });
+    const request = new Request('https://worker.test/api/accounts/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const response = await worker.fetch(request, makeEnv({
+      platformRole: 'platform_owner',
+      platformAccountId: 'acc_platform',
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      memberships: [],
+      active_account_id: 'acc_platform',
+    });
+  });
+
   it('denies admin article reads without the publish bundle', async () => {
     const request = await authedRequest('/api/admin/articles');
     const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['catalog'] }));
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('publish');
+    expect(body.details?.required_bundle).toBe('publish');
   });
 
   it('allows admin article reads with the publish bundle', async () => {
@@ -205,7 +515,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('stock');
+    expect(body).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: 'stock' } });
   });
 
   it('rejects fields outside a product command domain', async () => {
@@ -217,7 +527,22 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(400);
-    expect(body.fields).toContain('product_name');
+    expect(body.code).toBe('validation_failed');
+    expect(body.details?.fields).toContain('product_name');
+  });
+
+  it('does not expose the generic product update route', async () => {
+    const response = await worker.fetch(await authedRequest('/api/products/prod_test', {
+      method: 'PUT', body: JSON.stringify({ stock_grams: 500 }),
+    }), makeEnv({ role: 'staff', bundles: ['catalog'] }));
+    expect(response.status).toBe(404);
+  });
+
+  it('accepts inventory purpose only through the stock command', async () => {
+    const response = await worker.fetch(await authedRequest('/api/products/prod_test/stock', {
+      method: 'PUT', body: JSON.stringify({ inventory_purpose: 'working' }),
+    }), makeEnv({ role: 'staff', bundles: ['stock'] }));
+    expect(response.status).toBe(200);
   });
 
   it('requires the catalog bundle for source supplied-product reads', async () => {
@@ -226,7 +551,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('catalog');
+    expect(body.details?.required_bundle).toBe('catalog');
   });
 
   it('requires the sell bundle for buyer order history reads', async () => {
@@ -235,7 +560,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('sell');
+    expect(body.details?.required_bundle).toBe('sell');
   });
 
   it('rejects unknown contact relationship filters', async () => {

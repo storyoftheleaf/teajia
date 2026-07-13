@@ -2,7 +2,7 @@
 -- Contributor profiles + the integration columns that connect contributors
 -- to articles, products, accounts, and the seasonal calendar.
 --
--- Per docs/CONTRIBUTOR_PROFILES_PLAN.md.
+-- See docs/ARCHITECTURE.md for the contributor/account boundary.
 --
 -- Already applied to both local and remote D1 on 2026-05-02. This file
 -- captures the canonical SQL on disk so future deploys (and any ground-up

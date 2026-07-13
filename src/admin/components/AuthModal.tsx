@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { api, setToken, API_URL } from '../../lib/api';
+import { api, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
 import { useAppStore } from '../store';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useAuth } from '../../hooks/useAuth';
 
-type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
+type AuthMode = 'login' | 'signup' | 'verify-signup' | 'forgot' | 'reset';
 
 export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean; onClose: () => void; onAuthSuccess?: () => void }) => {
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(() => restorePendingSignup());
+  const [mode, setMode] = useState<AuthMode>(() => pendingSignup ? 'verify-signup' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -18,8 +20,35 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
   const [rememberMe, setRememberMe] = useState(() => localStorage.getItem('teajia_remember_me') !== 'false');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationExpired, setVerificationExpired] = useState(() => Boolean(pendingSignup && pendingSignup.expiresAt <= Date.now()));
+  const [verificationFailures, setVerificationFailures] = useState(0);
   const { setDevAdmin } = useAppStore();
+  const auth = useAuth();
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
+  useEffect(() => {
+    if (!pendingSignup) return;
+    const remaining = pendingSignup.expiresAt - Date.now();
+    if (remaining <= 0) {
+      setVerificationExpired(true);
+    } else {
+      setVerificationExpired(false);
+    }
+    const expiryTimer = remaining > 0 ? window.setTimeout(() => {
+      setVerificationExpired(true);
+    }, remaining) : undefined;
+    const recoveryTimer = window.setTimeout(() => {
+      clearPendingSignup();
+      setPendingSignup(null);
+      setMode('signup');
+      setVerificationCode('');
+    }, Math.max(0, pendingSignup.recoverableUntil - Date.now()));
+    return () => {
+      if (expiryTimer) window.clearTimeout(expiryTimer);
+      window.clearTimeout(recoveryTimer);
+    };
+  }, [pendingSignup]);
 
   if (!isOpen) return null;
 
@@ -32,6 +61,9 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
     setNewPassword('');
     setError('');
     setInfo('');
+    setPendingSignup(restorePendingSignup());
+    setVerificationCode('');
+    setVerificationFailures(0);
   };
 
   const toggleMode = () => {
@@ -87,24 +119,39 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
         setResetToken('');
         setNewPassword('');
         setInfo('Password updated. Sign in with your new password.');
+      } else if (mode === 'signup') {
+        const pending = await auth.signup(email, password, name, username.trim() || null);
+        setPendingSignup(pending);
+        setVerificationCode('');
+        setVerificationFailures(0);
+        setMode('verify-signup');
       } else {
-        const result = mode === 'login'
-          ? await api.auth.login(email, password)
-          : await api.auth.signup(email, password, name, username.trim() || null);
-        setToken(result.token);
+        if (mode === 'verify-signup') {
+          if (!pendingSignup || verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3) {
+            setError('Enter the six-digit verification code.');
+            setLoading(false);
+            return;
+          }
+          await auth.verifySignup(pendingSignup, verificationCode);
+        } else {
+          await auth.login(email, password);
+        }
         if (rememberMe) {
           localStorage.setItem('teajia_remember_me', 'true');
         } else {
           localStorage.removeItem('teajia_remember_me');
         }
+        setMode('login');
         resetForm();
         onAuthSuccess?.();
         onClose();
       }
     } catch (err: any) {
+      if (mode === 'verify-signup') setVerificationFailures(count => count + 1);
       const fallback =
         mode === 'login' ? 'Login failed'
         : mode === 'signup' ? 'Signup failed'
+        : mode === 'verify-signup' ? 'Verification failed'
         : mode === 'forgot' ? 'Could not start password recovery'
         : 'Could not reset password';
       setError(err.message || fallback);
@@ -112,21 +159,41 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
     setLoading(false);
   };
 
+  const handleResendSignup = async () => {
+    if (!pendingSignup) return;
+    setError('');
+    setLoading(true);
+    try {
+      const rotated = await auth.resendSignup(pendingSignup);
+      setPendingSignup(rotated);
+      setVerificationCode('');
+      setVerificationFailures(0);
+      setVerificationExpired(false);
+    } catch (err: any) {
+      setError(err.message || 'A new code could not be sent. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const title =
     mode === 'login' ? 'Welcome Back'
     : mode === 'signup' ? 'Create Account'
+    : mode === 'verify-signup' ? 'Check Your Email'
     : mode === 'forgot' ? 'Recover Access'
     : 'Set New Password';
 
   const subtitle =
     mode === 'login' ? 'Sign in to your account.'
     : mode === 'signup' ? 'Join the Teajia community.'
+    : mode === 'verify-signup' ? `Enter the six-digit code sent to ${pendingSignup?.email || email}.`
     : mode === 'forgot' ? 'Enter the email on your account to generate a recovery token.'
     : 'Enter your recovery token and choose a new password.';
 
   const submitLabel =
     mode === 'login' ? 'Sign In'
     : mode === 'signup' ? 'Create Account'
+    : mode === 'verify-signup' ? 'Verify Email'
     : mode === 'forgot' ? 'Generate Reset Token'
     : 'Update Password';
 
@@ -167,6 +234,32 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
             </div>
           )}
 
+          {mode === 'verify-signup' && (
+            <div>
+              <label htmlFor="admin-signup-verification-code" className="block label-caps text-tea-text-sec mb-2">Verification code</label>
+              <input
+                id="admin-signup-verification-code"
+                type="text"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                aria-describedby="admin-signup-code-help"
+                className="w-full input-warm rounded-md p-3 text-center tracking-[0.35em] text-ui-16 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg transition-colors"
+                autoFocus
+                required
+              />
+              <p id="admin-signup-code-help" className="mt-2 text-ui-12 text-tea-text-dim">Codes expire after a short time.</p>
+              {(verificationExpired || verificationFailures >= 3) && (
+                <p aria-live="polite" className="mt-2 text-ui-12 text-tea-text-sec">
+                  {verificationExpired ? 'This code expired.' : 'That code can no longer be tried.'} Request a new code to continue.
+                </p>
+              )}
+            </div>
+          )}
+
           {mode === 'reset' && (
             <>
               <div>
@@ -193,9 +286,13 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           )}
 
           {info && <div className="p-3 bg-tea-gold-lt/10 border border-tea-border text-tea-text-sec text-sm rounded-md">{info}</div>}
-          {error && <div className="p-3 bg-tea-gold/10 border border-tea-accent-sub text-tea-gold text-sm rounded-md">{error}</div>}
+          {error && <div role="alert" className="p-3 bg-tea-gold/10 border border-tea-border text-tea-gold text-sm rounded-md">{error}</div>}
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10">
+          <button
+            type="submit"
+            disabled={loading || (mode === 'verify-signup' && (verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3))}
+            className="w-full py-3 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10"
+          >
             {loading ? <Loader2 className="animate-spin" /> : submitLabel}
           </button>
         </form>
@@ -237,11 +334,41 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
               </button>
             </div>
           )}
+          {mode === 'verify-signup' && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => void handleResendSignup()}
+                disabled={loading}
+                className="block w-full text-tea-text-sec text-sm hover:text-tea-text transition-colors"
+              >
+                Resend code
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmail(pendingSignup?.email || email); setMode('signup'); setVerificationCode(''); setError(''); }}
+                className="text-tea-text-sec text-sm hover:text-tea-text transition-colors"
+              >
+                Edit email
+              </button>
+            </div>
+          )}
           {(mode === 'login' || mode === 'signup') && (
-            <button type="button" onClick={toggleMode} className="text-tea-text-sec text-sm hover:text-tea-text transition-colors">
-              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-              <span className="text-tea-gold font-medium">{mode === 'login' ? 'Sign up' : 'Sign in'}</span>
-            </button>
+            <>
+              {mode === 'signup' && pendingSignup && (
+                <button
+                  type="button"
+                  onClick={() => { setMode('verify-signup'); setError(''); }}
+                  className="block w-full mb-3 text-tea-text-sec text-sm hover:text-tea-text transition-colors"
+                >
+                  Back to verification
+                </button>
+              )}
+              <button type="button" onClick={toggleMode} className="text-tea-text-sec text-sm hover:text-tea-text transition-colors">
+                {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+                <span className="text-tea-gold font-medium">{mode === 'login' ? 'Sign up' : 'Sign in'}</span>
+              </button>
+            </>
           )}
         </div>
       </div>

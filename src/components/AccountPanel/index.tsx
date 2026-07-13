@@ -11,7 +11,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAuth } from '../../hooks/useAuth';
 import { useAppStore } from '../../lib/store';
 
-import { api, setToken, hydrateAccountStateFromToken, API_URL } from '../../lib/api';
+import { api, setToken, hydrateAccountStateFromToken, API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../../lib/api';
 import { fetchStoreEvents, fetchStoreProducts } from '../../lib/storefrontApi';
 import { hydrateTastingJournal } from '../../lib/tastingJournalSync';
 import type { Currency } from '../../admin/types';
@@ -345,6 +345,33 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(() => restorePendingSignup());
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isEditingSignup, setIsEditingSignup] = useState(false);
+  const [verificationExpired, setVerificationExpired] = useState(() => Boolean(pendingSignup && pendingSignup.expiresAt <= Date.now()));
+  const [verificationFailures, setVerificationFailures] = useState(0);
+
+  useEffect(() => {
+    if (!pendingSignup) return;
+    const remaining = pendingSignup.expiresAt - Date.now();
+    if (remaining <= 0) {
+      setVerificationExpired(true);
+    } else {
+      setVerificationExpired(false);
+    }
+    const expiryTimer = remaining > 0 ? window.setTimeout(() => {
+      setVerificationExpired(true);
+    }, remaining) : undefined;
+    const recoveryTimer = window.setTimeout(() => {
+      clearPendingSignup();
+      setPendingSignup(null);
+      setVerificationCode('');
+    }, Math.max(0, pendingSignup.recoverableUntil - Date.now()));
+    return () => {
+      if (expiryTimer) window.clearTimeout(expiryTimer);
+      window.clearTimeout(recoveryTimer);
+    };
+  }, [pendingSignup]);
 
   // Change password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -444,6 +471,7 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     setSigninIdentifier(''); setFormError(''); setFormLoading(false);
     setShowPassword(false); setCurrentPassword(''); setNewPassword('');
     setConfirmNewPassword(''); setEditName(''); setEditEmail(''); setEditUsername('');
+    setPendingSignup(restorePendingSignup()); setVerificationCode(''); setIsEditingSignup(false);
   };
 
   const handleOpenCart = () => {
@@ -509,11 +537,47 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
     if (password.length < 6) { setFormError('Password must be at least 6 characters.'); return; }
     setFormLoading(true);
     try {
-      await auth.signup(email, password, name, username.trim() || null);
+      const pending = await auth.signup(email, password, name, username.trim() || null);
+      setPendingSignup(pending);
+      setVerificationCode('');
+      setIsEditingSignup(false);
+      setVerificationFailures(0);
+    } catch (err: any) {
+      setFormError(err.message || 'Account creation failed. Please try again.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleVerifySignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingSignup || verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3) return;
+    setFormError('');
+    setFormLoading(true);
+    try {
+      await auth.verifySignup(pendingSignup, verificationCode);
       resetForm();
       setPanelView('main');
     } catch (err: any) {
-      setFormError(err.message || 'Account creation failed. Please try again.');
+      setVerificationFailures(count => count + 1);
+      setFormError(err.message || 'Verification failed. Check the code and try again.');
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleResendSignup = async () => {
+    if (!pendingSignup) return;
+    setFormError('');
+    setFormLoading(true);
+    try {
+      const rotated = await auth.resendSignup(pendingSignup);
+      setPendingSignup(rotated);
+      setVerificationCode('');
+      setVerificationFailures(0);
+      setVerificationExpired(false);
+    } catch (err: any) {
+      setFormError(err.message || 'A new code could not be sent. Please try again.');
     } finally {
       setFormLoading(false);
     }
@@ -901,16 +965,16 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
 
   const FormError: React.FC = () =>
     formError ? (
-      <div className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
+      <div role="alert" className="flex items-start gap-2 p-3 bg-tea-error/10 ring-1 ring-inset ring-tea-error/40 rounded-md text-tea-error text-ui-13">
         <Icons.AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
         <span>{formError}</span>
       </div>
     ) : null;
 
-  const SubmitButton: React.FC<{ label: string }> = ({ label }) => (
+  const SubmitButton: React.FC<{ label: string; disabled?: boolean }> = ({ label, disabled }) => (
     <button
       type="submit"
-      disabled={formLoading}
+      disabled={formLoading || disabled}
       className="inline-flex w-full items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {formLoading
@@ -1084,12 +1148,68 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
             ══════════════════════════════════════════════════════════════ */}
             {panelView === 'signup' && (
               <div className="px-6 pt-10 pb-6 space-y-5 w-full max-w-sm mx-auto">
-                <div>
-                  <h2 className="h2">Join Teajia.</h2>
-                  <p className="text-ui-13 text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
-                </div>
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <FormError />
+                {pendingSignup && !isEditingSignup ? (
+                  <>
+                    <div>
+                      <h2 className="h2">Check your email.</h2>
+                      <p id="panel-signup-code-help" className="text-ui-13 text-tea-text-sec mt-1.5">
+                        Enter the six-digit code sent to <span className="text-tea-text">{pendingSignup.email}</span>.
+                      </p>
+                    </div>
+                    <form onSubmit={handleVerifySignup} className="space-y-4">
+                      <FormError />
+                      {(verificationExpired || verificationFailures >= 3) && (
+                        <p aria-live="polite" className="text-ui-12 text-tea-text-sec">
+                          {verificationExpired ? 'This code expired.' : 'That code can no longer be tried.'} Request a new code to continue.
+                        </p>
+                      )}
+                      <div>
+                        <label htmlFor="panel-signup-verification-code" className={labelClass}>Verification code</label>
+                        <input
+                          id="panel-signup-verification-code"
+                          type="text"
+                          value={verificationCode}
+                          onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          pattern="[0-9]{6}"
+                          maxLength={6}
+                          aria-describedby="panel-signup-code-help"
+                          autoFocus
+                          required
+                          className={`${inputClass} text-center tracking-[0.35em]`}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <SubmitButton
+                        label={formLoading ? 'Verifying…' : 'Verify Email'}
+                        disabled={verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void handleResendSignup()}
+                        disabled={formLoading}
+                        className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                      >
+                        Resend code
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setEmail(pendingSignup.email); setIsEditingSignup(true); setFormError(''); }}
+                        className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                      >
+                        Edit email
+                      </button>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <h2 className="h2">Join Teajia.</h2>
+                      <p className="text-ui-13 text-tea-text-sec mt-1.5">Create your account to track teas, journal sessions, and more.</p>
+                    </div>
+                    <form onSubmit={handleSignUp} className="space-y-4">
+                      <FormError />
                   <div>
                     <label className={labelClass}>Name</label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus placeholder="your name" className={inputClass} style={inputStyle} />
@@ -1119,17 +1239,28 @@ export const AccountPanel: React.FC<AccountPanelProps> = ({ onClose, onNavigateT
                       </button>
                     </div>
                   </div>
-                  <SubmitButton label="Create Account" />
-                </form>
-                <GoogleAuthButton />
-                <div className="text-center">
-                  <button
-                    onClick={() => { resetForm(); setPanelView('signin'); }}
-                    className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
-                  >
-                    Already have an account? <span className="underline underline-offset-2">Sign in</span>
-                  </button>
-                </div>
+                      <SubmitButton label="Create Account" />
+                    </form>
+                    <GoogleAuthButton />
+                    <div className="text-center">
+                      {pendingSignup && isEditingSignup && (
+                        <button
+                          type="button"
+                          onClick={() => { setIsEditingSignup(false); setFormError(''); }}
+                          className="block w-full mb-4 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+                        >
+                          Back to verification
+                        </button>
+                      )}
+                      <button
+                        onClick={() => { resetForm(); setPanelView('signin'); }}
+                        className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors py-2 -my-2"
+                      >
+                        Already have an account? <span className="underline underline-offset-2">Sign in</span>
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

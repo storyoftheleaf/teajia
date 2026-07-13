@@ -58,7 +58,7 @@ export function InventoryBulkToolbar({
           {fieldDef?.type === 'select' && (
             <select value={bulkValue} onChange={(e) => onBulkValueChange(e.target.value)} className="bg-tea-bg border border-tea-border rounded-md text-ui-13 text-tea-text px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg">
               <option value="">Select...</option>
-              {fieldDef.options.map(o => <option key={o} value={o}>{o}</option>)}
+              {fieldDef.options?.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           )}
           {fieldDef?.type === 'boolean' && (

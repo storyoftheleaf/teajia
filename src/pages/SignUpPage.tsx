@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Icons } from '../components/Icons';
-import { API_URL } from '../lib/api';
+import { API_URL, clearPendingSignup, restorePendingSignup, type PendingSignup } from '../lib/api';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -27,6 +27,33 @@ export default function SignUpPage() {
   const [whatOpen, setWhatOpen] = useState(false);
   const [contactPlatform, setContactPlatform] = useState<ContactPlatform | null>(null);
   const [contactPhone, setContactPhone] = useState('');
+  const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(() => restorePendingSignup());
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isEditingSignup, setIsEditingSignup] = useState(false);
+  const [verificationExpired, setVerificationExpired] = useState(() => Boolean(pendingSignup && pendingSignup.expiresAt <= Date.now()));
+  const [verificationFailures, setVerificationFailures] = useState(0);
+
+  useEffect(() => {
+    if (!pendingSignup) return;
+    const remaining = pendingSignup.expiresAt - Date.now();
+    if (remaining <= 0) {
+      setVerificationExpired(true);
+    } else {
+      setVerificationExpired(false);
+    }
+    const expiryTimer = remaining > 0 ? window.setTimeout(() => {
+      setVerificationExpired(true);
+    }, remaining) : undefined;
+    const recoveryTimer = window.setTimeout(() => {
+      clearPendingSignup();
+      setPendingSignup(null);
+      setVerificationCode('');
+    }, Math.max(0, pendingSignup.recoverableUntil - Date.now()));
+    return () => {
+      if (expiryTimer) window.clearTimeout(expiryTimer);
+      window.clearTimeout(recoveryTimer);
+    };
+  }, [pendingSignup]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,18 +61,115 @@ export default function SignUpPage() {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
     try {
-      await auth.signup(email, password, name, username.trim() || null);
-      if (contactPlatform) {
-        localStorage.setItem('teajia_contact_platform', contactPlatform);
-        if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
-      }
-      navigate(safeReturnTo ?? -1 as any);
+      const pending = await auth.signup(email, password, name, username.trim() || null);
+      setPendingSignup(pending);
+      setVerificationCode('');
+      setIsEditingSignup(false);
+      setVerificationFailures(0);
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Account creation failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifySignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingSignup || verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3) return;
+    setError('');
+    setLoading(true);
+    try {
+      await auth.verifySignup(pendingSignup, verificationCode);
+      if (contactPlatform) {
+        localStorage.setItem('teajia_contact_platform', contactPlatform);
+        if (contactPhone.trim()) localStorage.setItem('teajia_contact_phone', contactPhone.trim());
+      }
+      navigate(safeReturnTo ?? -1 as any);
+    } catch (err: unknown) {
+      setVerificationFailures(count => count + 1);
+      setError((err as Error)?.message || 'Verification failed. Check the code and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSignup = async () => {
+    if (!pendingSignup) return;
+    setError('');
+    setLoading(true);
+    try {
+      const rotated = await auth.resendSignup(pendingSignup);
+      setPendingSignup(rotated);
+      setVerificationCode('');
+      setVerificationFailures(0);
+      setVerificationExpired(false);
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'A new code could not be sent. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (pendingSignup && !isEditingSignup) {
+    return (
+      <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap-lg">
+        <div className="text-center mb-8">
+          <p className="label-caps text-tea-gold mb-2">One last step</p>
+          <h1 className="h2">Check your email</h1>
+          <p id="signup-code-help" className="subtitle mt-2">
+            Enter the six-digit code sent to <span className="text-tea-text">{pendingSignup.email}</span>.
+          </p>
+        </div>
+        <form onSubmit={handleVerifySignup} className="space-y-4">
+          <div>
+            <label htmlFor="signup-verification-code" className={labelClass}>Verification code</label>
+            <input
+              id="signup-verification-code"
+              type="text"
+              value={verificationCode}
+              onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className={`${inputClass} text-center tracking-[0.35em]`}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              aria-describedby="signup-code-help"
+              autoFocus
+              required
+            />
+          </div>
+          {error && <p role="alert" className="text-ui-12 text-tea-gold">{error}</p>}
+          {(verificationExpired || verificationFailures >= 3) && (
+            <p aria-live="polite" className="text-ui-12 text-tea-text-sec">
+              {verificationExpired ? 'This code expired.' : 'That code can no longer be tried.'} Request a new code to continue.
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loading || verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3}
+            className="w-full inline-flex items-center justify-center px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Verifying…' : 'Verify email'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleResendSignup()}
+            disabled={loading}
+            className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Resend code
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEmail(pendingSignup.email); setIsEditingSignup(true); setError(''); }}
+            className="w-full py-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Edit email
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto px-4 pt-12 pb-nav-gap-lg">
@@ -211,7 +335,7 @@ export default function SignUpPage() {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
+          <div role="alert" className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
             <Icons.AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-tea-error" />
             <span className="text-ui-12 text-tea-error">{error}</span>
           </div>
@@ -231,6 +355,15 @@ export default function SignUpPage() {
       </form>
 
       <div className="mt-8 text-center">
+        {pendingSignup && isEditingSignup && (
+          <button
+            type="button"
+            onClick={() => { setIsEditingSignup(false); setError(''); }}
+            className="block w-full mb-4 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Back to verification
+          </button>
+        )}
         <button
           onClick={() => navigate(safeReturnTo ? `/signin?returnTo=${encodeURIComponent(safeReturnTo)}` : '/signin')}
           className="link-text hover:opacity-80 transition-opacity"

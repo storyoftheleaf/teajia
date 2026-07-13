@@ -38,7 +38,7 @@ A visitor on `/store/teajia-bali` will never see Australia stock. There is **no 
 
 #### Data Model
 
-**New tables** (`worker/migrations/017_multi_account.sql`):
+**New tables** (`worker/migrations/017_multi_account_patched.sql`):
 
 - **`accounts`** — id, slug, name, tagline, description, logo_url, cover_image_url, location_city, location_country, timezone, currency_default, whatsapp_number, contact_email, public_enabled, invoice_prefix, owner_user_id, status, trust_tier, is_platform_owner, ships_to_countries, created_at, updated_at
 - **`account_members`** — (account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status); UNIQUE(account_id, user_id); role ∈ `owner | manager | staff | viewer`
@@ -294,6 +294,17 @@ Seven people at Australia + Adrian's team in Bali can taste "the same tea" and c
 5. Both reviews appear on both stores' product detail pages (filtered by `tea_key` / `profile_id`), each attributed to the individual reviewer and their store
 6. Inventory (stock, cost, vendor) stays private — only reviews cross over
 
+### 3.4 Curate and Inventory Invariants
+
+- Curate opens directly into capture; it never inserts a landing choice or wizard before the field sheet.
+- Incomplete captures are valid durable records, not errors to discard or block.
+- Import preserves image and PDF evidence for manual review; OCR is not claimed.
+- Receipt acceptance establishes possession. An acquisition proposal or expected receipt does not.
+- Incoming inventory is derived from open expected receipts rather than stored as a second mutable status.
+- A transfer requires the same tea identity and a valid destination holding; stock never disappears between locations.
+- Ready and Published are separate states. Operational readiness never implies storefront publication.
+- Sample capture, sets, labels, and tasting workflows remain separate from ordinary inventory possession.
+
 ## 4. Frontend Invariants
 
 ### 4.1 InventoryView Height Chain
@@ -385,7 +396,7 @@ See ARCHITECTURE.md §1.2 for the 22 Phase 1B decisions. Additional historical d
 
 **Source files:** 
 - docs/MULTI_STORE_PLAN.md (Phase 1A)
-- docs/NETWORK_ROLLOUT_PLAN.md (Phase 1B)
+- `docs/NETWORK_UI_BRIEF.md` (network surface contract)
 - docs/VISION_AUDIT_7_TECHNICAL.md (technical vision)
-- docs/_audit/03_platform_crosscutting.md (authorization audit)
+- `worker/tests/tenancy-isolation.test.ts` and the resource-specific Worker suites (current authorization evidence)
 - CLAUDE.md (frontend invariants)

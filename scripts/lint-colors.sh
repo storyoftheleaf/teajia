@@ -186,10 +186,10 @@ fi
 check_pattern_ere 'rounded(-(t|b|l|r))?-(sm|lg|2xl)([[:space:]"'"'"'`]|$)' \
   "Off-scale corner radius — use rounded-md / rounded-xl / rounded-full. See UI_CONSISTENCY.md."
 
-# 9. .pill-primary / .pill-destructive used outside a toggle context — NOTICE.
+# 9. .pill-primary / .pill-destructive used outside a toggle context — BLOCKING.
 #    Action buttons must use <Button>. .pill-* is for toggle chips/filters only.
-check_pattern_notice 'pill-(primary|destructive)' \
-  "pill-* action class — use the <Button> component for actions. See UI_CONSISTENCY.md. (non-blocking until migration completes)"
+check_pattern_ere 'pill-(primary|destructive)' \
+  "pill-* action class — use the <Button> component for actions. See UI_CONSISTENCY.md."
 
 if [ "$ERRORS" -gt 0 ]; then
   echo ""

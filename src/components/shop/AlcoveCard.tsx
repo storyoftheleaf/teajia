@@ -131,7 +131,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
   const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const showFade = useScrollFade(scrollRef);
+  const showFade = useScrollFade(scrollRef as React.RefObject<HTMLElement>);
 
   // Fetch events that featured this product
   const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);

@@ -938,7 +938,7 @@ export interface ProductEditPanelProps {
    * Called when the user edits a field. The parent is responsible for:
    *   - persisting the change (or let the panel do it if this returns nothing)
    *   - updating the `product` prop so the panel reflects the change
-   * If unset, the panel will call api.products.update directly.
+   * If unset, the panel will call the domain-scoped product update endpoint.
    */
   onUpdate?: (id: string, field: keyof Product, value: any) => void | Promise<void>;
   /**

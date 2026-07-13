@@ -11,6 +11,21 @@ interface ShareModalProps {
   onClose: () => void;
 }
 
+declare global {
+  interface Window {
+    html2canvas?: (
+      element: HTMLElement,
+      options: {
+        scale: number;
+        backgroundColor: string | null;
+        useCORS: boolean;
+        allowTaint: boolean;
+        logging: boolean;
+      },
+    ) => Promise<HTMLCanvasElement>;
+  }
+}
+
 export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -31,12 +46,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
   const generateImage = async (elementId: string, fileName: string): Promise<File | null> => {
     const element = document.getElementById(elementId);
-    // @ts-ignore
-    if (!element || !window.html2canvas) return null;
+    const html2canvas = window.html2canvas;
+    if (!element || !html2canvas) return null;
 
     try {
-      // @ts-ignore
-      const canvas = await window.html2canvas(element, {
+      const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: null,
         useCORS: true,
@@ -65,7 +79,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
     setIsGenerating(false);
 
     // Initialize base share data
-    const shareData: any = {
+    const shareData: ShareData = {
       title: story.title,
     };
 
@@ -83,7 +97,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
     }
 
     // 3. Trigger Share
-    if (navigator.share) {
+    if (typeof Reflect.get(navigator, 'share') === 'function') {
       try {
         await navigator.share(shareData);
         onClose();
@@ -142,7 +156,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ story, onClose }) => {
 
   const handleWhatsApp = () => {
     // On mobile/supported devices, use native share to allow image attachment
-    if (navigator.share) {
+    if (typeof Reflect.get(navigator, 'share') === 'function') {
         handleNativeShare();
     } else {
         // Desktop fallback: Text link

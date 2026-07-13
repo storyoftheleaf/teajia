@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Loader2, Plus } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
+import { getApiOrigin } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // MCP tokens — voice/agent control of this account's inventory through the
@@ -46,7 +47,7 @@ const SCOPE_DEFS: ScopeDef[] = [
   { scope: 'admin:write', label: 'admin:write', description: 'Account settings, exchange rates', group: 'owner', defaultChecked: false },
 ];
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || '';
+const API_URL = getApiOrigin();
 
 function authHeaders(): Record<string, string> {
   const token = localStorage.getItem('teajia_token') || '';

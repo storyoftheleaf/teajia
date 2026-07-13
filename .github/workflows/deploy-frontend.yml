@@ -7,12 +7,18 @@ name: Deploy frontend
 # the active build twice and increasing the chance of stale lazy chunks in
 # already-open admin sessions.
 #
+# This workflow does not gate Git-integrated deploys. `npm run build` performs
+# the authoritative Pages-only check against Cloudflare's own WORKER_ORIGIN
+# environment binding before the Git integration can produce a deployment.
+#
 # teajia.pages.dev (project `teajia`) is a stale/abandoned project — do not
 # deploy there.
 #
 # Required GitHub repo secrets (already present, shared with deploy-worker.yml):
 #   CLOUDFLARE_API_TOKEN   — needs Cloudflare Pages: Edit (in addition to Workers)
 #   CLOUDFLARE_ACCOUNT_ID  — the account that owns teajiafinal
+# Required GitHub repo variable (manual recovery workflow only):
+#   WORKER_ORIGIN — mirror of the teajiafinal Pages runtime binding
 
 on:
   # Manual fallback if Cloudflare's Git integration ever needs recovery.
@@ -30,15 +36,21 @@ jobs:
       # Public, baked-in at build time (import.meta.env.VITE_API_URL). Not a
       # secret — it's the public worker URL. Keep in sync with .env.local.
       VITE_API_URL: 'https://teajia-api.lightcodes.workers.dev'
+      # Public Pages Function upstream. Keep this repository variable in sync
+      # with the WORKER_ORIGIN runtime binding on the teajiafinal project.
+      WORKER_ORIGIN: ${{ vars.WORKER_ORIGIN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Required deployment configuration
+        run: npm run check:deploy-config
 
       # Gates: a type error or color-rule violation fails the deploy instead of
       # shipping it. Same checks CLAUDE.md requires before every commit.
@@ -52,7 +64,7 @@ jobs:
         run: npm run build
 
       - name: Deploy to Cloudflare Pages (teajiafinal, production)
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

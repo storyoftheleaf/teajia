@@ -44,7 +44,7 @@ const CollectionItemRow: React.FC<{
   position: number;
   working: boolean;
   focused: boolean;
-  focusRef: React.RefObject<HTMLLIElement>;
+  focusRef: React.RefObject<HTMLLIElement | null>;
   oos: boolean;
   archived: boolean;
   dragging: boolean;

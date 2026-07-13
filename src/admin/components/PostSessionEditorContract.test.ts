@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createPostSessionLoadCoordinator, loadPostSession, postSessionEditorState, postSessionSavePayload, savePostSession } from './PostSessionEditorContract';
+import { createPostSessionLoadCoordinator, createPostSessionUploadGuard, loadPostSession, postSessionEditorState, postSessionSavePayload, postSessionUploadErrorMessage, runPostSessionUpload, savePostSession } from './PostSessionEditorContract';
 
 describe('PostSessionEditor contract', () => {
   it('reloads snake_case Worker data and legacy camelCase data', () => {
@@ -77,5 +77,133 @@ describe('PostSessionEditor contract', () => {
     expect(state).toMatchObject({ gallery: ['b.jpg'], sessionNotes: 'B recap', hostNotes: 'B host' });
     expect(postSessionSavePayload(state)).toMatchObject({ gallery_images: ['b.jpg'], session_notes: 'B recap', host_notes: 'B host' });
     expect(JSON.stringify(postSessionSavePayload(state))).not.toContain('A recap');
+  });
+
+  it('ignores an event A image upload that completes after the editor moves to event B', () => {
+    const gallery: string[] = [];
+    const uploads = createPostSessionUploadGuard(url => gallery.push(url));
+    uploads.activate('event-a');
+    const eventAUpload = uploads.begin('event-a');
+
+    uploads.activate('event-b');
+
+    expect(eventAUpload.append('a-late.jpg')).toBe(false);
+    expect(eventAUpload.isCurrent()).toBe(false);
+    expect(gallery).toEqual([]);
+  });
+
+  it('suppresses every stale success side effect after event B starts uploading', async () => {
+    let resolveUpload!: (url: string) => void;
+    const pendingUpload = new Promise<string>(resolve => { resolveUpload = resolve; });
+    const gallery: string[] = [];
+    const uploads = createPostSessionUploadGuard(url => gallery.push(url));
+    const success = vi.fn();
+    const error = vi.fn();
+    const complete = vi.fn();
+    uploads.activate('event-a');
+    const eventA = runPostSessionUpload(
+      ['a.jpg'], uploads.begin('event-a'), async file => file, async () => pendingUpload,
+      { onSuccess: success, onError: error, onComplete: complete },
+    );
+    await Promise.resolve();
+
+    uploads.activate('event-b');
+    uploads.begin('event-b');
+    let eventBUploading = true;
+    let eventBInput = 'b.jpg';
+    complete.mockImplementation(() => { eventBUploading = false; eventBInput = ''; });
+    resolveUpload('a-late.jpg');
+    await eventA;
+
+    expect(gallery).toEqual([]);
+    expect(success).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+    expect({ eventBUploading, eventBInput }).toEqual({ eventBUploading: true, eventBInput: 'b.jpg' });
+  });
+
+  it('suppresses stale failure and cleanup after event B starts uploading', async () => {
+    let rejectUpload!: (error: Error) => void;
+    const pendingUpload = new Promise<string>((_resolve, reject) => { rejectUpload = reject; });
+    const uploads = createPostSessionUploadGuard(() => undefined);
+    const success = vi.fn();
+    const error = vi.fn();
+    const complete = vi.fn();
+    uploads.activate('event-a');
+    const eventA = runPostSessionUpload(
+      ['a.jpg'], uploads.begin('event-a'), async file => file, async () => pendingUpload,
+      { onSuccess: success, onError: error, onComplete: complete },
+    );
+    await Promise.resolve();
+
+    uploads.activate('event-b');
+    uploads.begin('event-b');
+    let eventBUploading = true;
+    let eventBInput = 'b.jpg';
+    complete.mockImplementation(() => { eventBUploading = false; eventBInput = ''; });
+    rejectUpload(new Error('A failed late'));
+    await eventA;
+
+    expect(success).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+    expect({ eventBUploading, eventBInput }).toEqual({ eventBUploading: true, eventBInput: 'b.jpg' });
+  });
+
+  it('preserves messages from duck-typed upload failures', () => {
+    expect(postSessionUploadErrorMessage({ message: 'Storage quota reached' })).toBe('Storage quota reached');
+    expect(postSessionUploadErrorMessage({ message: '' })).toBe('Upload failed');
+    expect(postSessionUploadErrorMessage('network failure')).toBe('Upload failed');
+  });
+
+  it('suppresses every completion side effect after the editor unmounts', async () => {
+    let resolveUpload!: (url: string) => void;
+    const pendingUpload = new Promise<string>(resolve => { resolveUpload = resolve; });
+    const gallery: string[] = [];
+    const uploads = createPostSessionUploadGuard(url => gallery.push(url));
+    const success = vi.fn();
+    const error = vi.fn();
+    const complete = vi.fn();
+    uploads.activate('event-a');
+    const pending = runPostSessionUpload(
+      ['a.jpg'], uploads.begin('event-a'), async file => file, async () => pendingUpload,
+      { onSuccess: success, onError: error, onComplete: complete },
+    );
+    await Promise.resolve();
+
+    uploads.cancel();
+    resolveUpload('a-after-unmount.jpg');
+    await pending;
+
+    expect(gallery).toEqual([]);
+    expect(success).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it('gives a newer same-event upload sole ownership of completion side effects', async () => {
+    let resolveFirst!: (url: string) => void;
+    const firstUrl = new Promise<string>(resolve => { resolveFirst = resolve; });
+    const gallery: string[] = [];
+    const uploads = createPostSessionUploadGuard(url => gallery.push(url));
+    const firstSuccess = vi.fn();
+    const firstError = vi.fn();
+    const firstComplete = vi.fn();
+    uploads.activate('event-a');
+    const first = runPostSessionUpload(
+      ['first.jpg'], uploads.begin('event-a'), async file => file, async () => firstUrl,
+      { onSuccess: firstSuccess, onError: firstError, onComplete: firstComplete },
+    );
+    await Promise.resolve();
+
+    const secondOperation = uploads.begin('event-a');
+    resolveFirst('first-late.jpg');
+    await first;
+
+    expect(secondOperation.isCurrent()).toBe(true);
+    expect(gallery).toEqual([]);
+    expect(firstSuccess).not.toHaveBeenCalled();
+    expect(firstError).not.toHaveBeenCalled();
+    expect(firstComplete).not.toHaveBeenCalled();
   });
 });

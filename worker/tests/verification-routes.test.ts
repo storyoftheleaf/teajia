@@ -6,14 +6,15 @@ const deliveryCalls: any[] = [];
 
 class VerificationDb {
   challenges: Challenge[] = [];
-  user = { id: 'user-1', email: 'member@example.com', username: 'member', name: 'Member', role: 'staff', platform_role: null };
+  user = { id: 'user-1', email: 'member@example.com', username: 'member', name: 'Member', role: 'staff', platform_role: null, email_verified_at: '2026-01-01T00:00:00.000Z' };
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
       bind: (...input: any[]) => { values = input; return statement; },
       first: async () => {
         if (normalized.includes('from verification_challenges')) return this.challenges.filter(row => row.contact_normalized === values[0] && row.purpose === values[1]).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null;
-        if (normalized.includes('from users where lower(email)')) return values[0] === this.user.email ? this.user : null;
+        if (normalized.includes('from users where lower(email)')) return values[0] === this.user.email ? { ...this.user, session_version: 0 } : null;
+        if (normalized.includes('select session_version from users where id')) return { session_version: 0 };
         if (normalized.includes('from event_attendees') && normalized.includes('magic_token')) return values[0] === 'magic' && values.includes('guest@example.com') ? { id: 'attendee-1', account_id: 'account-platform', event_id: 'event-1' } : null;
         if (normalized.includes('from customers')) return values.includes('guest@example.com') && (!normalized.includes('account_id = ?') || values.includes('account-platform')) ? { id: 'customer-1', account_id: 'account-platform', name: 'Guest', phone: null, email: 'guest@example.com' } : null;
         if (normalized.includes('from accounts where is_platform_owner')) return { id: 'account-platform' };
@@ -53,9 +54,32 @@ async function api(db: VerificationDb, path: 'request' | 'confirm', body: any, e
   return { status: response.status, body: await response.json() as any };
 }
 
+class FakeLimiter {
+  keys: string[] = [];
+  constructor(private outcomes: Array<boolean | Error>) {}
+  async limit({ key }: { key: string }) {
+    this.keys.push(key);
+    const outcome = this.outcomes.shift() ?? true;
+    if (outcome instanceof Error) throw outcome;
+    return { success: outcome };
+  }
+}
+
 afterEach(() => { vi.restoreAllMocks(); deliveryCalls.length = 0; vi.useRealTimers(); });
 
 describe('purpose-aware verification routes', () => {
+  it('uses the dedicated durable limiter and fails closed when it is unavailable', async () => {
+    const denied = new FakeLimiter([false, true]);
+    expect((await api(new VerificationDb(), 'request', {}, { VERIFY_LIMITER: denied })).status).toBe(429);
+    expect((await api(new VerificationDb(), 'request', {}, { VERIFY_LIMITER: denied })).status).toBe(400);
+    expect(denied.keys).toHaveLength(2);
+
+    const broken = new FakeLimiter([new Error('binding unavailable')]);
+    expect(await api(new VerificationDb(), 'request', {}, { VERIFY_LIMITER: broken })).toEqual({
+      status: 503,
+      body: { error: 'Rate limit service unavailable', code: 'rate_limit_unavailable' },
+    });
+  });
   it('delivers normalized sign-in codes, stores only a hash, and issues password-equivalent claims', async () => {
     const db = new VerificationDb(); let issuedCode = '';
     const mathRandom = vi.spyOn(Math, 'random').mockImplementation(() => { throw new Error('Math.random must not be used'); });

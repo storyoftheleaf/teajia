@@ -4,7 +4,7 @@
 --
 -- 1) Claude mobile's in-app browser dropped the OAuth query string on the 302
 --    from /oauth/authorize to the consent page, leaving it with no params (see
---    docs/MCP_MOBILE_OAUTH_TODO.md). We now persist the request here and pass a
+--    mobile in-app browser). We now persist the request here and pass a
 --    single opaque id in the redirect PATH (which survives the hop), then the
 --    consent page fetches the params back by id.
 --

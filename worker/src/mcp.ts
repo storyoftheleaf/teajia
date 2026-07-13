@@ -12,9 +12,9 @@
 // Owner-tier scopes (catalog:write, customers:write, admin:write) are gated at
 // TWO points: (1) at mint time the UI only lets owner-tier users select them,
 // and the server refuses to store them if the minting user is below owner tier;
-// (2) at dispatch time the token's `creator_tier` column is checked — if it is
-// not 'account_owner' or 'platform_owner', the call is rejected even if the
-// scope appears in the token row (defense in depth against direct DB edits).
+// (2) on every request the creator's current platform role or active account
+// membership is re-read. Demotion or bundle removal invalidates any token whose
+// stored scopes now exceed that live authority.
 //
 // Mutating tools follow a confirm-pattern: first call returns a `preview`
 // payload + `confirmation_token`; the model is expected to read the preview
@@ -29,9 +29,13 @@
 type Env = {
   DB: D1Database;
   JWT_SECRET: string;
+  OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
+  OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
 };
+
+type RateLimiterBinding = { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 
 // ── small JSON helpers (mirroring index.ts so we don't import its 16k lines) ──
 function json(data: unknown, status = 200): Response {
@@ -44,6 +48,14 @@ function rpcError(id: number | string | null, code: number, message: string, dat
 
 function rpcResult(id: number | string | null, result: unknown): Response {
   return json({ jsonrpc: '2.0', id, result });
+}
+
+function authenticationDependencyUnavailable(): Response {
+  return json({
+    jsonrpc: '2.0',
+    id: null,
+    error: { code: -32002, message: 'Authentication dependency unavailable' },
+  }, 503);
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -63,6 +75,7 @@ type TokenClaims = {
   email: string;
   name?: string;
   active_account_id?: string | null;
+  session_version?: number;
   exp?: number;
 };
 
@@ -124,11 +137,26 @@ async function resolveOAuthApprovalContext(
     return corsJson({ error: 'account_required', error_description: 'Select an account before approval' }, 400);
   }
 
-  const user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
-    .bind(claims.sub)
-    .first() as { id: string; email: string | null; platform_role: string | null } | null;
+  let user: { id: string; email: string | null; platform_role: string | null; session_version: number | null } | null;
+  try {
+    user = await env.DB.prepare('SELECT id, email, platform_role, session_version FROM users WHERE id = ?')
+      .bind(claims.sub)
+      .first() as typeof user;
+    // Legacy local/test D1 adapters may only expose the pre-116 projection.
+    // Production D1 returns the query above, including session_version.
+    if (!user) {
+      user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
+        .bind(claims.sub)
+        .first() as typeof user;
+    }
+  } catch {
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Authentication dependency unavailable' }, 503);
+  }
   if (!user) {
     return corsJson({ error: 'unauthenticated', error_description: 'User no longer exists' }, 401);
+  }
+  if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+    return corsJson({ error: 'unauthenticated', error_description: 'Session no longer valid' }, 401);
   }
 
   const platformRole = user.platform_role || null;
@@ -186,8 +214,8 @@ const MCP_SCOPES = [
 ] as const;
 type McpScope = typeof MCP_SCOPES[number];
 
-// Scopes that require owner-tier creator. Defense-in-depth: checked at mint
-// AND at dispatch (in case someone edits the DB row directly).
+// Scopes that require current owner-tier authority. Defense-in-depth: checked
+// at mint and again against live authorization on every request.
 const OWNER_TIER_SCOPES: ReadonlySet<McpScope> = new Set(['catalog:write', 'customers:write', 'admin:write']);
 
 // A held write scope implicitly grants the matching read scope — so a token
@@ -205,6 +233,9 @@ const SCOPE_IMPLIES: Partial<Record<McpScope, McpScope[]>> = {
 // Default set for tokens minted without explicit scope selection (legacy +
 // OAuth flow). Does NOT include owner-tier scopes.
 const DEFAULT_MCP_SCOPES: McpScope[] = ['inventory:read', 'stock:write', 'customers:read', 'sales:read', 'sales:write'];
+const READ_ONLY_MCP_SCOPES: ReadonlySet<McpScope> = new Set([
+  'inventory:read', 'customers:read', 'sales:read',
+]);
 
 function parseMcpScopes(raw: unknown): McpScope[] {
   if (!raw) return DEFAULT_MCP_SCOPES;
@@ -222,13 +253,32 @@ function hasMcpScope(auth: McpAuth, scope: McpScope): boolean {
   return auth.scopes.some(held => SCOPE_IMPLIES[held]?.includes(scope));
 }
 
+function allowedMcpScopesForCurrentAuthority(
+  tier: McpCreatorTier,
+  permissionsJson: string | null,
+): ReadonlySet<McpScope> {
+  if (OWNER_TIERS.has(tier)) return new Set(MCP_SCOPES);
+  if (tier === 'viewer') return READ_ONLY_MCP_SCOPES;
+
+  const allowed = new Set<McpScope>(READ_ONLY_MCP_SCOPES);
+  if (!permissionsJson) return allowed;
+  try {
+    const parsed = JSON.parse(permissionsJson) as { bundles?: unknown };
+    if (!Array.isArray(parsed.bundles)) return allowed;
+    if (parsed.bundles.includes('stock')) allowed.add('stock:write');
+    if (parsed.bundles.includes('sell')) allowed.add('sales:write');
+  } catch {
+    // Malformed permissions grant no write authority.
+  }
+  return allowed;
+}
+
 // 401 with WWW-Authenticate header — required by the MCP OAuth spec so
 // clients (Claude desktop/mobile) know to start the OAuth discovery flow.
 // The `resource_metadata` parameter points clients at our protected-resource
 // metadata document, which in turn points them at the auth server.
 function unauthorized(request: Request, message: string): Response {
-  const url = new URL(request.url);
-  const origin = `${url.protocol}//${url.host}`;
+  const origin = originOf(request);
   const body = JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32001, message } });
   return new Response(body, {
     status: 401,
@@ -247,10 +297,28 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   const plaintext = auth.slice(7).trim();
   if (!plaintext) return unauthorized(request, 'Empty bearer token');
 
+  type McpTokenRow = {
+    id: string;
+    account_id: string;
+    user_id: string;
+    user_email: string;
+    revoked_at: string | null;
+    scopes: string | null;
+    creator_tier: string | null;
+    expires_at: number | null;
+  };
+  type CurrentUserRow = { id: string; email: string | null; platform_role: string | null };
+  type CurrentMembershipRow = { role: string; permissions: string | null };
+
   const hash = await sha256Hex(plaintext);
-  const row = await env.DB.prepare(
-    'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
-  ).bind(hash).first() as Record<string, any> | null;
+  let row: McpTokenRow | null;
+  try {
+    row = await env.DB.prepare(
+      'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
+    ).bind(hash).first() as McpTokenRow | null;
+  } catch {
+    return authenticationDependencyUnavailable();
+  }
 
   if (!row || row.revoked_at) {
     return unauthorized(request, 'Invalid or revoked token');
@@ -263,6 +331,51 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     return unauthorized(request, 'Invalid or revoked token');
   }
 
+  let user: CurrentUserRow | null;
+  let account: { status: string | null } | null;
+  try {
+    user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
+      .bind(row.user_id).first() as CurrentUserRow | null;
+    account = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?')
+      .bind(row.account_id).first() as { status: string | null } | null;
+  } catch {
+    return authenticationDependencyUnavailable();
+  }
+  if (!user || !account || account.status !== 'active') {
+    return unauthorized(request, 'Invalid or revoked token');
+  }
+
+  let creatorTier: McpCreatorTier;
+  let permissions: string | null = null;
+  if (user.platform_role === 'platform_owner') {
+    creatorTier = 'platform_owner';
+  } else if (user.platform_role === 'platform_admin') {
+    creatorTier = 'account_owner';
+  } else {
+    let membership: CurrentMembershipRow | null;
+    try {
+      membership = await env.DB.prepare(
+        `SELECT am.role, am.permissions
+           FROM account_members am
+          WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`
+      ).bind(user.id, row.account_id).first() as CurrentMembershipRow | null;
+    } catch {
+      return authenticationDependencyUnavailable();
+    }
+    if (!membership) return unauthorized(request, 'Invalid or revoked token');
+    if (membership.role === 'owner') creatorTier = 'account_owner';
+    else if (membership.role === 'staff') creatorTier = 'staff';
+    else if (membership.role === 'viewer') creatorTier = 'viewer';
+    else return unauthorized(request, 'Invalid or revoked token');
+    permissions = membership.permissions;
+  }
+
+  const scopes = parseMcpScopes(row.scopes);
+  const allowedScopes = allowedMcpScopesForCurrentAuthority(creatorTier, permissions);
+  if (scopes.some(scope => !allowedScopes.has(scope))) {
+    return unauthorized(request, 'Token scope no longer authorized');
+  }
+
   // Bump last_used_at on every successful auth (best-effort; non-blocking).
   // NOTE: not wrapped in ctx.waitUntil — authenticateMcp's signature is
   // (request, env) and threading an ExecutionContext here would ripple a
@@ -272,17 +385,12 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
     .bind(row.id).run().catch(() => {});
 
-  const creatorTier: McpCreatorTier =
-    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(row.creator_tier as McpCreatorTier)
-      ? (row.creator_tier as McpCreatorTier)
-      : 'account_owner'; // default for pre-migration rows that have no column yet
-
   return {
-    accountId: row.account_id as string,
-    userId: row.user_id as string,
-    userEmail: row.user_email as string,
-    tokenId: row.id as string,
-    scopes: parseMcpScopes(row.scopes),
+    accountId: row.account_id,
+    userId: user.id,
+    userEmail: user.email || row.user_email,
+    tokenId: row.id,
+    scopes,
     creatorTier,
   };
 }
@@ -3430,7 +3538,7 @@ function visibleToolDefs(auth: McpAuth) {
     .filter(tool => {
       const scope = tool.scope as McpScope;
       if (!hasMcpScope(auth, scope)) return false;
-      // Owner-tier scoped tools are invisible to non-owner-tier token creators.
+      // Owner-tier scoped tools are invisible without current owner authority.
       if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
       return true;
     })
@@ -3484,11 +3592,11 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   }
 
   // Owner-tier gate — defense in depth: reject even if scope is in the token
-  // if the creator is not owner-tier. Prevents a DB edit from escalating rights.
+  // when the creator no longer has owner-tier authority.
   if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
     return mcpContent({
       error: 'owner_tier_required',
-      message: 'This tool requires the token to have been minted by an account owner or platform owner.',
+      message: 'This tool requires current account-owner or platform-owner authority.',
       tool: name,
     });
   }
@@ -3695,6 +3803,17 @@ function corsJson(data: unknown, status = 200): Response {
   });
 }
 
+async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, request: Request): Promise<Response | null> {
+  if (!binding) return null;
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  try {
+    const result = await binding.limit({ key: ip });
+    return result.success ? null : corsJson({ error: 'slow_down', error_description: 'Too many requests' }, 429);
+  } catch {
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Rate limit service unavailable' }, 503);
+  }
+}
+
 // Allowlist of redirect_uri targets we will 302 to with an OAuth `code=`.
 // Dynamic client registration (RFC 7591) lets ANY caller register a client,
 // so validating the requested redirect_uri only against the client's own
@@ -3740,8 +3859,20 @@ function isAllowedRedirectUri(uri: string): boolean {
   return false;
 }
 
-function originOf(request: Request): string {
+export function originOf(request: Request): string {
   const u = new URL(request.url);
+  const forwarded = request.headers.get('X-Teajia-Public-Origin');
+  if (forwarded) {
+    try {
+      const candidate = new URL(forwarded);
+      const host = candidate.hostname.toLowerCase();
+      const allowedHost = host === 'teajia.com' || host === 'www.teajia.com' ||
+        host === 'teajiafinal.pages.dev' || host.endsWith('.teajiafinal.pages.dev');
+      if (candidate.protocol === 'https:' && allowedHost && candidate.origin === forwarded.replace(/\/$/, '')) {
+        return candidate.origin;
+      }
+    } catch { /* fall through to the direct request origin */ }
+  }
   return `${u.protocol}//${u.host}`;
 }
 
@@ -3777,19 +3908,37 @@ export function oauthAuthorizationServerMetadata(request: Request): Response {
 // use a known, bounded set of schemes/hosts (claude://oauth,
 // https://claude.ai/..., etc.), so this does not break legitimate clients.
 export async function oauthRegister(request: Request, env: Env): Promise<Response> {
-  if (request.method !== 'POST') return corsJson({ error: 'Method not allowed' }, 405);
+  if (request.method !== 'POST') return corsJson({ error: 'invalid_request', error_description: 'POST required' }, 405);
+  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, request);
+  if (limited) return limited;
+
+  const declaredLength = Number(request.headers.get('content-length') || 0);
+  if (declaredLength > 16_384) return corsJson({ error: 'invalid_client_metadata', error_description: 'Registration metadata too large' }, 400);
 
   let body: any;
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > 16_384) {
+      return corsJson({ error: 'invalid_client_metadata', error_description: 'Registration metadata too large' }, 400);
+    }
+    body = JSON.parse(raw);
   } catch {
     return corsJson({ error: 'invalid_request', error_description: 'Body must be JSON' }, 400);
   }
 
-  const clientName = String(body?.client_name || 'Unknown Client').slice(0, 120);
-  const redirectUris = Array.isArray(body?.redirect_uris) ? body.redirect_uris.filter((u: any) => typeof u === 'string') : [];
-  if (redirectUris.length === 0) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Registration metadata must be an object' }, 400);
+  }
+  const clientName = body.client_name === undefined ? 'Unknown Client' : body.client_name;
+  if (typeof clientName !== 'string' || clientName.length < 1 || clientName.length > 120) {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'client_name must be 1-120 characters' }, 400);
+  }
+  const redirectUris = body.redirect_uris;
+  if (!Array.isArray(redirectUris) || redirectUris.length === 0 || redirectUris.length > 10 || redirectUris.some((u: unknown) => typeof u !== 'string' || u.length > 2048)) {
     return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uris required' }, 400);
+  }
+  if (new Set(redirectUris).size !== redirectUris.length) {
+    return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uris must be unique' }, 400);
   }
   // Reject the whole registration if ANY redirect_uri is off-allowlist — we
   // won't store a client we'd later refuse to redirect to anyway.
@@ -3800,14 +3949,33 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
       error_description: `redirect_uri not permitted: ${disallowed}`,
     }, 400);
   }
-  const grantTypes = Array.isArray(body?.grant_types) ? body.grant_types : ['authorization_code'];
-  const responseTypes = Array.isArray(body?.response_types) ? body.response_types : ['code'];
+  const grantTypes = body.grant_types === undefined ? ['authorization_code'] : body.grant_types;
+  const responseTypes = body.response_types === undefined ? ['code'] : body.response_types;
+  if (!Array.isArray(grantTypes) || grantTypes.length !== 1 || grantTypes[0] !== 'authorization_code') {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Only authorization_code is supported' }, 400);
+  }
+  if (!Array.isArray(responseTypes) || responseTypes.length !== 1 || responseTypes[0] !== 'code') {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Only code response type is supported' }, 400);
+  }
+  if (body.token_endpoint_auth_method !== undefined && body.token_endpoint_auth_method !== 'none') {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Only public PKCE clients are supported' }, 400);
+  }
 
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO oauth_clients (id, client_name, redirect_uris, grant_types, response_types)
-     VALUES (?, ?, ?, ?, ?)`
-  ).bind(id, clientName, JSON.stringify(redirectUris), JSON.stringify(grantTypes), JSON.stringify(responseTypes)).run();
+  const redirectsJson = JSON.stringify(redirectUris);
+  const grantsJson = JSON.stringify(grantTypes);
+  const responsesJson = JSON.stringify(responseTypes);
+  const existing = await env.DB.prepare(
+    `SELECT id FROM oauth_clients
+     WHERE client_name = ? AND redirect_uris = ? AND grant_types = ? AND response_types = ? LIMIT 1`
+  ).bind(clientName, redirectsJson, grantsJson, responsesJson).first() as { id: string } | null;
+
+  const id = existing?.id || crypto.randomUUID();
+  if (!existing) {
+    await env.DB.prepare(
+      `INSERT INTO oauth_clients (id, client_name, redirect_uris, grant_types, response_types)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(id, clientName, redirectsJson, grantsJson, responsesJson).run();
+  }
 
   // Per RFC 7591 section 3.2.1
   return corsJson({
@@ -3830,7 +3998,7 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
 //
 // We DO NOT forward the OAuth params in the redirect query string. Claude
 // mobile's in-app browser was observed to drop the query string on the 302
-// follow (see docs/MCP_MOBILE_OAUTH_TODO.md), leaving the consent page with no
+// follow, leaving the consent page with no
 // client_id/code_challenge. Instead we persist the request in D1 and redirect
 // to `/admin/oauth-consent/<request_id>` — a path segment, which survives the
 // hop reliably. The consent page reads the id from the path and fetches the
@@ -3845,28 +4013,67 @@ const FRONTEND_ORIGIN = 'https://teajia.com';
 const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'GET') return corsJson({ error: 'invalid_request', error_description: 'GET required' }, 405);
+  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, request);
+  if (limited) return limited;
   const url = new URL(request.url);
   const q = url.searchParams;
   const now = Date.now();
+
+  const clientId = q.get('client_id') || '';
+  const redirectUri = q.get('redirect_uri') || '';
+  const responseType = q.get('response_type') || '';
+  const codeChallenge = q.get('code_challenge') || '';
+  const challengeMethod = q.get('code_challenge_method') || '';
+  const state = q.get('state');
+  const scope = q.get('scope');
+  if (!clientId || clientId.length > 128 || redirectUri.length > 2048 || responseType !== 'code'
+    || !/^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge) || challengeMethod !== 'S256'
+    || (state !== null && state.length > 512) || (scope !== null && scope !== '' && scope !== 'mcp')) {
+    return corsJson({ error: 'invalid_request', error_description: 'Invalid authorization request' }, 400);
+  }
+  const client = await env.DB.prepare('SELECT redirect_uris, grant_types, response_types FROM oauth_clients WHERE id = ?')
+    .bind(clientId).first() as { redirect_uris: string; grant_types: string; response_types: string } | null;
+  if (!client) return corsJson({ error: 'invalid_request', error_description: 'Unknown client_id' }, 400);
+  let registered: string[] = [];
+  let registeredGrants: string[] = [];
+  let registeredResponses: string[] = [];
+  try {
+    registered = JSON.parse(client.redirect_uris);
+    registeredGrants = JSON.parse(client.grant_types);
+    registeredResponses = JSON.parse(client.response_types);
+  } catch { /* invalid stored client */ }
+  if (!registeredGrants.includes('authorization_code') || !registeredResponses.includes('code')) {
+    return corsJson({ error: 'unauthorized_client', error_description: 'Client is not registered for authorization code flow' }, 400);
+  }
+  if (!registered.includes(redirectUri) || !isAllowedRedirectUri(redirectUri)) {
+    return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uri not registered' }, 400);
+  }
 
   // Opportunistic cleanup of expired pending requests.
   env.DB.prepare('DELETE FROM oauth_authorize_requests WHERE expires_at < ?')
     .bind(now).run().catch(() => {});
 
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
+  const existing = await env.DB.prepare(
+    `SELECT id FROM oauth_authorize_requests
+     WHERE client_id = ? AND redirect_uri = ? AND response_type = ? AND code_challenge = ?
+       AND code_challenge_method = ? AND COALESCE(state, '') = ? AND COALESCE(scope, '') = ? AND expires_at >= ?
+     LIMIT 1`
+  ).bind(clientId, redirectUri, responseType, codeChallenge, challengeMethod, state || '', scope || '', now).first() as { id: string } | null;
+  const id = existing?.id || crypto.randomUUID();
+  if (!existing) await env.DB.prepare(
     `INSERT INTO oauth_authorize_requests
        (id, client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state, scope, expires_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
-    q.get('client_id') || '',
-    q.get('redirect_uri') || '',
-    q.get('response_type') || 'code',
-    q.get('code_challenge') || '',
-    q.get('code_challenge_method') || '',
-    q.get('state'),
-    q.get('scope'),
+    clientId,
+    redirectUri,
+    responseType,
+    codeChallenge,
+    challengeMethod,
+    state,
+    scope,
     now + AUTHORIZE_REQUEST_TTL_MS,
   ).run();
 

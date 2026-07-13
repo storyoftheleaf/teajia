@@ -17,6 +17,8 @@ import { CardImage } from './shared/CardImage';
 import { AnchoredMenu } from './shared/AnchoredMenu';
 import { SectionDivider } from './shared/SectionDivider';
 import { SectionSkeleton } from './shared/SectionSkeleton';
+import { LogoEmblem } from './Logos/LogoEmblem';
+import { getSetCoverVariant } from './shop/setCover';
 import { useAdminOverlay } from '../hooks/useAdminOverlay';
 import { useScrollRestoration } from '../hooks/useScrollRestoration';
 import { useRates } from '../admin/hooks/useAdminData';
@@ -31,6 +33,37 @@ const AddProductModal = lazy(() => import('../admin/components/AddProductModal')
 const ProductEditPanel = lazy(() => import('../admin/components/ProductEditPanel').then(m => ({ default: m.ProductEditPanel })));
 
 type ShopTab = 'collection' | 'tea' | 'teaware' | 'sets';
+
+const SetCover: React.FC<{ set: StarterSet }> = ({ set }) => {
+  const category = set.items.some(item => item.type === 'tea') ? 'Tea collection' : 'Teaware collection';
+  const variant = getSetCoverVariant(set.id, category);
+  const emblemClasses = {
+    orbit: 'relative self-center opacity-55',
+    column: 'absolute right-6 top-16 opacity-50',
+    horizon: 'absolute bottom-6 right-6 opacity-45',
+    seal: 'absolute -right-7 top-1/2 -translate-y-1/2 opacity-[0.16]',
+  }[variant];
+  return (
+    <div
+      className="relative flex h-full min-h-48 w-full flex-col justify-between overflow-hidden bg-tea-elevated p-5 md:min-h-64 md:p-6"
+      role="img"
+      aria-label={`${set.name}, ${category}`}
+      data-cover-variant={variant}
+    >
+      <div className="absolute inset-0 opacity-[0.035] grain-texture pointer-events-none" aria-hidden="true" />
+      {variant === 'orbit' && <span className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border border-tea-border" aria-hidden="true" />}
+      {variant === 'column' && <span className="absolute bottom-5 right-20 top-16 w-px bg-tea-border" aria-hidden="true" />}
+      {variant === 'horizon' && <span className="absolute inset-x-5 top-1/2 border-t border-tea-border" aria-hidden="true" />}
+      {variant === 'seal' && <span className="absolute bottom-5 left-5 top-16 w-px bg-tea-gold opacity-30" aria-hidden="true" />}
+      <div className="relative flex items-center justify-between border-b border-tea-border pb-3">
+        <span className="label-caps text-tea-text-sec">{category}</span>
+        <span className="font-mono text-ui-9 text-tea-text-dim">{String(set.items.length).padStart(2, '0')} pieces</span>
+      </div>
+      <LogoEmblem size={variant === 'seal' ? 144 : 64} color="var(--tea-gold)" className={emblemClasses} ariaLabel="Teajia emblem" />
+      <p className="relative max-w-52 font-display text-ui-26 leading-tight text-tea-text">{set.name}</p>
+    </div>
+  );
+};
 
 interface ShopProps {
   teaInventory: InventoryItem[];
@@ -203,7 +236,11 @@ export const Shop: React.FC<ShopProps> = ({
         <div className="flex flex-col md:flex-row">
           {/* Image side */}
           <div className="relative md:w-[40%] lg:w-[35%] flex-shrink-0">
-            <CardImage src={set.image} alt={set.name} aspect="video" className="md:!aspect-auto md:h-full" />
+            {set.image ? (
+              <CardImage src={set.image} alt={set.name} aspect="video" className="md:!aspect-auto md:h-full" />
+            ) : (
+              <SetCover set={set} />
+            )}
           </div>
 
           {/* Content side */}

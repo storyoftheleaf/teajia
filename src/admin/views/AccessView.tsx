@@ -8,7 +8,7 @@ import type { AccountMember, Bundle } from '../../types';
 import { PlacementRequests } from '../components/PlacementRequests';
 
 // Members & Access — Location Owner / Tea Master view at /admin/access.
-// Per docs/NETWORK_ROLLOUT_PLAN.md §6-9 and docs/NETWORK_UI_BRIEF.md
+// Per docs/ARCHITECTURE.md and docs/NETWORK_UI_BRIEF.md.
 // shared vocabulary. Wine-list rhythm. No avatars-in-circles. No role-as-pill.
 // Bundles as comma-separated capability words underneath each name.
 

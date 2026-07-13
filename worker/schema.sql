@@ -2,7 +2,7 @@
 -- Converted from Postgres db_setup.sql
 --
 -- Multi-account: every tenant-scoped table below has an `account_id TEXT`
--- column (added by migration 017). See migration 017_multi_account.sql for
+-- column (added by migration 017). See migration 017_multi_account_patched.sql for
 -- the full list of scoped tables and the accounts/account_members tables.
 
 -- TODO: Migrate existing Matcha and Flower products to Herbal
@@ -241,9 +241,53 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',  -- legacy: 'owner', 'admin', 'user'
     platform_role TEXT DEFAULT NULL,    -- NULL | 'platform_admin' | 'platform_owner' (one platform_owner max)
+    session_version INTEGER NOT NULL DEFAULT 0,
+    email_verified_at TEXT,
     admin_request_status TEXT NOT NULL DEFAULT 'none',  -- 'none', 'pending', 'approved', 'denied'
     admin_requested_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS private_recordings (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    object_key TEXT NOT NULL UNIQUE,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    transcript TEXT,
+    last_error_code TEXT,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_private_recordings_owner ON private_recordings(account_id, user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS identity_email_verifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email_normalized TEXT NOT NULL,
+    purpose TEXT NOT NULL CHECK (purpose = 'signup-email'),
+    code_hash TEXT NOT NULL,
+    client_nonce_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    consumed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_identity_email_verifications_user ON identity_email_verifications(user_id, purpose, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS provider_jobs (
+    account_id TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    owner_user_id TEXT NOT NULL,
+    lock_token TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    completed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (account_id, operation)
 );
 
 CREATE TABLE IF NOT EXISTS mcp_confirmation_tickets (
@@ -363,7 +407,7 @@ CREATE TABLE IF NOT EXISTS product_listings (
   in_transit INTEGER DEFAULT 0,
   show_wisdom INTEGER DEFAULT 1,
   is_custom_wisdom INTEGER DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'active',
+  status TEXT NOT NULL DEFAULT 'active', -- draft | active | archived
   archived_at TEXT,
   archived_reason TEXT,
   sold_out_at TEXT,
@@ -1067,3 +1111,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
 CREATE INDEX IF NOT EXISTS idx_articles_account_status ON articles(account_id, status);
 CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event ON articles(account_id, source_event_id) WHERE source_event_id IS NOT NULL;
+
+-- Deduplicated operational failures for AI-assisted diagnosis and verified repair.
+CREATE TABLE IF NOT EXISTS incident_ledger (
+  id TEXT PRIMARY KEY,
+  signature TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL CHECK (category IN ('network', 'configuration', 'server', 'auth', 'authorization', 'workflow', 'client')),
+  severity TEXT NOT NULL CHECK (severity IN ('critical', 'high', 'medium', 'low')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'acknowledged', 'repairing', 'observing', 'resolved')),
+  first_seen TEXT NOT NULL DEFAULT (datetime('now')),
+  last_seen TEXT NOT NULL DEFAULT (datetime('now')),
+  occurrence_count INTEGER NOT NULL DEFAULT 1,
+  route TEXT,
+  method TEXT,
+  http_status INTEGER,
+  error_code TEXT NOT NULL,
+  safe_message TEXT NOT NULL,
+  deployment TEXT,
+  account_id TEXT,
+  user_id TEXT,
+  sample_json TEXT NOT NULL DEFAULT '{}',
+  resolved_at TEXT,
+  resolution_ref TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_incident_ledger_status_severity_last_seen
+  ON incident_ledger(status, severity, last_seen DESC);

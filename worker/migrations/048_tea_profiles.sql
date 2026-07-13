@@ -1,7 +1,7 @@
 -- 048_tea_profiles.sql
 -- Step 1 (Profiles migration) of the Network Rollout.
 -- Introduces canonical tea profiles + per-account product listings.
--- Per docs/NETWORK_ROLLOUT_PLAN.md.
+-- Per docs/NETWORK_UI_BRIEF.md.
 --
 -- Mental model:
 --   tea_profiles    = canonical content for a tea (name, origin, description, lore, photos)

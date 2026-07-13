@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import type { PlatformUser, PlatformAccount, AuditLogEntry } from '../../lib/api';
 import { useAppStore } from '../store';
 import { useToast } from '../components/Toast';
+import { Button } from '../../components/shared/Button';
 import type { PlatformRole } from '../../types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -85,12 +86,12 @@ const ConfirmButton: React.FC<{
   busy?: boolean;
   idleLabel: React.ReactNode;
   confirmLabel: React.ReactNode;
-  idleClassName?: string;
-  confirmClassName?: string;
+  idleVariant?: 'primary' | 'secondary' | 'danger';
+  confirmVariant?: 'primary' | 'danger';
   timeoutMs?: number;
   title?: string;
   disabled?: boolean;
-}> = ({ onConfirm, busy, idleLabel, confirmLabel, idleClassName = 'pill', confirmClassName = 'pill pill-destructive-confirm', timeoutMs = 3500, title, disabled }) => {
+}> = ({ onConfirm, busy, idleLabel, confirmLabel, idleVariant = 'secondary', confirmVariant = 'danger', timeoutMs = 3500, title, disabled }) => {
   const [armed, setArmed] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -109,11 +110,11 @@ const ConfirmButton: React.FC<{
   };
 
   return (
-    <button type="button" onClick={handleClick} disabled={busy || disabled} title={title}
-      className={`${armed ? confirmClassName : idleClassName} flex items-center gap-1.5 disabled:opacity-40`}>
-      {busy ? <Loader2 size={10} className="animate-spin" /> : armed ? <AlertTriangle size={10} /> : null}
+    <Button type="button" onClick={handleClick} disabled={disabled} loading={busy} title={title}
+      variant={armed ? confirmVariant : idleVariant} size="sm">
+      {!busy && armed ? <AlertTriangle size={10} /> : null}
       {armed ? confirmLabel : idleLabel}
-    </button>
+    </Button>
   );
 };
 
@@ -238,7 +239,6 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                     busy={busy === user.id}
                     idleLabel={<><Check size={10} />Admin</>}
                     confirmLabel={<>Revoke?</>}
-                    idleClassName="pill pill-active"
                     title="Revoke platform admin role"
                   />
                 ) : (
@@ -247,6 +247,7 @@ const UsersPanel: React.FC<{ isPlatformOwner: boolean }> = ({ isPlatformOwner })
                     busy={busy === user.id}
                     idleLabel={<><Shield size={10} />Make Admin</>}
                     confirmLabel={<>Grant platform-wide access?</>}
+                    confirmVariant="primary"
                     title="Grants platform-wide admin access — not account-level"
                   />
                 )
@@ -421,9 +422,9 @@ const AccountsPanel: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between">
                       <button type="button" onClick={() => setEditing(null)} className="text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-                      <button type="button" onClick={() => handleSaveEdit(account.id)} disabled={saveBusy} className="pill pill-primary flex items-center gap-1">
-                        {saveBusy ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
-                      </button>
+                      <Button type="button" onClick={() => handleSaveEdit(account.id)} disabled={saveBusy} loading={saveBusy} variant="primary" size="sm" icon={<Check size={10} />}>
+                        Save
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -490,6 +491,7 @@ const AccountsPanel: React.FC = () => {
                         busy={busyStatus === account.id}
                         idleLabel={<><Check size={10} />Reactivate account</>}
                         confirmLabel={<>Reactivate {account.name}?</>}
+                        confirmVariant="primary"
                       />
                     ) : (
                       <ConfirmButton
@@ -497,7 +499,7 @@ const AccountsPanel: React.FC = () => {
                         busy={busyStatus === account.id}
                         idleLabel={<><AlertTriangle size={10} />Suspend account</>}
                         confirmLabel={<>Suspend {account.name}?</>}
-                        idleClassName="pill pill-destructive"
+                        idleVariant="danger"
                       />
                     )}
                   </div>

@@ -1,0 +1,46 @@
+name: Check deployment config
+
+# This is early repository feedback, not the gate for Cloudflare Git deploys.
+# The authoritative gate runs inside `npm run build` on Cloudflare Pages, where
+# WORKER_ORIGIN is the same environment binding received by Pages Functions.
+on:
+  pull_request:
+    paths:
+      - 'functions/**'
+      - 'scripts/check-required-deployment-config.mjs'
+      - 'scripts/check-required-deployment-config.test.mjs'
+      - 'package.json'
+      - '.github/workflows/check-deployment-config.yml'
+      - '.github/workflows/deploy-frontend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - 'scripts/check-required-deployment-config.mjs'
+      - 'scripts/check-required-deployment-config.test.mjs'
+      - 'package.json'
+      - '.github/workflows/check-deployment-config.yml'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-variable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      WORKER_ORIGIN: ${{ vars.WORKER_ORIGIN }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Validate WORKER_ORIGIN repository variable
+        run: npm run check:deploy-config
+
+      - name: Deployment configuration tests
+        run: node --test scripts/check-required-deployment-config.test.mjs

@@ -11,7 +11,7 @@
 -- Converted from Postgres db_setup.sql
 --
 -- Multi-account: every tenant-scoped table below has an `account_id TEXT`
--- column (added by migration 017). See migration 017_multi_account.sql for
+-- column (added by migration 017). See migration 017_multi_account_patched.sql for
 -- the full list of scoped tables and the accounts/account_members tables.
 
 -- TODO: Migrate existing Matcha and Flower products to Herbal

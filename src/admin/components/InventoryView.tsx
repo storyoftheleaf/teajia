@@ -82,6 +82,12 @@ interface InventoryViewProps {
   onOptionsToggle?: (open: boolean) => void;
 }
 
+type InventoryToastOptions = { action?: { label: string; onClick: () => void }; duration?: number };
+
+function isInventoryToastType(type: string): type is 'success' | 'error' | 'info' {
+  return type === 'success' || type === 'error' || type === 'info';
+}
+
 // Shared inline-edit components + ProductEditPanel (extracted for reuse)
 import { GhostInput, GhostTextarea, GhostAutocompleteInput, GhostSelect, VendorPicker, ImageManager, ProductEditPanel, CollapsibleSection, buildProductUpdatePayload } from './ProductEditPanel';
 
@@ -115,6 +121,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   activeAccountName = '',
 }) => {
   const { showToast } = useToast();
+  const showInventoryToast = useCallback((message: string, type: string, options?: InventoryToastOptions) => {
+    showToast(message, isInventoryToastType(type) ? type : 'info', options);
+  }, [showToast]);
 
   // --- STORE ---
   // useShallow selector: component only re-renders when these specific fields change,
@@ -2214,7 +2223,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onStockMovement={stableStockMovement}
                                   onRestock={handleRestock}
                                   onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
-                                  showToast={showToast}
+                                  showToast={showInventoryToast}
                                   navigate={navigate}
                                 />
                                 {expandedRowId === product.id && (
@@ -2298,7 +2307,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onStockMovement={stableStockMovement}
                               onRestock={handleRestock}
                               onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
-                              showToast={showToast}
+                              showToast={showInventoryToast}
                               navigate={navigate}
                             />
                             {expandedRowId === product.id && (

@@ -272,7 +272,7 @@ export const OrdersView = () => {
   const handleLinkProduct = async (product: { id: string; givenName?: string; productName?: string }) => {
     if (!viewingInvoice || !linkState) return;
     const targetItem = (viewingInvoice.items || [])[linkState.itemIndex];
-    if (!targetItem) return;
+    if (!targetItem?.id) return;
     try {
       const result = await api.rpc.linkLineItem(viewingInvoice.id, targetItem.id, product.id);
       const updatedItems = (viewingInvoice.items || []).map((item, idx) => {
@@ -489,7 +489,7 @@ export const OrdersView = () => {
                           )}
                           {order.source_event_title && (
                             <button
-                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
+                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title ?? '')}`)}
                               className="text-tea-text-dim hover:text-tea-text-sec transition-colors cursor-pointer shrink-0"
                               title={`Attributed to: ${order.source_event_title}`}
                             ><Leaf size={10} /></button>
@@ -605,7 +605,7 @@ export const OrdersView = () => {
                           >{order.invoice_number}</button>
                           {order.source_event_title && (
                             <button
-                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title)}`)}
+                              onClick={() => navigate(`/admin/events?search=${encodeURIComponent(order.source_event_title ?? '')}`)}
                               className="text-tea-text-dim hover:text-tea-text-sec transition-colors"
                               title={`Attributed to: ${order.source_event_title}`}
                             ><Leaf size={11} /></button>
@@ -748,7 +748,7 @@ export const OrdersView = () => {
                   <div className="bg-tea-surface border border-tea-border rounded-xl p-4 mb-6">
                     <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec mb-2">Source Event</h4>
                     <button
-                      onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title)}`); }}
+                      onClick={() => { setViewingInvoice(null); navigate(`/admin/events?search=${encodeURIComponent(viewingInvoice.source_event_title ?? '')}`); }}
                       className="text-sm text-tea-text hover:text-tea-gold transition-colors"
                     >
                       {viewingInvoice.source_event_title}
@@ -781,7 +781,7 @@ export const OrdersView = () => {
                                 <div className="flex-1 min-w-0">
                                     {item.product_id ? (
                                       <button
-                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/stock?panel=${encodeURIComponent(item.product_id)}`); }}
+                                        onClick={() => { setViewingInvoice(null); navigate(`/admin/stock?panel=${encodeURIComponent(item.product_id ?? '')}`); }}
                                         className="text-tea-text font-medium hover:text-tea-gold transition-colors text-left truncate block"
                                       >
                                         {item.given_name || item.product_name || 'Unknown'}
@@ -903,6 +903,8 @@ export const OrdersView = () => {
                   <div className="mt-4">
                     <button
                       onClick={() => {
+                        const customerPhone = viewingInvoice.customer_phone;
+                        if (!customerPhone) return;
                         const items = (viewingInvoice.items || []).map((it) => ({
                           name: it.product?.givenName || it.product_name || 'Item',
                           quantity: it.quantity,
@@ -910,7 +912,7 @@ export const OrdersView = () => {
                           price: '', total: '',
                         }));
                         const total = ((viewingInvoice.items || []).reduce((sum, it) => sum + (it.quantity * it.price_at_sale), 0) + (Number(viewingInvoice.shipping_cost_usd) || 0)).toFixed(2);
-                        openWhatsAppStatus(viewingInvoice.customer_phone, {
+                        openWhatsAppStatus(customerPhone, {
                           status: viewingInvoice.status === 'Filled' ? 'filled' : 'confirmed',
                           ref: viewingInvoice.invoice_number,
                           customerName: viewingInvoice.customer_name,

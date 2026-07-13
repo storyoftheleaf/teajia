@@ -22,7 +22,7 @@ interface LiveMatrixProps {
 }
 
 function VerdictDot({ v, wouldBuy, quality }: { v?: string; wouldBuy?: boolean; quality?: number | null }) {
-  let icon = null;
+  let icon: React.ReactNode = null;
   let cls = 'text-tea-text-dim';
   if (v === 'love') { icon = <Heart className="w-3.5 h-3.5 fill-current" />; cls = 'text-tea-gold'; }
   else if (v === 'like') { icon = <ThumbsUp className="w-3.5 h-3.5" />; cls = 'text-tea-gold-lt'; }

@@ -15,6 +15,7 @@ import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
+import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
 
 interface Env {
   DB: D1Database;
@@ -60,6 +61,18 @@ interface Env {
   // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
   // stays as a fallback when this is unset.
   LOGIN_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
+  VERIFY_LIMITER?: RateLimiterBinding;
+  JOIN_CODE_LIMITER?: RateLimiterBinding;
+  PROVIDER_LIMITER?: RateLimiterBinding;
+  RSVP_LIMITER?: RateLimiterBinding;
+  OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
+  OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
+  // Scoped machine credential used only by the repository incident-queue exporter.
+  INCIDENT_EXPORT_TOKEN?: string;
+}
+
+interface RateLimiterBinding {
+  limit: (opts: { key: string }) => Promise<{ success: boolean }>;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -113,6 +126,7 @@ export interface TokenClaims {
   platform_role?: PlatformRole;
   memberships?: AccountMembership[];
   active_account_id?: string | null;
+  session_version?: number;
   iat?: number;
   exp?: number;
 }
@@ -328,8 +342,7 @@ async function maybeIssueRefreshedToken(
   // account changes (adds/removals) that happened since the last login.
   const memberships = await loadMemberships(env, claims.sub);
   const activeAccountId = claims.active_account_id
-    || memberships[0]?.account_id
-    || null;
+    || await resolveInitialAccountId(env, claims.platform_role ?? null, memberships);
 
   return createToken(env.JWT_SECRET, {
     sub: claims.sub,
@@ -340,6 +353,7 @@ async function maybeIssueRefreshedToken(
     memberships,
     active_account_id: activeAccountId,
     ...(claims as any).username ? { username: (claims as any).username } : {},
+    session_version: Number(claims.session_version || 0),
   } as Omit<TokenClaims, 'iat' | 'exp'>);
 }
 
@@ -424,6 +438,26 @@ async function loadMemberships(env: Env, userId: string): Promise<AccountMembers
   }
 }
 
+// Choose the account used when a session has no explicit active-account
+// context yet. Platform-tier users operate across the network, so they must
+// still land in the active platform account even when they have no ordinary
+// account_members rows.
+export async function resolveInitialAccountId(
+  env: Env,
+  platformRole: PlatformRole,
+  memberships: AccountMembership[],
+): Promise<string | null> {
+  if (memberships[0]?.account_id) return memberships[0].account_id;
+  if (platformRole !== 'platform_owner' && platformRole !== 'platform_admin') return null;
+
+  const account = await env.DB.prepare(
+    "SELECT id FROM accounts WHERE is_platform_owner = 1 AND status = 'active' ORDER BY created_at ASC LIMIT 1"
+  ).first();
+  const accountId = account?.id as string | undefined;
+  if (!accountId) throw new Error('Active platform account unavailable');
+  return accountId;
+}
+
 // Resolve the bundle set for a single membership row given role, account kind,
 // and the raw permissions JSON. Platform-tier bypasses are handled in the
 // requireBundle middleware (it short-circuits for platform_owner/admin claims),
@@ -489,16 +523,16 @@ async function getActiveAccount(
 ): Promise<AccountCtx | { error: Response }> {
   const token = isAuthed(request);
   if (!token) {
-    return { error: json({ error: 'Unauthorized', reason: 'no_token' }, 401) };
+    return { error: restError(401, 'Unauthorized', 'auth_no_token') };
   }
   const status = await classifyToken(token, env.JWT_SECRET);
   if (status !== 'valid') {
     // 'expired' → client should attempt a silent refresh
     // 'invalid' → malformed or tampered; client should clear the session
-    return { error: json({ error: 'Unauthorized', reason: status }, 401) };
+    return { error: restError(401, 'Unauthorized', `auth_${status}`) };
   }
   const claims = parseToken(token);
-  if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
+  if (!claims) return { error: restError(401, 'Unauthorized', 'auth_invalid') };
 
   // Re-verify platform_role from the DB on every request rather than trusting
   // the embedded JWT claim. Without this, a user demoted from platform_admin
@@ -506,15 +540,21 @@ async function getActiveAccount(
   // Tokens are signed and tamper-resistant, but signed claims still go stale.
   let dbPlatformRole: PlatformRole = null;
   try {
-    const userRow = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
+    const userRow = await env.DB.prepare('SELECT platform_role, session_version FROM users WHERE id = ?').bind(claims.sub).first()
+      // Legacy test/local adapters may expose the pre-116 projection. Real D1
+      // returns the first query; the fallback is removable after those adapters converge.
+      || await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
     if (!userRow) {
       // User row missing — treat as fully unauthorized (account deleted, etc.)
-      return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
+      return { error: restError(401, 'Unauthorized', 'auth_invalid') };
+    }
+    if (Number(userRow.session_version || 0) !== Number(claims.session_version || 0)) {
+      return { error: restError(401, 'Unauthorized', 'auth_session_invalid') };
     }
     dbPlatformRole = (userRow.platform_role as PlatformRole) ?? null;
   } catch {
     // Fail closed: if we cannot verify platform role, do not honor the claim.
-    return { error: json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503) };
+    return { error: restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' }) };
   }
 
   // Platform owner and platform admin bypass account membership checks —
@@ -522,15 +562,15 @@ async function getActiveAccount(
   if (dbPlatformRole === 'platform_owner' || dbPlatformRole === 'platform_admin') {
     const headerAccount = request.headers.get('X-Teajia-Account');
     const requested = headerAccount || claims.active_account_id || null;
-    if (!requested) return { error: json({ error: 'Account access denied' }, 403) };
+    if (!requested) return { error: restError(403, 'Account access denied', 'account_access_denied') };
     try {
       const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
       if (acct && acct.status === 'suspended') {
-        return { error: json({ error: 'This account has been suspended. Reactivate via the platform admin panel.' }, 403) };
+        return { error: restError(403, 'This account has been suspended. Reactivate via the platform admin panel.', 'account_suspended') };
       }
     } catch {
       // Fail closed: if we cannot read the account status row, refuse.
-      return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+      return { error: restError(503, 'Account dependency unavailable', 'auth_dependency_unavailable', { dependency: 'accounts' }) };
     }
     return {
       accountId: requested,
@@ -546,7 +586,7 @@ async function getActiveAccount(
   const headerAccount = request.headers.get('X-Teajia-Account');
   const requested = headerAccount || claims.active_account_id || null;
   if (!requested) {
-    return { error: json({ error: 'Account access denied' }, 403) };
+    return { error: restError(403, 'Account access denied', 'account_access_denied') };
   }
 
   // Verify membership and resolve bundles. We always need bundles + kind from
@@ -578,21 +618,21 @@ async function getActiveAccount(
       };
     }
   } catch {
-    return { error: json({ error: 'Membership check failed', reason: 'db_unavailable' }, 503) };
+    return { error: restError(503, 'Membership dependency unavailable', 'auth_dependency_unavailable', { dependency: 'memberships' }) };
   }
 
   if (!membership) {
-    return { error: json({ error: 'Account access denied' }, 403) };
+    return { error: restError(403, 'Account access denied', 'account_access_denied') };
   }
 
   // Block access to suspended accounts (platform roles bypass this earlier).
   try {
     const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
     if (acct && acct.status === 'suspended') {
-      return { error: json({ error: 'This account has been suspended' }, 403) };
+      return { error: restError(403, 'This account has been suspended', 'account_suspended') };
     }
   } catch {
-    return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+    return { error: restError(503, 'Account dependency unavailable', 'auth_dependency_unavailable', { dependency: 'accounts' }) };
   }
 
   const bundles = resolveBundles(membership.role, membership.kind, membership.permissions);
@@ -624,14 +664,14 @@ async function requireAccountRole(
   if ('error' in ctx) return ctx;
   // Platform roles already resolve as 'owner' from getActiveAccount — no extra check needed.
   if (!allowedRoles.includes(ctx.role)) {
-    return { error: json({ error: 'Insufficient role for this account' }, 403) };
+    return { error: restError(403, 'Insufficient role for this account', 'insufficient_role') };
   }
   return ctx;
 }
 
 // Bundle-aware authorization (Members & Access). Use this for any handler
 // whose access maps to a capability bundle. The authorization matrix lives in
-// docs/NETWORK_ROLLOUT_PLAN.md.
+// docs/ARCHITECTURE.md.
 //
 // Examples:
 //   requireBundle(request, env, 'catalog')  — edit canonical, carry teas, suggest edits
@@ -649,12 +689,7 @@ async function requireBundle(
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx;
   if (ctx.bundles.includes(bundle)) return ctx;
-  return {
-    error: json({
-      error: 'Insufficient bundle for this action',
-      required_bundle: bundle,
-    }, 403)
-  };
+  return { error: restError(403, 'Insufficient bundle for this action', 'insufficient_bundle', { required_bundle: bundle }) };
 }
 
 // Some actions are reserved to the account's owner tier specifically (not just
@@ -670,7 +705,7 @@ async function requireOwnerTier(
   if (ctx.role === 'owner') return ctx;
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   console.warn(`[auth] requireOwnerTier denied: account=${ctx.accountId} role=${ctx.role} ip=${ip}`);
-  return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
+  return { error: restError(403, 'Owner-tier access required for this action', 'owner_required') };
 }
 
 // Require an active (non-suspended) account. Used for mutating operations.
@@ -716,8 +751,8 @@ async function resolveDbPlatformRole(env: Env, userId: string): Promise<Platform
 async function requirePlatformOwner(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
   const dbRole = await resolveDbPlatformRole(env, claims.sub);
@@ -734,8 +769,8 @@ async function requirePlatformOwner(request: Request, env: Env): Promise<Respons
 async function requirePlatformAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
   const dbRole = await resolveDbPlatformRole(env, claims.sub);
@@ -890,6 +925,14 @@ function buildProductMirrorStmts(
     profileCols.push(`${profileCol} = ?`);
     profileVals.push(body[bodyKey] ?? null);
   }
+  if (body.status !== undefined) {
+    profileCols.push('status = ?');
+    profileVals.push(body.status === 'Archived' ? 'archived' : body.status === 'Draft' ? 'draft' : 'published');
+  }
+  if (body.is_public !== undefined) {
+    profileCols.push('network_visible = ?');
+    profileVals.push(body.is_public ? 1 : 0);
+  }
   if (profileCols.length > 0) {
     profileCols.push("updated_at = datetime('now')");
     stmts.push(
@@ -899,7 +942,8 @@ function buildProductMirrorStmts(
   }
 
   // Listing mirror — inventory + per-account fields. Listing status mirrors
-  // products.status: legacy 'Archived' → listing 'archived', anything else stays 'active'.
+  // products.status: preserve Draft as non-active until Publish capability
+  // explicitly promotes it. Archived remains the soft-delete state.
   const listingCols: string[] = [];
   const listingVals: any[] = [];
   for (const bodyKey of Object.keys(body)) {
@@ -910,7 +954,7 @@ function buildProductMirrorStmts(
   }
   if (body.status !== undefined) {
     listingCols.push('status = ?');
-    listingVals.push(body.status === 'Archived' ? 'archived' : 'active');
+    listingVals.push(body.status === 'Archived' ? 'archived' : body.status === 'Draft' ? 'draft' : 'active');
   }
   if (listingCols.length > 0) {
     listingCols.push("updated_at = datetime('now')");
@@ -939,9 +983,11 @@ function buildListingStatusMirror(
   env: Env, productId: string, productStatus: string
 ): D1PreparedStatement {
   // Legacy products.status values: 'Active' | 'Sold Out' | 'Draft' | 'Archived'.
-  // Only 'Archived' maps to listing.status='archived' (soft-delete = stopped carrying).
-  // 'Sold Out' is just stock=0 and stays 'active' on the listing per Decision 13.
-  const listingStatus = productStatus === 'Archived' ? 'archived' : 'active';
+  // Draft listings remain non-active until an explicit Publish-capable command.
+  // 'Sold Out' is just stock=0 and stays 'active' per Decision 13.
+  const listingStatus = productStatus === 'Archived' ? 'archived'
+    : productStatus === 'Draft' ? 'draft'
+    : 'active';
   return env.DB.prepare(
     `UPDATE product_listings SET status = ?, sold_out_at = ?, updated_at = datetime('now') WHERE id = ?`
   ).bind(listingStatus, productStatus === 'Sold Out' ? new Date().toISOString() : null, `list_${productId}`);
@@ -951,7 +997,7 @@ function buildListingStatusMirror(
 // is created. Skips teaware. Mirrors the migration 048 backfill shape so old
 // and new rows look identical regardless of which path created them.
 function buildProductMirrorInserts(
-  env: Env, productId: string, accountId: string, body: Record<string, any>
+  env: Env, productId: string, accountId: string, body: Record<string, any>, forceDraftListing = false,
 ): D1PreparedStatement[] {
   // Teaware: no profile/listing row per the rollout plan.
   if (body.type === 'Teaware') return [];
@@ -970,7 +1016,9 @@ function buildProductMirrorInserts(
   const profileStatus = body.status === 'Archived' ? 'archived'
     : body.status === 'Draft' ? 'draft'
     : 'published';
-  const listingStatus = body.status === 'Archived' ? 'archived' : 'active';
+  const listingStatus = body.status === 'Archived' ? 'archived'
+    : forceDraftListing ? 'draft'
+    : 'active';
 
   const profileInsert = env.DB.prepare(`
     INSERT INTO tea_profiles (
@@ -1031,9 +1079,26 @@ function buildProductMirrorInserts(
 async function requireAuth(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
+  return validateSessionToken(token, env);
+}
+
+async function validateSessionToken(token: string, env: Env): Promise<Response | null> {
   const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
-  return null;
+  if (status !== 'valid') return restError(401, 'Unauthorized', `auth_${status}`);
+  const claims = parseToken(token);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  if (claims.sub === 'env-admin') return null;
+  try {
+    const user = await env.DB.prepare('SELECT session_version FROM users WHERE id = ?').bind(claims.sub).first()
+      || await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
+    if (!user) return restError(401, 'Unauthorized', 'auth_user_missing');
+    if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+      return restError(401, 'Unauthorized', 'auth_session_invalid');
+    }
+    return null;
+  } catch {
+    return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' });
+  }
 }
 
 // Re-read the user's role from the DB rather than trusting the JWT `role`
@@ -1053,8 +1118,8 @@ async function resolveDbUserRole(env: Env, userId: string): Promise<string | nul
 async function requireAdmin(request: Request, env: Env): Promise<Response | null> {
   const token = isAuthed(request);
   if (!token) return json({ error: 'Unauthorized', reason: 'no_token' }, 401);
-  const status = await classifyToken(token, env.JWT_SECRET);
-  if (status !== 'valid') return json({ error: 'Unauthorized', reason: status }, 401);
+  const sessionError = await validateSessionToken(token, env);
+  if (sessionError) return sessionError;
   const claims = parseToken(token);
   if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
 
@@ -1118,6 +1183,42 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function restError(
+  status: number,
+  error: string,
+  code?: string,
+  details?: Record<string, unknown>,
+): Response {
+  return json({ error, ...(code ? { code } : {}), ...(details ? { details } : {}) }, status);
+}
+
+async function enforceDurableLimit(binding: RateLimiterBinding | undefined, key: string): Promise<Response | null> {
+  if (!binding) return null; // Wrangler local development has no native binding.
+  try {
+    const result = await binding.limit({ key });
+    return result.success ? null : restError(429, 'Too many requests', 'rate_limited');
+  } catch {
+    return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
+  }
+}
+
+function validatedUpdateFields(
+  body: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+): { fields: string[] } | { error: Response } {
+  const unknown = Object.keys(body).filter(field => !allowed.has(field));
+  if (unknown.length > 0) {
+    return {
+      error: json({
+        error: 'Unsupported fields for this update',
+        code: 'validation_failed',
+        details: { fields: unknown },
+      }, 400),
+    };
+  }
+  return { fields: Object.keys(body) };
+}
+
 function cachedJson(data: unknown, maxAge: number, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -1143,6 +1244,7 @@ function cors(response: Response, origin: string | null): Response {
   // Only echo ACAO when the origin is actually trusted — echoing the wrong
   // origin makes the browser silently drop the response (Safari surfaces
   // this as "Load failed" with no JS error to act on).
+  headers.delete('Access-Control-Allow-Origin');
   if (origin) headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Teajia-Account');
@@ -1242,13 +1344,16 @@ const handleLogin: Handler = async (request, env) => {
     ).bind(identifier, identifier).first();
     const { verified: dbVerified, isLegacy } = await verifyPasswordHash(password, user?.password_hash as string ?? '');
     if (user && dbVerified) {
+      if (!user.email_verified_at) {
+        return restError(403, 'Email verification is required before sign-in', 'email_verification_required');
+      }
       if (isLegacy) {
         const upgraded = await hashPasswordPBKDF2(password);
         await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(upgraded, user.id).run();
       }
       const memberships = await loadMemberships(env, user.id as string);
-      const activeAccountId = memberships[0]?.account_id || null;
       const platformRole = (user.platform_role as PlatformRole) ?? null;
+      const activeAccountId = await resolveInitialAccountId(env, platformRole, memberships);
       const token = await createToken(env.JWT_SECRET, {
         sub: user.id as string,
         email: user.email as string,
@@ -1258,6 +1363,7 @@ const handleLogin: Handler = async (request, env) => {
         username: (user.username as string | null) ?? null,
         memberships,
         active_account_id: activeAccountId,
+        session_version: Number(user.session_version || 0),
       });
       return json({
         token,
@@ -1266,7 +1372,10 @@ const handleLogin: Handler = async (request, env) => {
         active_account_id: activeAccountId,
       });
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Active platform account unavailable') {
+      return json({ error: 'Platform account bootstrap failed', reason: 'platform_account_unavailable' }, 503);
+    }
     // Table may not exist yet — fall through to env-based auth
   }
 
@@ -1292,6 +1401,7 @@ const handleLogin: Handler = async (request, env) => {
       name: 'Dev Admin',
       memberships,
       active_account_id: activeAccountId,
+      session_version: 0,
     });
     return json({
       token,
@@ -1322,6 +1432,7 @@ const handleLogin: Handler = async (request, env) => {
       name: 'Admin',
       memberships,
       active_account_id: BALI_ACCOUNT_ID,
+      session_version: 0,
     });
     return json({
       token,
@@ -1382,30 +1493,158 @@ const handleSignup: Handler = async (request, env) => {
     'INSERT INTO users (id, email, username, name, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, email, username, name || '', passwordHash, 'user').run();
 
-  // New users auto-join nothing — they must be invited to an account.
-  // The empty memberships array is intentional; the frontend should show a
-  // "waiting for invite" state until an account owner adds them.
-  const memberships: AccountMembership[] = [];
-  const token = await createToken(env.JWT_SECRET, {
-    sub: id,
-    email,
-    role: 'user',
-    name: name || '',
-    username,
-    memberships,
-    active_account_id: null,
-  });
-
-  if (env.SENDER_EMAIL) {
-    sendEmail(env, email, 'Welcome to Teajia', welcomeEmailHtml(name || 'there')).catch(() => {});
+  const code = generateVerificationCode();
+  const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const signupToken = crypto.randomUUID() + crypto.randomUUID();
+  const signupTokenHash = await signVerificationCode(signupToken, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  await env.DB.prepare(
+    `INSERT INTO identity_email_verifications (id, user_id, email_normalized, purpose, code_hash, client_nonce_hash, expires_at)
+     VALUES (?, ?, ?, 'signup-email', ?, ?, datetime('now', '+10 minutes'))`
+  ).bind(crypto.randomUUID(), id, email.toLowerCase(), codeHash, signupTokenHash).run();
+  const delivery = await deliverVerificationCode(env, { email, code, purpose: 'signin' });
+  if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM identity_email_verifications WHERE user_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id),
+    ]);
+    return restError(503, 'We could not send the verification code', 'verification_delivery_failed', { retryable: delivery.retryable });
   }
 
   return json({
-    token,
-    user: { id, email, username, name: name || '', role: 'user' },
-    memberships,
-    active_account_id: null,
-  }, 201);
+    verification_required: true,
+    code: 'email_verification_required',
+    signup_token: signupToken,
+    delivery_retryable: !delivery.delivered && delivery.retryable,
+    ...(env.DEV_RETURN_VERIFY_CODES === 'true' ? { verification_code: code } : {}),
+  }, 202);
+};
+
+const handleVerifySignupEmail: Handler = async (request, env) => {
+  const body = await request.json().catch(() => ({})) as { email?: string; code?: string; signup_token?: string };
+  const email = body.email?.trim().toLowerCase() || '';
+  if (!email || !body.code || !body.signup_token) return restError(400, 'Email, code, and signup token are required', 'validation_failed');
+  const challenge = await env.DB.prepare(
+    `SELECT v.id, v.user_id, v.code_hash, v.client_nonce_hash, v.failed_attempts, u.email, u.name, u.username, u.role, u.platform_role, u.session_version
+     FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
+     WHERE v.email_normalized = ? AND v.purpose = 'signup-email' AND v.consumed_at IS NULL
+       AND v.expires_at > datetime('now') ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1`
+  ).bind(email).first();
+  if (!challenge || Number(challenge.failed_attempts) >= 3) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  const signupTokenValid = await verifyVerificationCode(body.signup_token, challenge.client_nonce_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  if (!signupTokenValid) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  const valid = await verifyVerificationCode(body.code, challenge.code_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  if (!valid) {
+    await env.DB.prepare(`UPDATE identity_email_verifications SET failed_attempts = failed_attempts + 1,
+      consumed_at = CASE WHEN failed_attempts + 1 >= 3 THEN datetime('now') ELSE consumed_at END WHERE id = ?`)
+      .bind(challenge.id).run();
+    return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  }
+  const verifiedAt = new Date().toISOString();
+  const [consume] = await env.DB.batch([
+    env.DB.prepare(`UPDATE identity_email_verifications SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL`).bind(verifiedAt, challenge.id),
+    env.DB.prepare(`UPDATE users SET email_verified_at = ? WHERE id = ? AND lower(email) = ?`).bind(verifiedAt, challenge.user_id, email),
+  ]);
+  if (!consume.meta.changes) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  const memberships = await loadMemberships(env, challenge.user_id as string);
+  const token = await createToken(env.JWT_SECRET, {
+    sub: challenge.user_id as string, email: challenge.email as string, name: challenge.name as string,
+    username: (challenge.username as string | null) ?? null, role: challenge.role as string,
+    platform_role: (challenge.platform_role as PlatformRole) ?? null, memberships,
+    active_account_id: memberships[0]?.account_id || null, session_version: Number(challenge.session_version || 0),
+  });
+  return json({ token, user: { id: challenge.user_id, email: challenge.email }, memberships, active_account_id: memberships[0]?.account_id || null, email_verified_at: new Date().toISOString() });
+};
+
+// POST /api/auth/signup/resend — replace an expired/locked signup challenge.
+// The prior browser nonce is proof of possession; email alone is never enough
+// to restart signup for an existing identity.
+const handleResendSignupVerification: Handler = async (request, env) => {
+  const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, `signup-resend:${verifyIp}`);
+  if (limited) return limited;
+
+  const body = await request.json().catch(() => ({})) as { email?: string; signup_token?: string };
+  const email = body.email?.trim().toLowerCase() || '';
+  if (!email || !body.signup_token) {
+    return restError(400, 'Email and signup token are required', 'validation_failed');
+  }
+
+  // Deliberately include expired and failed/consumed challenges: this route is
+  // the recovery path for both. A verified user is never eligible, even with a
+  // previously valid signup nonce.
+  const prior = await env.DB.prepare(
+    `SELECT v.id, v.user_id, v.client_nonce_hash, u.email_verified_at
+     FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
+     WHERE v.email_normalized = ? AND v.purpose = 'signup-email'
+       AND u.created_at > datetime('now', '-24 hours')
+     ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1`
+  ).bind(email).first();
+  const priorNonceHash = typeof prior?.client_nonce_hash === 'string'
+    ? prior.client_nonce_hash as string
+    : '0'.repeat(64);
+  const proofValid = await verifyVerificationCode(
+    body.signup_token,
+    priorNonceHash,
+    env.VERIFICATION_CODE_SECRET || env.JWT_SECRET,
+  );
+  const invalid = () => restError(401, 'Invalid or expired verification request', 'verification_invalid');
+  if (!prior || prior.email_verified_at || !proofValid) return invalid();
+
+  const code = generateVerificationCode();
+  const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const signupToken = crypto.randomUUID() + crypto.randomUUID();
+  const signupTokenHash = await signVerificationCode(signupToken, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const spentNonceHash = await signVerificationCode(
+    `spent:${crypto.randomUUID()}`,
+    env.VERIFICATION_CODE_SECRET || env.JWT_SECRET,
+  );
+  const challengeId = crypto.randomUUID();
+
+  // Do not spend the caller's existing proof until the replacement code has
+  // actually been accepted for delivery. This lets a provider outage be
+  // retried with the same browser-held signup token.
+  const delivery = await deliverVerificationCode(env, { email, code, purpose: 'signin' });
+  if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
+    return restError(503, 'We could not send the verification code', 'verification_delivery_failed', { retryable: delivery.retryable });
+  }
+
+  // Compare-and-swap the prior nonce, then conditionally insert the replacement
+  // in the same D1 batch. Concurrent resend attempts cannot both mint a usable
+  // successor challenge.
+  const [consumeProof, createChallenge] = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE identity_email_verifications
+       SET client_nonce_hash = ?
+       WHERE id = ? AND client_nonce_hash = ?
+         AND EXISTS (
+           SELECT 1 FROM users
+           WHERE users.id = identity_email_verifications.user_id
+             AND users.email_verified_at IS NULL
+             AND users.created_at > datetime('now', '-24 hours')
+         )`
+    ).bind(spentNonceHash, prior.id, priorNonceHash),
+    env.DB.prepare(
+      `INSERT INTO identity_email_verifications
+         (id, user_id, email_normalized, purpose, code_hash, client_nonce_hash, expires_at)
+       SELECT ?, ?, ?, 'signup-email', ?, ?, datetime('now', '+10 minutes')
+       FROM identity_email_verifications AS replaced
+       JOIN users u ON u.id = replaced.user_id
+       WHERE replaced.id = ? AND replaced.client_nonce_hash = ?
+         AND u.email_verified_at IS NULL
+         AND u.created_at > datetime('now', '-24 hours')`
+    ).bind(challengeId, prior.user_id, email, codeHash, signupTokenHash, prior.id, spentNonceHash),
+  ]);
+  if (Number(consumeProof.meta?.changes || 0) !== 1 || Number(createChallenge.meta?.changes || 0) !== 1) {
+    return invalid();
+  }
+
+  return json({
+    verification_required: true,
+    code: 'email_verification_required',
+    signup_token: signupToken,
+    delivery_retryable: !delivery.delivered && delivery.retryable,
+    ...(env.DEV_RETURN_VERIFY_CODES === 'true' ? { verification_code: code } : {}),
+  }, 202);
 };
 
 const handleGetMe: Handler = async (request, env) => {
@@ -1469,27 +1708,31 @@ const handleRefreshToken: Handler = async (request, env) => {
   let user: Record<string, unknown> | null = null;
   try {
     user = await env.DB.prepare(
-      'SELECT id, email, username, name, role, platform_role FROM users WHERE id = ?'
+      'SELECT id, email, username, name, role, platform_role, session_version FROM users WHERE id = ?'
     ).bind(claims.sub).first() as any;
   } catch {
-    // If the users table is unavailable (e.g., early bootstrap), fall back
-    // to claims so we at least don't kick out the dev admin.
+    return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' });
+  }
+  if (!user) return restError(401, 'Unauthorized', 'auth_user_missing');
+  if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+    return restError(401, 'Unauthorized', 'auth_session_invalid');
   }
 
   const memberships = await loadMemberships(env, claims.sub);
+  const platformRole = (user.platform_role as PlatformRole) ?? null;
   const activeAccountId = claims.active_account_id
-    || memberships[0]?.account_id
-    || null;
+    || await resolveInitialAccountId(env, platformRole, memberships);
 
   const newToken = await createToken(env.JWT_SECRET, {
     sub: claims.sub,
     email: (user?.email as string) ?? claims.email,
     name: (user?.name as string) ?? claims.name,
     role: (user?.role as string) ?? claims.role ?? 'user',
-    platform_role: (user?.platform_role as PlatformRole) ?? claims.platform_role ?? null,
+    platform_role: platformRole,
     username: (user?.username as string | null) ?? (claims as any).username ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(user.session_version || 0),
   });
 
   return json({
@@ -1529,7 +1772,7 @@ const handleChangePassword: Handler = async (request, env) => {
   }
 
   const newHash = await hashPasswordPBKDF2(newPassword);
-  await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, claims.sub).run();
+  await env.DB.prepare('UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?').bind(newHash, claims.sub).run();
 
   return json({ ok: true, message: hasExisting ? 'Password changed successfully' : 'Password set successfully' });
 };
@@ -1552,12 +1795,20 @@ const handleDeleteAccount: Handler = async (request, env) => {
   const { verified } = await verifyPasswordHash(password, user.password_hash as string);
   if (!verified) return json({ error: 'Incorrect password' }, 403);
 
-  if ((user.platform_role as string) === 'owner') {
+  if ((user.platform_role as string) === 'platform_owner') {
     return json({ error: 'Platform owner accounts cannot be deleted.' }, 403);
+  }
+
+  const ownedAccount = await env.DB.prepare(
+    "SELECT account_id FROM account_members WHERE user_id = ? AND role = 'owner' AND status = 'active' LIMIT 1"
+  ).bind(claims.sub).first();
+  if (ownedAccount) {
+    return restError(409, 'Transfer or remove account ownership before deleting this identity', 'owner_floor_violation');
   }
 
   await env.DB.batch([
     env.DB.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(claims.sub),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(claims.sub),
     env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]);
@@ -1630,7 +1881,7 @@ const handleUpdateProfile: Handler = async (request, env) => {
   binds.push(claims.sub);
   await env.DB.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
 
-  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at FROM users WHERE id = ?').bind(claims.sub).first();
+  const updatedUser = await env.DB.prepare('SELECT id, email, username, name, role, phone, admin_request_status, created_at, session_version FROM users WHERE id = ?').bind(claims.sub).first();
 
   // Issue fresh token with updated claims, preserving account context.
   const memberships = await loadMemberships(env, updatedUser!.id as string);
@@ -1645,6 +1896,7 @@ const handleUpdateProfile: Handler = async (request, env) => {
     username: (updatedUser!.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(updatedUser!.session_version || claims.session_version || 0),
   });
 
   return json({ token: newToken, user: updatedUser });
@@ -1736,9 +1988,24 @@ const handleDeleteUser: Handler = async (request, env, params) => {
   if (!user) return json({ error: 'User not found' }, 404);
   if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
-  await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
+    env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
+  ]);
   return json({ ok: true });
 };
+
+async function denyProtectedPlatformTarget(request: Request, env: Env, targetRole: unknown): Promise<Response | null> {
+  if (targetRole !== 'platform_owner') return null;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  const callerRole = await resolveDbPlatformRole(env, claims.sub);
+  if (callerRole === 'db_error') return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable');
+  if (callerRole !== 'platform_owner') {
+    return restError(403, 'Target has a protected platform tier', 'target_tier_denied');
+  }
+  return null;
+}
 
 // ── Generate Password Reset Token (admin/owner) ──
 const handleCreateResetToken: Handler = async (request, env) => {
@@ -1748,8 +2015,10 @@ const handleCreateResetToken: Handler = async (request, env) => {
   const { userId } = await request.json() as { userId?: string };
   if (!userId) return json({ error: 'userId required' }, 400);
 
-  const user = await env.DB.prepare('SELECT id, email, name FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, email, name, platform_role FROM users WHERE id = ?').bind(userId).first();
   if (!user) return json({ error: 'User not found' }, 404);
+  const targetError = await denyProtectedPlatformTarget(request, env, user.platform_role);
+  if (targetError) return targetError;
 
   // Generate a random reset token
   const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -1847,7 +2116,8 @@ const handleResetPassword: Handler = async (request, env) => {
 
   const newHash = await hashPasswordPBKDF2(newPassword);
   await env.DB.batch([
-    env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, resetRecord.user_id),
+    env.DB.prepare("UPDATE users SET password_hash = ?, email_verified_at = COALESCE(email_verified_at, datetime('now')), session_version = session_version + 1 WHERE id = ?").bind(newHash, resetRecord.user_id),
+    env.DB.prepare("UPDATE account_members SET status = 'active', joined_at = COALESCE(joined_at, datetime('now')) WHERE user_id = ? AND status = 'invited'").bind(resetRecord.user_id),
     env.DB.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').bind(resetRecord.id),
   ]);
 
@@ -1924,36 +2194,44 @@ const handleGoogleCallback: Handler = async (request, env) => {
   });
   if (!userInfoRes.ok) return errRedirect('userinfo_failed');
 
-  const gUser = await userInfoRes.json() as { id: string; email: string; name: string };
+  const gUser = await userInfoRes.json() as { id: string; email: string; name: string; verified_email?: boolean };
+  if (gUser.verified_email !== true) return errRedirect('email_unverified');
 
   // Find by google_id first; fall back to email to link existing accounts
   let user = await env.DB.prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1').bind(gUser.id).first() as any;
   if (!user) {
     user = await env.DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(gUser.email).first() as any;
     if (user) {
-      await env.DB.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(gUser.id, user.id).run();
+      await env.DB.prepare("UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?").bind(gUser.id, user.id).run();
     }
   }
   if (!user) {
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
-      'INSERT INTO users (id, email, username, name, password_hash, role, google_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      "INSERT INTO users (id, email, username, name, password_hash, role, google_id, email_verified_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))"
     ).bind(id, gUser.email, null, gUser.name, '', 'user', gUser.id).run();
     user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first() as any;
   }
   if (!user) return errRedirect('account_error');
 
   const memberships = await loadMemberships(env, user.id as string);
-  const activeAccountId = memberships[0]?.account_id || null;
+  const platformRole = (user.platform_role as PlatformRole) ?? null;
+  let activeAccountId: string | null;
+  try {
+    activeAccountId = await resolveInitialAccountId(env, platformRole, memberships);
+  } catch {
+    return errRedirect('account_error');
+  }
   const token = await createToken(env.JWT_SECRET, {
     sub: user.id as string,
     email: user.email as string,
     role: user.role as string,
-    platform_role: (user.platform_role as PlatformRole) ?? null,
+    platform_role: platformRole,
     name: user.name as string,
     username: (user.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(user.session_version || 0),
   });
 
   return Response.redirect(`${appOrigin}${returnPath}#oauth_token=${token}`, 302);
@@ -2108,6 +2386,24 @@ const handleCreateProduct: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
+  const unknownFields = Object.keys(body).filter(key => !PRODUCT_CREATE_COLUMNS.has(key));
+  if (unknownFields.length > 0) {
+    return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
+  }
+  const capabilityError = validateProductCreateCapabilities(ctx, body);
+  if (capabilityError) return capabilityError;
+  const ownerError = await validateProductOwnerAssignment(env, ctx, body);
+  if (ownerError) return ownerError;
+  const canPublish = ctx.isPlatform || ctx.role === 'owner' || ctx.bundles.includes('publish');
+  if (!canPublish) {
+    // Database and mirror defaults historically meant Active/public. A
+    // Catalog-only caller must instead create a private draft in every model.
+    body.status = 'Draft';
+    body.is_public = 0;
+    body.catalog_visible = 0;
+    body.is_featured = 0;
+    body.is_curated = 0;
+  }
   let purposeWrite;
   try { purposeWrite = decodeInventoryPurposeWrite(body); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -2161,7 +2457,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Stock spine step 1: stamp the creating user as the stock owner unless the
   // caller already specified one. NULL stays "owned by the location"; here a
   // real authenticated creator is cleanly on ctx.userId, so record it.
-  if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
+  if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
   // Stock spine step 2: the location owner curates what shows. Owner-tier
   // creators (role 'owner', which platform owner/admin act as) put their tea
   // straight in the shop; a staff seller's tea starts HELD (0) until the owner
@@ -2175,7 +2471,7 @@ const handleCreateProduct: Handler = async (request, env) => {
 
   // Mirror: create the profile + listing pair alongside the legacy product row
   // so partner catalog browse reflects the new tea immediately.
-  const mirrorInserts = buildProductMirrorInserts(env, id, accountId, body);
+  const mirrorInserts = buildProductMirrorInserts(env, id, accountId, body, !canPublish);
 
   if (mirrorInserts.length > 0) {
     await env.DB.batch([insertProduct, ...mirrorInserts]);
@@ -2210,7 +2506,22 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     return new Response(JSON.stringify({ error: 'Bulk create limited to 100 products per request' }), { status: 400 });
   }
 
+  for (const raw of products) {
+    const unknownFields = Object.keys(raw).filter(key => key !== 'client_row_id' && !PRODUCT_CREATE_COLUMNS.has(key));
+    if (unknownFields.length > 0) {
+      return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
+    }
+    const capabilityError = validateProductCreateCapabilities(ctx, raw);
+    if (capabilityError) return capabilityError;
+    const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
+    if (ownerError) return ownerError;
+  }
+
   // The whole import attaches to one intake batch (defaults to Unsorted).
+  if (batch_id) {
+    const batch = await env.DB.prepare('SELECT id FROM intake_batches WHERE id = ? AND account_id = ?').bind(batch_id, accountId).first();
+    if (!batch) return restError(400, 'Intake batch does not belong to the active account', 'batch_account_mismatch');
+  }
   const importBatchId = batch_id || await defaultBatchId(env, accountId);
 
   // Pre-resolve all vendor names to vendor_ids (batch for efficiency, scoped)
@@ -2305,7 +2616,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
     // Stock spine step 1: stamp the creating user as owner unless specified.
-    if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
+    if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
     // Apply cached vendor_id
     if (body.vendor && !body.vendor_id) {
       const vkey = (body.vendor as string).trim().toLowerCase();
@@ -2356,28 +2667,6 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   return json({ inserted: results.filter(row => row.status === 'inserted').length, replayed: results.filter(row => row.status === 'replayed').length, movements: newLines.filter(line => line.movementInput).length + replayBalances.length, skipped: results.filter(row => row.status === 'skipped').length, skippedNames: skipped, results });
 };
 
-const PRODUCT_UPDATE_COLUMNS = new Set([
-  'product_name', 'type', 'origin', 'year', 'harvest', 'form', 'price', 'cost',
-  'stock', 'stock_unit', 'status', 'description', 'notes', 'tags', 'moods',
-  'tasting_notes', 'brewing_notes', 'vendor', 'vendor_url', 'image_url',
-  'altitude', 'cultivar', 'processing', 'format',
-  // Extended product fields
-  'given_name', 'chinese_name', 'origin_country', 'origin_region', 'stock_grams',
-  'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'quantity_purchased',
-  'low_stock_threshold', 'recheck_stock', 'markup_multiplier', 'fixed_retail_price_usd',
-  'is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated',
-  'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
-  'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
-  'additional_images', 'bag_photo_url', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
-  'inventory_purpose', 'stock_known_at',
-  'in_transit_grams', 'in_transit_eta',
-  'tasting', 'tasting_source',
-  'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
-  'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
-  'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
-  'session_reserve_grams',
-]);
-
 const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'product_name', 'given_name', 'chinese_name', 'type', 'form', 'origin', 'origin_country',
   'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
@@ -2390,7 +2679,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
 const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'stock_known_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
-  'session_reserve_grams',
+  'session_reserve_grams', 'inventory_purpose', 'is_sample', 'is_personal',
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_COLUMNS = new Set([
@@ -2411,12 +2700,57 @@ const PRODUCT_PUBLICATION_UPDATE_COLUMNS = new Set([
 // their own tea into the shop.
 const PRODUCT_VISIBILITY_UPDATE_COLUMNS = new Set(['shown_in_shop']);
 
+const PRODUCT_CREATE_COLUMNS = new Set([
+  ...PRODUCT_CATALOG_UPDATE_COLUMNS,
+  ...PRODUCT_STOCK_UPDATE_COLUMNS,
+  ...PRODUCT_COMMERCIAL_UPDATE_COLUMNS,
+  ...PRODUCT_PUBLICATION_UPDATE_COLUMNS,
+  ...PRODUCT_VISIBILITY_UPDATE_COLUMNS,
+  'owner_user_id', 'sourced_by', 'roasted_by', 'vouched_by',
+]);
+
+const PRODUCT_CREATE_STOCK_COLUMNS = new Set([...PRODUCT_STOCK_UPDATE_COLUMNS, 'quantity_units']);
+const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
+  [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
+);
+
+function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string, unknown>): Response | null {
+  const supplied = (columns: Set<string>) => [...columns].some(column => Object.prototype.hasOwnProperty.call(body, column));
+  const missing = (bundle: Bundle) => !ctx.isPlatform && ctx.role !== 'owner' && !ctx.bundles.includes(bundle);
+  if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
+    return restError(403, 'Stock capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'stock' });
+  }
+  if (supplied(PRODUCT_COMMERCIAL_UPDATE_COLUMNS) && missing('sell')) {
+    return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
+  }
+  if (supplied(PRODUCT_CREATE_PUBLICATION_COLUMNS) && missing('publish')) {
+    return restError(403, 'Publish capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'publish' });
+  }
+  if ((Object.prototype.hasOwnProperty.call(body, 'owner_user_id') || supplied(PRODUCT_VISIBILITY_UPDATE_COLUMNS))
+      && !ctx.isPlatform && ctx.role !== 'owner') {
+    return restError(403, 'Owner capability required for supplied fields', 'owner_assignment_denied');
+  }
+  return null;
+}
+
+async function validateProductOwnerAssignment(env: Env, ctx: AccountCtx, body: Record<string, unknown>): Promise<Response | null> {
+  if (!Object.prototype.hasOwnProperty.call(body, 'owner_user_id') || body.owner_user_id == null) return null;
+  if (typeof body.owner_user_id !== 'string' || !body.owner_user_id) {
+    return restError(400, 'owner_user_id must be a member identifier', 'validation_failed');
+  }
+  const member = await env.DB.prepare(
+    "SELECT user_id FROM account_members WHERE account_id = ? AND user_id = ? AND status = 'active'"
+  ).bind(ctx.accountId, body.owner_user_id).first();
+  if (!member) return restError(400, 'Product owner does not belong to the active account', 'owner_account_mismatch');
+  return null;
+}
+
 async function applyProductUpdate(
   request: Request,
   env: Env,
   params: Record<string, string>,
   ctx: AccountCtx,
-  allowedColumns = PRODUCT_UPDATE_COLUMNS,
+  allowedColumns: Set<string>,
   rejectUnknown = false,
   auditAction = 'product.updated',
 ): Promise<Response> {
@@ -2461,7 +2795,8 @@ async function applyProductUpdate(
     if (unknown.length > 0) {
       return json({
         error: 'Unsupported fields for this product update command',
-        fields: unknown,
+        code: 'validation_failed',
+        details: { fields: unknown },
       }, 400);
     }
   }
@@ -2592,12 +2927,6 @@ async function applyProductUpdate(
 
   return json({ success: true });
 }
-
-const handleUpdateProduct: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'catalog');
-  if ('error' in ctx) return ctx.error;
-  return applyProductUpdate(request, env, params, ctx);
-};
 
 function makeProductCommandUpdateHandler(
   bundle: Bundle,
@@ -3938,6 +4267,53 @@ async function listContactRelationshipsForCustomer(env: Env, accountId: string, 
   return relationships.get(customerId) ?? [];
 }
 
+const CONTACT_RELATIONSHIP_BUNDLE: Partial<Record<ContactRelationshipKind, Bundle>> = {
+  buyer: 'sell',
+  vendor: 'catalog',
+  event_guest: 'gather',
+  collection_recipient: 'publish',
+  contributor: 'publish',
+};
+
+function canAccessCustomerRelationships(ctx: AccountCtx, relationships: ContactRelationshipKind[]): boolean {
+  if (ctx.role === 'owner') return true;
+  if (relationships.includes('personal_connection')) return false;
+  return relationships.some(kind => {
+    const bundle = CONTACT_RELATIONSHIP_BUNDLE[kind];
+    return Boolean(bundle && ctx.bundles.includes(bundle));
+  });
+}
+
+async function requireCustomerCapability(
+  request: Request,
+  env: Env,
+  customerId: string,
+): Promise<
+  | { ctx: AccountCtx; customer: Record<string, any>; relationships: ContactRelationshipKind[] }
+  | { error: Response }
+> {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx;
+  const customer = await env.DB.prepare(
+    'SELECT * FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(customerId, ctx.accountId).first() as Record<string, any> | null;
+  if (!customer) return { error: json({ error: 'Customer not found', code: 'not_found' }, 404) };
+
+  const relationships = await listContactRelationshipsForCustomer(env, ctx.accountId, customerId);
+  if (ctx.role !== 'owner' && relationships.includes('personal_connection')) {
+    return { error: json({ error: 'Owner-tier access required for this contact', code: 'owner_required' }, 403) };
+  }
+  const requiredBundles = [...new Set(relationships.map(kind => CONTACT_RELATIONSHIP_BUNDLE[kind]).filter((bundle): bundle is Bundle => Boolean(bundle)))];
+  if (canAccessCustomerRelationships(ctx, relationships)) return { ctx, customer, relationships };
+  return {
+    error: json({
+      error: 'Insufficient capability for this contact',
+      code: 'insufficient_customer_capability',
+      details: { required_bundles: requiredBundles },
+    }, 403),
+  };
+}
+
 async function ensureContactRelationship(
   env: Env,
   accountId: string,
@@ -4201,6 +4577,9 @@ const handleGetCustomers: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+  if (ctx.role !== 'owner' && !ctx.bundles.some(bundle => ['catalog', 'publish', 'gather', 'sell'].includes(bundle))) {
+    return json({ error: 'Insufficient capability for contacts', code: 'insufficient_customer_capability' }, 403);
+  }
 
   const url = new URL(request.url);
   const typeFilter = url.searchParams.get('type'); // 'customer' | 'supplier' | null (all)
@@ -4270,7 +4649,9 @@ const handleGetCustomers: Handler = async (request, env) => {
     (result.results as any[]).map(c => c.id),
   );
 
-  const customers = (result.results as any[]).map(c => ({
+  const customers = (result.results as any[]).filter(c =>
+    canAccessCustomerRelationships(ctx, relationshipMap.get(c.id) || [])
+  ).map(c => ({
     ...c,
     contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
     tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
@@ -4281,17 +4662,13 @@ const handleGetCustomers: Handler = async (request, env) => {
 };
 
 const handleGetCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
+  const authorized = await requireCustomerCapability(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const { ctx, customer, relationships } = authorized;
   const { accountId } = ctx;
 
-  const customer = await env.DB.prepare(
-    'SELECT * FROM customers WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
-  if (!customer) return json({ error: 'Customer not found' }, 404);
-
   let orders: any[] = [];
-  try {
+  if (ctx.role === 'owner' || ctx.bundles.includes('sell')) try {
     const result = await env.DB.prepare(
       'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
     ).bind(params.id, accountId).all();
@@ -4302,7 +4679,7 @@ const handleGetCustomer: Handler = async (request, env, params) => {
     ...customer,
     contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
     tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
-    relationship_kinds: await listContactRelationshipsForCustomer(env, accountId, params.id),
+    relationship_kinds: relationships,
     orders,
   };
   return json(parsed);
@@ -4762,9 +5139,9 @@ const handleCreateCustomer: Handler = async (request, env) => {
 };
 
 const handleUpdateCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'gather');
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const authorized = await requireCustomerCapability(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const { accountId } = authorized.ctx;
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
@@ -4791,9 +5168,13 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'gather');
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+
+  const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found', code: 'not_found' }, 404);
 
   try {
     await env.DB.prepare(
@@ -5620,11 +6001,13 @@ const handleGenerateWisdom: Handler = async (request, env) => {
 // characters from the tea's English name + context. Always reviewed before it
 // is saved.
 const handleGenerateChineseName: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:chinese-name`);
+  if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
-    return json({ error: 'no_ai_provider' }, 503);
+    return restError(503, 'AI provider unavailable', 'provider_unavailable');
   }
 
   const { name, type, originRegion, year } = (await request.json()) as {
@@ -5633,7 +6016,7 @@ const handleGenerateChineseName: Handler = async (request, env) => {
     originRegion?: string;
     year?: number;
   };
-  if (!name || !name.trim()) return json({ error: 'name required' }, 400);
+  if (!name || !name.trim()) return restError(400, 'name required', 'validation_failed', { field: 'name' });
 
   const context = [
     `Tea name (English / romanized): ${name.trim()}`,
@@ -5686,33 +6069,71 @@ const handleGenerateChineseName: Handler = async (request, env) => {
   });
 
   if (!claudeRes.ok) {
-    return json({ error: `Claude API error: ${claudeRes.status}` }, 502);
+    console.error(`Chinese-name upstream error: ${claudeRes.status}`);
+    return restError(502, 'Name generation failed', 'provider_error');
   }
   const claudeData = (await claudeRes.json()) as any;
   const toolUse = claudeData.content?.find((b: any) => b.type === 'tool_use');
-  if (!toolUse) return json({ error: 'no_output' }, 500);
+  if (!toolUse) return restError(502, 'Name generation failed', 'provider_invalid_response');
   return json(toolUse.input);
 };
 
 // ── Audio Transcription (Groq Whisper) ──
 const handleTranscribe: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe`);
+  if (limited) return limited;
 
   if (!env.GROQ_API_KEY) {
-    return json({ error: 'GROQ_API_KEY not configured' }, 503);
+    return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   }
 
   const contentType = request.headers.get('Content-Type') || '';
   if (!contentType.includes('multipart/form-data')) {
-    return json({ error: 'Expected multipart/form-data' }, 400);
+    return restError(400, 'Expected multipart/form-data', 'invalid_content_type');
   }
+
+  const preReadError = validateContentLength(request, MAX_AUDIO_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
-  if (!file) return json({ error: 'No audio file provided' }, 400);
+  if (!file) return restError(400, 'No audio file provided', 'validation_failed', { field: 'file' });
+  const fileError = await validateUpload(file, 'audio', MAX_AUDIO_BYTES);
+  if (fileError) return fileError;
 
-  // Forward to Groq Whisper API
+  if (!env.MEDIA_BUCKET) return restError(503, 'Private recording storage unavailable', 'storage_unavailable');
+  const recordingId = crypto.randomUUID();
+  const recordingKey = `private-recordings/${ctx.accountId}/${ctx.userId}/${recordingId}.${safeUploadExtension(file.type)}`;
+  const bytes = await file.arrayBuffer();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  await env.MEDIA_BUCKET.put(recordingKey, bytes, {
+    httpMetadata: { contentType: file.type },
+    customMetadata: { account_id: ctx.accountId, user_id: ctx.userId, expires_at: expiresAt },
+  });
+  await env.DB.prepare(
+    `INSERT INTO private_recordings (id, account_id, user_id, object_key, mime_type, size_bytes, status, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`
+  ).bind(recordingId, ctx.accountId, ctx.userId, recordingKey, file.type, file.size, expiresAt).run();
+
+  const transcribed = await transcribePrivateRecording(env, new File([bytes], file.name || `recording.${safeUploadExtension(file.type)}`, { type: file.type }));
+  if ('error' in transcribed) {
+    await env.DB.prepare("UPDATE private_recordings SET status = 'failed', last_error_code = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(transcribed.code, recordingId).run();
+    return json({ error: transcribed.error, code: transcribed.code, recording_id: recordingId, retryable: true }, transcribed.status);
+  }
+  await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(transcribed.text, recordingId).run();
+  try {
+    await env.MEDIA_BUCKET.delete(recordingKey);
+  } catch {
+    console.error('Completed private recording cleanup failed');
+  }
+  return json({ text: transcribed.text, recording_id: recordingId });
+};
+
+async function transcribePrivateRecording(env: Env, file: File): Promise<{ text: string } | { error: string; code: string; status: number }> {
   const groqForm = new FormData();
   groqForm.append('file', file, file.name || 'recording.webm');
   groqForm.append('model', 'whisper-large-v3-turbo');
@@ -5726,15 +6147,57 @@ const handleTranscribe: Handler = async (request, env) => {
   });
 
   if (!groqRes.ok) {
-    const errText = await groqRes.text();
-    // Log the upstream detail; return a generic message so the raw Groq error
-    // body (which can carry request internals) never reaches the client.
-    console.error(`Transcription upstream error: ${groqRes.status} — ${errText}`);
-    return json({ error: 'Transcription failed' }, 502);
+    // Provider bodies can contain request internals. Record only the status
+    // needed for operational diagnosis.
+    console.error(`Transcription upstream error: ${groqRes.status}`);
+    return { error: 'Transcription failed', code: 'provider_error', status: 502 };
   }
 
   const result = await groqRes.json() as { text: string };
-  return json({ text: result.text });
+  return { text: result.text };
+}
+
+const handleRetryTranscription: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe-retry`);
+  if (limited) return limited;
+  if (!env.GROQ_API_KEY) return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
+  const row = await env.DB.prepare(
+    'SELECT id, object_key, mime_type FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
+  ).bind(params.id, ctx.accountId, ctx.userId).first();
+  if (!row) return restError(404, 'Recording not found', 'recording_not_found');
+  const object = await env.MEDIA_BUCKET.get(row.object_key as string);
+  if (!object) return restError(410, 'Recording audio is no longer available', 'recording_expired');
+  const bytes = await object.arrayBuffer();
+  const file = new File([bytes], `recording.${safeUploadExtension(row.mime_type as string)}`, { type: row.mime_type as string });
+  const result = await transcribePrivateRecording(env, file);
+  if ('error' in result) {
+    await env.DB.prepare("UPDATE private_recordings SET status = 'failed', last_error_code = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(result.code, params.id).run();
+    return json({ error: result.error, code: result.code, recording_id: params.id, retryable: true }, result.status);
+  }
+  await env.DB.prepare("UPDATE private_recordings SET status = 'completed', transcript = ?, last_error_code = NULL, updated_at = datetime('now') WHERE id = ?")
+    .bind(result.text, params.id).run();
+  try {
+    await env.MEDIA_BUCKET.delete(row.object_key as string);
+  } catch {
+    console.error('Completed private recording cleanup failed');
+  }
+  return json({ text: result.text, recording_id: params.id });
+};
+
+const handleDiscardTranscription: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare(
+    'SELECT object_key FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?'
+  ).bind(params.id, ctx.accountId, ctx.userId).first();
+  if (!row) return restError(404, 'Recording not found', 'recording_not_found');
+  await env.MEDIA_BUCKET.delete(row.object_key as string);
+  await env.DB.prepare('DELETE FROM private_recordings WHERE id = ? AND account_id = ? AND user_id = ?')
+    .bind(params.id, ctx.accountId, ctx.userId).run();
+  return json({ ok: true });
 };
 
 // ── Migrate Tasting Data (AI-assisted) ──
@@ -5745,14 +6208,40 @@ Feeling: calming, grounding, settling, contemplative, energizing, uplifting, cle
 Liquor color: pale-gold, gold, amber, honey-color, copper, orange, reddish-brown, deep-brown, dark-chestnut, ink
 Brewing: high-temp, medium-temp, low-temp, short-steeps, patient-steeps, flash-steeps, many-infusions, few-infusions, gaiwan, yixing, porcelain, glass, opens-slowly, peaks-mid-session`;
 
+async function acquireProviderJob(env: Env, accountId: string, operation: string, userId: string): Promise<string | null> {
+  const token = crypto.randomUUID();
+  const result = await env.DB.prepare(
+    `INSERT INTO provider_jobs (account_id, operation, owner_user_id, lock_token, expires_at)
+     VALUES (?, ?, ?, ?, datetime('now', '+30 minutes'))
+     ON CONFLICT(account_id, operation) DO UPDATE SET owner_user_id = excluded.owner_user_id,
+       lock_token = excluded.lock_token, expires_at = excluded.expires_at, completed_at = NULL, updated_at = datetime('now')
+     WHERE provider_jobs.expires_at <= datetime('now') OR provider_jobs.completed_at IS NOT NULL`
+  ).bind(accountId, operation, userId, token).run();
+  return result.meta.changes ? token : null;
+}
+
+async function completeProviderJob(env: Env, accountId: string, operation: string, token: string): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE provider_jobs SET completed_at = datetime('now'), expires_at = datetime('now'), updated_at = datetime('now')
+     WHERE account_id = ? AND operation = ? AND lock_token = ?`
+  ).bind(accountId, operation, token).run();
+}
+
 const handleMigrateTasting: Handler = async (request, env) => {
-  const ctx = await requireBundle(request, env, 'catalog');
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:migrate-tasting`);
+  if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
     return json({ error: 'ANTHROPIC_API_KEY not configured' }, 503);
   }
+
+  const jobToken = await acquireProviderJob(env, accountId, 'migrate-tasting', userId);
+  if (!jobToken) return restError(409, 'A tasting migration is already running', 'provider_job_in_progress');
+
+  try {
 
   // Fetch only this account's products that still have legacy tasting data.
   const result = await env.DB.prepare(
@@ -5863,7 +6352,10 @@ Return arrays of matching term IDs for each category. Only include terms that ar
     await Promise.all(promises);
   }
 
-  return json({ migrated: migrated.length, errors, total: products.length });
+    return json({ migrated: migrated.length, errors, total: products.length });
+  } finally {
+    await completeProviderJob(env, accountId, 'migrate-tasting', jobToken);
+  }
 };
 
 // ── Activity Logs ──
@@ -5910,9 +6402,11 @@ const handleGetActivityLogs: Handler = async (request, env) => {
 // The returned URL carries a `?v={ms}` cache buster so the CDN serves the
 // fresh bytes after an in-place overwrite.
 const handleUploadImage: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-image`);
+  if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -5922,10 +6416,14 @@ const handleUploadImage: Handler = async (request, env) => {
   if (!contentType.includes('multipart/form-data')) {
     return json({ error: 'Expected multipart/form-data' }, 400);
   }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
 
   const productId = (formData.get('product_id') as string | null)?.trim() || '';
   const slotRaw = (formData.get('slot') as string | null)?.trim() || '';
@@ -5933,7 +6431,7 @@ const handleUploadImage: Handler = async (request, env) => {
 
   // Stable key path — only when both inputs are provided and well-formed.
   let key: string;
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const ext = safeUploadExtension(file.type);
   if (productId && allowedSlots.has(slotRaw)) {
     if (!/^[a-zA-Z0-9_-]+$/.test(productId)) {
       return json({ error: 'Invalid product_id' }, 400);
@@ -6115,7 +6613,9 @@ const handleRestoreStoryVersion: Handler = async (request, env, params) => {
 const handleEnhanceProductImage: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:enhance-product-image`);
+  if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
   if (!env.KEY_ENCRYPTION_SECRET) {
@@ -6254,10 +6754,50 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const AUDIO_MIME_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'video/webm']);
+
+function validateContentLength(request: Request, maxFileBytes: number): Response | null {
+  const raw = request.headers.get('content-length');
+  if (!raw) return null;
+  const length = Number(raw);
+  if (!Number.isSafeInteger(length) || length < 0) return restError(400, 'Invalid Content-Length', 'invalid_content_length');
+  return length > maxFileBytes + MULTIPART_OVERHEAD_BYTES
+    ? restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxFileBytes })
+    : null;
+}
+
+function safeUploadExtension(mime: string): string {
+  return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'audio/webm': 'webm', 'video/webm': 'webm', 'audio/ogg': 'ogg', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a' } as Record<string, string>)[mime];
+}
+
+async function validateUpload(file: File, kind: 'image' | 'audio', maxBytes: number): Promise<Response | null> {
+  if (file.size > maxBytes) return restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxBytes });
+  const allowed = kind === 'image' ? IMAGE_MIME_TYPES : AUDIO_MIME_TYPES;
+  if (!allowed.has(file.type)) return restError(415, `Unsupported ${kind} type`, 'unsupported_media_type');
+  const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const ascii = String.fromCharCode(...bytes);
+  const valid = kind === 'image'
+    ? (file.type === 'image/jpeg' && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+      || (file.type === 'image/png' && bytes.slice(0, 8).every((v, i) => v === [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a][i]))
+      || (file.type === 'image/webp' && ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP')
+    : (['audio/webm', 'video/webm'].includes(file.type) && bytes.slice(0, 4).every((v, i) => v === [0x1a, 0x45, 0xdf, 0xa3][i]))
+      || (file.type === 'audio/ogg' && ascii.startsWith('OggS'))
+      || (['audio/wav', 'audio/x-wav'].includes(file.type) && ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WAVE')
+      || (file.type === 'audio/mpeg' && (ascii.startsWith('ID3') || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)))
+      || (file.type === 'audio/mp4' && ascii.slice(4, 8) === 'ftyp');
+  return valid ? null : restError(415, `Invalid ${kind} signature`, 'invalid_media_signature');
+}
+
 const handleExtractFromImage: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:extract-image`);
+  if (limited) return limited;
 
   // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
   // Gemini only if Claude isn't configured. Both keys missing is a hard 503;
@@ -6272,10 +6812,14 @@ const handleExtractFromImage: Handler = async (request, env) => {
   if (!contentType.includes('multipart/form-data')) {
     return json({ error: 'Expected multipart/form-data' }, 400);
   }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No image provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
 
   // Convert image to base64 for the vision model (chunked — see bytesToBase64).
   const arrayBuffer = await file.arrayBuffer();
@@ -6287,7 +6831,7 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const skipUpload = formData.get('skip_upload') === '1';
   let imageUrl = '';
   if (env.MEDIA_BUCKET && !skipUpload) {
-    const ext = file.name.split('.').pop() || 'jpg';
+    const ext = safeUploadExtension(file.type);
     const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
     await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
       httpMetadata: { contentType: mimeType },
@@ -6564,6 +7108,9 @@ const handleListPublicEvents: Handler = async (_request, env, _params) => {
 };
 
 const handleRSVP: Handler = async (request, env, params) => {
+  const rsvpIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${rsvpIp}:create`);
+  if (limited) return limited;
   // Public RSVP — resolve the event's account so all inserts (customer,
   // attendee, activity log) are attributed to the right store.
   const event = await env.DB.prepare(
@@ -6599,10 +7146,8 @@ const handleRSVP: Handler = async (request, env, params) => {
 
   if (existing) {
     return json({
-      magic_token: existing.magic_token,
-      status: existing.status,
-      redirect_url: `/m/${existing.magic_token}`,
-      existing: true,
+      ok: true,
+      message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
     });
   }
 
@@ -7065,13 +7610,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   // Rate limit: this endpoint accepts a bare phone number / email, so it must
   // not be brute-forceable. Durable limiter when bound; in-memory fallback.
   const frIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.LOGIN_LIMITER) {
-    const { success } = await env.LOGIN_LIMITER.limit({ key: `findrsvp:${frIp}` });
-    if (!success) return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
-  }
-  if (!checkRateLimit(`findrsvp:${frIp}`, 10, 60000)) {
-    return json({ error: 'Too many requests. Please try again in a minute.' }, 429);
-  }
+  const limited = await enforceDurableLimit(env.RSVP_LIMITER, `${frIp}:recover`);
+  if (limited) return limited;
 
   let lookupField: string;
   let lookupValue: string;
@@ -7082,8 +7622,8 @@ const handleFindRSVP: Handler = async (request, env, params) => {
   const hasBody = contentLength !== null && contentLength !== '0';
 
   if (token && !hasBody) {
-    const status = await classifyToken(token, env.JWT_SECRET);
-    if (status !== 'valid') return json({ error: 'Unauthorized' }, 401);
+    const sessionError = await validateSessionToken(token, env);
+    if (sessionError) return sessionError;
     const claims = parseToken(token);
     if (!claims?.email) return json({ error: 'Account email not found' }, 400);
     lookupField = 'email';
@@ -7943,9 +8483,11 @@ const handleGetTastingNotes: Handler = async (request, env, params) => {
 
 // ── Flyer Upload (R2) — partitioned by account ──
 const handleUploadFlyer: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-flyer`);
+  if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -7955,13 +8497,17 @@ const handleUploadFlyer: Handler = async (request, env) => {
   if (!contentType.includes('multipart/form-data')) {
     return json({ error: 'Expected multipart/form-data' }, 400);
   }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
 
   if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
 
-  const ext = file.name.split('.').pop() || 'jpg';
+  const ext = safeUploadExtension(file.type);
   const key = `accounts/${accountId}/flyers/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
@@ -8119,16 +8665,20 @@ const handleCreateVenueSpace: Handler = async (request, env, params) => {
   return json({ id, name: body.name }, 201);
 };
 
+const VENUE_SPACE_UPDATE_FIELDS = new Set([
+  'name', 'capacity', 'description', 'photos', 'tea_styles', 'sort_order',
+]);
+
 const handleUpdateVenueSpace: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
   const body = await request.json() as Record<string, any>;
-  delete body.account_id;
-  delete body.venue_id;
+  const validated = validatedUpdateFields(body, VENUE_SPACE_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
   if (body.photos && typeof body.photos !== 'string') body.photos = JSON.stringify(body.photos);
   if (body.tea_styles && typeof body.tea_styles !== 'string') body.tea_styles = JSON.stringify(body.tea_styles);
-  const cols = Object.keys(body);
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
@@ -8150,13 +8700,19 @@ const handleUploadVenuePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${ctx.userId}:upload-venue-photo`);
+  if (limited) return limited;
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No file provided' }, 400);
-  // Reuse the existing flyer upload bucket
-  const key = `venues/${accountId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  await (env as any).FLYER_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-  const url = `https://flyers.teajia.com/${key}`;
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  if (!env.MEDIA_BUCKET) return restError(503, 'R2 media bucket not configured', 'storage_unavailable');
+  const key = `accounts/${accountId}/venues/${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  const url = `https://media.teajia.co/${key}`;
   return json({ url }, 201);
 };
 
@@ -8927,14 +9483,21 @@ const handleCreateTeawareItem: Handler = async (request, env) => {
   return json({ id }, 201);
 };
 
+const TEAWARE_ITEM_UPDATE_FIELDS = new Set([
+  'name', 'chinese_name', 'category', 'material', 'capacity_ml', 'origin',
+  'artist', 'year_acquired', 'purchase_price', 'purchase_currency', 'description',
+  'condition', 'is_favorite', 'notes',
+]);
+
 const handleUpdateTeawareItem: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
-  delete body.account_id;
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, TEAWARE_ITEM_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -9015,6 +9578,8 @@ const handleDeleteTeawarePhoto: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+const TEAWARE_PHOTO_UPDATE_FIELDS = new Set(['url', 'caption', 'is_primary', 'sort_order']);
+
 const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
@@ -9023,7 +9588,8 @@ const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
   if (guard) return guard;
 
   const body = await request.json() as Record<string, any>;
-  delete body.account_id;
+  const validated = validatedUpdateFields(body, TEAWARE_PHOTO_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
 
   if (body.is_primary) {
     await env.DB.prepare('UPDATE teaware_photos SET is_primary = 0 WHERE teaware_id = ?').bind(params.id).run();
@@ -9032,7 +9598,7 @@ const handleUpdateTeawarePhoto: Handler = async (request, env, params) => {
     body.is_primary = 0;
   }
 
-  const cols = Object.keys(body);
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
@@ -9894,15 +10460,23 @@ const handleGetNotes: Handler = async (request, env) => {
 const handleSyncNotes: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
 
   const body = await request.json() as { notes: Record<string, any>[] };
   if (!Array.isArray(body.notes)) return json({ error: 'notes array required' }, 400);
 
+  for (const note of body.notes) {
+    if (typeof note.id !== 'string' || !note.id) return restError(400, 'Note id required', 'validation_failed');
+    const existing = await env.DB.prepare('SELECT account_id, author_id FROM notes WHERE id = ?').bind(note.id).first();
+    if (existing && (existing.account_id !== accountId || existing.author_id !== userId)) {
+      return restError(409, 'Note identifier belongs to another owner', 'tenant_collision', { id: note.id });
+    }
+  }
+
   const now = new Date().toISOString();
   const stmts = body.notes.map(n => {
     if (n.deleted) {
-      return env.DB.prepare('DELETE FROM notes WHERE id = ? AND account_id = ?').bind(n.id, accountId);
+      return env.DB.prepare('DELETE FROM notes WHERE id = ? AND account_id = ? AND author_id = ?').bind(n.id, accountId, userId);
     }
     return env.DB.prepare(`
       INSERT INTO notes (id, account_id, tea_key, compass_entry_id, session_id,
@@ -9913,12 +10487,13 @@ const handleSyncNotes: Handler = async (request, env) => {
         text = excluded.text,
         tea_key = excluded.tea_key,
         visibility = excluded.visibility
+      WHERE notes.account_id = excluded.account_id AND notes.author_id = excluded.author_id
     `).bind(
       n.id, accountId,
       n.tea_key ?? null, n.compass_entry_id ?? null, n.session_id ?? null,
       n.text, n.source_type ?? 'manual',
       n.tasting_id ?? null, n.tasting_snapshot ?? null,
-      n.author_id, n.author_name,
+      userId, n.author_name,
       n.visibility ?? 'private',
       n.created_at ?? now,
     );
@@ -9936,11 +10511,20 @@ const handleSyncNoteSessions: Handler = async (request, env) => {
   const body = await request.json() as { sessions: Record<string, any>[] };
   if (!Array.isArray(body.sessions)) return json({ error: 'sessions array required' }, 400);
 
+  for (const session of body.sessions) {
+    if (typeof session.id !== 'string' || !session.id) return restError(400, 'Session id required', 'validation_failed');
+    const existing = await env.DB.prepare('SELECT account_id FROM note_sessions WHERE id = ?').bind(session.id).first();
+    if (existing && existing.account_id !== accountId) {
+      return restError(409, 'Session identifier belongs to another account', 'tenant_collision', { id: session.id });
+    }
+  }
+
   const stmts = body.sessions.map(s =>
     env.DB.prepare(`
       INSERT INTO note_sessions (id, account_id, title, session_date, location, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET title = excluded.title, location = excluded.location
+      WHERE note_sessions.account_id = excluded.account_id
     `).bind(s.id, accountId, s.title ?? null, s.session_date, s.location ?? null, s.created_at)
   );
 
@@ -10800,13 +11384,8 @@ async function verifyVerificationCode(code: string, signatureHex: string, secret
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.LOGIN_LIMITER) {
-    const { success } = await env.LOGIN_LIMITER.limit({ key: `verify:${verifyIp}` });
-    if (!success) return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
-  }
-  if (!checkRateLimit(`verify:${verifyIp}`, 5, 60000)) {
-    return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
-  }
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, verifyIp);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
   const contact = body.contact?.trim().toLowerCase() || '';
@@ -10901,8 +11480,11 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
     if (!user) return json(genericError, 401);
+    if (!user.email_verified_at) {
+      return restError(403, 'Complete signup verification or password recovery first', 'email_verification_required');
+    }
     const memberships = await loadMemberships(env, user.id as string);
     const activeAccountId = memberships[0]?.account_id || null;
     const platformRole = (user.platform_role as PlatformRole) ?? null;
@@ -10911,6 +11493,7 @@ const handleVerifyConfirm: Handler = async (request, env) => {
       platform_role: platformRole, name: user.name as string,
       username: (user.username as string | null) ?? null, memberships,
       active_account_id: activeAccountId,
+      session_version: Number(user.session_version || 0),
     });
     return json({ token, user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role, platform_role: platformRole }, memberships, active_account_id: activeAccountId });
   }
@@ -12181,18 +12764,21 @@ const handleCreateSample: Handler = async (request, env) => {
 };
 
 // Admin: PUT /api/admin/samples/:id
+const SAMPLE_UPDATE_FIELDS = new Set([
+  'name', 'chinese_name', 'type', 'form', 'year', 'origin_region',
+  'source_id', 'source_name', 'source_contact', 'product_id', 'compass_entry_id',
+  'set_id', 'status', 'grams', 'notes', 'photos', 'tea_key',
+]);
+
 const handleUpdateSample: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
-  delete body.id;
-  delete body.user_id;
-  delete body.created_by;
-  delete body.account_id;
-
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, SAMPLE_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   for (const c of cols) {
@@ -12292,17 +12878,19 @@ const handleCreateSampleSet: Handler = async (request, env) => {
 };
 
 // Admin: PUT /api/admin/sample-sets/:id
+const SAMPLE_SET_UPDATE_FIELDS = new Set([
+  'name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids',
+]);
+
 const handleUpdateSampleSet: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
   const body = await request.json() as Record<string, any>;
-  delete body.id;
-  delete body.user_id;
-  delete body.account_id;
-
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, SAMPLE_SET_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   if (cols.includes('shared_with') && typeof body.shared_with === 'object') {
@@ -12460,8 +13048,7 @@ const handleGetAccountsMe: Handler = async (request, env) => {
 
   const memberships = await loadMemberships(env, claims.sub);
   const activeAccountId = claims.active_account_id
-    || memberships[0]?.account_id
-    || null;
+    || await resolveInitialAccountId(env, claims.platform_role ?? null, memberships);
   return json({ memberships, active_account_id: activeAccountId });
 };
 
@@ -12479,7 +13066,7 @@ const handleSwitchAccount: Handler = async (request, env) => {
   const memberships = await loadMemberships(env, claims.sub);
   const isMember = memberships.some(m => m.account_id === body.account_id);
   const isPlatform = claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin';
-  if (!isMember && !isPlatform) return json({ error: 'Account access denied' }, 403);
+  if (!isMember && !isPlatform) return restError(403, 'Account access denied', 'account_access_denied');
 
   // Platform owners switching into a non-member account: verify the target exists.
   if (!isMember && isPlatform) {
@@ -12498,6 +13085,7 @@ const handleSwitchAccount: Handler = async (request, env) => {
     platform_role: claims.platform_role,
     memberships,
     active_account_id: body.account_id,
+    session_version: Number(claims.session_version || 0),
   });
 
   return json({ token: newToken, active_account_id: body.account_id, memberships });
@@ -12512,7 +13100,7 @@ const handleGetAccount: Handler = async (request, env, params) => {
     const row = await env.DB.prepare(
       `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
     ).bind(ctx.userId, params.id).first();
-    if (!row) return json({ error: 'Account access denied' }, 403);
+    if (!row) return restError(403, 'Account access denied', 'account_access_denied');
   }
   const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first() as any;
   if (!acc) return json({ error: 'Account not found' }, 404);
@@ -12525,26 +13113,22 @@ const handleGetAccount: Handler = async (request, env, params) => {
 };
 
 // PUT /api/accounts/:id — update account profile (owner-tier only)
+const ACCOUNT_UPDATE_FIELDS = new Set([
+  'name', 'legal_name', 'tagline', 'description', 'logo_url', 'cover_image_url',
+  'location_city', 'location_country', 'timezone', 'currency_default',
+  'whatsapp_number', 'contact_email', 'public_enabled', 'public_shop_path',
+  'invoice_prefix', 'ships_to_countries',
+]);
+
 const handleUpdateAccount: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as Record<string, any>;
-  // Guard against changing immutable/privileged fields. Secret columns can
-  // only be set via the dedicated /integrations/* routes that handle encryption.
-  delete body.id;
-  delete body.is_platform_owner;
-  delete body.created_at;
-  delete body.openai_api_key_encrypted;
-  delete body.openai_api_key_last4;
-  delete body.has_openai_key;
-  delete body.openai_key_last4;
-  // This mirror is owned exclusively by /api/admin/contributors so both sides
-  // are changed in one D1 batch. Generic account edits must never mutate it.
-  delete body.host_contributor_id;
-
-  const cols = Object.keys(body);
+  const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
+  if ('error' in validated) return validated.error;
+  const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
   const sets = cols.map(c => `${c} = ?`).join(', ');
   await env.DB.prepare(
@@ -12568,7 +13152,7 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
 const handleSetAccountOpenAIKey: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
   if (!env.KEY_ENCRYPTION_SECRET) {
     return json({ error: 'KEY_ENCRYPTION_SECRET not configured on server' }, 503);
   }
@@ -12590,7 +13174,7 @@ const handleSetAccountOpenAIKey: Handler = async (request, env, params) => {
 const handleClearAccountOpenAIKey: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
   await env.DB.prepare(
     `UPDATE accounts SET openai_api_key_encrypted = NULL, openai_api_key_last4 = NULL, updated_at = datetime('now') WHERE id = ?`
   ).bind(params.id).run();
@@ -12601,7 +13185,7 @@ const handleClearAccountOpenAIKey: Handler = async (request, env, params) => {
 const handleGetAccountFeatures: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const account = await env.DB.prepare(
     'SELECT trust_tier, is_platform_owner FROM accounts WHERE id = ?'
@@ -12621,7 +13205,7 @@ const handleGetAccountFeatures: Handler = async (request, env, params) => {
 const handleGetAccountMembers: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const { results } = await env.DB.prepare(
     `SELECT am.id, am.account_id, am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
@@ -12642,7 +13226,7 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
 const handleInviteAccountMember: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { email?: string; role?: string };
   const email = (body.email || '').trim().toLowerCase();
@@ -12651,10 +13235,13 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
   if (!['owner', 'staff', 'viewer'].includes(role)) {
     return json({ error: 'invalid role' }, 400);
   }
+  if (role === 'owner' && ctx.role !== 'owner' && !ctx.isPlatform) {
+    return restError(403, 'Only an owner can assign account ownership', 'owner_assignment_denied');
+  }
 
   // Find or create user. Inactive users get a temporary password that they
   // can reset via the standard reset-token flow.
-  let user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = lower(?)').bind(email).first();
   let createdUser = false;
   if (!user) {
     const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
@@ -12667,18 +13254,23 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
     createdUser = true;
   }
 
-  // Create or update membership. Use 'invited' status for new users so the
-  // frontend can show pending state until they accept.
-  const membershipStatus = createdUser ? 'invited' : 'active';
+  const existingMembership = await env.DB.prepare(
+    'SELECT id FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, user.id).first();
+  if (existingMembership) return restError(409, 'Membership already exists', 'membership_exists');
+
+  // Never activate an email-matched identity until ownership of that email is
+  // proven. New users accept explicitly through the emailed invite token.
+  const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO account_members
+    `INSERT INTO account_members
        (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
      VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, datetime('now'), datetime('now'), ?)`
   ).bind(params.id, user.id, role, ctx.userId, membershipStatus).run();
 
   // Generate an invite/reset link for new users so they can set their password.
   let inviteLink: string | null = null;
-  if (createdUser) {
+  if (membershipStatus === 'invited') {
     const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
     const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
@@ -12696,7 +13288,7 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
 const handleUpdateAccountMember: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { role?: string; status?: string };
   const updates: string[] = [];
@@ -12714,10 +13306,63 @@ const handleUpdateAccountMember: Handler = async (request, env, params) => {
   }
   if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
 
+  const current = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+    .bind(params.id, params.userId).first();
+  if (!current) return restError(404, 'Membership not found', 'membership_not_found');
+  const removesActiveOwner = (body.role !== undefined && body.role !== 'owner')
+    || (body.status !== undefined && body.status !== 'active');
+
   binds.push(params.id, params.userId);
-  await env.DB.prepare(
-    `UPDATE account_members SET ${updates.join(', ')} WHERE account_id = ? AND user_id = ?`
-  ).bind(...binds).run();
+  const ownerFloorGuard = removesActiveOwner
+    ? ` AND (
+          account_members.role != 'owner'
+          OR account_members.status != 'active'
+          OR EXISTS (
+            SELECT 1
+            FROM account_members AS other
+            WHERE other.account_id = account_members.account_id
+              AND other.user_id != account_members.user_id
+              AND other.role = 'owner'
+              AND other.status = 'active'
+          )
+        )`
+    : '';
+  const desiredMembershipChecks: string[] = [];
+  const desiredMembershipBinds: any[] = [params.id, params.userId];
+  if (body.role !== undefined) {
+    desiredMembershipChecks.push('role = ?');
+    desiredMembershipBinds.push(body.role);
+  }
+  if (body.status !== undefined) {
+    desiredMembershipChecks.push('status = ?');
+    desiredMembershipBinds.push(body.status);
+  }
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE account_members
+       SET ${updates.join(', ')}
+       WHERE account_id = ? AND user_id = ?${ownerFloorGuard}`
+    ).bind(...binds),
+    env.DB.prepare(
+      `UPDATE mcp_tokens
+       SET revoked_at = datetime('now')
+       WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM account_members
+           WHERE account_id = ? AND user_id = ? AND ${desiredMembershipChecks.join(' AND ')}
+         )`
+    ).bind(params.id, params.userId, ...desiredMembershipBinds),
+  ]);
+
+  if (Number(results[0]?.meta?.changes || 0) === 0) {
+    const after = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+      .bind(params.id, params.userId).first();
+    if (!after) return restError(404, 'Membership not found', 'membership_not_found');
+    if (removesActiveOwner && after.role === 'owner' && after.status === 'active') {
+      return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
+    }
+    return restError(409, 'Membership changed before the update could be applied', 'membership_update_conflict');
+  }
 
   return json({ success: true });
 };
@@ -12726,15 +13371,53 @@ const handleUpdateAccountMember: Handler = async (request, env, params) => {
 const handleDeleteAccountMember: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   if (params.userId === ctx.userId) {
     return json({ error: 'Cannot remove yourself from an account' }, 400);
   }
+  const target = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+    .bind(params.id, params.userId).first();
+  if (!target) return restError(404, 'Membership not found', 'membership_not_found');
+  if (target.role === 'owner' && ctx.role !== 'owner' && !ctx.isPlatform) {
+    return restError(403, 'Only an owner can remove an account owner', 'owner_assignment_denied');
+  }
+  const results = await env.DB.batch([
+    env.DB.prepare(
+      `DELETE FROM account_members
+       WHERE account_id = ? AND user_id = ?
+         AND (
+           account_members.role != 'owner'
+           OR account_members.status != 'active'
+           OR EXISTS (
+             SELECT 1
+             FROM account_members AS other
+             WHERE other.account_id = account_members.account_id
+               AND other.user_id != account_members.user_id
+               AND other.role = 'owner'
+               AND other.status = 'active'
+           )
+         )`
+    ).bind(params.id, params.userId),
+    env.DB.prepare(
+      `UPDATE mcp_tokens
+       SET revoked_at = datetime('now')
+       WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM account_members WHERE account_id = ? AND user_id = ?
+         )`
+    ).bind(params.id, params.userId, params.id, params.userId),
+  ]);
 
-  await env.DB.prepare(
-    'DELETE FROM account_members WHERE account_id = ? AND user_id = ?'
-  ).bind(params.id, params.userId).run();
+  if (Number(results[0]?.meta?.changes || 0) === 0) {
+    const after = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+      .bind(params.id, params.userId).first();
+    if (!after) return restError(404, 'Membership not found', 'membership_not_found');
+    if (after.role === 'owner' && after.status === 'active') {
+      return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
+    }
+    return restError(409, 'Membership changed before removal could be applied', 'membership_delete_conflict');
+  }
 
   return json({ success: true });
 };
@@ -12743,7 +13426,7 @@ const handleDeleteAccountMember: Handler = async (request, env, params) => {
 const handleGetAccountAccess: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const account = await env.DB.prepare(
     'SELECT kind FROM accounts WHERE id = ?'
@@ -12788,7 +13471,7 @@ const handleGetAccountAccess: Handler = async (request, env, params) => {
 const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { bundles?: unknown };
   if (!Array.isArray(body.bundles)) return json({ error: 'bundles must be an array' }, 400);
@@ -12814,9 +13497,12 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   const previousBundles = Array.isArray(existing.bundles) ? (existing.bundles as string[]) : [];
   const updatedPermissions = JSON.stringify({ ...existing, bundles: newBundles });
 
-  await env.DB.prepare(
-    'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
-  ).bind(updatedPermissions, params.id, params.userId).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?')
+      .bind(updatedPermissions, params.id, params.userId),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, params.userId),
+  ]);
 
   await logPlatformAction(env, 'member.bundles_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
     action_type: 'BUNDLE_GRANT_CHANGED',
@@ -12839,13 +13525,13 @@ const handleGetAccountActivity: Handler = async (request, env, params) => {
 
   // Membership check: if not platform-acting, must be a member of the requested account.
   if (!ctx.isPlatform && params.id !== ctx.accountId) {
-    return json({ error: 'Account access denied' }, 403);
+    return restError(403, 'Account access denied', 'account_access_denied');
   }
   if (!ctx.isPlatform) {
     const row = await env.DB.prepare(
       `SELECT 1 FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
     ).bind(ctx.userId, params.id).first();
-    if (!row) return json({ error: 'Account access denied' }, 403);
+    if (!row) return restError(403, 'Account access denied', 'account_access_denied');
   }
 
   const url = new URL(request.url);
@@ -13130,8 +13816,10 @@ const handlePlatformSetUserRole: Handler = async (request, env, params) => {
   if (!user) return json({ error: 'User not found' }, 404);
 
   const prev = await env.DB.prepare('SELECT platform_role, email FROM users WHERE id = ?').bind(params.id).first();
-  await env.DB.prepare('UPDATE users SET platform_role = ? WHERE id = ?')
-    .bind(body.platform_role ?? null, params.id).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET platform_role = ? WHERE id = ?').bind(body.platform_role ?? null, params.id),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(params.id),
+  ]);
 
   await logPlatformAction(env, 'platform_role.changed', claims.sub, claims.email,
     'user', params.id, { from: (prev as any)?.platform_role ?? null, to: body.platform_role ?? null, email: (prev as any)?.email });
@@ -13247,8 +13935,14 @@ const handlePlatformSetAccountStatus: Handler = async (request, env, params) => 
   if (!account) return json({ error: 'Account not found' }, 404);
   if (account.is_platform_owner) return json({ error: 'Cannot suspend the primary platform account' }, 400);
 
-  await env.DB.prepare('UPDATE accounts SET status = ?, updated_at = datetime(\'now\') WHERE id = ?')
-    .bind(body.status, params.id).run();
+  if (body.status === 'suspended') {
+    await env.DB.batch([
+      env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?").bind(params.id),
+      env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND revoked_at IS NULL").bind(params.id),
+    ]);
+  } else {
+    await env.DB.prepare("UPDATE accounts SET status = 'active', updated_at = datetime('now') WHERE id = ?").bind(params.id).run();
+  }
 
   await logPlatformAction(env, `account.${body.status}`, claims.sub, claims.email,
     'account', params.id, { name: account.name });
@@ -13268,8 +13962,10 @@ const handlePlatformSuspendAccount: Handler = async (request, env, params) => {
   if (!account) return json({ error: 'Account not found' }, 404);
   if ((account.kind as string) === 'platform') return json({ error: 'Cannot suspend the platform account' }, 400);
 
-  await env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?")
-    .bind(params.id).run();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?").bind(params.id),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND revoked_at IS NULL").bind(params.id),
+  ]);
 
   await logPlatformAction(env, 'account.suspended', claims.sub, claims.email,
     'account', params.id, { name: account.name, reason: body.reason || null });
@@ -13328,8 +14024,10 @@ const handlePlatformResendInvite: Handler = async (request, env, params) => {
   if (authErr) return authErr;
 
   const claims = parseToken(isAuthed(request)!)!;
-  const user = await env.DB.prepare('SELECT id, email, name FROM users WHERE id = ?').bind(params.id).first();
+  const user = await env.DB.prepare('SELECT id, email, name, platform_role FROM users WHERE id = ?').bind(params.id).first();
   if (!user) return json({ error: 'User not found' }, 404);
+  const targetError = await denyProtectedPlatformTarget(request, env, user.platform_role);
+  if (targetError) return targetError;
 
   // Invalidate old tokens
   await env.DB.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(params.id).run();
@@ -13420,7 +14118,7 @@ const handlePlatformAuditLog: Handler = async (request, env) => {
 const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as Record<string, boolean>;
 
@@ -13449,9 +14147,12 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
     if (enabledFeatures.has(feature)) sanitised[feature] = Boolean(enabled);
   }
 
-  await env.DB.prepare(
-    'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
-  ).bind(JSON.stringify(sanitised), params.id, params.userId).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?')
+      .bind(JSON.stringify(sanitised), params.id, params.userId),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, params.userId),
+  ]);
 
   await logPlatformAction(env, 'member.permissions_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
     action_type: 'BUNDLE_GRANT_CHANGED',
@@ -13471,7 +14172,7 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
 const handleTransferOwnership: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { new_owner_user_id: string };
   if (!body.new_owner_user_id) return json({ error: 'new_owner_user_id required' }, 400);
@@ -13489,6 +14190,8 @@ const handleTransferOwnership: Handler = async (request, env, params) => {
       .bind(params.id, ctx.userId),
     env.DB.prepare('UPDATE account_members SET role = \'owner\' WHERE account_id = ? AND user_id = ?')
       .bind(params.id, body.new_owner_user_id),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, ctx.userId),
   ]);
 
   await logPlatformAction(env, 'account.ownership_transferred', ctx.userId, ctx.email,
@@ -13561,7 +14264,7 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
   let inviteLink: string | null = null;
   if (body.owner_email) {
     const ownerEmail = body.owner_email.trim().toLowerCase();
-    let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?').bind(ownerEmail).first();
+    let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = ?').bind(ownerEmail).first();
     let createdUser = false;
 
     if (!user) {
@@ -13574,13 +14277,14 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
       createdUser = true;
     }
 
+    const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
     await env.DB.prepare(
-      `INSERT OR REPLACE INTO account_members
+      `INSERT INTO account_members
          (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
        VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
-    ).bind(accountId, user.id, claims.sub, createdUser ? 'invited' : 'active').run();
+    ).bind(accountId, user.id, claims.sub, membershipStatus).run();
 
-    if (createdUser) {
+    if (membershipStatus === 'invited') {
       const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
       const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       await env.DB.prepare(
@@ -13721,7 +14425,7 @@ const handlePlatformDecideApplication: Handler = async (request, env, params) =>
   ).run();
 
   // Find or create user
-  let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?')
+  let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = ?')
     .bind(applicantEmail.toLowerCase()).first();
   let createdUser = false;
   if (!user) {
@@ -13735,15 +14439,16 @@ const handlePlatformDecideApplication: Handler = async (request, env, params) =>
   }
 
   // Create owner membership
+  const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO account_members
+    `INSERT INTO account_members
        (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
-     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), 'active')`
-  ).bind(accountId, user.id, claims.sub).run();
+     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
+  ).bind(accountId, user.id, claims.sub, membershipStatus).run();
 
   // Generate claim link
   let claimLink: string | null = null;
-  if (createdUser) {
+  if (membershipStatus === 'invited') {
     const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
     const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
@@ -13804,7 +14509,7 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
   ).bind(accountId, finalSlug, displayName || email, email, invoicePrefix, now, now).run();
 
   // Find or create user
-  let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?')
+  let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = ?')
     .bind(email).first();
   let createdUser = false;
   if (!user) {
@@ -13818,15 +14523,16 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
   }
 
   // Create owner membership
+  const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO account_members
+    `INSERT INTO account_members
        (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
-     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), 'active')`
-  ).bind(accountId, user.id, claims.sub).run();
+     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
+  ).bind(accountId, user.id, claims.sub, membershipStatus).run();
 
   // Generate claim link
   let claimLink: string | null = null;
-  if (createdUser) {
+  if (membershipStatus === 'invited') {
     const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
     const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
@@ -15022,13 +15728,8 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.LOGIN_LIMITER) {
-    const { success } = await env.LOGIN_LIMITER.limit({ key: `joincode:${ip}` });
-    if (!success) return json({ error: 'Too many attempts. Please try again later.' }, 429);
-  }
-  if (!checkRateLimit(`joincode:${ip}`, 20, 60000)) {
-    return json({ error: 'Too many attempts. Please try again later.' }, 429);
-  }
+  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, ip);
+  if (limited) return limited;
 
   const body = await request.json() as { code?: string; first_name?: string; email?: string };
   const code = (body.code || '').trim();
@@ -15059,20 +15760,31 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
     'SELECT COUNT(*) as c FROM tasting_session_members WHERE session_id = ?'
   ).bind(session.id).first<{ c: number }>();
 
-  // Find or create the user.
+  // A join code proves possession of a session invitation, not ownership of
+  // an email address. Never inherit an existing account's privileges here.
   let user = await env.DB.prepare(
-    'SELECT id, email, name, username, role, platform_role FROM users WHERE lower(email) = ?'
+    'SELECT id, email, name, username, role, platform_role, session_version FROM users WHERE lower(email) = ?'
   ).bind(email).first() as Record<string, any> | null;
   let isNewUser = false;
-
-  if (!user) {
-    // password_hash is NOT NULL in the schema; sentinel until the guest
-    // sets a real password via forgot-password later.
+  if (user) {
+    const authToken = isAuthed(request);
+    if (!authToken) {
+      return restError(409, 'This email already has an account. Sign in before joining the session.', 'existing_account_requires_sign_in');
+    }
+    const authError = await validateSessionToken(authToken, env);
+    if (authError) return authError;
+    const claims = parseToken(authToken);
+    if (!claims || claims.sub !== user.id || claims.email.toLowerCase() !== email) {
+      return restError(403, 'Signed-in identity does not match the requested email.', 'join_identity_mismatch');
+    }
+  } else {
+    // password_hash is NOT NULL in the schema; sentinel until the guest sets a
+    // real password via forgot-password later.
     const newUserId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
       `INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'JOIN_ONLY', 'user')`
     ).bind(newUserId, email, firstName).run();
-    user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null };
+    user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null, session_version: 0 };
     isNewUser = true;
   }
 
@@ -15124,6 +15836,7 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
     username: (user.username as string | null) ?? null,
     memberships,
     active_account_id: activeAccountId,
+    session_version: Number(user.session_version || 0),
   });
 
   return json({
@@ -15817,7 +16530,7 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // ── Contributors — Public ─────────────────────────────────────────────────────
 // GET /api/people — list of published contributors for the directory page.
 // GET /api/people/:slug — single profile + woven content.
-// Per docs/CONTRIBUTOR_PROFILES_PLAN.md.
+// Per docs/ARCHITECTURE.md.
 
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
@@ -17579,7 +18292,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
 const handleSetCuratorFlag: Handler = async (request, env, params) => {
   const ctx = await requireAccountRole(request, env, ['owner']);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
   const member = await env.DB.prepare(
     `SELECT user_id FROM account_members WHERE account_id = ? AND user_id = ?`
   ).bind(params.id, params.userId).first();
@@ -18559,7 +19272,7 @@ const handleDecideSuggestion: Handler = async (request, env, params) => {
 
 // ── Wholesale orders (Step 4 — cross-account transactional layer) ───────────
 //
-// Per docs/NETWORK_ROLLOUT_PLAN.md Step 4 + docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
+// Per docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
 //
 // Lifecycle:
 //   draft → submitted → confirmed → shipped → received
@@ -19242,7 +19955,7 @@ const handleGetWholesaleOrder: Handler = async (request, env, params) => {
 
 // ── Network adoption queue (Step 6 — cross-pollination) ────────────────────
 //
-// Per docs/NETWORK_ROLLOUT_PLAN.md Step 6:
+// Per docs/NETWORK_UI_BRIEF.md:
 // A partner who originates a tea profile (one Adrian doesn't yet curate) can
 // flag it as a candidate for network-wide adoption. Adrian (or another platform
 // tier user) reviews and either adopts (transferring curated_by_account_id to
@@ -19581,11 +20294,69 @@ async function handleApplyInvoiceLineRepair(request: Request, env: Env): Promise
   return json({ changed_lines, preview_key: preview.preview_key });
 }
 
+async function handleCreateIncident(request: Request, env: Env): Promise<Response> {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const contentLength = Number(request.headers.get('content-length') || 0);
+  if (contentLength > 8 * 1024) return json({ error: 'Incident payload exceeds 8 KB' }, 413);
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  try {
+    const raw = await request.json();
+    const incident = normalizeIncidentInput(raw as Record<string, unknown>);
+    const row = await upsertIncident(env.DB, incident, {
+      accountId: request.headers.get('X-Teajia-Account') || claims.active_account_id || null,
+      userId: claims.sub,
+    });
+    return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid incident';
+    return json({ error: message }, message.includes('8 KB') ? 413 : 400);
+  }
+}
+
+function hasIncidentExportCredential(request: Request, env: Env): boolean {
+  if (!env.INCIDENT_EXPORT_TOKEN) return false;
+  const header = request.headers.get('Authorization');
+  return header === `Bearer ${env.INCIDENT_EXPORT_TOKEN}`;
+}
+
+async function handleListIncidents(request: Request, env: Env): Promise<Response> {
+  if (!hasIncidentExportCredential(request, env)) {
+    const authErr = await requirePlatformAdmin(request, env);
+    if (authErr) return authErr;
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM incident_ledger
+     WHERE status IN ('open', 'acknowledged', 'repairing', 'observing')
+     ORDER BY
+      CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+      last_seen DESC`
+  ).all<Record<string, unknown>>();
+  return json({ incidents: results.map(incidentToApi) });
+}
+
+async function handleUpdateIncident(request: Request, env: Env, params: Record<string, string>): Promise<Response> {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { status?: string; resolution_ref?: string } | null;
+  if (!body || !INCIDENT_STATUSES.includes(body.status as IncidentStatus)) return json({ error: 'Invalid incident status' }, 400);
+  const resolutionRef = typeof body.resolution_ref === 'string' ? body.resolution_ref.slice(0, 240) : null;
+  const result = await env.DB.prepare(`UPDATE incident_ledger SET status = ?, resolution_ref = ?,
+    resolved_at = CASE WHEN ? = 'resolved' THEN datetime('now') ELSE NULL END WHERE id = ?`)
+    .bind(body.status, resolutionRef, body.status, params.id).run();
+  if (!result.meta.changes) return json({ error: 'Incident not found' }, 404);
+  const row = await env.DB.prepare('SELECT * FROM incident_ledger WHERE id = ?').bind(params.id).first<Record<string, unknown>>();
+  return json({ incident: incidentToApi(row || {}) });
+}
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],
+  ['POST', '/api/auth/signup/verify', handleVerifySignupEmail],
+  ['POST', '/api/auth/signup/resend', handleResendSignupVerification],
   ['POST', '/api/auth/refresh', handleRefreshToken],
   ['GET', '/api/auth/me', handleGetMe],
   ['PUT', '/api/auth/change-password', handleChangePassword],
@@ -19597,6 +20368,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/reset-password', handleResetPassword],
   ['GET', '/api/auth/google', handleGoogleAuth],
   ['GET', '/api/auth/google/callback', handleGoogleCallback],
+  ['POST', '/api/incidents', handleCreateIncident],
 
   // Accounts / Multi-store
   ['GET', '/api/accounts/me', handleGetAccountsMe],
@@ -19628,6 +20400,8 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/accounts/:id/trust-tier', handlePlatformSetTrustTier],
   ['PUT',  '/api/platform/accounts/:id/features/:feature', handlePlatformToggleFeature],
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
+  ['GET',  '/api/platform/incidents', handleListIncidents],
+  ['PATCH','/api/platform/incidents/:id', handleUpdateIncident],
   ['GET',  '/api/platform/applications', handlePlatformListApplications],
   ['POST', '/api/platform/applications/:id/decide', handlePlatformDecideApplication],
   ['POST', '/api/platform/tea-masters/invite', handlePlatformInviteTeaMaster],
@@ -19695,7 +20469,6 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id/commercial', handleUpdateProductCommercial],
   ['PUT', '/api/products/:id/publication', handleUpdateProductPublication],
   ['PUT', '/api/products/:id/shown', handleUpdateProductVisibility],
-  ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],
   ['POST', '/api/products/:id/enhance-image', handleEnhanceProductImage],
@@ -19849,6 +20622,8 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/generate-wisdom', handleGenerateWisdom],
   ['POST', '/api/generate-chinese-name', handleGenerateChineseName],
   ['POST', '/api/transcribe', handleTranscribe],
+  ['POST', '/api/transcriptions/:id/retry', handleRetryTranscription],
+  ['DELETE', '/api/transcriptions/:id', handleDiscardTranscription],
   ['POST', '/api/admin/migrate-tasting', handleMigrateTasting],
 
   // Events — Public
@@ -20166,36 +20941,35 @@ function checkRateLimit(key: string, limit: number, windowMs: number): boolean {
 const ALLOWED_ORIGINS = [
   'https://teajia.com',
   'https://www.teajia.com',
-  'https://teajia.pages.dev',
   'https://teajiafinal.pages.dev',
   'http://localhost:7777',
+  'http://127.0.0.1:7777',
 ];
 
 /** Decide whether to echo an Origin back as Access-Control-Allow-Origin.
  *
  *  Returning an ACAO that does NOT match the actual Origin is what was
  *  surfacing as Safari "Load failed" on the sign-in page — when the user
- *  hit the API from a Pages preview URL or a non-7777 dev port, the worker
+ *  hit the API from a Pages preview URL, the worker
  *  echoed `https://teajia.com` and Safari rejected the response without
- *  ever showing it to the app. We now match a broader set of legitimate
- *  Teajia frontends, and return null (no ACAO) for anything else so the
+ *  ever showing it to the app. We match only production, the active Pages
+ *  project and its one-label previews, plus the reserved local port. Anything
+ *  else gets no ACAO so the
  *  browser raises an explicit CORS error instead of a phantom failure.
  *
  *  The Cloudflare Pages project is `teajiafinal` (not `teajia`), so the
  *  per-branch preview URLs look like
  *      <branch>.teajiafinal.pages.dev
  *      <commit-hash>.teajiafinal.pages.dev
- *  The pattern below matches any subdomain of any Pages project whose
- *  name starts with "teajia" so future renames (teajia-staging, etc.)
- *  also work without code changes.
+ *  The pattern deliberately does not trust retired or similarly named Pages
+ *  projects.
  */
 function resolveAllowedOrigin(origin: string): string | null {
   if (!origin) return null;
   if (ALLOWED_ORIGINS.includes(origin)) return origin;
-  // Cloudflare Pages — bare project domain or any preview subdomain
-  if (/^https:\/\/([a-z0-9][a-z0-9-]*\.)?teajia[a-z0-9-]*\.pages\.dev$/i.test(origin)) return origin;
-  // Local dev on any port (Vite picks alternates if 7777 is busy)
-  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return origin;
+  // Cloudflare Pages previews for the active `teajiafinal` project only.
+  // Cloudflare uses exactly one branch/hash label before the project hostname.
+  if (/^https:\/\/[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.teajiafinal\.pages\.dev$/i.test(origin)) return origin;
   return null;
 }
 
@@ -20237,7 +21011,7 @@ export default {
       if (!key) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       // Curate evidence can contain private invoices and vendor conversations.
       // It must never pass through the public product-media endpoint.
-      if (key.startsWith('curate/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
+      if (key.startsWith('curate/') || key.startsWith('private-recordings/')) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const obj = await env.MEDIA_BUCKET.get(key);
       if (!obj) return cors(new Response('Not found', { status: 404 }), corsOrigin);
       const headers = new Headers();
@@ -20331,6 +21105,51 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, _ctx: ExecutionContext): Promise<void> {
+    // Retry audio is temporary. Delete the object before its ledger row so a
+    // failed R2 deletion remains visible and will be retried on the next tick.
+    if (env.MEDIA_BUCKET) {
+      let deleted = 0;
+      let failures = 0;
+      let examined = 0;
+      let cursorExpiry: string | null = null;
+      let cursorId: string | null = null;
+      try {
+        for (let page = 0; page < 10; page += 1) {
+          const expired = cursorExpiry === null
+            ? await env.DB.prepare(
+              `SELECT id, object_key, expires_at FROM private_recordings
+               WHERE expires_at <= datetime('now')
+               ORDER BY expires_at ASC, id ASC LIMIT 100`
+            ).all()
+            : await env.DB.prepare(
+              `SELECT id, object_key, expires_at FROM private_recordings
+               WHERE expires_at <= datetime('now')
+                 AND (expires_at > ? OR (expires_at = ? AND id > ?))
+               ORDER BY expires_at ASC, id ASC LIMIT 100`
+            ).bind(cursorExpiry, cursorExpiry, cursorId).all();
+          examined += expired.results.length;
+          for (const row of expired.results) {
+            try {
+              await env.MEDIA_BUCKET.delete(row.object_key as string);
+              await env.DB.prepare('DELETE FROM private_recordings WHERE id = ?').bind(row.id).run();
+              deleted += 1;
+            } catch {
+              failures += 1;
+            }
+          }
+          const last = expired.results.at(-1);
+          if (last) {
+            cursorExpiry = last.expires_at as string;
+            cursorId = last.id as string;
+          }
+          if (expired.results.length < 100) break;
+        }
+      } catch {
+        failures += 1;
+      }
+      console.info('Private recording expiry cleanup summary', { examined, deleted, failures });
+    }
+
     // Generate checkin reminder notifications for events happening tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);

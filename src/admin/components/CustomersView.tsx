@@ -1012,23 +1012,23 @@ export const CustomerDetail = ({
                 ) : (
                   <>
                     {/* Journey stats row */}
-                    {(journey.sessionsAttended > 0 || journey.totalTeas > 0 || (journey.milestones?.length > 0)) && (
+                    {((journey.sessionsAttended ?? 0) > 0 || (journey.totalTeas ?? 0) > 0 || (journey.milestones?.length ?? 0) > 0) && (
                       <div className="flex gap-3">
-                        {journey.sessionsAttended > 0 && (
+                        {(journey.sessionsAttended ?? 0) > 0 && (
                           <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
                             <p className="text-lg font-mono text-tea-gold">{journey.sessionsAttended}</p>
                             <p className="text-ui-10 font-sans text-tea-text-dim uppercase">Sessions</p>
                           </div>
                         )}
-                        {journey.totalTeas > 0 && (
+                        {(journey.totalTeas ?? 0) > 0 && (
                           <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
                             <p className="text-lg font-mono text-tea-gold">{journey.totalTeas}</p>
                             <p className="text-ui-10 font-sans text-tea-text-dim uppercase">Teas Tasted</p>
                           </div>
                         )}
-                        {journey.milestones?.length > 0 && (
+                        {(journey.milestones?.length ?? 0) > 0 && (
                           <div className="bg-tea-accent-sub/30 rounded px-2.5 py-1.5">
-                            <p className="text-lg font-display text-tea-gold">{journey.milestones[journey.milestones.length - 1]}</p>
+                            <p className="text-lg font-display text-tea-gold">{journey.milestones?.at(-1)}</p>
                             <p className="text-ui-10 font-sans text-tea-text-dim uppercase">Milestone</p>
                           </div>
                         )}
@@ -1053,11 +1053,11 @@ export const CustomerDetail = ({
                     )}
 
                     {/* Favorite teas */}
-                    {journey.favorites?.length > 0 && (
+                    {(journey.favorites?.length ?? 0) > 0 && (
                       <div>
                         <p className="text-ui-10 font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Favorites</p>
                         <div className="space-y-1">
-                          {journey.favorites.map((name: string, i: number) => (
+                          {journey.favorites?.map((name: string, i: number) => (
                             <p key={i} className="text-xs font-sans text-tea-text-sec">{name}</p>
                           ))}
                         </div>
@@ -1065,11 +1065,11 @@ export const CustomerDetail = ({
                     )}
 
                     {/* Recent impressions */}
-                    {journey.impressions?.length > 0 && (
+                    {(journey.impressions?.length ?? 0) > 0 && (
                       <div>
                         <p className="text-ui-10 font-sans text-tea-text-dim uppercase tracking-wider mb-1.5">Impressions</p>
                         <div className="space-y-1.5">
-                          {journey.impressions.slice(0, 3).map((imp: any, i: number) => (
+                          {journey.impressions?.slice(0, 3).map((imp, i: number) => (
                             <div key={i} className="text-xs">
                               <p className="font-serif italic text-tea-text-sec">"{imp.impression}"</p>
                               <p className="font-sans text-tea-text-dim mt-0.5">

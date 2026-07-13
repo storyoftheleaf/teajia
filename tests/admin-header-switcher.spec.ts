@@ -40,7 +40,7 @@ const NETWORK_ACCOUNTS = [
   { id: AUS_ID, name: 'Teajia Australia', slug: 'teajia-australia', location_city: '', currency_default: 'AUD' },
 ];
 
-function tokenFor(activeId: string): string {
+function tokenFor(activeId: string | null, memberships = MEMBERSHIPS): string {
   return makeFakeJWT({
     sub: 'test-owner-uid',
     email: 'owner@teajia.com',
@@ -49,7 +49,7 @@ function tokenFor(activeId: string): string {
     platform_role: 'platform_owner',
     exp: Math.floor(Date.now() / 1000) + 86400 * 30,
     active_account_id: activeId,
-    memberships: MEMBERSHIPS,
+    memberships,
   });
 }
 
@@ -94,6 +94,21 @@ async function mockApi(context: BrowserContext) {
     return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
   });
 }
+
+test('platform owner without membership rows bypasses the invitation gate', async ({ page, context }) => {
+  test.skip(!process.env.ADMIN_TEST_URL, 'needs an API-configured admin server (set ADMIN_TEST_URL)');
+
+  await mockApi(context);
+  await page.addInitScript((token) => {
+    localStorage.setItem('teajia_token', token);
+  }, tokenFor(BALI_ID, []));
+
+  const base = process.env.ADMIN_TEST_URL || '';
+  await page.goto(`${base}/admin`, { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByText('Waiting for an invite')).not.toBeVisible({ timeout: 10000 });
+  await expect(page.locator('main')).toBeVisible();
+});
 
 // The admin shell gates on a configured API (VITE_API_URL). The default dev
 // server on :7777 has none, so this test needs a server started with the API

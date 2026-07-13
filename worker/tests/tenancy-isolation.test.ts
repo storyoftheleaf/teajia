@@ -111,7 +111,7 @@ const cases = [
 ] as const;
 
 describe('cross-account resource isolation', () => {
-  it('denies selecting an account without membership', async () => { const response = await call(new TenantDb(), 'member-a', 'acct-b', '/api/customers'); expect(response.status).toBe(403); expect(await response.json()).toMatchObject({ error: 'Account access denied' }); });
+  it('denies selecting an account without membership', async () => { const response = await call(new TenantDb(), 'member-a', 'acct-b', '/api/customers'); expect(response.status).toBe(403); expect(await response.json()).toMatchObject({ error: 'Account access denied', code: 'account_access_denied' }); });
 
   it.each(cases)('scopes %s lists and direct access', async (_label, listPath, directPath, method, body, listPredicate) => {
     const db = new TenantDb(); const before = JSON.stringify(db.rows);

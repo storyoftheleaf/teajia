@@ -25,7 +25,7 @@ export const TeaMenuEditor: React.FC<TeaMenuEditorProps> = ({ eventId }) => {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
 
-  const sortedItems = [...menuItems].sort((a, b) => a.brewOrder - b.brewOrder);
+  const sortedItems = [...menuItems].sort((a, b) => (a.brewOrder ?? 0) - (b.brewOrder ?? 0));
 
   const handleAddFromInventory = async (productId: string, productName: string) => {
     setLoadingAction('add');
