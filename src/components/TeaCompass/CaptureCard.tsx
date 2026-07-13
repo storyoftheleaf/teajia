@@ -66,6 +66,8 @@ interface CaptureCardProps {
   /** Optional Share action rendered in the capture context/header cluster. */
   onShare?: () => void;
   purchasePickerId?: string;
+  /** Opens the reviewed acquisition form when Library hands this entry off. */
+  openPurchasePicker?: boolean;
   onBuyExpandedChange?: (expanded: boolean) => void;
   /** Rapid batch-entry mode state, surfaced inside the Run chip's sheet */
   batchMode?: boolean;
@@ -169,7 +171,7 @@ const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </span>
 );
 
-export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, onBuyExpandedChange, batchMode, onToggleBatchMode }) => {
+export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, openPurchasePicker = false, onBuyExpandedChange, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const commitEntry = useTeaCompassStore((s) => s.commitEntry);
@@ -227,6 +229,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setReceiptProposal(null);
     setReceiptError('');
   }, [entry?.id]);
+  useEffect(() => {
+    if (!entry || !openPurchasePicker) return;
+    const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    setBuyingQty(unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100));
+    setShowBuyPicker(true);
+  }, [entry, openPurchasePicker]);
 
   // Sync price changes back to any matching draft ledger line items
   useEffect(() => {

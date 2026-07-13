@@ -3,7 +3,7 @@ import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Trash2, Heart, ThumbsUp, Minus, ThumbsDown, ListChecks, ChevronRight } from 'lucide-react';
 import { SessionReview } from './SessionReview';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { entryHasDeliberateInput, useTeaCompassStore } from '../../lib/teaCompassStore';
 import { useSampleStore } from '../../samples/sampleStore';
@@ -45,6 +45,7 @@ interface BrowseViewProps {
   onSelectEntry?: (id: string) => void;
   /** Desktop: which entry is currently shown in the right detail panel */
   selectedEntryId?: string | null;
+  onAcquireEntry?: (id: string) => void;
   /**
    * Desktop: when true, cards lay out as a responsive multi-column grid that
    * fills the full width instead of a single stacked column. Used in Library
@@ -119,7 +120,7 @@ const PhotoTile: React.FC<{
         )}
       </button>
       <div className="px-2.5 pt-2 pb-2.5 space-y-1">
-        <button type="button" onClick={() => onOpen(entry.id)} className="block w-full text-left">
+        <button type="button" onClick={() => onOpen(entry.id)} className="tap-target flex min-h-11 w-full items-center text-left">
           <span className="block text-ui-16 text-tea-text font-medium truncate">{title}</span>
         </button>
         <span className="block text-ui-12 text-tea-text-dim truncate">
@@ -132,7 +133,7 @@ const PhotoTile: React.FC<{
           onBlur={() => { if (note !== entry.notes) updateEntry(entry.id, { notes: note }); }}
           placeholder="Add a note"
           aria-label={`Note for ${title}`}
-          className="w-full bg-transparent text-ui-16 text-tea-text-sec placeholder:text-tea-text-dim outline-none
+          className="min-h-11 w-full bg-transparent text-ui-16 text-tea-text-sec placeholder:text-tea-text-dim outline-none
                      focus:text-tea-text border-b border-transparent focus:border-tea-border pb-0.5 transition-colors"
         />
       </div>
@@ -142,8 +143,9 @@ const PhotoTile: React.FC<{
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode }) => {
+export const BrowseView: React.FC<BrowseViewProps> = ({ onEditEntry, onNewCapture, externalSearchQuery, onSelectEntry, selectedEntryId, gridMode, onAcquireEntry }) => {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const { entries, browseFilter, setBrowseFilter, browseSort, setBrowseSort, browseLayout, setBrowseLayout, libraryFilters, setLibraryFilters, removeEntry, updateEntry, hydrationStatus } = useTeaCompassStore();
   const [cleanupDismissed, setCleanupDismissed] = useState(false);
   const [sortSheetOpen, setSortSheetOpen] = useState(false);
@@ -322,10 +324,10 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           return (
             <motion.div
               key={entry.id}
-              initial={{ opacity: 0, height: 0 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
               animate={{ opacity: dim ? 0.55 : 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.18 }}
             >
               <BrowseCard
                 entry={entry}
@@ -333,6 +335,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                 tasteQueueActive={opts?.tasteQueueActive}
                 onSelect={onSelectEntry}
                 isSelected={selectedEntryId === entry.id}
+                onAcquire={onAcquireEntry}
               />
             </motion.div>
           );
@@ -473,7 +476,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
                   set ? (
                     <button
                       onClick={() => navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(set.id)}`)}
-                      className="hover:text-tea-gold transition-colors"
+                      className="tap-target min-h-11 hover:text-tea-gold transition-colors"
                       title="Open batch in Samples"
                     >
                       {set.name || 'Untitled Batch'}
@@ -824,10 +827,10 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       <AnimatePresence>
         {!cleanupDismissed && emptyEntries.length >= 3 && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
             className="overflow-hidden"
           >
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tea-surface text-ui-12">
@@ -838,14 +841,15 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
               <button
                 type="button"
                 onClick={handleCleanup}
-                className="text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
+                className="tap-target min-h-11 text-tea-error hover:text-tea-error font-medium transition-colors shrink-0"
               >
                 Clean up
               </button>
               <button
                 type="button"
                 onClick={() => setCleanupDismissed(true)}
-                className="text-tea-text-dim hover:text-tea-text-sec transition-colors shrink-0 ml-1"
+                className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors ml-1"
+                aria-label="Dismiss cleanup"
               >
                 <X size={12} />
               </button>
@@ -862,11 +866,11 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
           <motion.button
             type="button"
             onClick={() => setReviewOpen(true)}
-            initial={{ opacity: 0, height: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="w-full overflow-hidden block text-left"
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+            className="tap-target block min-h-11 w-full overflow-hidden text-left"
           >
             <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-tea-gold/8 border border-tea-gold/20">
               <ListChecks size={15} className="text-tea-gold shrink-0" />

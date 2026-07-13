@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
-import { BookmarkCheck, BookmarkPlus, Droplets, Share2, ShoppingBag, Store, X } from 'lucide-react';
+import { BookmarkCheck, BookmarkPlus, Check, Droplets, Share2, ShoppingBag, Star, Store, Trash2, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { getDateGroup } from './BrowseCard';
@@ -19,6 +19,7 @@ interface CompassEntryDetailPanelProps {
   onEdit: (id: string) => void;
   onClose: () => void;
   onShare?: (id: string) => void;
+  onAcquire?: (id: string) => void;
 }
 
 const SECTION_LABEL = 'text-ui-12 text-tea-text-dim font-medium mb-2';
@@ -28,13 +29,16 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   onEdit,
   onClose,
   onShare,
+  onAcquire,
 }) => {
   const navigate = useNavigate();
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
-  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
-  const addLineItem = useLedgerStore((s) => s.addLineItem);
+  const removeEntry = useTeaCompassStore((s) => s.removeEntry);
+  const transactions = useLedgerStore((s) => s.transactions);
+  const removeLineItem = useLedgerStore((s) => s.removeLineItem);
   const [tastingOpen, setTastingOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const entry = getEntry(entryId);
   if (!entry) return null;
@@ -47,19 +51,18 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const hasTastingHistory = (entry.tastingHistory?.length ?? 0) > 0;
   const isWishlisted = entry.status === 'want';
   const isBought = entry.status === 'in_stock' || entry.status === 'buying';
+  const isIncoming = entry.status === 'incoming';
+  const isInLedger = transactions.some((transaction) => transaction.items.some((item) => item.compassEntryId === entry.id));
+  const acquisitionPending = isIncoming || (!isBought && isInLedger);
 
-  const handleBuy = useCallback(() => {
-    const unitBased = (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
-    const transactionId = getOrCreatePurchaseTransaction(entry.vendorName || 'Unknown Vendor', entry.priceCurrency, entry.vendorId);
-    addLineItem(transactionId, {
-      name: entry.name || entryDisplayTitle(entry), chineseName: entry.chineseName, type: entry.type,
-      form: entry.form, year: entry.year, quantityGrams: unitBased ? undefined : 100,
-      quantityUnits: unitBased ? 1 : undefined, pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams, currency: entry.priceCurrency,
-      compassEntryId: entry.id,
-    });
-    updateEntry(entry.id, { status: 'incoming' });
-  }, [addLineItem, entry, getOrCreatePurchaseTransaction, updateEntry]);
+  const handleUnbuy = useCallback(() => {
+    for (const transaction of transactions) {
+      for (const item of transaction.items.filter((candidate) => candidate.compassEntryId === entry.id)) {
+        removeLineItem(transaction.id, item.id);
+      }
+    }
+    updateEntry(entry.id, { status: 'noted', buyQuantityGrams: undefined, buyQuantityUnits: undefined, buyTotal: undefined });
+  }, [entry.id, removeLineItem, transactions, updateEntry]);
 
   // Price per gram display
   const pricePerGram = (() => {
@@ -104,11 +107,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
 
       {/* ── Header ── */}
       <div className="shrink-0 px-6 pt-5 pb-4 border-b border-tea-border">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="badge-status badge-status-default">{typeLabel}</span>
-            <span className={statusBadgeClass}>{statusLabel}</span>
-          </div>
+        <div className="flex items-start gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -117,6 +116,10 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           >
             <X size={16} />
           </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="badge-status badge-status-default">{typeLabel}</span>
+            <span className={statusBadgeClass}>{statusLabel}</span>
+          </div>
         </div>
         <h2 className="mt-3 font-serif text-ui-16 leading-snug text-tea-text">
           {entry.name || <span className="text-tea-text-sec">{entryDisplayTitle(entry)}</span>}
@@ -257,16 +260,29 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           {isWishlisted ? <BookmarkCheck size={14} className="inline mr-1.5 text-tea-gold" /> : <BookmarkPlus size={14} className="inline mr-1.5" />}Want
         </button>
 
-        <button type="button" onClick={handleBuy} disabled={isBought}
+        <button
+          type="button"
+          onClick={() => isBought ? handleUnbuy() : onAcquire?.(entry.id)}
+          disabled={acquisitionPending || (!isBought && !onAcquire)}
           className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:text-tea-text-dim"
-          aria-label="Buy">
-          <ShoppingBag size={14} className="inline mr-1.5" />{isBought ? 'In stock' : 'Buy'}
+          aria-label={isBought ? 'Remove acquisition' : entry.status === 'depleted' ? 'Reorder' : acquisitionPending ? (isIncoming ? 'Incoming' : 'In ledger') : 'Buy'}>
+          {isBought ? <Check size={14} className="inline mr-1.5" /> : <ShoppingBag size={14} className="inline mr-1.5" />}
+          {isBought ? 'In stock' : entry.status === 'depleted' ? 'Reorder' : isIncoming ? 'Incoming' : isInLedger ? 'In ledger' : 'Buy'}
         </button>
 
         <button type="button" onClick={() => setTastingOpen(true)}
           className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           aria-label="Taste">
           <Droplets size={14} className="inline mr-1.5" />Taste
+        </button>
+
+        <button
+          type="button"
+          onClick={() => updateEntry(entry.id, { tasteOrder: entry.tasteOrder ? undefined : Date.now() })}
+          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          aria-label={entry.tasteOrder ? 'Remove from queue' : 'Queue'}
+        >
+          <Star size={14} className="inline mr-1.5" fill={entry.tasteOrder ? 'currentColor' : 'none'} />{entry.tasteOrder ? 'Queued' : 'Queue'}
         </button>
 
         {entry.category !== 'teaware' && (
@@ -291,6 +307,25 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         />
 
         {onShare && <button type="button" onClick={() => onShare(entryId)} className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" aria-label="Share"><Share2 size={14} className="inline mr-1.5" />Share</button>}
+        {confirmDelete ? (
+          <button
+            type="button"
+            onClick={() => { removeEntry(entry.id); onClose(); }}
+            className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-error hover:bg-tea-accent-sub"
+            aria-label="Confirm delete entry"
+          >
+            <Trash2 size={14} className="inline mr-1.5" />Confirm delete
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-error"
+            aria-label="Delete entry"
+          >
+            <Trash2 size={14} className="inline mr-1.5" />Delete
+          </button>
+        )}
         </div>
       </div>
 

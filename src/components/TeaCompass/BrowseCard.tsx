@@ -34,6 +34,7 @@ export interface BrowseCardProps {
   onSelect?: (id: string) => void;
   /** Desktop: shows selection highlight on the card */
   isSelected?: boolean;
+  onAcquire?: (id: string) => void;
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -96,14 +97,12 @@ const VERDICT_CHIPS: { value: CompassVerdict; label: string; icon: React.ReactNo
 ];
 
 
-export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, onSelect, isSelected }) => {
+export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueueActive, onSelect, isSelected, onAcquire }) => {
   const navigate = useNavigate();
   const removeEntry = useTeaCompassStore((s) => s.removeEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
   const transactions = useLedgerStore((s) => s.transactions);
   const removeLineItem = useLedgerStore((s) => s.removeLineItem);
-  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
-  const addLineItem = useLedgerStore((s) => s.addLineItem);
 
   const [expanded, setExpanded] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +112,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const lightboxCloseRef = useRef<HTMLButtonElement>(null);
+  const lightboxDialogRef = useRef<HTMLDivElement>(null);
   const lightboxReturnFocusRef = useRef<HTMLElement | null>(null);
   const prefersReducedMotion = useReducedMotion();
   // When the thumbnail URL fails to load (dead R2 link, expired blob), fall
@@ -140,14 +140,38 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   // Lightbox keyboard navigation
   useEffect(() => {
     if (lightboxIndex === null) return;
+    const appRoot = document.getElementById('root');
+    const previousAriaHidden = appRoot?.getAttribute('aria-hidden');
+    if (appRoot) {
+      appRoot.inert = true;
+      appRoot.setAttribute('aria-hidden', 'true');
+    }
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowRight') setLightboxIndex((i) => i !== null ? Math.min(i + 1, validPhotos.length - 1) : null);
       if (e.key === 'ArrowLeft') setLightboxIndex((i) => i !== null ? Math.max(i - 1, 0) : null);
+      if (e.key === 'Tab') {
+        const focusable = Array.from(lightboxDialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? []);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     };
     window.addEventListener('keydown', handleKey);
     window.requestAnimationFrame(() => lightboxCloseRef.current?.focus());
-    return () => window.removeEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      if (appRoot) {
+        appRoot.inert = false;
+        if (previousAriaHidden == null) appRoot.removeAttribute('aria-hidden');
+        else appRoot.setAttribute('aria-hidden', previousAriaHidden);
+      }
+    };
   }, [closeLightbox, lightboxIndex, validPhotos.length]);
 
 
@@ -155,31 +179,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const handleUnbuy = useCallback(() => {
     for (const tx of transactions) {
       const item = tx.items.find((i) => i.compassEntryId === entry.id);
-      if (item) { removeLineItem(tx.id, item.id); break; }
+      if (item) removeLineItem(tx.id, item.id);
     }
     updateEntry(entry.id, { status: 'noted', buyQuantityGrams: undefined, buyQuantityUnits: undefined, buyTotal: undefined });
   }, [entry.id, transactions, removeLineItem, updateEntry]);
-
-  const handleReorder = useCallback(() => {
-    const vendorName = entry.vendorName || 'Unknown Vendor';
-    const currency = entry.priceCurrency;
-    const txId = getOrCreatePurchaseTransaction(vendorName, currency, entry.vendorId);
-    const unitBased = (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
-    addLineItem(txId, {
-      name: entry.name || entryDisplayTitle(entry),
-      chineseName: entry.chineseName,
-      type: entry.type,
-      form: entry.form,
-      year: entry.year,
-      quantityGrams: unitBased ? undefined : 100,
-      quantityUnits: unitBased ? 1 : undefined,
-      pricePerUnit: entry.priceAmount ?? 0,
-      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams,
-      currency,
-      compassEntryId: entry.id,
-    });
-    updateEntry(entry.id, { status: 'incoming' });
-  }, [entry, getOrCreatePurchaseTransaction, addLineItem, updateEntry]);
 
   const handleAddPhoto = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -209,6 +212,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const isBought = entry.status === 'in_stock' || entry.status === 'buying';
   const isWishlisted = entry.status === 'want';
   const isIncoming = entry.status === 'incoming';
+  const isInLedger = transactions.some((transaction) => transaction.items.some((item) => item.compassEntryId === entry.id));
+  const acquisitionPending = isIncoming || (!isBought && isInLedger);
   const isPassed = entry.status === 'pass';
   const pricePerGram = formatPricePerGram(entry);
   const rating = entry.tasting?.quality ?? entry.tasting?.rating;
@@ -238,12 +243,17 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             {/* Photo or type swatch. On a dead/expired photo URL we drop to
                 the swatch via onError rather than rendering a broken glyph. */}
             {showThumb ? (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
-                className="tap-target relative shrink-0 mt-0.5 group"
-                aria-label="View photos"
-              >
+              onSelect ? (
+                <div className="relative mt-0.5 shrink-0" aria-hidden="true">
+                  <img src={mediaUrl(validPhotos[0])} alt="" onError={() => setThumbFailed(true)} className="h-14 w-14 rounded-md object-cover" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
+                  className="tap-target relative shrink-0 mt-0.5 group"
+                  aria-label="View photos"
+                >
                 <img
                   src={mediaUrl(validPhotos[0])}
                   alt=""
@@ -255,7 +265,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     +{validPhotos.length - 1}
                   </span>
                 )}
-              </button>
+                </button>
+              )
             ) : (
               <div
                 className={`shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-12 font-semibold tracking-[0.1em] uppercase${typeColor ? '' : ' bg-tea-elevated'}`}
@@ -371,10 +382,10 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
         <AnimatePresence initial={false}>
           {expanded && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
+              initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.4, 0, 0.2, 1] }}
               className="overflow-hidden"
             >
               <div className="border-t border-tea-border px-3 pt-3 pb-2 space-y-3">
@@ -514,7 +525,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
         {/* ── Action bar — always visible. Wraps on narrow columns so the
             Sample action is never clipped by the card edge. ── */}
-        <div className="flex flex-wrap items-center gap-x-1 border-t border-tea-border px-2 py-1">
+        {!onSelect && <div className="flex flex-wrap items-center gap-x-1 border-t border-tea-border px-2 py-1">
           {/* Wishlist toggle */}
           <button
             type="button"
@@ -534,15 +545,18 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           <button
             type="button"
             data-library-action
-            onClick={() => { if (isBought) handleUnbuy(); else handleReorder(); }}
+            onClick={() => { if (isBought) handleUnbuy(); else if (!acquisitionPending) onAcquire?.(entry.id); }}
+            disabled={acquisitionPending || (!isBought && !onAcquire)}
             className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               isBought
                 ? 'bg-tea-gold/10 text-tea-gold'
+                : acquisitionPending
+                  ? 'cursor-default text-tea-text-dim'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
             }`}
           >
             {isBought ? <Check size={12} /> : <ShoppingBag size={12} />}
-            {isBought ? 'In Stock' : 'Buy'}
+            {isBought ? 'In Stock' : isIncoming ? 'Incoming' : isInLedger ? 'In ledger' : 'Buy'}
           </button>
 
           {/* Divider: intentions (Want/Buy) vs. assessments (Taste) */}
@@ -573,7 +587,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               data-library-action
-              onClick={handleReorder}
+              onClick={() => onAcquire?.(entry.id)}
+              disabled={!onAcquire}
               className="tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
               title="Add to ledger to reorder"
             >
@@ -656,7 +671,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               <Trash2 size={12} />
             </button>
           )}
-        </div>
+        </div>}
       </article>
 
       {/* ── Tasting session ── */}
@@ -695,6 +710,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
       {/* ── Photo lightbox ── */}
       {lightboxIndex !== null && validPhotos[lightboxIndex] && createPortal(
         <motion.div
+          ref={lightboxDialogRef}
           key="browse-lightbox"
           initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}

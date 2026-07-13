@@ -467,18 +467,46 @@ test.describe('Curate Library decisions and retrieval', () => {
     }
   });
 
-  test('renders semantic entry rows with working Buy and no contradictory Co-Tasting', async ({ page }) => {
+  test('routes Buy through the reviewed acquisition flow and treats pending acquisition idempotently', async ({ page }, testInfo) => {
     await expect(page.getByText('Co-Tasting', { exact: true })).toHaveCount(0);
     expect(await page.locator('[data-testid^="library-entry-"] button button').count()).toBe(0);
 
     const cloudPeak = page.getByTestId('library-entry-unresolved').filter({ visible: true });
-    await cloudPeak.getByRole('button', { name: 'Buy', exact: true }).click();
-    await expect(cloudPeak.getByText('Incoming', { exact: true }).filter({ visible: true })).toBeVisible();
+    if (testInfo.project.name.includes('Mobile')) {
+      await expect(cloudPeak.getByRole('button', { name: 'Incoming', exact: true })).toBeDisabled();
+    } else {
+      await cloudPeak.getByRole('button', { name: /Open Cloud Peak details/ }).click();
+      await expect(page.getByTestId('library-entry-detail').getByRole('button', { name: 'Incoming', exact: true })).toBeDisabled();
+    }
+
+    let proposals = 0;
+    await page.route('**/api/compass/entries/selected/receipt-proposals', async route => {
+      proposals += 1;
+      const proposed = route.request().postDataJSON();
+      await route.fulfill({ json: { id: 'library-proposal', account_id: 'acct-bali', compass_entry_id: 'selected', status: 'pending', created_at: '', updated_at: '', proposed_by_user_id: 'test', ...proposed } });
+    });
+    const selected = page.getByTestId('library-entry-selected').filter({ visible: true });
+    if (testInfo.project.name.includes('Mobile')) {
+      await selected.getByRole('button', { name: 'Buy', exact: true }).click();
+    } else {
+      await selected.getByRole('button', { name: /Open River Stone details/ }).click();
+      await page.getByTestId('library-entry-detail').getByRole('button', { name: 'Buy', exact: true }).click();
+    }
+    await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true');
+    const purpose = page.getByLabel('Inventory purpose').filter({ visible: true });
+    await expect(purpose).toHaveValue('working');
+    await expect(page.getByLabel('Acquisition').filter({ visible: true })).toHaveValue('purchase');
+    const purchasePanel = purpose.locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
+    await purchasePanel.locator('input[type="number"]').fill('25');
+    await purchasePanel.getByRole('button', { name: 'Add to Ledger' }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+    await expect(page.getByText('Inventory changes only after you accept this receipt.')).toBeVisible();
+    expect(proposals).toBeGreaterThanOrEqual(1);
     expect(await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
-      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      return useTeaCompassStore.getState().getEntry('unresolved')?.status;
-    })).toBe('incoming');
+      const { useLedgerStore } = await import('/src/lib/ledgerStore.ts');
+      return useLedgerStore.getState().transactions.flatMap((transaction: any) => transaction.items)
+        .filter((item: any) => item.compassEntryId === 'selected').map((item: any) => item.quantityGrams);
+    })).toEqual([25]);
   });
 
   test('names every active filter and removes one without clearing the others', async ({ page }) => {
@@ -494,6 +522,16 @@ test.describe('Curate Library decisions and retrieval', () => {
     await expect(page.getByRole('button', { name: 'Remove Category: Teaware' })).toBeVisible();
   });
 
+  test('groups all fifteen filters without hiding a dimension', async ({ page }) => {
+    await page.getByRole('button', { name: 'Filters' }).click();
+    for (const group of ['Encounter', 'Tea', 'State', 'Samples & Inventory', 'Completeness']) {
+      await expect(page.getByRole('heading', { name: group, exact: true })).toBeVisible();
+    }
+    for (const label of ['Journey', 'Vendor', 'Place', 'Date', 'Category', 'Type', 'Origin', 'Year', 'Price', 'Decision', 'Verdict', 'Possession', 'Sample state', 'Photos', 'Missing information']) {
+      await expect(page.getByLabel(label)).toBeVisible();
+    }
+  });
+
   test('shows honest local-data state when Library hydration fails', async ({ page }) => {
     await page.evaluate(async () => {
       // @ts-expect-error Vite source import.
@@ -506,11 +544,34 @@ test.describe('Curate Library decisions and retrieval', () => {
 
   test('desktop detail keeps Share and the complete action set reachable', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name.includes('Mobile'), 'Desktop split-pane contract');
-    await page.getByTestId('library-entry-unresolved').getByRole('button', { name: /Open Cloud Peak details/ }).click();
+    const selectedRail = page.getByTestId('library-entry-selected').filter({ visible: true });
+    await expect(selectedRail.locator('[data-library-action]')).toHaveCount(0);
+    await selectedRail.getByRole('button', { name: /Open River Stone details/ }).click();
     const detail = page.getByTestId('library-entry-detail');
-    for (const name of ['Edit entry', 'Want', 'Buy', 'Taste', 'Share']) await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
+    for (const name of ['Edit entry', 'Want', 'Buy', 'Taste', 'Queue', 'Share', 'Delete entry']) await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
     await expect(detail.getByRole('button', { name: /Add to Sample list/i })).toBeVisible();
     await detail.getByRole('button', { name: 'Share', exact: true }).click();
     await expect(page.locator('p').filter({ hasText: /^Share$/ }).filter({ visible: true })).toBeVisible();
+  });
+
+  test('mobile photo dialog traps focus, inerts the app, and restores its trigger', async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.includes('Mobile'), 'Mobile card lightbox contract');
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.setState((state: any) => ({ entries: state.entries.map((entry: any) => entry.id === 'selected' ? { ...entry, photos: ['data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E', 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 2"/%3E'] } : entry) }));
+    });
+    const trigger = page.getByTestId('library-entry-selected').filter({ visible: true }).getByRole('button', { name: 'View photos' });
+    await trigger.click();
+    const dialog = page.getByRole('dialog', { name: 'Photos for River Stone' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Close photos' })).toBeFocused();
+    expect(await page.locator('#root').evaluate((root: HTMLElement) => root.inert)).toBe(true);
+    await page.keyboard.press('Shift+Tab');
+    await expect(dialog.getByRole('button', { name: 'Show photo 2' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    expect(await page.locator('#root').evaluate((root: HTMLElement) => root.inert)).toBe(false);
   });
 });

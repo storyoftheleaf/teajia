@@ -585,6 +585,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Desktop tasting: which entry is shown in the right detail panel
   const [tastingSelectedEntryId, setTastingSelectedEntryId] = useState<string | null>(null);
+  const [pendingLibraryAcquisitionId, setPendingLibraryAcquisitionId] = useState<string | null>(null);
+
+  const openLibraryAcquisition = useCallback((id: string) => {
+    setActiveEntry(id);
+    setFromLibrary(true);
+    setTastingSelectedEntryId(null);
+    setPendingLibraryAcquisitionId(id);
+    setMode('sourcing');
+  }, [setActiveEntry, setFromLibrary]);
+
+  useEffect(() => {
+    if (mode !== 'sourcing') setPendingLibraryAcquisitionId(null);
+  }, [mode]);
 
   // Reset search + tasting selection when switching tabs
   useEffect(() => {
@@ -910,6 +923,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                         purchasePickerId={`capture-purchase-picker-mobile-${activeEntryId}`}
+                        openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}
                         batchMode={batchMode}
                         onToggleBatchMode={() => setBatchMode((v) => !v)}
                       />}
@@ -1083,6 +1097,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
                     externalSearchQuery={tabSearchQuery}
+                    onAcquireEntry={openLibraryAcquisition}
                   />
                 </motion.div>
               ) : (
@@ -1437,6 +1452,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       onSelectEntry={(id) => setTastingSelectedEntryId(id)}
                       selectedEntryId={tastingSelectedEntryId}
                       gridMode={libraryGrid}
+                      onAcquireEntry={openLibraryAcquisition}
                     />
                   </motion.div>
                 )}
@@ -1526,6 +1542,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           actionRef={captureCardActionsRef}
                           onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                           purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
+                          openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}
                           onBuyExpandedChange={setCaptureBuyExpanded}
                           batchMode={batchMode}
                           onToggleBatchMode={() => setBatchMode((v) => !v)}
@@ -1553,6 +1570,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onEdit={(id) => { handleEditEntry(id); setTastingSelectedEntryId(null); }}
                         onClose={() => setTastingSelectedEntryId(null)}
                         onShare={hasToken() ? (id) => { setActiveEntry(id); setShareModalOpen(true); } : undefined}
+                        onAcquire={openLibraryAcquisition}
                       />
                     ) : (
                       <CompassRightEmptyState mode="library" onNewCapture={() => handleNewCapture()} />
