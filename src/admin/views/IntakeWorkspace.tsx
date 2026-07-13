@@ -15,7 +15,7 @@ import {
   autoMap, loadRememberedMapping, rememberMapping, rowToStaged,
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
-import { assertSupportedIntakeFile, parseXlsxIntake } from '../lib/xlsxIntake';
+import { assertSupportedIntakeFile, readXlsxIntakeFile } from '../lib/xlsxIntake';
 
 interface SheetSource {
   id: string;
@@ -130,7 +130,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
       });
     } else if (lower.endsWith('.xlsx')) {
       try {
-        const rows = await parseXlsxIntake(await file.arrayBuffer());
+        const rows = await readXlsxIntakeFile(file);
         ingestSheet(file.name, rows);
       } catch (error) {
         showToast(error instanceof Error ? `${file.name}: ${error.message}` : `Could not read ${file.name}`, 'error');
