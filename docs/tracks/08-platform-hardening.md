@@ -10,7 +10,7 @@ Status: the autonomous hardening queue shipped on `codex/platform-hardening`. On
 
 ## Shipped hardening
 
-The changelog and Git retain the implementation evidence. The completed queue includes reproducible Playwright, blocking action-button lint, dead reference deletion, taxonomy-aware customer capabilities, removal of generic product mutation, stable REST error codes, canonical migration `017` rehearsals, dedicated durable abuse limits, frontend `strictNullChecks`, private lossless transcription with retry/discard, dynamic-SQL identifier allowlists, session invalidation, generic duplicate-RSVP handling, bounded provider uploads, OAuth write limiting/validation, exact CORS origins, and fixable production dependency upgrades.
+The changelog and Git retain the implementation evidence. The completed queue includes reproducible Playwright, blocking action-button lint, dead reference deletion, taxonomy-aware customer capabilities, removal of generic product mutation, stable REST error codes, canonical migration `017` rehearsals through `117`, dedicated durable abuse limits, frontend `strictNullChecks`, private lossless transcription with retry/discard and server expiry, dynamic-SQL identifier allowlists for updates and creates, join-code identity proof, browser/MCP session invalidation, generic duplicate-RSVP handling, bounded provider uploads, OAuth write limiting/validation, exact CORS origins, and fixable production dependency upgrades.
 
 Production migration evidence was read-only: `d1_migrations` contained both historical `017` filenames as rows 18 and 19 with the same timestamp; the inspection reported zero writes. Repository history plus the convergent `018` migration establishes `017_multi_account_patched.sql` as the single retained artifact.
 
