@@ -772,7 +772,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     role="tab"
                     aria-selected={active}
                     onClick={(event) => opt.id === 'import' ? openImportFrom(event.currentTarget) : handleCaptureOption(opt.id)}
-                    className={`shrink-0 whitespace-nowrap px-1 py-2 text-ui-13 uppercase tracking-[0.15em] border-b transition-colors ${
+                    className={`shrink-0 whitespace-nowrap px-1 py-2 text-ui-12 uppercase tracking-[0.13em] border-b transition-colors ${
                       active
                         ? 'text-tea-text border-b border-tea-gold'
                         : 'text-tea-text-sec hover:text-tea-text border-transparent'
