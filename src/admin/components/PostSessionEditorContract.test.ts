@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { loadPostSession, postSessionEditorState, postSessionSavePayload, savePostSession } from './PostSessionEditorContract';
+import { createPostSessionLoadCoordinator, loadPostSession, postSessionEditorState, postSessionSavePayload, savePostSession } from './PostSessionEditorContract';
 
 describe('PostSessionEditor contract', () => {
   it('reloads snake_case Worker data and legacy camelCase data', () => {
@@ -55,5 +55,27 @@ describe('PostSessionEditor contract', () => {
     expect(reopened).toEqual(original);
     await savePostSession(submit, 'event-1', reopened);
     expect(persisted).toEqual(postSessionSavePayload(original));
+  });
+
+  it('ignores delayed event A when the reused editor has already loaded event B', async () => {
+    let resolveA!: (value: Record<string, unknown>) => void;
+    const eventA = new Promise<Record<string, unknown>>(resolve => { resolveA = resolve; });
+    const get = vi.fn((eventId: string) => eventId === 'event-a'
+      ? eventA
+      : Promise.resolve({ event_id: 'event-b', gallery_images: ['b.jpg'], session_notes: 'B recap', host_notes: 'B host' }));
+    const resets: string[] = [];
+    let state = postSessionEditorState({});
+    const loader = createPostSessionLoadCoordinator(get, () => { resets.push('reset'); state = postSessionEditorState({}); }, loaded => { state = loaded; });
+
+    const loadingA = loader.load('event-a');
+    const loadingB = loader.load('event-b');
+    await loadingB;
+    resolveA({ event_id: 'event-a', gallery_images: ['a.jpg'], session_notes: 'A recap', host_notes: 'A host' });
+    await loadingA;
+
+    expect(resets).toEqual(['reset', 'reset']);
+    expect(state).toMatchObject({ gallery: ['b.jpg'], sessionNotes: 'B recap', hostNotes: 'B host' });
+    expect(postSessionSavePayload(state)).toMatchObject({ gallery_images: ['b.jpg'], session_notes: 'B recap', host_notes: 'B host' });
+    expect(JSON.stringify(postSessionSavePayload(state))).not.toContain('A recap');
   });
 });

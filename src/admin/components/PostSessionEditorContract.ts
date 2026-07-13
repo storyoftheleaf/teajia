@@ -76,3 +76,26 @@ export async function loadPostSession(
 ) {
   return get(eventId);
 }
+
+export function createPostSessionLoadCoordinator(
+  get: (eventId: string) => Promise<Record<string, unknown>>,
+  onReset: () => void,
+  onLoaded: (state: PostSessionEditorState) => void,
+  onError: () => void = () => undefined,
+) {
+  let generation = 0;
+  return {
+    async load(eventId: string) {
+      const current = ++generation;
+      onReset();
+      try {
+        const response = await loadPostSession(get, eventId);
+        if (current !== generation) return;
+        onLoaded(postSessionEditorState(response));
+      } catch {
+        if (current === generation) onError();
+      }
+    },
+    cancel() { generation += 1; },
+  };
+}
