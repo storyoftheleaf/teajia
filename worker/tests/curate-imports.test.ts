@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
 
 const JWT_SECRET = 'test-secret';
@@ -56,7 +56,15 @@ class ImportStatement {
         const guardedBatch = this.db.batches.get(String(this.values.at(-2)));
         if (!guardedBatch || guardedBatch.account_id !== this.values.at(-1) || ['completed', 'abandoned'].includes(String(guardedBatch.review_state))) return { success: true, meta: { changes: 0 } };
       }
-      const row = Object.fromEntries(columns.map((column, index) => [column, this.values[index]])) as Row;
+      const valueTokens = this.sql.match(/\bvalues\s*\(([^)]+)\)/i)?.[1].split(',').map(value => value.trim());
+      let bindIndex = 0;
+      const row = Object.fromEntries(columns.map((column, index) => {
+        const token = valueTokens?.[index];
+        if (!token || token === '?') return [column, this.values[bindIndex++]];
+        if (/^null$/i.test(token)) return [column, null];
+        const quoted = token.match(/^'([^']*)'$/); if (quoted) return [column, quoted[1]];
+        return [column, this.values[bindIndex++]];
+      })) as Row;
       if (table.has(String(row.id))) {
         if (sql.startsWith('insert or ignore')) return { success: true, meta: { changes: 0 } };
         throw new Error('UNIQUE constraint failed');
@@ -90,6 +98,10 @@ class ImportStatement {
         }
       }
       columns.forEach((column, index) => { row[column] = this.values[index]; });
+      if (sql.includes("analysis_state = 'analyzing'")) row.analysis_state = 'analyzing';
+      if (sql.includes("analysis_state = 'complete'")) { row.analysis_state = 'complete'; row.analysis_version = Number(row.analysis_version ?? 0) + 1; }
+      if (sql.includes("analysis_state = 'failed'")) row.analysis_state = 'failed';
+      if (sql.includes("review_state = 'reviewing'")) row.review_state = 'reviewing';
       if (sql.includes("set review_state = 'abandoned'")) row.review_state = 'abandoned';
       return { success: true, meta: { changes: 1 } };
     }
@@ -104,11 +116,15 @@ class ImportDb {
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
   compass = new Map<string, Row>();
+  groups = new Map<string, Row>();
+  customers = new Map<string, Row>();
   journeys = new Map<string, Row>();
   visits = new Map<string, Row>();
   tableFor(sql: string) {
     if (sql.includes('curate_import_sources')) return this.sources;
     if (sql.includes('curate_import_items')) return this.items;
+    if (sql.includes('curate_import_vendor_groups')) return this.groups;
+    if (sql.includes('from customers')) return this.customers;
     if (sql.includes('tea_compass_entries')) return this.compass;
     if (sql.includes('curate_import_batches')) return this.batches;
     if (sql.includes('curate_journeys')) return this.journeys;
@@ -117,14 +133,14 @@ class ImportDb {
   }
   prepare(sql: string) { return new ImportStatement(sql, this); }
   async batch(statements: ImportStatement[]) {
-    const snapshots = [this.batches, this.sources, this.items, this.compass, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
+    const snapshots = [this.batches, this.sources, this.items, this.compass, this.groups, this.customers, this.journeys, this.visits].map(table => new Map([...table].map(([id, row]) => [id, { ...row }])));
     try {
       const results = [];
       for (const statement of statements) results.push(await statement.run());
       return results;
     }
     catch (error) {
-      [this.batches, this.sources, this.items, this.compass, this.journeys, this.visits] = snapshots;
+      [this.batches, this.sources, this.items, this.compass, this.groups, this.customers, this.journeys, this.visits] = snapshots;
       throw error;
     }
   }
@@ -150,10 +166,80 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
   headers.set('Authorization', `Bearer ${await token(userId, accountId)}`);
   headers.set('X-Teajia-Account', accountId);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET, MEDIA_BUCKET: bucket } as any);
+  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET, MEDIA_BUCKET: bucket, ANTHROPIC_API_KEY: 'test-anthropic-key' } as any);
+}
+
+function itemProposal(sourceItemId: string) {
+  return {
+    sourceItemId, category: 'tea', originalName: '台灣茶', englishName: 'Taiwan Tea', packWeight: 100,
+    weightUnit: 'g', packCount: 1, priceAmount: 20, currency: 'USD', priceBasis: 'line_total',
+    confidence: {}, uncertainty: {}, evidenceRefs: ['source'],
+  };
 }
 
 describe('Curate import provenance API', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('analyzes account-scoped evidence into ordered vendor groups and normalized items', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Chen list', journey_id: null, source_kind: 'paste', pasted_text: '云南古树生普 500g ×2 ¥380',
+    }) });
+    const { batch } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: '1 tea found', language: 'zh', groups: [{ key: 'chen', proposedVendorName: 'Chen Family Tea', items: [{
+        sourceItemId: 'line-1', category: 'tea', originalName: '云南古树生普', englishName: 'Yunnan Ancient Tree Raw Pu’er',
+        packWeight: 500, weightUnit: 'g', packCount: 2, priceAmount: 380, currency: 'CNY', priceBasis: 'per_pack',
+        confidence: { originalName: 0.99 }, uncertainty: {}, evidenceRefs: ['source:0-15'],
+      }]}],
+    }) }] }), { status: 200 }));
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    expect(analyzed.status).toBe(200);
+    expect(await analyzed.json()).toMatchObject({
+      batch: { id: batch.id, analysis_state: 'complete', analysis_language: 'zh' },
+      groups: [{ position: 0, proposed_vendor_name: 'Chen Family Tea' }],
+      items: [{ parsed_data: { totalQuantityGrams: 1000, lineCost: 760, currency: 'CNY' } }],
+    });
+  });
+
+  it('sends only account vendor candidates and auto-resolves exact but not weak matches', async () => {
+    const db = new ImportDb();
+    db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Chen Family Tea', company: 'Chen', tags: '["vendor"]' });
+    db.customers.set('vendor-b', { id: 'vendor-b', account_id: 'account-b', name: 'Foreign Vendor', tags: '["vendor"]' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendors', pasted_text: 'two lists' }) });
+    const { batch } = await created.json() as any;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: '2 teas', language: 'en', groups: [
+        { key: 'exact', proposedVendorName: 'Chen Family Tea', items: [{ ...itemProposal('one'), sourceItemId: 'one' }] },
+        { key: 'weak', proposedVendorName: 'Chen Family', items: [{ ...itemProposal('two'), sourceItemId: 'two' }] },
+      ],
+    }) }] }), { status: 200 }));
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    expect(analyzed.status).toBe(200);
+    const body = await analyzed.json() as any;
+    expect(body.groups[0]).toMatchObject({ resolved_vendor_customer_id: 'vendor-a', vendor_confidence: 1 });
+    expect(body.groups[1]).toMatchObject({ resolved_vendor_customer_id: null, vendor_confidence: 0.72 });
+    const aiRequest = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    const prompt = aiRequest.messages[0].content.at(-1).text;
+    expect(prompt).toContain('vendor-a');
+    expect(prompt).not.toContain('vendor-b');
+  });
+
+  it('preserves manually corrected parsed fields across safe analysis reruns', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Rerun', pasted_text: '500g x2' }) });
+    const { batch } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Vendor', items: [itemProposal('stable-source')] }],
+    }) }] }), { status: 200 }));
+    const first = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    const reviewed = { ...first.items[0].parsed_data, englishName: 'My corrected inventory name' };
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${first.items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: reviewed }) })).status).toBe(200);
+    const rerun = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(rerun.items).toHaveLength(1);
+    expect(rerun.items[0].parsed_data.englishName).toBe('My corrected inventory name');
+    expect(rerun.items[0].manually_corrected_fields).toContain('parsed_data.englishName');
+  });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();
     const seeded = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Seed', idempotency_key: 'owner-seed', items: [{ name: 'Tea' }] }) });

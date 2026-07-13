@@ -1,12 +1,18 @@
 import { compassValuesFromImport } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
+import { buildImportAnalysisPrompt, decodeImportAnalysisProposal, normalizeImportProposal, type ImportMatchCandidates } from './curateImportAnalysis';
 
 export interface CurateImportContext {
   accountId: string;
   userId: string;
 }
 
-interface ImportEnv { DB: D1Database; MEDIA_BUCKET?: R2Bucket }
+interface ImportEnv {
+  DB: D1Database;
+  MEDIA_BUCKET?: R2Bucket;
+  ANTHROPIC_API_KEY?: string;
+  CURATE_IMPORT_ANALYSIS_MODEL?: string;
+}
 
 const SOURCE_KINDS = new Set(['wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste']);
 const ITEM_STATES = new Set(['pending', 'reviewing', 'accepted', 'merged', 'abandoned']);
@@ -92,9 +98,15 @@ function itemRow(row: Record<string, unknown>) {
     confidence: row.confidence == null ? null : Number(row.confidence),
     uncertainty: parseJson(row.uncertainty_json, {}),
     parsed_data: parseJson(row.parsed_data_json, {}),
+    manually_corrected_fields: parseJson(row.manually_corrected_fields_json, []),
     uncertainty_json: undefined,
     parsed_data_json: undefined,
+    manually_corrected_fields_json: undefined,
   };
+}
+
+function groupRow(row: Record<string, unknown>) {
+  return { ...row, vendor_confidence: row.vendor_confidence == null ? null : Number(row.vendor_confidence), uncertainty: parseJson(row.uncertainty_json, {}), uncertainty_json: undefined };
 }
 
 async function scopedBatch(env: ImportEnv, id: string, accountId: string) {
@@ -111,11 +123,149 @@ async function scopedItem(env: ImportEnv, batchId: string, itemId: string, accou
 async function fullBatch(env: ImportEnv, id: string, accountId: string) {
   const batch = await scopedBatch(env, id, accountId);
   if (!batch) return null;
-  const [sources, items] = await Promise.all([
+  const [sources, groups, items] = await Promise.all([
     env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(id, accountId).all<Record<string, unknown>>(),
+    env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE batch_id = ? AND account_id = ? ORDER BY position, created_at, id').bind(id, accountId).all<Record<string, unknown>>(),
     env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position, created_at, id').bind(id, accountId).all<Record<string, unknown>>(),
   ]);
-  return { batch, sources: sources.results.map(sourceRow), items: items.results.map(itemRow) };
+  return { batch, sources: sources.results.map(sourceRow), groups: groups.results.map(groupRow), items: items.results.map(itemRow) };
+}
+
+function normalizedName(value: string | null | undefined) {
+  return (value ?? '').normalize('NFKD').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+function vendorMatch(name: string | null, vendors: ImportMatchCandidates['vendors']) {
+  const target = normalizedName(name);
+  if (!target) return { id: null, confidence: null };
+  let best: { id: string | null; confidence: number | null } = { id: null, confidence: null };
+  for (const vendor of vendors) {
+    const names = [vendor.name, ...(vendor.aliases ?? [])].map(normalizedName).filter(Boolean);
+    const confidence = names.some(candidate => candidate === target) ? 1
+      : names.some(candidate => candidate.includes(target) || target.includes(candidate)) ? 0.72 : 0;
+    if (confidence > (best.confidence ?? 0)) best = { id: vendor.id, confidence };
+  }
+  return best;
+}
+
+function anthopicText(value: unknown): string {
+  const body = object(value);
+  const content = body && Array.isArray(body.content) ? body.content : [];
+  const textPart = content.find(part => object(part)?.type === 'text');
+  const textValue = object(textPart)?.text;
+  if (typeof textValue !== 'string') throw new Error('analysis_response_missing_text');
+  return textValue.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+}
+
+async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>[]) {
+  const evidenceSources: Array<{ id: string; kind: string; text?: string | null; mediaType?: string | null; objectKey?: string | null }> = [];
+  const media: Array<Record<string, unknown>> = [];
+  for (const source of sources) {
+    evidenceSources.push({ id: String(source.id), kind: String(source.kind), text: typeof source.pasted_text === 'string' ? source.pasted_text : null, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null });
+    if (typeof source.r2_object_key !== 'string' || !env.MEDIA_BUCKET) continue;
+    const stored = await env.MEDIA_BUCKET.get(source.r2_object_key);
+    if (!stored) continue;
+    const bytes = new Uint8Array(await new Response(stored.body).arrayBuffer());
+    let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
+    const metadata = parseJson(source.metadata_json, {}) as Record<string, unknown>;
+    const mediaType = typeof metadata.content_type === 'string' ? metadata.content_type : 'application/octet-stream';
+    if (mediaType.startsWith('image/')) media.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
+    else if (mediaType === 'application/pdf') media.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
+  }
+  return { evidence: { sources: evidenceSources }, media };
+}
+
+export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
+  if (!env.ANTHROPIC_API_KEY) return response({ error: 'Import analysis is not configured' }, 503);
+  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-4-20250514';
+  await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+    .bind(params.id, ctx.accountId).run();
+  try {
+    const [sourcesResult, vendorsResult, journeysResult, groupsResult, itemsResult] = await Promise.all([
+      env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, name, company, tags FROM customers WHERE account_id = ? ORDER BY name').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT id, name FROM curate_journeys WHERE account_id = ? ORDER BY created_at DESC').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? ORDER BY position').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
+    ]);
+    const vendors = vendorsResult.results.filter(row => {
+      const tags = parseJson(row.tags, []); return Array.isArray(tags) && tags.includes('vendor');
+    }).map(row => ({ id: String(row.id), name: String(row.name), aliases: typeof row.company === 'string' && row.company ? [row.company] : [] }));
+    const candidates: ImportMatchCandidates = {
+      vendors,
+      journeys: journeysResult.results.map(row => ({ id: String(row.id), name: String(row.name) })),
+    };
+    const { evidence, media } = await analysisEvidence(env, sourcesResult.results);
+    const ai = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model, max_tokens: 8192, temperature: 0, messages: [{ role: 'user', content: [...media, { type: 'text', text: buildImportAnalysisPrompt(evidence, candidates) }] }] }),
+    });
+    if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
+    const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
+    const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
+    const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
+    const keptGroupIds = new Set<string>();
+    const keptItemIds = new Set<string>();
+    const statements: D1PreparedStatement[] = [];
+    let position = 0;
+    for (let groupPosition = 0; groupPosition < normalized.groups.length; groupPosition++) {
+      const group = normalized.groups[groupPosition];
+      const existingGroup = existingGroups.get(group.key);
+      const groupId = existingGroup ? String(existingGroup.id) : crypto.randomUUID();
+      keptGroupIds.add(groupId);
+      const matched = vendorMatch(group.proposedVendorName, vendors);
+      const proposedCandidate = group.proposedVendorCustomerId && vendors.some(vendor => vendor.id === group.proposedVendorCustomerId) ? group.proposedVendorCustomerId : matched.id;
+      const confidence = group.vendorConfidence ?? matched.confidence;
+      const resolvedVendor = confidence != null && confidence >= 0.9 ? proposedCandidate : null;
+      if (existingGroup) statements.push(env.DB.prepare(
+        "UPDATE curate_import_vendor_groups SET position = ?, proposed_vendor_name = ?, resolved_vendor_customer_id = COALESCE(resolved_vendor_customer_id, ?), vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+      ).bind(groupPosition, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), groupId, ctx.accountId));
+      else statements.push(env.DB.prepare(
+        'INSERT INTO curate_import_vendor_groups (id, batch_id, account_id, position, group_key, proposed_vendor_name, resolved_vendor_customer_id, vendor_confidence, uncertainty_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(groupId, params.id, ctx.accountId, groupPosition, group.key, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {})));
+      for (const proposed of group.items) {
+        const existing = existingItems.get(proposed.sourceItemId);
+        const itemId = existing ? String(existing.id) : crypto.randomUUID();
+        keptItemIds.add(itemId);
+        const manual = existing ? parseJson(existing.manually_corrected_fields_json, []) : [];
+        const manualFields = Array.isArray(manual) ? manual.filter(value => typeof value === 'string') as string[] : [];
+        const previousParsed = existing ? parseJson(existing.parsed_data_json, {}) as Record<string, unknown> : {};
+        const parsed: Record<string, unknown> = { ...proposed };
+        for (const path of manualFields) if (path.startsWith('parsed_data.')) {
+          const key = path.slice('parsed_data.'.length); parsed[key] = previousParsed[key];
+        }
+        const name = manualFields.includes('name') ? existing?.name : (parsed.englishName ?? parsed.originalName ?? null);
+        const category = manualFields.includes('category') ? existing?.category : proposed.category;
+        const uncertainty = manualFields.includes('uncertainty') ? parseJson(existing?.uncertainty_json, {}) : proposed.uncertainty;
+        if (existing) statements.push(env.DB.prepare(
+          "UPDATE curate_import_items SET vendor_group_id = ?, position = ?, category = ?, name = ?, parsed_data_json = ?, confidence = ?, uncertainty_json = ?, review_state = 'reviewing', updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?"
+        ).bind(groupId, position++, category, name, JSON.stringify(parsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(uncertainty), itemId, params.id, ctx.accountId));
+        else statements.push(env.DB.prepare(
+          `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id, vendor_group_id, manually_corrected_fields_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reviewing', NULL, ?, ?, '[]')`
+        ).bind(itemId, params.id, null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(parsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId));
+      }
+    }
+    for (const row of itemsResult.results) if (!keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
+      statements.push(env.DB.prepare('DELETE FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ?').bind(row.id, params.id, ctx.accountId));
+    }
+    for (const row of groupsResult.results) if (!keptGroupIds.has(String(row.id))) {
+      statements.push(env.DB.prepare('DELETE FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(row.id, params.id, ctx.accountId));
+    }
+    statements.push(env.DB.prepare(
+      "UPDATE curate_import_batches SET review_state = 'reviewing', analysis_state = 'complete', analysis_overview = ?, analysis_language = ?, analysis_version = analysis_version + 1, analysis_model = ?, analysis_error = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
+    ).bind(normalized.overview, normalized.language, model, params.id, ctx.accountId));
+    await env.DB.batch(statements);
+    return response(await fullBatch(env, params.id, ctx.accountId));
+  } catch (error) {
+    const message = error instanceof Error ? error.message.slice(0, 500) : 'analysis_failed';
+    await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+      .bind(message, params.id, ctx.accountId).run();
+    return response({ error: 'Import analysis failed', code: message }, 502);
+  }
 }
 
 export async function createCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext) {
@@ -401,6 +551,10 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
   if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown update field' }, 400);
   const updates: string[] = [];
   const values: unknown[] = [];
+  const manualFields = new Set((() => {
+    const parsed = parseJson(current.manually_corrected_fields_json, []);
+    return Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') as string[] : [];
+  })());
   try {
     for (const [key, value] of Object.entries(body)) {
       if (key === 'source_id') {
@@ -418,6 +572,7 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
       } else if (key === 'category') {
         if (typeof value !== 'string' || !ITEM_CATEGORIES.has(value)) return response({ error: 'Invalid category' }, 400);
         updates.push('category = ?'); values.push(value);
+        manualFields.add('category');
       } else if (key === 'position') {
         const number = Number(value); if (!Number.isInteger(number) || number < 0) return response({ error: 'Invalid position' }, 400);
         updates.push('position = ?'); values.push(number);
@@ -426,12 +581,21 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
         updates.push('confidence = ?'); values.push(number);
       } else if (key === 'parsed_data' || key === 'uncertainty') {
         updates.push(`${key}_json = ?`); values.push(jsonField(value, {}));
+        if (key === 'parsed_data') {
+          const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
+          const after = object(value) ?? {};
+          for (const field of new Set([...Object.keys(before), ...Object.keys(after)])) {
+            if (JSON.stringify(before[field]) !== JSON.stringify(after[field])) manualFields.add(`parsed_data.${field}`);
+          }
+        } else if (JSON.stringify(parseJson(current.uncertainty_json, {})) !== JSON.stringify(value ?? {})) manualFields.add('uncertainty');
       } else {
         updates.push(`${key} = ?`); values.push(text(value, key === 'raw_text' ? 20_000 : 500));
+        if (key === 'name' || key === 'raw_text') manualFields.add(key);
       }
     }
   } catch { return response({ error: 'Invalid update' }, 400); }
   if (updates.length) {
+    updates.push('manually_corrected_fields_json = ?'); values.push(JSON.stringify([...manualFields].sort()));
     updates.push("updated_at = datetime('now')");
     const changed = await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`).bind(...values, params.itemId, ctx.accountId, params.id, ctx.accountId).run();
     if (!(changed.meta.changes ?? 0)) return terminalResponse();

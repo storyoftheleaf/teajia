@@ -438,6 +438,10 @@ CREATE TABLE IF NOT EXISTS inventory_receipt_lines (
     source_kind TEXT NOT NULL,
     source_ref TEXT,
     intake_batch_id TEXT REFERENCES batches(id) ON DELETE SET NULL,
+    original_cost_amount REAL,
+    original_cost_currency TEXT,
+    original_unit_cost REAL,
+    pack_count REAL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     CHECK (received_quantity + cancelled_quantity <= expected_quantity)
@@ -704,6 +708,14 @@ CREATE TABLE IF NOT EXISTS curate_import_batches (
   visit_id TEXT,
   client_idempotency_key TEXT,
   request_fingerprint TEXT,
+  analysis_state TEXT NOT NULL DEFAULT 'not_started' CHECK (analysis_state IN ('not_started','analyzing','complete','failed')),
+  analysis_overview TEXT,
+  analysis_language TEXT,
+  analysis_version INTEGER NOT NULL DEFAULT 0,
+  analysis_model TEXT,
+  analysis_error TEXT,
+  finalize_idempotency_key TEXT,
+  completed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -750,6 +762,8 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
   review_state TEXT NOT NULL DEFAULT 'pending' CHECK (review_state IN ('pending', 'reviewing', 'accepted', 'merged', 'abandoned')),
   compass_entry_id TEXT,
   reserved_compass_entry_id TEXT NOT NULL,
+  vendor_group_id TEXT REFERENCES curate_import_vendor_groups(id) ON DELETE SET NULL,
+  manually_corrected_fields_json TEXT NOT NULL DEFAULT '[]',
   reviewed_by_user_id TEXT,
   reviewed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -759,6 +773,34 @@ CREATE TABLE IF NOT EXISTS curate_import_items (
 );
 CREATE INDEX IF NOT EXISTS idx_curate_import_items_batch ON curate_import_items(account_id, batch_id, position);
 CREATE INDEX IF NOT EXISTS idx_curate_import_items_compass ON curate_import_items(account_id, compass_entry_id);
+
+CREATE TABLE IF NOT EXISTS curate_import_vendor_groups (
+  id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL REFERENCES curate_import_batches(id) ON DELETE CASCADE,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  position INTEGER NOT NULL CHECK (position >= 0),
+  group_key TEXT NOT NULL,
+  proposed_vendor_name TEXT,
+  resolved_vendor_customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL,
+  vendor_confidence REAL CHECK (vendor_confidence IS NULL OR (vendor_confidence >= 0 AND vendor_confidence <= 1)),
+  uncertainty_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (account_id, batch_id, group_key)
+);
+CREATE INDEX IF NOT EXISTS idx_curate_import_vendor_groups_batch ON curate_import_vendor_groups(account_id, batch_id, position);
+
+CREATE TABLE IF NOT EXISTS curate_import_receipts (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  batch_id TEXT NOT NULL REFERENCES curate_import_batches(id) ON DELETE CASCADE,
+  vendor_group_id TEXT NOT NULL REFERENCES curate_import_vendor_groups(id) ON DELETE RESTRICT,
+  inventory_receipt_id TEXT NOT NULL REFERENCES inventory_receipts(id) ON DELETE RESTRICT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (account_id, vendor_group_id),
+  UNIQUE (account_id, inventory_receipt_id)
+);
+CREATE INDEX IF NOT EXISTS idx_curate_import_receipts_batch ON curate_import_receipts(account_id, batch_id);
 
 CREATE TABLE IF NOT EXISTS compass_shares (
   id TEXT PRIMARY KEY,

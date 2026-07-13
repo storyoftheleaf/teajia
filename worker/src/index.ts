@@ -4,7 +4,7 @@ import {
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 import {
-  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, createCurateImport, getCurateImport,
+  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
   getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem, updateCurateImportItem, uploadCurateImportEvidence,
   type CurateImportContext,
 } from './curateImports';
@@ -24,6 +24,7 @@ interface Env {
   JWT_SECRET: string;
   VERIFICATION_CODE_SECRET?: string;
   ANTHROPIC_API_KEY: string;
+  CURATE_IMPORT_ANALYSIS_MODEL?: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
   // Optional — set SENDER_EMAIL + RESEND_API_KEY to enable transactional emails via Resend
@@ -20085,6 +20086,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/curate/imports', withCurateImportAccount(listIncompleteCurateImports)],
   ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
   ['POST', '/api/curate/imports/:id/abandon', withCurateImportAccount(abandonCurateImport, true)],
+  ['POST', '/api/curate/imports/:id/analyze', withCurateImportAccount(analyzeCurateImport, true)],
   ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem, true)],
   ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence, true)],
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
