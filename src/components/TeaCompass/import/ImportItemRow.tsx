@@ -14,7 +14,8 @@ const value = (input: unknown) => input == null ? '' : String(input);
 const packEquation = (item: CurateImportItem) => {
   const pack = item.pack_weight && item.weight_unit ? `${item.pack_weight}${item.weight_unit}` : null;
   const count = item.pack_count ? `×${item.pack_count}` : null;
-  const price = item.price_amount != null ? `${item.currency || ''} ${item.price_amount}${item.price_basis === 'per_pack' ? ' each' : ''}`.trim() : null;
+  const displayPrice = item.price_amount_exact ?? item.price_amount;
+  const price = displayPrice != null ? `${item.currency || ''} ${displayPrice}${item.price_basis === 'per_pack' ? ' each' : ''}`.trim() : null;
   return [pack && [pack, count].filter(Boolean).join(' '), price].filter(Boolean).join(' · ') || 'Quantity or cost needs review';
 };
 
@@ -26,7 +27,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
   const [draft, setDraft] = useState({
     english_name: value(item.english_name || item.name), original_name: value(item.original_name),
     pack_weight: value(item.pack_weight), weight_unit: value(item.weight_unit), pack_count: value(item.pack_count),
-    price_amount: value(item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
+    price_amount: value(item.price_amount_exact ?? item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
     tea_type: value(item.parsed_data?.type), classification: value(item.parsed_data?.classification), year: value(item.parsed_data?.year),
     form: value(item.parsed_data?.form), origin: value(item.parsed_data?.originRegion), description: value(item.parsed_data?.description),
     purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || (!identityBlocked && 'new')),

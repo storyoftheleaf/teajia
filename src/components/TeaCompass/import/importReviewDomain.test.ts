@@ -136,6 +136,13 @@ describe('review navigation and journey helpers', () => {
     });
   });
 
+  it('exposes exact prices for collapsed display when no safe numeric value exists', () => {
+    const normalized = normalizeImportDetail(detail({ items: [item({ price_amount: null, parsed_data: {
+      inventoryPurpose: 'working', priceAmount: null, priceAmountExact: '999999999999999.99', lineCost: null, lineCostExact: '999999999999999.99',
+    } })] }));
+    expect(normalized.items[0]).toMatchObject({ price_amount: null, price_amount_exact: '999999999999999.99' });
+  });
+
   it('uses category-aware Inventory action nouns', () => {
     expect(importItemNoun([{ category: 'tea' }], 1)).toBe('tea');
     expect(importItemNoun([{ category: 'teaware' }], 1)).toBe('teaware item');

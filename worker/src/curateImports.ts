@@ -156,6 +156,23 @@ function clearReviewedMaterialFields(value: Record<string, unknown>, reviewedFie
   return { ...value, confidence, uncertainty };
 }
 
+function canonicalReviewMoney(value: unknown): string | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const source = String(value).trim();
+  if (!/^\d+(?:\.\d+)?$/.test(source)) return null;
+  const [whole, fraction = ''] = source.split('.');
+  const canonicalWhole = whole.replace(/^0+(?=\d)/, '') || '0';
+  const canonicalFraction = fraction.replace(/0+$/, '');
+  return canonicalFraction ? `${canonicalWhole}.${canonicalFraction}` : canonicalWhole;
+}
+
+function materialReviewChanged(blocker: string, before: Record<string, unknown>, after: Record<string, unknown>) {
+  if (blocker === 'priceAmount') return canonicalReviewMoney(before.priceAmountExact ?? before.priceAmount) !== canonicalReviewMoney(after.priceAmountExact ?? after.priceAmount);
+  if (blocker === 'identity') return ['duplicateResolution', 'proposedCompassEntryId', 'proposedProductId']
+    .some(field => JSON.stringify(before[field]) !== JSON.stringify(after[field]));
+  return JSON.stringify(before[blocker]) !== JSON.stringify(after[blocker]);
+}
+
 function vendorMatch(name: string | null, vendors: ImportMatchCandidates['vendors']) {
   const target = normalizedName(name);
   if (!target) return { id: null, confidence: null };
@@ -177,6 +194,13 @@ function resolveIdentityCandidate(item: ReturnType<typeof renormalizeImportItemD
     if (candidate.category !== item.category) return { candidate, score: 0 };
     const candidateName = normalizedName(candidate.name);
     const candidateChinese = normalizedName(candidate.chineseName);
+    const contradicts = (left: unknown, right: unknown) => normalizedName(typeof left === 'string' || typeof left === 'number' ? String(left) : null)
+      && normalizedName(typeof right === 'string' || typeof right === 'number' ? String(right) : null)
+      && normalizedName(String(left)) !== normalizedName(String(right));
+    const contradiction = (item.year != null && candidate.year != null && item.year !== candidate.year)
+      || contradicts(item.originCountry, candidate.originCountry) || contradicts(item.originRegion, candidate.originRegion)
+      || contradicts(item.type, candidate.type) || contradicts(item.form, candidate.form)
+      || contradicts(item.classification, candidate.classification) || contradicts(vendorName, candidate.vendorName);
     let score = englishNames.includes(candidateName) && candidateName ? 0.32
       : englishNames.some(name => candidateName && (name.includes(candidateName) || candidateName.includes(name))) ? 0.16 : 0;
     if (chineseName && candidateChinese && chineseName === candidateChinese) score += 0.18;
@@ -187,12 +211,12 @@ function resolveIdentityCandidate(item: ReturnType<typeof renormalizeImportItemD
     if (normalizedName(item.form as string | null) && normalizedName(item.form as string | null) === normalizedName(candidate.form)) score += 0.07;
     if (normalizedName(item.classification as string | null) && normalizedName(item.classification as string | null) === normalizedName(candidate.classification)) score += 0.07;
     if (normalizedName(vendorName) && normalizedName(vendorName) === normalizedName(candidate.vendorName)) score += 0.08;
-    return { candidate, score };
+    return { candidate, score, contradiction: Boolean(contradiction) };
   }).sort((a, b) => b.score - a.score);
   const best = ranked[0];
   if (!best || best.score === 0) return { duplicateResolution: 'new' as const, proposedCompassEntryId: null, proposedProductId: null };
   const runnerUp = ranked[1]?.score ?? 0;
-  const matched = best.score >= 0.72 && best.score - runnerUp >= 0.15;
+  const matched = !best.contradiction && best.score >= 0.72 && best.score - runnerUp >= 0.15;
   return { duplicateResolution: matched ? 'matched' as const : 'unresolved' as const, proposedCompassEntryId: best.candidate.id, proposedProductId: matched ? best.candidate.productId ?? null : null };
 }
 
@@ -262,7 +286,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
   try {
     const [sourcesResult, vendorsResult, priorVendorEvidenceResult, journeysResult, identitiesResult, productsResult, groupsResult, itemsResult] = await Promise.all([
       env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
-      env.DB.prepare('SELECT id, name, company, tags FROM customers WHERE account_id = ? ORDER BY name LIMIT 200').bind(ctx.accountId).all<Record<string, unknown>>(),
+      env.DB.prepare("SELECT id, name, company, tags FROM customers WHERE account_id = ? AND EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) WHERE value = 'vendor') ORDER BY name LIMIT 200").bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT proposed_vendor_name, resolved_vendor_customer_id FROM curate_import_vendor_groups WHERE account_id = ? AND resolved_vendor_customer_id IS NOT NULL').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT id, name FROM curate_journeys WHERE account_id = ? ORDER BY created_at DESC').bind(ctx.accountId).all<Record<string, unknown>>(),
       env.DB.prepare('SELECT id, name, chinese_name, category, draft_product_id, year, origin_region, type, form, vendor_name FROM tea_compass_entries WHERE account_id = ? AND user_id = ? ORDER BY updated_at DESC LIMIT 200').bind(ctx.accountId, ctx.userId).all<Record<string, unknown>>(),
@@ -689,16 +713,16 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
       .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId),
     env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now')
       WHERE id = ? AND account_id = ?
-        AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ? AND name = ?)
+        AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ? AND lower(trim(name)) = lower(trim(?)))
         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
       .bind(vendorId, params.groupId, ctx.accountId, vendorId, ctx.accountId, name, params.id, ctx.accountId),
-    env.DB.prepare("UPDATE curate_import_vendor_groups SET vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-      .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, params.id, ctx.accountId)];
+    env.DB.prepare("UPDATE curate_import_vendor_groups SET vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+      .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId)];
   for (const item of groupItems.results) {
     const parsed = parseJson(item.parsed_data_json, {}) as Record<string, unknown>;
     const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(field => field !== 'vendor') : [];
-    statements.push(env.DB.prepare("UPDATE curate_import_items SET parsed_data_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-      .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.id, ctx.accountId));
+    statements.push(env.DB.prepare("UPDATE curate_import_items SET parsed_data_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_vendor_groups WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ?) AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+      .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId));
   }
   const results = await env.DB.batch(statements);
   const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
@@ -979,7 +1003,7 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
           if (!submitted) return response({ error: 'Invalid update' }, 400);
           const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
           const reviewed = new Set(explicitReviewedFields);
-          for (const blocker of new Set(Object.values(MATERIAL_REVIEW_BLOCKERS))) if (JSON.stringify(before[blocker]) !== JSON.stringify(submitted[blocker])) reviewed.add(blocker);
+          for (const blocker of new Set(Object.values(MATERIAL_REVIEW_BLOCKERS))) if (materialReviewChanged(blocker, before, submitted)) reviewed.add(blocker);
           normalizedInput = clearReviewedMaterialFields(submitted, reviewed);
         }
         const storedValue = key === 'parsed_data' ? renormalizeImportItemData(normalizedInput) : value;

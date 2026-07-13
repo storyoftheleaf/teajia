@@ -119,6 +119,7 @@ export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportD
       weight_unit: (parsed.weightUnit as CurateImportItem['weight_unit']) ?? item.weight_unit,
       pack_count: (parsed.packCount as number | null | undefined) ?? item.pack_count,
       price_amount: (parsed.priceAmount as number | null | undefined) ?? item.price_amount,
+      price_amount_exact: (parsed.priceAmountExact as string | null | undefined) ?? item.price_amount_exact,
       currency: (parsed.currency as string | null | undefined) ?? item.currency,
       price_basis: (parsed.priceBasis as CurateImportItem['price_basis']) ?? item.price_basis,
       total_quantity_grams: (parsed.totalQuantityGrams as number | null | undefined) ?? item.total_quantity_grams,

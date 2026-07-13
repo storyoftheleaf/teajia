@@ -41,8 +41,14 @@ class ImportStatement {
     if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
     if (sql.includes('account_id = ?') && sql.includes('user_id = ?')) rows = rows.filter(row => row.account_id === this.values[0] && row.user_id === this.values[1]);
     else if (sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values.at(-1));
+    if (sql.includes('json_each') && sql.includes("value = 'vendor'")) rows = rows.filter(row => {
+      const tags = typeof row.tags === 'string' ? JSON.parse(row.tags) : [];
+      return Array.isArray(tags) && tags.includes('vendor');
+    });
     if (sql.includes("review_state != 'completed'")) rows = rows.filter(row => row.review_state !== 'completed' && row.review_state !== 'abandoned');
     if (sql.includes('order by position')) rows.sort((a, b) => Number(a.position) - Number(b.position));
+    const limit = sql.match(/\blimit (\d+)/)?.[1];
+    if (limit) rows = rows.slice(0, Number(limit));
     return { results: rows.map(row => ({ ...row })) };
   }
   async run() {
@@ -124,7 +130,9 @@ class ImportStatement {
       if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
       if (table === this.db.groups && sql.includes('exists (select 1 from customers')) {
         const vendor = this.db.customers.get(String(this.values[3]));
-        if (!vendor || vendor.account_id !== this.values[4] || vendor.name !== this.values[5]) return { success: true, meta: { changes: 0 } };
+        const exactNameMismatch = sql.includes('and name = ?') && vendor?.name !== this.values[5];
+        const normalizedNameMismatch = sql.includes('lower(trim(name))') && String(vendor?.name).trim().toLowerCase() !== String(this.values[5]).trim().toLowerCase();
+        if (!vendor || vendor.account_id !== this.values[4] || exactNameMismatch || normalizedNameMismatch) return { success: true, meta: { changes: 0 } };
       }
       if (sql.includes("review_state not in ('completed', 'abandoned')")) {
         const guardedBatch = table === this.db.batches ? row : this.db.batches.get(String(this.values.at(-2)));
@@ -350,6 +358,19 @@ describe('Curate import provenance API', () => {
     expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-winner', proposedProductId: 'product-linked' });
   });
 
+  it('does not merge an exact-name candidate that contradicts material tea attributes', async () => {
+    const db = new ImportDb();
+    db.compass.set('entry-conflict', { id: 'entry-conflict', account_id: 'account-a', user_id: 'user-a', name: 'Spring Jade', chinese_name: '春玉', category: 'tea', type: 'White', form: 'cake', year: 2020, origin_region: 'Zhejiang', vendor_name: 'Lin Tea' });
+    db.products.set('product-conflict', { id: 'product-conflict', account_id: 'account-a', source_compass_entry_id: 'entry-conflict', given_name: 'Spring Jade', chinese_name: '春玉', type: 'White', form: 'cake', year: '2020', origin_country: 'China', origin_region: 'Zhejiang', vendor: 'Lin Tea', inventory_purpose: 'working' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Contradiction', pasted_text: 'Spring Jade' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'lin', proposedVendorName: 'Lin Tea', items: [{ ...itemProposal('conflict', sources[0].id), originalName: '春玉', englishName: 'Spring Jade', chineseName: '春玉', type: 'Green', form: 'loose', year: 2025, originCountry: 'China', originRegion: 'Zhejiang' }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'unresolved', proposedCompassEntryId: 'entry-conflict', proposedProductId: null });
+  });
+
   it('bounds locally-selected candidates and excludes vendor contact details from the provider prompt', async () => {
     const db = new ImportDb();
     for (let index = 0; index < 80; index++) {
@@ -485,6 +506,41 @@ describe('Curate import provenance API', () => {
     expect((await affirmed.json() as any).parsed_data.blockingFields).not.toContain('currency');
   });
 
+  it('does not clear price confidence for a semantically unchanged price during an unrelated edit', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Unrelated edit', pasted_text: 'Tea USD 21.5' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Vendor', items: [{ ...itemProposal('unchanged-money', sources[0].id), priceAmount: '21.5', confidence: { priceAmount: 0.5 } }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    const unchanged = buildImportCorrectionParsedData(analyzed.items[0].parsed_data, {
+      englishName: analyzed.items[0].parsed_data.englishName, originalName: analyzed.items[0].parsed_data.originalName,
+      type: analyzed.items[0].parsed_data.type, classification: analyzed.items[0].parsed_data.classification, year: analyzed.items[0].parsed_data.year,
+      form: analyzed.items[0].parsed_data.form, originRegion: analyzed.items[0].parsed_data.originRegion, description: 'Edited description',
+      inventoryPurpose: 'working', compassSelection: 'new', productSelection: 'new', acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1,
+      priceAmount: '21.5', currency: 'USD', priceBasis: 'line_total',
+    });
+    const response = await request(db, `/api/curate/imports/${batch.id}/items/${analyzed.items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: unchanged }) });
+    expect(response.status).toBe(200);
+    expect((await response.json() as any).parsed_data.blockingFields).toContain('priceAmount');
+  });
+
+  it('clears identity confidence when identity or holding selection is explicit', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Identity review', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const parsed = { ...itemProposal('identity-review'), inventoryPurpose: 'working', duplicateResolution: 'unresolved', proposedCompassEntryId: null, proposedProductId: null, confidence: { identity: 0.4 }, uncertainty: { identity: 'two possible records' }, blockingFields: ['identity', 'duplicateResolution'] };
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify(parsed);
+    const selected = { ...parsed, duplicateResolution: 'matched', proposedCompassEntryId: 'entry-a', proposedProductId: 'product-a' };
+    const response = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: selected }) });
+    expect(response.status).toBe(200);
+    const reviewed = await response.json() as any;
+    expect(reviewed.parsed_data.blockingFields).not.toContain('identity');
+    expect(reviewed.parsed_data.confidence).not.toHaveProperty('identity');
+    expect(reviewed.parsed_data.uncertainty).not.toHaveProperty('identity');
+  });
+
   it('treats explicit vendor selection as authoritative and clears vendor blockers for the group', async () => {
     const db = new ImportDb();
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Confirmed Vendor', tags: '["vendor"]' });
@@ -580,6 +636,29 @@ describe('Curate import provenance API', () => {
     expect(result.status).toBe(201);
     expect(db.groups.get('group-same')?.resolved_vendor_customer_id).toBe('curate-vendor-group-same');
     expect(db.customers).toHaveLength(1);
+  });
+
+  it('assigns a deterministic same-name vendor winner despite case differences', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Case winner' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-case', { id: 'group-case', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'case', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{"vendor":"case uncertain","origin":"Fujian"}' });
+    db.vendorWinnerBeforeInsert = { id: 'curate-vendor-group-case', account_id: 'account-a', name: 'case farm', tags: '["vendor"]' };
+    const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-case/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Case Farm' }) });
+    expect(result.status).toBe(201);
+    expect(db.groups.get('group-case')).toMatchObject({ resolved_vendor_customer_id: 'curate-vendor-group-case', uncertainty_json: '{"origin":"Fujian"}' });
+  });
+
+  it('bounds vendor candidates after vendor-tag filtering', async () => {
+    const db = new ImportDb();
+    for (let index = 0; index < 200; index++) db.customers.set(`buyer-${index}`, { id: `buyer-${index}`, account_id: 'account-a', name: `Buyer ${index}`, tags: '[]' });
+    db.customers.set('real-vendor', { id: 'real-vendor', account_id: 'account-a', name: 'Real Tea Vendor', tags: '["vendor"]' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendor bound', pasted_text: 'Real Tea Vendor' }) });
+    const { batch, sources } = await created.json() as any;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'Real Tea Vendor', items: [itemProposal('bound', sources[0].id)] }] }) }] }), { status: 200 }));
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).status).toBe(200);
+    const prompt = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).messages[0].content.at(-1).text;
+    expect(prompt).toContain('real-vendor');
   });
 
   it('never leaves an orphan vendor when finalization is requested after insert but before assignment', async () => {
