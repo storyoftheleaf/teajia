@@ -12,6 +12,9 @@ export type CurateImportSourceKind = 'wechat' | 'invoice' | 'vendor_list' | 'pho
 export interface CurateImportSource {
   id: string; batch_id: string; kind: CurateImportSourceKind;
   pasted_text: string | null; r2_object_key: string | null; metadata: Record<string, unknown>;
+  analysis_status?: 'pending' | 'analyzed' | 'reference_only' | 'failed';
+  analysis_error?: string | null;
+  reference_metadata?: { references?: string[] };
 }
 export interface CurateImportItem {
   id: string; batch_id: string; source_id: string | null; position: number; category: 'tea' | 'teaware';

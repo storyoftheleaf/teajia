@@ -10,6 +10,11 @@ ALTER TABLE curate_import_batches ADD COLUMN finalize_idempotency_key TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN finalize_result_json TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN completed_at TEXT;
 
+ALTER TABLE curate_import_sources ADD COLUMN analysis_status TEXT NOT NULL DEFAULT 'pending'
+  CHECK (analysis_status IN ('pending','analyzed','reference_only','failed'));
+ALTER TABLE curate_import_sources ADD COLUMN analysis_error TEXT;
+ALTER TABLE curate_import_sources ADD COLUMN reference_metadata_json TEXT NOT NULL DEFAULT '{}';
+
 CREATE TABLE curate_import_vendor_groups (
   id TEXT PRIMARY KEY,
   batch_id TEXT NOT NULL REFERENCES curate_import_batches(id) ON DELETE CASCADE,

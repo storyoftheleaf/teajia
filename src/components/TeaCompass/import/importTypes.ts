@@ -1,6 +1,16 @@
 import type { CurateImportDetail, CurateImportItem, CurateImportSourceKind } from '../../../lib/api';
 
-export type ImportEvidence = { id: string; file: File; kind: 'photo' | 'file' };
+export type ImportEvidenceStatus = 'ready' | 'uploading' | 'uploaded' | 'failed' | 'reselect';
+export type ImportEvidence = {
+  id: string;
+  file: File | null;
+  kind: 'photo' | 'file';
+  name: string;
+  size: number;
+  type: string;
+  status: ImportEvidenceStatus;
+  error: string | null;
+};
 export type ImportPhase = 'input' | 'parsing' | 'review' | 'error';
 
 export interface ImportDraft {

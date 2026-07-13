@@ -91,7 +91,13 @@ function parseJson(value: unknown, fallback: unknown) {
 }
 
 function sourceRow(row: Record<string, unknown>) {
-  return { ...row, metadata: parseJson(row.metadata_json, {}), metadata_json: undefined };
+  return {
+    ...row,
+    metadata: parseJson(row.metadata_json, {}),
+    reference_metadata: parseJson(row.reference_metadata_json, {}),
+    metadata_json: undefined,
+    reference_metadata_json: undefined,
+  };
 }
 
 function itemRow(row: Record<string, unknown>) {
@@ -240,9 +246,26 @@ function anthopicText(value: unknown): string {
   return textValue.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
 }
 
+type AnalysisEvidenceSource = {
+  id: string;
+  kind: string;
+  text?: string | null;
+  mediaType?: string | null;
+  objectKey?: string | null;
+  pageCount?: number | null;
+  analysisStatus: 'analyzed' | 'reference_only' | 'failed';
+};
+
+const ANALYSIS_SOURCE_MAX_BYTES = 5 * 1024 * 1024;
+
+async function markSourceAnalysis(env: ImportEnv, source: Record<string, unknown>, status: AnalysisEvidenceSource['analysisStatus'], error: string | null) {
+  await env.DB.prepare('UPDATE curate_import_sources SET analysis_status = ?, analysis_error = ? WHERE id = ? AND account_id = ?')
+    .bind(status, error, source.id, source.account_id).run();
+}
+
 async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>[]) {
   if (sources.length > 50) throw new Error('analysis_too_many_sources');
-  const evidenceSources: Array<{ id: string; kind: string; text?: string | null; mediaType?: string | null; objectKey?: string | null }> = [];
+  const evidenceSources: AnalysisEvidenceSource[] = [];
   const media: Array<Record<string, unknown>> = [];
   let totalText = 0;
   let totalMediaBytes = 0;
@@ -250,38 +273,79 @@ async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>
     let extractedText = typeof source.pasted_text === 'string' ? source.pasted_text : null;
     const metadata = parseJson(source.metadata_json, {}) as Record<string, unknown>;
     const mediaType = typeof metadata.content_type === 'string' ? metadata.content_type : 'application/octet-stream';
-    if (mediaType === 'application/msword' || mediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') throw new Error('analysis_unsupported_document');
-    if (typeof source.r2_object_key === 'string' && env.MEDIA_BUCKET) {
-      const stored = await env.MEDIA_BUCKET.get(source.r2_object_key);
-      if (stored) {
+    const base = { id: String(source.id), kind: String(source.kind), mediaType, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null, pageCount: typeof metadata.page_count === 'number' ? metadata.page_count : null };
+    if (mediaType === 'application/msword' || mediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      await markSourceAnalysis(env, source, 'reference_only', null);
+      evidenceSources.push({ ...base, text: null, analysisStatus: 'reference_only' });
+      continue;
+    }
+    let failure: string | null = null;
+    try {
+      if (typeof metadata.size === 'number' && metadata.size > ANALYSIS_SOURCE_MAX_BYTES) throw new Error('analysis_media_too_large');
+      if (typeof source.r2_object_key === 'string') {
+        const stored = env.MEDIA_BUCKET ? await env.MEDIA_BUCKET.get(source.r2_object_key) : null;
+        if (!stored) throw new Error('analysis_evidence_unavailable');
         const bytes = new Uint8Array(await new Response(stored.body).arrayBuffer());
-        if (bytes.byteLength > 5 * 1024 * 1024) throw new Error('analysis_media_too_large');
+        if (bytes.byteLength > ANALYSIS_SOURCE_MAX_BYTES) throw new Error('analysis_media_too_large');
         if (['text/plain', 'text/csv', 'application/csv', 'application/json'].includes(mediaType)) {
           extractedText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
           if (extractedText.length > 500_000) throw new Error('analysis_text_too_large');
         } else if (mediaType.startsWith('image/') || mediaType === 'application/pdf') {
-          if (media.length >= 20 || (totalMediaBytes += bytes.byteLength) > 20 * 1024 * 1024) throw new Error('analysis_media_total_too_large');
+          if (media.length >= 20 || totalMediaBytes + bytes.byteLength > 20 * 1024 * 1024) throw new Error('analysis_media_total_too_large');
+          totalMediaBytes += bytes.byteLength;
           let binary = ''; for (const byte of bytes) binary += String.fromCharCode(byte);
           if (mediaType.startsWith('image/')) media.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
           else media.push({ type: 'document', source: { type: 'base64', media_type: mediaType, data: btoa(binary) } });
-        }
+        } else throw new Error('analysis_unsupported_source');
       }
+      if (extractedText) {
+        if (totalText + extractedText.length > 1_000_000) throw new Error('analysis_text_total_too_large');
+        totalText += extractedText.length;
+      }
+      if (!extractedText?.trim() && typeof source.r2_object_key !== 'string') throw new Error('analysis_empty_source');
+    } catch (error) {
+      failure = error instanceof Error ? error.message : 'analysis_source_failed';
     }
-    if (extractedText) {
-      totalText += extractedText.length;
-      if (totalText > 1_000_000) throw new Error('analysis_text_total_too_large');
+    if (failure) {
+      await markSourceAnalysis(env, source, 'failed', failure);
+      evidenceSources.push({ ...base, text: null, analysisStatus: 'failed' });
+    } else {
+      await markSourceAnalysis(env, source, 'analyzed', null);
+      evidenceSources.push({ ...base, text: extractedText, analysisStatus: 'analyzed' });
     }
-    evidenceSources.push({ id: String(source.id), kind: String(source.kind), text: extractedText, mediaType, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null });
   }
-  if (!evidenceSources.some(source => Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
+  if (!evidenceSources.some(source => source.analysisStatus === 'analyzed' && Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
   return { evidence: { sources: evidenceSources }, media };
 }
 
-function validateEvidenceReferences(proposal: ReturnType<typeof normalizeImportProposal>, evidence: { sources: Array<{ id: string }> }) {
-  const ids = new Set(evidence.sources.map(source => source.id));
+function validateEvidenceReferences(proposal: ReturnType<typeof normalizeImportProposal>, evidence: { sources: AnalysisEvidenceSource[] }) {
+  const sources = new Map(evidence.sources.map(source => [source.id, source]));
   for (const item of proposal.groups.flatMap(group => group.items)) {
-    if (!item.evidenceRefs.length || item.evidenceRefs.some(ref => !ids.has(ref.split(':')[0]))) throw new Error('analysis_invalid_evidence_reference');
+    if (!item.evidenceRefs.length || item.evidenceRefs.some(ref => {
+      const separator = ref.indexOf(':');
+      const sourceId = separator < 0 ? ref : ref.slice(0, separator);
+      const locator = separator < 0 ? '' : ref.slice(separator + 1);
+      const source = sources.get(sourceId);
+      if (!source || source.analysisStatus !== 'analyzed') return true;
+      if (!locator) return false;
+      const range = locator.match(/^(\d+)-(\d+)$/);
+      if (range) return !source.text || Number(range[1]) < 0 || Number(range[2]) <= Number(range[1]) || Number(range[2]) > source.text.length;
+      const page = locator.match(/^page=(\d+)$/);
+      if (page) return !source.pageCount || Number(page[1]) < 1 || Number(page[1]) > source.pageCount;
+      const region = locator.match(/^region=(0(?:\.\d+)?|1(?:\.0+)?),(0(?:\.\d+)?|1(?:\.0+)?),(0(?:\.\d+)?|1(?:\.0+)?),(0(?:\.\d+)?|1(?:\.0+)?)$/);
+      return !region || Number(region[3]) <= 0 || Number(region[4]) <= 0 || Number(region[1]) + Number(region[3]) > 1 || Number(region[2]) + Number(region[4]) > 1;
+    })) throw new Error('analysis_invalid_evidence_reference');
   }
+}
+
+async function persistEvidenceReferences(env: ImportEnv, accountId: string, proposal: ReturnType<typeof normalizeImportProposal>) {
+  const references = new Map<string, string[]>();
+  for (const ref of proposal.groups.flatMap(group => group.items).flatMap(item => item.evidenceRefs)) {
+    const sourceId = ref.split(':')[0];
+    references.set(sourceId, [...(references.get(sourceId) ?? []), ref]);
+  }
+  await Promise.all([...references].map(([sourceId, refs]) => env.DB.prepare('UPDATE curate_import_sources SET reference_metadata_json = ? WHERE id = ? AND account_id = ?')
+    .bind(JSON.stringify({ references: [...new Set(refs)] }), sourceId, accountId).run()));
 }
 
 export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
@@ -330,6 +394,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
     validateEvidenceReferences(normalized, evidence);
+    await persistEvidenceReferences(env, ctx.accountId, normalized);
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
     normalized.groups = normalized.groups.map(group => {
       const existing = existingGroups.get(group.key);
@@ -811,7 +876,7 @@ const EVIDENCE_TYPES = new Set([
   'application/pdf', 'application/json', 'text/plain', 'text/csv', 'application/csv',
   'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
-const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
+const EVIDENCE_MAX_BYTES = ANALYSIS_SOURCE_MAX_BYTES;
 
 export async function uploadCurateImportEvidence(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const batch = await scopedBatch(env, params.id, ctx.accountId);
@@ -821,7 +886,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const contentType = (request.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
   if (!EVIDENCE_TYPES.has(contentType)) return response({ error: 'Unsupported evidence file type' }, 415);
   const declaredSize = Number(request.headers.get('Content-Length') || 0);
-  if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 10 MB or smaller' }, 413);
+  if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 5 MB or smaller' }, 413);
   const encodedFilename = request.headers.get('X-Filename') || '';
   const clientEvidenceId = request.headers.get('X-Client-Evidence-Id') || '';
   if (!/^[a-zA-Z0-9_-]{1,100}$/.test(clientEvidenceId)) return response({ error: 'Invalid client evidence identity' }, 400);
@@ -834,7 +899,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   if (!filename || filename.length > 500 || /[\u0000-\u001f\u007f]/.test(filename)) return response({ error: 'Invalid evidence filename' }, 400);
   const bytes = await request.arrayBuffer();
   if (!bytes.byteLength) return response({ error: 'Evidence file is empty' }, 400);
-  if (bytes.byteLength > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 10 MB or smaller' }, 413);
+  if (bytes.byteLength > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 5 MB or smaller' }, 413);
   const head = new Uint8Array(bytes.slice(0, 16));
   const ascii = new TextDecoder().decode(head);
   const matchesType = contentType === 'application/pdf' ? ascii.startsWith('%PDF-')
@@ -855,13 +920,14 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const key = `curate/${ctx.accountId}/${params.id}/${clientEvidenceId}-${digest}.${extensionByType[contentType]}`;
   const sourceId = crypto.randomUUID();
   const kind = contentType.startsWith('image/') ? 'photo' : contentType === 'application/pdf' ? 'invoice' : 'file';
+  const referenceOnly = contentType === 'application/msword' || contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
   const metadata = { filename, content_type: contentType, size: bytes.byteLength, extraction_status: 'not_available', client_evidence_id: clientEvidenceId };
   await env.MEDIA_BUCKET.put(key, bytes, { httpMetadata: { contentType }, customMetadata: { account_id: ctx.accountId, batch_id: params.id, source_id: sourceId } });
   try {
     const inserted = await env.DB.prepare(
-      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, client_evidence_id, metadata_json)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
-    ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, clientEvidenceId, JSON.stringify(metadata), params.id, ctx.accountId).run();
+      `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, client_evidence_id, metadata_json, analysis_status)
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
+    ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, clientEvidenceId, JSON.stringify(metadata), referenceOnly ? 'reference_only' : 'pending', params.id, ctx.accountId).run();
     if (!(inserted.meta.changes ?? 0)) {
       const winner = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND client_evidence_id = ?')
         .bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();

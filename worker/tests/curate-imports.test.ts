@@ -445,17 +445,36 @@ describe('Curate import provenance API', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('reports DOC and DOCX evidence as unsupported for AI analysis', async () => {
+  it('keeps DOC and DOCX reference-only while analyzing usable pasted and PDF evidence', async () => {
     for (const contentType of ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']) {
       const db = new ImportDb();
-      const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Word document' }) });
-      const { batch } = await created.json() as any;
-      db.sources.set('word', { id: 'word', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/file`, metadata_json: JSON.stringify({ content_type: contentType }) });
-      const bucket = { get: async () => ({ body: new Response('binary').body }) } as unknown as R2Bucket;
+      const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Mixed evidence', pasted_text: 'Shan Lin Xi' }) });
+      const { batch, sources } = await created.json() as any;
+      db.sources.set('word', { id: 'word', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/word`, analysis_status: 'pending', metadata_json: JSON.stringify({ content_type: contentType, filename: 'notes.docx' }) });
+      db.sources.set('pdf', { id: 'pdf', batch_id: batch.id, account_id: 'account-a', kind: 'invoice', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/pdf`, analysis_status: 'pending', metadata_json: JSON.stringify({ content_type: 'application/pdf', filename: 'invoice.pdf', page_count: 2 }) });
+      const bucket = { get: async (key: string) => ({ body: new Response(key.endsWith('/pdf') ? '%PDF-useful' : 'word-binary').body }) } as unknown as R2Bucket;
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+        overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('one', `${sources[0].id}:0-10`)] }],
+      }) }] }), { status: 200 }));
       const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket);
-      expect(analyzed.status).toBe(415);
-      expect(await analyzed.json()).toMatchObject({ code: 'analysis_unsupported_document' });
+      expect(analyzed.status).toBe(200);
+      expect(db.sources.get('word')).toMatchObject({ analysis_status: 'reference_only', analysis_error: null });
+      expect(db.sources.get('pdf')).toMatchObject({ analysis_status: 'analyzed', analysis_error: null });
     }
+  });
+
+  it('marks an oversized source failed without aborting other usable evidence', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Partial', pasted_text: 'Ali Shan' }) });
+    const { batch, sources } = await created.json() as any;
+    db.sources.set('oversized', { id: 'oversized', batch_id: batch.id, account_id: 'account-a', kind: 'invoice', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/big`, analysis_status: 'pending', metadata_json: JSON.stringify({ content_type: 'application/pdf', size: 6 * 1024 * 1024 }) });
+    const bucket = { get: async () => ({ body: new Response(new Uint8Array(6 * 1024 * 1024)).body }) } as unknown as R2Bucket;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('one', `${sources[0].id}:0-7`)] }],
+    }) }] }), { status: 200 }));
+
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket)).status).toBe(200);
+    expect(db.sources.get('oversized')).toMatchObject({ analysis_status: 'failed', analysis_error: 'analysis_media_too_large' });
   });
 
   it('caps aggregate evidence source count before calling the AI provider', async () => {
@@ -480,6 +499,30 @@ describe('Curate import provenance API', () => {
     const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
     expect(analyzed.status).toBe(502);
     expect(await analyzed.json()).toMatchObject({ code: 'analysis_invalid_evidence_reference' });
+  });
+
+  it('rejects invalid text ranges and PDF page references and persists valid structured references', async () => {
+    const cases = ['source:99-120', 'pdf:page=3'];
+    for (const evidenceRef of cases) {
+      const db = new ImportDb();
+      const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Refs', pasted_text: 'Short text' }) });
+      const { batch, sources } = await created.json() as any;
+      const sourceId = sources[0].id;
+      db.sources.set('pdf', { id: 'pdf', batch_id: batch.id, account_id: 'account-a', kind: 'invoice', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/pdf`, metadata_json: JSON.stringify({ content_type: 'application/pdf', page_count: 2 }) });
+      const bucket = { get: async () => ({ body: new Response('%PDF-two-pages').body }) } as unknown as R2Bucket;
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('one', evidenceRef === 'source:99-120' ? `${sourceId}:99-120` : evidenceRef)] }] }) }] }), { status: 200 }));
+      const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket);
+      expect(analyzed.status).toBe(502);
+      expect(await analyzed.json()).toMatchObject({ code: 'analysis_invalid_evidence_reference' });
+      vi.restoreAllMocks();
+    }
+
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Valid refs', pasted_text: 'Short text' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('one', `${sources[0].id}:0-5`)] }] }) }] }), { status: 200 }));
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).status).toBe(200);
+    expect(db.sources.get(sources[0].id)?.reference_metadata_json).toContain(`${sources[0].id}:0-5`);
   });
 
   it('preserves manually corrected parsed fields across safe analysis reruns', async () => {

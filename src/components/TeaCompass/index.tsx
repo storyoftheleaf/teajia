@@ -1663,6 +1663,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {importOpen && (
         <ImportPanel
           key={importPanelVersion}
+          accountId={activeAccountId || 'guest'}
           initialDetail={importDetail}
           onDetailChange={rememberImportDetail}
           onFinalized={openFinalizedImport}

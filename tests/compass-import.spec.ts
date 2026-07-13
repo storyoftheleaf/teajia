@@ -212,6 +212,7 @@ async function installImportApi(page: Page) {
     }
     if (method === 'POST' && path === '/api/curate/imports/batch-1/analyze') {
       if (batch) Object.assign(batch, { review_state: 'reviewing', analysis_state: 'completed', analysis_language: 'en', analysis_overview: `${items.length} items analyzed from saved evidence.` });
+      for (const source of sources) if (source.analysis_status !== 'reference_only') source.analysis_status = 'analyzed';
       groups.splice(0, groups.length, ...(items.length ? [{
         id: 'group-import', batch_id: 'batch-1', position: 0, proposed_vendor_name: 'Chen Family',
         resolved_vendor_customer_id: 'vendor-chen', resolved_vendor_name: 'Chen Family', confidence: 0.96, uncertainty: {},
@@ -238,7 +239,8 @@ async function installImportApi(page: Page) {
       const clientId = request.headers()['x-client-evidence-id'];
       const filename = decodeURIComponent(request.headers()['x-filename']);
       const contentType = request.headers()['content-type'];
-      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
+      const referenceOnly = /wordprocessingml|msword/.test(contentType);
+      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, analysis_status: referenceOnly ? 'reference_only' : 'pending', analysis_error: null, reference_metadata: {}, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
       sources.push(source);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
@@ -346,8 +348,56 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Parser unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
-    await expect(page.getByText('Saved · extraction not available · needs review').first()).toBeVisible();
+    await expect(page.getByText('Analyzed').first()).toBeVisible();
     await expect(page.getByAltText('Evidence preview: vendor-board.jpg')).toBeVisible();
+  });
+
+  test('removes, replaces, and clears attachments before upload', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles([
+      { name: 'first.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-first') },
+      { name: 'second.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-second') },
+    ]);
+    await page.getByRole('button', { name: 'Remove first.pdf' }).click();
+    await expect(page.getByText('first.pdf')).toHaveCount(0);
+    await page.getByLabel('Replace second.pdf').setInputFiles({ name: 'replacement.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-replacement') });
+    await expect(page.getByText('replacement.pdf')).toBeVisible();
+    await page.getByRole('button', { name: 'Clear all attachments' }).click();
+    await expect(page.getByLabel('Attached evidence')).toHaveCount(0);
+  });
+
+  test('recovers an account-scoped dirty draft and requires restored files to be reselected', async ({ page }) => {
+    await openCompass(page);
+    const trigger = page.getByRole('tab', { name: 'Import' }).first();
+    await trigger.click();
+    await page.getByLabel('Paste a list or invoice text').fill('Saved vendor conversation');
+    await page.getByLabel('Sourcing run', { exact: true }).selectOption('journey-taiwan');
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'saved.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-saved') });
+    await page.getByRole('button', { name: 'Close Import' }).click();
+    await expect(page.getByRole('alertdialog', { name: 'Keep import draft?' })).toBeVisible();
+    await page.getByRole('button', { name: 'Keep draft' }).click();
+
+    await trigger.click();
+    await expect(page.getByLabel('Paste a list or invoice text')).toHaveValue('Saved vendor conversation');
+    await expect(page.getByLabel('Sourcing run', { exact: true })).toHaveValue('journey-taiwan');
+    await expect(page.getByText('Reselect to upload')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start import' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Close Import' }).click();
+    await page.getByRole('button', { name: 'Discard draft' }).click();
+
+    await trigger.click();
+    await expect(page.getByLabel('Paste a list or invoice text')).toHaveValue('');
+    await expect(page.getByText('saved.pdf')).toHaveCount(0);
+  });
+
+  test('preflights the Worker 5 MB limit and labels DOCX as reference-only', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'too-large.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(6 * 1024 * 1024) });
+    await expect(page.getByText('Files must be 5 MB or smaller')).toBeVisible();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'vendor-notes.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('PK-docx') });
+    await expect(page.getByText('Reference only · not analyzed')).toBeVisible();
   });
 
   test('extracts selected JSON into reviewed rows and keeps the original evidence retrievable', async ({ page }) => {
@@ -386,7 +436,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('Saved · extraction not available · needs review')).toBeVisible();
+    await expect(page.getByText('Analyzed')).toBeVisible();
     await page.getByRole('button', { name: 'Review later' }).click();
     await page.reload();
     await expect(page.getByRole('button', { name: /invoice: 0 items, 0 reviewed, 0 remaining/ })).toBeVisible();
@@ -455,7 +505,7 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'same.evidence', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
     await expect(page.getByText('same.evidence')).toHaveCount(2);
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('Saved · extraction not available · needs review').first()).toBeVisible();
+    await expect(page.getByText('Analyzed').first()).toBeVisible();
   });
 
   test('keeps every row in a 30-item batch vertically reachable', async ({ page }) => {

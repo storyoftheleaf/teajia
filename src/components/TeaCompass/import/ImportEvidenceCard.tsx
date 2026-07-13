@@ -10,6 +10,10 @@ export const ImportEvidenceCard: React.FC<{ source: CurateImportSource }> = ({ s
   const objectUrlRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(isImage);
   const [error, setError] = useState<string | null>(null);
+  const status = source.analysis_status === 'analyzed' ? 'Analyzed'
+    : source.analysis_status === 'reference_only' ? 'Reference only · not analyzed'
+    : source.analysis_status === 'failed' ? `Analysis failed${source.analysis_error ? ` · ${source.analysis_error}` : ''}`
+    : 'Saved · awaiting analysis';
 
   const load = async () => {
     setBusy(true); setError(null);
@@ -35,7 +39,7 @@ export const ImportEvidenceCard: React.FC<{ source: CurateImportSource }> = ({ s
     <div className="rounded-md border border-tea-border bg-tea-surface p-3">
       {isImage && objectUrl && <img src={objectUrl} alt={`Evidence preview: ${filename}`} className="mb-2 max-h-48 w-full rounded-md object-contain" />}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0"><p className="truncate text-ui-13 text-tea-text">{filename}</p><p className="text-ui-11 text-tea-text-dim">Saved · extraction not available · needs review</p></div>
+        <div className="min-w-0"><p className="truncate text-ui-13 text-tea-text">{filename}</p><p className="text-ui-11 text-tea-text-dim">{status}</p></div>
         <button type="button" onClick={load} disabled={busy} aria-label={`${isImage ? 'View' : 'Open'} ${filename}`} className="tap-target inline-flex min-h-11 items-center gap-2 px-2 text-ui-12 text-tea-gold disabled:opacity-50">
           {busy ? <Loader2 size={15} className="animate-spin" /> : <ExternalLink size={15} />}{isImage ? 'View' : 'Open'}
         </button>
