@@ -544,9 +544,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     isEditMode,
   });
 
-  // Mobile uses a single full-width table with no horizontal swipe. Type is
-  // available inline beside the product name in edit mode; Type and Origin are
-  // trimmed from the narrow read table so the operational numbers remain clear.
+  // Every visible column keeps the established fixed width and type scale on
+  // every screen. Mobile clips the wide ledger rather than resizing its cells.
   const visibleCols = useMemo(
     () => allVisibleCols,
     [allVisibleCols],
@@ -635,15 +634,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return Math.max(MIN_MOBILE_COL_PX, base);
   };
 
-  const MOBILE_HIDDEN_COLS = new Set(['type', 'originRegion', 'vendor', 'form']);
-
-  // Mobile restores the pre-swipe narrow ledger: Product, Stock, Retail and
-  // Year fit the viewport; richer identity fields remain on desktop/details.
   const renderCols = useMemo(() => {
-    if (isMobile) {
-      const narrowCols = splitView ? splitViewCols : visibleCols;
-      return narrowCols.filter(col => !MOBILE_HIDDEN_COLS.has(col.key));
-    }
+    if (isMobile && splitView) return splitViewCols;
     if (unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
       const byKey = new Map<string, ColDef>(visibleCols.map(c => [c.key, c]));
       // Source (vendor) and Leaf (form) aren't in the desktop All view's columns,
@@ -680,17 +672,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [renderCols, inventoryMobileColWidths],
   );
-  // Desktop retains its dense fixed-width ledger. Mobile returns to a normal
-  // width:100% table so nothing can slide horizontally.
-  const mobileTableStyle = isMobile
-    ? { width: '100%', maxWidth: '100%', minWidth: 0 }
-    : unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
-  const mobileColWeight = (key: string) => key === 'productName' ? 3 : key === 'vendor' ? 1.7 : 1;
-  const mobileTableWeight = renderCols.reduce((sum, col) => sum + mobileColWeight(col.key), 0);
+  // Preserve the existing fixed ledger geometry. The mobile scroll host clips
+  // this width on the right instead of scaling columns or allowing x-scroll.
+  const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
   const renderColEl = (col: ColDef) =>
-    isMobile
-      ? <col key={col.key} style={{ width: `${(mobileColWeight(col.key) / mobileTableWeight) * 100}%` }} />
-      : unifiedLayout
+    unifiedLayout
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
       : <col key={col.key} className={col.defaultWidth} />;
 
@@ -1837,7 +1823,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       <div
         ref={scrollContainerRef}
         data-testid="inventory-scroll"
-        className="flex-1 overflow-auto custom-scrollbar bg-tea-bg pt-0 md:pt-3 pb-nav-gap transition-all duration-300"
+        className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-tea-bg pt-0 md:pt-3 pb-nav-gap transition-all duration-300"
         style={{ marginRight: contentRightMargin }}
         onScroll={(e) => {
           if (filterType === 'Pending') return;
@@ -2155,7 +2141,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''} ${isMobile ? 'inv-no-swipe' : ''}`} style={mobileTableStyle}>
+              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
@@ -2188,7 +2174,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''} ${isMobile ? 'inv-no-swipe' : ''}`} style={mobileTableStyle}>
+                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2255,7 +2241,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''} ${isMobile ? 'inv-no-swipe' : ''}`} style={mobileTableStyle}>
+            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
