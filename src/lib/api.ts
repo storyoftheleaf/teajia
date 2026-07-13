@@ -638,7 +638,7 @@ async function handleResponse(res: Response) {
   if (!res.ok) {
     // Detect account access denial — clear active account and prompt UI reload.
     // (401 refresh + retry is handled in authedFetch before this is called.)
-    if (res.status === 403 && data?.error === 'Account access denied') {
+    if (res.status === 403 && data?.code === 'account_access_denied') {
       try {
         useAppStore.getState().setActiveAccountId(null);
         useAppStore.getState().setActiveAccount(null);
@@ -705,12 +705,12 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
     // once, so we capture it before branching on the refresh result.
     let bodyData: any;
     try { bodyData = JSON.parse(await res.text()); } catch { /* ignore */ }
-    const reason = bodyData?.reason as string | undefined;
+    const reason = bodyData?.code as string | undefined;
 
     // 'no_token' means the server got no Authorization header — a client-side
     // bug, not an expired session. Refreshing would be pointless and could
     // falsely fire SESSION_EXPIRED.
-    if (reason !== 'no_token') {
+    if (reason !== 'auth_no_token') {
       const refreshResult = await ensureTokenRefreshed();
       if (refreshResult === 'refreshed') {
         // New token stored — retry ONCE with fresh auth headers.

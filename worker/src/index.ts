@@ -511,16 +511,16 @@ async function getActiveAccount(
 ): Promise<AccountCtx | { error: Response }> {
   const token = isAuthed(request);
   if (!token) {
-    return { error: json({ error: 'Unauthorized', reason: 'no_token' }, 401) };
+    return { error: restError(401, 'Unauthorized', 'auth_no_token') };
   }
   const status = await classifyToken(token, env.JWT_SECRET);
   if (status !== 'valid') {
     // 'expired' → client should attempt a silent refresh
     // 'invalid' → malformed or tampered; client should clear the session
-    return { error: json({ error: 'Unauthorized', reason: status }, 401) };
+    return { error: restError(401, 'Unauthorized', `auth_${status}`) };
   }
   const claims = parseToken(token);
-  if (!claims) return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
+  if (!claims) return { error: restError(401, 'Unauthorized', 'auth_invalid') };
 
   // Re-verify platform_role from the DB on every request rather than trusting
   // the embedded JWT claim. Without this, a user demoted from platform_admin
@@ -531,12 +531,12 @@ async function getActiveAccount(
     const userRow = await env.DB.prepare('SELECT platform_role FROM users WHERE id = ?').bind(claims.sub).first();
     if (!userRow) {
       // User row missing — treat as fully unauthorized (account deleted, etc.)
-      return { error: json({ error: 'Unauthorized', reason: 'invalid' }, 401) };
+      return { error: restError(401, 'Unauthorized', 'auth_invalid') };
     }
     dbPlatformRole = (userRow.platform_role as PlatformRole) ?? null;
   } catch {
     // Fail closed: if we cannot verify platform role, do not honor the claim.
-    return { error: json({ error: 'Auth check failed', reason: 'db_unavailable' }, 503) };
+    return { error: restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable', { dependency: 'users' }) };
   }
 
   // Platform owner and platform admin bypass account membership checks —
@@ -544,15 +544,15 @@ async function getActiveAccount(
   if (dbPlatformRole === 'platform_owner' || dbPlatformRole === 'platform_admin') {
     const headerAccount = request.headers.get('X-Teajia-Account');
     const requested = headerAccount || claims.active_account_id || null;
-    if (!requested) return { error: json({ error: 'Account access denied' }, 403) };
+    if (!requested) return { error: restError(403, 'Account access denied', 'account_access_denied') };
     try {
       const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
       if (acct && acct.status === 'suspended') {
-        return { error: json({ error: 'This account has been suspended. Reactivate via the platform admin panel.' }, 403) };
+        return { error: restError(403, 'This account has been suspended. Reactivate via the platform admin panel.', 'account_suspended') };
       }
     } catch {
       // Fail closed: if we cannot read the account status row, refuse.
-      return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+      return { error: restError(503, 'Account dependency unavailable', 'auth_dependency_unavailable', { dependency: 'accounts' }) };
     }
     return {
       accountId: requested,
@@ -568,7 +568,7 @@ async function getActiveAccount(
   const headerAccount = request.headers.get('X-Teajia-Account');
   const requested = headerAccount || claims.active_account_id || null;
   if (!requested) {
-    return { error: json({ error: 'Account access denied' }, 403) };
+    return { error: restError(403, 'Account access denied', 'account_access_denied') };
   }
 
   // Verify membership and resolve bundles. We always need bundles + kind from
@@ -600,21 +600,21 @@ async function getActiveAccount(
       };
     }
   } catch {
-    return { error: json({ error: 'Membership check failed', reason: 'db_unavailable' }, 503) };
+    return { error: restError(503, 'Membership dependency unavailable', 'auth_dependency_unavailable', { dependency: 'memberships' }) };
   }
 
   if (!membership) {
-    return { error: json({ error: 'Account access denied' }, 403) };
+    return { error: restError(403, 'Account access denied', 'account_access_denied') };
   }
 
   // Block access to suspended accounts (platform roles bypass this earlier).
   try {
     const acct = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?').bind(requested).first();
     if (acct && acct.status === 'suspended') {
-      return { error: json({ error: 'This account has been suspended' }, 403) };
+      return { error: restError(403, 'This account has been suspended', 'account_suspended') };
     }
   } catch {
-    return { error: json({ error: 'Account check failed', reason: 'db_unavailable' }, 503) };
+    return { error: restError(503, 'Account dependency unavailable', 'auth_dependency_unavailable', { dependency: 'accounts' }) };
   }
 
   const bundles = resolveBundles(membership.role, membership.kind, membership.permissions);
@@ -646,7 +646,7 @@ async function requireAccountRole(
   if ('error' in ctx) return ctx;
   // Platform roles already resolve as 'owner' from getActiveAccount — no extra check needed.
   if (!allowedRoles.includes(ctx.role)) {
-    return { error: json({ error: 'Insufficient role for this account' }, 403) };
+    return { error: restError(403, 'Insufficient role for this account', 'insufficient_role') };
   }
   return ctx;
 }
@@ -671,12 +671,7 @@ async function requireBundle(
   const ctx = await getActiveAccount(request, env);
   if ('error' in ctx) return ctx;
   if (ctx.bundles.includes(bundle)) return ctx;
-  return {
-    error: json({
-      error: 'Insufficient bundle for this action',
-      required_bundle: bundle,
-    }, 403)
-  };
+  return { error: restError(403, 'Insufficient bundle for this action', 'insufficient_bundle', { required_bundle: bundle }) };
 }
 
 // Some actions are reserved to the account's owner tier specifically (not just
@@ -692,7 +687,7 @@ async function requireOwnerTier(
   if (ctx.role === 'owner') return ctx;
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   console.warn(`[auth] requireOwnerTier denied: account=${ctx.accountId} role=${ctx.role} ip=${ip}`);
-  return { error: json({ error: 'Owner-tier access required for this action' }, 403) };
+  return { error: restError(403, 'Owner-tier access required for this action', 'owner_required') };
 }
 
 // Require an active (non-suspended) account. Used for mutating operations.
@@ -1138,6 +1133,15 @@ function json(data: unknown, status = 200): Response {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function restError(
+  status: number,
+  error: string,
+  code?: string,
+  details?: Record<string, unknown>,
+): Response {
+  return json({ error, ...(code ? { code } : {}), ...(details ? { details } : {}) }, status);
 }
 
 function validatedUpdateFields(
@@ -12570,7 +12574,7 @@ const handleSwitchAccount: Handler = async (request, env) => {
   const memberships = await loadMemberships(env, claims.sub);
   const isMember = memberships.some(m => m.account_id === body.account_id);
   const isPlatform = claims.platform_role === 'platform_owner' || claims.platform_role === 'platform_admin';
-  if (!isMember && !isPlatform) return json({ error: 'Account access denied' }, 403);
+  if (!isMember && !isPlatform) return restError(403, 'Account access denied', 'account_access_denied');
 
   // Platform owners switching into a non-member account: verify the target exists.
   if (!isMember && isPlatform) {
@@ -12603,7 +12607,7 @@ const handleGetAccount: Handler = async (request, env, params) => {
     const row = await env.DB.prepare(
       `SELECT role FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
     ).bind(ctx.userId, params.id).first();
-    if (!row) return json({ error: 'Account access denied' }, 403);
+    if (!row) return restError(403, 'Account access denied', 'account_access_denied');
   }
   const acc = await env.DB.prepare('SELECT * FROM accounts WHERE id = ?').bind(params.id).first() as any;
   if (!acc) return json({ error: 'Account not found' }, 404);
@@ -12626,7 +12630,7 @@ const ACCOUNT_UPDATE_FIELDS = new Set([
 const handleUpdateAccount: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as Record<string, any>;
   const validated = validatedUpdateFields(body, ACCOUNT_UPDATE_FIELDS);
@@ -12655,7 +12659,7 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
 const handleSetAccountOpenAIKey: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
   if (!env.KEY_ENCRYPTION_SECRET) {
     return json({ error: 'KEY_ENCRYPTION_SECRET not configured on server' }, 503);
   }
@@ -12677,7 +12681,7 @@ const handleSetAccountOpenAIKey: Handler = async (request, env, params) => {
 const handleClearAccountOpenAIKey: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
   await env.DB.prepare(
     `UPDATE accounts SET openai_api_key_encrypted = NULL, openai_api_key_last4 = NULL, updated_at = datetime('now') WHERE id = ?`
   ).bind(params.id).run();
@@ -12688,7 +12692,7 @@ const handleClearAccountOpenAIKey: Handler = async (request, env, params) => {
 const handleGetAccountFeatures: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const account = await env.DB.prepare(
     'SELECT trust_tier, is_platform_owner FROM accounts WHERE id = ?'
@@ -12708,7 +12712,7 @@ const handleGetAccountFeatures: Handler = async (request, env, params) => {
 const handleGetAccountMembers: Handler = async (request, env, params) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const { results } = await env.DB.prepare(
     `SELECT am.id, am.account_id, am.user_id, am.role, am.permissions, am.status, am.joined_at, am.invited_at,
@@ -12729,7 +12733,7 @@ const handleGetAccountMembers: Handler = async (request, env, params) => {
 const handleInviteAccountMember: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { email?: string; role?: string };
   const email = (body.email || '').trim().toLowerCase();
@@ -12783,7 +12787,7 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
 const handleUpdateAccountMember: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { role?: string; status?: string };
   const updates: string[] = [];
@@ -12813,7 +12817,7 @@ const handleUpdateAccountMember: Handler = async (request, env, params) => {
 const handleDeleteAccountMember: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   if (params.userId === ctx.userId) {
     return json({ error: 'Cannot remove yourself from an account' }, 400);
@@ -12830,7 +12834,7 @@ const handleDeleteAccountMember: Handler = async (request, env, params) => {
 const handleGetAccountAccess: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const account = await env.DB.prepare(
     'SELECT kind FROM accounts WHERE id = ?'
@@ -12875,7 +12879,7 @@ const handleGetAccountAccess: Handler = async (request, env, params) => {
 const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { bundles?: unknown };
   if (!Array.isArray(body.bundles)) return json({ error: 'bundles must be an array' }, 400);
@@ -12926,13 +12930,13 @@ const handleGetAccountActivity: Handler = async (request, env, params) => {
 
   // Membership check: if not platform-acting, must be a member of the requested account.
   if (!ctx.isPlatform && params.id !== ctx.accountId) {
-    return json({ error: 'Account access denied' }, 403);
+    return restError(403, 'Account access denied', 'account_access_denied');
   }
   if (!ctx.isPlatform) {
     const row = await env.DB.prepare(
       `SELECT 1 FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'`
     ).bind(ctx.userId, params.id).first();
-    if (!row) return json({ error: 'Account access denied' }, 403);
+    if (!row) return restError(403, 'Account access denied', 'account_access_denied');
   }
 
   const url = new URL(request.url);
@@ -13507,7 +13511,7 @@ const handlePlatformAuditLog: Handler = async (request, env) => {
 const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'members');
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as Record<string, boolean>;
 
@@ -13558,7 +13562,7 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
 const handleTransferOwnership: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
 
   const body = await request.json() as { new_owner_user_id: string };
   if (!body.new_owner_user_id) return json({ error: 'new_owner_user_id required' }, 400);
@@ -17666,7 +17670,7 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
 const handleSetCuratorFlag: Handler = async (request, env, params) => {
   const ctx = await requireAccountRole(request, env, ['owner']);
   if ('error' in ctx) return ctx.error;
-  if (params.id !== ctx.accountId) return json({ error: 'Account access denied' }, 403);
+  if (params.id !== ctx.accountId) return restError(403, 'Account access denied', 'account_access_denied');
   const member = await env.DB.prepare(
     `SELECT user_id FROM account_members WHERE account_id = ? AND user_id = ?`
   ).bind(params.id, params.userId).first();

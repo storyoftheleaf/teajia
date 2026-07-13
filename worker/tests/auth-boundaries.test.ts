@@ -17,6 +17,7 @@ type FakeDbOptions = {
   platformAccountId?: string | null;
   customerRelationshipKinds?: string[];
   customerExists?: boolean;
+  authDependencyFailure?: boolean;
 };
 
 function b64encodeUtf8(str: string): string {
@@ -66,7 +67,7 @@ class FakeStatement {
 
   async first() {
     const sql = normalizeSql(this.sql);
-    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists } = this.options;
+    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists, authDependencyFailure } = this.options;
 
     if (sql.includes('from mcp_tokens where token_hash = ?')) {
       return {
@@ -79,6 +80,7 @@ class FakeStatement {
       };
     }
     if (sql.includes('select platform_role from users where id = ?')) {
+      if (authDependencyFailure) throw new Error('D1 unavailable');
       return { platform_role: platformRole };
     }
     if (sql.includes('select id, email, platform_role from users where id = ?')) {
@@ -173,6 +175,7 @@ function makeEnv(options: FakeDbOptions = {}) {
     platformAccountId: options.platformAccountId ?? null,
     customerRelationshipKinds: options.customerRelationshipKinds ?? ['buyer'],
     customerExists: options.customerExists ?? true,
+    authDependencyFailure: options.authDependencyFailure ?? false,
   };
   return {
     JWT_SECRET,
@@ -193,6 +196,20 @@ async function authedRequest(
 }
 
 describe('worker authorization boundaries', () => {
+  it('uses stable REST codes for missing auth and auth dependency failures', async () => {
+    const missing = await worker.fetch(new Request('https://worker.test/api/customers'), makeEnv());
+    expect(missing.status).toBe(401);
+    expect(await missing.json()).toEqual({ error: 'Unauthorized', code: 'auth_no_token' });
+
+    const unavailable = await worker.fetch(
+      await authedRequest('/api/customers'),
+      makeEnv({ authDependencyFailure: true }),
+    );
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({
+      error: expect.any(String), code: 'auth_dependency_unavailable', details: { dependency: 'users' },
+    });
+  });
   it.each([
     ['account', '/api/accounts/acc_test', 'owner'],
     ['venue space', '/api/admin/venues/venue_test/spaces/space_test', 'gather'],
@@ -311,7 +328,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('publish');
+    expect(body.details?.required_bundle).toBe('publish');
   });
 
   it('allows admin article reads with the publish bundle', async () => {
@@ -341,7 +358,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('stock');
+    expect(body).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: 'stock' } });
   });
 
   it('rejects fields outside a product command domain', async () => {
@@ -377,7 +394,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('catalog');
+    expect(body.details?.required_bundle).toBe('catalog');
   });
 
   it('requires the sell bundle for buyer order history reads', async () => {
@@ -386,7 +403,7 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(403);
-    expect(body.required_bundle).toBe('sell');
+    expect(body.details?.required_bundle).toBe('sell');
   });
 
   it('rejects unknown contact relationship filters', async () => {
