@@ -714,6 +714,7 @@ CREATE TABLE IF NOT EXISTS curate_import_batches (
   analysis_version INTEGER NOT NULL DEFAULT 0,
   analysis_model TEXT,
   analysis_error TEXT,
+  analysis_attempt_token TEXT,
   finalize_idempotency_key TEXT,
   finalize_result_json TEXT,
   completed_at TEXT,

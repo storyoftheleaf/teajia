@@ -5,6 +5,7 @@ ALTER TABLE curate_import_batches ADD COLUMN analysis_language TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN analysis_version INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE curate_import_batches ADD COLUMN analysis_model TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN analysis_error TEXT;
+ALTER TABLE curate_import_batches ADD COLUMN analysis_attempt_token TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN finalize_idempotency_key TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN finalize_result_json TEXT;
 ALTER TABLE curate_import_batches ADD COLUMN completed_at TEXT;

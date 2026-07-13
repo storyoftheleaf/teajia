@@ -117,6 +117,9 @@ async function scopedBatch(env: ImportEnv, id: string, accountId: string) {
 
 function batchIsTerminal(batch: Record<string, unknown>) { return batch.review_state === 'completed' || batch.review_state === 'abandoned' || typeof batch.finalize_idempotency_key === 'string'; }
 function terminalResponse() { return response({ error: 'Completed or abandoned imports cannot be changed' }, 409); }
+function analysisSupersededResponse() { return response({ error: 'Import analysis was superseded by finalization', code: 'analysis_superseded' }, 409); }
+
+class AnalysisSupersededError extends Error {}
 
 async function scopedItem(env: ImportEnv, batchId: string, itemId: string, accountId: string) {
   return env.DB.prepare('SELECT * FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ?').bind(itemId, batchId, accountId).first<Record<string, unknown>>();
@@ -223,8 +226,10 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
   if (batchIsTerminal(batch)) return terminalResponse();
   if (!env.ANTHROPIC_API_KEY) return response({ error: 'Import analysis is not configured' }, 503);
   const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-4-20250514';
-  await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
-    .bind(params.id, ctx.accountId).run();
+  const attemptToken = crypto.randomUUID();
+  const started = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, analysis_attempt_token = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
+    .bind(attemptToken, params.id, ctx.accountId).run();
+  if (!(started.meta.changes ?? 0)) return analysisSupersededResponse();
   try {
     const [sourcesResult, vendorsResult, priorVendorEvidenceResult, journeysResult, identitiesResult, productsResult, groupsResult, itemsResult] = await Promise.all([
       env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
@@ -274,11 +279,13 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
       const confidence = group.vendorConfidence ?? matched.confidence;
       const resolvedVendor = confidence != null && confidence >= 0.9 ? proposedCandidate : null;
       if (existingGroup) statements.push(env.DB.prepare(
-        "UPDATE curate_import_vendor_groups SET position = ?, proposed_vendor_name = ?, resolved_vendor_customer_id = COALESCE(resolved_vendor_customer_id, ?), vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-      ).bind(groupPosition, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), groupId, ctx.accountId));
+        `UPDATE curate_import_vendor_groups SET position = ?, proposed_vendor_name = ?, resolved_vendor_customer_id = COALESCE(resolved_vendor_customer_id, ?), vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now')
+         WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
+      ).bind(groupPosition, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), groupId, ctx.accountId, attemptToken, params.id, ctx.accountId));
       else statements.push(env.DB.prepare(
-        'INSERT INTO curate_import_vendor_groups (id, batch_id, account_id, position, group_key, proposed_vendor_name, resolved_vendor_customer_id, vendor_confidence, uncertainty_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).bind(groupId, params.id, ctx.accountId, groupPosition, group.key, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {})));
+        `INSERT INTO curate_import_vendor_groups (id, batch_id, account_id, position, group_key, proposed_vendor_name, resolved_vendor_customer_id, vendor_confidence, uncertainty_json)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
+      ).bind(groupId, params.id, ctx.accountId, groupPosition, group.key, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), attemptToken, params.id, ctx.accountId));
       for (const proposed of group.items) {
         const existing = existingItems.get(proposed.sourceItemId);
         const itemId = existing ? String(existing.id) : crypto.randomUUID();
@@ -295,29 +302,33 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
         const category = manualFields.includes('category') ? existing?.category : proposed.category;
         const uncertainty = manualFields.includes('uncertainty') ? parseJson(existing?.uncertainty_json, {}) : proposed.uncertainty;
         if (existing) statements.push(env.DB.prepare(
-          "UPDATE curate_import_items SET vendor_group_id = ?, position = ?, category = ?, name = ?, parsed_data_json = ?, confidence = ?, uncertainty_json = ?, review_state = 'reviewing', updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?"
-        ).bind(groupId, position++, category, name, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(uncertainty), itemId, params.id, ctx.accountId));
+          `UPDATE curate_import_items SET vendor_group_id = ?, position = ?, category = ?, name = ?, parsed_data_json = ?, confidence = ?, uncertainty_json = ?, review_state = 'reviewing', updated_at = datetime('now')
+           WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
+        ).bind(groupId, position++, category, name, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(uncertainty), itemId, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
         else statements.push(env.DB.prepare(
           `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id, vendor_group_id, manually_corrected_fields_json)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reviewing', NULL, ?, ?, '[]')`
-        ).bind(itemId, params.id, null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId));
+           SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reviewing', NULL, ?, ?, '[]' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
+        ).bind(itemId, params.id, null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId, attemptToken, params.id, ctx.accountId));
       }
     }
     for (const row of itemsResult.results) if (!keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
-      statements.push(env.DB.prepare('DELETE FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ?').bind(row.id, params.id, ctx.accountId));
+      statements.push(env.DB.prepare("DELETE FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
     }
     for (const row of groupsResult.results) if (!keptGroupIds.has(String(row.id))) {
-      statements.push(env.DB.prepare('DELETE FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(row.id, params.id, ctx.accountId));
+      statements.push(env.DB.prepare("DELETE FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
     }
     statements.push(env.DB.prepare(
-      "UPDATE curate_import_batches SET review_state = 'reviewing', analysis_state = 'complete', analysis_overview = ?, analysis_language = ?, analysis_version = analysis_version + 1, analysis_model = ?, analysis_error = NULL, updated_at = datetime('now') WHERE id = ? AND account_id = ?"
-    ).bind(normalized.overview, normalized.language, model, params.id, ctx.accountId));
-    await env.DB.batch(statements);
+      "UPDATE curate_import_batches SET review_state = 'reviewing', analysis_state = 'complete', analysis_overview = ?, analysis_language = ?, analysis_version = analysis_version + 1, analysis_model = ?, analysis_error = NULL, analysis_attempt_token = NULL, updated_at = datetime('now') WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL"
+    ).bind(normalized.overview, normalized.language, model, attemptToken, params.id, ctx.accountId));
+    const persisted = await env.DB.batch(statements);
+    if (!(persisted.at(-1)?.meta.changes ?? 0)) throw new AnalysisSupersededError();
     return response(await fullBatch(env, params.id, ctx.accountId));
   } catch (error) {
+    if (error instanceof AnalysisSupersededError) return analysisSupersededResponse();
     const message = error instanceof Error ? error.message.slice(0, 500) : 'analysis_failed';
-    await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
-      .bind(message, params.id, ctx.accountId).run();
+    const failed = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, analysis_attempt_token = NULL, updated_at = datetime('now') WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
+      .bind(message, attemptToken, params.id, ctx.accountId).run();
+    if (!(failed.meta.changes ?? 0)) return analysisSupersededResponse();
     const status = message === 'analysis_no_usable_evidence' ? 422 : message === 'analysis_unsupported_document' ? 415 : 502;
     return response({ error: 'Import analysis failed', code: message }, status);
   }
@@ -380,7 +391,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         return { idempotencyKey: batch.finalize_idempotency_key, result: typeof batch.finalize_result_json === 'string' ? parseJson(batch.finalize_result_json, null) : null };
       },
       reserveFinalization: async (batchId, key) => {
-        const changed = await env.DB.prepare('UPDATE curate_import_batches SET finalize_idempotency_key = ? WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)')
+        const changed = await env.DB.prepare('UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL WHERE id = ? AND account_id = ? AND review_state NOT IN (\'completed\', \'abandoned\') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)')
           .bind(key, batchId, ctx.accountId, key).run();
         if (!(changed.meta.changes ?? 0)) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was already finalized with a different idempotency key');
       },
@@ -587,9 +598,9 @@ export async function updateCurateImportGroup(request: Request, env: ImportEnv, 
     const tags = parseJson(vendor?.tags, []);
     if (!vendor || !Array.isArray(tags) || !tags.includes('vendor')) return response({ error: 'Selected customer is not tagged as a vendor' }, 400);
   }
-  const changed = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
-    .bind(vendorId, params.groupId, ctx.accountId).run();
-  if (!(changed.meta.changes ?? 0)) return response({ error: 'Vendor group not found' }, 404);
+  const changed = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+    .bind(vendorId, params.groupId, ctx.accountId, params.id, ctx.accountId).run();
+  if (!(changed.meta.changes ?? 0)) return terminalResponse();
   const updated = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>();
   return response(groupRow(updated!));
 }
@@ -613,13 +624,16 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
     }
   }
   const vendorId = `curate-vendor-${params.groupId}`;
-  await env.DB.prepare("INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[\"vendor\"]', ?, 'curate_import')")
-    .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000)).run();
-  const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
-  if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
-  const assigned = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
-    .bind(vendorId, params.groupId, ctx.accountId).run();
-  if (!(assigned.meta.changes ?? 0)) return response({ error: 'Vendor group not found' }, 404);
+  const deterministicWinner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
+  if (deterministicWinner && normalizedName(String(deterministicWinner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
+  const results = await env.DB.batch([
+    env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', ?, 'curate_import' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
+      .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId),
+    env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+      .bind(vendorId, params.groupId, ctx.accountId, params.id, ctx.accountId),
+  ]);
+  if (!(results[1]?.meta.changes ?? 0)) return terminalResponse();
   const [vendor, updated] = await Promise.all([
     env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>(),
     env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>(),
@@ -638,8 +652,9 @@ export async function setCurateImportJourney(request: Request, env: ImportEnv, c
   if (journeyId === undefined) return response({ error: 'Invalid journey_id' }, 400);
   const contextError = await validateCurateContextPair(env, ctx.accountId, { journey_id: journeyId, visit_id: batch.visit_id as string | null });
   if (contextError) return response({ error: contextError }, 400);
-  await env.DB.prepare("UPDATE curate_import_batches SET journey_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned')")
+  const changed = await env.DB.prepare("UPDATE curate_import_batches SET journey_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
     .bind(journeyId, params.id, ctx.accountId).run();
+  if (!(changed.meta.changes ?? 0)) return terminalResponse();
   return response(await scopedBatch(env, params.id, ctx.accountId));
 }
 
@@ -660,7 +675,7 @@ export async function addCurateImportItem(request: Request, env: ImportEnv, ctx:
   const inserted = await env.DB.prepare(
     `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id)
      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS
-       (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+       (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
   ).bind(id, params.id, sourceId, ctx.accountId, ctx.userId, existing.results.length, category, name, null, '{}', null, '{}', 'pending', null, crypto.randomUUID(), params.id, ctx.accountId).run();
   if (!(inserted.meta.changes ?? 0)) return terminalResponse();
   await refreshImportBatchState(env, params.id, ctx.accountId);
@@ -672,8 +687,8 @@ export async function abandonCurateImport(_request: Request, env: ImportEnv, ctx
   if (!batch) return response({ error: 'Import not found' }, 404);
   if (batchIsTerminal(batch)) return terminalResponse();
   const results = await env.DB.batch([
-    env.DB.prepare("UPDATE curate_import_items SET review_state = 'abandoned', updated_at = datetime('now') WHERE batch_id = ? AND account_id = ? AND review_state IN ('pending', 'reviewing') AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))").bind(params.id, ctx.accountId, params.id, ctx.accountId),
-    env.DB.prepare("UPDATE curate_import_batches SET review_state = 'abandoned', updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned')").bind(params.id, ctx.accountId),
+    env.DB.prepare("UPDATE curate_import_items SET review_state = 'abandoned', updated_at = datetime('now') WHERE batch_id = ? AND account_id = ? AND review_state IN ('pending', 'reviewing') AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(params.id, ctx.accountId, params.id, ctx.accountId),
+    env.DB.prepare("UPDATE curate_import_batches SET review_state = 'abandoned', updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL").bind(params.id, ctx.accountId),
   ]);
   if (!(results[1]?.meta.changes ?? 0)) return terminalResponse();
   return response({ success: true, id: params.id, review_state: 'abandoned' });
@@ -691,7 +706,7 @@ async function refreshImportBatchState(env: ImportEnv, batchId: string, accountI
   const items = await env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ?').bind(batchId, accountId).all<Record<string, unknown>>();
   if (!items.results.length) return;
   const completed = items.results.every(item => ['accepted', 'merged', 'abandoned'].includes(String(item.review_state)));
-  await env.DB.prepare("UPDATE curate_import_batches SET review_state = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned')")
+  await env.DB.prepare("UPDATE curate_import_batches SET review_state = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
     .bind(completed ? 'completed' : 'reviewing', batchId, accountId).run();
 }
 
@@ -749,7 +764,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   try {
     const inserted = await env.DB.prepare(
       `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, client_evidence_id, metadata_json)
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
     ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, clientEvidenceId, JSON.stringify(metadata), params.id, ctx.accountId).run();
     if (!(inserted.meta.changes ?? 0)) { await env.MEDIA_BUCKET.delete(key); return terminalResponse(); }
   } catch (error) {
@@ -816,7 +831,7 @@ export async function addCurateImportSource(request: Request, env: ImportEnv, ct
     try {
       inserted = await env.DB.prepare(
         `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, metadata_json, client_idempotency_key, request_fingerprint)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
       ).bind(id, params.id, ctx.accountId, ctx.userId, kind, pastedText, objectKey, metadataJson, idempotencyKey, fingerprint, params.id, ctx.accountId).run();
     } catch (error) {
       const raced = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE account_id = ? AND client_idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first<Record<string, unknown>>();
@@ -895,7 +910,7 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
   if (updates.length) {
     updates.push('manually_corrected_fields_json = ?'); values.push(JSON.stringify([...manualFields].sort()));
     updates.push("updated_at = datetime('now')");
-    const changed = await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`).bind(...values, params.itemId, ctx.accountId, params.id, ctx.accountId).run();
+    const changed = await env.DB.prepare(`UPDATE curate_import_items SET ${updates.join(', ')} WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`).bind(...values, params.itemId, ctx.accountId, params.id, ctx.accountId).run();
     if (!(changed.meta.changes ?? 0)) return terminalResponse();
   }
   await refreshImportBatchState(env, params.id, ctx.accountId);
@@ -927,7 +942,7 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   const results = await env.DB.batch([
     env.DB.prepare(
       `INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, import_item_id, ${compassColumns.join(', ')})
-       SELECT ?, ?, ?, ?, ${compassColumns.map(() => '?').join(', ')} WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+       SELECT ?, ?, ?, ?, ${compassColumns.map(() => '?').join(', ')} WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
     ).bind(compassId, ctx.userId, ctx.accountId, params.itemId, ...compassColumns.map(column => compassValues[column as keyof typeof compassValues]), params.id, ctx.accountId),
     // The ownership EXISTS is part of the same D1 transaction as the insert.
     // A global id collision owned by anyone else makes this update a no-op.
@@ -935,7 +950,7 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
       `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
        WHERE id = ? AND account_id = ? AND compass_entry_id IS NULL
          AND EXISTS (SELECT 1 FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ? AND import_item_id = ?)
-         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
     ).bind('accepted', compassId, ctx.userId, params.itemId, ctx.accountId, compassId, ctx.userId, ctx.accountId, params.itemId, params.id, ctx.accountId),
   ]);
   const linkedChanges = results[1]?.meta.changes ?? 0;
@@ -961,7 +976,7 @@ export async function mergeCurateImportItem(request: Request, env: ImportEnv, ct
   if (item.compass_entry_id && item.compass_entry_id !== compassId) return response({ error: 'Import item is already linked' }, 409);
   const changed = await env.DB.prepare(
     `UPDATE curate_import_items SET review_state = ?, compass_entry_id = ?, reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now')
-     WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned'))`
+     WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
   ).bind('merged', compassId, ctx.userId, params.itemId, ctx.accountId, params.id, ctx.accountId).run();
   if (!(changed.meta.changes ?? 0)) return terminalResponse();
   await refreshImportBatchState(env, params.id, ctx.accountId);

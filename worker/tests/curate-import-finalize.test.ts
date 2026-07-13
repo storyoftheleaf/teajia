@@ -82,6 +82,20 @@ describe('Curate import finalization', () => {
     expect(result.items.map(item => item.productId)).toEqual(['product-existing', 'product-item-1', 'product-item-2', 'product-item-3']);
   });
 
+  it('owns the finalization reservation before creating any import result', async () => {
+    const { ctx } = harness();
+    const events: string[] = [];
+    const reserve = ctx.reserveFinalization;
+    const ensureIdentity = ctx.ensureIdentity;
+    ctx.reserveFinalization = async (...args) => { events.push('reserve'); await reserve(...args); };
+    ctx.ensureIdentity = async (...args) => { events.push('identity'); return ensureIdentity(...args); };
+
+    await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+
+    expect(events[0]).toBe('reserve');
+    expect(events).toContain('identity');
+  });
+
   it('works without a sourcing run and returns the stored result on retry', async () => {
     const importData = data(); importData.batch.journeyId = null;
     const { ctx, receipts, movements } = harness(importData);

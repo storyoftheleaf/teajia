@@ -50,14 +50,21 @@ class ImportStatement {
       const batch = this.db.batches.get(String(this.values.at(-2)));
       if (batch) batch.review_state = 'abandoned';
     }
+    if (sql.includes("review_state not in ('completed', 'abandoned')") && sql.includes('finalize_idempotency_key is null') && this.db.reserveNextGuardedWrite) {
+      this.db.reserveNextGuardedWrite = false;
+      const batch = this.db.batches.get(String(this.values.at(-2)));
+      if (batch) batch.finalize_idempotency_key = 'finish-key';
+    }
     const table = this.db.tableFor(sql);
     if (table && sql.startsWith('insert')) {
       const columns = this.sql.match(/\(([^)]+)\)\s*(?:values|select)/i)?.[1].split(',').map(value => value.trim()) ?? [];
       if (sql.includes("review_state not in ('completed', 'abandoned')")) {
         const guardedBatch = this.db.batches.get(String(this.values.at(-2)));
-        if (!guardedBatch || guardedBatch.account_id !== this.values.at(-1) || ['completed', 'abandoned'].includes(String(guardedBatch.review_state))) return { success: true, meta: { changes: 0 } };
+        if (!guardedBatch || guardedBatch.account_id !== this.values.at(-1) || ['completed', 'abandoned'].includes(String(guardedBatch.review_state)) || (sql.includes('finalize_idempotency_key is null') && guardedBatch.finalize_idempotency_key != null)) return { success: true, meta: { changes: 0 } };
+        if (sql.includes('where analysis_attempt_token = ?') && guardedBatch.analysis_attempt_token !== this.values.at(-3)) return { success: true, meta: { changes: 0 } };
       }
-      const valueTokens = this.sql.match(/\bvalues\s*\(([^)]+)\)/i)?.[1].split(',').map(value => value.trim());
+      const valueTokens = (this.sql.match(/\bvalues\s*\(([^)]+)\)/i)?.[1]
+        ?? this.sql.match(/\bselect\s+(.+?)\s+where\s+exists/is)?.[1])?.split(',').map(value => value.trim());
       let bindIndex = 0;
       const row = Object.fromEntries(columns.map((column, index) => {
         const token = valueTokens?.[index];
@@ -76,6 +83,8 @@ class ImportStatement {
     }
     if (table && sql.startsWith('update')) {
       if (table === this.db.items && sql.includes('where batch_id = ?') && sql.includes("review_state in ('pending', 'reviewing')")) {
+        const guardedBatch = this.db.batches.get(String(this.values.at(-2)));
+        if (!guardedBatch || ['completed', 'abandoned'].includes(String(guardedBatch.review_state)) || (sql.includes('finalize_idempotency_key is null') && guardedBatch.finalize_idempotency_key != null)) return { success: true, meta: { changes: 0 } };
         let changes = 0;
         for (const row of table.values()) if (row.batch_id === this.values[0] && row.account_id === this.values[1] && (row.review_state === 'pending' || row.review_state === 'reviewing')) { row.review_state = 'abandoned'; changes += 1; }
         return { success: true, meta: { changes } };
@@ -83,14 +92,17 @@ class ImportStatement {
       const verifiesCompassOwnership = sql.includes('exists (select 1 from tea_compass_entries');
       const set = this.sql.match(/set\s+(.+?)\s+where/is)?.[1] ?? '';
       const columns = [...set.matchAll(/(?:^|,)\s*([a-z_]+)\s*=\s*\?/gi)].map(match => match[1]);
-      const id = String(verifiesCompassOwnership ? this.values[3] : this.values[columns.length]);
-      const accountId = verifiesCompassOwnership ? this.values[4] : this.values[columns.length + 1];
+      const guardedAnalysisBatch = table === this.db.batches && sql.includes('where analysis_attempt_token = ?');
+      const id = String(verifiesCompassOwnership ? this.values[3] : guardedAnalysisBatch ? this.values.at(-2) : this.values[columns.length]);
+      const accountId = verifiesCompassOwnership ? this.values[4] : guardedAnalysisBatch ? this.values.at(-1) : this.values[columns.length + 1];
       const row = table.get(id);
       if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
       if (sql.includes("review_state not in ('completed', 'abandoned')")) {
         const guardedBatch = table === this.db.batches ? row : this.db.batches.get(String(this.values.at(-2)));
-        if (!guardedBatch || ['completed', 'abandoned'].includes(String(guardedBatch.review_state))) return { success: true, meta: { changes: 0 } };
+        if (!guardedBatch || ['completed', 'abandoned'].includes(String(guardedBatch.review_state)) || (sql.includes('finalize_idempotency_key is null') && guardedBatch.finalize_idempotency_key != null)) return { success: true, meta: { changes: 0 } };
+        if (sql.includes('where analysis_attempt_token = ?') && guardedBatch.analysis_attempt_token !== this.values.at(-3)) return { success: true, meta: { changes: 0 } };
       }
+      if (table === this.db.batches && sql.includes('where analysis_attempt_token = ?') && row.analysis_attempt_token !== this.values.at(-3)) return { success: true, meta: { changes: 0 } };
       if (sql.includes('compass_entry_id is null') && row.compass_entry_id != null) return { success: true, meta: { changes: 0 } };
       if (verifiesCompassOwnership) {
         const compass = this.db.compass.get(String(this.values[5]));
@@ -113,6 +125,7 @@ class ImportStatement {
 class ImportDb {
   role: 'owner' | 'staff' | 'viewer' = 'owner';
   terminalizeNextGuardedWrite = false;
+  reserveNextGuardedWrite = false;
   batches = new Map<string, Row>();
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
@@ -466,6 +479,104 @@ describe('Curate import provenance API', () => {
       expect(db.items.get(items[0].id)).toMatchObject({ name: 'Race', review_state: 'pending', compass_entry_id: null });
       expect(db.compass.size).toBe(0);
     }
+  });
+
+  it('does not let a late analysis overwrite a completed finalization', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Analysis race', pasted_text: 'Original evidence', items: [{ name: 'Original item' }],
+    }) });
+    const { batch, sources, items } = await created.json() as any;
+    db.groups.set('original-group', { id: 'original-group', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'original', proposed_vendor_name: 'Original vendor', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.items.get(items[0].id)!.vendor_group_id = 'original-group';
+
+    let releaseProvider!: (response: Response) => void;
+    const providerResponse = new Promise<Response>(resolve => { releaseProvider = resolve; });
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => providerResponse);
+    const analyzing = request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    await vi.waitFor(() => expect(db.batches.get(batch.id)?.analysis_state).toBe('analyzing'));
+
+    db.batches.set(batch.id, {
+      ...db.batches.get(batch.id)!, review_state: 'completed', finalize_idempotency_key: 'finish-key',
+      finalize_result_json: '{"receipts":[]}', completed_at: '2026-07-13T12:00:00.000Z', analysis_attempt_token: null,
+    });
+    const completedBatch = { ...db.batches.get(batch.id)! };
+    const originalGroups = [...db.groups.values()].map(row => ({ ...row }));
+    const originalItems = [...db.items.values()].map(row => ({ ...row }));
+    releaseProvider(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'Late rewrite', language: 'en', groups: [{ key: 'late', proposedVendorName: 'Late vendor', items: [itemProposal('late-item', sources[0].id)] }],
+    }) }] }), { status: 200 }));
+
+    const result = await analyzing;
+    expect(result.status).toBe(409);
+    expect(await result.json()).toMatchObject({ code: 'analysis_superseded' });
+    expect(db.batches.get(batch.id)).toMatchObject(completedBatch);
+    expect([...db.groups.values()]).toEqual(originalGroups);
+    expect([...db.items.values()]).toEqual(originalItems);
+  });
+
+  it('does not turn a superseded provider failure into a generic analysis failure', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Provider race', pasted_text: 'Evidence' }) });
+    const { batch } = await created.json() as any;
+    let releaseProvider!: (response: Response) => void;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(resolve => { releaseProvider = resolve; }));
+    const analyzing = request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    await vi.waitFor(() => expect(db.batches.get(batch.id)?.analysis_state).toBe('analyzing'));
+    db.batches.set(batch.id, { ...db.batches.get(batch.id)!, review_state: 'completed', finalize_idempotency_key: 'finish-key', analysis_attempt_token: null, analysis_error: null });
+    releaseProvider(new Response('provider unavailable', { status: 503 }));
+
+    const result = await analyzing;
+
+    expect(result.status).toBe(409);
+    expect(await result.json()).toMatchObject({ code: 'analysis_superseded' });
+    expect(db.batches.get(batch.id)).toMatchObject({ review_state: 'completed', analysis_error: null, finalize_idempotency_key: 'finish-key' });
+  });
+
+  it.each([
+    ['Journey assignment', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/journey`, { method: 'PUT', body: JSON.stringify({ journey_id: 'journey-a' }) })],
+    ['group update', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) })],
+    ['vendor creation', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Late Farm' }) })],
+    ['item update', (db: ImportDb, batchId: string, itemId: string) => request(db, `/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify({ name: 'Late item' }) })],
+    ['evidence upload', (db: ImportDb, batchId: string, _itemId: string, bucket: R2Bucket) => request(db, `/api/curate/imports/${batchId}/evidence`, { method: 'POST', body: 'late evidence', headers: { 'Content-Type': 'text/plain', 'X-Filename': 'late.txt', 'X-Client-Evidence-Id': 'late-file' } }, 'account-a', 'user-a', bucket)],
+    ['abandon', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/abandon`, { method: 'POST' })],
+    ['analysis', (db: ImportDb, batchId: string) => request(db, `/api/curate/imports/${batchId}/analyze`, { method: 'POST' })],
+  ])('rejects %s when finalization reserves after the stale read without changing review data', async (_label, mutate) => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Reservation race', pasted_text: 'Evidence', items: [{ name: 'Original item' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.journeys.set('journey-a', { id: 'journey-a', account_id: 'account-a', name: 'Journey' });
+    db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Vendor', tags: '["vendor"]' });
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'group', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    const storedObjects = new Map<string, ArrayBuffer>();
+    const bucket = {
+      put: async (key: string, value: ArrayBuffer) => { storedObjects.set(key, value); },
+      delete: async (key: string) => { storedObjects.delete(key); },
+      get: async () => null,
+    } as unknown as R2Bucket;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'Late', language: 'en', groups: [{ key: 'late', proposedVendorName: 'Late', items: [itemProposal('late', String([...db.sources.values()][0]?.id))] }],
+    }) }] }), { status: 200 }));
+    const before = {
+      journeyId: db.batches.get(batch.id)?.journey_id ?? null,
+      reviewState: db.batches.get(batch.id)?.review_state,
+      groups: [...db.groups.values()].map(row => ({ ...row })),
+      items: [...db.items.values()].map(row => ({ ...row })),
+      sources: [...db.sources.values()].map(row => ({ ...row })),
+      customers: [...db.customers.values()].map(row => ({ ...row })),
+    };
+    db.reserveNextGuardedWrite = true;
+
+    const result = await mutate(db, batch.id, items[0].id, bucket);
+
+    expect(result.status).toBe(409);
+    if (_label === 'analysis') expect(await result.json()).toMatchObject({ code: 'analysis_superseded' });
+    expect(db.batches.get(batch.id)).toMatchObject({ finalize_idempotency_key: 'finish-key', journey_id: before.journeyId, review_state: before.reviewState });
+    expect([...db.groups.values()]).toEqual(before.groups);
+    expect([...db.items.values()]).toEqual(before.items);
+    expect([...db.sources.values()]).toEqual(before.sources);
+    expect([...db.customers.values()]).toEqual(before.customers);
+    expect(storedObjects.size).toBe(0);
   });
 
   it('rejects acceptance until uncertainty is explicitly cleared on the server', async () => {
