@@ -20,7 +20,48 @@ test.describe('Curate responsive preservation', () => {
     await expect(methods.getByRole('tab', { name: 'Teaware', exact: true })).toBeVisible();
     await expect(methods.getByRole('tab', { name: 'Import', exact: true })).toBeVisible();
     await expect(methods.getByRole('tab', { name: 'Samples', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Sample list (0)' }).first()).toBeVisible();
+    const sampleList = page.getByRole('button', { name: 'Sample list (0)' }).first();
+    await expect(sampleList).toBeVisible();
+    expect(await sampleList.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe('nowrap');
+
+    const headerActions = [
+      page.getByRole('button', { name: 'Back', exact: true }),
+      page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Source', exact: true }),
+      page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Library', exact: true }),
+      page.getByRole('tablist', { name: 'Screen' }).getByRole('tab', { name: 'Ledger', exact: true }),
+      methods.getByRole('tab', { name: 'Tea', exact: true }),
+      methods.getByRole('tab', { name: 'Teaware', exact: true }),
+      methods.getByRole('tab', { name: 'Import', exact: true }),
+      sampleList,
+      page.getByRole('button', { name: 'Record voice note', exact: true }),
+    ];
+    const viewportWidth = page.viewportSize()!.width;
+    for (const action of headerActions) {
+      await expect(action).toBeVisible();
+      const box = await action.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
+    }
+  });
+
+  test('applies the Source input and touch contracts to Teaware', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    const source = page.locator('[data-curate-source]').filter({ visible: true });
+    await expect(source).toHaveCount(1);
+    for (const input of await source.locator('input:not([type="file"]), select, textarea').filter({ visible: true }).all()) {
+      expect(parseFloat(await input.evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
+    }
+    for (const action of [
+      source.getByRole('button', { name: 'Category', exact: true }),
+      source.getByRole('button', { name: 'Decrease quantity', exact: true }),
+      source.getByRole('button', { name: 'Increase quantity', exact: true }),
+      source.getByRole('button', { name: /Done, commit this entry/ }),
+    ]) {
+      const box = await action.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
   });
 
   test('capture content clears the mobile bottom navigation', async ({ page }, testInfo) => {

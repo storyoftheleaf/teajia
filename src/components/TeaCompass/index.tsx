@@ -653,11 +653,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             Always visible, one tap between screens. The capture-type
             sub-tabs (Tea / Teaware / Samples) moved to Row 2 so this row
             stays single-purpose: which screen am I on. */}
-        <div className="flex items-center gap-2 h-14 px-4 border-b border-tea-border" role="tablist" aria-label="Screen">
+        <div className="flex h-14 items-center gap-1 border-b border-tea-border px-2 sm:px-4" role="tablist" aria-label="Screen">
           <button
             type="button"
             onClick={handleHeaderBack}
-            className="tap-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+            className="tap-target flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
             aria-label="Back"
           >
             <ArrowLeft size={18} strokeWidth={1.75} />
@@ -666,7 +666,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           {/* Segmented control — the three Curate screens as peers. The
               active segment carries a gold-tinted fill + gold hairline so
               it reads at a glance; inactive segments stay quiet. */}
-          <div className="flex items-center gap-0.5 rounded-xl bg-tea-elevated/40 p-0.5 shrink-0">
+          <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-md bg-tea-elevated/40 p-0.5 lg:flex-none">
             {tabs.map((tab) => {
               const active = mode === tab.id;
               return (
@@ -676,7 +676,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   role="tab"
                   aria-selected={active}
                   onClick={() => handleSwitchMode(tab.id)}
-                  className={`inline-flex items-center gap-1 h-8 px-3 rounded-md text-ui-12 uppercase tracking-[0.13em] transition-colors ${
+                  className={`tap-target inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1 text-ui-12 uppercase tracking-[0.05em] transition-colors sm:tracking-[0.1em] lg:flex-none lg:px-3 ${
                     active
                       ? 'bg-tea-gold/10 text-tea-text border border-tea-gold/40'
                       : 'text-tea-text-sec hover:text-tea-text border border-transparent'
@@ -690,8 +690,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               );
             })}
           </div>
-
-          <div className="flex-1" />
 
           <SampleOrderAction
               open={sampleOrderOpen}
@@ -724,10 +722,42 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             </button>
           )}
 
-          {/* Right-side action cluster — voice capture button when on
-              the sourcing tab for privileged accounts. Lives in-panel
-              so the global nav's center can remain the home logo. */}
-          <div className="flex items-center self-center gap-1 shrink-0">
+        </div>
+
+        {/* Row 2 — capture method. Only relevant
+            inside Source, so it appears only there; Library and Ledger
+            collapse to the single Row 1, keeping their header clean. The
+            session draft strip is NOT here — it scrolls with the page
+            content below, so the header holds at two sticky rows. */}
+        {mode === 'sourcing' && (
+          <div className="flex min-h-11 items-center gap-1 border-b border-tea-border px-2 sm:px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4" role="tablist" aria-label="Capture method">
+              {/* The samples panel still renders for deep links
+                  (?tab=samples) until its migration lands. */}
+              {([
+                { id: 'tea', label: 'Tea' },
+                { id: 'teaware', label: 'Teaware' },
+                { id: 'import', label: 'Import' },
+              ] as const).map((opt) => {
+                const active = opt.id === 'import' ? importOpen : captureOption === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={(event) => opt.id === 'import' ? openImportFrom(event.currentTarget) : handleCaptureOption(opt.id)}
+                    className={`tap-target min-h-11 shrink-0 whitespace-nowrap px-1 py-2 text-ui-12 uppercase tracking-[0.13em] border-b transition-colors ${
+                      active
+                        ? 'text-tea-text border-b border-tea-gold'
+                        : 'text-tea-text-sec hover:text-tea-text border-transparent'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
             {showInlineMic && (
               <button
                 type="button"
@@ -743,7 +773,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   : voiceState === 'transcribing' ? 'Transcribing…'
                   : 'Record voice note'
                 }
-                className={`tap-target relative inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+                className={`tap-target relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors ${
                   voiceState === 'recording'
                     ? 'border border-tea-gold/60 bg-tea-gold/10 text-tea-gold'
                     : voiceState === 'error'
@@ -762,43 +792,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 )}
               </button>
             )}
-          </div>
-        </div>
-
-        {/* Row 2 — capture method. Only relevant
-            inside Source, so it appears only there; Library and Ledger
-            collapse to the single Row 1, keeping their header clean. The
-            session draft strip is NOT here — it scrolls with the page
-            content below, so the header holds at two sticky rows. */}
-        {mode === 'sourcing' && (
-          <div className="flex items-center min-h-10 px-4 border-b border-tea-border" role="tablist" aria-label="Capture method">
-            <div className="flex flex-wrap items-center gap-4">
-              {/* The samples panel still renders for deep links
-                  (?tab=samples) until its migration lands. */}
-              {([
-                { id: 'tea', label: 'Tea' },
-                { id: 'teaware', label: 'Teaware' },
-                { id: 'import', label: 'Import' },
-              ] as const).map((opt) => {
-                const active = opt.id === 'import' ? importOpen : captureOption === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={(event) => opt.id === 'import' ? openImportFrom(event.currentTarget) : handleCaptureOption(opt.id)}
-                    className={`shrink-0 whitespace-nowrap px-1 py-2 text-ui-12 uppercase tracking-[0.13em] border-b transition-colors ${
-                      active
-                        ? 'text-tea-text border-b border-tea-gold'
-                        : 'text-tea-text-sec hover:text-tea-text border-transparent'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         )}
       </div>
@@ -920,7 +913,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
                         onReturnToLibrary={fromLibrary ? () => { setFromLibrary(false); setMode('library'); } : undefined}
-                        actionRef={captureCardActionsRef}
                         onShare={hasToken() ? () => setShareModalOpen(true) : undefined}
                         purchasePickerId={`capture-purchase-picker-mobile-${activeEntryId}`}
                         openPurchasePicker={pendingLibraryAcquisitionId === activeEntryId}

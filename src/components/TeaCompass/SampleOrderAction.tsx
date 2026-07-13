@@ -71,7 +71,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         type="button"
         onClick={() => onOpenChange(true)}
         aria-label={`Sample list (${count})`}
-        className="tap-target inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
+        className="tap-target inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1 text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text lg:gap-1.5 lg:px-2"
       >
         <FlaskConical size={15} />
         <span>Sample list</span>

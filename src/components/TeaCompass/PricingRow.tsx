@@ -136,7 +136,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                 aria-label="Grams"
               />
               <span
-                className="self-center pr-1 pl-1 text-ui-11 text-tea-text-dim tabular-nums pointer-events-none select-none"
+                className="curate-support self-center pr-1 pl-1 text-tea-text-dim tabular-nums pointer-events-none select-none"
                 aria-hidden
               >
                 g
@@ -166,17 +166,17 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             <button
               type="button"
               onClick={() => unit.onQuantityChange(Math.max(1, unit.quantity - 1))}
-              className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-r border-r-tea-border"
+              className="curate-action tap-target w-11 self-stretch text-tea-text-sec hover:text-tea-text border-r border-r-tea-border"
               aria-label="Decrease quantity"
               data-curate-action
             >
               <Minus size={12} />
             </button>
-            <span className="text-tea-text text-base font-medium tabular-nums w-7 text-center self-center pl-1" aria-live="polite">
+            <span className="curate-primary w-8 self-center text-center font-medium tabular-nums text-tea-text" aria-live="polite">
               {unit.quantity}
             </span>
             <span
-              className="self-center pr-2 pl-0.5 text-tea-text-dim text-ui-11 tabular-nums pointer-events-none select-none"
+              className="curate-support self-center pr-2 pl-0.5 text-tea-text-dim tabular-nums pointer-events-none select-none"
               aria-hidden
             >
               ct
@@ -184,7 +184,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             <button
               type="button"
               onClick={() => unit.onQuantityChange(unit.quantity + 1)}
-              className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-l border-l-tea-border"
+              className="curate-action tap-target w-11 self-stretch text-tea-text-sec hover:text-tea-text border-l border-l-tea-border"
               aria-label="Increase quantity"
               data-curate-action
             >
@@ -234,7 +234,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                       : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text'
                   }`}
                 >
-                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{f}</span>
+                  <span className="curate-primary min-w-0 flex-1 truncate font-medium">{f}</span>
                   {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );

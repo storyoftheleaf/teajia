@@ -101,7 +101,7 @@ function RetailPricePreview({
   const fmtGram = (v: number) => v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toString();
 
   return (
-    <div className="flex items-center gap-2 px-1 text-ui-11 text-tea-text-dim">
+    <div className="curate-support flex items-center gap-2 px-1 text-tea-text-dim">
       <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
       <span className="text-tea-border">→</span>
       <span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
@@ -127,7 +127,7 @@ function RetailPricePreview({
                 setEditingShipping(false);
               }
             }}
-            className="w-16 bg-transparent text-tea-text text-ui-11 px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="curate-primary w-16 bg-transparent text-tea-text px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-tea-text-dim">/kg</span>
         </span>
@@ -710,11 +710,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
   // no bottom nav.
   const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
-  const sourceShellClass = 'rounded-md border border-tea-border bg-tea-accent-sub px-3 py-2';
+  const sourceShellClass = 'border-y border-tea-border px-1 py-2';
   const fieldClass = 'curate-field field-recessed px-3 py-2.5';
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
   const selectClass = (selected: boolean) =>
-    `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base border border-tea-border transition-colors ${
+    `curate-action tap-target min-h-11 shrink-0 rounded-md border border-tea-border px-3 ${
       selected
         ? 'text-tea-text font-medium bg-tea-accent-sub'
         : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
@@ -759,7 +759,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
           {entry.type && chipStyle && (
             <span
-              className="shrink-0 text-ui-11 font-medium px-2.5 py-1 rounded-md"
+              className="curate-support shrink-0 rounded-md px-2.5 py-1 font-medium"
               style={{ backgroundColor: chipStyle.bg, color: chipStyle.text }}
             >
               {entry.type}
@@ -1021,7 +1021,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
 
     return (
-      <div className={mobileShellClass}>
+      <div className={mobileShellClass} data-curate-source>
 
         {/* Context chips row + photo hero: same header treatment as the tea
             variant so both forms open with one rhythm. The vendor picker
@@ -1109,11 +1109,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   setMaterialPopoverOpen(true);
                   setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
                 }}
-                className={`inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors ${
+                className={`curate-action tap-target min-h-11 rounded-md border border-tea-border px-3 ${
                   entry.material
                     ? 'text-tea-text font-medium bg-tea-accent-sub'
                     : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
                 }`}
+                data-curate-action
               >
                 <span>{materialChipLabel}</span>
                 <ChevronDown size={13} />
@@ -1168,11 +1169,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={() => setEraSheetOpen(true)}
-              className={`shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-2.5 text-base border border-tea-border transition-colors tabular-nums ${
+              className={`curate-action tap-target min-h-11 shrink-0 rounded-md border border-tea-border px-3 tabular-nums ${
                 entry.era
                   ? 'text-tea-text font-medium bg-tea-accent-sub'
                   : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
               }`}
+              data-curate-action
             >
               <span>{entry.era || 'Era'}</span>
               <ChevronDown size={13} />
@@ -1248,7 +1250,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="shrink-0 px-3 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-11 font-medium disabled:opacity-40 transition-opacity"
+                    className="curate-action shrink-0 rounded-md bg-tea-gold px-3 font-medium text-tea-bg disabled:opacity-40"
                   >
                     Add
                   </button>
@@ -1360,7 +1362,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         {clay.label}
                       </div>
                       {clay.hint && (
-                        <div className="text-ui-11 text-tea-text-sec truncate mt-0.5">{clay.hint}</div>
+                        <div className="curate-support mt-0.5 truncate text-tea-text-sec">{clay.hint}</div>
                       )}
                     </div>
                   </button>
@@ -1411,8 +1413,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 type="button"
                 onClick={handleCommit}
                 disabled={!ready}
-                className="flex-1 py-2.5 rounded-md bg-tea-gold text-tea-bg font-sans font-medium tracking-[0.06em] text-base transition-colors hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="curate-action tap-target min-h-11 flex-1 rounded-md bg-tea-gold font-medium tracking-[0.04em] text-tea-bg hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Done, commit this entry"
+                data-curate-action
               >
                 Done
               </button>
@@ -1511,7 +1514,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         <button
           type="button"
           onClick={onReturnToLibrary}
-          className="flex items-center gap-1.5 text-ui-11 text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
+          className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors -mt-1 mb-1"
         >
           <ArrowLeft size={12} />
           Library
@@ -1589,10 +1592,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium uppercase tracking-[1.2px] transition-opacity hover:opacity-80"
+            className="curate-support tap-target mt-1 flex min-h-11 items-center gap-1 px-1 font-medium uppercase tracking-[1.2px] transition-opacity hover:opacity-80"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11 uppercase tracking-[1.2px]">+ Type</span>}
+            {entry.type || <span className="curate-support font-medium uppercase tracking-[1.2px] text-tea-text-sec">+ Type</span>}
             <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
@@ -1626,7 +1629,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     style={{ backgroundColor: chipStyle.text }}
                     aria-hidden
                   />
-                  <span className="min-w-0 flex-1 truncate font-sans text-base font-medium">{type}</span>
+                  <span className="curate-primary min-w-0 flex-1 truncate font-medium">{type}</span>
                   {selected && <Check size={13} className="shrink-0 text-tea-gold" />}
                 </button>
               );
@@ -1756,7 +1759,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             transition={{ duration: 0.2 }}
             className="overflow-hidden -mt-2"
           >
-            <p className="text-ui-11 text-tea-gold tracking-wide truncate">
+            <p className="curate-support text-tea-gold tracking-wide truncate">
               {extractionSummary}
             </p>
           </motion.div>
@@ -1786,8 +1789,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           {/* Quality 1–10 — same segment toggle as TastingSession */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="font-sans text-ui-11 text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
-              <span className="font-sans text-ui-11 text-tea-gold tabular-nums font-medium">
+              <span className="curate-support text-tea-text-sec" style={{ letterSpacing: '0.04em' }}>Quality</span>
+              <span className="curate-support text-tea-gold tabular-nums font-medium">
                 {entry.tasting.quality != null ? `${entry.tasting.quality}/10` : '/10'}
               </span>
             </div>
@@ -1819,7 +1822,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
           {/* Brewing metadata */}
           {(entry.tasting.brewingVessel || entry.tasting.brewingTemp || entry.tasting.brewingTime) && (
-            <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
+            <div className="curate-support flex items-center gap-2 flex-wrap text-tea-text-dim">
               {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
               {entry.tasting.brewingTemp && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTemp}°C</span></>}
               {entry.tasting.brewingTime && <><span className="text-tea-border">·</span><span>{entry.tasting.brewingTime}</span></>}
@@ -1853,7 +1856,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         <p className="curate-support text-tea-text-dim">Details detected in notes appear here for review.</p>
       </section>
 
-      <section className="curate-section space-y-2">
+      {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && <section className="curate-section space-y-2">
           <QuietEyebrow label="Storage" />
           <div className="flex gap-1.5 flex-wrap">
             {STORAGE_OPTIONS.map((st) => (
@@ -1868,7 +1871,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               </button>
             ))}
           </div>
-      </section>
+      </section>}
 
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
@@ -1880,7 +1883,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={onSwitchToLedger}
-            className="flex items-center gap-1.5 text-ui-11 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
           >
             <BookOpen size={11} />
             View purchases in ledger
@@ -1915,9 +1918,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         type="number"
                         value={buyingQty}
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-11 text-center text-tea-text text-base font-normal bg-transparent border-none outline-none"
+                        className="curate-primary w-11 text-center text-tea-text font-normal bg-transparent border-none outline-none"
                       />
-                      <span className="text-tea-text-dim text-ui-11">
+                      <span className="curate-support text-tea-text-dim">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}
                       </span>
                     </div>
@@ -1932,11 +1935,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     </button>
                   </div>
                   {totalPrice != null ? (
-                    <span className="text-tea-text-dim text-ui-11">
+                    <span className="curate-support text-tea-text-dim">
                       = <span className="text-tea-text-sec font-medium">{totalPrice.toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : entry.priceAmount && unitBased ? (
-                    <span className="text-tea-text-dim text-ui-11">
+                    <span className="curate-support text-tea-text-dim">
                       = <span className="text-tea-text-sec font-medium">{(buyingQty * entry.priceAmount).toFixed(0)}</span> {entry.priceCurrency || 'NT'}
                     </span>
                   ) : null}
@@ -1961,7 +1964,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 )}
 
                 <div className="grid grid-cols-2 gap-2">
-                  <label className="text-ui-10 text-tea-text-sec">
+                  <label className="curate-support text-tea-text-sec">
                     <span className="mb-1 block">Inventory purpose</span>
                     <select
                       aria-label="Inventory purpose"
@@ -1974,7 +1977,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       <option value="personal">Personal</option>
                     </select>
                   </label>
-                  <label className="text-ui-10 text-tea-text-sec">
+                  <label className="curate-support text-tea-text-sec">
                     <span className="mb-1 block">Acquisition</span>
                     <select
                       aria-label="Acquisition"
@@ -2010,7 +2013,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-xl bg-tea-gold/15 p-3 text-sm"
+              className="curate-support rounded-md bg-tea-gold/15 p-3"
             >
               <div className="flex items-center gap-2 text-tea-gold font-medium">
                 <Check size={16} />
