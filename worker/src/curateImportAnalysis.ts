@@ -10,7 +10,7 @@ export interface ImportAnalysisItem {
   packWeight: number | null;
   weightUnit: ImportWeightUnit | null;
   packCount: number | null;
-  priceAmount: number | null;
+  priceAmount: string | number | null;
   currency: string | null;
   priceBasis: ImportPriceBasis;
   confidence: Record<string, number>;
@@ -38,7 +38,8 @@ export interface ImportAnalysisProposal {
   groups: ImportAnalysisGroup[];
 }
 
-export interface NormalizedImportItem extends ImportAnalysisItem {
+export interface NormalizedImportItem extends Omit<ImportAnalysisItem, 'priceAmount'> {
+  priceAmount: number | null;
   totalQuantityGrams: number | null;
   totalUnits: number | null;
   lineCost: number | null;
@@ -89,6 +90,18 @@ function finiteNonNegative(value: unknown, field: string): number | null {
   if (value == null) return null;
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) throw new Error(`Invalid ${field}`);
   return value;
+}
+
+function authoritativeDecimal(value: unknown, field: string): string | null {
+  if (value == null) return null;
+  if (typeof value === 'number') {
+    if (!Number.isSafeInteger(value) || value < 0) throw new Error(`Invalid ${field}; non-integer prices must be decimal strings`);
+    return String(value);
+  }
+  if (typeof value !== 'string' || value.length > 100 || !/^\d+(?:\.\d+)?$/.test(value.trim())) throw new Error(`Invalid ${field}`);
+  const parsed = decimalParts(value);
+  if (parsed.coefficient < 0n) throw new Error(`Invalid ${field}`);
+  return decimalString(parsed.coefficient, parsed.scale);
 }
 
 function optionalText(value: unknown, field: string, max: number): string | null {
@@ -145,7 +158,7 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
     sourceItemId: string(input.sourceItemId, 'sourceItemId')!, category,
     originalName: string(input.originalName, 'originalName', true), englishName: string(input.englishName, 'englishName', true),
     packWeight: finiteNonNegative(input.packWeight, 'packWeight'), weightUnit,
-    packCount: finiteNonNegative(input.packCount, 'packCount'), priceAmount: finiteNonNegative(input.priceAmount, 'priceAmount'),
+    packCount: finiteNonNegative(input.packCount, 'packCount'), priceAmount: authoritativeDecimal(input.priceAmount, 'priceAmount'),
     currency: string(input.currency, 'currency', true), priceBasis,
     confidence: confidenceRecord(input.confidence), uncertainty: stringRecord(input.uncertainty, 'uncertainty'),
     evidenceRefs: [...input.evidenceRefs] as string[],
@@ -191,9 +204,7 @@ export function decodeImportAnalysisProposal(value: unknown): ImportAnalysisProp
 
 function rounded(value: number) { return Number(value.toFixed(8)); }
 
-const ISO_4217_CODES = new Set([
-  'AED','AUD','BRL','CAD','CHF','CLP','CNY','CZK','DKK','EUR','GBP','HKD','HUF','IDR','ILS','INR','JPY','KRW','LAK','MXN','MYR','NOK','NZD','PHP','PLN','RUB','SAR','SEK','SGD','THB','TRY','TWD','USD','VND','ZAR',
-]);
+const ISO_4217_CODES = new Set((Intl as typeof Intl & { supportedValuesOf(key: 'currency'): string[] }).supportedValuesOf('currency'));
 const MATERIAL_CONFIDENCE_BLOCKERS: Record<string, string> = {
   vendor: 'vendor', identity: 'identity', translation: 'englishName', englishName: 'englishName', nameTranslation: 'englishName',
   packWeight: 'packWeight', weightUnit: 'weightUnit', quantity: 'packCount', packCount: 'packCount', priceBasis: 'priceBasis',
@@ -226,10 +237,17 @@ function decimalString(coefficient: bigint, scale: number): string {
   return `${negative ? '-' : ''}${digits}`;
 }
 
-function exact(value: number | null): string | null {
+function exact(value: number | string | null): string | null {
   if (value == null) return null;
   const parsed = decimalParts(value);
   return decimalString(parsed.coefficient, parsed.scale);
+}
+
+function compatibleMoneyNumber(value: string | null): number | null {
+  if (value == null) return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || Math.abs(number) > Number.MAX_SAFE_INTEGER) return null;
+  return exact(number) === value ? number : null;
 }
 
 function multiplyExact(left: string, right: number): string {
@@ -274,12 +292,12 @@ export function normalizeImportProposal(value: ImportAnalysisProposal): Normaliz
         const priceAmountExact = exact(item.priceAmount);
         const lineCostExact = priceAmountExact == null || item.priceBasis === 'unknown' || item.packCount == null
           ? null : item.priceBasis === 'per_pack' ? multiplyExact(priceAmountExact, item.packCount) : priceAmountExact;
-        const lineCost = lineCostExact == null ? null : Number(lineCostExact);
+        const lineCost = compatibleMoneyNumber(lineCostExact);
         const physicalQuantity = totalQuantityGrams ?? totalUnits;
         const unitCostExact = lineCostExact != null && physicalQuantity != null && physicalQuantity > 0 ? divideExact(lineCostExact, physicalQuantity) : null;
         return {
-          ...item, currency, totalQuantityGrams, totalUnits, priceAmountExact, lineCostExact, unitCostExact, lineCost,
-          unitCost: unitCostExact == null ? null : rounded(Number(unitCostExact)),
+          ...item, priceAmount: compatibleMoneyNumber(priceAmountExact), currency, totalQuantityGrams, totalUnits, priceAmountExact, lineCostExact, unitCostExact, lineCost,
+          unitCost: unitCostExact == null ? null : compatibleMoneyNumber(unitCostExact) == null ? null : rounded(Number(unitCostExact)),
           blockingFields,
         };
       }),
@@ -291,6 +309,7 @@ export function renormalizeImportItemData(value: unknown): NormalizedImportItem 
   const input = record(value, 'parsed_data');
   rejectUnknown(input, [...IMPORT_ITEM_INPUT_FIELDS, ...IMPORT_ITEM_DERIVED_FIELDS], 'parsed_data');
   const raw = Object.fromEntries(IMPORT_ITEM_INPUT_FIELDS.filter(key => key in input).map(key => [key, input[key]]));
+  if ((raw.priceAmount == null || (typeof raw.priceAmount === 'number' && !Number.isSafeInteger(raw.priceAmount))) && typeof input.priceAmountExact === 'string') raw.priceAmount = input.priceAmountExact;
   return normalizeImportProposal(decodeImportAnalysisProposal({ overview: 'item', language: 'unknown', groups: [{ key: 'item', proposedVendorName: null, items: [raw] }] })).groups[0].items[0];
 }
 
@@ -306,7 +325,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
   };
   return [
     'Extract a Curate inventory import as strict JSON. Preserve original Chinese names and translate to concise English.',
-    'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. Use null or "unresolved" instead of guessing.',
+    'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. priceAmount must be a JSON decimal string copied from evidence, never a JSON number. Use null or "unresolved" instead of guessing.',
     'Never infer priceBasis when the evidence is ambiguous; return "unknown" and explain uncertainty.',
     'Do not calculate totals. Return evidence values only. Application code performs all arithmetic.',
     'Use only vendor and journey candidates supplied for this account. Never invent candidate ids.',

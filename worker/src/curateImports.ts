@@ -140,6 +140,22 @@ function normalizedName(value: string | null | undefined) {
   return (value ?? '').normalize('NFKD').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 
+const MATERIAL_REVIEW_BLOCKERS: Record<string, string> = {
+  vendor: 'vendor', identity: 'identity', translation: 'englishName', englishName: 'englishName', nameTranslation: 'englishName',
+  packWeight: 'packWeight', weightUnit: 'weightUnit', quantity: 'packCount', packCount: 'packCount', priceBasis: 'priceBasis',
+  price: 'priceAmount', priceAmount: 'priceAmount', currency: 'currency', acquisitionState: 'acquired', acquired: 'acquired',
+};
+
+function clearReviewedMaterialFields(value: Record<string, unknown>, reviewedFields: Set<string>) {
+  const confidence = object(value.confidence) ?? {};
+  const uncertainty = object(value.uncertainty) ?? {};
+  for (const [sourceField, blocker] of Object.entries(MATERIAL_REVIEW_BLOCKERS)) if (reviewedFields.has(blocker)) {
+    delete confidence[sourceField];
+    delete uncertainty[sourceField];
+  }
+  return { ...value, confidence, uncertainty };
+}
+
 function vendorMatch(name: string | null, vendors: ImportMatchCandidates['vendors']) {
   const target = normalizedName(name);
   if (!target) return { id: null, confidence: null };
@@ -279,8 +295,18 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
     validateEvidenceReferences(normalized, evidence);
-    normalized.groups = normalized.groups.map(group => ({ ...group, items: group.items.map(item => renormalizeImportItemData({ ...item, ...resolveIdentityCandidate(item, candidates.identities ?? [], group.proposedVendorName) })) }));
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
+    normalized.groups = normalized.groups.map(group => {
+      const existing = existingGroups.get(group.key);
+      const vendorConfirmed = typeof existing?.resolved_vendor_customer_id === 'string';
+      const uncertainty = { ...(group.uncertainty ?? {}) };
+      if (vendorConfirmed) delete uncertainty.vendor;
+      const vendorBlocked = !vendorConfirmed && ((group.vendorConfidence != null && group.vendorConfidence < 0.8) || 'vendor' in uncertainty);
+      return { ...group, vendorConfidence: vendorConfirmed ? 1 : group.vendorConfidence, uncertainty, items: group.items.map(item => {
+        const resolved = renormalizeImportItemData({ ...item, ...resolveIdentityCandidate(item, candidates.identities ?? [], group.proposedVendorName) });
+        return vendorBlocked ? { ...resolved, blockingFields: [...new Set([...resolved.blockingFields, 'vendor'])] } : resolved;
+      }) };
+    });
     const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
     const keptGroupIds = new Set<string>();
     const keptItemIds = new Set<string>();
@@ -498,8 +524,8 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         return { id: receiptId, groupId: group.id, lines: rows.results.map(row => ({
           id: String(row.id), receiptId, itemId: String(row.source_ref), productId: String(row.product_id),
           compassEntryId: lines.find(line => line.itemId === row.source_ref)?.compassEntryId ?? '', quantity: Number(row.expected_quantity), unit: row.unit as 'g' | 'unit',
-          purpose: row.intended_purpose as 'working' | 'sample' | 'personal', originalCostAmount: Number(row.original_cost_amount), originalCostCurrency: String(row.original_cost_currency),
-          originalUnitCost: Number(row.original_unit_cost), packCount: Number(row.pack_count), originalCostAmountExact: String(row.original_cost_amount_exact ?? row.original_cost_amount), originalUnitCostExact: String(row.original_unit_cost_exact ?? row.original_unit_cost),
+          purpose: row.intended_purpose as 'working' | 'sample' | 'personal', originalCostAmount: row.original_cost_amount == null ? null : Number(row.original_cost_amount), originalCostCurrency: String(row.original_cost_currency),
+          originalUnitCost: row.original_unit_cost == null ? null : Number(row.original_unit_cost), packCount: Number(row.pack_count), originalCostAmountExact: String(row.original_cost_amount_exact ?? row.original_cost_amount), originalUnitCostExact: String(row.original_unit_cost_exact ?? row.original_unit_cost),
         })) };
       },
       receiveLine,
@@ -617,9 +643,19 @@ export async function updateCurateImportGroup(request: Request, env: ImportEnv, 
     const tags = parseJson(vendor?.tags, []);
     if (!vendor || !Array.isArray(tags) || !tags.includes('vendor')) return response({ error: 'Selected customer is not tagged as a vendor' }, 400);
   }
-  const changed = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-    .bind(vendorId, params.groupId, ctx.accountId, params.id, ctx.accountId).run();
-  if (!(changed.meta.changes ?? 0)) return terminalResponse();
+  const groupUncertainty = parseJson(group.uncertainty_json, {}) as Record<string, unknown>;
+  delete groupUncertainty.vendor;
+  const groupItems = await env.DB.prepare('SELECT * FROM curate_import_items WHERE vendor_group_id = ? AND account_id = ?').bind(params.groupId, ctx.accountId).all<Record<string, unknown>>();
+  const statements: D1PreparedStatement[] = [env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+    .bind(vendorId, vendorId == null ? null : 1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, params.id, ctx.accountId)];
+  if (vendorId != null) for (const item of groupItems.results) {
+    const parsed = parseJson(item.parsed_data_json, {}) as Record<string, unknown>;
+    const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(field => field !== 'vendor') : [];
+    statements.push(env.DB.prepare("UPDATE curate_import_items SET parsed_data_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+      .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.id, ctx.accountId));
+  }
+  const results = await env.DB.batch(statements);
+  if (!(results[0]?.meta.changes ?? 0)) return terminalResponse();
   const updated = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>();
   return response(groupRow(updated!));
 }
@@ -649,7 +685,7 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
     env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', ?, 'curate_import' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
       .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId),
-    env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now')
+    env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, vendor_confidence = 1, uncertainty_json = '{}', updated_at = datetime('now')
       WHERE id = ? AND account_id = ?
         AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ? AND name = ?)
         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
@@ -887,16 +923,23 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
   if (!current) return response({ error: 'Import item not found' }, 404);
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
-  const allowed = new Set(['source_id', 'position', 'category', 'name', 'raw_text', 'parsed_data', 'confidence', 'uncertainty', 'review_state']);
+  const allowed = new Set(['source_id', 'position', 'category', 'name', 'raw_text', 'parsed_data', 'reviewed_fields', 'confidence', 'uncertainty', 'review_state']);
   if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown update field' }, 400);
   const updates: string[] = [];
   const values: unknown[] = [];
+  const explicitReviewedFields = new Set<string>();
+  if (body.reviewed_fields != null) {
+    if (!Array.isArray(body.reviewed_fields) || body.reviewed_fields.some(field => typeof field !== 'string' || !Object.values(MATERIAL_REVIEW_BLOCKERS).includes(field))) return response({ error: 'Invalid reviewed_fields' }, 400);
+    for (const field of body.reviewed_fields) explicitReviewedFields.add(field as string);
+  }
+  if (explicitReviewedFields.size && !('parsed_data' in body)) body.parsed_data = parseJson(current.parsed_data_json, {});
   const manualFields = new Set((() => {
     const parsed = parseJson(current.manually_corrected_fields_json, []);
     return Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') as string[] : [];
   })());
   try {
     for (const [key, value] of Object.entries(body)) {
+      if (key === 'reviewed_fields') continue;
       if (key === 'source_id') {
         if (value !== null && typeof value !== 'string') return response({ error: 'Invalid source_id' }, 400);
         if (value !== null) {
@@ -920,12 +963,21 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
         const number = value == null ? null : Number(value); if (number != null && (!Number.isFinite(number) || number < 0 || number > 1)) return response({ error: 'Invalid confidence' }, 400);
         updates.push('confidence = ?'); values.push(number);
       } else if (key === 'parsed_data' || key === 'uncertainty') {
-        const storedValue = key === 'parsed_data' ? renormalizeImportItemData(value) : value;
+        let normalizedInput = value;
+        if (key === 'parsed_data') {
+          const submitted = object(value);
+          if (!submitted) return response({ error: 'Invalid update' }, 400);
+          const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
+          const reviewed = new Set(explicitReviewedFields);
+          for (const blocker of new Set(Object.values(MATERIAL_REVIEW_BLOCKERS))) if (JSON.stringify(before[blocker]) !== JSON.stringify(submitted[blocker])) reviewed.add(blocker);
+          normalizedInput = clearReviewedMaterialFields(submitted, reviewed);
+        }
+        const storedValue = key === 'parsed_data' ? renormalizeImportItemData(normalizedInput) : value;
         updates.push(`${key}_json = ?`); values.push(jsonField(storedValue, {}));
         if (key === 'parsed_data') {
           const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
           const after = storedValue as Record<string, unknown>;
-          const derived = new Set(['totalQuantityGrams', 'totalUnits', 'lineCost', 'unitCost', 'blockingFields']);
+          const derived = new Set(['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields']);
           for (const field of new Set([...Object.keys(before), ...Object.keys(after)])) {
             if (derived.has(field)) continue;
             if (JSON.stringify(before[field]) !== JSON.stringify(after[field])) manualFields.add(`parsed_data.${field}`);

@@ -9,7 +9,7 @@ import {
 const item = {
   sourceItemId: 'item-1', category: 'tea' as const, originalName: '云南古树生普',
   englishName: 'Yunnan Ancient Tree Raw Pu’er', packWeight: 500,
-  weightUnit: 'g' as const, packCount: 2, priceAmount: 380, currency: 'CNY',
+  weightUnit: 'g' as const, packCount: 2, priceAmount: '380', currency: 'CNY',
   priceBasis: 'per_pack' as const, confidence: {}, uncertainty: {}, evidenceRefs: ['source-1:0-18'],
   acquired: true, duplicateResolution: 'new' as const,
 };
@@ -99,6 +99,8 @@ describe('Curate import analysis domain', () => {
   it.each([
     ['usd', 'USD', false],
     ['cNy', 'CNY', false],
+    ['bnd', 'BND', false],
+    ['PKR', 'PKR', false],
     ['¥', null, true],
     ['ZZZ', null, true],
   ])('canonicalizes supported currency %s to %s and blocked=%s', (currency, expected, blocked) => {
@@ -107,10 +109,19 @@ describe('Curate import analysis domain', () => {
     expect(normalized.blockingFields.includes('currency')).toBe(blocked);
   });
 
-  it('preserves authoritative decimal provenance through exact arithmetic', () => {
-    const normalized = normalizeImportProposal(proposal({ priceAmount: 0.1, packCount: 3, packWeight: 3 })).groups[0].items[0];
+  it('preserves authoritative decimal strings through exact arithmetic', () => {
+    const normalized = normalizeImportProposal(proposal({ priceAmount: '0.1', packCount: 3, packWeight: 3 })).groups[0].items[0];
     expect(normalized).toMatchObject({ priceAmountExact: '0.1', lineCostExact: '0.3', unitCostExact: '0.033333333333333333' });
     expect(normalized.lineCost).toBe(0.3);
+  });
+
+  it('never converts an unrepresentable authoritative decimal into a numeric money field', () => {
+    const normalized = normalizeImportProposal(proposal({ priceAmount: '999999999999999.99', priceBasis: 'line_total' })).groups[0].items[0];
+    expect(normalized).toMatchObject({ priceAmountExact: '999999999999999.99', lineCostExact: '999999999999999.99', priceAmount: null, lineCost: null });
+  });
+
+  it('rejects non-integer legacy numeric prices because their source decimal lexeme is unavailable', () => {
+    expect(() => decodeImportAnalysisProposal(proposal({ priceAmount: 0.1 }))).toThrow(/decimal string/i);
   });
 
   it('blocks unresolved acquisition and duplicate identity decisions', () => {
@@ -126,6 +137,7 @@ describe('Curate import analysis domain', () => {
     expect(prompt).toContain('500g ×2 ¥380');
     expect(prompt).toContain('vendor-a');
     expect(prompt).toContain('Never infer priceBasis');
+    expect(prompt).toMatch(/priceAmount.*decimal string/i);
   });
 
   it('bounds provider candidates and strips contact aliases', () => {

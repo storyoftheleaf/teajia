@@ -17,8 +17,8 @@ export interface FinalizeValidationIssue { field: string; message: string; group
 
 export interface FinalizeReceiptLineInput {
   itemId: string; productId: string; compassEntryId: string; quantity: number; unit: FinalizeUnit;
-  purpose: FinalizePurpose; originalCostAmount: number; originalCostCurrency: string;
-  originalUnitCost: number; packCount: number;
+  purpose: FinalizePurpose; originalCostAmount: number | null; originalCostCurrency: string;
+  originalUnitCost: number | null; packCount: number;
   originalCostAmountExact?: string; originalUnitCostExact?: string;
 }
 export interface FinalizeReceiptLine extends FinalizeReceiptLineInput { id: string; receiptId?: string }
@@ -60,9 +60,11 @@ export function validateImportForFinalization(data: CurateFinalizeData): Finaliz
     if (!Number.isFinite(item.quantity) || Number(item.quantity) <= 0) issues.push({ field: 'quantity', itemId: item.id, message: 'Quantity is required' });
     if (item.unit !== 'g' && item.unit !== 'unit') issues.push({ field: 'unit', itemId: item.id, message: 'Stock unit is required' });
     if (!Number.isFinite(item.packCount) || Number(item.packCount) <= 0) issues.push({ field: 'packCount', itemId: item.id, message: 'Pack count is required' });
-    if (!Number.isFinite(item.lineCost) || Number(item.lineCost) < 0) issues.push({ field: 'lineCost', itemId: item.id, message: 'Line cost is required' });
+    const exactLineCost = typeof item.lineCostExact === 'string' && /^\d+(?:\.\d+)?$/.test(item.lineCostExact);
+    if (!exactLineCost && (!Number.isFinite(item.lineCost) || Number(item.lineCost) < 0)) issues.push({ field: 'lineCost', itemId: item.id, message: 'Line cost is required' });
     if (!item.currency) issues.push({ field: 'currency', itemId: item.id, message: 'Currency is required' });
-    if (!Number.isFinite(item.unitCost) || Number(item.unitCost) < 0) issues.push({ field: 'unitCost', itemId: item.id, message: 'Unit cost is required' });
+    const exactUnitCost = typeof item.unitCostExact === 'string' && /^\d+(?:\.\d+)?$/.test(item.unitCostExact);
+    if (!exactUnitCost && (!Number.isFinite(item.unitCost) || Number(item.unitCost) < 0)) issues.push({ field: 'unitCost', itemId: item.id, message: 'Unit cost is required' });
     if (!item.purpose) issues.push({ field: 'purpose', itemId: item.id, message: 'Inventory purpose is required' });
     if (!item.name.trim()) issues.push({ field: 'name', itemId: item.id, message: 'Inventory name is required' });
   }
@@ -102,7 +104,7 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
       return {
         itemId: item.id, productId: identity.productId, compassEntryId: identity.compassEntryId,
         quantity: item.quantity!, unit: item.unit!, purpose: item.purpose!, packCount: item.packCount!,
-        originalCostAmount: item.lineCost!, originalCostCurrency: item.currency!, originalUnitCost: item.unitCost!,
+        originalCostAmount: item.lineCost, originalCostCurrency: item.currency!, originalUnitCost: item.unitCost,
         originalCostAmountExact: item.lineCostExact ?? String(item.lineCost!), originalUnitCostExact: item.unitCostExact ?? String(item.unitCost!),
       };
     });

@@ -91,6 +91,18 @@ describe('Curate import finalization', () => {
     expect(receipts[0].lines[0]).toMatchObject({ originalCostAmountExact: '0.3', originalUnitCostExact: '0.001' });
   });
 
+  it('round-trips an unrepresentable decimal to receipt provenance without an unsafe number', async () => {
+    const importData = data();
+    importData.items[0].lineCost = null;
+    importData.items[0].unitCost = null;
+    importData.items[0].lineCostExact = '999999999999999.99';
+    importData.items[0].unitCostExact = '9999999999999.9999';
+    expect(validateImportForFinalization(importData)).toEqual([]);
+    const { ctx, receipts } = harness(importData);
+    await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+    expect(receipts[0].lines[0]).toMatchObject({ originalCostAmount: null, originalCostAmountExact: '999999999999999.99', originalUnitCost: null, originalUnitCostExact: '9999999999999.9999' });
+  });
+
   it('owns the finalization reservation before creating any import result', async () => {
     const { ctx } = harness();
     const events: string[] = [];

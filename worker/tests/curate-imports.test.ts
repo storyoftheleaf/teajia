@@ -273,6 +273,17 @@ describe('Curate import provenance API', () => {
     });
   });
 
+  it('ingests an unrepresentable provider decimal as exact string provenance', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Exact price', pasted_text: 'Collector lot' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [{ ...itemProposal('exact-money', sources[0].id), priceAmount: '999999999999999.99' }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(analyzed.items[0].parsed_data).toMatchObject({ priceAmountExact: '999999999999999.99', lineCostExact: '999999999999999.99', priceAmount: null, lineCost: null });
+  });
+
   it('sends only account vendor candidates and auto-resolves exact but not weak matches', async () => {
     const db = new ImportDb();
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Chen Family Tea', company: 'Chen', tags: '["vendor"]' });
@@ -441,6 +452,42 @@ describe('Curate import provenance API', () => {
     const body = await updated.json() as any;
     expect(body.parsed_data).toMatchObject({ totalQuantityGrams: null, lineCost: null, unitCost: null });
     expect(body.parsed_data.blockingFields).toEqual(expect.arrayContaining(['packCount', 'priceBasis']));
+  });
+
+  it('clears a material confidence blocker when the user explicitly corrects that field', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Confidence review', pasted_text: 'Tea USD 20' }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'one', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Vendor', items: [{ ...itemProposal('confidence', sources[0].id), confidence: { priceAmount: 0.5, currency: 0.5 } }] }],
+    }) }] }), { status: 200 }));
+    const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    expect(analyzed.items[0].parsed_data.blockingFields).toContain('priceAmount');
+    const corrected = { ...analyzed.items[0].parsed_data, priceAmount: '21.5' };
+    const response = await request(db, `/api/curate/imports/${batch.id}/items/${analyzed.items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: corrected }) });
+    expect(response.status).toBe(200);
+    const reviewed = await response.json() as any;
+    expect(reviewed.parsed_data.priceAmountExact).toBe('21.5');
+    expect(reviewed.parsed_data.blockingFields).not.toContain('priceAmount');
+    expect(reviewed.parsed_data.blockingFields).toContain('currency');
+    expect(reviewed.parsed_data.confidence).not.toHaveProperty('priceAmount');
+    const affirmed = await request(db, `/api/curate/imports/${batch.id}/items/${analyzed.items[0].id}`, { method: 'PUT', body: JSON.stringify({ reviewed_fields: ['currency'] }) });
+    expect(affirmed.status).toBe(200);
+    expect((await affirmed.json() as any).parsed_data.blockingFields).not.toContain('currency');
+  });
+
+  it('treats explicit vendor selection as authoritative and clears vendor blockers for the group', async () => {
+    const db = new ImportDb();
+    db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Confirmed Vendor', tags: '["vendor"]' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendor review', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', proposed_vendor_name: 'Maybe Vendor', resolved_vendor_customer_id: null, vendor_confidence: 0.4, uncertainty_json: '{"vendor":"unclear"}' });
+    db.items.get(items[0].id)!.vendor_group_id = 'group-a';
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify({ ...itemProposal('vendor-review'), blockingFields: ['vendor'] });
+    const response = await request(db, `/api/curate/imports/${batch.id}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) });
+    expect(response.status).toBe(200);
+    expect(db.groups.get('group-a')).toMatchObject({ resolved_vendor_customer_id: 'vendor-a', vendor_confidence: 1, uncertainty_json: '{}' });
+    expect(JSON.parse(String(db.items.get(items[0].id)?.parsed_data_json)).blockingFields).not.toContain('vendor');
   });
 
   it('updates group vendors and the optional journey only within the active account', async () => {
