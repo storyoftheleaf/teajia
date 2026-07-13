@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS users (
     role TEXT NOT NULL DEFAULT 'user',  -- legacy: 'owner', 'admin', 'user'
     platform_role TEXT DEFAULT NULL,    -- NULL | 'platform_admin' | 'platform_owner' (one platform_owner max)
     session_version INTEGER NOT NULL DEFAULT 0,
+    email_verified_at TEXT,
     admin_request_status TEXT NOT NULL DEFAULT 'none',  -- 'none', 'pending', 'approved', 'denied'
     admin_requested_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
@@ -262,6 +263,32 @@ CREATE TABLE IF NOT EXISTS private_recordings (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_private_recordings_owner ON private_recordings(account_id, user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS identity_email_verifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email_normalized TEXT NOT NULL,
+    purpose TEXT NOT NULL CHECK (purpose = 'signup-email'),
+    code_hash TEXT NOT NULL,
+    client_nonce_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    consumed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_identity_email_verifications_user ON identity_email_verifications(user_id, purpose, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS provider_jobs (
+    account_id TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    owner_user_id TEXT NOT NULL,
+    lock_token TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    completed_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (account_id, operation)
+);
 
 CREATE TABLE IF NOT EXISTS mcp_confirmation_tickets (
   token_hash TEXT PRIMARY KEY,

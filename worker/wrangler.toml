@@ -48,7 +48,7 @@ binding = "MEDIA_BUCKET"
 bucket_name = "teajia-media"
 
 [triggers]
-crons = ["0 1 * * *"]
+crons = ["0 * * * *"]
 
 # Edge rate limiter for the public, unauthenticated MCP (/mcp/public).
 # Native Cloudflare Workers rate limiting — works on *.workers.dev (no zone /

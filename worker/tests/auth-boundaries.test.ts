@@ -10,6 +10,7 @@ type FakeDbOptions = {
   role?: MembershipRole;
   bundles?: string[];
   platformRole?: string | null;
+  targetPlatformRole?: string | null;
   accountStatus?: string | null;
   userId?: string;
   email?: string;
@@ -69,7 +70,7 @@ class FakeStatement {
 
   async first() {
     const sql = normalizeSql(this.sql);
-    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists, authDependencyFailure, sessionVersion, userExists } = this.options;
+    const { role, bundles, platformRole, targetPlatformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists, authDependencyFailure, sessionVersion, userExists } = this.options;
 
     if (sql.includes('from mcp_tokens where token_hash = ?')) {
       return {
@@ -96,6 +97,9 @@ class FakeStatement {
     if (sql.includes('select id, email, platform_role from users where id = ?')) {
       return { id: userId, email, platform_role: platformRole };
     }
+    if (sql.includes('select id, email, name, platform_role from users where id = ?')) {
+      return { id: this.values[0], email: 'owner@example.com', name: 'Protected Owner', platform_role: targetPlatformRole };
+    }
     if (sql.includes('select status from accounts where id = ?')) {
       return { status: accountStatus };
     }
@@ -118,6 +122,9 @@ class FakeStatement {
         kind: 'location',
         status: accountStatus,
       };
+    }
+    if (sql.includes('from account_members am') && sql.includes("am.status = 'active'")) {
+      return { role, permissions: JSON.stringify({ bundles }) };
     }
     return null;
   }
@@ -178,6 +185,7 @@ function makeEnv(options: FakeDbOptions = {}) {
     role: options.role ?? 'owner',
     bundles: options.bundles ?? [],
     platformRole: options.platformRole ?? null,
+    targetPlatformRole: options.targetPlatformRole ?? null,
     accountStatus: options.accountStatus ?? 'active',
     userId: options.userId ?? 'user_test',
     email: options.email ?? 'staff@example.com',
@@ -238,6 +246,20 @@ describe('worker authorization boundaries', () => {
     const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(((await demoted.json()) as any).token.split('.')[1]), c => c.charCodeAt(0))));
     expect(claims.platform_role).toBeNull();
   });
+
+  it('allows only the fresh platform owner to generate recovery credentials for a platform owner', async () => {
+    for (const path of ['/api/admin/reset-token', '/api/platform/users/owner_target/resend-invite']) {
+      const body = path.endsWith('reset-token') ? JSON.stringify({ userId: 'owner_target' }) : '{}';
+      const adminRequest = await authedRequest(path, { method: 'POST', body, platformRole: 'platform_admin' });
+      const denied = await worker.fetch(adminRequest, makeEnv({ platformRole: 'platform_admin', targetPlatformRole: 'platform_owner' }));
+      expect(denied.status).toBe(403);
+      expect(await denied.json()).toMatchObject({ code: 'target_tier_denied' });
+
+      const ownerRequest = await authedRequest(path, { method: 'POST', body, platformRole: 'platform_owner' });
+      const allowed = await worker.fetch(ownerRequest, makeEnv({ platformRole: 'platform_owner', targetPlatformRole: 'platform_owner' }));
+      expect(allowed.status).toBe(200);
+    }
+  });
   it.each([
     ['/api/generate-chinese-name', 'catalog'],
     ['/api/transcribe', 'catalog'],
@@ -249,6 +271,33 @@ describe('worker authorization boundaries', () => {
     const denied = await worker.fetch(request, makeEnv({ role: 'staff', bundles: [] }));
     expect(denied.status).toBe(403);
     expect(await denied.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: bundle } });
+  });
+
+  it.each([
+    [{ product_name: 'Stock tea', stock_grams: 20 }, 'stock'],
+    [{ product_name: 'Priced tea', fixed_retail_price_usd: 20 }, 'sell'],
+    [{ product_name: 'Public tea', is_public: true }, 'publish'],
+  ])('partitions product creation fields by capability', async (payload, requiredBundle) => {
+    const response = await worker.fetch(
+      await authedRequest('/api/products', { method: 'POST', body: JSON.stringify(payload) }),
+      makeEnv({ role: 'staff', bundles: ['catalog'] }),
+    );
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: requiredBundle } });
+  });
+
+  it('reserves product ownership and shop visibility for owner tier', async () => {
+    for (const payload of [
+      { product_name: 'Assigned tea', owner_user_id: 'user_test' },
+      { product_name: 'Shown tea', shown_in_shop: true },
+    ]) {
+      const response = await worker.fetch(
+        await authedRequest('/api/products', { method: 'POST', body: JSON.stringify(payload) }),
+        makeEnv({ role: 'staff', bundles: ['catalog', 'stock', 'sell', 'publish'] }),
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({ code: 'owner_assignment_denied' });
+    }
   });
 
   it('bounds provider uploads before and after multipart parsing', async () => {
@@ -272,13 +321,18 @@ describe('worker authorization boundaries', () => {
   it('isolates durable provider limits by user and operation and fails closed on binding errors', async () => {
     const keys: string[] = [];
     const limiter = { limit: async ({ key }: { key: string }) => { keys.push(key); return { success: false }; } };
-    const env = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), PROVIDER_LIMITER: limiter };
-    for (const path of ['/api/generate-chinese-name', '/api/transcribe']) {
+    const env = { ...makeEnv({ role: 'owner', bundles: ['catalog'] }), PROVIDER_LIMITER: limiter };
+    for (const path of ['/api/generate-chinese-name', '/api/transcribe', '/api/products/prod_test/enhance-image', '/api/admin/migrate-tasting']) {
       const response = await worker.fetch(await authedRequest(path, { method: 'POST', body: '{}' }), env);
       expect(response.status).toBe(429);
       expect(await response.json()).toMatchObject({ code: 'rate_limited' });
     }
-    expect(keys).toEqual(['acc_test:user_test:chinese-name', 'acc_test:user_test:transcribe']);
+    expect(keys).toEqual([
+      'acc_test:user_test:chinese-name',
+      'acc_test:user_test:transcribe',
+      'acc_test:user_test:enhance-product-image',
+      'acc_test:user_test:migrate-tasting',
+    ]);
 
     const broken = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), PROVIDER_LIMITER: { limit: async () => { throw new Error('offline'); } } };
     const response = await worker.fetch(await authedRequest('/api/generate-chinese-name', { method: 'POST', body: '{}' }), broken);

@@ -62,19 +62,19 @@ function applyTrackedMigrations(database: string): string[] {
 }
 
 describe('migration 017 rehearsals', () => {
-  it('boots the clean canonical schema through migration 117', () => withDatabase((database) => {
+  it('boots the clean canonical schema through migration 118', () => withDatabase((database) => {
     sqlite(database, sql('schema.sql'));
 
     const output = sqlite(database, `
       SELECT name FROM sqlite_master
-      WHERE type='table' AND name IN ('accounts','account_members','private_recordings')
+      WHERE type='table' AND name IN ('accounts','account_members','private_recordings','identity_email_verifications','provider_jobs')
       ORDER BY name;
     `);
-    expect(output.split('\n')).toEqual(['account_members', 'accounts', 'private_recordings']);
-    expect(migrationNames.at(-1)).toBe('117_private_recordings.sql');
+    expect(output.split('\n')).toEqual(['account_members', 'accounts', 'identity_email_verifications', 'private_recordings', 'provider_jobs']);
+    expect(migrationNames.at(-1)).toBe('118_email_verification_and_provider_jobs.sql');
   }));
 
-  it('upgrades the production-shaped pre-017 schema through migration 117', () => withDatabase((database) => {
+  it('upgrades the production-shaped pre-017 schema through migration 118', () => withDatabase((database) => {
     sqlite(database, sql('tests/fixtures/pre-017-production.sql'));
     sqlite(database, `INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');`);
     initializeLedger(database, ['017_multi_account.sql']);
@@ -82,10 +82,13 @@ describe('migration 017 rehearsals', () => {
     const applied = applyTrackedMigrations(database);
 
     expect(applied.at(0)).toBe('017_multi_account_patched.sql');
-    expect(applied.at(-1)).toBe('117_private_recordings.sql');
+    expect(applied.at(-1)).toBe('118_email_verification_and_provider_jobs.sql');
     expect(sqlite(database, `SELECT account_id FROM products WHERE id='legacy';`)).toBe('acc_teajia_bali');
     expect(sqlite(database, `SELECT name FROM sqlite_master WHERE type='table' AND name='private_recordings';`))
       .toBe('private_recordings');
+    expect(sqlite(database, `SELECT name FROM sqlite_master WHERE type='table' AND name='provider_jobs';`))
+      .toBe('provider_jobs');
+    expect(sqlite(database, `SELECT COUNT(*) FROM users WHERE email_verified_at IS NULL;`)).toBe('0');
   }));
 
   it('makes a real repeated migration-ledger application a no-op', () => withDatabase((database) => {

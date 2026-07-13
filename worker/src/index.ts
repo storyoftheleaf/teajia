@@ -1331,6 +1331,9 @@ const handleLogin: Handler = async (request, env) => {
     ).bind(identifier, identifier).first();
     const { verified: dbVerified, isLegacy } = await verifyPasswordHash(password, user?.password_hash as string ?? '');
     if (user && dbVerified) {
+      if (!user.email_verified_at) {
+        return restError(403, 'Email verification is required before sign-in', 'email_verification_required');
+      }
       if (isLegacy) {
         const upgraded = await hashPasswordPBKDF2(password);
         await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(upgraded, user.id).run();
@@ -1477,31 +1480,66 @@ const handleSignup: Handler = async (request, env) => {
     'INSERT INTO users (id, email, username, name, password_hash, role) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, email, username, name || '', passwordHash, 'user').run();
 
-  // New users auto-join nothing — they must be invited to an account.
-  // The empty memberships array is intentional; the frontend should show a
-  // "waiting for invite" state until an account owner adds them.
-  const memberships: AccountMembership[] = [];
-  const token = await createToken(env.JWT_SECRET, {
-    sub: id,
-    email,
-    role: 'user',
-    name: name || '',
-    username,
-    memberships,
-    active_account_id: null,
-    session_version: 0,
-  });
-
-  if (env.SENDER_EMAIL) {
-    sendEmail(env, email, 'Welcome to Teajia', welcomeEmailHtml(name || 'there')).catch(() => {});
+  const code = generateVerificationCode();
+  const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const signupToken = crypto.randomUUID() + crypto.randomUUID();
+  const signupTokenHash = await signVerificationCode(signupToken, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  await env.DB.prepare(
+    `INSERT INTO identity_email_verifications (id, user_id, email_normalized, purpose, code_hash, client_nonce_hash, expires_at)
+     VALUES (?, ?, ?, 'signup-email', ?, ?, datetime('now', '+10 minutes'))`
+  ).bind(crypto.randomUUID(), id, email.toLowerCase(), codeHash, signupTokenHash).run();
+  const delivery = await deliverVerificationCode(env, { email, code, purpose: 'signin' });
+  if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM identity_email_verifications WHERE user_id = ?').bind(id),
+      env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id),
+    ]);
+    return restError(503, 'We could not send the verification code', 'verification_delivery_failed', { retryable: delivery.retryable });
   }
 
   return json({
-    token,
-    user: { id, email, username, name: name || '', role: 'user' },
-    memberships,
-    active_account_id: null,
-  }, 201);
+    verification_required: true,
+    code: 'email_verification_required',
+    signup_token: signupToken,
+    delivery_retryable: !delivery.delivered && delivery.retryable,
+    ...(env.DEV_RETURN_VERIFY_CODES === 'true' ? { verification_code: code } : {}),
+  }, 202);
+};
+
+const handleVerifySignupEmail: Handler = async (request, env) => {
+  const body = await request.json().catch(() => ({})) as { email?: string; code?: string; signup_token?: string };
+  const email = body.email?.trim().toLowerCase() || '';
+  if (!email || !body.code || !body.signup_token) return restError(400, 'Email, code, and signup token are required', 'validation_failed');
+  const challenge = await env.DB.prepare(
+    `SELECT v.id, v.user_id, v.code_hash, v.client_nonce_hash, v.failed_attempts, u.email, u.name, u.username, u.role, u.platform_role, u.session_version
+     FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
+     WHERE v.email_normalized = ? AND v.purpose = 'signup-email' AND v.consumed_at IS NULL
+       AND v.expires_at > datetime('now') ORDER BY v.created_at DESC LIMIT 1`
+  ).bind(email).first();
+  if (!challenge || Number(challenge.failed_attempts) >= 3) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  const signupTokenValid = await verifyVerificationCode(body.signup_token, challenge.client_nonce_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  if (!signupTokenValid) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  const valid = await verifyVerificationCode(body.code, challenge.code_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  if (!valid) {
+    await env.DB.prepare(`UPDATE identity_email_verifications SET failed_attempts = failed_attempts + 1,
+      consumed_at = CASE WHEN failed_attempts + 1 >= 3 THEN datetime('now') ELSE consumed_at END WHERE id = ?`)
+      .bind(challenge.id).run();
+    return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  }
+  const verifiedAt = new Date().toISOString();
+  const [consume] = await env.DB.batch([
+    env.DB.prepare(`UPDATE identity_email_verifications SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL`).bind(verifiedAt, challenge.id),
+    env.DB.prepare(`UPDATE users SET email_verified_at = ? WHERE id = ? AND lower(email) = ?`).bind(verifiedAt, challenge.user_id, email),
+  ]);
+  if (!consume.meta.changes) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
+  const memberships = await loadMemberships(env, challenge.user_id as string);
+  const token = await createToken(env.JWT_SECRET, {
+    sub: challenge.user_id as string, email: challenge.email as string, name: challenge.name as string,
+    username: (challenge.username as string | null) ?? null, role: challenge.role as string,
+    platform_role: (challenge.platform_role as PlatformRole) ?? null, memberships,
+    active_account_id: memberships[0]?.account_id || null, session_version: Number(challenge.session_version || 0),
+  });
+  return json({ token, user: { id: challenge.user_id, email: challenge.email }, memberships, active_account_id: memberships[0]?.account_id || null, email_verified_at: new Date().toISOString() });
 };
 
 const handleGetMe: Handler = async (request, env) => {
@@ -1652,12 +1690,20 @@ const handleDeleteAccount: Handler = async (request, env) => {
   const { verified } = await verifyPasswordHash(password, user.password_hash as string);
   if (!verified) return json({ error: 'Incorrect password' }, 403);
 
-  if ((user.platform_role as string) === 'owner') {
+  if ((user.platform_role as string) === 'platform_owner') {
     return json({ error: 'Platform owner accounts cannot be deleted.' }, 403);
+  }
+
+  const ownedAccount = await env.DB.prepare(
+    "SELECT account_id FROM account_members WHERE user_id = ? AND role = 'owner' AND status = 'active' LIMIT 1"
+  ).bind(claims.sub).first();
+  if (ownedAccount) {
+    return restError(409, 'Transfer or remove account ownership before deleting this identity', 'owner_floor_violation');
   }
 
   await env.DB.batch([
     env.DB.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(claims.sub),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(claims.sub),
     env.DB.prepare('DELETE FROM account_members WHERE user_id = ?').bind(claims.sub),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(claims.sub),
   ]);
@@ -1837,9 +1883,24 @@ const handleDeleteUser: Handler = async (request, env, params) => {
   if (!user) return json({ error: 'User not found' }, 404);
   if (user.platform_role === 'platform_owner') return json({ error: 'Cannot delete platform owner account' }, 403);
 
-  await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(userId),
+    env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId),
+  ]);
   return json({ ok: true });
 };
+
+async function denyProtectedPlatformTarget(request: Request, env: Env, targetRole: unknown): Promise<Response | null> {
+  if (targetRole !== 'platform_owner') return null;
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return restError(401, 'Unauthorized', 'auth_invalid');
+  const callerRole = await resolveDbPlatformRole(env, claims.sub);
+  if (callerRole === 'db_error') return restError(503, 'Authentication dependency unavailable', 'auth_dependency_unavailable');
+  if (callerRole !== 'platform_owner') {
+    return restError(403, 'Target has a protected platform tier', 'target_tier_denied');
+  }
+  return null;
+}
 
 // ── Generate Password Reset Token (admin/owner) ──
 const handleCreateResetToken: Handler = async (request, env) => {
@@ -1849,8 +1910,10 @@ const handleCreateResetToken: Handler = async (request, env) => {
   const { userId } = await request.json() as { userId?: string };
   if (!userId) return json({ error: 'userId required' }, 400);
 
-  const user = await env.DB.prepare('SELECT id, email, name FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, email, name, platform_role FROM users WHERE id = ?').bind(userId).first();
   if (!user) return json({ error: 'User not found' }, 404);
+  const targetError = await denyProtectedPlatformTarget(request, env, user.platform_role);
+  if (targetError) return targetError;
 
   // Generate a random reset token
   const resetToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
@@ -1948,7 +2011,8 @@ const handleResetPassword: Handler = async (request, env) => {
 
   const newHash = await hashPasswordPBKDF2(newPassword);
   await env.DB.batch([
-    env.DB.prepare('UPDATE users SET password_hash = ?, session_version = session_version + 1 WHERE id = ?').bind(newHash, resetRecord.user_id),
+    env.DB.prepare("UPDATE users SET password_hash = ?, email_verified_at = COALESCE(email_verified_at, datetime('now')), session_version = session_version + 1 WHERE id = ?").bind(newHash, resetRecord.user_id),
+    env.DB.prepare("UPDATE account_members SET status = 'active', joined_at = COALESCE(joined_at, datetime('now')) WHERE user_id = ? AND status = 'invited'").bind(resetRecord.user_id),
     env.DB.prepare('UPDATE password_reset_tokens SET used = 1 WHERE id = ?').bind(resetRecord.id),
   ]);
 
@@ -2025,20 +2089,21 @@ const handleGoogleCallback: Handler = async (request, env) => {
   });
   if (!userInfoRes.ok) return errRedirect('userinfo_failed');
 
-  const gUser = await userInfoRes.json() as { id: string; email: string; name: string };
+  const gUser = await userInfoRes.json() as { id: string; email: string; name: string; verified_email?: boolean };
+  if (gUser.verified_email !== true) return errRedirect('email_unverified');
 
   // Find by google_id first; fall back to email to link existing accounts
   let user = await env.DB.prepare('SELECT * FROM users WHERE google_id = ? LIMIT 1').bind(gUser.id).first() as any;
   if (!user) {
     user = await env.DB.prepare('SELECT * FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(gUser.email).first() as any;
     if (user) {
-      await env.DB.prepare('UPDATE users SET google_id = ? WHERE id = ?').bind(gUser.id, user.id).run();
+      await env.DB.prepare("UPDATE users SET google_id = ?, email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?").bind(gUser.id, user.id).run();
     }
   }
   if (!user) {
     const id = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
-      'INSERT INTO users (id, email, username, name, password_hash, role, google_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      "INSERT INTO users (id, email, username, name, password_hash, role, google_id, email_verified_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))"
     ).bind(id, gUser.email, null, gUser.name, '', 'user', gUser.id).run();
     user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(id).first() as any;
   }
@@ -2220,6 +2285,10 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (unknownFields.length > 0) {
     return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
   }
+  const capabilityError = validateProductCreateCapabilities(ctx, body);
+  if (capabilityError) return capabilityError;
+  const ownerError = await validateProductOwnerAssignment(env, ctx, body);
+  if (ownerError) return ownerError;
   let purposeWrite;
   try { purposeWrite = decodeInventoryPurposeWrite(body); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -2273,7 +2342,7 @@ const handleCreateProduct: Handler = async (request, env) => {
   // Stock spine step 1: stamp the creating user as the stock owner unless the
   // caller already specified one. NULL stays "owned by the location"; here a
   // real authenticated creator is cleanly on ctx.userId, so record it.
-  if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
+  if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
   // Stock spine step 2: the location owner curates what shows. Owner-tier
   // creators (role 'owner', which platform owner/admin act as) put their tea
   // straight in the shop; a staff seller's tea starts HELD (0) until the owner
@@ -2327,9 +2396,17 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
     if (unknownFields.length > 0) {
       return restError(400, 'Unsupported fields for product creation', 'validation_failed', { fields: unknownFields });
     }
+    const capabilityError = validateProductCreateCapabilities(ctx, raw);
+    if (capabilityError) return capabilityError;
+    const ownerError = await validateProductOwnerAssignment(env, ctx, raw);
+    if (ownerError) return ownerError;
   }
 
   // The whole import attaches to one intake batch (defaults to Unsorted).
+  if (batch_id) {
+    const batch = await env.DB.prepare('SELECT id FROM intake_batches WHERE id = ? AND account_id = ?').bind(batch_id, accountId).first();
+    if (!batch) return restError(400, 'Intake batch does not belong to the active account', 'batch_account_mismatch');
+  }
   const importBatchId = batch_id || await defaultBatchId(env, accountId);
 
   // Pre-resolve all vendor names to vendor_ids (batch for efficiency, scoped)
@@ -2424,7 +2501,7 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
       if (body[boolKey] !== undefined) body[boolKey] = body[boolKey] ? 1 : 0;
     }
     // Stock spine step 1: stamp the creating user as owner unless specified.
-    if (body.owner_user_id === undefined) body.owner_user_id = ctx.userId ?? null;
+    if (body.owner_user_id === undefined) body.owner_user_id = ctx.role === 'owner' ? ctx.userId : null;
     // Apply cached vendor_id
     if (body.vendor && !body.vendor_id) {
       const vkey = (body.vendor as string).trim().toLowerCase();
@@ -2516,6 +2593,42 @@ const PRODUCT_CREATE_COLUMNS = new Set([
   ...PRODUCT_VISIBILITY_UPDATE_COLUMNS,
   'owner_user_id', 'sourced_by', 'roasted_by', 'vouched_by',
 ]);
+
+const PRODUCT_CREATE_STOCK_COLUMNS = new Set([...PRODUCT_STOCK_UPDATE_COLUMNS, 'quantity_units']);
+const PRODUCT_CREATE_PUBLICATION_COLUMNS = new Set(
+  [...PRODUCT_PUBLICATION_UPDATE_COLUMNS].filter(column => column !== 'is_personal' && column !== 'is_sample'),
+);
+
+function validateProductCreateCapabilities(ctx: AccountCtx, body: Record<string, unknown>): Response | null {
+  const supplied = (columns: Set<string>) => [...columns].some(column => Object.prototype.hasOwnProperty.call(body, column));
+  const missing = (bundle: Bundle) => !ctx.isPlatform && ctx.role !== 'owner' && !ctx.bundles.includes(bundle);
+  if (supplied(PRODUCT_CREATE_STOCK_COLUMNS) && missing('stock')) {
+    return restError(403, 'Stock capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'stock' });
+  }
+  if (supplied(PRODUCT_COMMERCIAL_UPDATE_COLUMNS) && missing('sell')) {
+    return restError(403, 'Sell capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'sell' });
+  }
+  if (supplied(PRODUCT_CREATE_PUBLICATION_COLUMNS) && missing('publish')) {
+    return restError(403, 'Publish capability required for supplied fields', 'insufficient_bundle', { required_bundle: 'publish' });
+  }
+  if ((Object.prototype.hasOwnProperty.call(body, 'owner_user_id') || supplied(PRODUCT_VISIBILITY_UPDATE_COLUMNS))
+      && !ctx.isPlatform && ctx.role !== 'owner') {
+    return restError(403, 'Owner capability required for supplied fields', 'owner_assignment_denied');
+  }
+  return null;
+}
+
+async function validateProductOwnerAssignment(env: Env, ctx: AccountCtx, body: Record<string, unknown>): Promise<Response | null> {
+  if (!Object.prototype.hasOwnProperty.call(body, 'owner_user_id') || body.owner_user_id == null) return null;
+  if (typeof body.owner_user_id !== 'string' || !body.owner_user_id) {
+    return restError(400, 'owner_user_id must be a member identifier', 'validation_failed');
+  }
+  const member = await env.DB.prepare(
+    "SELECT user_id FROM account_members WHERE account_id = ? AND user_id = ? AND status = 'active'"
+  ).bind(ctx.accountId, body.owner_user_id).first();
+  if (!member) return restError(400, 'Product owner does not belong to the active account', 'owner_account_mismatch');
+  return null;
+}
 
 async function applyProductUpdate(
   request: Request,
@@ -5980,14 +6093,40 @@ Feeling: calming, grounding, settling, contemplative, energizing, uplifting, cle
 Liquor color: pale-gold, gold, amber, honey-color, copper, orange, reddish-brown, deep-brown, dark-chestnut, ink
 Brewing: high-temp, medium-temp, low-temp, short-steeps, patient-steeps, flash-steeps, many-infusions, few-infusions, gaiwan, yixing, porcelain, glass, opens-slowly, peaks-mid-session`;
 
+async function acquireProviderJob(env: Env, accountId: string, operation: string, userId: string): Promise<string | null> {
+  const token = crypto.randomUUID();
+  const result = await env.DB.prepare(
+    `INSERT INTO provider_jobs (account_id, operation, owner_user_id, lock_token, expires_at)
+     VALUES (?, ?, ?, ?, datetime('now', '+30 minutes'))
+     ON CONFLICT(account_id, operation) DO UPDATE SET owner_user_id = excluded.owner_user_id,
+       lock_token = excluded.lock_token, expires_at = excluded.expires_at, completed_at = NULL, updated_at = datetime('now')
+     WHERE provider_jobs.expires_at <= datetime('now') OR provider_jobs.completed_at IS NOT NULL`
+  ).bind(accountId, operation, userId, token).run();
+  return result.meta.changes ? token : null;
+}
+
+async function completeProviderJob(env: Env, accountId: string, operation: string, token: string): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE provider_jobs SET completed_at = datetime('now'), expires_at = datetime('now'), updated_at = datetime('now')
+     WHERE account_id = ? AND operation = ? AND lock_token = ?`
+  ).bind(accountId, operation, token).run();
+}
+
 const handleMigrateTasting: Handler = async (request, env) => {
-  const ctx = await requireBundle(request, env, 'catalog');
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:migrate-tasting`);
+  if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
     return json({ error: 'ANTHROPIC_API_KEY not configured' }, 503);
   }
+
+  const jobToken = await acquireProviderJob(env, accountId, 'migrate-tasting', userId);
+  if (!jobToken) return restError(409, 'A tasting migration is already running', 'provider_job_in_progress');
+
+  try {
 
   // Fetch only this account's products that still have legacy tasting data.
   const result = await env.DB.prepare(
@@ -6098,7 +6237,10 @@ Return arrays of matching term IDs for each category. Only include terms that ar
     await Promise.all(promises);
   }
 
-  return json({ migrated: migrated.length, errors, total: products.length });
+    return json({ migrated: migrated.length, errors, total: products.length });
+  } finally {
+    await completeProviderJob(env, accountId, 'migrate-tasting', jobToken);
+  }
 };
 
 // ── Activity Logs ──
@@ -6356,7 +6498,9 @@ const handleRestoreStoryVersion: Handler = async (request, env, params) => {
 const handleEnhanceProductImage: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:enhance-product-image`);
+  if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) return json({ error: 'R2 media bucket not configured' }, 503);
   if (!env.KEY_ENCRYPTION_SECRET) {
@@ -10201,15 +10345,23 @@ const handleGetNotes: Handler = async (request, env) => {
 const handleSyncNotes: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
 
   const body = await request.json() as { notes: Record<string, any>[] };
   if (!Array.isArray(body.notes)) return json({ error: 'notes array required' }, 400);
 
+  for (const note of body.notes) {
+    if (typeof note.id !== 'string' || !note.id) return restError(400, 'Note id required', 'validation_failed');
+    const existing = await env.DB.prepare('SELECT account_id, author_id FROM notes WHERE id = ?').bind(note.id).first();
+    if (existing && (existing.account_id !== accountId || existing.author_id !== userId)) {
+      return restError(409, 'Note identifier belongs to another owner', 'tenant_collision', { id: note.id });
+    }
+  }
+
   const now = new Date().toISOString();
   const stmts = body.notes.map(n => {
     if (n.deleted) {
-      return env.DB.prepare('DELETE FROM notes WHERE id = ? AND account_id = ?').bind(n.id, accountId);
+      return env.DB.prepare('DELETE FROM notes WHERE id = ? AND account_id = ? AND author_id = ?').bind(n.id, accountId, userId);
     }
     return env.DB.prepare(`
       INSERT INTO notes (id, account_id, tea_key, compass_entry_id, session_id,
@@ -10220,12 +10372,13 @@ const handleSyncNotes: Handler = async (request, env) => {
         text = excluded.text,
         tea_key = excluded.tea_key,
         visibility = excluded.visibility
+      WHERE notes.account_id = excluded.account_id AND notes.author_id = excluded.author_id
     `).bind(
       n.id, accountId,
       n.tea_key ?? null, n.compass_entry_id ?? null, n.session_id ?? null,
       n.text, n.source_type ?? 'manual',
       n.tasting_id ?? null, n.tasting_snapshot ?? null,
-      n.author_id, n.author_name,
+      userId, n.author_name,
       n.visibility ?? 'private',
       n.created_at ?? now,
     );
@@ -10243,11 +10396,20 @@ const handleSyncNoteSessions: Handler = async (request, env) => {
   const body = await request.json() as { sessions: Record<string, any>[] };
   if (!Array.isArray(body.sessions)) return json({ error: 'sessions array required' }, 400);
 
+  for (const session of body.sessions) {
+    if (typeof session.id !== 'string' || !session.id) return restError(400, 'Session id required', 'validation_failed');
+    const existing = await env.DB.prepare('SELECT account_id FROM note_sessions WHERE id = ?').bind(session.id).first();
+    if (existing && existing.account_id !== accountId) {
+      return restError(409, 'Session identifier belongs to another account', 'tenant_collision', { id: session.id });
+    }
+  }
+
   const stmts = body.sessions.map(s =>
     env.DB.prepare(`
       INSERT INTO note_sessions (id, account_id, title, session_date, location, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET title = excluded.title, location = excluded.location
+      WHERE note_sessions.account_id = excluded.account_id
     `).bind(s.id, accountId, s.title ?? null, s.session_date, s.location ?? null, s.created_at)
   );
 
@@ -11203,8 +11365,11 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   if (!consumed.meta?.changes) return json(genericError, 401);
 
   if (purpose === 'signin') {
-    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role, session_version, email_verified_at FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
     if (!user) return json(genericError, 401);
+    if (!user.email_verified_at) {
+      return restError(403, 'Complete signup verification or password recovery first', 'email_verification_required');
+    }
     const memberships = await loadMemberships(env, user.id as string);
     const activeAccountId = memberships[0]?.account_id || null;
     const platformRole = (user.platform_role as PlatformRole) ?? null;
@@ -12955,10 +13120,13 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
   if (!['owner', 'staff', 'viewer'].includes(role)) {
     return json({ error: 'invalid role' }, 400);
   }
+  if (role === 'owner' && ctx.role !== 'owner' && !ctx.isPlatform) {
+    return restError(403, 'Only an owner can assign account ownership', 'owner_assignment_denied');
+  }
 
   // Find or create user. Inactive users get a temporary password that they
   // can reset via the standard reset-token flow.
-  let user = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = lower(?)').bind(email).first();
   let createdUser = false;
   if (!user) {
     const uid = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
@@ -12971,18 +13139,23 @@ const handleInviteAccountMember: Handler = async (request, env, params) => {
     createdUser = true;
   }
 
-  // Create or update membership. Use 'invited' status for new users so the
-  // frontend can show pending state until they accept.
-  const membershipStatus = createdUser ? 'invited' : 'active';
+  const existingMembership = await env.DB.prepare(
+    'SELECT id FROM account_members WHERE account_id = ? AND user_id = ?'
+  ).bind(params.id, user.id).first();
+  if (existingMembership) return restError(409, 'Membership already exists', 'membership_exists');
+
+  // Never activate an email-matched identity until ownership of that email is
+  // proven. New users accept explicitly through the emailed invite token.
+  const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO account_members
+    `INSERT INTO account_members
        (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
      VALUES (lower(hex(randomblob(16))), ?, ?, ?, ?, datetime('now'), datetime('now'), ?)`
   ).bind(params.id, user.id, role, ctx.userId, membershipStatus).run();
 
   // Generate an invite/reset link for new users so they can set their password.
   let inviteLink: string | null = null;
-  if (createdUser) {
+  if (membershipStatus === 'invited') {
     const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
     const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
@@ -13018,10 +13191,22 @@ const handleUpdateAccountMember: Handler = async (request, env, params) => {
   }
   if (updates.length === 0) return json({ error: 'No fields to update' }, 400);
 
+  const current = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+    .bind(params.id, params.userId).first();
+  if (!current) return restError(404, 'Membership not found', 'membership_not_found');
+  const removesOwner = current.role === 'owner' && (body.role && body.role !== 'owner' || body.status && body.status !== 'active');
+  if (removesOwner) {
+    const ownerCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM account_members WHERE account_id = ? AND role = 'owner' AND status = 'active'")
+      .bind(params.id).first();
+    if (Number(ownerCount?.count || 0) <= 1) return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
+  }
+
   binds.push(params.id, params.userId);
-  await env.DB.prepare(
-    `UPDATE account_members SET ${updates.join(', ')} WHERE account_id = ? AND user_id = ?`
-  ).bind(...binds).run();
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE account_members SET ${updates.join(', ')} WHERE account_id = ? AND user_id = ?`).bind(...binds),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, params.userId),
+  ]);
 
   return json({ success: true });
 };
@@ -13035,10 +13220,23 @@ const handleDeleteAccountMember: Handler = async (request, env, params) => {
   if (params.userId === ctx.userId) {
     return json({ error: 'Cannot remove yourself from an account' }, 400);
   }
+  const target = await env.DB.prepare('SELECT role, status FROM account_members WHERE account_id = ? AND user_id = ?')
+    .bind(params.id, params.userId).first();
+  if (!target) return restError(404, 'Membership not found', 'membership_not_found');
+  if (target.role === 'owner' && ctx.role !== 'owner' && !ctx.isPlatform) {
+    return restError(403, 'Only an owner can remove an account owner', 'owner_assignment_denied');
+  }
+  if (target.role === 'owner' && target.status === 'active') {
+    const ownerCount = await env.DB.prepare("SELECT COUNT(*) AS count FROM account_members WHERE account_id = ? AND role = 'owner' AND status = 'active'")
+      .bind(params.id).first();
+    if (Number(ownerCount?.count || 0) <= 1) return restError(409, 'Account must retain an active owner', 'owner_floor_violation');
+  }
 
-  await env.DB.prepare(
-    'DELETE FROM account_members WHERE account_id = ? AND user_id = ?'
-  ).bind(params.id, params.userId).run();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, params.userId),
+    env.DB.prepare('DELETE FROM account_members WHERE account_id = ? AND user_id = ?').bind(params.id, params.userId),
+  ]);
 
   return json({ success: true });
 };
@@ -13118,9 +13316,12 @@ const handleUpdateMemberBundles: Handler = async (request, env, params) => {
   const previousBundles = Array.isArray(existing.bundles) ? (existing.bundles as string[]) : [];
   const updatedPermissions = JSON.stringify({ ...existing, bundles: newBundles });
 
-  await env.DB.prepare(
-    'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
-  ).bind(updatedPermissions, params.id, params.userId).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?')
+      .bind(updatedPermissions, params.id, params.userId),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, params.userId),
+  ]);
 
   await logPlatformAction(env, 'member.bundles_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
     action_type: 'BUNDLE_GRANT_CHANGED',
@@ -13434,8 +13635,10 @@ const handlePlatformSetUserRole: Handler = async (request, env, params) => {
   if (!user) return json({ error: 'User not found' }, 404);
 
   const prev = await env.DB.prepare('SELECT platform_role, email FROM users WHERE id = ?').bind(params.id).first();
-  await env.DB.prepare('UPDATE users SET platform_role = ? WHERE id = ?')
-    .bind(body.platform_role ?? null, params.id).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET platform_role = ? WHERE id = ?').bind(body.platform_role ?? null, params.id),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE user_id = ? AND revoked_at IS NULL").bind(params.id),
+  ]);
 
   await logPlatformAction(env, 'platform_role.changed', claims.sub, claims.email,
     'user', params.id, { from: (prev as any)?.platform_role ?? null, to: body.platform_role ?? null, email: (prev as any)?.email });
@@ -13551,8 +13754,14 @@ const handlePlatformSetAccountStatus: Handler = async (request, env, params) => 
   if (!account) return json({ error: 'Account not found' }, 404);
   if (account.is_platform_owner) return json({ error: 'Cannot suspend the primary platform account' }, 400);
 
-  await env.DB.prepare('UPDATE accounts SET status = ?, updated_at = datetime(\'now\') WHERE id = ?')
-    .bind(body.status, params.id).run();
+  if (body.status === 'suspended') {
+    await env.DB.batch([
+      env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?").bind(params.id),
+      env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND revoked_at IS NULL").bind(params.id),
+    ]);
+  } else {
+    await env.DB.prepare("UPDATE accounts SET status = 'active', updated_at = datetime('now') WHERE id = ?").bind(params.id).run();
+  }
 
   await logPlatformAction(env, `account.${body.status}`, claims.sub, claims.email,
     'account', params.id, { name: account.name });
@@ -13572,8 +13781,10 @@ const handlePlatformSuspendAccount: Handler = async (request, env, params) => {
   if (!account) return json({ error: 'Account not found' }, 404);
   if ((account.kind as string) === 'platform') return json({ error: 'Cannot suspend the platform account' }, 400);
 
-  await env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?")
-    .bind(params.id).run();
+  await env.DB.batch([
+    env.DB.prepare("UPDATE accounts SET status = 'suspended', updated_at = datetime('now') WHERE id = ?").bind(params.id),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND revoked_at IS NULL").bind(params.id),
+  ]);
 
   await logPlatformAction(env, 'account.suspended', claims.sub, claims.email,
     'account', params.id, { name: account.name, reason: body.reason || null });
@@ -13632,8 +13843,10 @@ const handlePlatformResendInvite: Handler = async (request, env, params) => {
   if (authErr) return authErr;
 
   const claims = parseToken(isAuthed(request)!)!;
-  const user = await env.DB.prepare('SELECT id, email, name FROM users WHERE id = ?').bind(params.id).first();
+  const user = await env.DB.prepare('SELECT id, email, name, platform_role FROM users WHERE id = ?').bind(params.id).first();
   if (!user) return json({ error: 'User not found' }, 404);
+  const targetError = await denyProtectedPlatformTarget(request, env, user.platform_role);
+  if (targetError) return targetError;
 
   // Invalidate old tokens
   await env.DB.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').bind(params.id).run();
@@ -13753,9 +13966,12 @@ const handleUpdateMemberPermissions: Handler = async (request, env, params) => {
     if (enabledFeatures.has(feature)) sanitised[feature] = Boolean(enabled);
   }
 
-  await env.DB.prepare(
-    'UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?'
-  ).bind(JSON.stringify(sanitised), params.id, params.userId).run();
+  await env.DB.batch([
+    env.DB.prepare('UPDATE account_members SET permissions = ? WHERE account_id = ? AND user_id = ?')
+      .bind(JSON.stringify(sanitised), params.id, params.userId),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, params.userId),
+  ]);
 
   await logPlatformAction(env, 'member.permissions_updated', ctx.userId, ctx.email, 'member', `${params.id}:${params.userId}`, {
     action_type: 'BUNDLE_GRANT_CHANGED',
@@ -13793,6 +14009,8 @@ const handleTransferOwnership: Handler = async (request, env, params) => {
       .bind(params.id, ctx.userId),
     env.DB.prepare('UPDATE account_members SET role = \'owner\' WHERE account_id = ? AND user_id = ?')
       .bind(params.id, body.new_owner_user_id),
+    env.DB.prepare("UPDATE mcp_tokens SET revoked_at = datetime('now') WHERE account_id = ? AND user_id = ? AND revoked_at IS NULL")
+      .bind(params.id, ctx.userId),
   ]);
 
   await logPlatformAction(env, 'account.ownership_transferred', ctx.userId, ctx.email,
@@ -13865,7 +14083,7 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
   let inviteLink: string | null = null;
   if (body.owner_email) {
     const ownerEmail = body.owner_email.trim().toLowerCase();
-    let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?').bind(ownerEmail).first();
+    let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = ?').bind(ownerEmail).first();
     let createdUser = false;
 
     if (!user) {
@@ -13878,13 +14096,14 @@ const handlePlatformCreateAccount: Handler = async (request, env) => {
       createdUser = true;
     }
 
+    const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
     await env.DB.prepare(
-      `INSERT OR REPLACE INTO account_members
+      `INSERT INTO account_members
          (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
        VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
-    ).bind(accountId, user.id, claims.sub, createdUser ? 'invited' : 'active').run();
+    ).bind(accountId, user.id, claims.sub, membershipStatus).run();
 
-    if (createdUser) {
+    if (membershipStatus === 'invited') {
       const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
       const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
       await env.DB.prepare(
@@ -14025,7 +14244,7 @@ const handlePlatformDecideApplication: Handler = async (request, env, params) =>
   ).run();
 
   // Find or create user
-  let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?')
+  let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = ?')
     .bind(applicantEmail.toLowerCase()).first();
   let createdUser = false;
   if (!user) {
@@ -14039,15 +14258,16 @@ const handlePlatformDecideApplication: Handler = async (request, env, params) =>
   }
 
   // Create owner membership
+  const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO account_members
+    `INSERT INTO account_members
        (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
-     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), 'active')`
-  ).bind(accountId, user.id, claims.sub).run();
+     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
+  ).bind(accountId, user.id, claims.sub, membershipStatus).run();
 
   // Generate claim link
   let claimLink: string | null = null;
-  if (createdUser) {
+  if (membershipStatus === 'invited') {
     const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
     const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
@@ -14108,7 +14328,7 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
   ).bind(accountId, finalSlug, displayName || email, email, invoicePrefix, now, now).run();
 
   // Find or create user
-  let user = await env.DB.prepare('SELECT id FROM users WHERE lower(email) = ?')
+  let user = await env.DB.prepare('SELECT id, email_verified_at FROM users WHERE lower(email) = ?')
     .bind(email).first();
   let createdUser = false;
   if (!user) {
@@ -14122,15 +14342,16 @@ const handlePlatformInviteTeaMaster: Handler = async (request, env) => {
   }
 
   // Create owner membership
+  const membershipStatus = !createdUser && user.email_verified_at ? 'active' : 'invited';
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO account_members
+    `INSERT INTO account_members
        (id, account_id, user_id, role, invited_by_user_id, invited_at, joined_at, status)
-     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), 'active')`
-  ).bind(accountId, user.id, claims.sub).run();
+     VALUES (lower(hex(randomblob(16))), ?, ?, 'owner', ?, datetime('now'), datetime('now'), ?)`
+  ).bind(accountId, user.id, claims.sub, membershipStatus).run();
 
   // Generate claim link
   let claimLink: string | null = null;
-  if (createdUser) {
+  if (membershipStatus === 'invited') {
     const inviteToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
     const resetId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
     await env.DB.prepare(
@@ -19953,6 +20174,7 @@ const routes: [string, string, Handler][] = [
   // Auth
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],
+  ['POST', '/api/auth/signup/verify', handleVerifySignupEmail],
   ['POST', '/api/auth/refresh', handleRefreshToken],
   ['GET', '/api/auth/me', handleGetMe],
   ['PUT', '/api/auth/change-password', handleChangePassword],
@@ -20704,23 +20926,46 @@ export default {
     // Retry audio is temporary. Delete the object before its ledger row so a
     // failed R2 deletion remains visible and will be retried on the next tick.
     if (env.MEDIA_BUCKET) {
+      let deleted = 0;
+      let failures = 0;
+      let examined = 0;
+      let cursorExpiry: string | null = null;
+      let cursorId: string | null = null;
       try {
-        const expired = await env.DB.prepare(
-          `SELECT id, object_key FROM private_recordings
-           WHERE expires_at <= datetime('now')
-           ORDER BY expires_at ASC LIMIT 100`
-        ).all();
-        for (const row of expired.results) {
-          try {
-            await env.MEDIA_BUCKET.delete(row.object_key as string);
-            await env.DB.prepare('DELETE FROM private_recordings WHERE id = ?').bind(row.id).run();
-          } catch {
-            console.error('Private recording expiry cleanup failed');
+        for (let page = 0; page < 10; page += 1) {
+          const expired = cursorExpiry === null
+            ? await env.DB.prepare(
+              `SELECT id, object_key, expires_at FROM private_recordings
+               WHERE expires_at <= datetime('now')
+               ORDER BY expires_at ASC, id ASC LIMIT 100`
+            ).all()
+            : await env.DB.prepare(
+              `SELECT id, object_key, expires_at FROM private_recordings
+               WHERE expires_at <= datetime('now')
+                 AND (expires_at > ? OR (expires_at = ? AND id > ?))
+               ORDER BY expires_at ASC, id ASC LIMIT 100`
+            ).bind(cursorExpiry, cursorExpiry, cursorId).all();
+          examined += expired.results.length;
+          for (const row of expired.results) {
+            try {
+              await env.MEDIA_BUCKET.delete(row.object_key as string);
+              await env.DB.prepare('DELETE FROM private_recordings WHERE id = ?').bind(row.id).run();
+              deleted += 1;
+            } catch {
+              failures += 1;
+            }
           }
+          const last = expired.results.at(-1);
+          if (last) {
+            cursorExpiry = last.expires_at as string;
+            cursorId = last.id as string;
+          }
+          if (expired.results.length < 100) break;
         }
       } catch {
-        console.error('Private recording expiry query failed');
+        failures += 1;
       }
+      console.info('Private recording expiry cleanup summary', { examined, deleted, failures });
     }
 
     // Generate checkin reminder notifications for events happening tomorrow

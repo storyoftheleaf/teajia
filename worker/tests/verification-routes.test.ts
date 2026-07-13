@@ -6,7 +6,7 @@ const deliveryCalls: any[] = [];
 
 class VerificationDb {
   challenges: Challenge[] = [];
-  user = { id: 'user-1', email: 'member@example.com', username: 'member', name: 'Member', role: 'staff', platform_role: null };
+  user = { id: 'user-1', email: 'member@example.com', username: 'member', name: 'Member', role: 'staff', platform_role: null, email_verified_at: '2026-01-01T00:00:00.000Z' };
   prepare(sql: string) {
     const normalized = sql.replace(/\s+/g, ' ').trim().toLowerCase(); let values: any[] = [];
     const statement = {
