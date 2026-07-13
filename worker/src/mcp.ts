@@ -12,9 +12,9 @@
 // Owner-tier scopes (catalog:write, customers:write, admin:write) are gated at
 // TWO points: (1) at mint time the UI only lets owner-tier users select them,
 // and the server refuses to store them if the minting user is below owner tier;
-// (2) at dispatch time the token's `creator_tier` column is checked — if it is
-// not 'account_owner' or 'platform_owner', the call is rejected even if the
-// scope appears in the token row (defense in depth against direct DB edits).
+// (2) on every request the creator's current platform role or active account
+// membership is re-read. Demotion or bundle removal invalidates any token whose
+// stored scopes now exceed that live authority.
 //
 // Mutating tools follow a confirm-pattern: first call returns a `preview`
 // payload + `confirmation_token`; the model is expected to read the preview
@@ -48,6 +48,14 @@ function rpcError(id: number | string | null, code: number, message: string, dat
 
 function rpcResult(id: number | string | null, result: unknown): Response {
   return json({ jsonrpc: '2.0', id, result });
+}
+
+function authenticationDependencyUnavailable(): Response {
+  return json({
+    jsonrpc: '2.0',
+    id: null,
+    error: { code: -32002, message: 'Authentication dependency unavailable' },
+  }, 503);
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -206,8 +214,8 @@ const MCP_SCOPES = [
 ] as const;
 type McpScope = typeof MCP_SCOPES[number];
 
-// Scopes that require owner-tier creator. Defense-in-depth: checked at mint
-// AND at dispatch (in case someone edits the DB row directly).
+// Scopes that require current owner-tier authority. Defense-in-depth: checked
+// at mint and again against live authorization on every request.
 const OWNER_TIER_SCOPES: ReadonlySet<McpScope> = new Set(['catalog:write', 'customers:write', 'admin:write']);
 
 // A held write scope implicitly grants the matching read scope — so a token
@@ -225,6 +233,9 @@ const SCOPE_IMPLIES: Partial<Record<McpScope, McpScope[]>> = {
 // Default set for tokens minted without explicit scope selection (legacy +
 // OAuth flow). Does NOT include owner-tier scopes.
 const DEFAULT_MCP_SCOPES: McpScope[] = ['inventory:read', 'stock:write', 'customers:read', 'sales:read', 'sales:write'];
+const READ_ONLY_MCP_SCOPES: ReadonlySet<McpScope> = new Set([
+  'inventory:read', 'customers:read', 'sales:read',
+]);
 
 function parseMcpScopes(raw: unknown): McpScope[] {
   if (!raw) return DEFAULT_MCP_SCOPES;
@@ -240,6 +251,26 @@ function parseMcpScopes(raw: unknown): McpScope[] {
 function hasMcpScope(auth: McpAuth, scope: McpScope): boolean {
   if (auth.scopes.includes(scope)) return true;
   return auth.scopes.some(held => SCOPE_IMPLIES[held]?.includes(scope));
+}
+
+function allowedMcpScopesForCurrentAuthority(
+  tier: McpCreatorTier,
+  permissionsJson: string | null,
+): ReadonlySet<McpScope> {
+  if (OWNER_TIERS.has(tier)) return new Set(MCP_SCOPES);
+  if (tier === 'viewer') return READ_ONLY_MCP_SCOPES;
+
+  const allowed = new Set<McpScope>(READ_ONLY_MCP_SCOPES);
+  if (!permissionsJson) return allowed;
+  try {
+    const parsed = JSON.parse(permissionsJson) as { bundles?: unknown };
+    if (!Array.isArray(parsed.bundles)) return allowed;
+    if (parsed.bundles.includes('stock')) allowed.add('stock:write');
+    if (parsed.bundles.includes('sell')) allowed.add('sales:write');
+  } catch {
+    // Malformed permissions grant no write authority.
+  }
+  return allowed;
 }
 
 // 401 with WWW-Authenticate header — required by the MCP OAuth spec so
@@ -266,10 +297,28 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   const plaintext = auth.slice(7).trim();
   if (!plaintext) return unauthorized(request, 'Empty bearer token');
 
+  type McpTokenRow = {
+    id: string;
+    account_id: string;
+    user_id: string;
+    user_email: string;
+    revoked_at: string | null;
+    scopes: string | null;
+    creator_tier: string | null;
+    expires_at: number | null;
+  };
+  type CurrentUserRow = { id: string; email: string | null; platform_role: string | null };
+  type CurrentMembershipRow = { role: string; permissions: string | null };
+
   const hash = await sha256Hex(plaintext);
-  const row = await env.DB.prepare(
-    'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
-  ).bind(hash).first() as Record<string, any> | null;
+  let row: McpTokenRow | null;
+  try {
+    row = await env.DB.prepare(
+      'SELECT id, account_id, user_id, user_email, revoked_at, scopes, creator_tier, expires_at FROM mcp_tokens WHERE token_hash = ?'
+    ).bind(hash).first() as McpTokenRow | null;
+  } catch {
+    return authenticationDependencyUnavailable();
+  }
 
   if (!row || row.revoked_at) {
     return unauthorized(request, 'Invalid or revoked token');
@@ -282,6 +331,51 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
     return unauthorized(request, 'Invalid or revoked token');
   }
 
+  let user: CurrentUserRow | null;
+  let account: { status: string | null } | null;
+  try {
+    user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
+      .bind(row.user_id).first() as CurrentUserRow | null;
+    account = await env.DB.prepare('SELECT status FROM accounts WHERE id = ?')
+      .bind(row.account_id).first() as { status: string | null } | null;
+  } catch {
+    return authenticationDependencyUnavailable();
+  }
+  if (!user || !account || account.status !== 'active') {
+    return unauthorized(request, 'Invalid or revoked token');
+  }
+
+  let creatorTier: McpCreatorTier;
+  let permissions: string | null = null;
+  if (user.platform_role === 'platform_owner') {
+    creatorTier = 'platform_owner';
+  } else if (user.platform_role === 'platform_admin') {
+    creatorTier = 'account_owner';
+  } else {
+    let membership: CurrentMembershipRow | null;
+    try {
+      membership = await env.DB.prepare(
+        `SELECT am.role, am.permissions
+           FROM account_members am
+          WHERE am.user_id = ? AND am.account_id = ? AND am.status = 'active'`
+      ).bind(user.id, row.account_id).first() as CurrentMembershipRow | null;
+    } catch {
+      return authenticationDependencyUnavailable();
+    }
+    if (!membership) return unauthorized(request, 'Invalid or revoked token');
+    if (membership.role === 'owner') creatorTier = 'account_owner';
+    else if (membership.role === 'staff') creatorTier = 'staff';
+    else if (membership.role === 'viewer') creatorTier = 'viewer';
+    else return unauthorized(request, 'Invalid or revoked token');
+    permissions = membership.permissions;
+  }
+
+  const scopes = parseMcpScopes(row.scopes);
+  const allowedScopes = allowedMcpScopesForCurrentAuthority(creatorTier, permissions);
+  if (scopes.some(scope => !allowedScopes.has(scope))) {
+    return unauthorized(request, 'Token scope no longer authorized');
+  }
+
   // Bump last_used_at on every successful auth (best-effort; non-blocking).
   // NOTE: not wrapped in ctx.waitUntil — authenticateMcp's signature is
   // (request, env) and threading an ExecutionContext here would ripple a
@@ -291,17 +385,12 @@ async function authenticateMcp(request: Request, env: Env): Promise<McpAuth | Re
   env.DB.prepare("UPDATE mcp_tokens SET last_used_at = datetime('now') WHERE id = ?")
     .bind(row.id).run().catch(() => {});
 
-  const creatorTier: McpCreatorTier =
-    (['platform_owner', 'account_owner', 'staff', 'viewer'] as McpCreatorTier[]).includes(row.creator_tier as McpCreatorTier)
-      ? (row.creator_tier as McpCreatorTier)
-      : 'account_owner'; // default for pre-migration rows that have no column yet
-
   return {
-    accountId: row.account_id as string,
-    userId: row.user_id as string,
-    userEmail: row.user_email as string,
-    tokenId: row.id as string,
-    scopes: parseMcpScopes(row.scopes),
+    accountId: row.account_id,
+    userId: user.id,
+    userEmail: user.email || row.user_email,
+    tokenId: row.id,
+    scopes,
     creatorTier,
   };
 }
@@ -3449,7 +3538,7 @@ function visibleToolDefs(auth: McpAuth) {
     .filter(tool => {
       const scope = tool.scope as McpScope;
       if (!hasMcpScope(auth, scope)) return false;
-      // Owner-tier scoped tools are invisible to non-owner-tier token creators.
+      // Owner-tier scoped tools are invisible without current owner authority.
       if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) return false;
       return true;
     })
@@ -3503,11 +3592,11 @@ async function dispatchTool(env: Env, auth: McpAuth, name: string, args: any) {
   }
 
   // Owner-tier gate — defense in depth: reject even if scope is in the token
-  // if the creator is not owner-tier. Prevents a DB edit from escalating rights.
+  // when the creator no longer has owner-tier authority.
   if (OWNER_TIER_SCOPES.has(scope) && !OWNER_TIERS.has(auth.creatorTier)) {
     return mcpContent({
       error: 'owner_tier_required',
-      message: 'This tool requires the token to have been minted by an account owner or platform owner.',
+      message: 'This tool requires current account-owner or platform-owner authority.',
       tool: name,
     });
   }
