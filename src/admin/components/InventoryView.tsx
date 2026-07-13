@@ -544,12 +544,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     isEditMode,
   });
 
-  // Exact pre-swipe mobile behavior from the parent of d845508e: Origin is
-  // trimmed before render; desktop keeps the persisted view unchanged.
-  const visibleCols = useMemo(
-    () => (isMobile ? allVisibleCols.filter(col => col.key !== 'originRegion') : allVisibleCols),
-    [isMobile, allVisibleCols],
-  );
+  // The mobile ledger exposes every purposeful column through horizontal
+  // movement; no column is removed merely to fit the viewport.
+  const visibleCols = allVisibleCols;
 
   // Initialize review drafts when switching to Pending filter or when pending products change
   useEffect(() => {
@@ -584,6 +581,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
   const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
+  const mobileHScroll = isMobile && !splitView;
 
   const splitViewCols = useMemo(() => {
     const essential = inventoryCategory === 'teaware'
@@ -634,12 +632,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return Math.max(MIN_MOBILE_COL_PX, base);
   };
 
-  const MOBILE_HIDDEN_COLS = new Set(['type', 'originRegion', 'vendor', 'form']);
   const renderCols = useMemo(() => {
-    if (isMobile) {
-      const narrowCols = splitView ? splitViewCols : visibleCols;
-      return narrowCols.filter(col => !MOBILE_HIDDEN_COLS.has(col.key));
-    }
+    if (isMobile && splitView) return splitViewCols;
     if (unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
       const byKey = new Map<string, ColDef>(visibleCols.map(c => [c.key, c]));
       // Source (vendor) and Leaf (form) aren't in the desktop All view's columns,
@@ -676,11 +670,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [renderCols, inventoryMobileColWidths],
   );
-  // Mobile uses the original percentage colgroup classes; the later fixed-pixel
-  // system remains desktop-only.
-  const mobileTableStyle = unifiedLayout && !isMobile ? { minWidth: mobileTableMinWidth } : undefined;
+  const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
   const renderColEl = (col: ColDef) =>
-    unifiedLayout && !isMobile
+    unifiedLayout
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
       : <col key={col.key} className={col.defaultWidth} />;
 
@@ -1819,6 +1811,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
 
+      {/* The navigation plane is a sibling of every scroll container. It can
+          never inherit the ledger's horizontal movement. */}
+      <div className="shrink-0 z-priority bg-tea-bg">
+        {unifiedHeaderRows}
+      </div>
+
       {/* --- SCROLL CONTAINER ---
           The right margin (room for the action rail / edit panel) lives HERE,
           on the scrolling table only — not on the outer container — so the
@@ -1836,10 +1834,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           scrollRAFRef.current = requestAnimationFrame(() => setScrollTop(top));
         }}
       >
-        <div className="sticky top-0 z-priority bg-tea-bg">
-          {unifiedHeaderRows}
-        </div>
-
         {/* Active filter label was here — removed; count + label now live inside
             the bordered table card's top strip (canonical §20). */}
 
@@ -2100,10 +2094,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
           <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-hidden md:overflow-visible">
 
-          {/* The outer inventory-scroll is the sole scroll owner. The table has
-              no nested horizontal or vertical scroller, so content moves behind
-              the sticky navigation plane above. */}
-          <div>
+          {/* Only the ledger owns horizontal movement. It has no bounded height,
+              so vertical scrolling remains with inventory-scroll and continues
+              to the viewport bottom behind the floating bottom navigation. */}
+          <div
+            data-testid={mobileHScroll ? 'inventory-horizontal-scroll' : undefined}
+            className={mobileHScroll ? 'overflow-x-auto overscroll-x-contain hide-scrollbar-always' : ''}
+          >
           {filterType !== 'Pending' && !glossaryMode && <>
           {/* Top strip — the orienting line: which view + how many (left), with
               stock-history demoted to a quiet trailing link (right) rather than a
@@ -2152,7 +2149,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                   <tr>
                     {renderCols.map((col, i) => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={!isMobile && unifiedLayout} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
                     ))}
                   </tr>
                 </thead>
@@ -2200,8 +2197,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   visibleCols={renderCols}
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
-                                  stickyFirstCol={false}
-                                  alignLeft={!isMobile && unifiedLayout}
+                                  stickyFirstCol={mobileHScroll}
+                                  alignLeft={unifiedLayout}
                                   legacyMobileLayout={isMobile}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
@@ -2264,7 +2261,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))
                         ) : (
                           renderCols.map((col, i) => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={!isMobile && unifiedLayout} />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
                           ))
                         )}
                     </tr>
@@ -2284,8 +2281,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               visibleCols={renderCols}
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
-                              stickyFirstCol={false}
-                              alignLeft={!isMobile && unifiedLayout}
+                              stickyFirstCol={mobileHScroll}
+                              alignLeft={unifiedLayout}
                               legacyMobileLayout={isMobile}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}

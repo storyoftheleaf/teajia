@@ -195,7 +195,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     }
   });
 
-  test('navigation plane stays sticky while the table scrolls behind without horizontal swipe', async ({ page }, testInfo) => {
+  test('navigation stays anchored while only the ledger scrolls horizontally', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
@@ -270,12 +270,12 @@ test.describe('Inventory page — scroll regression guard', () => {
       await expect(purpose.getByText(name, { exact: true })).toBeVisible();
     }
 
-    const navigationPlane = primary.locator('xpath=ancestor::div[contains(@class,"sticky")][1]');
-    await expect(navigationPlane).toHaveCSS('position', 'sticky');
+    await expect(primary.locator('xpath=ancestor::*[@data-testid="inventory-scroll"]')).toHaveCount(0);
+    await expect(purpose.locator('xpath=ancestor::*[@data-testid="inventory-scroll"]')).toHaveCount(0);
     await expect(columns).toHaveCSS('position', 'static');
 
     const expectedColumns = testInfo.project.name === 'Mobile Chrome'
-      ? ['Product', 'Year', 'Stock', 'Retail']
+      ? ['Product', 'Year', 'Stock', 'Retail', 'Type', 'Source', 'Origin', 'Leaf']
       : ['Product', 'Stock', 'Retail', 'Type', 'Source', 'Origin', 'Leaf', 'Year'];
     for (const label of expectedColumns) {
       await expect(columns.getByText(label, { exact: true })).toBeVisible();
@@ -326,19 +326,42 @@ test.describe('Inventory page — scroll regression guard', () => {
     await scrollHost.evaluate(el => el.scrollTo({ top: 300, behavior: 'instant' as ScrollBehavior }));
     await page.waitForTimeout(100);
     const after = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
-    const scrollTopEdge = await scrollHost.evaluate(el => el.getBoundingClientRect().top);
-    expect(Math.abs(after[0] - scrollTopEdge)).toBeLessThan(16);
-    expect(after[1]).toBeGreaterThan(after[0]);
-    expect(after[1] - after[0]).toBeLessThan(50);
+    expect(Math.abs(after[0] - before[0])).toBeLessThan(1);
+    expect(Math.abs(after[1] - before[1])).toBeLessThan(1);
     expect(after[2]).toBeLessThan(before[2] - 100);
-    expect(after[2]).toBeLessThan(after[1]);
     await shot(page, `${testInfo.project.name}-sticky-navigation`);
 
     if (testInfo.project.name === 'Mobile Chrome') {
       await expect(scrollHost).toHaveCSS('overflow-x', 'hidden');
       await scrollHost.evaluate(el => { el.scrollLeft = 200; });
       expect(await scrollHost.evaluate(el => el.scrollLeft)).toBe(0);
-      await expect(page.locator('[data-testid="inventory-column-row"]').locator('xpath=ancestor::div[contains(@class,"overscroll-contain")]')).toHaveCount(0);
+
+      const ledger = page.getByTestId('inventory-horizontal-scroll');
+      await expect(ledger).toBeVisible();
+      await expect(ledger).toHaveCSS('scrollbar-width', 'none');
+
+      const [primaryBeforeX, purposeBeforeX, productBeforeX] = await Promise.all([
+        primary.evaluate(el => el.getBoundingClientRect().left),
+        purpose.evaluate(el => el.getBoundingClientRect().left),
+        columns.getByText('Product', { exact: true }).evaluate(el => el.getBoundingClientRect().left),
+      ]);
+      await ledger.evaluate(el => { el.scrollLeft = 320; });
+      await page.waitForTimeout(100);
+      expect(await ledger.evaluate(el => el.scrollLeft)).toBeGreaterThan(100);
+      const [primaryAfterX, purposeAfterX, productAfterX] = await Promise.all([
+        primary.evaluate(el => el.getBoundingClientRect().left),
+        purpose.evaluate(el => el.getBoundingClientRect().left),
+        columns.getByText('Product', { exact: true }).evaluate(el => el.getBoundingClientRect().left),
+      ]);
+      expect(Math.abs(primaryAfterX - primaryBeforeX)).toBeLessThan(1);
+      expect(Math.abs(purposeAfterX - purposeBeforeX)).toBeLessThan(1);
+      expect(Math.abs(productAfterX - productBeforeX)).toBeLessThan(2);
+
+      const bottomNav = page.getByTestId('bottom-tab-bar');
+      const [ledgerBox, bottomNavBox] = await Promise.all([ledger.boundingBox(), bottomNav.boundingBox()]);
+      expect(ledgerBox).not.toBeNull();
+      expect(bottomNavBox).not.toBeNull();
+      expect(ledgerBox!.y + ledgerBox!.height).toBeGreaterThan(bottomNavBox!.y);
     }
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
