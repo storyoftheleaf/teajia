@@ -273,7 +273,8 @@ export const ProgressTrack: React.FC<{ progress: number }> = ({ progress }) => (
       style={{
         height: '100%',
         width: `${progress}%`,
-        background: `linear-gradient(90deg,${C.gold},${C.goldLt})`,
+        background: 'var(--tea-gold)',
+        opacity: 0.55,
         transition: 'width 90ms linear',
       }}
     />

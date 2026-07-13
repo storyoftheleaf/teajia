@@ -184,7 +184,7 @@ import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
-import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
+import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 import { COMMUNITY_MEMBERS } from './data/communityMembers';
@@ -749,7 +749,7 @@ const AppContent = () => {
       {/* Admin Toolbar — visible only for admin users */}
 
       {/* Scroll Progress Bar */}
-      {!isFocusedShareRoute && <ScrollProgressBar />}
+      {!isFocusedShareRoute && shouldShowGlobalScrollProgress(location.pathname) && <ScrollProgressBar />}
 
 
       {/* Pull to Refresh Indicator */}
