@@ -18,6 +18,10 @@ describe('Curate evidence selection', () => {
     const unknown = prepareImportEvidenceFile(new File(['binary'], 'archive.bin'));
     expect(unknown.file).toBeNull();
     expect(unknown.error).toBe('This file type cannot be analyzed');
+
+    const heic = prepareImportEvidenceFile(new File(['0000ftypheic'], 'phone.heic', { type: 'image/heic' }));
+    expect(heic.file).toBeNull();
+    expect(heic.error).toBe('Convert HEIC or HEIF photos to JPEG, PNG, or WebP before import');
   });
 
   it('selects only failed sources for retry', () => {

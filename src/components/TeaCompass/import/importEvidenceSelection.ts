@@ -16,6 +16,7 @@ export function prepareImportEvidenceFile(file: File) {
   const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
   const inferredType = MIME_BY_EXTENSION[extension] ?? null;
   const type = file.type || inferredType;
+  if (type === 'image/heic' || type === 'image/heif' || extension === 'heic' || extension === 'heif') return { file: null, error: 'Convert HEIC or HEIF photos to JPEG, PNG, or WebP before import', referenceOnly: false };
   if (!type || !SUPPORTED_TYPES.has(type)) return { file: null, error: 'This file type cannot be analyzed', referenceOnly: false };
   const normalized = file.type ? file : new File([file], file.name, { type, lastModified: file.lastModified });
   return {

@@ -5,7 +5,6 @@ import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
 import type { ImportDraft, ImportPanelState } from './importTypes';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
-import { extractImportEvidence } from './importEvidence';
 import type { CurateJourney } from '../types';
 import type { ImportVendorOption } from './ImportVendorGroup';
 import { normalizeImportDetail } from './importReviewDomain';
@@ -170,8 +169,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     await new Promise(resolve => window.setTimeout(resolve, 250));
     let detail = state.detail;
     try {
-      const attachmentText = (await Promise.all(draft.evidence.filter(item => item.file && item.status !== 'failed').map(item => extractImportEvidence(item.file!)))).filter(Boolean).join('\n');
-      const reviewText = [draft.text.trim(), attachmentText].filter(Boolean).join('\n');
+      const reviewText = draft.text.trim();
       if (!detail) {
         detail = await api.curateImports.create({
           idempotency_key: createIdempotencyKey.current,

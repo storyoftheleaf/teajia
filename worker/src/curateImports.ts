@@ -277,6 +277,7 @@ async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>
     let failure: string | null = null;
     try {
       if (typeof metadata.size === 'number' && metadata.size > ANALYSIS_SOURCE_MAX_BYTES) throw new Error('analysis_media_too_large');
+      if (mediaType === 'image/heic' || mediaType === 'image/heif') throw new Error('analysis_unsupported_source');
       if (typeof source.r2_object_key === 'string') {
         const stored = env.MEDIA_BUCKET ? await env.MEDIA_BUCKET.get(source.r2_object_key) : null;
         if (!stored) throw new Error('analysis_evidence_unavailable');
@@ -507,6 +508,18 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
 
 export type CurateFinalizeMovement = (line: FinalizeReceiptLine, idempotencyKey: string) => Promise<{ movementId: string }>;
 
+export function holdingMatchesImportIdentity(
+  holding: Record<string, unknown>,
+  item: Pick<CurateFinalizeData['items'][number], 'category' | 'purpose'>,
+  compassEntryId: string,
+  accountId: string,
+) {
+  return holding.account_id === accountId
+    && holding.source_compass_entry_id === compassEntryId
+    && (holding.type === 'Teaware') === (item.category === 'teaware')
+    && !inventoryPurposeConflict(holding, item.purpose!);
+}
+
 function parsedFinalizeItem(row: Record<string, unknown>) {
   const parsed = parseJson(row.parsed_data_json, {}) as Record<string, unknown>;
   const category = row.category === 'teaware' ? 'teaware' : 'tea';
@@ -566,6 +579,22 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         if (!batch || typeof batch.finalize_idempotency_key !== 'string') return null;
         return { idempotencyKey: batch.finalize_idempotency_key, result: typeof batch.finalize_result_json === 'string' ? parseJson(batch.finalize_result_json, null) : null };
       },
+      validateResolutions: async data => {
+        for (const item of data.items) {
+          if (item.compassEntryId && item.duplicateResolution === 'matched') {
+            const identity = await env.DB.prepare('SELECT id, category FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(item.compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
+            if (identity?.category !== item.category) throw new CurateImportFinalizeError('validation_failed', 'Matched Curate identity is missing or incompatible', [{ field: 'duplicateResolution', itemId: item.id, message: 'Choose a valid matching identity' }]);
+          }
+          if (item.productId) {
+            if (!item.compassEntryId) throw new CurateImportFinalizeError('validation_failed', 'Selected holding requires a Curate identity', [{ field: 'product', itemId: item.id, message: 'Choose the matching Library identity' }]);
+            const holding = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(item.productId, ctx.accountId).first<Record<string, unknown>>();
+            if (!holding || !holdingMatchesImportIdentity(holding, item, item.compassEntryId, ctx.accountId)) throw new CurateImportFinalizeError('validation_failed', 'Selected holding is missing or incompatible', [{ field: 'product', itemId: item.id, message: 'Choose a holding linked to this identity, category, and purpose' }]);
+          } else if (item.compassEntryId) {
+            const canonical = await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, item.compassEntryId).first<Record<string, unknown>>();
+            if (canonical && !holdingMatchesImportIdentity(canonical, item, item.compassEntryId, ctx.accountId)) throw new CurateImportFinalizeError('validation_failed', 'Existing identity holding is incompatible with this import', [{ field: inventoryPurposeConflict(canonical, item.purpose!) ? 'purpose' : 'product', itemId: item.id, message: 'Review the existing Inventory holding' }]);
+          }
+        }
+      },
       reserveFinalization: async (batchId, key) => {
         const changed = await env.DB.prepare("UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL, analysis_state = CASE WHEN analysis_state = 'analyzing' THEN 'complete' ELSE analysis_state END WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
           .bind(key, batchId, ctx.accountId, key).run();
@@ -611,7 +640,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         const entry = await env.DB.prepare('SELECT draft_product_id, type, chinese_name, origin_region, year FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
         if (typeof entry?.draft_product_id === 'string') {
           const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first<Record<string, unknown>>();
-          if (owned && !inventoryPurposeConflict(owned, item.purpose!)) return { id: entry.draft_product_id, disposition: identityDisposition === 'created' ? 'created' : 'reused' };
+          if (owned && holdingMatchesImportIdentity(owned, item, compassEntryId, ctx.accountId)) return { id: entry.draft_product_id, disposition: identityDisposition === 'created' ? 'created' : 'reused' };
         }
         const identity = await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
         if (identity) {
@@ -823,7 +852,7 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
     vendorItemReviewPatch(env, params.groupId, ctx.accountId, vendorId, params.id)];
   const results = await env.DB.batch(statements);
   if (!(results[0]?.meta.changes ?? 0)) {
-    if (inserted.meta.changes) await env.DB.prepare("DELETE FROM customers WHERE id = ? AND account_id = ? AND source = 'curate_import'").bind(vendorId, ctx.accountId).run();
+    if (inserted.meta.changes) await env.DB.prepare("DELETE FROM customers WHERE id = ? AND account_id = ? AND source = 'curate_import' AND NOT EXISTS (SELECT 1 FROM curate_import_vendor_groups WHERE account_id = ? AND resolved_vendor_customer_id = ?)").bind(vendorId, ctx.accountId, ctx.accountId, vendorId).run();
     return terminalResponse();
   }
   const [vendor, updated] = await Promise.all([
@@ -903,7 +932,7 @@ async function refreshImportBatchState(env: ImportEnv, batchId: string, accountI
 }
 
 const EVIDENCE_TYPES = new Set([
-  'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
+  'image/jpeg', 'image/png', 'image/webp',
   'application/pdf', 'application/json', 'text/plain', 'text/csv', 'application/csv',
   'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
@@ -915,6 +944,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   if (batchIsTerminal(batch)) return terminalResponse();
   if (!env.MEDIA_BUCKET) return response({ error: 'Evidence storage is not configured. Your file was not saved.' }, 503);
   const contentType = (request.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+  if (contentType === 'image/heic' || contentType === 'image/heif') return response({ error: 'Convert HEIC or HEIF photos to JPEG, PNG, or WebP before import' }, 415);
   if (!EVIDENCE_TYPES.has(contentType)) return response({ error: 'Unsupported evidence file type' }, 415);
   const declaredSize = Number(request.headers.get('Content-Length') || 0);
   if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 5 MB or smaller' }, 413);
@@ -941,12 +971,11 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
     : contentType === 'image/jpeg' ? head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff
     : contentType === 'image/png' ? [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => head[index] === byte)
     : contentType === 'image/webp' ? ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP'
-    : contentType === 'image/heic' || contentType === 'image/heif' ? ascii.slice(4, 8) === 'ftyp'
     : contentType === 'application/msword' ? [0xd0, 0xcf, 0x11, 0xe0].every((byte, index) => head[index] === byte)
     : contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? ascii.startsWith('PK')
     : true;
   if (!matchesType) return response({ error: 'Evidence content does not match its declared file type' }, 415);
-  const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'application/pdf': 'pdf', 'application/json': 'json', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
+  const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf', 'application/json': 'json', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
   const key = `curate/${ctx.accountId}/${params.id}/${clientEvidenceId}-${digest}.${extensionByType[contentType]}`;
   const sourceId = crypto.randomUUID();
@@ -1148,6 +1177,7 @@ export async function acceptCurateImportItem(_request: Request, env: ImportEnv, 
   const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!item) return response({ error: 'Import item not found' }, 404);
   if (batchIsTerminal(batch)) return terminalResponse();
+  if (batch.analysis_state === 'complete' || typeof item.vendor_group_id === 'string') return response({ error: 'Analyzed inventory imports must be completed through Inventory finalization' }, 409);
   if (item.compass_entry_id) return response({ ...itemRow(item), already_accepted: true });
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be accepted' }, 409);
   if (Object.keys(parseJson(item.uncertainty_json, {})).length > 0) return response({ error: 'Review uncertain fields before accepting this item' }, 409);
@@ -1190,6 +1220,7 @@ export async function mergeCurateImportItem(request: Request, env: ImportEnv, ct
   if (batchIsTerminal(batch)) return terminalResponse();
   const item = await scopedItem(env, params.id, params.itemId, ctx.accountId);
   if (!item) return response({ error: 'Import item not found' }, 404);
+  if (batch.analysis_state === 'complete' || typeof item.vendor_group_id === 'string') return response({ error: 'Analyzed inventory imports must be completed through Inventory finalization' }, 409);
   if (item.review_state === 'abandoned') return response({ error: 'Abandoned items cannot be merged' }, 409);
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }

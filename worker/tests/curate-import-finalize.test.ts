@@ -30,6 +30,7 @@ function harness(importData = data(), failMovementOnce?: string) {
     accountId: 'account-a', userId: 'user-a',
     loadImport: async batchId => batchId === importData.batch.id && importData.batch.accountId === 'account-a' ? importData : null,
     loadFinalization: async () => completed ? { idempotencyKey: completed.idempotencyKey, result: completed.result } : reservedKey ? { idempotencyKey: reservedKey, result: null } : null,
+    validateResolutions: async () => {},
     reserveFinalization: async (_batchId, key) => { reservedKey = key; },
     ensureIdentity: async item => ({ id: item.compassEntryId ?? `entry-${item.id}`, disposition: item.compassEntryId ? 'reused' : 'created' }),
     ensureProduct: async (item) => ({ id: item.productId ?? `product-${item.id}`, disposition: item.productId ? 'reused' : 'created' }),
@@ -219,6 +220,19 @@ describe('Curate import finalization', () => {
     const { ctx, receipts, movements } = harness(invalid);
     await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).rejects.toMatchObject({ code: 'validation_failed' });
     expect(receipts).toHaveLength(0); expect(movements).toHaveLength(0);
+  });
+
+  it('does not retain a reservation when identity or holding preflight is recoverably invalid', async () => {
+    const { ctx, receipts, movements } = harness();
+    const issue = new Error('Selected holding is stale');
+    (ctx as CurateImportFinalizeContext & { validateResolutions(data: CurateFinalizeData): Promise<void> }).validateResolutions = async () => { throw issue; };
+    ctx.ensureProduct = async () => { throw issue; };
+
+    await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).rejects.toThrow('Selected holding is stale');
+
+    expect(await ctx.loadFinalization('batch-a')).toBeNull();
+    expect(receipts).toHaveLength(0);
+    expect(movements).toHaveLength(0);
   });
 
   it('rejects a matched resolution without both existing target identifiers', () => {

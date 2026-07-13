@@ -37,6 +37,7 @@ export interface CurateImportFinalizeContext {
   userId: string;
   loadImport(batchId: string): Promise<CurateFinalizeData | null>;
   loadFinalization(batchId: string): Promise<{ idempotencyKey: string; result: CurateFinalizeResult | null } | null>;
+  validateResolutions(data: CurateFinalizeData): Promise<void>;
   reserveFinalization(batchId: string, idempotencyKey: string): Promise<void>;
   ensureIdentity(item: CurateFinalizeItem, batch: CurateFinalizeBatch): Promise<FinalizeResolution>;
   ensureProduct(item: CurateFinalizeItem, compassEntryId: string, identityDisposition: FinalizeDisposition): Promise<FinalizeResolution>;
@@ -84,6 +85,7 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
   if (!data || data.batch.accountId !== ctx.accountId) throw new CurateImportFinalizeError('not_found', 'Import not found');
   const issues = validateImportForFinalization(data);
   if (issues.length) throw new CurateImportFinalizeError('validation_failed', 'Review blocking import fields', issues);
+  await ctx.validateResolutions(data);
   try {
     await ctx.reserveFinalization(batchId, idempotencyKey);
   } catch (error) {

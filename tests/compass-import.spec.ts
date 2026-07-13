@@ -19,6 +19,7 @@ const workerImportParsedDataKeys = new Set([
   'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
 ]);
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
+const importApiStateByPage = new WeakMap<Page, { createBodies: Array<Record<string, unknown>>; sources: Array<Record<string, unknown>> }>();
 
 const analyzedTeaNames = [
   ['Yunnan Ancient Tree Raw Pu’er', '云南古树生普'],
@@ -179,6 +180,8 @@ async function installImportApi(page: Page) {
   let analysisAttempts = 0;
   const items: ImportItem[] = [];
   const sources: Array<Record<string, unknown>> = [];
+  const createBodies: Array<Record<string, unknown>> = [];
+  importApiStateByPage.set(page, { createBodies, sources });
   const groups: Array<Record<string, unknown>> = [];
   let batch: Record<string, unknown> | null = null;
   let finalizeCalls = 0;
@@ -209,6 +212,7 @@ async function installImportApi(page: Page) {
     if (method === 'POST' && path === '/api/curate/imports') {
       attempts += 1;
       const body = request.postDataJSON() as { title: string; pasted_text?: string; source_kind: string; items?: ImportItem[] };
+      createBodies.push(body);
       if (body.pasted_text?.includes('RETRY') && attempts === 1) {
         return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Parser unavailable' }) });
       }
@@ -239,6 +243,17 @@ async function installImportApi(page: Page) {
         const body = request.postDataJSON() as { source_ids?: string[] };
         if (JSON.stringify(body.source_ids) !== JSON.stringify([retrySource.id])) return route.fulfill({ status: 409, json: { error: 'Retry must target only failed evidence' } });
       }
+      if (!items.length) {
+        const jsonSource = sources.find(source => (source.metadata as Record<string, unknown>)?.content_type === 'application/json' && typeof source.__testBody === 'string');
+        if (jsonSource) {
+          const rows = JSON.parse(String(jsonSource.__testBody)) as Array<Record<string, unknown>>;
+          items.push(...rows.map((row, position) => ({
+            id: `item-${position}`, batch_id: 'batch-1', source_id: String(jsonSource.id), position,
+            category: 'tea', name: String(row.name || 'Unnamed tea'), raw_text: JSON.stringify(row), parsed_data: { ...row },
+            confidence: 0.94, uncertainty: {}, review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: `compass-${position}`,
+          })));
+        }
+      }
       if (batch) Object.assign(batch, { review_state: 'reviewing', analysis_state: 'completed', analysis_language: 'en', analysis_overview: `${items.length} items analyzed from saved evidence.` });
       for (const source of sources) if (source.analysis_status !== 'reference_only') source.analysis_status = 'analyzed';
       groups.splice(0, groups.length, ...(items.length ? [{
@@ -268,7 +283,7 @@ async function installImportApi(page: Page) {
       const filename = decodeURIComponent(request.headers()['x-filename']);
       const contentType = request.headers()['content-type'];
       const referenceOnly = /wordprocessingml|msword/.test(contentType);
-      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, analysis_status: referenceOnly ? 'reference_only' : 'pending', analysis_error: null, reference_metadata: {}, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] } };
+      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, analysis_status: referenceOnly ? 'reference_only' : 'pending', analysis_error: null, reference_metadata: {}, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] }, __testBody: request.postDataBuffer()?.toString('utf8') };
       sources.push(source);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
@@ -390,6 +405,22 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
     await expect(page.getByText('Analyzed').first()).toBeVisible();
     await expect(page.getByAltText('Evidence preview: vendor-board.jpg')).toBeVisible();
+  });
+
+  test('keeps pasted text and an uploaded text file as exactly one source each', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Paste a list or invoice text').fill('Pasted vendor line');
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'vendor-list.txt', mimeType: 'text/plain', buffer: Buffer.from('Attached vendor line') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(page.getByText('Analyzed').first()).toBeVisible();
+
+    const state = importApiStateByPage.get(page)!;
+    expect(state.createBodies).toHaveLength(1);
+    expect(state.createBodies[0].pasted_text).toBe('Pasted vendor line');
+    expect(state.sources.filter(source => source.pasted_text === 'Pasted vendor line')).toHaveLength(1);
+    expect(state.sources.filter(source => (source.metadata as Record<string, unknown>)?.filename === 'vendor-list.txt')).toHaveLength(1);
+    expect(JSON.stringify(state.createBodies[0])).not.toContain('Attached vendor line');
   });
 
   test('removes, replaces, and clears attachments before upload', async ({ page }) => {

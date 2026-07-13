@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
+import { holdingMatchesImportIdentity } from '../src/curateImports';
 import { validateImportForFinalization } from '../src/curateImportFinalize';
 import { buildImportCorrectionParsedData } from '../../src/components/TeaCompass/import/importReviewDomain';
 
@@ -21,14 +22,16 @@ class ImportStatement {
     if (sql.includes('from curate_import_sources') && sql.includes('client_evidence_id = ?')) {
       return [...this.db.sources.values()].find(row => row.batch_id === this.values[0] && row.account_id === this.values[1] && row.client_evidence_id === this.values[2]) ?? null;
     }
+    if (sql.includes('from products') && sql.includes('source_compass_entry_id = ?')) {
+      return [...this.db.products.values()].find(row => row.account_id === this.values[0] && row.source_compass_entry_id === this.values[1]) ?? null;
+    }
     const table = this.db.tableFor(sql);
     if (table && sql.includes('where id = ?')) {
       const row = table.get(String(this.values[0]));
       if (!row) return null;
       if (sql.includes('batch_id = ?') && row.batch_id !== this.values[1]) return null;
-      if (sql.includes('user_id = ?') && row.user_id !== this.values.at(-2)) return null;
-      const accountIndex = sql.includes('account_id = ?') ? this.values.length - 1 : -1;
-      if (accountIndex >= 0 && row.account_id !== this.values[accountIndex]) return null;
+      if (sql.includes('user_id = ?') && !this.values.includes(row.user_id)) return null;
+      if (sql.includes('account_id = ?') && !this.values.includes(row.account_id)) return null;
       return { ...row };
     }
     return null;
@@ -39,7 +42,8 @@ class ImportStatement {
     if (!table) return { results: [] };
     let rows = [...table.values()];
     if (sql.includes('batch_id = ?')) rows = rows.filter(row => row.batch_id === this.values[0]);
-    if (sql.includes('account_id = ?') && sql.includes('user_id = ?')) rows = rows.filter(row => row.account_id === this.values[0] && row.user_id === this.values[1]);
+    if (sql.includes('batch_id = ?') && sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values[1]);
+    else if (sql.includes('account_id = ?') && sql.includes('user_id = ?')) rows = rows.filter(row => row.account_id === this.values[0] && row.user_id === this.values[1]);
     else if (sql.includes('account_id = ?')) rows = rows.filter(row => row.account_id === this.values.at(-1));
     if (sql.includes('json_each') && sql.includes("value = 'vendor'")) rows = rows.filter(row => {
       const tags = typeof row.tags === 'string' ? JSON.parse(row.tags) : [];
@@ -188,6 +192,10 @@ class ImportStatement {
     if (table && sql.startsWith('delete')) {
       const row = table.get(String(this.values[0]));
       if (!row || row.account_id !== this.values[1]) return { success: true, meta: { changes: 0 } };
+      if (table === this.db.customers && sql.includes('not exists (select 1 from curate_import_vendor_groups')) {
+        const referenced = [...this.db.groups.values()].some(group => group.account_id === this.values[2] && group.resolved_vendor_customer_id === this.values[3]);
+        if (referenced) return { success: true, meta: { changes: 0 } };
+      }
       table.delete(String(this.values[0]));
       return { success: true, meta: { changes: 1 } };
     }
@@ -216,6 +224,7 @@ class ImportDb {
   journeys = new Map<string, Row>();
   visits = new Map<string, Row>();
   tableFor(sql: string) {
+    if (sql.trimStart().startsWith('delete from customers')) return this.customers;
     if (sql.includes('curate_import_sources')) return this.sources;
     if (sql.includes('curate_import_items')) return this.items;
     if (sql.includes('curate_import_vendor_groups')) return this.groups;
@@ -314,6 +323,29 @@ describe('Curate import provenance API', () => {
     expect(await result.json()).toMatchObject({ journey: { id: 'journey-a', name: 'Taiwan · Spring · 2026' } });
   });
 
+  it('leaves a batch editable after recoverable holding validation fails before reservation', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Correct stale holding', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const item = db.items.get(items[0].id)!;
+    Object.assign(db.batches.get(batch.id)!, { review_state: 'reviewing', analysis_state: 'complete' });
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', resolved_vendor_customer_id: 'vendor-a', vendor_name: 'Vendor A', vendor_tags: '["vendor"]' });
+    Object.assign(item, {
+      vendor_group_id: 'group-a',
+      parsed_data_json: JSON.stringify({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-a', proposedProductId: 'holding-stale', totalQuantityGrams: 100, packCount: 1, lineCost: 20, currency: 'USD', unitCost: 0.2, inventoryPurpose: 'working', blockingFields: [] }),
+    });
+    db.compass.set('entry-a', { id: 'entry-a', account_id: 'account-a', user_id: 'user-a', category: 'tea', name: 'Tea' });
+    db.products.set('holding-stale', { id: 'holding-stale', account_id: 'account-a', type: 'Oolong', inventory_purpose: 'working', source_compass_entry_id: 'entry-other' });
+
+    const failed = await request(db, `/api/curate/imports/${batch.id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: 'finish-stale' }) });
+
+    expect(failed.status).toBe(409);
+    expect(await failed.json()).toMatchObject({ code: 'validation_failed', issues: [expect.objectContaining({ field: 'product', itemId: item.id })] });
+    expect(db.batches.get(batch.id)?.finalize_idempotency_key).toBeUndefined();
+    const correction = await request(db, `/api/curate/imports/${batch.id}/items/${item.id}`, { method: 'PUT', body: JSON.stringify({ name: 'Corrected tea' }) });
+    expect(correction.status).toBe(200);
+  });
+
   it('analyzes account-scoped evidence into ordered vendor groups and normalized items', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
@@ -382,6 +414,16 @@ describe('Curate import provenance API', () => {
     const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
     expect(analyzed.items[0].parsed_data).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'entry-exact', proposedProductId: 'product-exact' });
     expect(analyzed.items[0].parsed_data.blockingFields).not.toContain('duplicateResolution');
+  });
+
+  it('reuses a draft holding only when account, category, purpose, and identity all match', () => {
+    const item = { category: 'tea', purpose: 'working' } as const;
+    const valid = { account_id: 'account-a', type: 'Oolong', inventory_purpose: 'working', source_compass_entry_id: 'entry-a' };
+    expect(holdingMatchesImportIdentity(valid, item, 'entry-a', 'account-a')).toBe(true);
+    expect(holdingMatchesImportIdentity({ ...valid, account_id: 'account-b' }, item, 'entry-a', 'account-a')).toBe(false);
+    expect(holdingMatchesImportIdentity({ ...valid, type: 'Teaware' }, item, 'entry-a', 'account-a')).toBe(false);
+    expect(holdingMatchesImportIdentity({ ...valid, inventory_purpose: 'sample' }, item, 'entry-a', 'account-a')).toBe(false);
+    expect(holdingMatchesImportIdentity({ ...valid, source_compass_entry_id: 'entry-stale' }, item, 'entry-a', 'account-a')).toBe(false);
   });
 
   it('does not auto-match a generic-name tie', async () => {
@@ -929,6 +971,22 @@ describe('Curate import provenance API', () => {
       expect(linked).toBe(true);
     }
   });
+
+  it('does not delete an inserted vendor when a contender assigned it before terminalization', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendor contender race' }) });
+    const { batch } = await created.json() as any;
+    const vendorId = 'curate-vendor-group-terminal';
+    db.groups.set('group-terminal', { id: 'group-terminal', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'terminal', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.groups.set('group-contender', { id: 'group-contender', batch_id: batch.id, account_id: 'account-a', position: 1, group_key: 'contender', resolved_vendor_customer_id: vendorId, uncertainty_json: '{}' });
+    db.terminalizeAfterVendorInsert = true;
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-terminal/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Shared Farm' }) });
+
+    expect(result.status).toBe(409);
+    expect(db.customers.get(vendorId)).toMatchObject({ name: 'Shared Farm' });
+    expect(db.groups.get('group-contender')?.resolved_vendor_customer_id).toBe(vendorId);
+  });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();
     const seeded = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Seed', idempotency_key: 'owner-seed', items: [{ name: 'Tea' }] }) });
@@ -1205,6 +1263,22 @@ describe('Curate import provenance API', () => {
     await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ uncertainty: {} }) });
     expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(201);
   });
+  it('requires inventory finalization instead of completing analyzed grouped imports through legacy accept or merge', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Analyzed inventory', items: [{ name: 'One' }, { name: 'Two' }] }) });
+    const { batch, items } = await created.json() as any;
+    Object.assign(db.batches.get(batch.id)!, { review_state: 'reviewing', analysis_state: 'complete' });
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a' });
+    db.items.get(items[0].id)!.vendor_group_id = 'group-a';
+    db.items.get(items[1].id)!.vendor_group_id = 'group-a';
+    db.compass.set('existing', { id: 'existing', account_id: 'account-a', user_id: 'user-a', category: 'tea' });
+
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}/accept`, { method: 'POST' })).status).toBe(409);
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${items[1].id}/merge`, { method: 'POST', body: JSON.stringify({ compass_entry_id: 'existing' }) })).status).toBe(409);
+    expect(db.batches.get(batch.id)?.review_state).toBe('reviewing');
+    expect(db.items.get(items[0].id)?.compass_entry_id).toBeNull();
+    expect(db.items.get(items[1].id)?.compass_entry_id).toBeNull();
+  });
   it('completes a batch only after every item is resolved and excludes it from recovery', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Lifecycle', items: [{ name: 'One' }, { name: 'Two' }] }) });
@@ -1344,10 +1418,29 @@ describe('Curate import provenance API', () => {
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf' }, body: 'x' })).status).toBe(503);
     const bucket = { put: async () => {} } as unknown as R2Bucket;
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.exe', 'Content-Type': 'application/octet-stream' }, body: 'x' }, 'account-a', 'user-a', bucket)).status).toBe(415);
+    const heic = await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.heic', 'X-Client-Evidence-Id': 'heic-one', 'Content-Type': 'image/heic' }, body: '0000ftypheic' }, 'account-a', 'user-a', bucket);
+    expect(heic.status).toBe(415);
+    expect(await heic.json()).toMatchObject({ error: 'Convert HEIC or HEIF photos to JPEG, PNG, or WebP before import' });
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.json', 'X-Client-Evidence-Id': 'invalid-json', 'Content-Type': 'application/json' }, body: '{invalid' }, 'account-a', 'user-a', bucket)).status).toBe(415);
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf', 'Content-Length': String(10 * 1024 * 1024 + 1) }, body: 'x' }, 'account-a', 'user-a', bucket)).status).toBe(413);
     expect((await request(db, path, { method: 'POST', headers: { 'X-Filename': 'x.pdf', 'Content-Type': 'application/pdf' }, body: 'x' }, 'account-b', 'user-b', bucket)).status).toBe(404);
     expect(db.sources.size).toBe(0);
+  });
+
+  it('marks legacy HEIC evidence failed without poisoning usable mixed evidence', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Mixed phone evidence', pasted_text: 'Usable tea list' }) });
+    const { batch, sources } = await created.json() as any;
+    db.sources.set('legacy-heic', { id: 'legacy-heic', batch_id: batch.id, account_id: 'account-a', kind: 'photo', pasted_text: null, r2_object_key: 'private/photo.heic', analysis_status: 'pending', metadata_json: JSON.stringify({ content_type: 'image/heic', size: 12 }) });
+    const bucket = { get: async () => ({ body: new Response('0000ftypheic').body }) } as unknown as R2Bucket;
+    const provider = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'one', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('usable', sources[0].id)] }] }) }] }), { status: 200 }));
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket);
+
+    expect(result.status).toBe(200);
+    expect(db.sources.get('legacy-heic')).toMatchObject({ analysis_status: 'failed', analysis_error: 'analysis_unsupported_source' });
+    const content = JSON.parse(String(provider.mock.calls[0][1]?.body)).messages[0].content;
+    expect(content.some((part: any) => part.type === 'image' && part.source?.media_type === 'image/heic')).toBe(false);
   });
   it('preserves pasted evidence byte-for-byte and parsed item order across refreshes', async () => {
     const db = new ImportDb();
