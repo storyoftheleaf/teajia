@@ -45,6 +45,7 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'interest-signups', label: 'Interest Signups', group: 'gather', route: '/admin/events?tab=interest', addedAt: '2026-04-20', bundle: 'gather' },
 
   { id: 'magazine', label: 'Magazine', group: 'publish', route: '/admin/magazine', addedAt: '2026-01-28', requires: 'owner', bundle: 'publish', staffVisible: true },
+  { id: 'contributors', label: 'Contributors', group: 'publish', route: '/admin/contributors', addedAt: '2026-07-13', requires: 'owner', bundle: 'publish', staffVisible: true },
   { id: 'collections', label: 'Collections', group: 'publish', route: '/admin/collections', addedAt: '2026-04-24', requires: 'owner', bundle: 'publish', staffVisible: true },
 
   { id: 'team', label: 'Team', group: 'teach', route: '/admin/people?tab=team', addedAt: '2025-12-05', requires: 'owner', bundle: 'members', staffVisible: true },
