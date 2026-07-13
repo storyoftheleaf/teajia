@@ -10,6 +10,7 @@ import {
   shouldProactivelyRefreshToken,
   isTokenExpired,
   ensureTokenRefreshed,
+  clearPendingSignup,
   type PendingSignup,
 } from '../lib/api';
 import { useAppStore, type AuthUser } from '../lib/store';
@@ -75,6 +76,7 @@ interface UseAuthReturn {
   login: (identifier: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, username?: string | null) => Promise<PendingSignup>;
   verifySignup: (pending: PendingSignup, code: string) => Promise<void>;
+  resendSignup: (pending: PendingSignup) => Promise<PendingSignup>;
   redeemJoinCode: (data: { code: string; first_name: string; email: string }) => Promise<{ session_id: string; session_title: string | null; is_new_user: boolean }>;
   logout: () => void;
   checkSession: () => Promise<void>;
@@ -197,6 +199,7 @@ export function useAuth(): UseAuthReturn {
   const verifySignup = useCallback(async (pending: PendingSignup, code: string) => {
     const result = await api.auth.verifySignup(pending, code);
     setToken(result.token);
+    clearPendingSignup();
     resetSessionBootstrap();
     hydrateAccountStateFromToken();
     const claims = getTokenClaims();
@@ -204,6 +207,8 @@ export function useAuth(): UseAuthReturn {
       setUser({ email: claims.email, username: claims.username ?? null, name: claims.name, role: claims.role });
     }
   }, []);
+
+  const resendSignup = useCallback(async (pending: PendingSignup) => api.auth.resendSignup(pending), []);
 
   const redeemJoinCode = useCallback(async (data: { code: string; first_name: string; email: string }) => {
     const result = await api.auth.redeemJoinCode(data);
@@ -237,6 +242,7 @@ export function useAuth(): UseAuthReturn {
     login,
     signup,
     verifySignup,
+    resendSignup,
     redeemJoinCode,
     logout,
     checkSession,

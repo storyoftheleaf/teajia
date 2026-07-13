@@ -256,7 +256,45 @@ export function clearToken() {
 export type PendingSignup = {
   email: string;
   signupToken: string;
+  expiresAt: number;
+  recoverableUntil: number;
 };
+
+const PENDING_SIGNUP_STORAGE_KEY = 'teajia_pending_signup';
+const PENDING_SIGNUP_TTL_MS = 10 * 60 * 1000;
+const PENDING_SIGNUP_RECOVERY_MS = 24 * 60 * 60 * 1000;
+
+function persistPendingSignup(pending: PendingSignup): PendingSignup {
+  try { sessionStorage.setItem(PENDING_SIGNUP_STORAGE_KEY, JSON.stringify(pending)); } catch { /* recovery remains in-memory */ }
+  return pending;
+}
+
+export function clearPendingSignup() {
+  try { sessionStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY); } catch { /* ignore blocked storage */ }
+}
+
+export function restorePendingSignup(): PendingSignup | null {
+  let raw: string | null = null;
+  try { raw = sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY); } catch { return null; }
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PendingSignup>;
+    if (typeof parsed.email !== 'string' || typeof parsed.signupToken !== 'string'
+      || typeof parsed.expiresAt !== 'number' || typeof parsed.recoverableUntil !== 'number') {
+      clearPendingSignup();
+      return null;
+    }
+    const pending = parsed as PendingSignup;
+    if (pending.recoverableUntil <= Date.now()) {
+      clearPendingSignup();
+      return null;
+    }
+    return pending;
+  } catch {
+    clearPendingSignup();
+    return null;
+  }
+}
 
 export function hasToken(): boolean {
   return !!getToken();
@@ -887,7 +925,12 @@ export const api = {
       if (!result.verification_required || !result.signup_token) {
         throw new Error('Signup verification could not be started. Please try again.');
       }
-      return { email, signupToken: result.signup_token };
+      return persistPendingSignup({
+        email,
+        signupToken: result.signup_token,
+        expiresAt: Date.now() + PENDING_SIGNUP_TTL_MS,
+        recoverableUntil: Date.now() + PENDING_SIGNUP_RECOVERY_MS,
+      });
     },
     verifySignup: async (pending: PendingSignup, code: string): Promise<{ token: string }> => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/signup/verify`, {
@@ -900,6 +943,23 @@ export const api = {
         }),
       });
       return handleResponse(res);
+    },
+    resendSignup: async (pending: PendingSignup): Promise<PendingSignup> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/signup/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pending.email, signup_token: pending.signupToken }),
+      });
+      const result = await handleResponse(res) as { verification_required?: boolean; signup_token?: string };
+      if (!result.verification_required || !result.signup_token) {
+        throw new Error('A new verification code could not be sent. Please try again.');
+      }
+      return persistPendingSignup({
+        email: pending.email,
+        signupToken: result.signup_token,
+        expiresAt: Date.now() + PENDING_SIGNUP_TTL_MS,
+        recoverableUntil: Date.now() + PENDING_SIGNUP_RECOVERY_MS,
+      });
     },
     /** Explicit refresh — rarely needed directly; prefer `ensureTokenRefreshed`. */
     refresh: async (): Promise<boolean> => ensureTokenRefreshed().then(r => r === 'refreshed'),
