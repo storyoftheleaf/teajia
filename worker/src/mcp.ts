@@ -67,6 +67,7 @@ type TokenClaims = {
   email: string;
   name?: string;
   active_account_id?: string | null;
+  session_version?: number;
   exp?: number;
 };
 
@@ -128,11 +129,26 @@ async function resolveOAuthApprovalContext(
     return corsJson({ error: 'account_required', error_description: 'Select an account before approval' }, 400);
   }
 
-  const user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
-    .bind(claims.sub)
-    .first() as { id: string; email: string | null; platform_role: string | null } | null;
+  let user: { id: string; email: string | null; platform_role: string | null; session_version: number | null } | null;
+  try {
+    user = await env.DB.prepare('SELECT id, email, platform_role, session_version FROM users WHERE id = ?')
+      .bind(claims.sub)
+      .first() as typeof user;
+    // Legacy local/test D1 adapters may only expose the pre-116 projection.
+    // Production D1 returns the query above, including session_version.
+    if (!user) {
+      user = await env.DB.prepare('SELECT id, email, platform_role FROM users WHERE id = ?')
+        .bind(claims.sub)
+        .first() as typeof user;
+    }
+  } catch {
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Authentication dependency unavailable' }, 503);
+  }
   if (!user) {
     return corsJson({ error: 'unauthenticated', error_description: 'User no longer exists' }, 401);
+  }
+  if (Number(user.session_version || 0) !== Number(claims.session_version || 0)) {
+    return corsJson({ error: 'unauthenticated', error_description: 'Session no longer valid' }, 401);
   }
 
   const platformRole = user.platform_role || null;

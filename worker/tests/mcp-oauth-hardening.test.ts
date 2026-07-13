@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import worker from '../src/index';
 import { oauthAuthorize, oauthRegister } from '../src/mcp';
 
+const SESSION_SECRET = 'session-secret';
+async function sessionToken(sessionVersion: number) {
+  const encode = (value: object) => btoa(JSON.stringify(value));
+  const now = Math.floor(Date.now() / 1000);
+  const data = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: 'user-1', email: 'owner@test.dev', session_version: sessionVersion, active_account_id: 'account-1', iat: now, exp: now + 3600 })}`;
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(SESSION_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)));
+  return `${data}.${btoa(String.fromCharCode(...signature))}`;
+}
+
 class Limiter {
   keys: string[] = [];
   constructor(private outcome: boolean | Error = true) {}
@@ -53,6 +63,26 @@ const registration = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe('MCP OAuth write boundaries', () => {
+  it('rejects stale approval sessions and fails closed when session storage is unavailable', async () => {
+    const decision = async (db: any) => worker.fetch(new Request('https://api.test/oauth/authorize/decision', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${await sessionToken(0)}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ client_id: 'client-1', redirect_uri: 'https://claude.ai/oauth/callback', code_challenge: 'A'.repeat(43), code_challenge_method: 'S256', account_id: 'account-1' }),
+    }), { DB: db, JWT_SECRET: SESSION_SECRET } as any);
+
+    const staleDb = {
+      writes: 0,
+      prepare: () => ({ bind() { return this; }, first: async () => ({ id: 'user-1', email: 'owner@test.dev', platform_role: 'platform_owner', session_version: 1 }), run: async () => { staleDb.writes++; } }),
+    };
+    const stale = await decision(staleDb);
+    expect(stale.status).toBe(401);
+    expect(await stale.json()).toMatchObject({ error: 'unauthenticated' });
+    expect(staleDb.writes).toBe(0);
+
+    const unavailable = await decision({ prepare: () => ({ bind() { return this; }, first: async () => { throw new Error('D1 unavailable'); } }) });
+    expect(unavailable.status).toBe(503);
+    expect(await unavailable.json()).toMatchObject({ error: 'temporarily_unavailable' });
+  });
   it('durably rate-limits registration and authorization and fails closed on binding errors', async () => {
     const denied = new Limiter(false);
     const register = await oauthRegister(new Request('https://api.test/oauth/register', { method: 'POST', headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '203.0.113.1' }, body: JSON.stringify(registration()) }), { DB: new OAuthDb(), JWT_SECRET: 'x', OAUTH_REGISTER_LIMITER: denied } as any);
