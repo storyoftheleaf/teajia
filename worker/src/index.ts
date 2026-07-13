@@ -1527,7 +1527,7 @@ const handleVerifySignupEmail: Handler = async (request, env) => {
     `SELECT v.id, v.user_id, v.code_hash, v.client_nonce_hash, v.failed_attempts, u.email, u.name, u.username, u.role, u.platform_role, u.session_version
      FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
      WHERE v.email_normalized = ? AND v.purpose = 'signup-email' AND v.consumed_at IS NULL
-       AND v.expires_at > datetime('now') ORDER BY v.created_at DESC LIMIT 1`
+       AND v.expires_at > datetime('now') ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1`
   ).bind(email).first();
   if (!challenge || Number(challenge.failed_attempts) >= 3) return restError(401, 'Invalid or expired verification code', 'verification_invalid');
   const signupTokenValid = await verifyVerificationCode(body.signup_token, challenge.client_nonce_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
@@ -1553,6 +1553,96 @@ const handleVerifySignupEmail: Handler = async (request, env) => {
     active_account_id: memberships[0]?.account_id || null, session_version: Number(challenge.session_version || 0),
   });
   return json({ token, user: { id: challenge.user_id, email: challenge.email }, memberships, active_account_id: memberships[0]?.account_id || null, email_verified_at: new Date().toISOString() });
+};
+
+// POST /api/auth/signup/resend — replace an expired/locked signup challenge.
+// The prior browser nonce is proof of possession; email alone is never enough
+// to restart signup for an existing identity.
+const handleResendSignupVerification: Handler = async (request, env) => {
+  const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, `signup-resend:${verifyIp}`);
+  if (limited) return limited;
+
+  const body = await request.json().catch(() => ({})) as { email?: string; signup_token?: string };
+  const email = body.email?.trim().toLowerCase() || '';
+  if (!email || !body.signup_token) {
+    return restError(400, 'Email and signup token are required', 'validation_failed');
+  }
+
+  // Deliberately include expired and failed/consumed challenges: this route is
+  // the recovery path for both. A verified user is never eligible, even with a
+  // previously valid signup nonce.
+  const prior = await env.DB.prepare(
+    `SELECT v.id, v.user_id, v.client_nonce_hash, u.email_verified_at
+     FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
+     WHERE v.email_normalized = ? AND v.purpose = 'signup-email'
+       AND v.created_at > datetime('now', '-24 hours')
+     ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1`
+  ).bind(email).first();
+  const priorNonceHash = typeof prior?.client_nonce_hash === 'string'
+    ? prior.client_nonce_hash as string
+    : '0'.repeat(64);
+  const proofValid = await verifyVerificationCode(
+    body.signup_token,
+    priorNonceHash,
+    env.VERIFICATION_CODE_SECRET || env.JWT_SECRET,
+  );
+  const invalid = () => restError(401, 'Invalid or expired verification request', 'verification_invalid');
+  if (!prior || prior.email_verified_at || !proofValid) return invalid();
+
+  const code = generateVerificationCode();
+  const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const signupToken = crypto.randomUUID() + crypto.randomUUID();
+  const signupTokenHash = await signVerificationCode(signupToken, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const spentNonceHash = await signVerificationCode(
+    `spent:${crypto.randomUUID()}`,
+    env.VERIFICATION_CODE_SECRET || env.JWT_SECRET,
+  );
+  const challengeId = crypto.randomUUID();
+
+  // Do not spend the caller's existing proof until the replacement code has
+  // actually been accepted for delivery. This lets a provider outage be
+  // retried with the same browser-held signup token.
+  const delivery = await deliverVerificationCode(env, { email, code, purpose: 'signin' });
+  if (!delivery.delivered && env.DEV_RETURN_VERIFY_CODES !== 'true') {
+    return restError(503, 'We could not send the verification code', 'verification_delivery_failed', { retryable: delivery.retryable });
+  }
+
+  // Compare-and-swap the prior nonce, then conditionally insert the replacement
+  // in the same D1 batch. Concurrent resend attempts cannot both mint a usable
+  // successor challenge.
+  const [consumeProof, createChallenge] = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE identity_email_verifications
+       SET client_nonce_hash = ?
+       WHERE id = ? AND client_nonce_hash = ?
+         AND EXISTS (
+           SELECT 1 FROM users
+           WHERE users.id = identity_email_verifications.user_id
+             AND users.email_verified_at IS NULL
+         )`
+    ).bind(spentNonceHash, prior.id, priorNonceHash),
+    env.DB.prepare(
+      `INSERT INTO identity_email_verifications
+         (id, user_id, email_normalized, purpose, code_hash, client_nonce_hash, expires_at)
+       SELECT ?, ?, ?, 'signup-email', ?, ?, datetime('now', '+10 minutes')
+       FROM identity_email_verifications AS replaced
+       JOIN users u ON u.id = replaced.user_id
+       WHERE replaced.id = ? AND replaced.client_nonce_hash = ?
+         AND u.email_verified_at IS NULL`
+    ).bind(challengeId, prior.user_id, email, codeHash, signupTokenHash, prior.id, spentNonceHash),
+  ]);
+  if (Number(consumeProof.meta?.changes || 0) !== 1 || Number(createChallenge.meta?.changes || 0) !== 1) {
+    return invalid();
+  }
+
+  return json({
+    verification_required: true,
+    code: 'email_verification_required',
+    signup_token: signupToken,
+    delivery_retryable: !delivery.delivered && delivery.retryable,
+    ...(env.DEV_RETURN_VERIFY_CODES === 'true' ? { verification_code: code } : {}),
+  }, 202);
 };
 
 const handleGetMe: Handler = async (request, env) => {
@@ -20264,6 +20354,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/login', handleLogin],
   ['POST', '/api/auth/signup', handleSignup],
   ['POST', '/api/auth/signup/verify', handleVerifySignupEmail],
+  ['POST', '/api/auth/signup/resend', handleResendSignupVerification],
   ['POST', '/api/auth/refresh', handleRefreshToken],
   ['GET', '/api/auth/me', handleGetMe],
   ['PUT', '/api/auth/change-password', handleChangePassword],
