@@ -69,3 +69,10 @@ export async function savePostSession(
 ) {
   return submit(eventId, postSessionSavePayload(state));
 }
+
+export async function loadPostSession(
+  get: (eventId: string) => Promise<Record<string, unknown>>,
+  eventId: string,
+) {
+  return get(eventId);
+}

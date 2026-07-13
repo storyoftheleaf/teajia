@@ -46,6 +46,18 @@ describe('event article draft builder', () => {
     ]);
   });
 
+  it('reads the documented tea ledger object shape without inventing prose', () => {
+    const draft = buildEventArticleDraft(
+      { id: 'e5', title: 'Ledger Object' },
+      { tea_ledger: { teas: [{ name: 'Shui Xian', notes: 'Cedar and mineral.' }] } },
+    );
+    expect(draft.blocks).toEqual([
+      { type: 'cover', title: 'Ledger Object' },
+      { type: 'section_heading', text: 'Shui Xian' },
+      { type: 'paragraph', text: 'Cedar and mineral.' },
+    ]);
+  });
+
   it('defensively ignores malformed galleries and does not invent missing prose', () => {
     const draft = buildEventArticleDraft(
       { id: 'e2', title: 'Silent Table', subtitle: null },

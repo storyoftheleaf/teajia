@@ -5,7 +5,7 @@ import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { TastingNote } from '../../types/events';
-import { postSessionEditorState, savePostSession } from './PostSessionEditorContract';
+import { loadPostSession, postSessionEditorState, savePostSession } from './PostSessionEditorContract';
 
 interface PostSessionEditorProps {
   eventId: string;
@@ -34,15 +34,10 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     if (ledgerLoaded) return;
     const loadData = async () => {
       try {
-        const events = await api.events.listAdmin();
-        const data = events.find((e: any) => e.id === eventId);
-        if (!data) { setLedgerLoaded(true); return; }
-        const postSession = data.post_session
-          ? (typeof data.post_session === 'string' ? JSON.parse(data.post_session) : data.post_session)
-          : {};
+        const postSession = await loadPostSession(api.events.getPostSession, eventId);
         const loaded = postSessionEditorState(postSession);
         setTeaLedger(loaded.teaLedger);
-        setPlaylistUrl(loaded.playlistUrl || (data as any).playlist_url || '');
+        setPlaylistUrl(loaded.playlistUrl);
         setGallery(loaded.gallery);
         setSessionNotes(loaded.sessionNotes);
         setEnergy(loaded.energy);

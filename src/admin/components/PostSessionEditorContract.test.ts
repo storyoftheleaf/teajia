@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { postSessionEditorState, postSessionSavePayload, savePostSession } from './PostSessionEditorContract';
+import { loadPostSession, postSessionEditorState, postSessionSavePayload, savePostSession } from './PostSessionEditorContract';
 
 describe('PostSessionEditor contract', () => {
   it('reloads snake_case Worker data and legacy camelCase data', () => {
@@ -39,5 +39,21 @@ describe('PostSessionEditor contract', () => {
       tea_ledger: '[]', playlist_url: '', gallery_images: ['owned.jpg'], session_notes: 'Recap', energy: 'lively',
       shared_tasting_notes: ['Floral'], host_notes: 'Host', host_changes: 'Change',
     });
+  });
+
+  it('save then reopen restores every field and a later save does not blank data', async () => {
+    let persisted: Record<string, unknown> = {};
+    const submit = vi.fn(async (_eventId: string, body: Record<string, unknown>) => { persisted = structuredClone(body); });
+    const get = vi.fn(async () => structuredClone(persisted));
+    const original = {
+      teaLedger: '{"teas":[{"name":"Rou Gui"}]}', playlistUrl: 'https://playlist.test', gallery: ['owned.jpg'],
+      sessionNotes: 'Shared recap', energy: 'contemplative', sharedTastingNotes: 'Mineral\nLongan',
+      hostNotes: 'Host observation', hostChanges: 'Use cooler water',
+    };
+    await savePostSession(submit, 'event-1', original);
+    const reopened = postSessionEditorState(await loadPostSession(get, 'event-1'));
+    expect(reopened).toEqual(original);
+    await savePostSession(submit, 'event-1', reopened);
+    expect(persisted).toEqual(postSessionSavePayload(original));
   });
 });

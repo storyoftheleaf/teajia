@@ -38,6 +38,17 @@ function sharedNotes(value: unknown): string[] {
   return parseArray(value).map(nonEmpty).filter((note): note is string => !!note);
 }
 
+function teaLedgerRows(value: unknown): SourceRow[] {
+  let parsed = value;
+  if (typeof value === 'string') {
+    try { parsed = JSON.parse(value); } catch { return []; }
+  }
+  const rows = Array.isArray(parsed)
+    ? parsed
+    : (parsed && typeof parsed === 'object' && Array.isArray((parsed as SourceRow).teas) ? (parsed as SourceRow).teas : []);
+  return rows.filter((tea): tea is SourceRow => !!tea && typeof tea === 'object' && !Array.isArray(tea));
+}
+
 export function buildEventArticleDraft(event: SourceRow, postSession: SourceRow | null): EventArticleDraft {
   const title = nonEmpty(event.title) || '';
   const subtitle = nonEmpty(event.subtitle);
@@ -47,7 +58,7 @@ export function buildEventArticleDraft(event: SourceRow, postSession: SourceRow 
   const hostNotes = nonEmpty(source.host_notes);
   const hostChanges = nonEmpty(source.host_changes);
   const energy = nonEmpty(source.energy);
-  const teas = parseArray(source.tea_ledger).filter((tea): tea is SourceRow => !!tea && typeof tea === 'object' && !Array.isArray(tea));
+  const teas = teaLedgerRows(source.tea_ledger);
   const notes = sharedNotes(source.shared_tasting_notes);
   const cover = gallery[0] || null;
   const blocks: Array<Record<string, unknown>> = [{

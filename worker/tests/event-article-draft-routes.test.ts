@@ -34,7 +34,7 @@ class Statement {
       const [id, account] = this.values;
       return id === 'event-1' && account === 'a' ? { id, account_id: account, title: 'Cliff Tea Evening', subtitle: 'Wuyi after rain' } : null;
     }
-    if (sql.includes('from event_post_session')) return this.db.postSessionExists ? { event_id: 'event-1', account_id: 'a', session_notes: 'Quiet table.', host_notes: 'Host kept the rinse short.', host_changes: 'Start cooler next time.', energy: 'contemplative', gallery_images: '["https://uploads.test/e.jpg"]', shared_tasting_notes: '["Warm rock"]', tea_ledger: '[]' } : null;
+    if (sql.includes('from event_post_session')) return this.db.postSessionExists ? { id: 'post-1', event_id: 'event-1', account_id: 'a', session_notes: 'Quiet table.', host_notes: 'Host kept the rinse short.', host_changes: 'Start cooler next time.', energy: 'contemplative', playlist_url: 'https://playlist.test', gallery_images: '["https://uploads.test/e.jpg"]', shared_tasting_notes: '["Warm rock"]', tea_ledger: '{"teas":[]}' } : null;
     if (sql.includes('from articles where account_id = ? and source_event_id = ?')) {
       const [account, event] = this.values;
       return this.db.articles.find(article => article.account_id === account && article.source_event_id === event) || null;
@@ -62,6 +62,10 @@ async function request(db: Db, event = 'event-1') {
 
 async function postSession(db: Db, body: unknown) {
   return worker.fetch(new Request('https://test/api/admin/events/event-1/post-session', { method: 'POST', headers: { Authorization: `Bearer ${await jwt()}`, 'X-Teajia-Account': 'a', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: SECRET } as any);
+}
+
+async function getPostSession(db: Db, event = 'event-1') {
+  return worker.fetch(new Request(`https://test/api/admin/events/${event}/post-session`, { headers: { Authorization: `Bearer ${await jwt()}`, 'X-Teajia-Account': 'a' } }), { DB: db, JWT_SECRET: SECRET } as any);
 }
 
 describe('event article draft endpoint', () => {
@@ -110,5 +114,25 @@ describe('event article draft endpoint', () => {
     const insert = db.writes.find(write => write.sql.startsWith('insert into event_post_session'))!;
     expect(insert.sql).toContain('session_notes, host_notes, host_changes, energy');
     expect(insert.values.slice(6)).toEqual(['Shared.', 'Host.', 'Change.', 'warm', null]);
+  });
+
+  it('gets a safely parsed account-scoped post-session shape', async () => {
+    const response = await getPostSession(new Db());
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      id: 'post-1', event_id: 'event-1', tea_ledger: { teas: [] }, playlist_url: 'https://playlist.test',
+      gallery_images: ['https://uploads.test/e.jpg'], session_notes: 'Quiet table.', host_notes: 'Host kept the rinse short.',
+      host_changes: 'Start cooler next time.', energy: 'contemplative', shared_tasting_notes: ['Warm rock'],
+    });
+    expect((await getPostSession(new Db(), 'other-account')).status).toBe(404);
+    expect((await getPostSession(new Db(['publish']))).status).toBe(403);
+  });
+
+  it('returns an explicit empty shape when no post-session row exists', async () => {
+    const db = new Db(); db.postSessionExists = false;
+    expect(await (await getPostSession(db)).json()).toEqual({
+      id: null, event_id: 'event-1', tea_ledger: null, playlist_url: null, gallery_images: [], session_notes: null,
+      host_notes: null, host_changes: null, energy: null, shared_tasting_notes: [],
+    });
   });
 });

@@ -7414,6 +7414,38 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
   return json({ success: true });
 };
 
+function parsePostSessionJson(value: unknown, fallback: unknown) {
+  if (value == null || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function parsePostSessionStringArray(value: unknown): string[] {
+  const parsed = parsePostSessionJson(value, []);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+}
+
+const handleGetAdminPostSession: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'gather');
+  if ('error' in ctx) return ctx.error;
+  const guard = await assertEventInAccount(env, params.id, ctx.accountId);
+  if (guard) return guard;
+  const row = await env.DB.prepare(`SELECT * FROM event_post_session WHERE event_id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return json({
+    id: row?.id ?? null,
+    event_id: params.id,
+    tea_ledger: parsePostSessionJson(row?.tea_ledger, null),
+    playlist_url: row?.playlist_url ?? null,
+    gallery_images: parsePostSessionStringArray(row?.gallery_images),
+    session_notes: row?.session_notes ?? null,
+    host_notes: row?.host_notes ?? null,
+    host_changes: row?.host_changes ?? null,
+    energy: row?.energy ?? null,
+    shared_tasting_notes: parsePostSessionStringArray(row?.shared_tasting_notes),
+  });
+};
+
 function eventDraftArticleToApi(article: Record<string, any>) {
   return {
     ...article,
@@ -19636,6 +19668,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/admin/events/:id/notifications', handleGetNotifications],
   ['POST', '/api/admin/events/:id/notifications', handleCreateNotifications],
   ['POST', '/api/admin/events/:id/article-draft', handleCreateEventArticleDraft],
+  ['GET', '/api/admin/events/:id/post-session', handleGetAdminPostSession],
   ['POST', '/api/admin/events/:id/post-session', handleUpsertPostSession],
   ['POST', '/api/admin/events/:id/duplicate', handleDuplicateEvent],
   ['POST', '/api/admin/events/:id/attendance', handleBatchAttendance],

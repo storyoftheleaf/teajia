@@ -26,6 +26,19 @@ export interface CurateImportBatch {
 }
 export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[] }
 
+export interface AdminEventPostSession extends Record<string, unknown> {
+  id: string | null;
+  event_id: string;
+  tea_ledger: unknown | null;
+  playlist_url: string | null;
+  gallery_images: string[];
+  session_notes: string | null;
+  host_notes: string | null;
+  host_changes: string | null;
+  energy: string | null;
+  shared_tasting_notes: string[];
+}
+
 export interface AuditLogEntry {
   id: string;
   action: string;
@@ -1452,6 +1465,8 @@ export const api = {
         method: 'POST',
       });
     },
+    getPostSession: (id: string): Promise<AdminEventPostSession> =>
+      authedFetch(`${API_URL}/api/admin/events/${id}/post-session`),
     upsertPostSession: async (id: string, data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/post-session`, {
         method: 'POST',
