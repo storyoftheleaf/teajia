@@ -61,6 +61,30 @@ describe('parseXlsxIntake', () => {
     await expect(parseXlsxIntake(bytes)).rejects.toThrow(/100 columns/i);
   });
 
+  it('rejects oversized rows hidden in a secondary worksheet', async () => {
+    const bytes = await makeWorkbook((workbook) => {
+      const first = workbook.addWorksheet('Tea');
+      first.addRow(['Name']);
+      first.addRow(['Ruby 18']);
+      const hidden = workbook.addWorksheet('Oversized');
+      for (let row = 0; row < 5_002; row += 1) hidden.addRow([row]);
+    });
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(bytes)).rejects.toThrow(/Oversized.*5,000 data rows/i);
+  });
+
+  it('rejects oversized columns hidden in a secondary worksheet', async () => {
+    const bytes = await makeWorkbook((workbook) => {
+      const first = workbook.addWorksheet('Tea');
+      first.addRow(['Name']);
+      first.addRow(['Ruby 18']);
+      const hidden = workbook.addWorksheet('Oversized');
+      hidden.addRow(Array.from({ length: 101 }, (_, index) => `Column ${index + 1}`));
+    });
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(bytes)).rejects.toThrow(/Oversized.*100 columns/i);
+  });
+
   it('rejects empty workbooks', async () => {
     const bytes = await makeWorkbook(() => undefined);
     const { parseXlsxIntake } = await loadParser();

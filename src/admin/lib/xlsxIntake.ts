@@ -43,14 +43,16 @@ export async function parseXlsxIntake(bytes: ArrayBuffer): Promise<IntakeRow[]> 
     throw new Error(`Workbook exceeds the ${XLSX_INTAKE_LIMITS.maxWorksheets} worksheets limit.`);
   }
 
-  const sheet = workbook.worksheets[0];
-  if (sheet.actualRowCount > XLSX_INTAKE_LIMITS.maxDataRows + 1) {
-    throw new Error(`Worksheet exceeds the ${XLSX_INTAKE_LIMITS.maxDataRows.toLocaleString('en-US')} data rows limit.`);
-  }
-  if (sheet.actualColumnCount > XLSX_INTAKE_LIMITS.maxColumns) {
-    throw new Error(`Worksheet exceeds the ${XLSX_INTAKE_LIMITS.maxColumns} columns limit.`);
+  for (const worksheet of workbook.worksheets) {
+    if (worksheet.actualRowCount > XLSX_INTAKE_LIMITS.maxDataRows + 1) {
+      throw new Error(`Worksheet "${worksheet.name}" exceeds the ${XLSX_INTAKE_LIMITS.maxDataRows.toLocaleString('en-US')} data rows limit.`);
+    }
+    if (worksheet.actualColumnCount > XLSX_INTAKE_LIMITS.maxColumns) {
+      throw new Error(`Worksheet "${worksheet.name}" exceeds the ${XLSX_INTAKE_LIMITS.maxColumns} columns limit.`);
+    }
   }
 
+  const sheet = workbook.worksheets[0];
   const headers: string[] = [];
   sheet.getRow(1).eachCell({ includeEmpty: true }, (cell, column) => {
     headers[column - 1] = String(safeCellValue(cell.value) ?? '').trim();
