@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Plus, Trash2, X } from 'lucide-react';
-import { api, getTokenClaims } from '../../lib/api';
+import { api } from '../../lib/api';
+import { useAppStore } from '../../lib/store';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { AdminContributor, ContributorLink, ContributorWrite } from '../../types';
 
@@ -15,7 +16,7 @@ const labelClass = 'block text-ui-11 font-medium text-tea-text-sec mb-1.5';
 
 const emptyWrite = (): ContributorWrite => ({
   id: '', display_name: '', chinese_name: '', role: '', pronouns: '', location_line: '', active_since: '',
-  beginnings: '', now_text: '', now_stamp: '', inspirations: '', closing: '', avatar_url: '', portrait_url: '',
+  beginnings: '', now_text: '', now_stamp: '', now_updated_at: '', inspirations: '', closing: '', avatar_url: '', portrait_url: '',
   portrait_caption: '', voice_clip_url: '', voice_clip_caption: '', pouring_today_product_id: '', pouring_today_note: '',
   where_to_find_text: '', user_id: '', face_of_account_id: null, links: [],
 });
@@ -28,22 +29,45 @@ function contributorWrite(contributor: AdminContributor): ContributorWrite {
   return result;
 }
 
-function accountContext() {
-  const claims = getTokenClaims() as any;
-  const accountId = claims?.active_account_id ?? '';
-  const membership = claims?.memberships?.find((item: any) => item.account_id === accountId);
-  return { accountId, accountName: membership?.account_name || 'this account' };
-}
-
 export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, onSaved }) => {
-  const { accountId, accountName } = useMemo(accountContext, []);
+  const accountId = useAppStore(state => state.activeAccountId) ?? '';
+  const accountName = useAppStore(state => state.memberships.find(item => item.account_id === state.activeAccountId)?.account_name) || 'this account';
+  const [persistedContributor, setPersistedContributor] = useState<AdminContributor | null>(contributor);
   const [form, setForm] = useState<ContributorWrite>(() => contributor ? contributorWrite(contributor) : emptyWrite());
   const [contactId, setContactId] = useState(contributor?.contact_customer_id ?? '');
   const [customers, setCustomers] = useState<Array<{ id: string; name: string }>>([]);
   const [customersLoaded, setCustomersLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isNew = !contributor;
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const isNew = !persistedContributor;
+
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+    return () => returnFocusRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !saving) {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, saving]);
 
   const setField = (field: keyof ContributorWrite, value: any) => setForm(current => ({ ...current, [field]: value }));
   const loadCustomers = async () => {
@@ -76,7 +100,8 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
       const payload = { ...form, face_of_account_id: form.face_of_account_id ? accountId : null };
       const result = isNew
         ? await api.people.createContributor(payload)
-        : await api.people.updateContributor(contributor.id, payload);
+        : await api.people.updateContributor(persistedContributor.id, payload);
+      if (isNew) setPersistedContributor(result.contributor);
       const id = result.contributor.id;
       if (contactId !== (contributor?.contact_customer_id ?? '')) await api.people.updateContributorContact(id, contactId || null);
       if (publishing) await api.people.publishContributor(id);
@@ -87,9 +112,9 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
   };
 
   const unpublish = async () => {
-    if (!contributor || saving) return;
+    if (!persistedContributor || saving) return;
     setSaving(true); setError(null);
-    try { await api.people.unpublishContributor(contributor.id); onSaved(); }
+    try { await api.people.unpublishContributor(persistedContributor.id); onSaved(); }
     catch (caught: any) { setError(caught?.message || 'Could not unpublish this contributor.'); }
     finally { setSaving(false); }
   };
@@ -99,11 +124,11 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
 
   return (
     <>
-      <div className="fixed inset-0 z-drawer bg-tea-bg/80" aria-hidden onClick={onClose} />
-      <aside role="dialog" aria-modal="true" aria-label={isNew ? 'Create contributor' : 'Edit contributor'} className="fixed inset-0 z-modal flex flex-col bg-tea-surface sm:left-auto sm:w-[min(680px,100vw)] sm:border-l sm:border-tea-border">
+      <div className="fixed inset-0 z-drawer bg-tea-bg/80" aria-hidden onClick={saving ? undefined : onClose} />
+      <aside ref={dialogRef} role="dialog" aria-modal="true" aria-label={isNew ? 'Create contributor' : 'Edit contributor'} className="fixed inset-0 z-modal flex flex-col bg-tea-surface sm:left-auto sm:w-[min(680px,100vw)] sm:border-l sm:border-tea-border">
         <header className="flex items-center justify-between border-b border-tea-border px-4 py-3 sm:px-6">
-          <button type="button" onClick={onClose} aria-label="Close" className="tap-target -ml-1 rounded-md p-2 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"><X size={18} /></button>
-          <p className="text-ui-11 text-tea-text-sec">{isNew ? 'New contributor' : contributor.display_name}</p>
+          <button ref={closeButtonRef} type="button" onClick={onClose} disabled={saving} aria-label="Close" className="tap-target -ml-1 rounded-md p-2 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:opacity-50"><X size={18} /></button>
+          <p className="text-ui-11 text-tea-text-sec">{isNew ? 'New contributor' : persistedContributor?.display_name}</p>
         </header>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-6 pb-nav-gap sm:px-6">
@@ -182,9 +207,9 @@ export const ContributorEditorPanel: React.FC<Props> = ({ contributor, onClose, 
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-tea-border bg-tea-surface px-4 pt-3 pb-nav-gap sm:px-6 lg:pb-3">
           <button type="button" onClick={onClose} disabled={saving} className="tap-target px-2 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
           <div className="flex flex-wrap justify-end gap-2">
-            {!isNew && contributor.is_published === 1 && <button type="button" onClick={unpublish} disabled={saving} className="tap-target px-3 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Unpublish</button>}
+            {!isNew && persistedContributor?.is_published === 1 && <button type="button" onClick={unpublish} disabled={saving} className="tap-target px-3 py-2 text-ui-13 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Unpublish</button>}
             <button type="button" onClick={() => persist(false)} disabled={saving} className="tap-target rounded-md border border-tea-border px-3 py-2 text-ui-13 text-tea-text hover:bg-tea-accent-sub disabled:opacity-50">{saving ? 'Saving…' : 'Save changes'}</button>
-            {(isNew || contributor.is_published !== 1) && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md bg-tea-gold px-3 py-2 text-ui-13 font-medium text-tea-bg hover:bg-tea-gold-lt disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Publish contributor</button>}
+            {(isNew || persistedContributor?.is_published !== 1) && <button type="button" onClick={() => persist(true)} disabled={saving} className="tap-target inline-flex items-center gap-2 rounded-md bg-tea-gold px-3 py-2 text-ui-13 font-medium text-tea-bg hover:bg-tea-gold-lt disabled:opacity-50">{saving && <Loader2 size={14} className="animate-spin" />} Publish contributor</button>}
           </div>
         </footer>
       </aside>

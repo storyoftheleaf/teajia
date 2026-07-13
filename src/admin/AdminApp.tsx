@@ -60,7 +60,7 @@ const OperatingAsBanner: React.FC<{
 import { useProducts, useRates } from './hooks/useAdminData';
 import { eventsListQueryOptions } from './hooks/useEventData';
 import { useAppStore } from './store';
-import { selectHasBundle } from '../lib/store';
+import { selectHasBundle, selectIsOwnerTier } from '../lib/store';
 
 // Import Components
 import { TeaTable } from './components/TeaTable';
@@ -252,6 +252,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   const hasGatherBundle = isAdmin || selectHasBundle(bundleState, 'gather');
   const hasSellBundle = isAdmin || selectHasBundle(bundleState, 'sell');
   const hasMembersBundle = isAdmin || selectHasBundle(bundleState, 'members');
+  const isOwnerTier = isAdmin || selectIsOwnerTier(bundleState);
   const canManageInventory = hasCatalogBundle || hasStockBundle;
   const canUseNetwork = hasCatalogBundle || hasSellBundle || !!platformRole;
   const canUsePeople = hasSellBundle || hasGatherBundle || hasMembersBundle || hasStockBundle || hasPublishBundle;
@@ -793,7 +794,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="platform/audit-log" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><PlatformAuditLogPage /></PageTransition></ProtectedRoute>} />
               <Route path="platform/all-stock" element={<ProtectedRoute hasAccess={isAdmin && !!platformRole} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MovementStockView /></PageTransition></ProtectedRoute>} />
               <Route path="magazine" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MagazineView /></PageTransition></ProtectedRoute>} />
-              <Route path="contributors" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContributorsView /></PageTransition></ProtectedRoute>} />
+              <Route path="contributors" element={<ProtectedRoute hasAccess={isOwnerTier} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><ContributorsView /></PageTransition></ProtectedRoute>} />
               <Route path="collections" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionsView /></PageTransition></ProtectedRoute>} />
               <Route path="collections/inbound/:pubId" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><InboundCollectionView /></PageTransition></ProtectedRoute>} />
               <Route path="collections/:id" element={<ProtectedRoute hasAccess={hasPublishBundle} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><CollectionEditView /></PageTransition></ProtectedRoute>} />
