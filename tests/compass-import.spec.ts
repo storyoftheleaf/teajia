@@ -396,9 +396,11 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByTestId('import-item-row')).toHaveCount(1);
     await page.getByRole('button', { name: 'Add 1 teaware item to Inventory' }).click();
     const completion = page.getByRole('region', { name: 'Import complete' });
-    await expect(completion.getByLabel('Connected records')).toBeVisible();
-    await expect(completion.getByText('1 Library identity connected')).toBeVisible();
-    await expect(completion.getByText('1 Inventory holding connected')).toBeVisible();
+    await expect(completion.getByText('1 teaware item added · No sourcing run', { exact: true })).toBeVisible();
+    await expect(completion.getByTestId('completion-vendor-ledger')).toHaveCount(1);
+    await expect(completion.getByTestId('completion-ledger-row')).toHaveCount(1);
+    await expect(completion.getByText('Tea record created', { exact: true })).toBeVisible();
+    await expect(completion.getByText('Stock record created', { exact: true })).toBeVisible();
   });
 
   test('shows every incomplete batch and clears account A import state immediately on account switch', async ({ page }) => {
@@ -890,16 +892,32 @@ test.describe('analyzed inventory import review', () => {
     await expect.poll(api.finalizeCalls).toBe(1);
     const completion = dialog.getByRole('region', { name: 'Import complete' });
     await expect(completion).toBeVisible();
-    await expect(completion.getByLabel('Connected records')).toBeVisible();
-    await expect(completion.getByText('10 Library identities connected')).toBeVisible();
-    await expect(completion.getByText('10 Inventory holdings connected')).toBeVisible();
+    await expect(completion.getByText('Added to your records', { exact: true })).toBeVisible();
+    await expect(completion.getByRole('heading', { name: 'Import complete' })).toHaveClass(/font-serif/);
+    await expect(completion.getByText('10 teas added · Taiwan · Spring · 2026', { exact: true })).toBeVisible();
+    await expect(completion.getByLabel('Connected records')).toHaveCount(0);
+    await expect(completion.locator('article')).toHaveCount(0);
+
+    const vendorLedgers = completion.getByTestId('completion-vendor-ledger');
+    await expect(vendorLedgers).toHaveCount(2);
+    const chenLedger = completion.getByRole('region', { name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna vendor receipt' });
+    await expect(chenLedger.getByRole('heading', { name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna' })).toHaveClass(/font-display/);
+    await expect(chenLedger.getByTestId('completion-ledger-row')).toHaveCount(5);
+    const firstFinalizedTea = chenLedger.getByTestId('completion-ledger-row').first();
+    await expect(firstFinalizedTea.getByRole('heading', { name: 'Yunnan Ancient Tree Raw Pu’er — Spring Lot' })).toHaveClass(/font-serif/);
+    await expect(firstFinalizedTea.getByText('云南古树生普', { exact: true })).toBeVisible();
+    await expect(firstFinalizedTea.getByText('1kg · CNY 760', { exact: true })).toBeVisible();
+    await expect(firstFinalizedTea.getByText('Tea record reused', { exact: true })).toBeVisible();
+    await expect(firstFinalizedTea.getByText('Stock record reused', { exact: true })).toBeVisible();
+    await expect(chenLedger.getByRole('link', { name: 'Open received receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
+
+    const linLedger = completion.getByRole('region', { name: 'Lin Family High Mountain Tea Workshop, Nantou County vendor receipt' });
+    await expect(linLedger.getByTestId('completion-ledger-row')).toHaveCount(5);
+    await expect(linLedger.getByRole('link', { name: 'Open received receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-lin');
     await expect(completion.getByRole('link', { name: /Open Inventory holding/ })).toHaveCount(10);
-    await expect(completion.getByText(/2 vendor receipts/)).toBeVisible();
-    await expect(completion.getByText('Library identity reused · Inventory holding reused')).toBeVisible();
-    await expect(completion.getByText('Taiwan · Spring · 2026')).toBeVisible();
-    await expect(completion.getByRole('link', { name: /Chen Family Ancient Tree Tea Cooperative.*receipt/ })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
-    await expect(completion.getByRole('link', { name: /Lin Family High Mountain Tea Workshop.*receipt/ })).toHaveAttribute('href', '/admin/stock?receipt=receipt-lin');
     await expect(completion.getByRole('link', { name: /Open Library identity/ }).first()).toHaveAttribute('href', /\/admin\/compass\?tab=library&entry=/);
+    const completionActions = completion.getByRole('button');
+    await expect(completionActions).toHaveText(['Close summary', 'Start another import']);
     await expect(page).toHaveURL(/\/admin\/compass/);
     await completion.getByRole('button', { name: 'Close summary' }).click();
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
