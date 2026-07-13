@@ -7,7 +7,7 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 test('Playwright is pinned and uses the clean test server', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.match(pkg.devDependencies?.['@playwright/test'] ?? '', /^\^?\d+\.\d+\.\d+$/);
-  assert.equal(pkg.scripts['dev:test'], 'vite');
+  assert.equal(pkg.scripts['dev:test'], 'VITE_API_URL=http://localhost:7777 vite');
   assert.match(pkg.scripts['test:mobile'], /^playwright test /);
   assert.doesNotMatch(pkg.scripts['test:mobile'], /\bnpx\b/);
   assert.match(read('playwright.config.ts'), /command: 'npm run dev:test'/);

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "lsof -ti:7777 >/dev/null 2>&1 || (infisical export --env=dev --format=dotenv --path=/ > .env.local && vite)",
-    "dev:test": "vite",
+    "dev:test": "VITE_API_URL=http://localhost:7777 vite",
     "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build",
     "check:deploy-config": "node scripts/check-required-deployment-config.mjs",
     "lint:colors": "bash scripts/lint-colors.sh",
