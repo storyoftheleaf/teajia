@@ -93,6 +93,9 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     if (sampleSetMatch && route.request().method() === 'DELETE') {
       const index = sampleSets.findIndex(row => row.id === sampleSetMatch[1]);
       if (index >= 0) sampleSets.splice(index, 1);
+      for (let sampleIndex = samples.length - 1; sampleIndex >= 0; sampleIndex -= 1) {
+        if (samples[sampleIndex].set_id === sampleSetMatch[1]) samples.splice(sampleIndex, 1);
+      }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
     }
     const sampleMatch = path.match(/^\/api\/admin\/samples\/([^/]+)$/);

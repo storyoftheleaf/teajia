@@ -56,6 +56,7 @@ interface SampleStoreState {
   addSampleSet: (set: SampleSet) => void;
   updateSampleSet: (id: string, updates: Partial<SampleSet>) => void;
   removeSampleSet: (id: string) => void;
+  discardSampleSet: (id: string) => void;
 
   // Selection
   setActiveSample: (id: string | null) => void;
@@ -300,6 +301,24 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
                 : state.activeSampleId,
             sampleSetTombstones: tombstone
               ? Array.from(new Set([...state.sampleSetTombstones, tombstone]))
+              : state.sampleSetTombstones,
+          };
+        }),
+
+      discardSampleSet: (id) =>
+        set((state) => {
+          const sampleSet = state.sampleSets.find((candidate) => candidate.id === id);
+          const idsToRemove = new Set([
+            ...(sampleSet?.sampleIds ?? []),
+            ...state.samples.filter((sample) => sample.setId === id).map((sample) => sample.id),
+          ]);
+          return {
+            sampleSets: state.sampleSets.filter((candidate) => candidate.id !== id),
+            samples: state.samples.filter((sample) => sample.setId !== id && !idsToRemove.has(sample.id)),
+            activeSetId: state.activeSetId === id ? null : state.activeSetId,
+            activeSampleId: state.activeSampleId && idsToRemove.has(state.activeSampleId) ? null : state.activeSampleId,
+            sampleSetTombstones: state.accountScopeId
+              ? Array.from(new Set([...state.sampleSetTombstones, id]))
               : state.sampleSetTombstones,
           };
         }),

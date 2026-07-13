@@ -86,14 +86,18 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
   const pendingOperation = useSampleCartStore((s) => s.pendingOperation);
   const setPendingOperation = useSampleCartStore((s) => s.setPendingOperation);
   const completePendingOperation = useSampleCartStore((s) => s.completePendingOperation);
+  const releasePendingOperation = useSampleCartStore((s) => s.releasePendingOperation);
 
   const addSample = useSampleStore((s) => s.addSample);
   const addSampleSet = useSampleStore((s) => s.addSampleSet);
   const accountScopeId = useSampleStore((s) => s.accountScopeId);
+  const discardSampleSet = useSampleStore((s) => s.discardSampleSet);
 
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [discarding, setDiscarding] = useState(false);
+  const [discardError, setDiscardError] = useState<string | null>(null);
 
   const isEmpty = items.length === 0;
   const operationLocked = pendingOperation != null;
@@ -181,6 +185,43 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
       setSaveError(error instanceof Error ? error.message : 'This sample list could not be saved. Retry without clearing it.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDiscardDraft = async () => {
+    const operation = useSampleCartStore.getState().pendingOperation;
+    const accountId = useAppStore.getState().activeAccountId;
+    if (!operation || !accountId || accountScopeId !== accountId) {
+      setDiscardError('The pending batch account is no longer active. Return to that account and retry.');
+      return;
+    }
+    setDiscarding(true);
+    setDiscardError(null);
+    try {
+      discardSampleSet(operation.sampleSet.id);
+      const result = await sampleRepository.sync(accountId);
+      const sampleState = useSampleStore.getState();
+      const cartState = useSampleCartStore.getState();
+      if (
+        result.status !== 'synced'
+        || useAppStore.getState().activeAccountId !== accountId
+        || sampleState.accountScopeId !== accountId
+        || cartState.accountScopeId !== accountId
+        || cartState.pendingOperation?.sampleSet.id !== operation.sampleSet.id
+        || sampleState.getSampleSet(operation.sampleSet.id)
+        || sampleState.samples.some((sample) => sample.setId === operation.sampleSet.id)
+        || sampleState.sampleSetTombstones.includes(operation.sampleSet.id)
+      ) {
+        throw new Error('The saved draft could not be removed yet. It remains locked; retry discard when the connection is available.');
+      }
+      if (!releasePendingOperation(operation.sampleSet.id)) {
+        throw new Error('The active pending batch changed before cleanup completed. Its list remains locked.');
+      }
+      setSaveError(null);
+    } catch (error) {
+      setDiscardError(error instanceof Error ? error.message : 'The saved draft could not be removed. It remains locked.');
+    } finally {
+      setDiscarding(false);
     }
   };
 
@@ -320,15 +361,28 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                   {saveError}
                 </p>
               )}
-              <button
-                type="button"
-                onClick={handleSaveAsSet}
-                disabled={saving}
-                className="w-full min-h-11 flex items-center justify-center gap-2 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors disabled:opacity-50"
-              >
-                <BookOpen size={13} />
-                {saving ? 'Saving sample batch…' : saveError ? 'Retry saving sample batch' : operationLocked ? 'Retry saved batch' : 'Save as sample batch'}
-              </button>
+              {discardError && <p role="alert" className="rounded-md bg-tea-elevated px-3 py-2 text-ui-12 text-tea-text-sec">{discardError}</p>}
+              <div className="flex items-center justify-between gap-2">
+                {saveError && operationLocked && (
+                  <button
+                    type="button"
+                    onClick={handleDiscardDraft}
+                    disabled={saving || discarding}
+                    className="tap-target min-h-11 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50"
+                  >
+                    {discarding ? 'Discarding…' : 'Discard saved draft'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSaveAsSet}
+                  disabled={saving || discarding}
+                  className="min-h-11 flex-1 flex items-center justify-center gap-2 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors disabled:opacity-50"
+                >
+                  <BookOpen size={13} />
+                  {saving ? 'Saving sample batch…' : saveError ? 'Retry saving sample batch' : operationLocked ? 'Retry saved batch' : 'Save as sample batch'}
+                </button>
+              </div>
           </>
 
           <div className="flex gap-2">

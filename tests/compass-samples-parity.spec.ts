@@ -266,6 +266,129 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     expect(sampleState.samples.map((sample: { id: string }) => sample.id)).toEqual(expect.arrayContaining(beforeReload.sampleIds));
   });
 
+  test('discards a blocked saved draft once, unlocks its original list, and saves the corrected list', async ({ page }) => {
+    const missingItem = {
+      id: 'missing-cart-item', name: 'Missing Library Tea', type: 'Green', vendorName: 'Absent Vendor',
+      grams: 5, compassEntryId: 'missing-library-entry',
+    };
+    const goodItem = {
+      id: 'good-cart-item', name: 'Available Library Tea', type: 'Oolong', vendorName: 'Present Vendor',
+      grams: 10, compassEntryId: 'good-library-entry',
+    };
+    await installCompassHarness(page, {
+      sampleCart: [missingItem, goodItem],
+      preserveSamplesOnNavigation: true,
+      preserveSampleCartOnNavigation: true,
+      compassEntries: [{
+        id: 'good-library-entry', name: goodItem.name, category: 'tea', status: 'noted',
+        decision: null, verdict: null, sample_state: null, sample_set_id: null,
+        notes: '', photos: '[]', audio_clips: '[]', created_at: '2026-07-13T00:00:00.000Z', updated_at: '2026-07-13T00:00:00.000Z',
+      }],
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (2)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByRole('alert')).toContainText('discard the saved draft to unlock and edit this list');
+
+    const blocked = await page.evaluate(() => {
+      const cart = JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state;
+      const samples = JSON.parse(localStorage.getItem('teajia-samples') || '{}').state;
+      return {
+        setId: cart.pendingOperation.sampleSet.id,
+        portionIds: cart.pendingOperation.samples.map((sample: { id: string }) => sample.id),
+        persistedSetIds: samples.sampleSets.map((set: { id: string }) => set.id),
+        persistedPortionIds: samples.samples.map((sample: { id: string }) => sample.id),
+      };
+    });
+    expect(blocked.persistedSetIds).toEqual([blocked.setId]);
+    expect(blocked.persistedPortionIds).toEqual(expect.arrayContaining(blocked.portionIds));
+
+    await page.getByRole('button', { name: 'Discard saved draft' }).click();
+    await expect(page.getByRole('button', { name: 'Save as sample batch' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear all' })).toBeEnabled();
+    expect(compassRequestCount(page, `DELETE /api/admin/sample-sets/${blocked.setId}`)).toBe(1);
+    expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(1);
+    expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(2);
+
+    const afterDiscard = await page.evaluate(() => ({
+      cart: JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state,
+      samples: JSON.parse(localStorage.getItem('teajia-samples') || '{}').state,
+    }));
+    expect(afterDiscard.cart.pendingOperation).toBeNull();
+    expect(afterDiscard.cart.items.map((item: { id: string }) => item.id)).toEqual(['missing-cart-item', 'good-cart-item']);
+    expect(afterDiscard.samples.sampleSets).toEqual([]);
+    expect(afterDiscard.samples.samples).toEqual([]);
+
+    const missingRow = page.getByText('Missing Library Tea', { exact: true }).locator('..').locator('..');
+    await missingRow.getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    expect(compassRequestCount(page, `DELETE /api/admin/sample-sets/${blocked.setId}`)).toBe(1);
+    expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(2);
+    expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(3);
+
+    const corrected = await page.evaluate(() => ({
+      cart: JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state,
+      samples: JSON.parse(localStorage.getItem('teajia-samples') || '{}').state,
+    }));
+    expect(corrected.cart.pendingOperation).toBeNull();
+    expect(corrected.cart.items).toEqual([]);
+    expect(corrected.samples.sampleSets).toHaveLength(1);
+    expect(corrected.samples.sampleSets[0].id).not.toBe(blocked.setId);
+    expect(corrected.samples.samples).toHaveLength(1);
+    expect(corrected.samples.samples[0]).toMatchObject({ compassEntryId: 'good-library-entry' });
+    expect(blocked.portionIds).not.toContain(corrected.samples.samples[0].id);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect.poll(() => page.evaluate(() => ({
+      cart: JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state,
+      samples: JSON.parse(localStorage.getItem('teajia-samples') || '{}').state,
+    })), { message: 'The corrected batch should rehydrate without restoring the discarded draft' }).toMatchObject({
+      cart: { pendingOperation: null, items: [] },
+      samples: { sampleSets: [{ id: corrected.samples.sampleSets[0].id }] },
+    });
+    const reloaded = await page.evaluate(() => ({
+      cart: JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state,
+      samples: JSON.parse(localStorage.getItem('teajia-samples') || '{}').state,
+    }));
+    expect(reloaded.cart.pendingOperation).toBeNull();
+    expect(reloaded.cart.items).toEqual([]);
+    expect(reloaded.samples.sampleSets.map((set: { id: string }) => set.id)).toEqual([corrected.samples.sampleSets[0].id]);
+  });
+
+  test('keeps a blocked list locked when saved draft cleanup fails', async ({ page }) => {
+    await installCompassHarness(page, {
+      sampleCart: [{ ...CART_ITEM, compassEntryId: 'missing-library-entry' }],
+      preserveSamplesOnNavigation: true,
+      preserveSampleCartOnNavigation: true,
+      compassEntries: [],
+    });
+    let failCleanup = true;
+    await page.route('**/api/admin/sample-sets/*', async route => {
+      if (route.request().method() === 'DELETE' && failCleanup) {
+        failCleanup = false;
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Draft cleanup is temporarily unavailable' }) });
+      }
+      return route.fallback();
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await page.getByRole('button', { name: 'Discard saved draft' }).click();
+    await expect(page.getByText('Draft cleanup is temporarily unavailable', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Discard saved draft' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear all' })).toBeDisabled();
+    const stillLocked = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state);
+    expect(stillLocked.pendingOperation).not.toBeNull();
+    expect(stillLocked.items).toHaveLength(1);
+
+    await page.getByRole('button', { name: 'Discard saved draft' }).click();
+    await expect(page.getByRole('button', { name: 'Save as sample batch' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear all' })).toBeEnabled();
+  });
+
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);

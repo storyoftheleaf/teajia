@@ -37,6 +37,7 @@ interface SampleCartState {
   clear: () => void;
   setPendingOperation: (operation: PendingSampleBatchOperation) => void;
   completePendingOperation: (sampleSetId: string) => boolean;
+  releasePendingOperation: (sampleSetId: string) => boolean;
   isInCart: (id: string) => boolean;
 }
 
@@ -107,6 +108,16 @@ export function createSampleCartStore(storage?: PersistStorage<SampleCartState>)
           return { items: [], pendingOperation: null };
         });
         return completed;
+      },
+
+      releasePendingOperation: (sampleSetId) => {
+        let released = false;
+        set((state) => {
+          if (state.pendingOperation?.sampleSet.id !== sampleSetId) return state;
+          released = true;
+          return { pendingOperation: null };
+        });
+        return released;
       },
 
       isInCart: (id) => get().items.some((i) => i.id === id),

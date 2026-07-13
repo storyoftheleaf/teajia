@@ -102,6 +102,17 @@ describe('sample account isolation', () => {
     expect(useSampleCartStore.getState().pendingOperation).toBeNull();
   });
 
+  it('releases only the matching pending identity while preserving its original cart', () => {
+    useSampleCartStore.getState().switchAccount('acct-a');
+    useSampleCartStore.getState().addItem({ id: 'entry-1', name: 'Tea', grams: 10 });
+    useSampleCartStore.getState().setPendingOperation(buildSampleBatchDraft(useSampleCartStore.getState().items, { setId: 'set-a' }));
+    expect(useSampleCartStore.getState().releasePendingOperation('other')).toBe(false);
+    expect(useSampleCartStore.getState().releasePendingOperation('set-a')).toBe(true);
+    expect(useSampleCartStore.getState().items.map(item => item.id)).toEqual(['entry-1']);
+    useSampleCartStore.getState().removeItem('entry-1');
+    expect(useSampleCartStore.getState().items).toEqual([]);
+  });
+
   it('locks only the owning account cart', () => {
     useSampleCartStore.getState().switchAccount('acct-a');
     useSampleCartStore.getState().addItem({ id: 'a', name: 'A', grams: 10 });

@@ -84,7 +84,7 @@ export async function saveSampleBatchLifecycle(options: {
     .filter((id): id is string => Boolean(id))));
   const missingIds = linkedIds.filter((id) => !options.getCompassEntry(id));
   if (missingIds.length > 0) {
-    throw new Error(`The sample batch was saved, but Compass entry ${missingIds.join(', ')} could not be linked. Restore the entry or remove it from the list, then retry.`);
+    throw new Error(`The sample batch was saved, but Compass entry ${missingIds.join(', ')} could not be linked. Retry if the entry returns, or discard the saved draft to unlock and edit this list.`);
   }
   const updatedIds: string[] = [];
   for (const id of linkedIds) {
