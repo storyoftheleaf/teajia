@@ -1,11 +1,14 @@
 export type FinalizeUnit = 'g' | 'unit';
 export type FinalizePurpose = 'working' | 'sample' | 'personal';
 
-export interface CurateFinalizeBatch { id: string; accountId: string; journeyId: string | null; reviewState: string }
+export type FinalizeDisposition = 'created' | 'reused';
+export interface FinalizeResolution { id: string; disposition: FinalizeDisposition }
+export interface CurateFinalizeBatch { id: string; accountId: string; journeyId: string | null; journeyName: string | null; reviewState: string }
 export interface CurateFinalizeGroup { id: string; vendorId: string | null; vendorName: string | null; position: number }
 export interface CurateFinalizeItem {
   id: string; groupId: string; category: 'tea' | 'teaware'; name: string;
   compassEntryId: string | null; productId: string | null;
+  identityDisposition?: FinalizeDisposition;
   duplicateResolution?: 'new' | 'matched' | 'unresolved';
   quantity: number | null; unit: FinalizeUnit | null; packCount: number | null;
   lineCost: number | null; currency: string | null; unitCost: number | null;
@@ -23,9 +26,10 @@ export interface FinalizeReceiptLineInput {
 }
 export interface FinalizeReceiptLine extends FinalizeReceiptLineInput { id: string; receiptId?: string }
 export interface FinalizeReceipt { id: string; groupId: string; lines: FinalizeReceiptLine[] }
+export interface FinalizeResultReceipt extends FinalizeReceipt { vendorId: string; vendorName: string }
 export interface CurateFinalizeResult {
-  batchId: string; idempotencyKey: string; receipts: FinalizeReceipt[];
-  items: Array<{ id: string; compassEntryId: string; productId: string; movementId: string }>;
+  batchId: string; idempotencyKey: string; journey: { id: string; name: string } | null; receipts: FinalizeResultReceipt[];
+  items: Array<{ id: string; compassEntryId: string; productId: string; movementId: string; identityDisposition: FinalizeDisposition; holdingDisposition: FinalizeDisposition }>;
 }
 
 export interface CurateImportFinalizeContext {
@@ -34,8 +38,8 @@ export interface CurateImportFinalizeContext {
   loadImport(batchId: string): Promise<CurateFinalizeData | null>;
   loadFinalization(batchId: string): Promise<{ idempotencyKey: string; result: CurateFinalizeResult | null } | null>;
   reserveFinalization(batchId: string, idempotencyKey: string): Promise<void>;
-  ensureIdentity(item: CurateFinalizeItem, batch: CurateFinalizeBatch): Promise<string>;
-  ensureProduct(item: CurateFinalizeItem, compassEntryId: string): Promise<string>;
+  ensureIdentity(item: CurateFinalizeItem, batch: CurateFinalizeBatch): Promise<FinalizeResolution>;
+  ensureProduct(item: CurateFinalizeItem, compassEntryId: string, identityDisposition: FinalizeDisposition): Promise<FinalizeResolution>;
   createReceipt(group: CurateFinalizeGroup, lines: FinalizeReceiptLineInput[], idempotencyKey: string, journeyId: string | null): Promise<FinalizeReceipt>;
   receiveLine(line: FinalizeReceiptLine, idempotencyKey: string): Promise<{ movementId: string }>;
   complete(batchId: string, idempotencyKey: string, result: CurateFinalizeResult): Promise<void>;
@@ -90,32 +94,33 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
     // Same-key work is deliberately resumable: every downstream primitive is idempotent.
   }
 
-  const resolved = new Map<string, { item: CurateFinalizeItem; compassEntryId: string; productId: string }>();
+  const resolved = new Map<string, { item: CurateFinalizeItem; identity: FinalizeResolution; holding: FinalizeResolution }>();
   for (const item of data.items) {
-    const compassEntryId = await ctx.ensureIdentity(item, data.batch);
-    const productId = await ctx.ensureProduct(item, compassEntryId);
-    resolved.set(item.id, { item, compassEntryId, productId });
+    const identity = await ctx.ensureIdentity(item, data.batch);
+    const holding = await ctx.ensureProduct(item, identity.id, identity.disposition);
+    resolved.set(item.id, { item, identity, holding });
   }
-  const receipts: FinalizeReceipt[] = [];
+  const receipts: FinalizeResultReceipt[] = [];
   const finalizedItems: CurateFinalizeResult['items'] = [];
   for (const group of [...data.groups].sort((a, b) => a.position - b.position)) {
     const lines: FinalizeReceiptLineInput[] = data.items.filter(item => item.groupId === group.id).map(item => {
       const identity = resolved.get(item.id)!;
       return {
-        itemId: item.id, productId: identity.productId, compassEntryId: identity.compassEntryId,
+        itemId: item.id, productId: identity.holding.id, compassEntryId: identity.identity.id,
         quantity: item.quantity!, unit: item.unit!, purpose: item.purpose!, packCount: item.packCount!,
         originalCostAmount: item.lineCost, originalCostCurrency: item.currency!, originalUnitCost: item.unitCost,
         originalCostAmountExact: item.lineCostExact ?? String(item.lineCost!), originalUnitCostExact: item.unitCostExact ?? String(item.unitCost!),
       };
     });
     const receipt = await ctx.createReceipt(group, lines, `${idempotencyKey}:receipt:${group.id}`, data.batch.journeyId);
-    receipts.push(receipt);
+    receipts.push({ ...receipt, vendorId: group.vendorId!, vendorName: group.vendorName || 'Unnamed vendor' });
     for (const line of receipt.lines) {
       const movement = await ctx.receiveLine(line, `${idempotencyKey}:movement:${line.itemId}`);
-      finalizedItems.push({ id: line.itemId, compassEntryId: line.compassEntryId, productId: line.productId, movementId: movement.movementId });
+      const resolution = resolved.get(line.itemId)!;
+      finalizedItems.push({ id: line.itemId, compassEntryId: line.compassEntryId, productId: line.productId, movementId: movement.movementId, identityDisposition: resolution.identity.disposition, holdingDisposition: resolution.holding.disposition });
     }
   }
-  const result = { batchId, idempotencyKey, receipts, items: finalizedItems };
+  const result = { batchId, idempotencyKey, journey: data.batch.journeyId ? { id: data.batch.journeyId, name: data.batch.journeyName || 'Unnamed sourcing run' } : null, receipts, items: finalizedItems };
   await ctx.complete(batchId, idempotencyKey, result);
   return result;
 }

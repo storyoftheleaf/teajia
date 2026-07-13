@@ -3,7 +3,7 @@ import { finalizeCurateImport, validateImportForFinalization, type CurateFinaliz
 
 function data(): CurateFinalizeData {
   return {
-    batch: { id: 'batch-a', accountId: 'account-a', journeyId: 'journey-a', reviewState: 'reviewing' },
+    batch: { id: 'batch-a', accountId: 'account-a', journeyId: 'journey-a', journeyName: 'Yunnan · Spring · 2026', reviewState: 'reviewing' },
     groups: [
       { id: 'group-a', vendorId: 'vendor-a', vendorName: 'Chen', position: 0 },
       { id: 'group-b', vendorId: 'vendor-b', vendorName: 'Lin', position: 1 },
@@ -31,8 +31,8 @@ function harness(importData = data(), failMovementOnce?: string) {
     loadImport: async batchId => batchId === importData.batch.id && importData.batch.accountId === 'account-a' ? importData : null,
     loadFinalization: async () => completed ? { idempotencyKey: completed.idempotencyKey, result: completed.result } : reservedKey ? { idempotencyKey: reservedKey, result: null } : null,
     reserveFinalization: async (_batchId, key) => { reservedKey = key; },
-    ensureIdentity: async item => item.compassEntryId ?? `entry-${item.id}`,
-    ensureProduct: async (item) => item.productId ?? `product-${item.id}`,
+    ensureIdentity: async item => ({ id: item.compassEntryId ?? `entry-${item.id}`, disposition: item.compassEntryId ? 'reused' : 'created' }),
+    ensureProduct: async (item) => ({ id: item.productId ?? `product-${item.id}`, disposition: item.productId ? 'reused' : 'created' }),
     createReceipt: async (group, lines, key, journeyId) => {
       if (receiptByKey.has(key)) return receiptByKey.get(key);
       const receipt = { id: `receipt-${group.id}`, groupId: group.id, key, journeyId, lines: lines.map(line => ({ ...line, id: `line-${line.itemId}` })) };
@@ -80,6 +80,27 @@ describe('Curate import finalization', () => {
     ] });
     expect(movements).toHaveLength(4);
     expect(result.items.map(item => item.productId)).toEqual(['product-existing', 'product-item-1', 'product-item-2', 'product-item-3']);
+    expect(result.items.map(item => [item.identityDisposition, item.holdingDisposition])).toEqual([
+      ['reused', 'reused'], ['created', 'created'], ['created', 'created'], ['created', 'created'],
+    ]);
+    expect(result.receipts.map(receipt => ({ groupId: receipt.groupId, vendorId: receipt.vendorId, vendorName: receipt.vendorName }))).toEqual([
+      { groupId: 'group-a', vendorId: 'vendor-a', vendorName: 'Chen' },
+      { groupId: 'group-b', vendorId: 'vendor-b', vendorName: 'Lin' },
+    ]);
+    expect(result.journey).toEqual({ id: 'journey-a', name: 'Yunnan · Spring · 2026' });
+  });
+
+  it('reports an identity-linked product discovered during finalization as reused', async () => {
+    const importData = data();
+    importData.items[1].productId = null;
+    const { ctx } = harness(importData);
+    ctx.ensureProduct = async item => item.id === 'item-1'
+      ? { id: 'product-linked', disposition: 'reused' } as any
+      : { id: item.productId ?? `product-${item.id}`, disposition: item.productId ? 'reused' : 'created' } as any;
+
+    const result = await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+
+    expect(result.items[1]).toMatchObject({ productId: 'product-linked', holdingDisposition: 'reused' });
   });
 
   it('passes exact decimal provenance to receipts without a binary-float round trip', async () => {
@@ -130,7 +151,7 @@ describe('Curate import finalization', () => {
 
   it('returns a same-key result that completes while this request loses reservation', async () => {
     const { ctx, receipts, movements } = harness();
-    const stored = { batchId: 'batch-a', idempotencyKey: 'finish-key', receipts: [], items: [] };
+    const stored = { batchId: 'batch-a', idempotencyKey: 'finish-key', journey: null, receipts: [], items: [] };
     let loads = 0;
     ctx.loadFinalization = async () => ++loads === 1 ? null : { idempotencyKey: 'finish-key', result: stored };
     ctx.reserveFinalization = async () => { throw new Error('reservation lost'); };

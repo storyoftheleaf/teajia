@@ -80,9 +80,7 @@ export const filterImportJourneys = (journeys: CurateJourney[], query: string) =
 
 export const inventoryTargetFromFinalize = (result: CurateImportFinalizeResult): string | null => {
   const first = result.items[0];
-  if (!first) return null;
-  if ('productId' in first && typeof first.productId === 'string') return first.productId;
-  return 'proposed_product_id' in first && typeof first.proposed_product_id === 'string' ? first.proposed_product_id : null;
+  return first?.productId || null;
 };
 
 const normalizedBlocker = (field: string) => field.replace(/_/g, '').toLocaleLowerCase();

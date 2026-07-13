@@ -52,8 +52,9 @@ export interface CurateImportVendorGroup {
 export interface CurateImportFinalizeResult {
   batch?: CurateImportBatch;
   batchId?: string; idempotencyKey?: string;
-  receipts: Array<{ id: string; vendor_group_id?: string; [key: string]: unknown }>;
-  items: Array<CurateImportItem | { id: string; compassEntryId: string; productId: string; movementId: string }>;
+  journey: { id: string; name: string } | null;
+  receipts: Array<{ id: string; groupId: string; vendorId: string; vendorName: string; [key: string]: unknown }>;
+  items: Array<{ id: string; compassEntryId: string; productId: string; movementId: string; identityDisposition: 'created' | 'reused'; holdingDisposition: 'created' | 'reused' }>;
 }
 export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[]; groups: CurateImportVendorGroup[] }
 

@@ -24,11 +24,9 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
   const rows = result.items.flatMap(finalized => {
     const item = sourceById.get(finalized.id);
     if (!item) return [];
-    const compassEntryId = finalized && 'compassEntryId' in finalized ? finalized.compassEntryId : item.proposed_compass_entry_id;
-    const productId = finalized && 'productId' in finalized ? finalized.productId : item.proposed_product_id;
-    return [{ item, compassEntryId, productId }];
+    return [{ item, compassEntryId: finalized.compassEntryId, productId: finalized.productId, identityDisposition: finalized.identityDisposition, holdingDisposition: finalized.holdingDisposition }];
   });
-  const journey = detail.batch.journey_id ? 'Sourcing run linked' : 'No sourcing run';
+  const journey = result.journey?.name || 'No sourcing run';
 
   return (
     <section role="region" aria-label="Import complete" className="space-y-5">
@@ -47,17 +45,15 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
 
       <div className="space-y-2">
         <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">{result.receipts.length} vendor {result.receipts.length === 1 ? 'receipt' : 'receipts'} · {journey}</p>
-        {rows.map(({ item, compassEntryId, productId }) => {
-          const reusedIdentity = Boolean(item.proposed_compass_entry_id);
-          const reusedHolding = Boolean(item.proposed_product_id);
+        {rows.map(({ item, compassEntryId, productId, identityDisposition, holdingDisposition }) => {
           return (
             <article key={item.id} className="rounded-md border border-tea-border bg-tea-surface p-3">
               <h4 className="break-words text-ui-14 font-medium text-tea-text">{item.english_name || item.name || item.raw_text}</h4>
               {item.original_name && <p className="mt-0.5 break-words font-chinese text-ui-12 text-tea-text-sec">{item.original_name}</p>}
               <p className="mt-2 text-ui-11 text-tea-text-sec">{quantity(item)} · {amount(item)}</p>
-              <p className="mt-1 text-ui-11 text-tea-text-sec">Library identity {reusedIdentity ? 'reused' : 'created'} · Inventory holding {reusedHolding ? 'reused' : 'created'}</p>
+              <p className="mt-1 text-ui-11 text-tea-text-sec">Library identity {identityDisposition} · Inventory holding {holdingDisposition}</p>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                {compassEntryId && <a href={`/admin/curate?tab=library&entry=${encodeURIComponent(compassEntryId)}`} className="tap-target inline-flex min-h-11 items-center gap-1 text-ui-11 text-tea-gold">Open Library identity <ArrowRight size={13} aria-hidden="true" /></a>}
+                {compassEntryId && <a href={`/admin/compass?tab=library&entry=${encodeURIComponent(compassEntryId)}`} className="tap-target inline-flex min-h-11 items-center gap-1 text-ui-11 text-tea-gold">Open Library identity <ArrowRight size={13} aria-hidden="true" /></a>}
                 {productId && <a href={`/admin/stock?panel=${encodeURIComponent(productId)}`} className="tap-target inline-flex min-h-11 items-center gap-1 text-ui-11 text-tea-gold">Open Inventory holding <ArrowRight size={13} aria-hidden="true" /></a>}
               </div>
             </article>
@@ -66,10 +62,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
       </div>
 
       {result.receipts.length > 0 && <div className="space-y-1" aria-label="Vendor receipts">
-        {result.receipts.map((receipt, index) => {
-          const group = detail.groups.find(candidate => candidate.id === receipt.vendor_group_id) || detail.groups[index];
-          return <a key={receipt.id} href={`/admin/stock?receipt=${encodeURIComponent(receipt.id)}`} className="tap-target flex min-h-11 items-center justify-between border-b border-tea-border text-ui-12 text-tea-gold"><span>{group?.resolved_vendor_name || group?.proposed_vendor_name || `Vendor ${index + 1}`} receipt</span><ArrowRight size={14} aria-hidden="true" /></a>;
-        })}
+        {result.receipts.map(receipt => <a key={receipt.id} href="/admin/stock?incoming=1" className="tap-target flex min-h-11 items-center justify-between border-b border-tea-border text-ui-12 text-tea-gold"><span>{receipt.vendorName} receipt</span><ArrowRight size={14} aria-hidden="true" /></a>)}
       </div>}
 
       <div className="flex flex-wrap justify-between gap-3 border-t border-tea-border pt-3">

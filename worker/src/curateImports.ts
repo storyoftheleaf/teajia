@@ -519,6 +519,7 @@ function parsedFinalizeItem(row: Record<string, unknown>) {
     name: String(row.name ?? parsed.englishName ?? parsed.originalName ?? ''),
     compassEntryId: typeof row.compass_entry_id === 'string' ? row.compass_entry_id : parsed.duplicateResolution === 'matched' && typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : null,
     productId: typeof productId === 'string' ? productId : parsed.duplicateResolution === 'matched' && typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null,
+    identityDisposition: row.review_state === 'accepted' ? 'created' : row.review_state === 'merged' ? 'reused' : undefined,
     duplicateResolution: parsed.duplicateResolution === 'matched' || parsed.duplicateResolution === 'new' || parsed.duplicateResolution === 'unresolved' ? parsed.duplicateResolution : 'unresolved',
     quantity: typeof quantity === 'number' ? quantity : null, unit,
     packCount: typeof parsed.packCount === 'number' ? parsed.packCount : null,
@@ -542,11 +543,13 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
       loadImport: async batchId => {
         const batch = await scopedBatch(env, batchId, ctx.accountId);
         if (!batch) return null;
-        const [groupRows, itemRows] = await Promise.all([
+        const journeyId = typeof batch.journey_id === 'string' ? batch.journey_id : null;
+        const [groupRows, itemRows, journey] = await Promise.all([
           env.DB.prepare(`SELECT g.*, c.name vendor_name, c.tags vendor_tags FROM curate_import_vendor_groups g
             LEFT JOIN customers c ON c.id = g.resolved_vendor_customer_id AND c.account_id = g.account_id
             WHERE g.batch_id = ? AND g.account_id = ? ORDER BY g.position`).bind(batchId, ctx.accountId).all<Record<string, unknown>>(),
           env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? AND review_state != ? ORDER BY position').bind(batchId, ctx.accountId, 'abandoned').all<Record<string, unknown>>(),
+          journeyId ? env.DB.prepare('SELECT name, season, year FROM curate_journeys WHERE id = ? AND account_id = ?').bind(journeyId, ctx.accountId).first<Record<string, unknown>>() : Promise.resolve(null),
         ]);
         const groups = groupRows.results.map(row => {
           const tags = parseJson(row.vendor_tags, []);
@@ -554,7 +557,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           return { id: String(row.id), vendorId: validVendor ? String(row.resolved_vendor_customer_id) : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : null, position: Number(row.position) };
         });
         return {
-          batch: { id: batchId, accountId: ctx.accountId, journeyId: typeof batch.journey_id === 'string' ? batch.journey_id : null, reviewState: String(batch.review_state) },
+          batch: { id: batchId, accountId: ctx.accountId, journeyId, journeyName: journey ? [journey.name, journey.season, journey.year].filter(value => value != null && value !== '').join(' · ') : null, reviewState: String(batch.review_state) },
           groups, items: itemRows.results.map(parsedFinalizeItem),
         } as CurateFinalizeData;
       },
@@ -574,7 +577,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           if (owned?.category === item.category) {
             await env.DB.prepare("UPDATE curate_import_items SET compass_entry_id = ?, review_state = 'merged', reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?")
               .bind(item.compassEntryId, ctx.userId, item.id, batch.id, ctx.accountId).run();
-            return item.compassEntryId;
+            return { id: item.compassEntryId, disposition: item.identityDisposition ?? 'reused' };
           }
           if (item.duplicateResolution === 'matched') throw new CurateImportFinalizeError('validation_failed', 'Matched Curate identity is missing or incompatible', [{ field: 'duplicateResolution', itemId: item.id, message: 'Choose a valid matching identity' }]);
         }
@@ -593,9 +596,9 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         ]);
         const owned = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ? AND import_item_id = ?').bind(compassId, ctx.accountId, ctx.userId, item.id).first();
         if (!owned) throw new Error('Compass identity could not be resolved');
-        return compassId;
+        return { id: compassId, disposition: 'created' };
       },
-      ensureProduct: async (item, compassEntryId) => {
+      ensureProduct: async (item, compassEntryId, identityDisposition) => {
         if (item.productId) {
           const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(item.productId, ctx.accountId).first<Record<string, unknown>>();
           const categoryMatches = owned && (owned.type === 'Teaware') === (item.category === 'teaware');
@@ -603,19 +606,19 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
           if (!owned || !categoryMatches || !identityMatches) throw new CurateImportFinalizeError('validation_failed', 'Selected holding does not belong to this Curate identity', [{ field: 'product', itemId: item.id, message: 'Choose a matching holding' }]);
           const conflict = inventoryPurposeConflict(owned, item.purpose!);
           if (conflict) throw new CurateImportFinalizeError('validation_failed', 'Selected holding has a different inventory purpose', [{ field: 'purpose', itemId: item.id, message: `Holding is ${conflict}` }]);
-          return item.productId;
+          return { id: item.productId, disposition: 'reused' };
         }
         const entry = await env.DB.prepare('SELECT draft_product_id, type, chinese_name, origin_region, year FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
         if (typeof entry?.draft_product_id === 'string') {
           const owned = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first<Record<string, unknown>>();
-          if (owned && !inventoryPurposeConflict(owned, item.purpose!)) return entry.draft_product_id;
+          if (owned && !inventoryPurposeConflict(owned, item.purpose!)) return { id: entry.draft_product_id, disposition: identityDisposition === 'created' ? 'created' : 'reused' };
         }
         const identity = await env.DB.prepare('SELECT * FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
         if (identity) {
           const categoryMatches = (identity.type === 'Teaware') === (item.category === 'teaware');
           const conflict = inventoryPurposeConflict(identity, item.purpose!);
           if (!categoryMatches || conflict) throw new CurateImportFinalizeError('validation_failed', 'Existing identity holding is incompatible with this import', [{ field: conflict ? 'purpose' : 'product', itemId: item.id, message: conflict ? `Holding is ${conflict}` : 'Holding category differs' }]);
-          return String(identity.id);
+          return { id: String(identity.id), disposition: identityDisposition === 'created' ? 'created' : 'reused' };
         }
         const productId = crypto.randomUUID();
         await env.DB.batch([
@@ -628,7 +631,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         ]);
         const canonical = await env.DB.prepare('SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
         if (!canonical) throw new Error('Inventory holding could not be resolved');
-        return String(canonical.id);
+        return { id: String(canonical.id), disposition: 'created' };
       },
       createReceipt: async (group, lines, key, journeyId) => {
         if (!lines.length) throw new CurateImportFinalizeError('validation_failed', 'Inventory receipt cannot be empty', [{ field: 'items', groupId: group.id, message: 'Add at least one item' }]);

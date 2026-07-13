@@ -157,8 +157,12 @@ async function installAnalyzedImportApi(page: Page) {
     detail.batch.review_state = 'completed';
     return route.fulfill({ json: {
       batch: detail.batch,
-      receipts: [{ id: 'receipt-chen', vendor_group_id: 'group-chen' }, { id: 'receipt-lin', vendor_group_id: 'group-lin' }],
-      items: detail.items.map(item => ({ id: item.id, compassEntryId: `library-${item.id}`, productId: `holding-${item.id}`, movementId: `movement-${item.id}` })),
+      journey: detail.batch.journey_id ? { id: detail.batch.journey_id, name: 'Taiwan · Spring · 2026' } : null,
+      receipts: [
+        { id: 'receipt-lin', groupId: 'group-lin', vendorId: 'vendor-lin', vendorName: 'Lin Family High Mountain Tea Workshop, Nantou County' },
+        { id: 'receipt-chen', groupId: 'group-chen', vendorId: 'vendor-chen', vendorName: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna' },
+      ],
+      items: detail.items.map((item, index) => ({ id: item.id, compassEntryId: `library-${item.id}`, productId: `holding-${item.id}`, movementId: `movement-${item.id}`, identityDisposition: index === 0 ? 'reused' : 'created', holdingDisposition: index === 0 ? 'reused' : 'created' })),
     } });
   });
   return {
@@ -283,7 +287,11 @@ async function installImportApi(page: Page) {
     if (method === 'POST' && path === '/api/curate/imports/batch-1/finalize') {
       finalizeCalls += 1;
       if (batch) batch.review_state = 'completed';
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ batch, receipts: [{ id: 'receipt-import' }], items }) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        batch, journey: null,
+        receipts: [{ id: 'receipt-import', groupId: 'group-import', vendorId: 'vendor-chen', vendorName: 'Chen Family' }],
+        items: items.map(item => ({ id: item.id, compassEntryId: item.reserved_compass_entry_id, productId: `product-${item.id}`, movementId: `movement-${item.id}`, identityDisposition: 'created', holdingDisposition: 'created' })),
+      }) });
     }
     return route.fallback();
   });
@@ -404,7 +412,15 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Sourcing run', { exact: true }).selectOption('journey-taiwan');
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'saved.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-saved') });
     await page.getByRole('button', { name: 'Close Import' }).click();
-    await expect(page.getByRole('alertdialog', { name: 'Keep import draft?' })).toBeVisible();
+    const draftChoice = page.getByRole('group', { name: 'Keep import draft' });
+    await expect(draftChoice).toBeVisible();
+    await expect(draftChoice).toContainText('Files will need to be reselected');
+    await expect(page.getByRole('button', { name: 'Keep draft' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(page.getByRole('button', { name: 'Discard draft' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Close Import' })).toBeFocused();
+    await page.getByRole('button', { name: 'Close Import' }).click();
     await page.getByRole('button', { name: 'Keep draft' }).click();
 
     await trigger.click();
@@ -686,7 +702,28 @@ test.describe('analyzed inventory import review', () => {
     await expect(completion.getByText('10 Inventory holdings')).toBeVisible();
     await expect(completion.getByRole('link', { name: /Open Inventory holding/ })).toHaveCount(10);
     await expect(completion.getByText(/2 vendor receipts/)).toBeVisible();
+    await expect(completion.getByText('Library identity reused · Inventory holding reused')).toBeVisible();
+    await expect(completion.getByText('Taiwan · Spring · 2026')).toBeVisible();
+    await expect(completion.getByRole('link', { name: /Chen Family Ancient Tree Tea Cooperative.*receipt/ })).toHaveAttribute('href', '/admin/stock?incoming=1');
+    await expect(completion.getByRole('link', { name: /Lin Family High Mountain Tea Workshop.*receipt/ })).toHaveAttribute('href', '/admin/stock?incoming=1');
+    await expect(completion.getByRole('link', { name: /Open Library identity/ }).first()).toHaveAttribute('href', /\/admin\/compass\?tab=library&entry=/);
     await expect(page).toHaveURL(/\/admin\/compass/);
+  });
+
+  test('promotes naming blockers and referenced image or PDF evidence before all details', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const item = api.detail.items[0];
+    item.raw_text = null as unknown as string;
+    item.blocking_fields = ['english_name'];
+    item.parsed_data.evidenceRefs = ['source-analyzed:page=2'];
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
+    await row.getByRole('button', { name: 'Edit tea' }).click();
+    await expect(row.getByLabel('English inventory name')).toBeVisible();
+    await expect(row.getByLabel('Original or Chinese name')).toBeVisible();
+    await expect(row.getByText(/source-analyzed · Page 2/)).toBeVisible();
+    await expect(row.getByRole('button', { name: 'All details' })).toBeVisible();
   });
 
   test('searches ranked vendor, Library identity, and compatible Inventory holding matches', async ({ page }) => {

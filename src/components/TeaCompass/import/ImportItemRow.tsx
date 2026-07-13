@@ -36,6 +36,17 @@ const packEquation = (item: CurateImportItem) => {
   const price = displayPrice != null ? `${item.currency || ''} ${displayPrice}${item.price_basis === 'per_pack' ? ' each' : ''}`.trim() : null;
   return [pack && [pack, count].filter(Boolean).join(' '), price].filter(Boolean).join(' · ') || 'Quantity or cost needs review';
 };
+const evidenceReferenceLabel = (reference: string) => {
+  const separator = reference.indexOf(':');
+  const source = separator < 0 ? reference : reference.slice(0, separator);
+  const locator = separator < 0 ? '' : reference.slice(separator + 1);
+  const page = locator.match(/^page=(\d+)$/);
+  if (page) return `${source} · Page ${page[1]}`;
+  const range = locator.match(/^(\d+)-(\d+)$/);
+  if (range) return `${source} · Text range ${range[1]}–${range[2]}`;
+  if (locator.startsWith('region=')) return `${source} · Image region`;
+  return source;
+};
 
 export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identityLookup, holdingLookup, onRetryIdentities, onRetryHoldings, onUpdate }) => {
   const [expanded, setExpanded] = useState(false);
@@ -78,6 +89,8 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
   const costBlocking = hasBlocker('priceamount', 'linecost', 'pricebasis', 'currency');
   const identitySelectionBlocking = identityBlocked || productBlocked;
   const acquisitionBlocking = hasBlocker('acquired', 'acquisitionstate', 'physicalstock', 'acquiredintostock', 'inventorypurpose', 'purpose');
+  const namingBlocking = hasBlocker('englishname', 'englishinventoryname', 'translation', 'originalname', 'chinesename', 'name');
+  const evidenceReferences = Array.isArray(item.parsed_data?.evidenceRefs) ? item.parsed_data.evidenceRefs.filter((reference): reference is string => typeof reference === 'string') : [];
   const set = (key: keyof typeof draft, next: string) => setDraft(current => ({ ...current, [key]: next }));
   const setPurpose = (purpose: string) => {
     const productId = validateImportHoldingSelection(draft.product_id, holdingLookup.options, { category: item.category, compassEntryId: selectedIdentityId, purpose: purpose || null });
@@ -132,6 +145,10 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
     <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => setPurpose(event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
     <label className="block text-ui-11 text-tea-text-sec">Acquired into physical stock<select value={draft.acquired} onChange={event => set('acquired', event.target.value)} className={fieldClass}><option value="">Needs confirmation</option><option value="yes">Yes, add to physical stock</option></select></label>
   </>;
+  const namingFields = <>
+    <label className="block text-ui-11 text-tea-text-sec">English inventory name<input value={draft.english_name} onChange={event => set('english_name', event.target.value)} className={fieldClass} /></label>
+    <label className="block text-ui-11 text-tea-text-sec">Original or Chinese name<input value={draft.original_name} onChange={event => set('original_name', event.target.value)} className={fieldClass} /></label>
+  </>;
   return (
     <article data-testid="import-item-row" className="py-2">
       <div className="flex min-w-0 items-start gap-2">
@@ -146,15 +163,15 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
       </div>
       {expanded && (
         <fieldset disabled={busy} className="mt-3 space-y-3 border-l-2 border-tea-border pl-3">
-          {item.raw_text && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Evidence used for this item</p><p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p></div>}
+          {(item.raw_text || evidenceReferences.length > 0) && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Evidence used for this item</p>{item.raw_text && <p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p>}{evidenceReferences.map(reference => <p key={reference} className="mt-1 break-words font-mono text-ui-10 text-tea-text-sec">{evidenceReferenceLabel(reference)}</p>)}</div>}
+          {namingBlocking && namingFields}
           {identitySelectionBlocking && identityFields}
           {quantityBlocking && quantityFields}
           {costBlocking && costFields}
           {acquisitionBlocking && acquisitionFields}
           <button type="button" aria-expanded={detailsExpanded} onClick={() => setDetailsExpanded(open => !open)} className="tap-target flex min-h-11 w-full items-center justify-between border-y border-tea-border text-left text-ui-12 text-tea-text-sec hover:text-tea-text"><span>All details</span>{detailsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
           {detailsExpanded && <div className="space-y-3">
-            <label className="block text-ui-11 text-tea-text-sec">English inventory name<input value={draft.english_name} onChange={event => set('english_name', event.target.value)} className={fieldClass} /></label>
-            <label className="block text-ui-11 text-tea-text-sec">Original or Chinese name<input value={draft.original_name} onChange={event => set('original_name', event.target.value)} className={fieldClass} /></label>
+            {!namingBlocking && namingFields}
             <label className="block text-ui-11 text-tea-text-sec">Tea type<input value={draft.tea_type} onChange={event => set('tea_type', event.target.value)} placeholder="Pu’er, oolong, white…" className={fieldClass} /></label>
             <label className="block text-ui-11 text-tea-text-sec">Production or classification<input value={draft.classification} onChange={event => set('classification', event.target.value)} placeholder="Raw, ripe, charcoal-roasted…" className={fieldClass} /></label>
             <label className="block text-ui-11 text-tea-text-sec">Year<input inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} className={fieldClass} /></label>

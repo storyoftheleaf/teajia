@@ -122,8 +122,8 @@ describe('review navigation and journey helpers', () => {
   });
 
   it('opens the first created Inventory holding after finalization', () => {
-    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', receipts: [], items: [{ id: 'i', compassEntryId: 'c', productId: 'product-7', movementId: 'm' }] })).toBe('product-7');
-    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', receipts: [], items: [] })).toBeNull();
+    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', journey: null, receipts: [], items: [{ id: 'i', compassEntryId: 'c', productId: 'product-7', movementId: 'm', identityDisposition: 'created', holdingDisposition: 'created' }] })).toBe('product-7');
+    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', journey: null, receipts: [], items: [] })).toBeNull();
   });
 
   it('clears only blockers explicitly resolved by edited values', () => {
