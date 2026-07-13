@@ -48,7 +48,7 @@ class ResendStatement {
       ));
       if (!challenge) return null;
       if (sql.includes("v.expires_at > datetime('now')") && new Date(challenge.expires_at).getTime() <= Date.now()) return null;
-      if (sql.includes("v.created_at > datetime('now', '-24 hours')") && new Date(challenge.created_at).getTime() <= Date.now() - 24 * 60 * 60_000) return null;
+      if (sql.includes("u.created_at > datetime('now', '-24 hours')") && new Date(this.db.user.created_at).getTime() <= Date.now() - 24 * 60 * 60_000) return null;
       return { ...challenge, ...this.db.user };
     }
     return null;
@@ -63,7 +63,9 @@ class ResendStatement {
     if (sql.startsWith('update identity_email_verifications set client_nonce_hash')) {
       const [replacement, id, expected] = this.values.map(String);
       const challenge = this.db.challenges.find(row => row.id === id);
-      if (!challenge || challenge.client_nonce_hash !== expected || this.db.user.email_verified_at) {
+      const identityOutsideRecoveryWindow = new Date(this.db.user.created_at).getTime() <= Date.now() - 24 * 60 * 60_000;
+      const enforcesRecoveryWindow = sql.includes("users.created_at > datetime('now', '-24 hours')");
+      if (!challenge || challenge.client_nonce_hash !== expected || this.db.user.email_verified_at || (enforcesRecoveryWindow && identityOutsideRecoveryWindow)) {
         return Promise.resolve({ success: true, meta: { changes: 0 } });
       }
       challenge.client_nonce_hash = replacement;
@@ -72,7 +74,9 @@ class ResendStatement {
     if (sql.startsWith('insert into identity_email_verifications')) {
       const [id, userId, email, codeHash, nonceHash, priorId, spentNonce] = this.values.map(String);
       const prior = this.db.challenges.find(row => row.id === priorId && row.client_nonce_hash === spentNonce);
-      if (!prior || this.db.user.email_verified_at) return Promise.resolve({ success: true, meta: { changes: 0 } });
+      const identityOutsideRecoveryWindow = new Date(this.db.user.created_at).getTime() <= Date.now() - 24 * 60 * 60_000;
+      const enforcesRecoveryWindow = sql.includes("u.created_at > datetime('now', '-24 hours')");
+      if (!prior || this.db.user.email_verified_at || (enforcesRecoveryWindow && identityOutsideRecoveryWindow)) return Promise.resolve({ success: true, meta: { changes: 0 } });
       this.db.challenges.push({
         id,
         user_id: userId,
@@ -121,6 +125,7 @@ class ResendDb {
     platform_role: null,
     session_version: 0,
     email_verified_at: null as string | null,
+    created_at: new Date(Date.now() - 60 * 60_000).toISOString(),
   };
 
   constructor(readonly challenges: Challenge[]) {}
@@ -160,9 +165,10 @@ async function call(db: ResendDb, path: string, body: Record<string, unknown>, e
 }
 
 describe('signup verification resend', () => {
-  it('rejects recovery proof outside the bounded restart window', async () => {
+  it('rejects a fresh successor challenge descended from an identity outside the bounded restart window', async () => {
     const db = await seededDb();
-    db.challenges[0].created_at = new Date(Date.now() - 25 * 60 * 60_000).toISOString();
+    db.user.created_at = new Date(Date.now() - 25 * 60 * 60_000).toISOString();
+    db.challenges[0].created_at = new Date().toISOString();
 
     const stale = await call(db, '/api/auth/signup/resend', { email: EMAIL, signup_token: 'prior-signup-token' });
 

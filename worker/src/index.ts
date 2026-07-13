@@ -1576,7 +1576,7 @@ const handleResendSignupVerification: Handler = async (request, env) => {
     `SELECT v.id, v.user_id, v.client_nonce_hash, u.email_verified_at
      FROM identity_email_verifications v JOIN users u ON u.id = v.user_id
      WHERE v.email_normalized = ? AND v.purpose = 'signup-email'
-       AND v.created_at > datetime('now', '-24 hours')
+       AND u.created_at > datetime('now', '-24 hours')
      ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1`
   ).bind(email).first();
   const priorNonceHash = typeof prior?.client_nonce_hash === 'string'
@@ -1620,6 +1620,7 @@ const handleResendSignupVerification: Handler = async (request, env) => {
            SELECT 1 FROM users
            WHERE users.id = identity_email_verifications.user_id
              AND users.email_verified_at IS NULL
+             AND users.created_at > datetime('now', '-24 hours')
          )`
     ).bind(spentNonceHash, prior.id, priorNonceHash),
     env.DB.prepare(
@@ -1629,7 +1630,8 @@ const handleResendSignupVerification: Handler = async (request, env) => {
        FROM identity_email_verifications AS replaced
        JOIN users u ON u.id = replaced.user_id
        WHERE replaced.id = ? AND replaced.client_nonce_hash = ?
-         AND u.email_verified_at IS NULL`
+         AND u.email_verified_at IS NULL
+         AND u.created_at > datetime('now', '-24 hours')`
     ).bind(challengeId, prior.user_id, email, codeHash, signupTokenHash, prior.id, spentNonceHash),
   ]);
   if (Number(consumeProof.meta?.changes || 0) !== 1 || Number(createChallenge.meta?.changes || 0) !== 1) {
