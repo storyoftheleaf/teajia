@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
+import {
+  createIndexedDbPendingTranscriptionRepository,
+  createPendingTranscriptionService,
+  type PendingTranscription,
+  type PendingTranscriptionResult,
+} from '../../lib/pendingTranscriptions';
 
 export type RecorderState = 'idle' | 'recording' | 'transcribing' | 'error';
 
@@ -12,25 +18,78 @@ function getSupportedMimeType(): string {
   return 'audio/mp4';
 }
 
-export function useVoiceRecorder(onTranscript: (text: string) => void) {
+const pendingRepository = createIndexedDbPendingTranscriptionRepository();
+const pendingService = createPendingTranscriptionService({
+  repository: pendingRepository,
+  transcribe: (blob) => api.transcribeAudio(blob),
+});
+
+export function useVoiceRecorder(
+  onTranscript: (text: string, contextKey: string) => boolean | void,
+  contextKey = 'curate:unassigned',
+) {
   const [state, setState] = useState<RecorderState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingRecording, setPendingRecording] = useState<PendingTranscription | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const mountedRef = useRef(true);
+  const onTranscriptRef = useRef(onTranscript);
+
+  useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
   useEffect(() => {
-    if (state === 'error') {
-      const t = setTimeout(() => { setState('idle'); setErrorMessage(null); }, 4000);
-      return () => clearTimeout(t);
+    let cancelled = false;
+    void pendingService.list(contextKey).then(async (recordings) => {
+      if (cancelled || !mountedRef.current) return;
+      const recording = recordings.at(-1) ?? null;
+      if (!recording) return;
+      if (recording.status === 'complete' && recording.transcript) {
+        const accepted = onTranscriptRef.current(recording.transcript, recording.contextKey);
+        if (accepted !== false) await pendingService.acknowledge(recording.id);
+        return;
+      }
+      setPendingRecording(recording);
+      setErrorMessage(recording.error ?? 'Recording saved. Transcription pending.');
+      setState('error');
+    });
+    return () => { cancelled = true; };
+  }, [contextKey]);
+
+  const applyResult = useCallback(async (result: PendingTranscriptionResult) => {
+    if (!mountedRef.current) return;
+    if (result.status === 'complete') {
+      const accepted = onTranscriptRef.current(result.text, result.contextKey);
+      if (accepted === false) {
+        setState('idle');
+        return;
+      }
+      await pendingService.acknowledge(result.id);
+      if (!mountedRef.current) return;
+      setPendingRecording(null);
+      setErrorMessage(null);
+      setState('idle');
+      return;
     }
-  }, [state]);
+    if (result.status === 'superseded') {
+      setState('idle');
+      return;
+    }
+    const recordings = await pendingService.list(contextKey);
+    if (!mountedRef.current) return;
+    setPendingRecording(recordings.find((recording) => recording.id === result.id) ?? null);
+    setErrorMessage(result.error);
+    setState('error');
+  }, [contextKey]);
 
   const startRecording = useCallback(async () => {
     setErrorMessage(null);
@@ -54,13 +113,13 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
         if (blob.size < 100) { setState('idle'); return; }
         setState('transcribing');
         try {
-          const result = await api.transcribeAudio(blob);
-          if (result.text?.trim()) onTranscript(result.text.trim());
-          setState('idle');
+          await applyResult(await pendingService.capture(blob, contextKey));
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : 'Transcription failed';
-          setErrorMessage(msg);
-          setState('error');
+          if (mountedRef.current) {
+            const msg = err instanceof Error ? err.message : 'Recording storage unavailable.';
+            setErrorMessage(`${msg} Keep this page open and try again.`);
+            setState('error');
+          }
         }
       };
 
@@ -75,7 +134,7 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
       }
       setState('error');
     }
-  }, [onTranscript]);
+  }, [applyResult, contextKey]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state !== 'inactive') {
@@ -88,5 +147,20 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
     else if (state === 'idle') startRecording();
   }, [state, startRecording, stopRecording]);
 
-  return { state, errorMessage, handlePress };
+  const retryPending = useCallback(async () => {
+    if (!pendingRecording) return;
+    setState('transcribing');
+    setErrorMessage(null);
+    await applyResult(await pendingService.retry(pendingRecording.id));
+  }, [applyResult, pendingRecording]);
+
+  const discardPending = useCallback(async () => {
+    if (pendingRecording) await pendingService.discard(pendingRecording.id);
+    if (!mountedRef.current) return;
+    setPendingRecording(null);
+    setErrorMessage(null);
+    setState('idle');
+  }, [pendingRecording]);
+
+  return { state, errorMessage, pendingRecording, handlePress, retryPending, discardPending };
 }
