@@ -11,7 +11,7 @@ import type { ImportVendorOption } from './ImportVendorGroup';
 import { normalizeImportDetail } from './importReviewDomain';
 import { clearImportDraft, loadImportDraft, saveImportDraft } from './importDraftStorage';
 import { ImportEvidencePreview } from './ImportEvidencePreview';
-import { failedImportSourceIds } from './importEvidenceSelection';
+import { failedImportSourceIds, unmatchedImportEvidence } from './importEvidenceSelection';
 import { ImportEvidenceCard } from './ImportEvidenceCard';
 
 interface ImportPanelProps {
@@ -67,6 +67,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const panelRef = useRef<HTMLDivElement>(null);
   const evidenceKind: CurateImportSourceKind = useMemo(() => draft.evidence.some(item => item.kind === 'photo') ? 'photo' : draft.evidence.length ? 'invoice' : 'paste', [draft.evidence]);
   const draftDirty = state.phase !== 'review' && (draft.text.trim().length > 0 || draft.journeyId !== null || draft.evidence.length > 0);
+  const persistedEvidenceSources = state.detail?.sources.filter(source => source.r2_object_key) ?? [];
+  const unmatchedLocalEvidence = unmatchedImportEvidence(draft.evidence, state.detail?.sources ?? []);
 
   const preserveDraft = () => saveImportDraft(accountId, {
     text: draft.text,
@@ -267,7 +269,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeys={journeys} onCreateJourney={createJourney} />}
           {state.phase === 'parsing' && <div className="space-y-4"><div role="status" className="flex min-h-32 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your evidence…</div><ImportEvidencePreview evidence={draft.evidence} /></div>}
           {state.phase === 'error' && <div className="space-y-4">
-            {state.detail?.sources.some(source => source.r2_object_key) ? <div className="space-y-2" aria-label="Persisted evidence outcomes">{state.detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div> : <ImportEvidencePreview evidence={draft.evidence} />}
+            {persistedEvidenceSources.length > 0 && <div className="space-y-2" aria-label="Persisted evidence outcomes">{persistedEvidenceSources.map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}
+            <ImportEvidencePreview evidence={unmatchedLocalEvidence} />
             <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p>{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button>}</div>
           </div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}

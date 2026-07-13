@@ -514,6 +514,8 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect.poll(() => attempts.size, { message: `Expected both evidence requests; attempts=${JSON.stringify([...attempts])}` }).toBe(2);
     expect(ordinal.ordinal).toBe(2);
+    await expect(page.getByText('one.jpg')).toHaveCount(1);
+    await expect(page.getByText('two.pdf')).toBeVisible();
     await expect(page.getByText('Temporary evidence failure')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('one.jpg')).toBeVisible();

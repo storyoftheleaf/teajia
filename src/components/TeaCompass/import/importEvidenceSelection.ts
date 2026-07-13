@@ -1,4 +1,5 @@
 import type { CurateImportSource } from '../../../lib/api';
+import type { ImportEvidence } from './importTypes';
 
 export const IMPORT_EVIDENCE_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -26,4 +27,9 @@ export function prepareImportEvidenceFile(file: File) {
 
 export function failedImportSourceIds(sources: CurateImportSource[]) {
   return sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
+}
+
+export function unmatchedImportEvidence(evidence: ImportEvidence[], sources: CurateImportSource[]) {
+  const persistedClientIds = new Set(sources.map(source => String(source.metadata?.client_evidence_id || '')).filter(Boolean));
+  return evidence.filter(item => !persistedClientIds.has(item.id));
 }
