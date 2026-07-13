@@ -33,6 +33,20 @@ test.describe('Curate responsive preservation', () => {
     expect(navBox, 'Bottom navigation must have a layout box').not.toBeNull();
     expect(doneBox!.y + doneBox!.height, 'Done button is obscured by mobile bottom navigation').toBeLessThanOrEqual(navBox!.y);
   });
+
+  test('Library search resists mobile zoom and visible row actions keep 44px hit areas', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const search = page.getByPlaceholder('Search Library').filter({ visible: true });
+    expect(parseFloat(await search.evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
+    const firstRow = page.locator('[data-testid^="library-entry-"]').first();
+    for (const action of await firstRow.locator('[data-library-action]').all()) {
+      const box = await action.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    const dimensions = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
+  });
 });
 
 test.describe('Curate legacy data resilience', () => {

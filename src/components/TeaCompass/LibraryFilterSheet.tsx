@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BottomSheet } from '../shared/BottomSheet';
 import type { LibraryFilters } from './types';
 
-const FIELDS: Array<{ key: keyof LibraryFilters; label: string; options?: Array<[string, string]> }> = [
+export const LIBRARY_FILTER_FIELDS: Array<{ key: keyof LibraryFilters; label: string; options?: Array<[string, string]> }> = [
   { key: 'decision', label: 'Decision', options: [['none', 'No decision'], ['considering', 'Considering'], ['selected', 'Selected'], ['passed_on', 'Passed on']] },
   { key: 'verdict', label: 'Verdict', options: [['love', 'Love'], ['like', 'Like'], ['neutral', 'Neutral'], ['pass', 'Pass']] },
   { key: 'possession', label: 'Possession', options: [['none', 'None'], ['sample', 'Sample'], ['working', 'Working'], ['personal', 'Personal']] },
@@ -28,15 +28,15 @@ export const LibraryFilterSheet: React.FC<{
   return (
     <BottomSheet open={open} onOpenChange={onOpenChange} title="Filter Library" description="Narrow by any detail you remember">
       <div className="max-h-[62vh] space-y-4 overflow-y-auto px-1 pb-nav-gap">
-        {FIELDS.map((field) => (
+        {LIBRARY_FILTER_FIELDS.map((field) => (
           <label key={field.key} className="block text-ui-12 text-tea-text-sec">
-            <span className="mb-1.5 block text-ui-11 font-medium uppercase tracking-[0.1em] text-tea-text-dim">{field.label}</span>
+            <span className="mb-1.5 block text-ui-12 font-medium text-tea-text-dim">{field.label}</span>
             {field.options || contextOptions[field.key as 'journey' | 'vendor' | 'place'] ? (
               <select
                 aria-label={field.label}
                 value={(draft[field.key] as string | undefined) ?? ''}
                 onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value || undefined }))}
-                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-13 text-tea-text outline-none focus:border-tea-gold"
+                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
               >
                 <option value="">Any</option>
                 {(field.options ?? contextOptions[field.key as 'journey' | 'vendor' | 'place']?.map((option) => [option.value, option.label]) ?? []).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -47,7 +47,7 @@ export const LibraryFilterSheet: React.FC<{
                 type={field.key === 'date' ? 'date' : 'text'}
                 value={(draft[field.key] as string | undefined) ?? ''}
                 onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value || undefined }))}
-                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-13 text-tea-text outline-none focus:border-tea-gold"
+                className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold"
               />
             )}
           </label>

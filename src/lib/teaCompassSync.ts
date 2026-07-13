@@ -244,6 +244,8 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return;
   if (!isTokenScopedToAccount(requestedAccountId)) return;
 
+  useTeaCompassStore.getState().setHydrationStatus('loading');
+
   try {
     const [data, sampleData] = await Promise.all([
       api.compass.list(),
@@ -348,7 +350,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
 
     // Reaching the server clears any stale "couldn't save" flag.
     useTeaCompassStore.setState((state) => state.accountScopeId === requestedAccountId && state.accountScopeRevision === requestedRevision
-      ? { entries: merged, syncError: false }
+      ? { entries: merged, syncError: false, hydrationStatus: 'ready' }
       : state);
 
     // Reconcile tombstones: a tombstoned id the server no longer has is confirmed
@@ -374,7 +376,11 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
       }
     }
   } catch (err) {
-    // Offline or error — local data is fine
+    const current = useTeaCompassStore.getState();
+    if (current.accountScopeId === requestedAccountId && current.accountScopeRevision === requestedRevision) {
+      current.setHydrationStatus('error');
+    }
+    // Offline or error — local data remains available, but the UI must say so.
     console.warn('[TeaCompass] Hydration failed:', err);
   }
 }

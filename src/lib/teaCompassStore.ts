@@ -55,6 +55,8 @@ interface TeaCompassState {
   // of silently pretending a local-only change persisted (the China/offline trap).
   syncError: boolean;
   setSyncError: (failed: boolean) => void;
+  hydrationStatus: 'idle' | 'loading' | 'ready' | 'error';
+  setHydrationStatus: (status: 'idle' | 'loading' | 'ready' | 'error') => void;
 
   // Tombstones — ids deleted locally whose server delete hasn't been confirmed.
   // Hydrate filters these out so a still-on-server row can't reappear before the
@@ -253,12 +255,14 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       currentSessionId: null,
       lastCaptureAt: null,
       syncError: false,
+      hydrationStatus: 'idle',
       deletedIds: [],
       pendingPromotions: [],
       shippingRatePerKg: 0,
       customEras: [],
 
       setSyncError: (failed) => set({ syncError: failed }),
+      setHydrationStatus: (hydrationStatus) => set({ hydrationStatus }),
 
       switchAccount: (accountId) => set((state) => {
         if (state.accountScopeId === accountId && state.draftAccountScopeId === accountId) return state;
@@ -302,6 +306,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           pendingPromotionsByAccount,
           accountScopeId: accountId,
           accountScopeRevision: state.accountScopeRevision + 1,
+          hydrationStatus: 'idle',
           draftsByAccount,
           draftAccountScopeId: accountId,
         };

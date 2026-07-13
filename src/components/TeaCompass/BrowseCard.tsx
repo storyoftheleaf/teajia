@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Pencil, Trash2, Store, Check, Loader2, Camera,
   Mic, BookmarkPlus, BookmarkCheck, ChevronDown, ChevronUp,
@@ -112,12 +112,23 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   const [tastingOpen, setTastingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxCloseRef = useRef<HTMLButtonElement>(null);
+  const lightboxReturnFocusRef = useRef<HTMLElement | null>(null);
+  const prefersReducedMotion = useReducedMotion();
   // When the thumbnail URL fails to load (dead R2 link, expired blob), fall
   // back to the type swatch instead of the browser's broken-image glyph.
   const [thumbFailed, setThumbFailed] = useState(false);
 
   const validPhotos = (entry.photos || []).filter(Boolean);
   const showThumb = validPhotos.length > 0 && !thumbFailed;
+  const openLightbox = useCallback((index: number) => {
+    lightboxReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setLightboxIndex(index);
+  }, []);
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+    window.requestAnimationFrame(() => lightboxReturnFocusRef.current?.focus());
+  }, []);
 
   // Reset confirm-delete after 3s of no interaction
   useEffect(() => {
@@ -130,13 +141,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
   useEffect(() => {
     if (lightboxIndex === null) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowRight') setLightboxIndex((i) => i !== null ? Math.min(i + 1, validPhotos.length - 1) : null);
       if (e.key === 'ArrowLeft') setLightboxIndex((i) => i !== null ? Math.max(i - 1, 0) : null);
     };
     window.addEventListener('keydown', handleKey);
+    window.requestAnimationFrame(() => lightboxCloseRef.current?.focus());
     return () => window.removeEventListener('keydown', handleKey);
-  }, [lightboxIndex, validPhotos.length]);
+  }, [closeLightbox, lightboxIndex, validPhotos.length]);
 
 
 
@@ -218,30 +230,18 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
   return (
     <>
-      <div
-        className={`relative bg-tea-surface border border-tea-border rounded-xl overflow-hidden${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-gold/5' : ''}`}
+      <article
+        data-testid={`library-entry-${entry.id}`}
+        className={`relative overflow-hidden rounded-md border border-tea-border bg-tea-surface${isSelected ? ' ring-1 ring-tea-gold/40 bg-tea-accent-sub' : ''}`}
       >
-        {/* ── Tappable content area ── */}
-        <button
-          type="button"
-          onClick={() => {
-            if (onSelect) {
-              onSelect(entry.id);
-            } else {
-              setExpanded((v) => !v);
-            }
-          }}
-          className="w-full text-left"
-          aria-expanded={onSelect ? undefined : expanded}
-        >
-          <div className="flex gap-3 px-3 pt-2.5 pb-2">
+        <div className="flex gap-3 px-3 py-3">
             {/* Photo or type swatch. On a dead/expired photo URL we drop to
                 the swatch via onError rather than rendering a broken glyph. */}
             {showThumb ? (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setLightboxIndex(0); }}
-                className="relative shrink-0 mt-0.5 group"
+                onClick={(e) => { e.stopPropagation(); openLightbox(0); }}
+                className="tap-target relative shrink-0 mt-0.5 group"
                 aria-label="View photos"
               >
                 <img
@@ -251,14 +251,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   className="w-14 h-14 rounded-md object-cover"
                 />
                 {validPhotos.length > 1 && (
-                  <span className="absolute bottom-0.5 right-0.5 text-ui-9 font-semibold text-tea-text bg-tea-bg/70 rounded px-0.5 leading-tight">
+                  <span className="absolute bottom-0.5 right-0.5 text-ui-12 font-semibold text-tea-text bg-tea-bg/70 rounded px-0.5 leading-tight">
                     +{validPhotos.length - 1}
                   </span>
                 )}
               </button>
             ) : (
               <div
-                className={`shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-9 font-semibold tracking-[0.1em] uppercase${typeColor ? '' : ' bg-tea-elevated'}`}
+                className={`shrink-0 mt-0.5 w-14 h-14 rounded-md flex items-center justify-center text-ui-12 font-semibold tracking-[0.1em] uppercase${typeColor ? '' : ' bg-tea-elevated'}`}
                 style={
                   typeColor
                     ? { background: `${typeColor}18`, color: typeColor }
@@ -272,8 +272,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               </div>
             )}
 
-            {/* Text content */}
-            <div className="flex-1 min-w-0 space-y-0.5">
+          <button
+            type="button"
+            onClick={() => onSelect ? onSelect(entry.id) : setExpanded((value) => !value)}
+            className="flex min-w-0 flex-1 items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
+            aria-expanded={onSelect ? undefined : expanded}
+            aria-label={`${onSelect ? 'Open' : expanded ? 'Collapse' : 'Expand'} ${entryDisplayTitle(entry)} details`}
+          >
+            <div className="min-w-0 flex-1 space-y-0.5">
               {/* Name · Region · liquor color dot */}
               <div className="flex items-baseline gap-2 min-w-0">
                 <span className={`min-w-0 truncate text-ui-16 font-serif ${hasName ? 'text-tea-text' : 'text-tea-text-sec'}`}>
@@ -348,20 +354,18 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               {!expanded && summaryTags.length > 0 && (
                 <div className="flex gap-1 flex-wrap">
                   {summaryTags.map((tag) => (
-                    <span key={tag} className="tag text-ui-11">{tag}</span>
+                    <span key={tag} className="tag text-ui-12">{tag}</span>
                   ))}
                 </div>
               )}
             </div>
 
             {/* Right: expand chevron */}
-            <div className="shrink-0 flex items-start pt-1">
-              <span className="text-tea-text-dim">
-                {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </span>
-            </div>
-          </div>
-        </button>
+            <span className="shrink-0 flex items-start pt-1 text-tea-text-dim" aria-hidden="true">
+              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
+          </button>
+        </div>
 
         {/* ── Expanded detail ── */}
         <AnimatePresence initial={false}>
@@ -381,7 +385,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     <button
                       key={i}
                       type="button"
-                      onClick={() => setLightboxIndex(i)}
+                      onClick={() => openLightbox(i)}
                       className="shrink-0"
                       aria-label={`View photo ${i + 1}`}
                     >
@@ -392,7 +396,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={photoUploading}
-                    className="shrink-0 flex items-center gap-1 text-ui-10 text-tea-text-dim hover:text-tea-text-sec transition-colors px-2 py-1.5"
+                    className="tap-target shrink-0 flex min-h-11 items-center gap-1 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors px-2"
                   >
                     {photoUploading
                       ? <Loader2 size={11} className="animate-spin" />
@@ -400,7 +404,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                     {!photoUploading && <span>{photoFailed ? 'Retry photo' : 'Add photo'}</span>}
                   </button>
                   {photoFailed && !photoUploading && (
-                    <span className="shrink-0 self-center text-ui-10 text-tea-error">Didn't save — tap to retry</span>
+                    <span className="shrink-0 self-center text-ui-12 text-tea-error">Didn't save, tap to retry</span>
                   )}
                   <input
                     ref={photoInputRef}
@@ -419,7 +423,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
                 {/* Brew parameters */}
                 {(entry.tasting?.brewingTemp || entry.tasting?.brewingTime || entry.tasting?.brewingVessel) && (
-                  <div className="flex items-center gap-2 flex-wrap text-ui-11 text-tea-text-dim">
+                  <div className="flex items-center gap-2 flex-wrap text-ui-12 text-tea-text-dim">
                     {entry.tasting.brewingVessel && <span>{entry.tasting.brewingVessel}</span>}
                     {entry.tasting.brewingTemp && <span>{entry.tasting.brewingTemp}°C</span>}
                     {entry.tasting.brewingTime && <span>{entry.tasting.brewingTime}</span>}
@@ -444,7 +448,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                           type="button"
                           onClick={() => setVerdict(chip.value)}
                           aria-pressed={active}
-                          className={`flex-1 min-h-[36px] inline-flex items-center justify-center gap-1.5 rounded-md border text-ui-10 font-medium transition-colors ${
+                          className={`tap-target flex-1 min-h-11 inline-flex items-center justify-center gap-1.5 rounded-md border text-ui-12 font-medium transition-colors ${
                             active
                               ? chip.activeCls
                               : 'border-tea-border bg-tea-bg text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -461,14 +465,14 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 {/* Tasting history timeline */}
                 {entry.tastingHistory && entry.tastingHistory.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-serif">
+                    <p className="text-ui-12 text-tea-text-dim font-serif">
                       {entry.tastingHistory.length === 1 ? '1 tasting' : `${entry.tastingHistory.length} tastings`}
                     </p>
                     {entry.tastingHistory.slice().reverse().map((h, i) => {
                       const q = h.data.quality ?? h.data.rating;
                       const dateLabel = getDateGroup(h.date);
                       return (
-                        <div key={i} className="flex items-center gap-2 text-ui-11 text-tea-text-sec">
+                        <div key={i} className="flex items-center gap-2 text-ui-12 text-tea-text-sec">
                           <span className="tabular-nums text-tea-text-dim shrink-0">{dateLabel}</span>
                           {q != null && (
                             <span className="font-medium tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
@@ -486,7 +490,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
                 {/* Audio clips */}
                 {entry.audioClips.length > 0 && (
-                  <div className="flex items-center gap-1 text-ui-11 text-tea-text-dim">
+                  <div className="flex items-center gap-1 text-ui-12 text-tea-text-dim">
                     <Mic size={11} />
                     {entry.audioClips.length} voice note{entry.audioClips.length > 1 ? 's' : ''}
                   </div>
@@ -495,7 +499,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 {/* Price detail + pipeline actions */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {entry.priceAmount != null && entry.priceAmount > 0 && (
-                    <span className="text-ui-11 text-tea-text-dim tabular-nums">
+                    <span className="text-ui-12 text-tea-text-dim tabular-nums">
                       {formatPrice(entry.priceAmount, entry.priceCurrency)}
                       {pricePerGram && ` · ${pricePerGram}`}
                     </span>
@@ -510,12 +514,13 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
 
         {/* ── Action bar — always visible. Wraps on narrow columns so the
             Sample action is never clipped by the card edge. ── */}
-        <div className="flex flex-wrap items-center gap-y-1 gap-x-0.5 px-2 pb-2 pt-1.5 border-t border-tea-border">
+        <div className="flex flex-wrap items-center gap-x-1 border-t border-tea-border px-2 py-1">
           {/* Wishlist toggle */}
           <button
             type="button"
+            data-library-action
             onClick={() => updateEntry(entry.id, { status: isWishlisted ? 'noted' : 'want' })}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
+            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               isWishlisted
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -528,8 +533,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           {/* Buy / Bought — label is always "Buy" or "Bought", never a price string */}
           <button
             type="button"
-            onClick={() => { if (isBought) handleUnbuy(); }}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
+            data-library-action
+            onClick={() => { if (isBought) handleUnbuy(); else handleReorder(); }}
+            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               isBought
                 ? 'bg-tea-gold/10 text-tea-gold'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -545,8 +551,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           {/* Taste / Rating */}
           <button
             type="button"
+            data-library-action
             onClick={() => setTastingOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
+            className={`tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
               hasTasting
                 ? 'text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated'
                 : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -565,8 +572,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           {entry.status === 'depleted' && (
             <button
               type="button"
+              data-library-action
               onClick={handleReorder}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-ui-11 font-medium text-tea-text-dim hover:text-tea-accent-sub hover:bg-tea-elevated transition-colors"
+              className="tap-target flex min-h-11 items-center gap-1.5 px-2.5 rounded-md text-ui-12 font-medium text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
               title="Add to ledger to reorder"
             >
               <RefreshCw size={12} />
@@ -578,10 +586,11 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           {tasteQueueActive && (
             <button
               type="button"
+              data-library-action
               onClick={() => updateEntry(entry.id, {
                 tasteOrder: entry.tasteOrder ? undefined : Date.now(),
               })}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-ui-11 font-medium transition-colors ${
+              className={`tap-target flex min-h-11 items-center gap-1 px-2.5 rounded-md text-ui-12 font-medium transition-colors ${
                 entry.tasteOrder
                   ? 'bg-tea-gold/10 text-tea-gold'
                   : 'text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated'
@@ -605,6 +614,7 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                 compassEntryId: entry.id,
               }}
               size={12}
+              className="tap-target min-h-11 px-2.5 text-ui-12"
             />
           )}
 
@@ -614,9 +624,11 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           {/* Edit → Capture (icon-only) */}
           <button
             type="button"
+            data-library-action
             onClick={() => onEdit(entry.id)}
-            className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated transition-colors"
+            className="tap-target flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-elevated transition-colors"
             title="Edit in Capture"
+            aria-label="Edit entry"
           >
             <Pencil size={12} />
           </button>
@@ -625,8 +637,9 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           {confirmDelete ? (
             <button
               type="button"
+              data-library-action
               onClick={() => { removeEntry(entry.id); setConfirmDelete(false); }}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-md text-ui-11 font-medium bg-tea-error/10 text-tea-error hover:bg-tea-error/20 transition-colors ml-1"
+              className="tap-target flex min-h-11 items-center gap-1 px-2 rounded-md text-ui-12 font-medium bg-tea-error/10 text-tea-error hover:bg-tea-error/20 transition-colors ml-1"
             >
               <AlertTriangle size={11} />
               Delete?
@@ -634,15 +647,17 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
           ) : (
             <button
               type="button"
+              data-library-action
               onClick={() => setConfirmDelete(true)}
-              className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-error hover:bg-tea-elevated transition-colors ml-1"
+              className="tap-target flex min-h-11 min-w-11 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-error hover:bg-tea-elevated transition-colors ml-1"
               title="Delete"
+              aria-label="Delete entry"
             >
               <Trash2 size={12} />
             </button>
           )}
         </div>
-      </div>
+      </article>
 
       {/* ── Tasting session ── */}
       <AnimatePresence>
@@ -681,18 +696,23 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
       {lightboxIndex !== null && validPhotos[lightboxIndex] && createPortal(
         <motion.div
           key="browse-lightbox"
-          initial={{ opacity: 0 }}
+          initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
           className="fixed inset-0 z-toast flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.88)' }}
-          onClick={() => setLightboxIndex(null)}
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photos for ${entryDisplayTitle(entry)}`}
         >
           <button
             type="button"
-            onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+            ref={lightboxCloseRef}
+            onClick={closeLightbox}
+            className="tap-target absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+            aria-label="Close photos"
           >
             <X size={18} />
           </button>
@@ -700,14 +720,15 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              className="tap-target absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Previous photo"
             >
               <ChevronLeft size={20} />
             </button>
           )}
           <motion.img
             key={lightboxIndex}
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.15 }}
             src={mediaUrl(validPhotos[lightboxIndex])}
@@ -719,7 +740,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              className="tap-target absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Next photo"
             >
               <ChevronRight size={20} />
             </button>
@@ -731,7 +753,8 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
                   key={i}
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-tea-text' : 'bg-tea-text/30'}`}
+                  className={`tap-target w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-tea-text' : 'bg-tea-text/30'}`}
+                  aria-label={`Show photo ${i + 1}`}
                 />
               ))}
             </div>

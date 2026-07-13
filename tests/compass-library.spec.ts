@@ -466,4 +466,51 @@ test.describe('Curate Library decisions and retrieval', () => {
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
   });
+
+  test('renders semantic entry rows with working Buy and no contradictory Co-Tasting', async ({ page }) => {
+    await expect(page.getByText('Co-Tasting', { exact: true })).toHaveCount(0);
+    expect(await page.locator('[data-testid^="library-entry-"] button button').count()).toBe(0);
+
+    const cloudPeak = page.getByTestId('library-entry-unresolved').filter({ visible: true });
+    await cloudPeak.getByRole('button', { name: 'Buy', exact: true }).click();
+    await expect(cloudPeak.getByText('Incoming', { exact: true }).filter({ visible: true })).toBeVisible();
+    expect(await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return useTeaCompassStore.getState().getEntry('unresolved')?.status;
+    })).toBe('incoming');
+  });
+
+  test('names every active filter and removes one without clearing the others', async ({ page }) => {
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.getState().setLibraryFilters({ decision: 'passed_on', category: 'teaware' });
+    });
+    await expect(page.getByRole('button', { name: 'Remove Decision: Passed on' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Remove Category: Teaware' })).toBeVisible();
+    await page.getByRole('button', { name: 'Remove Decision: Passed on' }).click();
+    await expect(page.getByRole('button', { name: 'Remove Decision: Passed on' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Remove Category: Teaware' })).toBeVisible();
+  });
+
+  test('shows honest local-data state when Library hydration fails', async ({ page }) => {
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.setState({ hydrationStatus: 'error' });
+    });
+    await expect(page.getByRole('alert')).toContainText('Showing local Library data');
+    await expect(page.getByRole('button', { name: 'Retry Library sync' })).toBeVisible();
+  });
+
+  test('desktop detail keeps Share and the complete action set reachable', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name.includes('Mobile'), 'Desktop split-pane contract');
+    await page.getByTestId('library-entry-unresolved').getByRole('button', { name: /Open Cloud Peak details/ }).click();
+    const detail = page.getByTestId('library-entry-detail');
+    for (const name of ['Edit entry', 'Want', 'Buy', 'Taste', 'Share']) await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
+    await expect(detail.getByRole('button', { name: /Add to Sample list/i })).toBeVisible();
+    await detail.getByRole('button', { name: 'Share', exact: true }).click();
+    await expect(page.locator('p').filter({ hasText: /^Share$/ }).filter({ visible: true })).toBeVisible();
+  });
 });

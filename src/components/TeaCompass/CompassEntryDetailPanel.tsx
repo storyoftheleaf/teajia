@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { mediaUrl } from '../../lib/mediaUrl';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, BookmarkCheck, BookmarkPlus, Store, X } from 'lucide-react';
+import { BookmarkCheck, BookmarkPlus, Droplets, Share2, ShoppingBag, Store, X } from 'lucide-react';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { getDateGroup } from './BrowseCard';
@@ -9,23 +9,32 @@ import { entryDisplayTitle } from './types';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 import { DecisionControl } from './DecisionControl';
 import { CreateInventoryRecordAction } from './CreateInventoryRecordAction';
+import { useLedgerStore } from '../../lib/ledgerStore';
+import { TastingSession } from '../tasting/TastingSession';
+import type { TastingData } from '../../types';
+import type { CompassVerdict } from './types';
 
 interface CompassEntryDetailPanelProps {
   entryId: string;
   onEdit: (id: string) => void;
   onClose: () => void;
+  onShare?: (id: string) => void;
 }
 
-const SECTION_LABEL = 'text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium mb-2';
+const SECTION_LABEL = 'text-ui-12 text-tea-text-dim font-medium mb-2';
 
 export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = ({
   entryId,
   onEdit,
   onClose,
+  onShare,
 }) => {
   const navigate = useNavigate();
   const getEntry = useTeaCompassStore((s) => s.getEntry);
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
+  const getOrCreatePurchaseTransaction = useLedgerStore((s) => s.getOrCreatePurchaseTransaction);
+  const addLineItem = useLedgerStore((s) => s.addLineItem);
+  const [tastingOpen, setTastingOpen] = useState(false);
 
   const entry = getEntry(entryId);
   if (!entry) return null;
@@ -37,6 +46,20 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   const hasNotes = entry.notes.trim().length > 0;
   const hasTastingHistory = (entry.tastingHistory?.length ?? 0) > 0;
   const isWishlisted = entry.status === 'want';
+  const isBought = entry.status === 'in_stock' || entry.status === 'buying';
+
+  const handleBuy = useCallback(() => {
+    const unitBased = (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
+    const transactionId = getOrCreatePurchaseTransaction(entry.vendorName || 'Unknown Vendor', entry.priceCurrency, entry.vendorId);
+    addLineItem(transactionId, {
+      name: entry.name || entryDisplayTitle(entry), chineseName: entry.chineseName, type: entry.type,
+      form: entry.form, year: entry.year, quantityGrams: unitBased ? undefined : 100,
+      quantityUnits: unitBased ? 1 : undefined, pricePerUnit: entry.priceAmount ?? 0,
+      priceIsPerGram: !unitBased && !!entry.pricePerUnitGrams, currency: entry.priceCurrency,
+      compassEntryId: entry.id,
+    });
+    updateEntry(entry.id, { status: 'incoming' });
+  }, [addLineItem, entry, getOrCreatePurchaseTransaction, updateEntry]);
 
   // Price per gram display
   const pricePerGram = (() => {
@@ -77,7 +100,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
   ].filter(Boolean);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col" data-testid="library-entry-detail">
 
       {/* ── Header ── */}
       <div className="shrink-0 px-6 pt-5 pb-4 border-b border-tea-border">
@@ -89,18 +112,18 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
+            className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Close detail panel"
           >
             <X size={16} />
           </button>
         </div>
-        <h2 className="font-serif text-xl text-tea-text leading-snug mt-3">
+        <h2 className="mt-3 font-serif text-ui-16 leading-snug text-tea-text">
           {entry.name || <span className="text-tea-text-sec">{entryDisplayTitle(entry)}</span>}
         </h2>
         {entry.chineseName && (
           <p
-            className="text-sm text-tea-text-dim mt-0.5"
+            className="mt-0.5 text-ui-12 text-tea-text-dim"
             style={{ fontFamily: 'var(--font-chinese)' }}
           >
             {entry.chineseName}
@@ -135,7 +158,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         {entry.vendorName && (
           <div>
             <p className={SECTION_LABEL}>Source</p>
-            <div className="flex items-center gap-2 text-ui-13 text-tea-text-sec">
+            <div className="flex items-center gap-2 text-ui-12 text-tea-text-sec">
               <Store size={12} className="text-tea-text-dim shrink-0" />
               <span className="flex-1 min-w-0 truncate">{entry.vendorName}</span>
               {pricePerGram && (
@@ -175,7 +198,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
         {hasNotes && (
           <div>
             <p className={SECTION_LABEL}>Notes</p>
-            <p className="text-ui-13 text-tea-text-sec leading-relaxed whitespace-pre-wrap">
+            <p className="text-ui-12 text-tea-text-sec leading-relaxed whitespace-pre-wrap">
               {entry.notes}
             </p>
           </div>
@@ -193,7 +216,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
                 const flavorSnippet = h.data.flavor?.slice(0, 3).join(', ');
                 return (
                   <div key={i} className="flex items-start gap-2">
-                    <span className="text-ui-11 text-tea-text-dim shrink-0 tabular-nums mt-px">
+                    <span className="text-ui-12 text-tea-text-dim shrink-0 tabular-nums mt-px">
                       {getDateGroup(h.date)}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -217,14 +240,33 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
       </div>
 
       {/* ── Footer action bar ── */}
-      <div className="shrink-0 px-6 py-4 border-t border-tea-border flex flex-wrap items-center gap-2">
+      <div className="shrink-0 border-t border-tea-border px-4 py-2">
+        <div className="flex flex-wrap items-center gap-x-1">
         <button
           type="button"
           onClick={() => onEdit(entryId)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
+          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          aria-label="Edit entry"
         >
-          Edit Entry
-          <ArrowRight size={13} />
+          Edit
+        </button>
+
+        <button type="button" onClick={() => updateEntry(entryId, { status: isWishlisted ? 'noted' : 'want' })}
+          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          aria-label={isWishlisted ? 'Remove Want' : 'Want'}>
+          {isWishlisted ? <BookmarkCheck size={14} className="inline mr-1.5 text-tea-gold" /> : <BookmarkPlus size={14} className="inline mr-1.5" />}Want
+        </button>
+
+        <button type="button" onClick={handleBuy} disabled={isBought}
+          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text disabled:text-tea-text-dim"
+          aria-label="Buy">
+          <ShoppingBag size={14} className="inline mr-1.5" />{isBought ? 'In stock' : 'Buy'}
+        </button>
+
+        <button type="button" onClick={() => setTastingOpen(true)}
+          className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
+          aria-label="Taste">
+          <Droplets size={14} className="inline mr-1.5" />Taste
         </button>
 
         {entry.category !== 'teaware' && (
@@ -238,6 +280,7 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
               compassEntryId: entry.id,
             }}
             variant="labeled"
+            className="tap-target min-h-11 rounded-md bg-transparent px-3 text-ui-12 text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text"
           />
         )}
 
@@ -247,24 +290,21 @@ export const CompassEntryDetailPanel: React.FC<CompassEntryDetailPanelProps> = (
           onOpenInventory={(productId) => navigate(`/admin/stock?panel=${encodeURIComponent(productId)}`)}
         />
 
-        <button
-          type="button"
-          onClick={() =>
-            updateEntry(entryId, {
-              status: isWishlisted ? 'noted' : 'want',
-            })
-          }
-          className="p-2 rounded-xl hover:bg-tea-surface transition-colors"
-          aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-        >
-          {isWishlisted ? (
-            <BookmarkCheck size={16} className="text-tea-gold" />
-          ) : (
-            <BookmarkPlus size={16} className="text-tea-text-dim" />
-          )}
-        </button>
+        {onShare && <button type="button" onClick={() => onShare(entryId)} className="tap-target min-h-11 rounded-md px-3 text-ui-12 font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text" aria-label="Share"><Share2 size={14} className="inline mr-1.5" />Share</button>}
+        </div>
       </div>
+
+      {tastingOpen && (
+        <TastingSession
+          item={{ id: entry.id, name: entry.name, type: entry.type, image: validPhotos[0], sourceType: 'compass', compassEntryId: entry.id }}
+          onClose={() => setTastingOpen(false)}
+          onAfterSave={(data: TastingData, verdict?: CompassVerdict) => updateEntry(entry.id, {
+            tasting: data,
+            tastingHistory: [...(entry.tastingHistory ?? []), { data, date: new Date().toISOString() }],
+            ...(verdict ? { verdict } : {}),
+          })}
+        />
+      )}
 
     </div>
   );
