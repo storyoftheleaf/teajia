@@ -503,18 +503,28 @@ test.describe('Curate Import panel', () => {
 
   test('retries only the failed attachment after a partial upload', async ({ page }) => {
     const attempts = new Map<string, number>();
+    let analysisAttempts = 0;
     const ordinal = { ordinal: 0, injectSecondFailure: true };
     evidenceOrdinalByPage.set(page, ordinal);
-    page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/evidence')) { const id = request.headers()['x-client-evidence-id']; attempts.set(id, (attempts.get(id) || 0) + 1); } });
+    page.on('request', request => {
+      if (request.method() === 'POST' && request.url().endsWith('/evidence')) { const id = request.headers()['x-client-evidence-id']; attempts.set(id, (attempts.get(id) || 0) + 1); }
+      if (request.method() === 'POST' && request.url().endsWith('/analyze')) analysisAttempts += 1;
+    });
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add photos').setInputFiles({ name: 'one.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('one') });
     await expect(page.getByText('one.jpg')).toBeVisible();
+    const replacePicker = page.getByLabel('Replace one.jpg');
+    await expect(replacePicker).toBeVisible();
+    await replacePicker.focus();
+    await expect(replacePicker).toBeFocused();
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'two.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect.poll(() => attempts.size, { message: `Expected both evidence requests; attempts=${JSON.stringify([...attempts])}` }).toBe(2);
     expect(ordinal.ordinal).toBe(2);
+    await expect.poll(() => analysisAttempts).toBe(1);
     await expect(page.getByText('one.jpg')).toHaveCount(1);
+    await expect(page.getByText('Analyzed')).toBeVisible();
     await expect(page.getByText('two.pdf')).toBeVisible();
     await expect(page.getByText('Temporary evidence failure')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
@@ -522,6 +532,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('two.pdf')).toBeVisible();
     expect([...attempts.values()].sort()).toEqual([1, 2]);
     expect(ordinal.ordinal).toBe(3);
+    expect(analysisAttempts).toBe(2);
   });
 
   test('preserves separately selected files with the same filename', async ({ page }) => {

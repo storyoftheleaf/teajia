@@ -26,15 +26,16 @@ function validDescriptor(value: unknown): value is ImportDraftAttachmentDescript
     && typeof row.type === 'string' && (row.kind === 'photo' || row.kind === 'file');
 }
 
-export function saveImportDraft(accountId: string, draft: ImportDraftSnapshot, storage: Storage = localStorage) {
+export function saveImportDraft(accountId: string, draft: ImportDraftSnapshot, storage?: Storage) {
   if (!accountId) return;
-  storage.setItem(importDraftStorageKey(accountId), JSON.stringify({ version: VERSION, ...draft }));
+  try { (storage ?? localStorage).setItem(importDraftStorageKey(accountId), JSON.stringify({ version: VERSION, ...draft })); }
+  catch { /* Capture remains usable when browser storage is unavailable or full. */ }
 }
 
-export function loadImportDraft(accountId: string, storage: Storage = localStorage): ImportDraftSnapshot | null {
+export function loadImportDraft(accountId: string, storage?: Storage): ImportDraftSnapshot | null {
   if (!accountId) return null;
   try {
-    const value = JSON.parse(storage.getItem(importDraftStorageKey(accountId)) || 'null') as Record<string, unknown> | null;
+    const value = JSON.parse((storage ?? localStorage).getItem(importDraftStorageKey(accountId)) || 'null') as Record<string, unknown> | null;
     if (!value || value.version !== VERSION || typeof value.text !== 'string'
       || !(typeof value.journeyId === 'string' || value.journeyId === null)
       || !Array.isArray(value.attachments) || !value.attachments.every(validDescriptor)) return null;
@@ -42,6 +43,8 @@ export function loadImportDraft(accountId: string, storage: Storage = localStora
   } catch { return null; }
 }
 
-export function clearImportDraft(accountId: string, storage: Storage = localStorage) {
-  if (accountId) storage.removeItem(importDraftStorageKey(accountId));
+export function clearImportDraft(accountId: string, storage?: Storage) {
+  if (!accountId) return;
+  try { (storage ?? localStorage).removeItem(importDraftStorageKey(accountId)); }
+  catch { /* Clearing an in-memory draft must not depend on browser storage. */ }
 }

@@ -425,7 +425,11 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
         return vendorBlocked ? { ...resolved, blockingFields: [...new Set([...resolved.blockingFields, 'vendor'])] } : resolved;
       }) };
     });
-    const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
+    const itemIdentity = (sourceId: unknown, sourceItemId: unknown) => `${String(sourceId ?? '')}\u0000${String(sourceItemId ?? '')}`;
+    const existingItems = new Map(itemsResult.results.map(row => {
+      const parsed = parseJson(row.parsed_data_json, {}) as Record<string, unknown>;
+      return [itemIdentity(row.source_id, parsed.sourceItemId), row];
+    }));
     const keptGroupIds = new Set<string>();
     const keptItemIds = new Set<string>();
     const statements: D1PreparedStatement[] = sourceAnalysisStatements(env, params.id, ctx.accountId, attemptToken, analyzedSources, evidenceReferences);
@@ -448,7 +452,8 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
       ).bind(groupId, params.id, ctx.accountId, groupPosition, group.key, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), attemptToken, params.id, ctx.accountId));
       for (const proposed of group.items) {
-        const existing = existingItems.get(proposed.sourceItemId);
+        const proposedSourceId = proposed.evidenceRefs[0]?.split(':')[0] ?? null;
+        const existing = existingItems.get(itemIdentity(proposedSourceId, proposed.sourceItemId));
         const itemId = existing ? String(existing.id) : crypto.randomUUID();
         keptItemIds.add(itemId);
         const manual = existing ? parseJson(existing.manually_corrected_fields_json, []) : [];
@@ -469,7 +474,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
         else statements.push(env.DB.prepare(
           `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id, vendor_group_id, manually_corrected_fields_json)
            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reviewing', NULL, ?, ?, '[]' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
-        ).bind(itemId, params.id, proposed.evidenceRefs[0]?.split(':')[0] ?? null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId, attemptToken, params.id, ctx.accountId));
+        ).bind(itemId, params.id, proposedSourceId, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId, attemptToken, params.id, ctx.accountId));
       }
     }
     for (const row of itemsResult.results) if (!requestedSourceIds && !keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
@@ -487,7 +492,10 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
   } catch (error) {
     if (error instanceof AnalysisSupersededError) return analysisSupersededResponse();
     const message = error instanceof Error ? error.message.slice(0, 500) : 'analysis_failed';
-    const failedStatements = sourceAnalysisStatements(env, params.id, ctx.accountId, attemptToken, analyzedSources);
+    const failedSources = analyzedSources.map(source => source.analysisStatus === 'analyzed'
+      ? { ...source, analysisStatus: 'failed' as const, analysisError: message }
+      : source);
+    const failedStatements = sourceAnalysisStatements(env, params.id, ctx.accountId, attemptToken, failedSources);
     failedStatements.push(env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, analysis_attempt_token = NULL, updated_at = datetime('now') WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
       .bind(message, attemptToken, params.id, ctx.accountId));
     const failed = await env.DB.batch(failedStatements);

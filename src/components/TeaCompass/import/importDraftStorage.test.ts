@@ -53,4 +53,27 @@ describe('Curate import draft storage', () => {
     expect(loadImportDraft('account-a', storage)).toBeNull();
     expect(loadImportDraft('account-b', storage)).toBeNull();
   });
+
+  it('does not break capture when storage rejects quota or privacy writes', () => {
+    const unavailable = new MemoryStorage();
+    unavailable.setItem = () => { throw new DOMException('Quota exceeded', 'QuotaExceededError'); };
+    unavailable.removeItem = () => { throw new DOMException('Storage disabled', 'SecurityError'); };
+    const snapshot: ImportDraftSnapshot = { text: 'Keep working', journeyId: null, attachments: [] };
+
+    expect(() => saveImportDraft('account-a', snapshot, unavailable)).not.toThrow();
+    expect(() => clearImportDraft('account-a', unavailable)).not.toThrow();
+  });
+
+  it('does not break capture when browser privacy blocks access to localStorage itself', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, get: () => { throw new DOMException('Storage disabled', 'SecurityError'); } });
+    try {
+      expect(() => saveImportDraft('account-a', { text: 'Private', journeyId: null, attachments: [] })).not.toThrow();
+      expect(() => clearImportDraft('account-a')).not.toThrow();
+      expect(() => loadImportDraft('account-a')).not.toThrow();
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'localStorage', original);
+      else delete (globalThis as { localStorage?: Storage }).localStorage;
+    }
+  });
 });

@@ -152,10 +152,11 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
         onDetailChange(detail);
       }
       const uploadFailure = uploadResults.find(result => result.error);
-      if (uploadFailure) throw new Error(uploadFailure.error!);
+      if (uploadFailure && !detail.sources.length) throw new Error(uploadFailure.error!);
       const retrySourceIds = detail.batch.analysis_state === 'failed' ? failedImportSourceIds(detail.sources) : undefined;
       if (detail.batch.analysis_state === 'failed' && !retrySourceIds?.length) throw new Error('No failed evidence is available to retry');
       detail = normalizeImportDetail(await api.curateImports.analyze(detail.batch.id, retrySourceIds));
+      if (uploadFailure) throw new Error(uploadFailure.error!);
       clearImportDraft(accountId);
       setState({ phase: 'review', detail, error: null });
       onDetailChange(detail);

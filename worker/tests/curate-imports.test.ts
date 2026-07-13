@@ -516,6 +516,29 @@ describe('Curate import provenance API', () => {
     expect(await analyzed.json()).toMatchObject({ code: 'analysis_invalid_evidence_reference' });
   });
 
+  it.each([
+    ['provider error', (_sourceId: string) => new Response('provider unavailable', { status: 500 })],
+    ['malformed provider JSON', (_sourceId: string) => new Response(JSON.stringify({ content: [{ type: 'text', text: '{not-json' }] }), { status: 200 })],
+    ['invalid provider references', (_sourceId: string) => new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'bad refs', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('line-1', 'foreign:0-2')] }] }) }] }), { status: 200 })],
+  ])('marks prepared evidence failed and retryable after %s', async (_label, failureResponse) => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Retry provider failure', pasted_text: 'Retry tea evidence' }) });
+    const { batch, sources } = await created.json() as any;
+    const sourceId = sources[0].id;
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(failureResponse(sourceId))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'recovered', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('line-1', `${sourceId}:0-5`)] }] }) }] }), { status: 200 }));
+
+    const failed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    expect(failed.status).toBe(502);
+    expect(db.sources.get(sourceId)).toMatchObject({ analysis_status: 'failed' });
+    expect(db.sources.get(sourceId)?.analysis_error).toBeTruthy();
+
+    const retried = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: [sourceId] }) });
+    expect(retried.status).toBe(200);
+    expect(db.sources.get(sourceId)).toMatchObject({ analysis_status: 'analyzed', analysis_error: null });
+  });
+
   it('rejects invalid text ranges and PDF page references and persists valid structured references', async () => {
     const cases = ['source:99-120', 'pdf:page=3'];
     for (const evidenceRef of cases) {
@@ -1032,6 +1055,28 @@ describe('Curate import provenance API', () => {
     expect(String(provider.mock.calls[0][1]?.body)).not.toContain('Already processed');
     expect(db.sources.get('done')).toMatchObject({ analysis_status: 'analyzed', analysis_error: null, reference_metadata_json: JSON.stringify({ references: ['done:0-4'] }) });
     expect(db.sources.get('failed')).toMatchObject({ analysis_status: 'analyzed', analysis_error: null });
+  });
+
+  it('scopes duplicate provider sourceItemIds to their evidence source during selective retry', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Duplicate source-local ids' }) });
+    const { batch } = await created.json() as any;
+    db.sources.set('source-a', { id: 'source-a', batch_id: batch.id, account_id: 'account-a', kind: 'paste', pasted_text: 'Alpha evidence', analysis_status: 'failed', metadata_json: '{}' });
+    db.sources.set('source-b', { id: 'source-b', batch_id: batch.id, account_id: 'account-a', kind: 'paste', pasted_text: 'Beta evidence', analysis_status: 'failed', metadata_json: '{}' });
+    const provider = vi.spyOn(globalThis, 'fetch');
+    provider.mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'alpha', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [
+      { ...itemProposal('line-1', 'source-a:0-5'), englishName: 'Alpha original' },
+    ] }] }) }] }), { status: 200 }));
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: ['source-a'] }) })).status).toBe(200);
+    provider.mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'beta retried', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [
+      { ...itemProposal('line-1', 'source-b:0-4'), englishName: 'Beta retried' },
+    ] }] }) }] }), { status: 200 }));
+
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: ['source-b'] }) })).status).toBe(200);
+    const alpha = [...db.items.values()].find(item => item.source_id === 'source-a');
+    const beta = [...db.items.values()].find(item => item.source_id === 'source-b');
+    expect(JSON.parse(String(alpha?.parsed_data_json)).englishName).toBe('Alpha original');
+    expect(JSON.parse(String(beta?.parsed_data_json)).englishName).toBe('Beta retried');
   });
 
   it('refuses per-source retry for evidence that is not failed', async () => {
