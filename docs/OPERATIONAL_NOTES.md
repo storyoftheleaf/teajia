@@ -1,8 +1,8 @@
 # Operational Notes & Tradeoffs
 
 > Watch-list of intentional tradeoffs, residual risks, and items worth
-> revisiting under specific future conditions. **Not** bugs (those go in
-> `_audit/FINDINGS.md`) and **not** roadmap items (those go in the relevant file under `tracks/`).
+> revisiting under specific future conditions. **Not** bugs or roadmap items
+> (those go in the relevant active file under `tracks/`).
 >
 > Each note has a **Revisit if** trigger. When that trigger fires, return here
 > first. When a note is no longer relevant, move it to "Resolved" with a

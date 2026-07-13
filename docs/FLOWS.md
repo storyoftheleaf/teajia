@@ -305,4 +305,4 @@ Adrian manages tier defaults and per-partner overrides.
 
 **Last updated:** 2026-04-27
 
-**Source files:** VISION_AUDIT_1–7, NETWORK_ROLLOUT_PLAN.md, _audit/01–03, CLAUDE.md (intentional design notes), ARCHITECTURE.md
+**Source basis:** current routes and APIs, VISION.md, ARCHITECTURE.md, and the shipped network/event/editorial contracts. Historical audit provenance remains in Git.

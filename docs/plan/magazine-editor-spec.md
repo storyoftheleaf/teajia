@@ -2,7 +2,9 @@
 
 *Feature plan. Read VISION.md first.*
 
-Last updated: April 2026
+**Status:** Core D1 editor, Smart Paste, contributor selection, pull quotes, preview, and publishing integration are shipped. Only the optional AI-assisted structuring and rewrite layer remains deferred until editorial volume justifies it.
+
+Last updated: July 2026
 
 ---
 

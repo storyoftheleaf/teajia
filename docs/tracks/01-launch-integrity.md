@@ -2,7 +2,7 @@
 
 > Make it true before it's public: close the bugs a real user hits in their first week, not polish. This track gates every other track.
 
-Status: launch-program trust floor implemented and locally verified; broader cleanup items below remain open and external launch evidence is pending.
+Status: launch-program trust floor implemented and locally verified, except for the reading-memory/saved-story discrepancy below. Broader cleanup remains backlog work. External launch evidence is tracked in [Launch Validation](../LAUNCH_VALIDATION.md).
 
 Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
@@ -15,13 +15,13 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ### Core build
 
-- [ ] **Reading memory: wire or remove (R2-R4, R6).** The whole "reading memory" feature is dead; per the audit, wire it or remove it, no third option. (day)
-  - R2: `/account/history` (`src/pages/ReadingHistoryPage.tsx:21-39`) reads `localStorage` keys prefixed `teajia_progress_${story.id}`, but only the legacy `Reader.tsx` (`src/components/Reader.tsx:360,374`) writes that key, and `Reader.tsx` is unreachable (see R8). The live reader, `ArticlePage.tsx`, writes progress under a different key, `teajia_article_${article.id}` (`src/pages/ArticlePage.tsx:2465,2485`). History is permanently empty.
-  - R3: Saved Stories (`src/pages/SavedStoriesPage.tsx`) reads ids from `localStorage['teajia_saved_stories']` and resolves them against `api.articles.listPublished()` (real `DbArticle.id` values). The only wired `toggleSave` (`src/App.tsx:591`, called from `:1117`, `:1133`, `:1146`) saves ids from the legacy `stories` array (`useStories()` in `src/context/StoryContext.tsx`, sourced from hardcoded `src/content` `STORIES`, not the DB). The ids never match, so saves never appear.
-  - R4: `MEMBER_MEMORY_LINKS` (`src/components/AccountPanel/workflows.ts:43-49`, routes `/account/saved` and `/account/history`) is defined but has zero renderers anywhere in `src/`, confirmed by grep. Compare `READER_EXPLORE_LINKS` in the same file, which is rendered by `src/components/AccountPanel/ReaderView.tsx:4,99`. The two orphaned routes are unreachable from any UI.
-  - R6: `AtlasMapOfMountains.tsx:94` (live page) links to `/read/history`, and `CraftPotThatRemembers.tsx:14`/`CraftRenewalPorcelain.tsx:26-27`/`RockRemembers.tsx:14`/`BeforeTheMist.tsx:15`/`LegendImmortalsCliff.tsx:14`/`FieldStudyWaterBeforeLeaf.tsx:16` link to `/read/earth-water-fire` and `/read/craft`. All three targets are registered routes in `src/App.tsx` (lines 890, 900, 915) but are marked draft (no `live: true`) in `ReadIndex.tsx`'s `INDEX_GROUPS` (`:61`, `:70`, `:90`). `live` is described there as "the publish gate," but nothing gates the routes themselves, only the index listing.
-  - Decide once: either fix `ReadingHistoryPage.tsx` to read the `teajia_article_` key and repoint `toggleSave` at real `DbArticle` ids, then render `MEMBER_MEMORY_LINKS` in the AccountPanel reader view; or delete `ReadingHistoryPage.tsx`, `SavedStoriesPage.tsx`, `MEMBER_MEMORY_LINKS`, and strip the R6 next-page links to unpublished drafts.
-- [x] **Verification-code delivery, email leg.** Sign-in and event/guest verification now share a purpose-aware challenge lifecycle and the Resend delivery boundary. Codes use CSPRNG generation and HMAC storage; delivery failures are explicit and codes are never logged. Worker/provider-boundary and frontend tests pass locally. A real receipt through Resend on the deployed review environment remains an external launch gate.
+- [ ] **Launch-program discrepancy — reading memory: wire or remove (R2-R4, R6).** This is the one remaining technical requirement from the launch-program design that Release 1 did not fully close. The old account history/saved pages are gone, but their underlying legacy system was not retired coherently. (day)
+  - `App.tsx` still owns and persists `teajia_saved_stories` for legacy `Story` records, while the live D1 article path has no corresponding durable saved-story flow.
+  - `MEMBER_MEMORY_LINKS` still advertises `/account/saved` and `/account/history`, but no UI renders the registry and those account routes no longer exist.
+  - The dead `viewState === 'READER'` branch and `Reader.tsx` still carry the old `teajia_progress_*` behavior, while live articles use their own route and progress model.
+  - Live Read pages still link to `/read/history`, `/read/earth-water-fire`, and `/read/craft`, even though `ReadIndex.tsx` withholds those stories from the published index.
+  - Recommended closure: remove the unused memory-link registry, legacy saved/progress state, unreachable Reader branch, and links to unpublished stories. Only build a new D1-backed reading-memory feature if real use establishes a need.
+- [x] **Verification-code delivery, email leg.** Sign-in and event/guest verification now share a purpose-aware challenge lifecycle and the Resend delivery boundary. Codes use CSPRNG generation and HMAC storage; delivery failures are explicit and codes are never logged. Worker/provider-boundary and frontend tests pass locally. Deployed receipt evidence belongs in [Launch Validation](../LAUNCH_VALIDATION.md).
 - [x] **Per-order detail page.** The account-scoped detail endpoint, typed client, `/account/orders/:id` route, linked history rows, and all loading/error/empty states are implemented and covered by ownership and browser tests. The public inquiry lookup remains a separate flow.
 - [ ] **Curate integrity: account partitioning + dead nav (P3, P1).** (hours each)
   - P3: Compass captures aren't partitioned per account. `teaCompassStore.ts` persists under a single fixed key, `name: 'teajia-compass'` (`:330`), regardless of active account or user. `useCompassSync.ts:16-24` documents the risk explicitly ("If cross-account bleed ever becomes a concern, this hook is the single place to add an `activeAccountId` dependency that clears the store on change") but the guard was never added. On a shared device, switching accounts can surface unsynced captures from the wrong account until the next sync cycle. Fix: key the persisted store name (or clear/reload it) on `activeAccountId` change inside `useCompassSync.ts`.
@@ -32,9 +32,9 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 - [ ] **Dead reader code sweep (R8).** Confirmed zero importers anywhere in `src/` for: `src/components/ReadPage.tsx`, `src/components/SinglePageRenderer.tsx`, `src/components/reader/ReadingStreak.tsx` (also on the DO-NOT-BUILD list), `src/components/read/TagFilter.tsx`, `src/components/read/EndOfArticle.tsx`, `src/components/read/ReadableCard.tsx`. `src/components/Reader.tsx` is still imported (`src/App.tsx`, rendered only under the dead `viewState === 'READER'` branch, `:1108`) but is unreachable since nothing ever calls `setViewState('READER')`. Delete `Reader.tsx` and its render branch too once R2-R4 above is resolved (it's the same legacy-progress-key writer named in R2). (hours)
 - [ ] **Migrate the final 3 `.pill-*` action buttons, then promote lint Rule 9 to blocking.** All three are in `src/admin/views/PlatformAdminView.tsx`, confirmed by grep to be the only file left with `pill-primary`/`pill-destructive` classes: line 93 (`ConfirmButton`'s default `confirmClassName = 'pill pill-destructive-confirm'`, used by both the Suspend and Reactivate account buttons when armed), line 424 (Save-profile button, `className="pill pill-primary ..."`), line 500 (Suspend-account idle state, `idleClassName="pill pill-destructive"`). Migrate all three to `<Button variant="primary">` / `<Button variant="destructive">`. Then flip lint Rule 9 in `scripts/lint-colors.sh:191` from `check_pattern_notice` to `check_pattern_ere` (blocking) so `.pill-*` action classes can't return. (mins)
 
-## Gated on launch decision
+## External and manual validation
 
-- None. Every open item in this track is a code fix an agent or Adrian can do solo pre-launch; nothing here depends on a real operator or user existing.
+All environment, production-data, operator, and human-only gates are maintained in [Launch Validation](../LAUNCH_VALIDATION.md), including the deployed OTP receipt and production invoice-repair decision.
 
 ## Already shipped
 
@@ -48,7 +48,7 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ## Sources
 
-- `docs/AUDIT_2026-07_READ_CURATE_CHINA.md` (live, Read/Curate/China findings)
+- `docs/superpowers/specs/2026-07-12-launch-to-real-use-program-design.md` (launch scope and reconciliation)
 - `docs/_archive/consolidated-2026-07/AUDIT_2026-05.md` (archived, shipped)
 - `docs/_archive/consolidated-2026-07/FIX_QUEUE.md` (archived, shipped)
 - `docs/_archive/consolidated-2026-07/FRICTION_REVIEW.md` (archived, shipped)
@@ -59,6 +59,6 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ## Cross-track dependencies
 
-- K1 and the per-order detail page are also tracked in Track 6 (Commerce in the Inquiry Model), items owned here: Track 1 is the source of truth for the fix, Track 6 tracks it because it's the commerce trust floor. Don't duplicate the fix in two places.
-- Verification-code delivery is shared with Track 7: the implemented email leg serves sign-in and event/guest verification through one challenge/delivery abstraction. Local coverage is green; only deployed receipt evidence remains pending.
-- The launch-program technical gates for Track 2 are closed locally. Onboarding the Australia operator still requires deployed OTP receipt evidence and the real operator run.
+- Track 1 is the sole active track owner for the shipped invoice invariant, repair path, and customer order-detail trust floor; the completed commerce track has been removed.
+- Verification-code delivery is one shared implementation used by sign-in and event/guest verification. External receipt evidence is not duplicated here; see [Launch Validation](../LAUNCH_VALIDATION.md).
+- Track 2 owns real-operator rollout after this track's technical boundary is green.

@@ -2,27 +2,27 @@
 
 > The arc is built: invite, approve, gather, remember. Close the delivery gaps and the one loop that feeds the magazine, event to recap to photo essay.
 
-Status: launch-program event scope implemented and locally verified; optional follow-on event features remain queued.
+Status: launch-program event scope implemented and locally verified; remaining items are post-launch or optional follow-ons. External/manual evidence is tracked in [Launch Validation](../LAUNCH_VALIDATION.md).
 
 Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
-## Build queue
+## Post-launch / optional queue
 
 ### Core build
 
-- [x] **Verification code delivery, email leg.** Event/guest and sign-in verification share the implemented purpose-aware challenge lifecycle and Resend delivery abstraction. Secure generation/storage, retryable failure handling, and local Worker/UI coverage are complete. A real deployed Resend receipt remains a launch-validation gate; WhatsApp Business delivery remains separate and out of this release.
-- [ ] **Post-session summary email.** Confirmed unbuilt: `event_notifications.type` only has `checkin_reminder`, `waitlist_promotion`, `spot_claimed` rows anywhere in the worker (`worker/src/index.ts:6149`, `6714`, `7267`, `18910`) — no `post_session_summary` type, no composer, not even a copy-paste template like the reminder timeline has. Add a fourth notification type + template (teas tasted, personal notes, purchase links, "rate this session") and a trigger point (manual "Send Summaries" button in `EventDetail.tsx`'s Post-Session tab is enough for v1, cron can come later). (day)
+- [x] **Verification code delivery, email leg.** Event/guest and sign-in verification share the implemented purpose-aware challenge lifecycle and Resend delivery abstraction. Secure generation/storage, retryable failure handling, and local Worker/UI coverage are complete. Deployed receipt evidence belongs in [Launch Validation](../LAUNCH_VALIDATION.md).
+- [ ] **Post-session summary email (post-launch).** Confirmed unbuilt: `event_notifications.type` has no `post_session_summary` type or composer. Add a manual send action only after real event use confirms the recap page and existing follow-up are insufficient. (day)
 - [x] **Post-session editor to article-draft composer.** Event gallery, host notes, energy, shared notes, and tea ledger now save/reload and build an idempotently associated D1 article draft that opens in the existing editor. Creation remains draft-only and publication is deliberate. The event-switch upload race is fixed, including unmount and overlapping-upload coverage.
-- [ ] **Event map preview.** `mapLink` today is a plain text URL field (`src/admin/components/EventForm/sections/LocationSection.tsx:271-277`) rendered client-side as a bare "Open in Maps" link (`src/components/events/GuestManagement/ConfirmedView.tsx:148-155`, `src/components/events/VenueGuide.tsx:163-172`) — no embedded static map or interactive preview anywhere. Blocked on Adrian obtaining a Google Maps (or Mapbox) API key and adding it as a Cloudflare Pages/Worker secret via Infisical. Once the key exists, an agent adds the static map image / embed on the guest management page. (10 min Adrian, then hours of agent work)
-- [ ] **TicketCard with QR.** Spec'd in `event-rsvp-capacity-engine.md`, still unbuilt: `ConfirmedView.tsx:84-109` renders an inline ticket block (flyer + title + name + date) but it has no QR code and isn't a standalone downloadable/shareable image. `qrcode.react` is already a project dependency (used in the admin `ShareSheet.tsx:3,231`), so the QR piece is cheap — the save-as-image piece (canvas export) is the real work. Judge priority after the first real-guest events; likely not launch-blocking. (day)
+- [ ] **Event map preview (optional).** `mapLink` is currently rendered as an “Open in Maps” link; there is no embedded preview. Build only if real guests need it. Any provider-key setup belongs in [Launch Validation](../LAUNCH_VALIDATION.md). (hours after approval/configuration)
+- [ ] **TicketCard with QR (optional).** The existing confirmed ticket block has no QR or downloadable/shareable image. Judge priority after real-guest events; this is not launch-blocking. (day)
 
 ### Polish
 
 - [ ] **Reminder milestones stay manual by design** (`src/admin/components/ReminderTimeline.tsx` — 3d/1d/2h templates with WhatsApp deep links, "Copy All"). Not a gap to close now; revisit only once WhatsApp Business API delivery exists (see item 1's sibling), at which point "Copy" buttons could become "Send" buttons with one shared send path.
 
-## Gated on launch decision
+## External and manual validation
 
-- None. Every open item in this track is a code/schema build task Adrian or an agent can do solo pre-launch; nothing here depends on onboarding a real operator or guest. (The WhatsApp delivery leg needs Adrian to set up WhatsApp Business API credentials first, similar in shape to the Maps API key item, but that is account/credential setup, not a "wait for a real user" gate.)
+Deployed OTP receipt, real-guest event checks, and any optional provider credential setup are maintained in [Launch Validation](../LAUNCH_VALIDATION.md).
 
 ## Already shipped
 
@@ -50,5 +50,5 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ## Cross-track dependencies
 
-- Verification-code delivery is shared with Track 1 and is implemented once for sign-in and event/guest verification. Local tests pass; deployed Resend receipt evidence remains pending.
-- The photo essay composer feeds Track 3's editorial engine (Magazine/Journal article pipeline) — coordinate on the target article schema before building the composer so drafts land in the same place Adrian already publishes from.
+- Verification-code delivery is one shared implementation owned by the launch trust floor; external receipt evidence is not duplicated here.
+- The event photo-essay composer already reuses Track 3's D1 article engine and editor; no parallel event-content system remains to coordinate.

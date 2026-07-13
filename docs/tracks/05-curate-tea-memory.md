@@ -2,7 +2,7 @@
 
 > One spine, two ends: Adrian's sourcing intelligence at `/admin/compass` and the member's quiet record at `/account/journal`. The one loop still open, human curation of starred notes, replaces reviews and ratings for good.
 
-Status: pre-launch, in development.
+Status: starred-note human-curation loop implemented and locally verified; remaining Compass integrity, schema, and journal follow-ons are backlog. External/manual evidence is tracked in [Launch Validation](../LAUNCH_VALIDATION.md).
 
 Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
@@ -20,19 +20,9 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
   - Rewrite the six handlers above as thin wrappers over `products`; `/promote` becomes a no-op.
   - Resolves the shared-tea write-target bug above as a side effect, since there's only one table left.
 - [ ] **Currency symbol/label map consolidation.** Nine independent `CURRENCY_SYMBOLS` / `CURRENCY_LABELS` / `CURRENCY_MAP` object literals exist across Curate: `src/components/TeaCompass/LedgerPdf.tsx:14`, `LedgerOverviewPanel.tsx:10`, `PricingRow.tsx:27` (labels), `CaptureCard.tsx:75`, `BrowseCard.tsx:37`, `LedgerView.tsx:32`, `OrderSummary.tsx:17`, `IntentBar.tsx:16` (a differently-shaped reverse map), and `src/admin/components/SourcesView.tsx:282`. Extract one shared source (constants file), import everywhere, delete the duplicates. (hours)
-- [ ] **Phase 2 — per-section voice capture in the Tasting Journal.** `NoteEntry.section` already exists in `src/types.ts:13` (`'flavor' | 'feeling' | 'body' | 'finish' | 'general'`) but nothing writes or reads it. `src/components/tasting/NotesPanel.tsx` has no section grouping today. (day)
-  - Add a section-scoped mic affordance to each of Flavor, Feeling, Body, Finish (alongside the existing NOTE-tab press-and-hold).
-  - Section-captured notes write with the `section` field set.
-  - Group notes in `NotesPanel` by section with header labels; pre-feature notes with `section: undefined` render under "General".
-- [ ] **Phase 2b — customer starring in the journal.** Prerequisite for the Phase 3 queue below; without customer stars there's nothing to promote. (day)
-  - Journal entry view: star toggle per note, private to the customer until an admin promotes it.
-  - Persist the starred flag on `tasting.notes[]` via the existing journal sync path (`src/lib/tastingJournalSync.ts`).
-  - Copy above the section sets expectations ("candidates for Adrian's review").
-- [ ] **Phase 3 — `/admin/community-impressions` promote/dismiss queue.** No route or handler exists yet (confirmed: no hits for "community-impressions" in `src/` or `worker/`). Depends on Phase 2b shipping first. (day)
-  - New admin view listing customer-starred notes across all products, grouped by product; each row shows customer initial/account, text, product, date, and a Promote button.
-  - Promote opens a small editor pre-filled with the customer's text; on save it writes into the product's `tasting.notes[]` with `starred: true` and `sourceAuthor: { initial, accountName }` (field already exists at `src/types.ts:17`).
-  - Promoted notes already render on `AlcoveCard`'s Impressions block with attribution styling, `— M., Oct 2026`, so no reader-side work needed.
-  - Dismiss action hides a suggestion from the queue without touching the customer's journal.
+- [x] **Phase 2 — per-section voice capture in the Tasting Journal.** Stable tasting sections now expose section-scoped voice capture and retain the transcript in the selected section. Focused component coverage ships with `JournalSectionVoiceNote`.
+- [x] **Phase 2b — private customer starring.** Members can mark and unmark their own section notes as private review candidates; failed writes roll the pressed state back and do not publish anything.
+- [x] **Phase 3 — admin promote/edit/dismiss loop.** The review queue is embedded in the existing tea-review admin surface rather than a new `/admin/community-impressions` route. Publish-capable staff can edit, dismiss, or promote candidates into durable attributed `product_impressions`, which render on product pages. Migration `113_tasting_note_curation.sql`, Worker route tests, component tests, and the desktop/mobile browser journey cover the loop.
 
 ### Polish
 
@@ -43,9 +33,9 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 - [ ] **"My Tea Life" personal timeline.** Unify tastings, orders, favorites, events, and reading into one chronological archive (PA-REQ-004, POST_AUDIT B2). Genuinely new build, not a fix. No `personal_timeline` table or `/account/timeline` route exists today; the closest thing is the AccountPanel's Your Table preview. Sequence this after real users exist to have timelines worth showing. (multi-day)
 - [ ] **Discovery deferred pair** (from `docs/TEA_DISCOVERY.md` "Remaining"): drift visualization in the Journey/Passport surfaces (the learned disposition is opt-in today but not shown as a trajectory), and per-article/per-product deep links in `recommendations.ts` (currently routes to section surfaces like `/craft`, `/shop` rather than a specific article or product). (day each)
 
-## Gated on launch decision
+## External and manual validation
 
-- None. Every open item in this track is a code/schema fix or a build task Adrian can do solo; nothing here depends on onboarding a real operator or user.
+Real-user curation feedback and other human-only launch checks are maintained in [Launch Validation](../LAUNCH_VALIDATION.md). The remaining open items above are technical or product backlog, not duplicated launch gates.
 
 ## Already shipped
 
@@ -56,6 +46,7 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 - Tea Discovery Phases 1-2 + evolution loop: observed palate derived from the journal, opt-in "Adopt this" suggestions, "Still true?" re-ask (`docs/TEA_DISCOVERY.md`).
 - Stock spine personal cellar (`is_personal` on `products`, migration `048_tea_profiles.sql`).
 - Journal as the member surface: `/account/journal` is the live route; `/compass` redirects there for members (`src/App.tsx:1009-1011`); `/admin/compass` is the admin-only sourcing tool.
+- Section-scoped voice capture, private review-candidate starring, admin edit/dismiss/promote, and durable attributed product impressions (Launch-to-Real-Use Release 2).
 
 ## Not building (killed)
 
@@ -63,7 +54,6 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 ## Sources
 
-- `docs/_archive/session-artifacts-2026-07/DOCS_TODO.md` (historical detailed notes for Compass phases 2/2b/3; this track is authoritative)
 - `docs/TEA_DISCOVERY.md` (live)
 - `docs/_archive/consolidated-2026-07/tea-compass-spec.md` (archived, historical reference)
 - `docs/_archive/consolidated-2026-07/COMPASS_SOCIAL_PLAN.md` (archived)

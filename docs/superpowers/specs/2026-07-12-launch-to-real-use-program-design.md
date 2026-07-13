@@ -2,11 +2,9 @@
 
 **Date:** 2026-07-12
 
-**Status:** All in-scope technical work for Releases 1–3 is implemented and locally verified; the implementation branch is ready to publish for review. Real-world launch validation remains pending, so the launch itself is not complete.
+**Status:** All Release 1–3 technical work except the reading-memory/saved-story wire-or-remove scope is implemented and locally verified. That remaining Read cleanup and the real-world launch gates below keep the program incomplete.
 
 **Program owner:** Teajia
-
-**Implementation entrypoint:** Start the next session by writing the task-by-task implementation plan. Use test-driven development and an isolated `codex/` worktree branch.
 
 ## Goal
 
@@ -28,7 +26,7 @@ Each release must be green before the next begins. The full verification matrix 
 
 ## Release 1 — Trust floor
 
-**Implementation checkpoint (2026-07-13):** The technical trust floor is implemented and locally verified. Fresh evidence: `npm run lint`, `npm run lint:colors`, and `npm run build` passed; the Worker suite passed 286/286; the Release 1 browser matrix passed 34/34 across Desktop and Mobile Chrome; the account mobile suite passed 27/27; and the Inventory scroll suite passed 2/2. Clean-schema creation and the legacy `098` upgrade path both succeeded through migration `112`; repeating the ledger-managed migration application also succeeded. Raw `ALTER TABLE` migration files are not independently idempotent and must not be prescribed for direct reruns outside the migration ledger.
+**Implementation checkpoint (2026-07-13):** Invoice correctness and repair tooling, live article entry routing, verification delivery, tenancy isolation, and customer order details are implemented and locally verified. The reading-memory/saved-story wire-or-remove work remains incomplete and is the one outstanding Release 1 technical scope. Fresh evidence for the completed paths: `npm run lint`, `npm run lint:colors`, and `npm run build` passed; the Worker suite passed 286/286; the Release 1 browser matrix passed 34/34 across Desktop and Mobile Chrome; the account mobile suite passed 27/27; and the Inventory scroll suite passed 2/2. Clean-schema creation and the legacy `098` upgrade path both succeeded through migration `112`; repeating the ledger-managed migration application also succeeded. Raw `ALTER TABLE` migration files are not independently idempotent and must not be prescribed for direct reruns outside the migration ledger.
 
 The historical invoice repair endpoint and read-only preview are built and tested, but the confirmed repair has **not** been applied to business data. Google OAuth remains available, and commerce remains inquiry-led through WhatsApp or email rather than automated checkout.
 
@@ -108,7 +106,7 @@ The event-switch upload race was subsequently fixed and covered by focused tests
 
 Fresh Release 3 evidence: lint, color lint, and production build passed; the Worker suite passed 339 tests; the dependency scanner passed 10 tests; focused reachability, media-plate, contact, publishing, and event-upload-race tests passed; and the Release 3 browser matrix passed 34 tests across Desktop and Mobile Chrome. The source and built-output dependency audit now reports zero stock-media or prohibited hardcoded-origin findings. All 174 historical stock-media occurrences were removed from the runtime graph or replaced with code-native presentation, and the obsolete stock-media CSP allowances were removed.
 
-Release 1's deployed Resend OTP receipt, real mainland-China network validation, Barry's Adrian-supplied or approved profile/article voice, the Australia operator run, a real inquiry-to-fulfillment feedback loop, and the production invoice-repair apply decision remain pending. These are external, editorial, or business-data gates: the technical releases are complete, but the real-world launch is not.
+The reading-memory/saved-story wire-or-remove scope remains a technical gap. Release 1's deployed Resend OTP receipt, real mainland-China network validation, Barry's Adrian-supplied or approved profile/article voice, the Australia operator run, a real inquiry-to-fulfillment feedback loop, and the production invoice-repair apply decision also remain pending as external, editorial, or business-data gates.
 
 ### 1. China reachability
 
@@ -239,4 +237,4 @@ Release 1 must land before Release 2. Release 2 must land before Release 3. With
 
 ## Done definition
 
-The development program is complete when all in-scope technical paths are implemented, migrations are rehearsed, focused and integrated verification passes, documentation and track status reflect reality, and the implementation is published for review. Human-only gates must be listed as pending until performed by the appropriate person.
+The development program is complete when the remaining reading-memory/saved-story scope is either wired or removed, every other in-scope technical path remains verified, migrations are rehearsed, focused and integrated verification passes, documentation and track status reflect reality, and the implementation is published for review. Human-only gates must be listed as pending until performed by the appropriate person.

@@ -387,5 +387,5 @@ See ARCHITECTURE.md §1.2 for the 22 Phase 1B decisions. Additional historical d
 - docs/MULTI_STORE_PLAN.md (Phase 1A)
 - docs/NETWORK_ROLLOUT_PLAN.md (Phase 1B)
 - docs/VISION_AUDIT_7_TECHNICAL.md (technical vision)
-- docs/_audit/03_platform_crosscutting.md (authorization audit)
+- `worker/tests/tenancy-isolation.test.ts` and the resource-specific Worker suites (current authorization evidence)
 - CLAUDE.md (frontend invariants)

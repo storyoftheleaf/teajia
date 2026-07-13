@@ -2,7 +2,7 @@
 
 > The code stopped being the blocker in June. The engine is built: D1 articles, block editor, Smart Paste, contributor schema. What's left is content Adrian has been sitting on since April and a handful of finishing wires the content depends on.
 
-Status: pre-launch, in development.
+Status: contributor-to-article publishing workflow implemented and locally verified; editorial production and optional follow-ons remain. Human/editorial launch evidence is tracked in [Launch Validation](../LAUNCH_VALIDATION.md).
 
 Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
@@ -13,12 +13,9 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 - [ ] **Curate ~20 keeper templates and wire the editor dropdown.** `ArticleEditorModal.tsx:640-646` (`LAYOUT_TEMPLATES`) only offers 5 options today (immersive scroll + 4 carousel variants: default/minimal/dark/interview). Oldest open item on the books; it gates the public face of the magazine. (multi-day)
   - Adrian's part: pick 1-3 reference magazines, pick ~20 keeper layouts from the print-quality template library.
   - Agent's part: polish each mechanically into a `layout_template` value + preview thumbnail, add to `LAYOUT_TEMPLATES`.
-- [ ] **Contributor admin editor panel.** No `/admin/contributors` route exists anywhere in `src/admin/AdminApp.tsx` (admin routes register the same way `people` does at `AdminApp.tsx:720`). Backend only has `GET /api/admin/contributors` (list, `worker/src/index.ts:4431`) and `PUT /api/admin/contributors/:id/contact` (links a customer contact, `worker/src/index.ts:4452`); there is no create/read-one/update endpoint for `beginnings` / `now_text` / `inspirations` / `closing` / `links` / `face_of_account_id`. This is build-order step 3 of `docs/CONTRIBUTOR_PROFILES_PLAN.md`. (day)
-  - Worker: `POST /api/admin/contributors`, `GET /api/admin/contributors/:id`, `PUT /api/admin/contributors/:id` covering the full field set in `worker/migrations/059_contributors.sql:36-82`. Setting `face_of_account_id` must also write `accounts.host_contributor_id` (mirrored pair, not yet touched anywhere in `src/` or `worker/`).
-  - Admin UI: `/admin/contributors` (list + create) and `/admin/contributors/:slug/edit`, styled like `src/admin/components/ProductEditPanel.tsx` per the plan's voice rules (borderless inputs, bottom-rule focus states, markdown preview panes).
-  - Done when: Adrian can write and publish a contributor from the admin, and the public `/people/:slug` page reflects it.
-- [ ] **Article author picker.** `ArticleEditorModal.tsx:1070` still renders a freetext `<input>` ("Author name or ID…") writing straight into `author_id` (state at `ArticleEditorModal.tsx:458`). Build-order step 4. Depends on the contributor editor above (need a contributor list/search + inline-create target). (hours)
-- [ ] **Pull-quotes.** Schema is already live (`articles.pull_quote` / `pull_quote_subject`, `worker/migrations/059_contributors.sql:112-113`) but two things are missing: the article editor has no fields for the two columns, and the profile page has two dead insertion points (`src/pages/ContributorProfilePage.tsx:269`, `PULL_QUOTE_AFTER_ORIGIN`, and `:290`, `PULL_QUOTE_AFTER_INSPIRATIONS`), both marked "Wave 4A inserts here" and currently unrendered. Build-order step 5. (hours)
+- [x] **Contributor admin editor panel.** Owner-scoped contributor list/create/edit/publish APIs and UI are implemented at `/admin/contributors`, with account-safe mirrored host linkage and public `/people/:slug` rendering. Worker, component, and browser coverage shipped in Release 3.
+- [x] **Article author picker.** The article editor now loads contributor options and uses searchable contributor selection while preserving legacy author data.
+- [x] **Pull-quotes.** `pull_quote` and `pull_quote_subject` are editable, account-validated, persisted, and rendered at the contributor-profile insertion points.
 - [ ] **Publish Barry as the first real contributor.** `src/content/people.ts:39-43` has a hardcoded legacy bio for Barry. Port it into a real `contributors` row (Origin/Now/Inspirations/Closing, in Barry's actual voice) once the admin editor exists; this is the validation case the plan calls for before building later waves. Depends on the contributor editor item above. (hours, content)
 - [ ] **Publish the interview archive.** Adrian has interviews and imagery ready since April. Only 5 seed articles exist in D1 today (`worker/migrations/046_seed_articles.sql`). Use the shipped Smart Paste flow (`docs/plan/magazine-editor-spec.md` Layer 3: structure externally via claude.ai, paste into the editor, it auto-parses `TITLE`/`SECTION`/`QUOTE`/`IMAGE` blocks). Writing and layout, not engineering. (multi-day, content)
 - [ ] **Brewing guide pages for the QR system.** `src/components/shared/BrewingQRCard.tsx:48` builds a QR pointing at `/craft/brew/:teaType` for 6 slugs (`TEA_TYPE_TO_SLUG`, `BrewingQRCard.tsx:20-27`); no such route exists in `src/App.tsx`, and the component itself has zero importers anywhere in `src/` (dead code, never wired into a real page). (day)
@@ -31,7 +28,7 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 - [ ] **Delete orphaned `ServiceContent.tsx`.** `src/components/advise/ServiceContent.tsx` has zero imports anywhere in `src/` (confirmed by grep); dead code left over from the archived path-cards Consult redesign. (mins)
 - [ ] **Glossary tooltips.** `src/data/glossary.ts` (558 lines) has a full term/definition/category data structure with zero UI consumers; no `Tooltip` usage exists anywhere in `src/`. Wrap known terms in a hover tooltip, starting on `src/pages/ProductPage.tsx`. Salvaged from the killed VISION_AUDIT_4 learning-transformation doc as a small, standalone win. (hours)
 - [ ] **Magazine editor AI layer** ("Structure with AI" button + per-block rewrite, `docs/plan/magazine-editor-spec.md` build steps 5-6). Needs `ANTHROPIC_API_KEY` as a Cloudflare secret. Not started. Nice-to-have, build when article volume justifies it, not before. (multi-day, deferred)
-- [ ] **Contributor later waves** (build-order steps 6-13: `Hands on` attribution columns on `products`, portrait upload, seasonal calendar, `Voice` audio clip, `Pouring today`, `Hosting` prose, storefront integration via `accounts.host_contributor_id` (currently referenced nowhere outside the migration), and the directory relational-map upgrade). Explicitly deferred until Barry's profile proves the shape. (multi-day, deferred)
+- [ ] **Contributor later waves** (build-order steps 6-13: `Hands on` attribution columns on `products`, portrait upload, seasonal calendar, `Voice` audio clip, `Pouring today`, `Hosting` prose, and the directory relational-map upgrade). Host-contributor linkage itself is now implemented; these richer public/editorial surfaces remain explicitly deferred until Barry's real profile proves the shape. (multi-day, deferred)
 
 ## Already shipped
 
@@ -44,6 +41,11 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 - Public `/people/:slug` page rendering 8 of 15 planned sections: Masthead, Seasonal stamp, Origin, Now, Inspirations, Words, Elsewhere, Closing (`src/pages/ContributorProfilePage.tsx`).
 - Public `/people` directory, v1 typeset alphabetical list (`src/pages/ContributorsIndexPage.tsx`).
 - 5 pilot articles migrated to D1 (`worker/migrations/046_seed_articles.sql`).
+- Contributor administration, searchable article author/subject selection, pull-quote editing/rendering, legacy-author fallback, and account-safe host mirroring (Launch-to-Real-Use Release 3).
+
+## External and editorial validation
+
+Barry approval, keeper-layout selection, and other human/editorial launch checks are maintained in [Launch Validation](../LAUNCH_VALIDATION.md). The content-production tasks above remain here because they are real editorial backlog, not technical release gates.
 
 ## Not building (killed)
 
@@ -57,7 +59,7 @@ Part of [Consolidated Direction](../CONSOLIDATED_DIRECTION.md).
 
 - `docs/MAGAZINE_PLAN.md` (live, mostly historical, locked decisions already shipped)
 - `docs/plan/magazine-editor-spec.md` (live)
-- `docs/CONTRIBUTOR_PROFILES_PLAN.md` (live)
+- `docs/superpowers/specs/2026-07-12-launch-to-real-use-program-design.md` (contributor workflow closeout)
 - `docs/MAGAZINE_WRITING_SURFACE_SPEC.md` (live, external-tool spec, build on demand)
 - `docs/_archive/consolidated-2026-07/VISION_AUDIT_4_LEARNING.md` (archived)
 - `docs/_archive/consolidated-2026-07/SEO_EDGE_META_PLAN.md` (archived, shipped)
