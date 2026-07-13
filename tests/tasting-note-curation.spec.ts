@@ -17,6 +17,7 @@ const product = {
 async function setup(page: Page, { failStar = false }: { failStar?: boolean } = {}) {
   let promoted = false;
   let candidate: Record<string, unknown> | null = null;
+  const requestOrder: string[] = [];
 
   await page.addInitScript(({ jwt }) => {
     localStorage.clear();
@@ -38,7 +39,14 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
     const path = url.pathname;
     if (path === '/api/products/public') return route.fulfill({ json: [product] });
     if (path === '/api/tasting-journal' && request.method() === 'GET') return route.fulfill({ json: [] });
+    if (path === '/api/tasting-journal/sync') {
+      requestOrder.push('save-start');
+      await new Promise(resolve => setTimeout(resolve, 50));
+      requestOrder.push('save-complete');
+      return route.fulfill({ json: { synced: 1 } });
+    }
     if (path === '/api/tasting-journal/entry-1/candidates/tasting-1' && request.method() === 'PUT') {
+      requestOrder.push('star');
       if (failStar) return route.fulfill({ status: 500, json: { error: 'Private review unavailable' } });
       const body = request.postDataJSON();
       candidate = {
@@ -69,30 +77,18 @@ async function setup(page: Page, { failStar = false }: { failStar?: boolean } = 
       }] : [] });
     }
     if (path === '/api/tea-reviews') return route.fulfill({ json: [] });
+    if (path === '/api/products/product-1/events') return route.fulfill({ json: [] });
     if (path === '/api/user/favorites') return route.fulfill({ json: { favorites: [] } });
     return route.fulfill({ json: {} });
   });
-}
-
-async function mountCurrentProductImpressions(page: Page) {
-  await page.evaluate(async () => {
-    document.getElementById('root')?.remove();
-    const rootNode = document.createElement('div');
-    rootNode.id = 'product-page-test-root';
-    document.body.replaceChildren(rootNode);
-    const React = (await import('/node_modules/.vite/deps/react.js')).default;
-    const ReactDOMClient = (await import('/node_modules/.vite/deps/react-dom_client.js')).default;
-    const { ProductImpressions } = await import('/src/pages/ProductPage.tsx');
-    const impressions = await fetch('/api/products/product-1/impressions').then(response => response.json());
-    ReactDOMClient.createRoot(rootNode).render(React.createElement(ProductImpressions, { impressions }));
-  });
+  return () => requestOrder;
 }
 
 test('a private section note appears publicly only after edited promotion', async ({ page }) => {
-  await setup(page);
+  const requestOrder = await setup(page);
 
   await page.goto('/shop/product/product-1');
-  await mountCurrentProductImpressions(page);
+  await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Apricot over warm stone')).toHaveCount(0);
   await expect(page.getByText(/— A\. · Spring table/)).toHaveCount(0);
 
@@ -101,6 +97,7 @@ test('a private section note appears publicly only after edited promotion', asyn
   await page.getByRole('textbox', { name: 'Note for this tasting' }).fill('Long mineral finish');
   await page.getByRole('button', { name: 'Star this note for private review' }).click();
   await expect(page.getByRole('button', { name: 'Remove private review star' })).toBeVisible();
+  await expect.poll(() => requestOrder().slice(0, 3)).toEqual(['save-start', 'save-complete', 'star']);
   await page.getByRole('button', { name: 'Remove private review star' }).click();
   await expect(page.getByRole('button', { name: 'Star this note for private review' })).toBeVisible();
   await page.getByRole('button', { name: 'Star this note for private review' }).click();
@@ -115,7 +112,7 @@ test('a private section note appears publicly only after edited promotion', asyn
   });
 
   await page.goto('/shop/product/product-1');
-  await mountCurrentProductImpressions(page);
+  await expect(page.locator('h1', { hasText: 'Spring Sencha' })).toBeVisible();
   await expect(page.getByText('Apricot over warm stone')).toBeVisible();
   await expect(page.getByText('— A. · Spring table')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);

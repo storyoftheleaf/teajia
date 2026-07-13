@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -47,11 +47,19 @@ export function dismissCandidate(id: string, client: CandidateApi = api.tastingN
   return client.dismiss(id);
 }
 
+export function refreshTastingNoteCandidates(client: QueryClient) {
+  return client.invalidateQueries({ queryKey: ['tasting-note-candidates'] });
+}
+
+export function TastingNoteReviewQueueError({ onRetry }: { onRetry: () => void }) {
+  return <div role="alert" className="rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-12 text-tea-text-sec">Could not load review candidates.</p><button type="button" onClick={onRetry} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">Try again</button></div>;
+}
+
 function CandidateRow({ candidate }: { candidate: TastingNoteCandidate }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState(() => candidateDraft(candidate));
   const [error, setError] = useState<string | null>(null);
-  const resolved = () => qc.invalidateQueries({ queryKey: ['tasting-note-candidates'] });
+  const resolved = () => refreshTastingNoteCandidates(qc);
   const promote = useMutation({
     mutationFn: async () => {
       setError(null);
@@ -109,7 +117,7 @@ export function TastingNoteReviewQueue() {
   });
 
   if (query.isLoading) return <div className="flex items-center gap-2 py-4 text-ui-12 text-tea-text-sec"><Loader2 size={14} className="animate-spin" />Loading review candidates…</div>;
-  if (query.isError) return <div role="alert" className="rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-12 text-tea-text-sec">Could not load review candidates.</p><button type="button" onClick={() => query.refetch()} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">Try again</button></div>;
+  if (query.isError) return <TastingNoteReviewQueueError onRetry={() => { void query.refetch(); }} />;
   if (!query.data?.length) return <p className="py-4 text-ui-12 text-tea-text-dim">No private notes are waiting for review.</p>;
 
   return <ul className="rounded-md border border-tea-border bg-tea-surface px-4">{query.data.map(candidate => <CandidateRow key={candidate.id} candidate={candidate} />)}</ul>;

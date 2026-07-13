@@ -64,6 +64,7 @@ export const Shop: React.FC<ShopProps> = ({
   isError,
   error,
   onRetry,
+  initialProductId,
 }) => {
   const [activeTab, setActiveTab] = useState<ShopTab>('tea');
   const [isAddingToCart, setIsAddingToCart] = useState<Record<string, boolean>>({});
@@ -441,6 +442,7 @@ export const Shop: React.FC<ShopProps> = ({
             isAdmin={isAdmin}
             adminProductMap={productMap}
             onAdminEdit={handleAdminEdit}
+            initialProductId={initialProductId}
           />
         )}
 

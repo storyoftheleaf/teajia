@@ -19,6 +19,12 @@ const token = makeFakeJWT({
 const journalTea = 'Journal-only Sencha';
 const favoriteTea = 'Favorite-only Oolong';
 const cellarTea = 'Cellar-only Sheng';
+const favoriteProduct = {
+  id: 'favorite-product', type: 'Oolong', given_name: favoriteTea, product_name: favoriteTea,
+  origin_country: 'Taiwan', origin_region: 'Nantou', retail_price_per_gram_usd: 0.5,
+  stock_grams: 120, description: 'Favorite fixture', tasting_notes: [], image_url: '', status: 'Active',
+  is_public: 1, shown_in_shop: 1, can_reorder: 1,
+};
 
 async function prepare(page: Page) {
   await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
@@ -44,7 +50,7 @@ async function prepare(page: Page) {
     if (pathname === '/api/me/shelf') {
       return route.fulfill({ json: { enabled: false, slug: null, title: null, whatsapp: null } });
     }
-    if (pathname === '/api/products/public') return route.fulfill({ json: [] });
+    if (pathname === '/api/products/public') return route.fulfill({ json: [favoriteProduct] });
     return route.fulfill({ json: {} });
   });
 }
@@ -61,6 +67,8 @@ test.describe('personal tea journeys', () => {
     await page.getByRole('button', { name: 'Your Table', exact: true }).click();
     await page.getByRole('button', { name: /remember/i }).click();
     await expect(page).toHaveURL(/\/account\/collection$/);
+    await expect(page.getByText(favoriteTea, { exact: true })).toBeVisible();
+    await expect(page.getByText(cellarTea)).toHaveCount(0);
     await expectNoOverflow(page);
 
     await page.goto('/account/journal');

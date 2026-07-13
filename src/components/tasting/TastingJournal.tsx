@@ -14,6 +14,7 @@ import { entryEvent, latestTasting } from '../../lib/tastingAccessors';
 import { flattenTastingNotes, resolveTermLabel, resolveTermIcon, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
 import { JournalSectionVoiceNote } from './JournalSectionVoiceNote';
 import { api } from '../../lib/api';
+import { persistTastingJournalEntry } from '../../lib/tastingJournalSync';
 
 interface TastingJournalProps {
   onBack: () => void;
@@ -192,8 +193,10 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
     setSectionErrors(value => ({ ...value, [key]: null }));
     try {
       if (next) {
-        const tasting = entry.tastings.find(item => item.id === tastingId)?.tasting;
-        await api.tastingJournal.starCandidate(entry.id, tastingId, { source_text: text, source_tasting: tasting });
+        const currentEntry = useAppStore.getState().tastingJournal.find(item => item.id === entry.id) ?? entry;
+        const tasting = currentEntry.tastings.find(item => item.id === tastingId)?.tasting;
+        await persistTastingJournalEntry(currentEntry);
+        await api.tastingJournal.starCandidate(currentEntry.id, tastingId, { source_text: text, source_tasting: tasting });
       } else {
         await api.tastingJournal.unstarCandidate(entry.id, tastingId);
       }
