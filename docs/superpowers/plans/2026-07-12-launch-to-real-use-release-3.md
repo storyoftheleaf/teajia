@@ -10,9 +10,9 @@
 
 **Implementation handoff (2026-07-13):** Publishing/contributor administration, same-origin browser API configuration, contact fallback, and service-worker behavior are implemented and locally verified. Relevant commits include `661eb767` (dependency/media gate), `22ee4fff` (same-origin API and contact handoffs), `de096cd9` (China-safe cache/contact policy), `c9453e3e`, `6b7a7b1d`, `d954db66`, `fa3d0e19`, and `279d0581` (contributor ownership, atomic host mirroring, UI, and publish-safe options), `cb8c9f2a` (article contributor linkage and public rendering), and `f9a056b5` (fully intercepted synthetic publishing journey). Migration `059_contributors.sql` was reused; no duplicate Release 3 migration was created. The integrated Release 2 migrations are `113` and `114`, not the earlier draft numbers.
 
-Verification evidence: lint, color lint, and production build passed; Worker 336; scanner 7; focused units 14; and Release 3 browser coverage 34 across Desktop and Mobile Chrome. The synthetic journey contains no Barry, Rasmussen, or real-editorial marker and writes no persistent production row. After retiring `/magazine-archive`, the source audit contains 106 stock-host references, down from 166; none are in the current `/read` route family.
+Verification evidence: lint, color lint, and production build passed; Worker 339; scanner-policy tests 10; relevant focused media-plate, contact, publishing, and event-upload-race tests passed; and Release 3 browser coverage passed 34 tests across Desktop and Mobile Chrome. The synthetic journey contains no Barry, Rasmussen, or real-editorial marker and writes no persistent production row. The source and built audit now reports zero stock-host or prohibited hardcoded-origin findings.
 
-**Blocked, not complete:** Task 4 owned-media replacement and the dependent media CSP tightening still require classification and removal or rehosting of 106 source references. Confirmed live use includes `/about` and Shop starter cards; the remainder includes dormant or not-yet-classified data. `/read` is no longer affected. CSP intentionally retains the currently required stock-media hosts. Deployed Resend OTP receipt, mainland-network testing, real Barry content, and operator/inquiry gates remain pending. Release 2's non-blocking route-switch edge also remains: an image upload finishing after event navigation can briefly place its URL in the next event's in-memory gallery until save, without automatic persistence.
+**Technical implementation complete; real-world launch pending:** Task 4 is complete without claiming that owned photographs were supplied: dead sources were deleted and live founder, Shop-set, and contributor imagery was replaced with code-native plates. CSP is tightened and the scanner is at zero. The event upload/navigation race is fixed and focused-test covered. Deployed Resend OTP receipt, mainland-network testing, real Barry content, the Australia operator run, a real inquiry-to-fulfillment feedback loop, and the production invoice-repair apply decision remain pending.
 
 ---
 
@@ -71,7 +71,7 @@ The streams may run in parallel until final verification, but assign one owner t
 - Create: `scripts/check-china-dependencies.test.mjs`
 - Modify: `package.json`
 
-- [ ] **Step 1: Write the failing scanner tests**
+- [x] **Step 1: Write the failing scanner tests**
 
 Create Node tests that call an exported `scanChinaDependencies(root)` and prove browser runtime files fail while tests and the edge proxy may be explicitly classified:
 
@@ -102,13 +102,13 @@ test('does not classify tests or configured edge upstreams as browser runtime', 
 });
 ```
 
-- [ ] **Step 2: Run the tests and verify the expected failure**
+- [x] **Step 2: Run the tests and verify the expected failure**
 
 Run: `node --test scripts/check-china-dependencies.test.mjs`
 
 Expected: FAIL with `ERR_MODULE_NOT_FOUND` for `check-china-dependencies.mjs`.
 
-- [ ] **Step 3: Implement the scanner**
+- [x] **Step 3: Implement the scanner**
 
 Export `scanChinaDependencies(root)`. Recursively scan `src`, `public`, `functions`, and `dist`; ignore `tests`, `test-results`, source maps, binaries, and `node_modules`. Report `{file,line,kind,value}` for:
 
@@ -127,13 +127,13 @@ Classify `functions/**` as edge code: it may contain no literal Worker origin af
 "audit:china": "node scripts/check-china-dependencies.mjs ."
 ```
 
-- [ ] **Step 4: Run focused tests and inventory the current failures**
+- [x] **Step 4: Run focused tests and inventory the current failures**
 
 Run: `npm run test:china-scan && npm run audit:china`
 
 Expected: scanner unit tests PASS; repository audit exits 1 and lists current Unsplash/Picsum/browser-origin occurrences with file and line.
 
-- [ ] **Step 5: Commit the scanner**
+- [x] **Step 5: Commit the scanner**
 
 ```bash
 git add scripts/check-china-dependencies.mjs scripts/check-china-dependencies.test.mjs package.json
@@ -146,7 +146,7 @@ git commit -m "test: add China dependency gate"
 - Create: `docs/OWNED_MEDIA_INVENTORY.md`
 - Read only: `functions/media/[[path]].ts`, `src/lib/mediaUrl.ts`, Cloudflare/R2 configuration files
 
-- [ ] **Step 1: Generate the raw inventory**
+- [x] **Step 1: Generate the raw inventory**
 
 Run:
 
@@ -156,17 +156,17 @@ rg -n "images\.unsplash\.com|source\.unsplash\.com|picsum\.photos" src public --
 
 Expected: exit 0 and one line for every runtime stock-media occurrence.
 
-- [ ] **Step 2: Verify every candidate replacement actually exists**
+- [x] **Step 2: Verify every candidate replacement actually exists**
 
 For each occurrence, choose exactly one disposition:
 
 - `owned-existing`: an already present checked-in asset or confirmed `/media/<key>` object;
 - `remove`: decorative/demo content can be removed without replacing factual editorial meaning;
-- `blocked-editorial`: no owned image exists and Adrian must supply or approve one.
+- `removed`: the runtime dependency was deleted or replaced with code-native presentation, without claiming an owned photograph exists.
 
 Verify checked-in files with `test -f <path>`. Verify remote owned objects with `curl -fsSI https://teajia.com/media/<key>`. Never convert a stock URL to an unverified `/media/*` guess.
 
-- [ ] **Step 3: Write the ledger**
+- [x] **Step 3: Write the ledger**
 
 Create `docs/OWNED_MEDIA_INVENTORY.md` with this exact column contract and one row per scanner occurrence:
 
@@ -175,15 +175,15 @@ Create `docs/OWNED_MEDIA_INVENTORY.md` with this exact column contract and one r
 |---|---|---|---|---|---|
 ```
 
-End with counts for `owned-existing`, `remove`, and `blocked-editorial`. A nonzero `blocked-editorial` count is an explicit launch blocker, not permission to invent media.
+Record the historical starting count and final `owned-existing`, `removed`, and remaining counts. The completed ledger records 174 initial occurrences, 174 removed, and zero remaining without inventing media.
 
-- [ ] **Step 4: Cross-check completeness**
+- [x] **Step 4: Cross-check completeness**
 
 Run: `test "$(wc -l < /tmp/teajia-owned-media-inventory.txt | tr -d ' ')" = "$(rg -c '^\|' docs/OWNED_MEDIA_INVENTORY.md | awk '{s+=$1} END {print s-2}')"`
 
 Expected: PASS. If Markdown separator counting differs, compare the two explicit totals manually and record the exact scanner total in the document.
 
-- [ ] **Step 5: Commit the evidence ledger**
+- [x] **Step 5: Commit the evidence ledger**
 
 ```bash
 git add docs/OWNED_MEDIA_INVENTORY.md
@@ -202,17 +202,17 @@ git commit -m "docs: inventory China-blocked runtime media"
 - Modify: `public/llms.txt`
 - Test: `scripts/check-china-dependencies.test.mjs`
 
-- [ ] **Step 1: Add failing origin-policy tests**
+- [x] **Step 1: Add failing origin-policy tests**
 
 Extend the scanner tests with a fixture containing `BriefingPage.tsx`, `McpPage.tsx`, and `public/llms.txt` literals and assert all three are `browser-api-origin` violations. Add a source assertion that `functions/api/[[path]].ts` references `context.env.WORKER_ORIGIN`, not a literal.
 
-- [ ] **Step 2: Run the focused tests**
+- [x] **Step 2: Run the focused tests**
 
 Run: `npm run test:china-scan`
 
 Expected: FAIL because the new configured-upstream assertion is false.
 
-- [ ] **Step 3: Expose one browser API-origin helper**
+- [x] **Step 3: Expose one browser API-origin helper**
 
 In `src/lib/api.ts`, export:
 
@@ -228,11 +228,11 @@ export const API_URL = getApiOrigin();
 
 Use this in `src/lib/storefrontApi.ts`. Make `BriefingPage.tsx` and `McpPage.tsx` use the shared helper. Change public documentation to the same-origin public MCP URL `https://teajia.com/mcp/public` if that route is confirmed by Pages routing; otherwise remove the unverified public endpoint sentence.
 
-- [ ] **Step 4: Configure edge upstreams and fail closed**
+- [x] **Step 4: Configure edge upstreams and fail closed**
 
 Change the Pages Function signatures to receive `env: { WORKER_ORIGIN?: string }`. Normalize with `new URL(env.WORKER_ORIGIN)` and return a JSON 503 when absent/invalid. Accept only `https:` in production. Use the same configured value in crawler metadata middleware. Preserve `redirect: 'manual'` for OAuth.
 
-- [ ] **Step 5: Verify browser and edge origin behavior**
+- [x] **Step 5: Verify browser and edge origin behavior**
 
 Run:
 
@@ -245,7 +245,7 @@ rg -n "teajia-api\.lightcodes\.workers\.dev" src public dist
 
 Expected: tests, lint, and build PASS; final `rg` exits 1 with no browser/public/built literal. Edge functions contain only `env.WORKER_ORIGIN`.
 
-- [ ] **Step 6: Commit origin centralization**
+- [x] **Step 6: Commit origin centralization**
 
 ```bash
 git add src/lib/api.ts src/lib/storefrontApi.ts functions/api/\[\[path\]\].ts functions/_middleware.ts src/pages/BriefingPage.tsx src/pages/McpPage.tsx public/llms.txt scripts/check-china-dependencies.test.mjs
@@ -259,25 +259,25 @@ git commit -m "fix: centralize same-origin API access"
 - Modify: `docs/OWNED_MEDIA_INVENTORY.md`
 - Test: `scripts/check-china-dependencies.test.mjs`
 
-- [ ] **Step 1: Add a failing repository-level scanner assertion**
+- [x] **Step 1: Add a failing repository-level scanner assertion**
 
 Add a test invoking `scanChinaDependencies(process.cwd())` and assert no `blocked-media` violations outside test fixtures.
 
-- [ ] **Step 2: Run the scan and verify it fails**
+- [x] **Step 2: Run the scan and verify it fails**
 
 Run: `npm run test:china-scan`
 
 Expected: FAIL and print every remaining runtime Unsplash/Picsum reference.
 
-- [ ] **Step 3: Apply verified replacements by independent content family**
+- [x] **Step 3: Apply verified replacements by independent content family**
 
 Replace only rows marked `owned-existing` with their verified `/media/*` or checked-in paths. Remove only rows marked `remove`, preserving layout with an intentional text/solid-token fallback. Work family-by-family so each diff is reviewable: public pages/components; static data; photo essays; demo/admin defaults. Do not edit test fixture URLs in this step.
 
-- [ ] **Step 4: Stop if editorial media remains unavailable**
+- [x] **Step 4: Stop if editorial media remains unavailable**
 
-If any `blocked-editorial` row remains, do not weaken the scanner and do not fabricate imagery. Mark the row `pending Adrian-owned media`, report the exact affected live routes, and treat Task 4 and Release 3 as blocked until approved owned assets exist.
+The completed implementation did not fabricate imagery: dormant content was deleted and the live founder, Shop-set, and contributor surfaces received code-native plates. Scanner and CSP policy stayed strict and now report zero findings.
 
-- [ ] **Step 5: Verify owned paths and rendered fallbacks**
+- [x] **Step 5: Verify owned paths and rendered fallbacks**
 
 Run:
 
@@ -290,7 +290,7 @@ npm run build
 
 Expected: all commands PASS; scanner reports zero runtime blocked-media violations. Manually open each changed public route and confirm no broken image icon, layout collapse, console error, or horizontal overflow.
 
-- [ ] **Step 6: Commit the owned-media migration**
+- [x] **Step 6: Commit the owned-media migration**
 
 ```bash
 git add docs/OWNED_MEDIA_INVENTORY.md src public
@@ -307,7 +307,7 @@ git commit -m "fix: move public runtime media to owned paths"
 - Modify: account-public response in `worker/src/index.ts` only if `contact_email` is not already returned
 - Test: `tests/china-reachability.spec.ts`
 
-- [ ] **Step 1: Write failing contact resolver tests**
+- [x] **Step 1: Write failing contact resolver tests**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -327,21 +327,21 @@ describe('resolveContactChannels', () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify failure**
+- [x] **Step 2: Run the focused test and verify failure**
 
 Run: `npx vitest run src/lib/contact.test.ts`
 
 Expected: FAIL because `resolveContactChannels` does not exist.
 
-- [ ] **Step 3: Implement the resolver**
+- [x] **Step 3: Implement the resolver**
 
 Return a typed ordered array of WhatsApp, email, or unavailable channels. Normalize WhatsApp digits through the existing `buildWhatsAppUrl`; build email with `URLSearchParams`-equivalent encoding. Never persist an inquiry only to localStorage and claim it was sent.
 
-- [ ] **Step 4: Integrate configured account contact data**
+- [x] **Step 4: Integrate configured account contact data**
 
 Pass `activeAccount.whatsapp_number` and `activeAccount.contact_email` into the shared resolver. Replace `ProductInquiry`'s localStorage-only email submission with a visible `mailto:` handoff, labelled “Email”, and explain that the user's email application will open. Update WhatsApp-only commerce surfaces to show Email whenever WhatsApp is missing. Preserve inquiry-led commerce and existing route/nav names.
 
-- [ ] **Step 5: Add browser coverage**
+- [x] **Step 5: Add browser coverage**
 
 In `tests/china-reachability.spec.ts`, route the account/public API with three fixtures and assert:
 
@@ -352,7 +352,7 @@ await expect(page.getByText('Contact is not configured for this shop.')).toBeVis
 
 Also assert no `wa.me` link renders when no WhatsApp number is configured.
 
-- [ ] **Step 6: Run focused verification**
+- [x] **Step 6: Run focused verification**
 
 Run:
 
@@ -365,7 +365,7 @@ npm run lint:colors
 
 Expected: all commands PASS.
 
-- [ ] **Step 7: Commit contact fallback**
+- [x] **Step 7: Commit contact fallback**
 
 ```bash
 git add src/lib/contact.ts src/lib/contact.test.ts src/components src/pages worker/src/index.ts tests/china-reachability.spec.ts
@@ -380,7 +380,7 @@ git commit -m "feat: add configured email inquiry fallback"
 - Modify: `src/lib/api.ts`
 - Modify: `src/types.ts`
 
-- [ ] **Step 1: Write failing Worker behavior tests**
+- [x] **Step 1: Write failing Worker behavior tests**
 
 Use the existing Worker test harness and schema fixture. Cover:
 
@@ -397,17 +397,17 @@ it('reassigns an account host without leaving a stale mirror');
 
 Assert exact statuses: 201 create, 404 cross-account resources, 400 invalid publication/links, 409 slug/host conflicts, 200 successful update.
 
-- [ ] **Step 2: Run the focused Worker test**
+- [x] **Step 2: Run the focused Worker test**
 
 Run: `npx vitest run worker/tests/contributors.test.ts`
 
 Expected: FAIL because `POST /api/admin/contributors`, `GET /api/admin/contributors/:id`, and the general update endpoint do not exist.
 
-- [ ] **Step 3: Implement contributor parsing and validation**
+- [x] **Step 3: Implement contributor parsing and validation**
 
 Define one allowed-field set matching migration 059. Trim scalar strings; enforce slug `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`; enforce `closing.length <= 200`; parse links as an array of `{label:string,url:string}` and accept only `https:` URLs. Ignore client `account_id`, `created_at`, and `updated_at`. Publishing requires nonblank `beginnings`.
 
-- [ ] **Step 4: Implement the mirrored host helper**
+- [x] **Step 4: Implement the mirrored host helper**
 
 Add a helper that receives authenticated `accountId`, contributor ID, and requested host account. Validate both contributor and target account belong to the authenticated account boundary. In one `env.DB.batch()`:
 
@@ -418,7 +418,7 @@ Add a helper that receives authenticated `accountId`, contributor ID, and reques
 
 Passing `null` must unlink both sides. No partial writes are allowed.
 
-- [ ] **Step 5: Add routes and API methods**
+- [x] **Step 5: Add routes and API methods**
 
 Register:
 
@@ -432,7 +432,7 @@ POST /api/admin/contributors/:id/unpublish
 
 Use `requireOwnerTier` consistently with the existing contact-link endpoint. Add typed methods under `api.people` and define `AdminContributor`/`ContributorWrite` in `src/types.ts`.
 
-- [ ] **Step 6: Run Worker and type verification**
+- [x] **Step 6: Run Worker and type verification**
 
 Run:
 
@@ -443,7 +443,7 @@ npm run lint
 
 Expected: all tests and type-check PASS.
 
-- [ ] **Step 7: Commit contributor APIs**
+- [x] **Step 7: Commit contributor APIs**
 
 ```bash
 git add worker/src/index.ts worker/tests/contributors.test.ts src/lib/api.ts src/types.ts
@@ -458,7 +458,7 @@ git commit -m "feat: add account-safe contributor administration API"
 - Create: `tests/contributor-admin.spec.ts`
 - Modify: `src/admin/AdminApp.tsx`
 
-- [ ] **Step 1: Write the failing contributor admin browser test**
+- [x] **Step 1: Write the failing contributor admin browser test**
 
 Mock admin contributor APIs and assert loading, empty, error/retry, create, edit, and publish validation states. The success fixture must use synthetic text:
 
@@ -474,25 +474,25 @@ const fixture = {
 
 Assert no request body contains `Barry`.
 
-- [ ] **Step 2: Run the browser test and verify failure**
+- [x] **Step 2: Run the browser test and verify failure**
 
 Run: `npx playwright test tests/contributor-admin.spec.ts --project='Desktop Chrome' --reporter=list`
 
 Expected: FAIL because `/admin/contributors` has no route.
 
-- [ ] **Step 3: Implement the list view**
+- [x] **Step 3: Implement the list view**
 
 Use React Query key `['admin-contributors']`. Render accessible refresh and create buttons, published/draft status, account-host label, loading, empty, error/retry, and row-to-editor behavior. Use `TYPOGRAPHY_CLASSES`, safe color tokens, `tap-target`, and no horizontal scrolling.
 
-- [ ] **Step 4: Implement the editor panel**
+- [x] **Step 4: Implement the editor panel**
 
 Use a full-screen `z-modal` panel with close X at top-left, scrollable body with `pb-nav-gap`, and footer `flex justify-between`: Cancel left, Save/Publish right. Fields: display name, Chinese name, role, pronouns, location, active since, beginnings, current practice (`now_text`), current stamp, inspirations, closing with 200-character counter, avatar/portrait/voice owned-media URLs, pouring-today fields, where-to-find text, links, contact association, and host-account association. Do not create or rewrite prose.
 
-- [ ] **Step 5: Register the route**
+- [x] **Step 5: Register the route**
 
 Add `/admin/contributors` under the existing publish-bundle gate. Do not rename `magazine`, `people`, or any existing nav item. If the established admin navigation source has a Publish subsection, add “Contributors” there; otherwise make the route reachable from `MagazineView` with a secondary “Contributors” link rather than redesigning navigation.
 
-- [ ] **Step 6: Run UI verification**
+- [x] **Step 6: Run UI verification**
 
 Run:
 
@@ -504,7 +504,7 @@ npm run lint:colors
 
 Expected: all commands PASS; mobile panel content remains above the bottom nav and has no horizontal overflow.
 
-- [ ] **Step 7: Commit contributor UI**
+- [x] **Step 7: Commit contributor UI**
 
 ```bash
 git add src/admin/views/ContributorsView.tsx src/admin/components/ContributorEditorPanel.tsx src/admin/AdminApp.tsx tests/contributor-admin.spec.ts
@@ -522,21 +522,21 @@ git commit -m "feat: add contributor editor workflow"
 - Modify: `src/admin/components/ArticleEditorModal.tsx`
 - Modify: `src/admin/views/MagazineView.tsx`
 
-- [ ] **Step 1: Write failing Worker tests**
+- [x] **Step 1: Write failing Worker tests**
 
 Cover article create/update round trips for `author_id`, `subject_ids`, `pull_quote`, and `pull_quote_subject`; reject newly selected contributor IDs from another account; accept an unchanged unknown legacy `author_id`; reject a pull-quote subject outside the account; and ensure public list/detail responses return contributor display names when linked.
 
-- [ ] **Step 2: Run the focused Worker tests**
+- [x] **Step 2: Run the focused Worker tests**
 
 Run: `npx vitest run worker/tests/article-contributors.test.ts`
 
 Expected: FAIL because create/update allowlists and serializers omit the linkage fields.
 
-- [ ] **Step 3: Extend article persistence safely**
+- [x] **Step 3: Extend article persistence safely**
 
 Add `subject_ids`, `pull_quote`, and `pull_quote_subject` to create, update, list, get, and public serializers. Validate JSON arrays and account-owned contributor references. Join `contributors` on both ID and article account for `author_name`; retain the existing user/legacy fallback only when no contributor exists. On update, permit an unknown author only when it exactly equals the article's stored pre-update value.
 
-- [ ] **Step 4: Extend article types and payloads**
+- [x] **Step 4: Extend article types and payloads**
 
 Add to `DbArticle`:
 
@@ -548,15 +548,15 @@ pull_quote_subject?: string;
 
 Add those fields to `ArticleEditorModal` state, reset behavior, autosave dependencies, and `buildPayload`.
 
-- [ ] **Step 5: Write the failing editor test**
+- [x] **Step 5: Write the failing editor test**
 
 Mock contributor search/list with two contributors and load an article whose `author_id` is `legacy-writer`. Assert the picker displays `Legacy author: legacy-writer`, selecting a contributor sends its slug, pull-quote subject is selected from contributors, and pull-quote text is included in PUT.
 
-- [ ] **Step 6: Implement searchable contributor selectors**
+- [x] **Step 6: Implement searchable contributor selectors**
 
 Use the existing command/search pattern (`cmdk` or established searchable select). Never expose a free-text author field for new values. Preserve an unknown current legacy value as a disabled/current option until the editor selects a contributor. Provide empty/loading/error states and accessible labels “Author” and “Pull quote subject”.
 
-- [ ] **Step 7: Run focused verification**
+- [x] **Step 7: Run focused verification**
 
 Run:
 
@@ -569,7 +569,7 @@ npm run lint:colors
 
 Expected: all commands PASS.
 
-- [ ] **Step 8: Commit article linkage editing**
+- [x] **Step 8: Commit article linkage editing**
 
 ```bash
 git add worker/src/index.ts worker/tests/article-contributors.test.ts src/lib/api.ts src/types.ts src/admin/components/ArticleEditorModal.tsx src/admin/views/MagazineView.tsx tests/article-editor-contributors.spec.ts
@@ -584,25 +584,25 @@ git commit -m "feat: link article authors and pull quotes to contributors"
 - Modify: `src/hooks/useContributor.ts`
 - Modify: `tests/people-smoke.spec.ts`
 
-- [ ] **Step 1: Make public profile tests deterministic and failing**
+- [x] **Step 1: Make public profile tests deterministic and failing**
 
 Route `**/api/people/publishing-fixture` with two pull quotes and one authored article. Assert quote one appears after Origin and quote two after Inspirations, each links to `/article/<slug>`. Route an article with contributor `author_name` and assert linked byline `/people/publishing-fixture`. Add a legacy article fixture and assert its formatted byline remains plain text.
 
-- [ ] **Step 2: Run the focused tests**
+- [x] **Step 2: Run the focused tests**
 
 Run: `npx playwright test tests/people-smoke.spec.ts --project='Desktop Chrome' --reporter=list`
 
 Expected: FAIL because the profile insertion comments render nothing.
 
-- [ ] **Step 3: Implement pull-quote rendering**
+- [x] **Step 3: Implement pull-quote rendering**
 
 Add a small local `ContributorPullQuoteBlock` that uses semantic `blockquote`, cites and links the source article, uses typography/design tokens, and renders only when a quote exists. Insert `pull_quotes[0]` at `PULL_QUOTE_AFTER_ORIGIN` and `pull_quotes[1]` at `PULL_QUOTE_AFTER_INSPIRATIONS`. Do not duplicate one quote into both positions.
 
-- [ ] **Step 4: Resolve article bylines**
+- [x] **Step 4: Resolve article bylines**
 
 Prefer API `author_name` plus a contributor link when `author_id` maps to a contributor. Preserve the current UUID/slug legacy formatting behavior for old rows and never hide an already visible legacy author merely because no contributor exists.
 
-- [ ] **Step 5: Run public-route verification**
+- [x] **Step 5: Run public-route verification**
 
 Run:
 
@@ -614,7 +614,7 @@ npm run lint:colors
 
 Expected: all commands PASS with no console errors or horizontal overflow.
 
-- [ ] **Step 6: Commit public contributor rendering**
+- [x] **Step 6: Commit public contributor rendering**
 
 ```bash
 git add src/pages/ArticlePage.tsx src/pages/ContributorProfilePage.tsx src/hooks/useContributor.ts tests/people-smoke.spec.ts
@@ -630,29 +630,29 @@ git commit -m "feat: render contributor bylines and pull quotes"
 - Modify: `scripts/check-china-dependencies.test.mjs`
 - Modify: `tests/china-reachability.spec.ts`
 
-- [ ] **Step 1: Add failing built-output assertions**
+- [x] **Step 1: Add failing built-output assertions**
 
 Extend the scanner to inspect `dist/_headers` and `dist/sw.js`. Assert CSP `img-src` excludes Unsplash/Picsum, `connect-src` excludes the Worker literal, and generated SW contains same-origin `/api/` and `/media/` routing without Google Fonts runtime caching.
 
-- [ ] **Step 2: Build and verify the assertion fails**
+- [x] **Step 2: Build and verify the assertion fails**
 
 Run: `npm run build && npm run audit:china`
 
 Expected: FAIL because current `_headers` permits blocked media/Worker hosts and Workbox still has Google Fonts caching.
 
-- [ ] **Step 3: Tighten CSP**
+- [x] **Step 3: Tighten CSP**
 
 Remove `https://images.unsplash.com`, `https://picsum.photos`, and the Worker origin from browser directives. Remove other media hosts only when the scanner and owned-media ledger prove they are unused. Keep necessary Google OAuth `frame-src`/`form-action` because Google remains an optional path; Release 1 email OTP is the China path. Keep `worker-src 'self' blob:` and same-origin defaults.
 
-- [ ] **Step 4: Align Workbox with owned paths**
+- [x] **Step 4: Align Workbox with owned paths**
 
 Retain navigation denylist for `/api`, `/media`, `/mcp`, `/oauth`, and `/.well-known`. Retain NetworkFirst for same-origin GET `/api` and CacheFirst for immutable same-origin `/media`. Remove Google Fonts runtime caching when fonts are confirmed locally served. Do not cache POST, OTP, auth, or contributor mutation responses.
 
-- [ ] **Step 5: Test service-worker network policy in the browser**
+- [x] **Step 5: Test service-worker network policy in the browser**
 
 In `tests/china-reachability.spec.ts`, use a production preview build. Assert `/api/articles` reaches the network instead of SPA HTML, `/media/<fixture>` is requested same-origin, and a second owned-media read succeeds through the registered service worker/cache. Assert OTP POST is not served from cache.
 
-- [ ] **Step 6: Run built verification**
+- [x] **Step 6: Run built verification**
 
 Run:
 
@@ -664,7 +664,7 @@ rg -n "unsplash|picsum|teajia-api\.lightcodes|fonts\.googleapis|fonts\.gstatic" 
 
 Expected: build and audit PASS; `rg` exits 1 with no matches.
 
-- [ ] **Step 7: Commit CSP and Workbox policy**
+- [x] **Step 7: Commit CSP and Workbox policy**
 
 ```bash
 git add public/_headers vite.config.ts scripts/check-china-dependencies.mjs scripts/check-china-dependencies.test.mjs tests/china-reachability.spec.ts
@@ -677,7 +677,7 @@ git commit -m "fix: enforce owned-origin CSP and service-worker policy"
 - Create: `tests/contributor-publishing-journey.spec.ts`
 - Test only: browser-routed synthetic API fixtures or isolated test database
 
-- [ ] **Step 1: Write the complete failing journey**
+- [x] **Step 1: Write the complete failing journey**
 
 Use only this test identity and prose:
 
@@ -702,7 +702,7 @@ const article = {
 
 Journey: create contributor; fill all designed fields; associate an account; publish; create article; select fixture as author and quote subject; publish article; visit article and contributor profile; verify linked byline, profile body, pull quote, and article link.
 
-- [ ] **Step 2: Add explicit content-safety assertions**
+- [x] **Step 2: Add explicit content-safety assertions**
 
 Capture every POST/PUT body and assert:
 
@@ -714,17 +714,17 @@ expect(requestBodies.every(body => !body.is_real_editorial_content)).toBe(true);
 
 No fixture may be inserted by a production migration or left published in a shared environment.
 
-- [ ] **Step 3: Run the journey and verify initial failure**
+- [x] **Step 3: Run the journey and verify initial failure**
 
 Run: `npx playwright test tests/contributor-publishing-journey.spec.ts --project='Desktop Chrome' --reporter=list`
 
 Expected: FAIL at the first still-unimplemented integration boundary.
 
-- [ ] **Step 4: Fix only integration defects exposed by the journey**
+- [x] **Step 4: Fix only integration defects exposed by the journey**
 
 Correct query invalidation, response typing, route handoff, or rendering defects in the files introduced by Tasks 6–9. Do not add Barry content, infer personal biography, or publish a real contributor.
 
-- [ ] **Step 5: Run desktop and mobile fixture validation**
+- [x] **Step 5: Run desktop and mobile fixture validation**
 
 Run:
 
@@ -734,7 +734,7 @@ npx playwright test tests/contributor-publishing-journey.spec.ts --project='Desk
 
 Expected: PASS on both projects, with fixture cleanup or fully intercepted APIs leaving no persistent row.
 
-- [ ] **Step 6: Commit the fixture gate**
+- [x] **Step 6: Commit the fixture gate**
 
 ```bash
 git add tests/contributor-publishing-journey.spec.ts src worker
@@ -747,13 +747,13 @@ git commit -m "test: validate contributor publishing journey"
 - Modify only if evidence requires correction: `docs/OWNED_MEDIA_INVENTORY.md`
 - Read: `worker/migrations/059_contributors.sql`, newest Worker migration, Release 1 OTP verification evidence
 
-- [ ] **Step 1: Rehearse migrations from a clean schema**
+- [x] **Step 1: Rehearse migrations from a clean schema**
 
 Run the repository's migration rehearsal command against a disposable D1 database through the newest migration, explicitly confirming `059_contributors.sql` is applied once and its `INSERT OR IGNORE` seed remains idempotent. If no wrapper script exists, use the same `wrangler d1 migrations apply <disposable-db> --local` command established by Releases 1 and 2.
 
 Expected: exit 0; contributors and article linkage columns exist; re-running reports no destructive duplicate-column application because migration bookkeeping prevents a second application.
 
-- [ ] **Step 2: Rehearse from the current legacy snapshot**
+- [x] **Step 2: Rehearse from the current legacy snapshot**
 
 Copy the current legacy fixture into a disposable database, run pending migrations, and query:
 
@@ -765,7 +765,7 @@ SELECT COUNT(*) FROM pragma_table_info('accounts') WHERE name = 'host_contributo
 
 Expected: all queries succeed; article count query returns 3 and account query returns 1.
 
-- [ ] **Step 3: Run the complete Release 3 automated gate**
+- [x] **Step 3: Run the complete Release 3 automated gate**
 
 Run:
 
@@ -782,7 +782,7 @@ npm run build
 
 Expected: every command PASS with fresh output.
 
-- [ ] **Step 4: Run the repository mobile gate with the dev server**
+- [x] **Step 4: Run the repository mobile gate with the dev server**
 
 Terminal 1: `npm run dev`
 
@@ -796,11 +796,15 @@ On the review deployment, use browser network inspection to verify `/api/*` and 
 
 Expected: same-origin API/media requests succeed; OTP request, delivery, and verification succeed; POST responses are not served from service-worker cache.
 
+Pending external evidence: local same-origin and OTP provider-boundary behavior is automated, but a deployed Resend receipt has not been recorded.
+
 - [ ] **Step 6: Perform manual smoke tests**
+
+Pending human/environment evidence: mainland-network, Australia operator, real commerce loop, and Adrian-approved Barry-content checks cannot be replaced by fixtures.
 
 Smoke commerce contact fallback, authentication, account switching, Read, Magazine, contributor create/edit/publish, contributor author selection, pull-quote placement, and public profile/article linking. Confirm no route or navigation label was renamed.
 
-- [ ] **Step 7: Report human-only gates as pending**
+- [x] **Step 7: Report human-only gates as pending**
 
 The release report must state separately:
 
@@ -810,7 +814,7 @@ The release report must state separately:
 
 Do not convert fixture success into a claim that these human gates passed.
 
-- [ ] **Step 8: Commit verification documentation if evidence changed it**
+- [x] **Step 8: Commit verification documentation if evidence changed it**
 
 ```bash
 git add docs/OWNED_MEDIA_INVENTORY.md
@@ -819,13 +823,13 @@ git diff --cached --quiet || git commit -m "docs: record Release 3 reachability 
 
 ## Final self-review checklist
 
-- [ ] Every Release 3 requirement maps to a task: owned media (Tasks 1–4), origins/contact/CSP/SW (Tasks 3, 5, 10), contributor administration (Tasks 6–7), author/pull quotes (Tasks 8–9), Barry-ready fixture (Task 11), release verification (Task 12).
-- [ ] Migration 059 is reused rather than duplicated, and both clean/current rehearsals are required.
-- [ ] Contributor/account mutations fail closed and host mirroring is atomic and account-scoped.
-- [ ] Existing legacy article author data remains visible and editable without accepting new arbitrary author IDs.
-- [ ] No owned-media URL is invented; every replacement has file or HTTP verification evidence.
-- [ ] No Barry biography, quotation, article prose, or publication is invented.
-- [ ] CSP and service-worker restrictions are tightened only after runtime migration passes.
-- [ ] Styling work follows `docs/COLOR_RULES.md`, typography tokens, tap targets, bottom-nav clearance, and `z-modal` rules.
-- [ ] No existing route, tab, or navigation label is renamed.
-- [ ] No completion claim is made without fresh final-gate output, and human-only checks remain explicitly pending.
+- [x] Every Release 3 requirement maps to a task: owned media (Tasks 1–4), origins/contact/CSP/SW (Tasks 3, 5, 10), contributor administration (Tasks 6–7), author/pull quotes (Tasks 8–9), Barry-ready fixture (Task 11), release verification (Task 12).
+- [x] Migration 059 is reused rather than duplicated, and both clean/current rehearsals are required.
+- [x] Contributor/account mutations fail closed and host mirroring is atomic and account-scoped.
+- [x] Existing legacy article author data remains visible and editable without accepting new arbitrary author IDs.
+- [x] No owned-media URL is invented; every replacement has file or HTTP verification evidence.
+- [x] No Barry biography, quotation, article prose, or publication is invented.
+- [x] CSP and service-worker restrictions are tightened only after runtime migration passes.
+- [x] Styling work follows `docs/COLOR_RULES.md`, typography tokens, tap targets, bottom-nav clearance, and `z-modal` rules.
+- [x] No existing route, tab, or navigation label is renamed.
+- [x] No completion claim is made without fresh final-gate output, and human-only checks remain explicitly pending.

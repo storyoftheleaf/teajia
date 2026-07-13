@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-12
 
-**Status:** Releases 1 and 2 locally complete and verified; Release 3 publishing/origin/contact/service-worker work locally verified, owned-media completion blocked; overall program not complete
+**Status:** All in-scope technical work for Releases 1–3 is implemented and locally verified; the implementation branch is ready to publish for review. Real-world launch validation remains pending, so the launch itself is not complete.
 
 **Program owner:** Teajia
 
@@ -77,7 +77,7 @@ Pending environment/human gates: receipt of a deployed Resend OTP end to end, th
 
 The additive Release 2 migrations landed as `113_tasting_note_curation.sql` and `114_event_article_source.sql`. Verification evidence: lint, color lint, and production build passed; the Worker suite passed 314 tests; focused frontend units passed 12 tests; and the Release 2 browser journeys passed 14 tests across Desktop and Mobile Chrome. The mandatory mobile suite previously passed 27/27 on the current Release 2 feature set; subsequent post-session editor lifecycle changes were covered by fresh focused tests, lint, color lint, and build rather than a second full mobile run.
 
-Known non-blocking issue: after navigating between events, an image upload that finishes after navigation can briefly place its returned URL in the next event's in-memory gallery until save. It is not automatically persisted. Release 3 and the human-only gates below remain pending.
+The event-switch upload race was subsequently fixed and covered by focused tests: an upload started for one event can no longer populate another event's in-memory gallery after navigation or unmount. Human-only launch gates below remain pending.
 
 ### 1. Starred-notes curation loop
 
@@ -106,11 +106,9 @@ Known non-blocking issue: after navigating between events, an image upload that 
 
 **Implementation checkpoint (2026-07-13):** The contributor publishing workflow, same-origin browser API boundary, configured contact fallback, and service-worker policy are implemented and locally verified. Contributor administration is owner-scoped and account-safe; article authors and pull quotes use contributor IDs with legacy-author fallback; public bylines and profile pull quotes render through deterministic synthetic fixtures. The fixture journey contains no Barry or other real editorial content. No duplicate contributor migration was added: migration `059_contributors.sql` remains the canonical contributor/article-linkage schema, while Release 2's actual additive migrations remain `113_tasting_note_curation.sql` and `114_event_article_source.sql`.
 
-Fresh Release 3 evidence: lint, color lint, and production build passed; the Worker suite passed 336 tests; the dependency scanner passed 7 tests; focused units passed 14 tests; and the Release 3 browser matrix passed 34 tests across Desktop and Mobile Chrome. After retiring `/magazine-archive` on 2026-07-13, the source/public/functions audit reports 106 blocked-media source references, down from 166. The current `/read` route family has zero stock-host dependencies.
+Fresh Release 3 evidence: lint, color lint, and production build passed; the Worker suite passed 339 tests; the dependency scanner passed 10 tests; focused reachability, media-plate, contact, publishing, and event-upload-race tests passed; and the Release 3 browser matrix passed 34 tests across Desktop and Mobile Chrome. The source and built-output dependency audit now reports zero stock-media or prohibited hardcoded-origin findings. All 174 historical stock-media occurrences were removed from the runtime graph or replaced with code-native presentation, and the obsolete stock-media CSP allowances were removed.
 
-**Blocked editorial boundary:** owned-media Task 4 and the corresponding media-host CSP tightening are not complete. The remaining 106 source references include confirmed live images on `/about` and Shop starter cards plus dormant or not-yet-classified data for Learn, collection, Advise, and community surfaces. They do not affect the current `/read` experience. CSP intentionally retains the stock-media hosts until the reachable remainder is removed or rehosted.
-
-Release 1's deployed Resend OTP receipt, real mainland-China network validation, Barry's Adrian-supplied or approved profile/article voice, and the real operator/inquiry gates remain pending. Therefore Release 3 and the overall program are not complete.
+Release 1's deployed Resend OTP receipt, real mainland-China network validation, Barry's Adrian-supplied or approved profile/article voice, the Australia operator run, a real inquiry-to-fulfillment feedback loop, and the production invoice-repair apply decision remain pending. These are external, editorial, or business-data gates: the technical releases are complete, but the real-world launch is not.
 
 ### 1. China reachability
 

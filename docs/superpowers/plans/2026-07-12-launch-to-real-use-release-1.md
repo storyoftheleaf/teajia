@@ -38,7 +38,7 @@ Do not run invoice, verification, tenancy, and order-detail Worker integrations 
 - Create: `worker/src/invoiceDomain.ts`
 - Create: `worker/tests/invoice-domain.test.ts`
 
-- [ ] **Step 1: Write the failing invariant tests**
+- [x] **Step 1: Write the failing invariant tests**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -72,13 +72,13 @@ describe('invoice line invariant', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and confirm the module is missing**
+- [x] **Step 2: Run the test and confirm the module is missing**
 
 Run: `npx vitest run worker/tests/invoice-domain.test.ts`
 
 Expected: FAIL with `Cannot find module '../src/invoiceDomain'`.
 
-- [ ] **Step 3: Implement the pure invariant**
+- [x] **Step 3: Implement the pure invariant**
 
 ```ts
 export interface ConfirmedInvoiceLineInput {
@@ -128,13 +128,13 @@ export function repairCandidate(input: RepairCandidateInput) {
 }
 ```
 
-- [ ] **Step 4: Run the focused test**
+- [x] **Step 4: Run the focused test**
 
 Run: `npx vitest run worker/tests/invoice-domain.test.ts`
 
 Expected: PASS, 5 tests.
 
-- [ ] **Step 5: Commit the invariant**
+- [x] **Step 5: Commit the invariant**
 
 ```bash
 git add worker/src/invoiceDomain.ts worker/tests/invoice-domain.test.ts
@@ -147,7 +147,7 @@ git commit -m "test: lock invoice line pricing invariant"
 - Modify: `worker/src/index.ts:16870-16975`
 - Create: `worker/tests/collection-confirm-invoice.test.ts`
 
-- [ ] **Step 1: Add a route regression test around the existing partial fix**
+- [x] **Step 1: Add a route regression test around the existing partial fix**
 
 Create a Worker DB harness that returns one active collection tea with `recommended_quantity = 50` and `recommended_price_usd = 12`, posts a pick quantity of `100`, captures the `invoice_line_items` insert bindings, and asserts:
 
@@ -159,13 +159,13 @@ expect(insertedLine.quantity * insertedLine.price_at_sale).toBe(24);
 
 Add a second fixture for teaware with recommendation `1 @ 18`, pick quantity `2`, and assert `quantity: 2`, `price_at_sale: 18`, and total `36`.
 
-- [ ] **Step 2: Run the regression test**
+- [x] **Step 2: Run the regression test**
 
 Run: `npx vitest run worker/tests/collection-confirm-invoice.test.ts`
 
 Expected: PASS against the current partial implementation. If it fails, the expected failure must show a stored line total rather than a unit price; do not change the expected values.
 
-- [ ] **Step 3: Replace duplicated arithmetic with the domain function**
+- [x] **Step 3: Replace duplicated arithmetic with the domain function**
 
 Add:
 
@@ -192,13 +192,13 @@ lineItems.push({
 });
 ```
 
-- [ ] **Step 4: Run invoice tests and type-check**
+- [x] **Step 4: Run invoice tests and type-check**
 
 Run: `npx vitest run worker/tests/invoice-domain.test.ts worker/tests/collection-confirm-invoice.test.ts && npm run lint`
 
 Expected: both test files PASS and TypeScript exits 0.
 
-- [ ] **Step 5: Commit the integration**
+- [x] **Step 5: Commit the integration**
 
 ```bash
 git add worker/src/index.ts worker/tests/collection-confirm-invoice.test.ts
@@ -214,7 +214,7 @@ git commit -m "refactor: centralize confirmed invoice pricing"
 - Create: `worker/tests/invoice-repair.test.ts`
 - Modify: `worker/src/index.ts:19080-19170`
 
-- [ ] **Step 1: Write the migration**
+- [x] **Step 1: Write the migration**
 
 ```sql
 CREATE TABLE IF NOT EXISTS invoice_line_repairs (
@@ -237,7 +237,7 @@ CREATE INDEX IF NOT EXISTS idx_invoice_line_repairs_account_invoice
 
 Append the identical table and index definitions to `worker/schema.sql`, then generate `worker/tests/fixtures/schema-through-108.sql` by applying migrations 099 through 108 to the existing `schema-through-098.sql` fixture using local D1.
 
-- [ ] **Step 2: Rehearse the migration twice**
+- [x] **Step 2: Rehearse the migration twice**
 
 Run:
 
@@ -250,7 +250,7 @@ npx wrangler d1 execute teajia-r1 --local --persist-to /tmp/teajia-r1-migrations
 
 Expected: every command exits 0; the second 108 run reports success because every DDL statement is idempotent.
 
-- [ ] **Step 3: Write failing preview/apply tests**
+- [x] **Step 3: Write failing preview/apply tests**
 
 In `worker/tests/invoice-repair.test.ts`, seed two accounts and these lines:
 
@@ -261,13 +261,13 @@ const correct = { invoice_id: 'inv-b', line_item_id: 'line-b', quantity: 50, pri
 
 Assert `GET /api/admin/repairs/invoice-lines` returns only `inv-a`, with `current_total_usd: 600`, `corrected_total_usd: 12`, and makes no update. Assert `POST` without `{ confirm: true, preview_key }` is 400. Assert POST with the preview key changes only `line-a`, inserts an audit row, and a repeated POST returns `changed_lines: 0`. Assert an ordinary owner from account B cannot preview or mutate account A.
 
-- [ ] **Step 4: Run the repair test and confirm the route is absent**
+- [x] **Step 4: Run the repair test and confirm the route is absent**
 
 Run: `npx vitest run worker/tests/invoice-repair.test.ts`
 
 Expected: FAIL with status 404 for `/api/admin/repairs/invoice-lines`.
 
-- [ ] **Step 5: Implement the scoped preview and apply handlers**
+- [x] **Step 5: Implement the scoped preview and apply handlers**
 
 Use `requireOwnerTier`, query only rows where `i.account_id = ?`, `i.source_collection_id IS NOT NULL`, and no matching audit record exists. Join `collection_items` on collection and product to recover recommendation data. Pass every row through `repairCandidate`; construct `preview_key` as a SHA-256 digest of sorted `line_item_id:old:new` tuples. The POST recomputes preview, rejects a stale digest with 409, then batches for each candidate:
 
@@ -293,13 +293,13 @@ Register:
 ['POST', '/api/admin/repairs/invoice-lines', handleApplyInvoiceLineRepair],
 ```
 
-- [ ] **Step 6: Run repair and invariant tests**
+- [x] **Step 6: Run repair and invariant tests**
 
 Run: `npx vitest run worker/tests/invoice-domain.test.ts worker/tests/collection-confirm-invoice.test.ts worker/tests/invoice-repair.test.ts`
 
 Expected: PASS; repeated repair reports zero changes and unchanged totals.
 
-- [ ] **Step 7: Commit the repair path**
+- [x] **Step 7: Commit the repair path**
 
 ```bash
 git add worker/migrations/108_invoice_line_repair_audit.sql worker/schema.sql worker/tests/fixtures/schema-through-108.sql worker/tests/invoice-repair.test.ts worker/src/index.ts
@@ -313,7 +313,7 @@ git commit -m "feat: add previewable invoice line repair"
 - Modify: `src/App.tsx:410-435,535-565,1090-1110`
 - Modify: `src/types.ts:431`
 
-- [ ] **Step 1: Write failing browser tests**
+- [x] **Step 1: Write failing browser tests**
 
 Mock `GET **/api/articles/live-story` with a published article. From the archived magazine fixture click an Article card and assert URL `/article/live-story` and visible title. Dispatch:
 
@@ -325,13 +325,13 @@ await page.evaluate(() => window.dispatchEvent(new CustomEvent('openArticle', {
 
 Assert the same URL. Mock draft and missing slugs with 404 and assert no public index/card anchor points to them. Open AccountPanel and assert links named `Saved stories` and `Reading history` have count zero.
 
-- [ ] **Step 2: Run the test and verify the dead overlay failure**
+- [x] **Step 2: Run the test and verify the dead overlay failure**
 
 Run: `npx playwright test tests/read-entry-paths.spec.ts --project='Desktop Chrome'`
 
 Expected: FAIL because Article taps leave the URL unchanged while setting `PAGE_READER`.
 
-- [ ] **Step 3: Route Article entries by slug**
+- [x] **Step 3: Route Article entries by slug**
 
 In both the `openArticle` listener and `handleCardClick`, replace the Article branch with:
 
@@ -343,7 +343,7 @@ return;
 
 Keep `PHOTO_ESSAY` and `STORY_VIEW` unchanged. Add `navigate` to the effect dependency list. After `rg -n "PAGE_READER" src` returns only the type declaration, remove `PAGE_READER` from `ViewState`.
 
-- [ ] **Step 4: Run Read coverage and type-check**
+- [x] **Step 4: Run Read coverage and type-check**
 
 Run:
 
@@ -354,7 +354,7 @@ npm run lint
 
 Expected: all Read tests PASS; `rg -n "PAGE_READER" src` prints no matches; TypeScript exits 0.
 
-- [ ] **Step 5: Commit Read integrity**
+- [x] **Step 5: Commit Read integrity**
 
 ```bash
 git add tests/read-entry-paths.spec.ts src/App.tsx src/types.ts
@@ -367,17 +367,17 @@ git commit -m "fix: route article entries to the live reader"
 - Create: `worker/src/verificationDelivery.ts`
 - Create: `worker/tests/verification-delivery.test.ts`
 
-- [ ] **Step 1: Write provider-boundary tests**
+- [x] **Step 1: Write provider-boundary tests**
 
 Test `deliverVerificationCode` with a mocked fetch. Assert the request goes to `https://api.resend.com/emails`, uses the configured sender, includes the six-digit code in the provider payload, and returns `{ delivered: true, providerMessageId: 'email-1' }`. Test HTTP 503 returns `{ delivered: false, retryable: true, reason: 'provider_unavailable' }`. Spy on `console.error` and assert no log call contains `123456` or the full email address.
 
-- [ ] **Step 2: Run the test and confirm the module is missing**
+- [x] **Step 2: Run the test and confirm the module is missing**
 
 Run: `npx vitest run worker/tests/verification-delivery.test.ts`
 
 Expected: FAIL with missing `verificationDelivery` module.
 
-- [ ] **Step 3: Implement delivery**
+- [x] **Step 3: Implement delivery**
 
 ```ts
 export interface VerificationEmailEnv {
@@ -414,13 +414,13 @@ export async function deliverVerificationCode(
 }
 ```
 
-- [ ] **Step 4: Run delivery tests**
+- [x] **Step 4: Run delivery tests**
 
 Run: `npx vitest run worker/tests/verification-delivery.test.ts`
 
 Expected: PASS for success, retryability, missing configuration, and log redaction.
 
-- [ ] **Step 5: Commit delivery boundary**
+- [x] **Step 5: Commit delivery boundary**
 
 ```bash
 git add worker/src/verificationDelivery.ts worker/tests/verification-delivery.test.ts
@@ -436,7 +436,7 @@ git commit -m "feat: add verification email delivery boundary"
 - Create: `worker/tests/verification-routes.test.ts`
 - Modify: `worker/src/index.ts:10490-10670,19440-19470`
 
-- [ ] **Step 1: Add the purpose-aware challenge table**
+- [x] **Step 1: Add the purpose-aware challenge table**
 
 ```sql
 CREATE TABLE IF NOT EXISTS verification_challenges (
@@ -457,7 +457,7 @@ CREATE INDEX IF NOT EXISTS idx_verification_challenges_contact_purpose
 
 Append the same definitions to `worker/schema.sql`.
 
-- [ ] **Step 2: Write failing route tests**
+- [x] **Step 2: Write failing route tests**
 
 Cover:
 
@@ -472,13 +472,13 @@ expect(await confirmEvent('guest@example.com', issuedCode)).toMatchObject({ stat
 
 Also assert a code is single-use, expires at ten minutes, locks after three failures, a resend inside sixty seconds returns 429, and responses never contain `code` unless `DEV_RETURN_VERIFY_CODES === 'true'`.
 
-- [ ] **Step 3: Run tests and confirm missing purpose behavior**
+- [x] **Step 3: Run tests and confirm missing purpose behavior**
 
 Run: `npx vitest run worker/tests/verification-routes.test.ts`
 
 Expected: FAIL because `/api/verify/request` accepts `method`, does not deliver, and `/confirm` cannot issue a sign-in JWT.
 
-- [ ] **Step 4: Implement request delivery using the existing endpoints**
+- [x] **Step 4: Implement request delivery using the existing endpoints**
 
 Accept:
 
@@ -492,17 +492,17 @@ type VerificationRequestBody = {
 
 Normalize email with `trim().toLowerCase()`, default `purpose` to `event` for backward compatibility, hash the code with the existing SHA-256 helper, insert a challenge only after `deliverVerificationCode` succeeds, and return HTTP 202 `{ success: true, expires, retryable: true }`. On delivery failure return 503 with `{ error: 'We could not send the code.', retryable: delivery.retryable }` and persist no active challenge. Keep the dev echo behind the existing explicit flag.
 
-- [ ] **Step 5: Implement purpose-aware confirmation**
+- [x] **Step 5: Implement purpose-aware confirmation**
 
 Accept `{ contact, code, purpose?: 'signin' | 'event' }`. Atomically mark the newest matching unconsumed challenge consumed only after hash and expiry validation. For `signin`, find the `users.email`, load memberships exactly as password login does, and sign the same JWT claims; always return the same 401 message for an unknown email or bad code. For `event`, reuse the current customer and attendance response construction. Do not log contact, code, code hash, or JWT.
 
-- [ ] **Step 6: Run verification and authorization tests**
+- [x] **Step 6: Run verification and authorization tests**
 
 Run: `npx vitest run worker/tests/verification-delivery.test.ts worker/tests/verification-routes.test.ts worker/tests/auth-boundaries.test.ts`
 
 Expected: all tests PASS; password login and Google OAuth tests remain unchanged.
 
-- [ ] **Step 7: Rehearse migration 109 on clean and legacy schemas**
+- [x] **Step 7: Rehearse migration 109 on clean and legacy schemas**
 
 Run:
 
@@ -514,7 +514,7 @@ npx wrangler d1 execute teajia-r1 --local --persist-to /tmp/teajia-r1-migrations
 
 Expected: all commands exit 0, including the repeated migration.
 
-- [ ] **Step 8: Commit shared verification lifecycle**
+- [x] **Step 8: Commit shared verification lifecycle**
 
 ```bash
 git add worker/migrations/109_verification_challenges.sql worker/schema.sql worker/tests/fixtures/schema-through-108.sql worker/tests/verification-routes.test.ts worker/src/index.ts
@@ -529,17 +529,17 @@ git commit -m "feat: deliver reusable email verification codes"
 - Modify: `src/pages/SignInPage.tsx`
 - Modify: `src/components/events/VerifySheet.tsx:130-220`
 
-- [ ] **Step 1: Write failing browser journeys**
+- [x] **Step 1: Write failing browser journeys**
 
 For `/signin`, mock request as 202, enter `member@example.com`, click `Email me a code`, assert the six-digit input appears, submit `123456`, mock a JWT response, and assert return navigation occurs. Mock request 503 `{ error: 'We could not send the code.', retryable: true }`, assert the message and `Try again` button. For the event sheet, assert email is initially selected and the same request endpoint receives `{ purpose: 'event' }`. Assert the Google link remains visible.
 
-- [ ] **Step 2: Run the browser test**
+- [x] **Step 2: Run the browser test**
 
 Run: `npx playwright test tests/signin-email-code.spec.ts --project='Desktop Chrome'`
 
 Expected: FAIL because SignIn exposes password login rather than email-code controls.
 
-- [ ] **Step 3: Add typed API methods**
+- [x] **Step 3: Add typed API methods**
 
 ```ts
 verification: {
@@ -562,15 +562,15 @@ verification: {
 
 When the sign-in confirmation returns a token, store it through the same token/session path used by `auth.login` and invalidate the decoded-claims cache.
 
-- [ ] **Step 4: Implement the two-step sign-in form**
+- [x] **Step 4: Implement the two-step sign-in form**
 
 Render email entry first, then code entry after a 202 response. Preserve the Google OAuth button. Place password login behind a text button labeled `Use password instead` so existing operators are not locked out. Delivery failure text must use the API message and expose a retry button; confirmation failure must keep the code input editable.
 
-- [ ] **Step 5: Default the event sheet to email**
+- [x] **Step 5: Default the event sheet to email**
 
 Initialize the method to `email`, call `requestCode(contact, 'event')` and `confirmCode(contact, code, 'event')`, and keep the existing loading, retry, and attempt-error states. Remove any copy promising WhatsApp delivery.
 
-- [ ] **Step 6: Run UI verification**
+- [x] **Step 6: Run UI verification**
 
 Run:
 
@@ -582,7 +582,7 @@ npm run lint:colors
 
 Expected: browser tests PASS; TypeScript and color rules exit 0.
 
-- [ ] **Step 7: Commit the email-code UI**
+- [x] **Step 7: Commit the email-code UI**
 
 ```bash
 git add tests/signin-email-code.spec.ts src/lib/api.ts src/pages/SignInPage.tsx src/components/events/VerifySheet.tsx
@@ -594,11 +594,11 @@ git commit -m "feat: make email code the default sign-in path"
 **Files:**
 - Create: `worker/tests/tenancy-isolation.test.ts`
 
-- [ ] **Step 1: Build two-account fixtures and identity helpers**
+- [x] **Step 1: Build two-account fixtures and identity helpers**
 
 Use a stateful fake D1 harness with accounts `acct-a` and `acct-b`, a member who belongs only to A, a member who belongs only to B, and a platform owner. Seed one customer, event, invoice with line, product, stock row, Curate journey, visit, and Compass entry in each account. Sign real test JWTs and always send `X-Teajia-Account`.
 
-- [ ] **Step 2: Assert account selection fails closed**
+- [x] **Step 2: Assert account selection fails closed**
 
 ```ts
 it('denies selecting an account without membership', async () => {
@@ -608,7 +608,7 @@ it('denies selecting an account without membership', async () => {
 });
 ```
 
-- [ ] **Step 3: Assert direct IDs and lists are scoped**
+- [x] **Step 3: Assert direct IDs and lists are scoped**
 
 Create a table-driven suite with these cases:
 
@@ -626,17 +626,17 @@ Create a table-driven suite with these cases:
 
 For every list, assert no B ID appears while acting in A. For every direct read/write, assert 404 or 403 and confirm B's stored row is byte-for-byte unchanged. Add invoice fulfillment and stock mutation cases because writes with side effects are release-blocking.
 
-- [ ] **Step 4: Assert platform exceptions separately**
+- [x] **Step 4: Assert platform exceptions separately**
 
 Act as the platform owner with `X-Teajia-Account: acct-b`; assert the B list and direct resource are accessible. Act as an ordinary owner from A and repeat; assert denial. This test must exercise the database-read `platform_role`, not merely a JWT claim.
 
-- [ ] **Step 5: Run the suite and record any handler leaks as failures**
+- [x] **Step 5: Run the suite and record any handler leaks as failures**
 
 Run: `npx vitest run worker/tests/tenancy-isolation.test.ts`
 
 Expected: PASS if every existing handler scopes IDs and lists. Any failing case must remain red until its query includes `account_id = ctx.accountId` and its mutation verifies affected-row count before returning success.
 
-- [ ] **Step 6: Apply minimal scoping fixes if the suite exposes a leak**
+- [x] **Step 6: Apply minimal scoping fixes if the suite exposes a leak**
 
 For a leaking direct mutation, use this exact pattern:
 
@@ -649,13 +649,13 @@ if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Resource not 
 
 For lists, add `WHERE account_id = ?` and bind `ctx.accountId`. Do not add platform-specific query bypasses; platform users select the target account through the established active-account resolver.
 
-- [ ] **Step 7: Run all Worker authorization tests**
+- [x] **Step 7: Run all Worker authorization tests**
 
 Run: `npm run test:worker`
 
 Expected: the complete Worker suite PASS with no cross-account read or write.
 
-- [ ] **Step 8: Commit tenancy coverage and any minimal fixes**
+- [x] **Step 8: Commit tenancy coverage and any minimal fixes**
 
 ```bash
 git add worker/tests/tenancy-isolation.test.ts worker/src/index.ts
@@ -668,21 +668,21 @@ git commit -m "test: enforce cross-account resource isolation"
 - Create: `worker/tests/customer-order-detail.test.ts`
 - Modify: `worker/src/index.ts:13700-13780,19450-19465`
 
-- [ ] **Step 1: Write failing endpoint tests**
+- [x] **Step 1: Write failing endpoint tests**
 
 Seed a signed-in user linked to customer A and an invoice containing two lines. Assert `GET /api/me/orders/inv-a` returns reference, status, created/payment/fulfilled dates, currency, shipping, line items with quantity/unit price/line total, and grand total. Assert a Draft or Void invoice is 404. Assert user A cannot fetch user B's invoice even when both are in the same active account. Assert active account A cannot fetch an invoice in B. Assert totals equal the list endpoint totals.
 
-- [ ] **Step 2: Run the test and confirm route absence**
+- [x] **Step 2: Run the test and confirm route absence**
 
 Run: `npx vitest run worker/tests/customer-order-detail.test.ts`
 
 Expected: FAIL with 404 for the unregistered route.
 
-- [ ] **Step 3: Extract the existing customer ownership predicate**
+- [x] **Step 3: Extract the existing customer ownership predicate**
 
 Create a local helper that loads the user's normalized email/phone and returns SQL bindings for the existing canonical `customers.user_id`, customer email fallback, and invoice WhatsApp fallback. Use it in both `handleGetMyOrders` and the new detail handler so list and detail cannot drift.
 
-- [ ] **Step 4: Implement the detail handler**
+- [x] **Step 4: Implement the detail handler**
 
 Query the invoice with `i.id = ?`, `i.account_id = ?`, `i.deleted_at IS NULL`, `i.status NOT IN ('Draft','Void')`, and the shared ownership predicate. Then query lines with both `invoice_id = ?` and `account_id = ?`, left-join products for display names, and map:
 
@@ -699,7 +699,7 @@ Query the invoice with `i.id = ?`, `i.account_id = ?`, `i.deleted_at IS NULL`, `
 
 Return `subtotal_amount_usd`, `shipping_amount_usd`, and `total_amount_usd`. Load the owning account's configured WhatsApp and email and return only available contact values. Register `GET /api/me/orders/:id` after `/api/me/orders`.
 
-- [ ] **Step 5: Run detail, tenancy, and invoice tests**
+- [x] **Step 5: Run detail, tenancy, and invoice tests**
 
 Run:
 
@@ -709,7 +709,7 @@ npx vitest run worker/tests/customer-order-detail.test.ts worker/tests/tenancy-i
 
 Expected: all tests PASS and detail totals exactly match list totals.
 
-- [ ] **Step 6: Commit the endpoint**
+- [x] **Step 6: Commit the endpoint**
 
 ```bash
 git add worker/tests/customer-order-detail.test.ts worker/src/index.ts
@@ -726,7 +726,7 @@ git commit -m "feat: add customer order detail endpoint"
 - Modify: `src/types.ts`
 - Modify: `src/App.tsx:1005-1025`
 
-- [ ] **Step 1: Define the response type**
+- [x] **Step 1: Define the response type**
 
 ```ts
 export interface CustomerOrderDetail {
@@ -745,17 +745,17 @@ export interface CustomerOrderDetail {
 }
 ```
 
-- [ ] **Step 2: Write browser tests for all states**
+- [x] **Step 2: Write browser tests for all states**
 
 Mock history with `inv-a`, click its row, assert `/account/orders/inv-a`. Cover detail loading skeleton, success fields, retryable 500 error, 404 message with Back action, and an invoice with zero shipping. On Mobile Chrome assert `document.documentElement.scrollWidth <= window.innerWidth` and the last contact action is above the bottom nav.
 
-- [ ] **Step 3: Run the browser test and confirm the row is static**
+- [x] **Step 3: Run the browser test and confirm the row is static**
 
 Run: `npx playwright test tests/order-detail.spec.ts --project='Mobile Chrome'`
 
 Expected: FAIL because the order row does not navigate and the detail route does not exist.
 
-- [ ] **Step 4: Add the API client**
+- [x] **Step 4: Add the API client**
 
 ```ts
 order: async (id: string): Promise<CustomerOrderDetail> => {
@@ -764,7 +764,7 @@ order: async (id: string): Promise<CustomerOrderDetail> => {
 },
 ```
 
-- [ ] **Step 5: Implement the detail page**
+- [x] **Step 5: Implement the detail page**
 
 Use `useParams`, `useQuery({ queryKey: ['me','orders',id] })`, the same unauthenticated redirect pattern as `OrderHistoryPage`, `TYPOGRAPHY_CLASSES`, safe currency/date formatting, and root classes:
 
@@ -774,7 +774,7 @@ Use `useParams`, `useQuery({ queryKey: ['me','orders',id] })`, the same unauthen
 
 Render reference, status, dates, each line's name/quantity/unit price/line total, subtotal, shipping, total, then WhatsApp if configured and email otherwise. Contact actions are inquiries, not payment or checkout actions. Use a top-left Back button with `text-tea-text-sec hover:text-tea-text` and `tap-target` on undersized icons.
 
-- [ ] **Step 6: Wire history and route**
+- [x] **Step 6: Wire history and route**
 
 Replace each static `<article>` with a `<button type="button">` that calls `navigate('/account/orders/' + encodeURIComponent(order.id))`, preserves the current visual row, has a visible arrow, and a minimum 44px target. Add:
 
@@ -784,7 +784,7 @@ Replace each static `<article>` with a `<button type="button">` that calls `navi
 
 Do not alter any navigation label.
 
-- [ ] **Step 7: Run component journey and required UI checks**
+- [x] **Step 7: Run component journey and required UI checks**
 
 Run:
 
@@ -796,7 +796,7 @@ npm run lint:colors
 
 Expected: all order-detail scenarios PASS, no horizontal overflow, TypeScript and color checks exit 0.
 
-- [ ] **Step 8: Commit customer order details**
+- [x] **Step 8: Commit customer order details**
 
 ```bash
 git add tests/order-detail.spec.ts src/pages/OrderDetailPage.tsx src/pages/OrderHistoryPage.tsx src/lib/api.ts src/types.ts src/App.tsx
@@ -860,7 +860,7 @@ npx wrangler d1 migrations apply teajia-r1-final-legacy --local --persist-to /tm
 
 Verified locally: clean schema and legacy upgrade both exited 0 through migration 112, and the repeated ledger-managed apply was a successful no-op. Do not test repeatability by rerunning raw migrations `110`-`112`: they contain `ALTER TABLE` statements and are intentionally protected by the migration ledger rather than raw-file idempotency.
 
-- [ ] **Step 6: Verify production configuration without exposing secrets**
+- [x] **Step 6: Verify production configuration without exposing secrets**
 
 Run:
 
@@ -901,7 +901,7 @@ Run: `npm run lint && npm run lint:colors && git diff --check`
 
 Verified locally: all commands exited 0 and the documentation diff contains no whitespace errors.
 
-- [ ] **Step 4: Commit the verified release checkpoint**
+- [x] **Step 4: Commit the verified release checkpoint**
 
 ```bash
 git add docs/superpowers/specs/2026-07-12-launch-to-real-use-program-design.md docs/CHANGELOG.md

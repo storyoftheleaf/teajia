@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 19, TypeScript, React Router, React Query, Zustand, Tailwind v3 design tokens, Cloudflare Workers, D1/SQLite, Vitest, Playwright.
 
-**Implementation checkpoint (2026-07-12):** Release 2 is implemented and locally verified. The planned migration numbers `108` and `109` were drafts; the integrated files are `113_tasting_note_curation.sql` and `114_event_article_source.sql`. Lint, color lint, and production build passed; the Worker suite passed 314 tests; focused frontend units passed 12 tests; and 14 focused browser tests passed across Desktop and Mobile Chrome. The mandatory mobile suite previously passed 27/27 on the current feature set. Later post-session editor lifecycle changes have fresh focused test, lint, color-lint, and build coverage; they were not followed by another full mobile run. One non-blocking edge remains: an image upload completing after event navigation can briefly put its returned URL into the next event's in-memory gallery until save, but does not persist it automatically. Publication remains deliberate, no navigation labels changed, and all program-level human gates remain pending.
+**Implementation checkpoint (2026-07-13):** Release 2 is implemented and locally verified. The planned migration numbers `108` and `109` were drafts; the integrated files are `113_tasting_note_curation.sql` and `114_event_article_source.sql`. Lint, color lint, and production build passed; the Worker suite passed 314 tests at the Release 2 checkpoint; focused frontend units passed 12 tests; and 14 focused browser tests passed across Desktop and Mobile Chrome. The mandatory mobile suite passed 27/27. The later post-session upload race is also fixed and focused-test covered across event navigation, unmount, and overlapping uploads. Publication remains deliberate, no navigation labels changed, and all program-level human gates remain pending.
 
 ---
 
@@ -32,7 +32,7 @@
 - Create: `worker/migrations/113_tasting_note_curation.sql`
 - Create: `worker/tests/tasting-note-curation-migration.test.ts`
 
-- [ ] **Step 1: Write the failing migration rehearsal test**
+- [x] **Step 1: Write the failing migration rehearsal test**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -59,13 +59,13 @@ describe('113 tasting-note curation migration', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify the expected failure**
+- [x] **Step 2: Run the test and verify the expected failure**
 
 Run: `npx vitest run worker/tests/tasting-note-curation-migration.test.ts`
 
 Expected: FAIL with `ENOENT ... 113_tasting_note_curation.sql`.
 
-- [ ] **Step 3: Add the additive, rerunnable migration**
+- [x] **Step 3: Add the additive, rerunnable migration**
 
 ```sql
 CREATE TABLE IF NOT EXISTS tasting_note_candidates (
@@ -112,19 +112,19 @@ CREATE INDEX IF NOT EXISTS idx_product_impressions_product
   ON product_impressions(account_id, product_id, published_at DESC);
 ```
 
-- [ ] **Step 4: Run the focused migration test**
+- [x] **Step 4: Run the focused migration test**
 
 Run: `npx vitest run worker/tests/tasting-note-curation-migration.test.ts`
 
 Expected: PASS; running the SQL twice creates no duplicate-object error.
 
-- [ ] **Step 5: Rehearse the full migration chain**
+- [x] **Step 5: Rehearse the full migration chain**
 
 Run: `npx vitest run worker/tests/curate-inventory-migrations.test.ts worker/tests/tasting-note-curation-migration.test.ts`
 
 Expected: both migration suites PASS from clean in-memory schemas.
 
-- [ ] **Step 6: Commit the schema boundary**
+- [x] **Step 6: Commit the schema boundary**
 
 ```bash
 git add worker/migrations/113_tasting_note_curation.sql worker/tests/tasting-note-curation-migration.test.ts
@@ -138,7 +138,7 @@ git commit -m "feat: add tasting note curation schema"
 - Create: `worker/tests/tasting-note-curation.test.ts`
 - Modify: `worker/src/index.ts`
 
-- [ ] **Step 1: Write failing domain tests for candidate input and mapping**
+- [x] **Step 1: Write failing domain tests for candidate input and mapping**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -158,13 +158,13 @@ describe('tasting-note curation domain', () => {
 });
 ```
 
-- [ ] **Step 2: Run the domain test and verify it fails**
+- [x] **Step 2: Run the domain test and verify it fails**
 
 Run: `npx vitest run worker/tests/tasting-note-curation.test.ts`
 
 Expected: FAIL because `worker/src/tastingNoteCuration.ts` does not exist.
 
-- [ ] **Step 3: Add the focused domain module**
+- [x] **Step 3: Add the focused domain module**
 
 ```ts
 export type CandidateInput = { note_key?: unknown; source_text?: unknown; source_tasting?: unknown };
@@ -195,13 +195,13 @@ export function candidateToApi(row: Record<string, unknown>) {
 }
 ```
 
-- [ ] **Step 4: Run the domain test**
+- [x] **Step 4: Run the domain test**
 
 Run: `npx vitest run worker/tests/tasting-note-curation.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Extend the worker test with route behavior before adding routes**
+- [x] **Step 5: Extend the worker test with route behavior before adding routes**
 
 Add tests using the existing signed-JWT/Fake-D1 pattern from `worker/tests/auth-boundaries.test.ts` that assert:
 
@@ -232,13 +232,13 @@ it('promotes edited copy once with durable attribution', async () => {
 });
 ```
 
-- [ ] **Step 6: Run route tests and verify they fail**
+- [x] **Step 6: Run route tests and verify they fail**
 
 Run: `npx vitest run worker/tests/tasting-note-curation.test.ts`
 
 Expected: FAIL with route `404` responses.
 
-- [ ] **Step 7: Add member and admin handlers to `worker/src/index.ts`**
+- [x] **Step 7: Add member and admin handlers to `worker/src/index.ts`**
 
 Implement these exact contracts:
 
@@ -270,13 +270,13 @@ Implement these exact contracts:
 
 Register exactly these routes in the existing route table. Return `400` for invalid input, `401/403` for auth/capability failure, `404` for cross-account/missing source, and `409` for terminal-state repeats.
 
-- [ ] **Step 8: Run worker tests**
+- [x] **Step 8: Run worker tests**
 
 Run: `npx vitest run worker/tests/tasting-note-curation.test.ts worker/tests/auth-boundaries.test.ts`
 
 Expected: PASS, including cross-account denial and repeat-promotion conflict.
 
-- [ ] **Step 9: Commit the worker boundary**
+- [x] **Step 9: Commit the worker boundary**
 
 ```bash
 git add worker/src/tastingNoteCuration.ts worker/src/index.ts worker/tests/tasting-note-curation.test.ts
@@ -291,7 +291,7 @@ git commit -m "feat: add tasting note curation API"
 - Modify: `src/lib/api.ts`
 - Modify: `src/components/tasting/TastingJournal.tsx`
 
-- [ ] **Step 1: Write the failing component test**
+- [x] **Step 1: Write the failing component test**
 
 ```tsx
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -313,13 +313,13 @@ it('adds a transcript to one section and privately stars that section', async ()
 });
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run: `npx vitest run src/components/tasting/JournalSectionVoiceNote.test.tsx`
 
 Expected: FAIL because the component does not exist.
 
-- [ ] **Step 3: Add typed API methods**
+- [x] **Step 3: Add typed API methods**
 
 Add under `api.tastingJournal` in `src/lib/api.ts`:
 
@@ -332,7 +332,7 @@ unstarCandidate: (entryId: string, noteKey: string) =>
   authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, { method: 'DELETE' }),
 ```
 
-- [ ] **Step 4: Implement the focused control**
+- [x] **Step 4: Implement the focused control**
 
 ```tsx
 import React from 'react';
@@ -355,17 +355,17 @@ export function JournalSectionVoiceNote({ text, starred, onTextChange, onStarCha
 }
 ```
 
-- [ ] **Step 5: Wire it to each stable tasting section**
+- [x] **Step 5: Wire it to each stable tasting section**
 
 In `TastingJournal.tsx`, render `JournalSectionVoiceNote` inside each tasting-section editor. Use the existing tasting `id` as `noteKey`; save transcript through the existing journal update path, then call `api.tastingJournal.starCandidate(entry.id, tasting.id, { source_text: text, source_tasting: tasting.tasting })`. On unstar call `unstarCandidate`. Show API errors adjacent to that section and restore the previous pressed state.
 
-- [ ] **Step 6: Run component and journal tests**
+- [x] **Step 6: Run component and journal tests**
 
 Run: `npx vitest run src/components/tasting/JournalSectionVoiceNote.test.tsx src/lib/tastingJournalSync.test.ts`
 
 Expected: PASS; transcript changes only the selected section and starring calls no public endpoint.
 
-- [ ] **Step 7: Commit the member loop**
+- [x] **Step 7: Commit the member loop**
 
 ```bash
 git add src/components/tasting/JournalSectionVoiceNote.tsx src/components/tasting/JournalSectionVoiceNote.test.tsx src/components/tasting/TastingJournal.tsx src/lib/api.ts
@@ -382,7 +382,7 @@ git commit -m "feat: let members star tasting notes privately"
 - Modify: `src/pages/ProductPage.tsx`
 - Create: `tests/tasting-note-curation.spec.ts`
 
-- [ ] **Step 1: Write a failing admin queue test**
+- [x] **Step 1: Write a failing admin queue test**
 
 ```tsx
 it('edits, promotes, and dismisses candidates without ranking controls', async () => {
@@ -396,13 +396,13 @@ it('edits, promotes, and dismisses candidates without ranking controls', async (
 });
 ```
 
-- [ ] **Step 2: Run it and verify it fails**
+- [x] **Step 2: Run it and verify it fails**
 
 Run: `npx vitest run src/admin/components/TastingNoteReviewQueue.test.tsx`
 
 Expected: FAIL because the queue and API namespace do not exist.
 
-- [ ] **Step 3: Add typed frontend API contracts**
+- [x] **Step 3: Add typed frontend API contracts**
 
 ```ts
 tastingNoteCandidates: {
@@ -416,11 +416,11 @@ productImpressions: {
 },
 ```
 
-- [ ] **Step 4: Implement the queue with React Query**
+- [x] **Step 4: Implement the queue with React Query**
 
 Build `TastingNoteReviewQueue` with one candidate per flat bordered row, editable published text and attribution, Cancel/dismiss on the left, Promote on the right, loading/empty/error/retry states, and query invalidation after decisions. Mount it inside the existing `TeaReviewsPanel`; do not add an admin navigation item.
 
-- [ ] **Step 5: Render approved impressions on products**
+- [x] **Step 5: Render approved impressions on products**
 
 In `ProductPage.tsx`, query `api.productImpressions.list(product.id)`. Above ordinary public reviews, render only returned promoted impressions:
 
@@ -433,23 +433,23 @@ In `ProductPage.tsx`, query `api.productImpressions.list(product.id)`. Above ord
 </blockquote>
 ```
 
-- [ ] **Step 6: Run component tests**
+- [x] **Step 6: Run component tests**
 
 Run: `npx vitest run src/admin/components/TastingNoteReviewQueue.test.tsx`
 
 Expected: PASS with no voting, aggregation, or ranking UI.
 
-- [ ] **Step 7: Add the end-to-end journey test**
+- [x] **Step 7: Add the end-to-end journey test**
 
 In `tests/tasting-note-curation.spec.ts`, mock journal candidate, admin queue, promotion, and public impression endpoints. Assert member transcript/star → admin edited promotion → product attribution, and assert the impression is absent before promotion.
 
-- [ ] **Step 8: Run the browser journey**
+- [x] **Step 8: Run the browser journey**
 
 Run: `npx playwright test tests/tasting-note-curation.spec.ts --project="Mobile Chrome"`
 
 Expected: PASS; attribution is visible only after promotion.
 
-- [ ] **Step 9: Commit the curated publication UI**
+- [x] **Step 9: Commit the curated publication UI**
 
 ```bash
 git add src/admin/components/TastingNoteReviewQueue.tsx src/admin/components/TastingNoteReviewQueue.test.tsx src/admin/components/TeaReviewsPanel.tsx src/lib/api.ts src/pages/ProductPage.tsx tests/tasting-note-curation.spec.ts
@@ -464,7 +464,7 @@ git commit -m "feat: curate attributed product impressions"
 - Create: `worker/tests/event-article-draft.test.ts`
 - Modify: `worker/src/index.ts`
 
-- [ ] **Step 1: Write failing builder tests**
+- [x] **Step 1: Write failing builder tests**
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -481,13 +481,13 @@ it('builds a draft from gallery, host notes, energy, and tea metadata', () => {
 });
 ```
 
-- [ ] **Step 2: Run and verify failure**
+- [x] **Step 2: Run and verify failure**
 
 Run: `npx vitest run worker/tests/event-article-draft.test.ts`
 
 Expected: FAIL because `eventArticleDraft.ts` does not exist.
 
-- [ ] **Step 3: Add the association migration**
+- [x] **Step 3: Add the association migration**
 
 ```sql
 ALTER TABLE articles ADD COLUMN source_event_id TEXT;
@@ -496,11 +496,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event
   WHERE source_event_id IS NOT NULL;
 ```
 
-- [ ] **Step 4: Implement deterministic draft construction**
+- [x] **Step 4: Implement deterministic draft construction**
 
 `buildEventArticleDraft(event, postSession)` must parse gallery JSON defensively, use the first owned-media image as cover, emit `cover`, `intro`, `section_heading`, `paragraph`, `image`, and `quote` blocks only when their source content exists, set category to `Field Notes`, set `layout_template` to `immersive_scroll`, and always set `status: 'draft'`. It must not publish or invent prose.
 
-- [ ] **Step 5: Add failing endpoint tests**
+- [x] **Step 5: Add failing endpoint tests**
 
 ```ts
 it('creates one account-scoped draft for an event', async () => {
@@ -523,21 +523,21 @@ it('denies wrong-account events and gather-only staff', async () => {
 });
 ```
 
-- [ ] **Step 6: Implement `POST /api/admin/events/:id/article-draft`**
+- [x] **Step 6: Implement `POST /api/admin/events/:id/article-draft`**
 
 In `worker/src/index.ts`, require both `gather` and `publish`, verify `events.id + account_id`, query `event_post_session` with the same account, return an existing source-linked article when present, otherwise insert a normal `articles` row using `buildEventArticleDraft` plus `source_event_id`. Return `{ existing: false, article }` with `201`; the repeat returns `{ existing: true, article }` with `200`. Do not call the publish handler.
 
-- [ ] **Step 7: Persist all draft source metadata in post-session updates**
+- [x] **Step 7: Persist all draft source metadata in post-session updates**
 
 Extend `handleUpsertPostSession` to include `energy` and `shared_tasting_notes` in both INSERT and UPDATE statements while preserving existing gallery, ledger, playlist, and notes behavior.
 
-- [ ] **Step 8: Run endpoint and migration tests**
+- [x] **Step 8: Run endpoint and migration tests**
 
 Run: `npx vitest run worker/tests/event-article-draft.test.ts worker/tests/auth-boundaries.test.ts`
 
 Expected: PASS; wrong account/gather-only are denied and repeat creation returns one article.
 
-- [ ] **Step 9: Commit event draft backend**
+- [x] **Step 9: Commit event draft backend**
 
 ```bash
 git add worker/migrations/114_event_article_source.sql worker/src/eventArticleDraft.ts worker/src/index.ts worker/tests/event-article-draft.test.ts
@@ -552,38 +552,38 @@ git commit -m "feat: create article drafts from events"
 - Modify: `src/admin/components/ArticleEditorModal.tsx`
 - Create: `tests/event-photo-essay.spec.ts`
 
-- [ ] **Step 1: Write the failing Playwright journey**
+- [x] **Step 1: Write the failing Playwright journey**
 
 Mock event and draft endpoints, open `/admin/events/event-1?tab=post-session`, click `Create photo essay draft`, and assert `ArticleEditorModal` opens with event title, returned blocks, and a Draft status. Repeat with `{ existing: true }` and assert `Open existing draft` messaging; assert no Publish request occurs automatically.
 
-- [ ] **Step 2: Run and verify failure**
+- [x] **Step 2: Run and verify failure**
 
 Run: `npx playwright test tests/event-photo-essay.spec.ts --project="Desktop Chrome"`
 
 Expected: FAIL because the draft action is absent.
 
-- [ ] **Step 3: Add the API method**
+- [x] **Step 3: Add the API method**
 
 ```ts
 createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
   authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
 ```
 
-- [ ] **Step 4: Add the event action and editor state**
+- [x] **Step 4: Add the event action and editor state**
 
 In `EventDetail.tsx`, keep `draftArticle: DbArticle | null`, `drafting`, and `draftExisting`. Place the action in `PostSessionEditor`, not global navigation. On success set returned article and open the existing `ArticleEditorModal`; when `existing` is true, show “An article draft already exists for this event. Open existing draft.” Publication remains the editor's separate button.
 
-- [ ] **Step 5: Make editor initialization safe when initial data changes**
+- [x] **Step 5: Make editor initialization safe when initial data changes**
 
 In `ArticleEditorModal.tsx`, add an effect keyed by `initialData?.id` that resets `articleId`, title, status, blocks, subtitle, author, category, tags, cover, and layout from the selected article. This prevents a previously edited article from leaking state into an event-created draft.
 
-- [ ] **Step 6: Run the browser journey**
+- [x] **Step 6: Run the browser journey**
 
 Run: `npx playwright test tests/event-photo-essay.spec.ts --project="Desktop Chrome"`
 
 Expected: PASS for new and existing draft paths; publish endpoint has zero calls.
 
-- [ ] **Step 7: Commit editor integration**
+- [x] **Step 7: Commit editor integration**
 
 ```bash
 git add src/lib/api.ts src/admin/components/EventDetail.tsx src/admin/components/ArticleEditorModal.tsx tests/event-photo-essay.spec.ts
@@ -603,7 +603,7 @@ git commit -m "feat: open event photo essays in article editor"
 - Modify: `src/components/AccountPanel/CellarView.tsx`
 - Create: `tests/personal-tea-journey.spec.ts`
 
-- [ ] **Step 1: Write the failing cross-link component test**
+- [x] **Step 1: Write the failing cross-link component test**
 
 ```tsx
 import { render, screen } from '@testing-library/react';
@@ -618,13 +618,13 @@ it('links the three distinct personal tea models without renaming routes', () =>
 });
 ```
 
-- [ ] **Step 2: Run and verify failure**
+- [x] **Step 2: Run and verify failure**
 
 Run: `npx vitest run src/components/account/PersonalTeaLinks.test.tsx`
 
 Expected: FAIL because the component does not exist.
 
-- [ ] **Step 3: Implement quiet editorial links**
+- [x] **Step 3: Implement quiet editorial links**
 
 ```tsx
 import { Link } from 'react-router-dom';
@@ -642,7 +642,7 @@ export function PersonalTeaLinks({ current }: { current: 'journal' | 'favorites'
 }
 ```
 
-- [ ] **Step 4: Create the real Cellar page**
+- [x] **Step 4: Create the real Cellar page**
 
 ```tsx
 import { useNavigate } from 'react-router-dom';
@@ -664,31 +664,31 @@ export default function CellarPage() {
 
 Adjust `CellarView` so page composition does not duplicate outer padding/header; retain its existing CRUD, placement, shelf, loading and empty states unchanged.
 
-- [ ] **Step 5: Wire exact routes and repair Remember**
+- [x] **Step 5: Wire exact routes and repair Remember**
 
 In `src/App.tsx`, lazy-load `CellarPage` and add `/account/cellar` beside the existing account routes. In `LaunchpadView.tsx`, change only the Remember click target from `/account/journey?tab=collection` to `/account/collection`; retain the visible `remember` label.
 
-- [ ] **Step 6: Add cross-links to the existing pages**
+- [x] **Step 6: Add cross-links to the existing pages**
 
 Render `<PersonalTeaLinks current="journal" />` in `JournalPage`, and `<PersonalTeaLinks current="favorites" />` in `CollectionPage`. Do not merge their state or copy entries among models.
 
-- [ ] **Step 7: Run the unit test**
+- [x] **Step 7: Run the unit test**
 
 Run: `npx vitest run src/components/account/PersonalTeaLinks.test.tsx`
 
 Expected: PASS with exact existing paths.
 
-- [ ] **Step 8: Add the desktop/mobile personal-tea journey**
+- [x] **Step 8: Add the desktop/mobile personal-tea journey**
 
 In `tests/personal-tea-journey.spec.ts`, mock `/api/tasting-journal`, `/api/user/favorites`, and `/api/me/cellar` independently. Assert Remember reaches `/account/collection`; Journal links to Favorites and Cellar; Cellar renders API-backed owned tea; a favorite does not appear as cellar stock and a cellar item does not appear in Journal. Run the same assertions at 1280×800 and 390×844 and assert `document.documentElement.scrollWidth <= innerWidth`.
 
-- [ ] **Step 9: Run the focused browser test**
+- [x] **Step 9: Run the focused browser test**
 
 Run: `npx playwright test tests/personal-tea-journey.spec.ts --project="Desktop Chrome" --project="Mobile Chrome"`
 
 Expected: PASS on both viewports with no horizontal overflow or bottom-nav obstruction.
 
-- [ ] **Step 10: Commit personal-tea wiring**
+- [x] **Step 10: Commit personal-tea wiring**
 
 ```bash
 git add src/pages/CellarPage.tsx src/components/account/PersonalTeaLinks.tsx src/components/account/PersonalTeaLinks.test.tsx src/App.tsx src/components/AccountPanel/LaunchpadView.tsx src/pages/JournalPage.tsx src/pages/CollectionPage.tsx src/components/AccountPanel/CellarView.tsx tests/personal-tea-journey.spec.ts
@@ -700,43 +700,43 @@ git commit -m "feat: wire cellar favorites and journal journeys"
 **Files:**
 - Modify only if results require a correction: files already listed in Tasks 1–7
 
-- [ ] **Step 1: Run all Release 2 worker tests**
+- [x] **Step 1: Run all Release 2 worker tests**
 
 Run: `npx vitest run worker/tests/tasting-note-curation-migration.test.ts worker/tests/tasting-note-curation.test.ts worker/tests/event-article-draft.test.ts worker/tests/auth-boundaries.test.ts worker/tests/curate-inventory-migrations.test.ts`
 
 Expected: all suites PASS; no cross-account read/write succeeds.
 
-- [ ] **Step 2: Run Release 2 frontend unit tests**
+- [x] **Step 2: Run Release 2 frontend unit tests**
 
 Run: `npx vitest run src/components/tasting/JournalSectionVoiceNote.test.tsx src/admin/components/TastingNoteReviewQueue.test.tsx src/components/account/PersonalTeaLinks.test.tsx`
 
 Expected: all suites PASS.
 
-- [ ] **Step 3: Run static checks**
+- [x] **Step 3: Run static checks**
 
 Run: `npm run lint && npm run lint:colors`
 
 Expected: TypeScript exits 0 and color lint reports no violations.
 
-- [ ] **Step 4: Build production assets**
+- [x] **Step 4: Build production assets**
 
 Run: `npm run build`
 
 Expected: Vite production build completes and writes `dist/` with no errors.
 
-- [ ] **Step 5: Start the reserved development server**
+- [x] **Step 5: Start the reserved development server**
 
 Run in a persistent terminal: `npm run dev`
 
 Expected: Vite reports the application at `http://localhost:7777`; do not start another port.
 
-- [ ] **Step 6: Run focused Release 2 browser journeys**
+- [x] **Step 6: Run focused Release 2 browser journeys**
 
 Run: `npx playwright test tests/tasting-note-curation.spec.ts tests/event-photo-essay.spec.ts tests/personal-tea-journey.spec.ts`
 
 Expected: all journeys PASS.
 
-- [ ] **Step 7: Run the mandatory mobile regression suite**
+- [x] **Step 7: Run the mandatory mobile regression suite**
 
 Run: `npm run test:mobile`
 
@@ -744,14 +744,16 @@ Expected: mobile audit passes, including account routes, no console errors, no 4
 
 - [ ] **Step 8: Manually verify the editorial boundaries**
 
+Pending human editorial review only: automated coverage verifies draft-only creation and fixture safety, but no recorded Adrian-led editorial-boundary walkthrough exists.
+
 At `http://localhost:7777`, confirm: a starred note is absent publicly until promoted; edited attribution persists after the source note changes; an event creates one draft and never auto-publishes; `/account/cellar` uses server data; Remember opens Favorites; Journal/Favorites/Cellar links remain distinct; no navigation label changed.
 
-- [ ] **Step 9: Inspect the final diff for scope**
+- [x] **Step 9: Inspect the final diff for scope**
 
 Run: `git status --short && git diff --stat HEAD~7..HEAD`
 
 Expected: only Release 2 migrations, worker/API tests and handlers, tasting curation UI, event draft integration, and personal-tea routing/cross-links appear; no unrelated navigation or backend architecture changes.
 
-- [ ] **Step 10: Record verification without claiming human-only gates**
+- [x] **Step 10: Record verification without claiming human-only gates**
 
 Update the implementation handoff with exact passing commands and note that real mainland-China testing, real operator launch checks, and real contributor content remain human-only gates outside Release 2.
