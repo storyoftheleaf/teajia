@@ -96,6 +96,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const isEmpty = items.length === 0;
+  const operationLocked = pendingOperation != null;
   const totalGrams = items.reduce((s, i) => s + i.grams, 0);
 
   // Group by vendor
@@ -133,9 +134,12 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
     setSaving(true);
     setSaveError(null);
     const signature = sampleListSignatureForRetry(items);
-    const draft = pendingOperation?.signature === signature
-      ? pendingOperation
-      : buildSampleBatchDraft(items);
+    if (pendingOperation && pendingOperation.signature !== signature) {
+      setSaveError('This locked batch no longer matches the visible list. Reload the account before retrying; no new batch was created.');
+      setSaving(false);
+      return;
+    }
+    const draft = pendingOperation ?? buildSampleBatchDraft(items);
     if (draft !== pendingOperation) setPendingOperation(draft);
 
     try {
@@ -199,8 +203,10 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
             <button
               type="button"
               onClick={clear}
-              className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated transition-colors"
-              title="Clear all"
+              disabled={operationLocked}
+              className="p-1.5 rounded-md text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated transition-colors disabled:opacity-40"
+              aria-label="Clear all"
+              title={operationLocked ? 'Finish the pending batch before clearing this list' : 'Clear all'}
             >
               <Trash2 size={13} />
             </button>
@@ -264,7 +270,8 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                         <button
                           type="button"
                           onClick={() => removeItem(item.id)}
-                          className="shrink-0 p-1 rounded text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated transition-colors mt-0.5"
+                          disabled={operationLocked}
+                          className="shrink-0 p-1 rounded text-tea-text-dim hover:text-tea-text-sec hover:bg-tea-elevated transition-colors mt-0.5 disabled:opacity-40"
                           aria-label="Remove"
                         >
                           <X size={12} />
@@ -278,6 +285,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                             key={g}
                             type="button"
                             onClick={() => updateGrams(item.id, g)}
+                            disabled={operationLocked}
                             className={`px-2.5 py-1 rounded-md text-ui-11 font-medium transition-colors ${
                               item.grams === g
                                 ? 'bg-tea-gold/15 text-tea-gold'
@@ -302,6 +310,11 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
         <div className="shrink-0 px-4 py-3 border-t border-tea-border space-y-2">
 
           <>
+              {operationLocked && (
+                <p className="rounded-md bg-tea-elevated px-3 py-2 text-ui-12 text-tea-text-sec">
+                  This saved batch is locked until Library linkage finishes. Retry to complete it; list edits are paused to prevent duplicates.
+                </p>
+              )}
               {saveError && (
                 <p role="alert" className="rounded-md bg-tea-elevated px-3 py-2 text-ui-12 text-tea-text-sec">
                   {saveError}
@@ -314,7 +327,7 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
                 className="w-full min-h-11 flex items-center justify-center gap-2 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors disabled:opacity-50"
               >
                 <BookOpen size={13} />
-                {saving ? 'Saving sample batch…' : saveError ? 'Retry saving sample batch' : 'Save as sample batch'}
+                {saving ? 'Saving sample batch…' : saveError ? 'Retry saving sample batch' : operationLocked ? 'Retry saved batch' : 'Save as sample batch'}
               </button>
           </>
 

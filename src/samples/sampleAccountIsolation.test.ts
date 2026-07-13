@@ -80,6 +80,39 @@ describe('sample account isolation', () => {
     expect(useSampleCartStore.getState().pendingOperation?.sampleSet.id).toBe('set-b');
   });
 
+  it('locks every cart mutation behind the pending batch identity until completion', () => {
+    useSampleCartStore.getState().switchAccount('acct-a');
+    useSampleCartStore.getState().addItem({ id: 'entry-1', name: 'Tea', grams: 10, compassEntryId: 'entry-1' });
+    const operation = buildSampleBatchDraft(useSampleCartStore.getState().items, { setId: 'stable-set', sampleId: () => 'stable-sample' });
+    useSampleCartStore.getState().setPendingOperation(operation);
+
+    useSampleCartStore.getState().addItem({ id: 'entry-2', name: 'Other', grams: 5 });
+    useSampleCartStore.getState().updateGrams('entry-1', 50);
+    useSampleCartStore.getState().removeItem('entry-1');
+    useSampleCartStore.getState().clear();
+
+    expect(useSampleCartStore.getState().items).toEqual([{ id: 'entry-1', name: 'Tea', grams: 10, compassEntryId: 'entry-1' }]);
+    expect(useSampleCartStore.getState().pendingOperation).toMatchObject({
+      sampleSet: { id: 'stable-set' }, samples: [{ id: 'stable-sample' }],
+    });
+    expect(useSampleCartStore.getState().completePendingOperation('wrong-set')).toBe(false);
+    expect(useSampleCartStore.getState().items).toHaveLength(1);
+    expect(useSampleCartStore.getState().completePendingOperation('stable-set')).toBe(true);
+    expect(useSampleCartStore.getState().items).toEqual([]);
+    expect(useSampleCartStore.getState().pendingOperation).toBeNull();
+  });
+
+  it('locks only the owning account cart', () => {
+    useSampleCartStore.getState().switchAccount('acct-a');
+    useSampleCartStore.getState().addItem({ id: 'a', name: 'A', grams: 10 });
+    useSampleCartStore.getState().setPendingOperation(buildSampleBatchDraft(useSampleCartStore.getState().items, { setId: 'set-a' }));
+    useSampleCartStore.getState().switchAccount('acct-b');
+    useSampleCartStore.getState().addItem({ id: 'b', name: 'B', grams: 5 });
+    expect(useSampleCartStore.getState().items.map(item => item.id)).toEqual(['b']);
+    useSampleCartStore.getState().switchAccount('acct-a');
+    expect(useSampleCartStore.getState().items.map(item => item.id)).toEqual(['a']);
+  });
+
   it('rehydrates a failed Compass retry and completes with the same remote ids', async () => {
     const values = new Map<string, string>();
     const storage: StateStorage = {

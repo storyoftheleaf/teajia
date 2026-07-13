@@ -76,23 +76,28 @@ export function createSampleCartStore(storage?: PersistStorage<SampleCartState>)
       }),
 
       addItem: (item) => {
+        if (get().pendingOperation) return;
         const { grams = 10, ...rest } = item;
         if (get().items.some((i) => i.id === item.id)) return;
         set((state) => ({ items: [...state.items, { ...rest, grams }], pendingOperation: null }));
       },
 
       removeItem: (id) =>
-        set((state) => ({ items: state.items.filter((i) => i.id !== id), pendingOperation: null })),
+        set((state) => state.pendingOperation
+          ? state
+          : { items: state.items.filter((i) => i.id !== id), pendingOperation: null }),
 
       updateGrams: (id, grams) =>
-        set((state) => ({
-          items: state.items.map((i) => (i.id === id ? { ...i, grams } : i)),
-          pendingOperation: null,
-        })),
+        set((state) => state.pendingOperation
+          ? state
+          : {
+              items: state.items.map((i) => (i.id === id ? { ...i, grams } : i)),
+              pendingOperation: null,
+            }),
 
-      clear: () => set({ items: [], pendingOperation: null }),
+      clear: () => set((state) => state.pendingOperation ? state : { items: [], pendingOperation: null }),
 
-      setPendingOperation: (operation) => set({ pendingOperation: operation }),
+      setPendingOperation: (operation) => set((state) => state.pendingOperation ? state : { pendingOperation: operation }),
 
       completePendingOperation: (sampleSetId) => {
         let completed = false;

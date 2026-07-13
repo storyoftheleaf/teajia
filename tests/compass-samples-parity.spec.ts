@@ -231,6 +231,10 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByRole('alert')).toContainText('Library linkage is still pending');
+    await expect(page.getByText(/saved batch is locked until Library linkage finishes/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear all' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Remove' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: '15g' })).toBeDisabled();
     const beforeReload = await page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state;
       return {
@@ -238,9 +242,19 @@ test.describe('Sample workflows remain reachable outside the capture method row'
         sampleIds: state.pendingOperation.samples.map((sample: { id: string }) => sample.id),
       };
     });
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleCartStore } = await import('/src/samples/sampleCartStore.ts');
+      const store = useSampleCartStore.getState();
+      store.updateGrams('compass-tea-1', 50);
+      store.removeItem('compass-tea-1');
+      store.addItem({ id: 'duplicate-risk', name: 'Duplicate risk', grams: 5 });
+      store.clear();
+    });
+    await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await page.getByRole('button', { name: 'Retry saved batch' }).click();
     await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
     expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(1);
     expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(1);
