@@ -9,7 +9,7 @@ test.describe('Curate field capture preservation', () => {
   test('opens directly to Source and Tea with price visible', async ({ page }) => {
     await openCompass(page);
     await expect(page.getByRole('tab', { name: 'Tea', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Tea name…').filter({ visible: true })).toBeVisible();
     await expect(page.getByPlaceholder('Price').filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toBeVisible();
   });
@@ -112,7 +112,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('switches between named entries in the current session', async ({ page }) => {
     await openCompass(page);
-    const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    const name = page.getByPlaceholder('Tea name…').filter({ visible: true });
     await name.fill('First field tea');
     const directNewEntry = page.getByRole('button', { name: /^(New Entry|Start a new entry)$/ }).filter({ visible: true });
     await expect(directNewEntry).toHaveCount(1);
@@ -129,7 +129,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('preserves a partial tea entry when switching capture type', async ({ page }) => {
     await openCompass(page);
-    const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    const name = page.getByPlaceholder('Tea name…').filter({ visible: true });
     await name.fill('Field fragment tea');
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     await page.getByRole('tab', { name: 'Tea', exact: true }).click();
@@ -163,7 +163,7 @@ test.describe('Curate field capture preservation', () => {
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'unexpected-product' }) });
     });
     await openCompass(page);
-    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Encounter only');
+    await page.getByPlaceholder('Tea name…').filter({ visible: true }).fill('Encounter only');
     await expect(page.getByRole('button', { name: /Done/ }).first()).toBeVisible();
     await expect(page.locator('[data-testid="save-mode-personal"], [data-testid="save-mode-inventory"]')).toHaveCount(0);
     await page.getByRole('button', { name: /Done/ }).first().click();
@@ -207,7 +207,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('Sample opens the current tea tasting without changing sourcing or possession', async ({ page }) => {
     await openCompass(page);
-    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Decision-safe sample');
+    await page.getByPlaceholder('Tea name…').filter({ visible: true }).fill('Decision-safe sample');
     await page.getByRole('radio', { name: 'Considering' }).click();
     await page.getByTestId('capture-action-footer').filter({ visible: true })
       .getByRole('button', { name: 'Sample', exact: true }).click();
@@ -224,7 +224,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('authenticated capture keeps Share reachable outside the action footer', async ({ page }) => {
     await openCompass(page);
-    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Shareable tea');
+    await page.getByPlaceholder('Tea name…').filter({ visible: true }).fill('Shareable tea');
     const share = page.getByRole('button', { name: 'Share', exact: true }).filter({ visible: true });
 
     await expect(share).toHaveCount(1);
@@ -249,7 +249,7 @@ test.describe('Curate field capture preservation', () => {
   test('desktop Done also creates exactly one active replacement draft', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'Desktop Chrome', 'desktop action bar only');
     await openCompass(page);
-    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Desktop encounter');
+    await page.getByPlaceholder('Tea name…').filter({ visible: true }).fill('Desktop encounter');
     await page.getByTestId('compass-done-desktop').click();
     await expect.poll(async () => page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
@@ -272,7 +272,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('Done resumes an existing partial entry instead of creating a blank replacement', async ({ page }) => {
     await openCompass(page);
-    const name = page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true });
+    const name = page.getByPlaceholder('Tea name…').filter({ visible: true });
     await name.fill('Earlier fragment');
     const earlierId = await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
@@ -297,7 +297,7 @@ test.describe('Curate field capture preservation', () => {
 
   test('begins immediately with no Journey or Visit setup gate', async ({ page }) => {
     await openCompass(page);
-    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Tea name…').filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add journey or visit context' })).toBeVisible();
   });
 

@@ -7,7 +7,7 @@ test.describe('Curate context retrieval', () => {
 
   test('keeps context editable after the capture has other information', async ({ page }) => {
     await openCompass(page);
-    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Context tea');
+    await page.getByPlaceholder('Tea name…').filter({ visible: true }).fill('Context tea');
     await page.getByRole('button', { name: 'Add journey or visit context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
     await page.getByRole('button', { name: 'Chen Family Taipei' }).click();
@@ -18,7 +18,7 @@ test.describe('Curate context retrieval', () => {
 
   test('reopens a committed Library entry and persists a later context edit', async ({ page }) => {
     await openCompass(page);
-    await page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true }).fill('Committed context tea');
+    await page.getByPlaceholder('Tea name…').filter({ visible: true }).fill('Committed context tea');
     await page.getByRole('button', { name: 'Add journey or visit context' }).click();
     await page.getByRole('button', { name: /Taiwan, Spring 2026/ }).click();
     await page.getByRole('button', { name: 'Chen Family Taipei' }).click();
