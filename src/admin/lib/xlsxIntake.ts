@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { Unzip, UnzipInflate } from 'fflate';
 
 export const XLSX_INTAKE_LIMITS = Object.freeze({
   maxFileBytes: 10 * 1024 * 1024,
@@ -33,7 +34,12 @@ export function assertSupportedIntakeFile(filename: string): void {
   }
 }
 
-function preflightXlsxZip(bytes: ArrayBuffer): void {
+interface ZipPreflight {
+  entryCompressedBytes: number[];
+  totalCompressedBytes: number;
+}
+
+function preflightXlsxZip(bytes: ArrayBuffer): ZipPreflight {
   const view = new DataView(bytes);
   const minimumEocdBytes = 22;
   const maximumZipCommentBytes = 65_535;
@@ -50,12 +56,14 @@ function preflightXlsxZip(bytes: ArrayBuffer): void {
   }
   if (eocdOffset < 0) throw new Error('Workbook is not a valid .xlsx ZIP archive.');
 
+  const entriesOnDisk = view.getUint16(eocdOffset + 8, true);
   const entryCount = view.getUint16(eocdOffset + 10, true);
   const centralDirectoryBytes = view.getUint32(eocdOffset + 12, true);
   const centralDirectoryOffset = view.getUint32(eocdOffset + 16, true);
   if (entryCount === 0xffff || centralDirectoryBytes === 0xffffffff || centralDirectoryOffset === 0xffffffff) {
     throw new Error('ZIP64 workbooks are not supported.');
   }
+  if (entriesOnDisk !== entryCount) throw new Error('Workbook EOCD entry counts disagree.');
   if (entryCount > XLSX_INTAKE_LIMITS.maxZipEntries) {
     throw new Error(`Workbook exceeds the ${XLSX_INTAKE_LIMITS.maxZipEntries.toLocaleString('en-US')} ZIP entries limit.`);
   }
@@ -67,8 +75,11 @@ function preflightXlsxZip(bytes: ArrayBuffer): void {
   let totalCompressedBytes = 0;
   let totalUncompressedBytes = 0;
   let hasExcessiveEntryRatio = false;
-  for (let entry = 0; entry < entryCount; entry += 1) {
-    if (offset + 46 > bytes.byteLength || view.getUint32(offset, true) !== 0x02014b50) {
+  const entryCompressedBytes: number[] = [];
+  let traversedEntries = 0;
+  const centralDirectoryEnd = centralDirectoryOffset + centralDirectoryBytes;
+  while (offset < centralDirectoryEnd) {
+    if (offset + 46 > centralDirectoryEnd || view.getUint32(offset, true) !== 0x02014b50) {
       throw new Error('Workbook has an invalid ZIP central-directory entry.');
     }
     const compressedBytes = view.getUint32(offset + 20, true);
@@ -78,10 +89,19 @@ function preflightXlsxZip(bytes: ArrayBuffer): void {
     const commentBytes = view.getUint16(offset + 32, true);
     totalCompressedBytes += compressedBytes;
     totalUncompressedBytes += uncompressedBytes;
+    entryCompressedBytes.push(compressedBytes);
     if (uncompressedBytes > compressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
       hasExcessiveEntryRatio = true;
     }
     offset += 46 + filenameBytes + extraBytes + commentBytes;
+    if (offset > centralDirectoryEnd) throw new Error('Workbook has an invalid ZIP central-directory entry length.');
+    traversedEntries += 1;
+    if (traversedEntries > XLSX_INTAKE_LIMITS.maxZipEntries) {
+      throw new Error(`Workbook exceeds the ${XLSX_INTAKE_LIMITS.maxZipEntries.toLocaleString('en-US')} ZIP entries limit.`);
+    }
+  }
+  if (traversedEntries !== entryCount) {
+    throw new Error('Workbook entry count does not match its full central directory.');
   }
 
   if (totalUncompressedBytes > XLSX_INTAKE_LIMITS.maxUncompressedBytes) {
@@ -89,6 +109,48 @@ function preflightXlsxZip(bytes: ArrayBuffer): void {
   }
   if (hasExcessiveEntryRatio || totalUncompressedBytes > totalCompressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
     throw new Error('Workbook exceeds the 100:1 compression ratio limit.');
+  }
+  return { entryCompressedBytes, totalCompressedBytes };
+}
+
+function validateActualZipExpansion(bytes: Uint8Array, preflight: ZipPreflight): void {
+  let traversedEntries = 0;
+  let totalOutputBytes = 0;
+  const unzip = new Unzip((file) => {
+    const expectedCompressedBytes = preflight.entryCompressedBytes[traversedEntries];
+    traversedEntries += 1;
+    if (traversedEntries > XLSX_INTAKE_LIMITS.maxZipEntries) {
+      throw new Error(`Workbook exceeds the ${XLSX_INTAKE_LIMITS.maxZipEntries.toLocaleString('en-US')} ZIP entries limit.`);
+    }
+    if (file.size == null || file.size !== expectedCompressedBytes) {
+      throw new Error('Workbook local and central compressed sizes disagree.');
+    }
+    let entryOutputBytes = 0;
+    file.ondata = (error, chunk) => {
+      if (error) throw error;
+      entryOutputBytes += chunk.byteLength;
+      totalOutputBytes += chunk.byteLength;
+      if (totalOutputBytes > XLSX_INTAKE_LIMITS.maxUncompressedBytes) {
+        throw new Error('Workbook actual decompressed data exceeds the 50 MB limit.');
+      }
+      if (entryOutputBytes > expectedCompressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
+        throw new Error('Workbook actual data exceeds the 100:1 per-entry compression ratio limit.');
+      }
+      if (totalOutputBytes > preflight.totalCompressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
+        throw new Error('Workbook actual data exceeds the 100:1 aggregate compression ratio limit.');
+      }
+    };
+    file.start();
+  });
+  unzip.register(UnzipInflate);
+
+  const inputChunkBytes = 8 * 1024;
+  for (let offset = 0; offset < bytes.byteLength; offset += inputChunkBytes) {
+    const end = Math.min(offset + inputChunkBytes, bytes.byteLength);
+    unzip.push(bytes.subarray(offset, end), end === bytes.byteLength);
+  }
+  if (traversedEntries !== preflight.entryCompressedBytes.length) {
+    throw new Error('Workbook decompression did not traverse every archive entry.');
   }
 }
 
@@ -105,10 +167,12 @@ export async function parseXlsxIntake(bytes: ArrayBuffer): Promise<IntakeRow[]> 
   if (bytes.byteLength > XLSX_INTAKE_LIMITS.maxFileBytes) {
     throw new Error('Workbook exceeds the 10 MB file limit.');
   }
-  preflightXlsxZip(bytes);
+  const immutableBytes = new Uint8Array(bytes.slice(0));
+  const preflight = preflightXlsxZip(immutableBytes.buffer);
+  validateActualZipExpansion(immutableBytes, preflight);
 
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(new Uint8Array(bytes) as unknown as Buffer);
+  await workbook.xlsx.load(immutableBytes as unknown as Buffer);
 
   if (workbook.worksheets.length === 0) throw new Error('Workbook contains no worksheets.');
   if (workbook.worksheets.length > XLSX_INTAKE_LIMITS.maxWorksheets) {

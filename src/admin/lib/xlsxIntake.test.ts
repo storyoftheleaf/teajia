@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 
 async function makeWorkbook(
@@ -27,6 +28,21 @@ function mutateFirstCentralEntry(
     }
   }
   throw new Error('fixture has no ZIP central-directory entry');
+}
+
+function mutateEocd(
+  source: ArrayBuffer,
+  mutate: (view: DataView, offset: number) => void,
+): ArrayBuffer {
+  const bytes = new Uint8Array(source.slice(0));
+  const view = new DataView(bytes.buffer);
+  for (let offset = bytes.byteLength - 22; offset >= 0; offset -= 1) {
+    if (view.getUint32(offset, true) === 0x06054b50) {
+      mutate(view, offset);
+      return bytes.buffer;
+    }
+  }
+  throw new Error('fixture has no ZIP end-of-central-directory record');
 }
 
 describe('parseXlsxIntake', () => {
@@ -180,6 +196,29 @@ describe('parseXlsxIntake', () => {
     await expect(parseXlsxIntake(hostile.buffer)).rejects.toThrow(/1,000 ZIP entries/i);
   });
 
+  it('rejects inconsistent EOCD entry-count fields', async () => {
+    const bytes = await makeWorkbook((workbook) => {
+      workbook.addWorksheet('Tea').addRow(['Name']);
+    });
+    const hostile = mutateEocd(bytes, (view, offset) => {
+      view.setUint16(offset + 8, 1, true);
+    });
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(hostile)).rejects.toThrow(/EOCD entry counts.*disagree/i);
+  });
+
+  it('rejects understated EOCD counts when later central-directory entries exist', async () => {
+    const bytes = await makeWorkbook((workbook) => {
+      workbook.addWorksheet('Tea').addRow(['Name']);
+    });
+    const hostile = mutateEocd(bytes, (view, offset) => {
+      view.setUint16(offset + 8, 1, true);
+      view.setUint16(offset + 10, 1, true);
+    });
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(hostile)).rejects.toThrow(/entry count.*central directory/i);
+  });
+
   it('rejects excessive aggregate ZIP expansion before decompression', async () => {
     const bytes = await makeWorkbook((workbook) => {
       workbook.addWorksheet('Tea').addRow(['Name']);
@@ -201,6 +240,23 @@ describe('parseXlsxIntake', () => {
     });
     const { parseXlsxIntake } = await loadParser();
     await expect(parseXlsxIntake(hostile)).rejects.toThrow(/100:1 compression ratio/i);
+  });
+
+  it('caps actual streamed expansion even when ZIP metadata understates it', async () => {
+    const expanded = new Uint8Array(50 * 1024 * 1024 + 1);
+    let state = 0x12345678;
+    for (let index = 0; index < expanded.length; index += 10) {
+      state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+      expanded[index] = state >>> 24;
+    }
+    const archive = zipSync({ 'bomb.bin': expanded }, { level: 6 });
+    expect(archive.byteLength).toBeLessThan(10 * 1024 * 1024);
+    const archiveBuffer = Uint8Array.from(archive).buffer;
+    const hostile = mutateFirstCentralEntry(archiveBuffer, (view, offset) => {
+      view.setUint32(offset + 24, 1, true);
+    });
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(hostile)).rejects.toThrow(/actual decompressed data.*50 MB/i);
   });
 });
 
