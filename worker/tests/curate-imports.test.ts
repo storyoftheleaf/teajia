@@ -638,6 +638,34 @@ describe('Curate import provenance API', () => {
     expect(JSON.parse(String(db.items.get(items[0].id)?.parsed_data_json)).blockingFields).not.toContain('vendor');
   });
 
+  it('does not clear vendor review on an item moved during existing-vendor selection', async () => {
+    const db = new ImportDb();
+    db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Confirmed Vendor', tags: '["vendor"]' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Moved existing vendor', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.groups.set('group-b', { id: 'group-b', batch_id: batch.id, account_id: 'account-a', position: 1, group_key: 'b', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.items.get(items[0].id)!.vendor_group_id = 'group-a';
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify({ ...itemProposal('moved-existing'), confidence: { vendor: 0.4 }, uncertainty: { vendor: 'confirm' }, blockingFields: ['vendor'] });
+    db.moveVendorItemBeforePatch = { itemId: items[0].id, groupId: 'group-b' };
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) })).status).toBe(200);
+    expect(db.items.get(items[0].id)?.vendor_group_id).toBe('group-b');
+    expect(JSON.parse(String(db.items.get(items[0].id)?.parsed_data_json)).blockingFields).toContain('vendor');
+  });
+
+  it('preserves newer item JSON during existing-vendor selection', async () => {
+    const db = new ImportDb();
+    db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Confirmed Vendor', tags: '["vendor"]' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Newer existing vendor', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.items.get(items[0].id)!.vendor_group_id = 'group-a';
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify({ ...itemProposal('older-existing'), blockingFields: ['vendor'] });
+    db.rewriteVendorItemBeforePatch = { itemId: items[0].id, parsedData: { ...itemProposal('newer-existing'), description: 'newer analysis', confidence: { vendor: 0.4, year: 0.5 }, uncertainty: { vendor: 'confirm', year: 'confirm year' }, blockingFields: ['vendor', 'year'] } };
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) })).status).toBe(200);
+    expect(JSON.parse(String(db.items.get(items[0].id)?.parsed_data_json))).toMatchObject({ description: 'newer analysis', confidence: { year: 0.5 }, uncertainty: { year: 'confirm year' }, blockingFields: ['year'] });
+  });
+
   it('updates group vendors and the optional journey only within the active account', async () => {
     const db = new ImportDb();
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Chen', tags: '["vendor"]' });

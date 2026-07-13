@@ -156,6 +156,17 @@ function clearReviewedMaterialFields(value: Record<string, unknown>, reviewedFie
   return { ...value, confidence, uncertainty };
 }
 
+function vendorItemReviewPatch(env: ImportEnv, groupId: string, accountId: string, vendorId: string, batchId: string) {
+  return env.DB.prepare(`UPDATE curate_import_items SET parsed_data_json = json_set(
+      json_remove(CASE WHEN json_valid(parsed_data_json) THEN parsed_data_json ELSE '{}' END, '$.confidence.vendor', '$.uncertainty.vendor'),
+      '$.blockingFields', json(COALESCE((SELECT json_group_array(value) FROM json_each(json_extract(CASE WHEN json_valid(parsed_data_json) THEN parsed_data_json ELSE '{}' END, '$.blockingFields')) WHERE value != 'vendor'), '[]'))
+    ), updated_at = datetime('now')
+    WHERE vendor_group_id = ? AND account_id = ?
+      AND EXISTS (SELECT 1 FROM curate_import_vendor_groups WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ?)
+      AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
+    .bind(groupId, accountId, groupId, accountId, vendorId, batchId, accountId);
+}
+
 function canonicalReviewMoney(value: unknown): string | null {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const source = String(value).trim();
@@ -669,15 +680,9 @@ export async function updateCurateImportGroup(request: Request, env: ImportEnv, 
   }
   const groupUncertainty = parseJson(group.uncertainty_json, {}) as Record<string, unknown>;
   delete groupUncertainty.vendor;
-  const groupItems = await env.DB.prepare('SELECT * FROM curate_import_items WHERE vendor_group_id = ? AND account_id = ?').bind(params.groupId, ctx.accountId).all<Record<string, unknown>>();
   const statements: D1PreparedStatement[] = [env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
     .bind(vendorId, vendorId == null ? null : 1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, params.id, ctx.accountId)];
-  if (vendorId != null) for (const item of groupItems.results) {
-    const parsed = parseJson(item.parsed_data_json, {}) as Record<string, unknown>;
-    const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(field => field !== 'vendor') : [];
-    statements.push(env.DB.prepare("UPDATE curate_import_items SET parsed_data_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-      .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.id, ctx.accountId));
-  }
+  if (typeof vendorId === 'string') statements.push(vendorItemReviewPatch(env, params.groupId, ctx.accountId, vendorId, params.id));
   const results = await env.DB.batch(statements);
   if (!(results[0]?.meta.changes ?? 0)) return terminalResponse();
   const updated = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>();
@@ -719,14 +724,7 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
       .bind(vendorId, params.groupId, ctx.accountId, vendorId, ctx.accountId, params.id, ctx.accountId),
     env.DB.prepare("UPDATE curate_import_vendor_groups SET vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
       .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId),
-    env.DB.prepare(`UPDATE curate_import_items SET parsed_data_json = json_set(
-        json_remove(CASE WHEN json_valid(parsed_data_json) THEN parsed_data_json ELSE '{}' END, '$.confidence.vendor', '$.uncertainty.vendor'),
-        '$.blockingFields', json(COALESCE((SELECT json_group_array(value) FROM json_each(json_extract(CASE WHEN json_valid(parsed_data_json) THEN parsed_data_json ELSE '{}' END, '$.blockingFields')) WHERE value != 'vendor'), '[]'))
-      ), updated_at = datetime('now')
-      WHERE vendor_group_id = ? AND account_id = ?
-        AND EXISTS (SELECT 1 FROM curate_import_vendor_groups WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ?)
-        AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
-      .bind(params.groupId, ctx.accountId, params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId)];
+    vendorItemReviewPatch(env, params.groupId, ctx.accountId, vendorId, params.id)];
   const results = await env.DB.batch(statements);
   if (!(results[0]?.meta.changes ?? 0)) {
     if (inserted.meta.changes) await env.DB.prepare("DELETE FROM customers WHERE id = ? AND account_id = ? AND source = 'curate_import'").bind(vendorId, ctx.accountId).run();
