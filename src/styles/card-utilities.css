@@ -2702,3 +2702,12 @@ input[type="number"]::-webkit-outer-spin-button {
    desktop spacing is untouched. */
 .inv-tight th,
 .inv-tight td { padding-left: 6px; padding-right: 6px; }
+
+/* Mobile inventory swipe table — hug content, never truncate. Paired with
+   table-auto: because the cell text is single-line (nowrap from `truncate`),
+   the auto layout grows each column to its widest value, and the table scrolls
+   horizontally to reveal the rest, so nothing is cut off. We only drop the
+   ellipsis here; the cell keeps its own vertical clip so a two-line name never
+   bleeds into the row below. Desktop is untouched. */
+.inv-hug td .truncate,
+.inv-hug th .truncate { text-overflow: clip; }
