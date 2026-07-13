@@ -820,6 +820,17 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
 }
 
 export const api = {
+  incidents: {
+    // Keep browser traffic on the public same-origin proxy. A direct Worker
+    // fallback would bypass the China-reachable boundary and the CSP.
+    report: (incident: Record<string, unknown>) => authedFetch(`${API_URL}/api/incidents`, {
+      method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
+    }),
+    list: () => authedFetch(`${API_URL}/api/platform/incidents`),
+    update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
+      method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
+    }),
+  },
   inventoryReceipts: {
     list: (includeClosed = false) => authedFetch(`${API_URL}/api/inventory/receipts?include_closed=${includeClosed ? '1' : '0'}`),
     create: (body: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) => authedFetch(`${API_URL}/api/inventory/receipts`, { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: idempotencyKey }), retryTimeouts: true }),

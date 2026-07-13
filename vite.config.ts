@@ -29,6 +29,17 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
+        // Reliability boundary: never let an old service worker replay a stale
+        // application shell. A stale shell can reference an AdminApp chunk from
+        // a superseded deployment and enter a rapid preload/reload loop before
+        // the fixed client code gets a chance to run. The generated sw.js now
+        // replaces existing registrations, clears their caches, and unregisters
+        // itself. Static assets remain edge-cached by Cloudflare/browser headers.
+        selfDestroying: true,
+        // Do not register the cleanup worker in browsers that never had one.
+        // Existing registrations still poll /sw.js and receive the self-
+        // destroying replacement; new visitors remain service-worker-free.
+        injectRegister: null,
         registerType: 'autoUpdate',
         workbox: {
           // Precache ONLY the tiny shell (entry page, icon, fonts) — NOT the

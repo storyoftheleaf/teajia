@@ -1,3 +1,6 @@
+# TODO(owned-media): keep Unsplash/Picsum in img-src until the 166 source
+# references in OWNED_MEDIA_INVENTORY.md are rehosted. Removing them now breaks
+# live public imagery; the China audit intentionally remains red for this gate.
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

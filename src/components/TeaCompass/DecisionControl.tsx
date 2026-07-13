@@ -1,4 +1,5 @@
 import React from 'react';
+import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { CompassDecision } from './types';
 
 const OPTIONS: Array<{ value: CompassDecision; label: string }> = [
@@ -13,7 +14,7 @@ export const DecisionControl: React.FC<{
   compact?: boolean;
 }> = ({ value, onChange, compact = false }) => (
   <fieldset>
-    <legend className="mb-2 text-ui-10 font-medium uppercase tracking-[0.12em] text-tea-text-dim">
+    <legend className={`mb-2 ${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>
       Sourcing decision
     </legend>
     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Sourcing decision">

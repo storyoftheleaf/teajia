@@ -14,6 +14,7 @@ type FakeDbOptions = {
   userId?: string;
   email?: string;
   mcpScopes?: string[];
+  platformAccountId?: string | null;
 };
 
 function b64encodeUtf8(str: string): string {
@@ -63,7 +64,7 @@ class FakeStatement {
 
   async first() {
     const sql = normalizeSql(this.sql);
-    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes } = this.options;
+    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId } = this.options;
 
     if (sql.includes('from mcp_tokens where token_hash = ?')) {
       return {
@@ -83,6 +84,9 @@ class FakeStatement {
     }
     if (sql.includes('select status from accounts where id = ?')) {
       return { status: accountStatus };
+    }
+    if (sql.includes('from accounts') && sql.includes('is_platform_owner = 1')) {
+      return platformAccountId ? { id: platformAccountId } : null;
     }
     if (sql.includes('from account_members am join accounts a on a.id = am.account_id')) {
       return {
@@ -149,6 +153,7 @@ function makeEnv(options: FakeDbOptions = {}) {
     userId: options.userId ?? 'user_test',
     email: options.email ?? 'staff@example.com',
     mcpScopes: options.mcpScopes ?? ['inventory:read', 'stock:write', 'customers:read', 'sales:write'],
+    platformAccountId: options.platformAccountId ?? null,
   };
   return {
     JWT_SECRET,
@@ -169,6 +174,27 @@ async function authedRequest(
 }
 
 describe('worker authorization boundaries', () => {
+  it('bootstraps a membership-free platform owner into the active platform account', async () => {
+    const token = await signJwt({
+      platform_role: 'platform_owner',
+      memberships: [],
+      active_account_id: null,
+    });
+    const request = new Request('https://worker.test/api/accounts/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const response = await worker.fetch(request, makeEnv({
+      platformRole: 'platform_owner',
+      platformAccountId: 'acc_platform',
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      memberships: [],
+      active_account_id: 'acc_platform',
+    });
+  });
+
   it('denies admin article reads without the publish bundle', async () => {
     const request = await authedRequest('/api/admin/articles');
     const response = await worker.fetch(request, makeEnv({ role: 'staff', bundles: ['catalog'] }));

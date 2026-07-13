@@ -108,3 +108,11 @@ test('built policy requires same-origin API/media routes, no runtime Google Font
   await writeFile(join(root, 'dist', 'sw.js'), "'https://fonts.googleapis.com/'");
   assert.ok((await verifyBuiltReachabilityPolicy(root)).length > 0);
 });
+
+test('built policy accepts a self-destroying cleanup worker with no fetch cache', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'teajia-built-cleanup-'));
+  await mkdir(join(root, 'dist'), { recursive: true });
+  await writeFile(join(root, 'dist', '_headers'), '/api/verify/request\n  Cache-Control: no-store\n/api/verify/confirm\n  Cache-Control: no-store');
+  await writeFile(join(root, 'dist', 'sw.js'), "self.addEventListener('activate',()=>self.registration.unregister().then(()=>caches.keys()).then(keys=>Promise.all(keys.map(key=>caches.delete(key)))));");
+  assert.deepEqual(await verifyBuiltReachabilityPolicy(root), []);
+});

@@ -20,7 +20,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
-  const [passwordMode, setPasswordMode] = useState(false);
+  const [passwordMode, setPasswordMode] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [requestRetryable, setRequestRetryable] = useState(false);

@@ -52,9 +52,12 @@ export async function verifyBuiltReachabilityPolicy(root) {
   try { headers = await readFile(resolve(root, 'dist/_headers'), 'utf8'); } catch { return issues; }
   try { serviceWorker = await readFile(resolve(root, 'dist/sw.js'), 'utf8'); } catch { issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'missing service worker' }); return issues; }
   if (/teajia-api\.lightcodes\.workers\.dev|api\.teajia\.com/.test(headers)) issues.push({ file: 'dist/_headers', line: 1, kind: 'built-policy', value: 'blocked API origin in CSP' });
+  const selfDestroying = /registration\.unregister\(\)/.test(serviceWorker) && /caches\.delete\(/.test(serviceWorker);
   const apiGetOnly = /startsWith\(["']\/api\/["']\)[\s\S]{0,500}["']GET["']/.test(serviceWorker);
   const ownedMedia = /startsWith\(["']\/media\/["']\)/.test(serviceWorker);
-  if (!apiGetOnly || !ownedMedia) issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'missing same-origin GET-only API/media policy' });
+  // A cleanup-only worker has no fetch handler and removes all old caches, so
+  // it cannot replay cross-origin or stale API/media responses.
+  if (!selfDestroying && (!apiGetOnly || !ownedMedia)) issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'missing same-origin GET-only API/media policy' });
   if (/fonts\.(?:googleapis|gstatic)/.test(serviceWorker)) issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'Google Fonts runtime cache' });
   for (const route of ['/api/verify/request', '/api/verify/confirm']) {
     const block = headers.match(new RegExp(`${route.replace(/\//g, '\\/')}[\\s\\S]*?(?=\\n\\S|$)`))?.[0] || '';

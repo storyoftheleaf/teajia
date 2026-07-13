@@ -2,25 +2,15 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
-import { clearStaleAppCaches } from './lib/recoverFromChunkError';
 
-// Recover from a failed chunk load. Two distinct failure modes are handled:
+// Retry a failed chunk load in place. A transient fetch failure is common on a
+// jumpy/firewalled connection, especially for the large admin bundle.
 //
-//  1. Transient fetch failure — the chunk exists on the server but the download
-//     didn't complete (a jumpy / firewalled connection dropping a large file
-//     mid-flight; the admin bundle is the biggest chunk in the build). Here a
-//     plain retry of the SAME import usually succeeds, so we retry a few times
-//     with backoff before doing anything drastic. No page reload, no lost state.
-//
-//  2. Stale chunk hash — a new deployment replaced the hashed filenames and the
-//     currently-running page (or a stale service-worker precache) still points
-//     at a name that no longer exists. Retrying the same URL can't fix that, so
-//     after the retries are exhausted we drop any stale caches and reload once.
-//
-// Reload is capped at once per 10s; if a load still fails after that we rethrow
-// so the nearest ErrorBoundary shows a real message (with a reload affordance)
-// instead of an endless spinner.
-function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
+// Never reload automatically from this path. Automatic reload was the mechanism
+// behind the rapid flashing incident: an old shell could fail its AdminApp
+// preload, reload, and immediately repeat. After bounded retries, throw to the
+// root ErrorBoundary; its button is the only explicit recovery navigation.
+function lazyWithRetry<T extends { default: React.ComponentType<unknown> }>(
   factory: () => Promise<T>
 ): React.LazyExoticComponent<T['default']> {
   return lazy(async () => {
@@ -33,27 +23,19 @@ function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
           await new Promise((r) => setTimeout(r, delays[attempt]));
           continue; // transient blip — retry the same import
         }
-        // Retries exhausted. Assume a stale hash and reload once per 10s.
-        const last = Number(sessionStorage.getItem('chunkReloadAt') || '0');
-        const now = Date.now();
-        if (now - last > 10_000) {
-          sessionStorage.setItem('chunkReloadAt', String(now));
-          await clearStaleAppCaches();
-          window.location.reload();
-          return new Promise<T>(() => {}); // page is reloading; brief suspend is fine
-        }
-        throw err; // already tried a reload — surface to the ErrorBoundary, don't hang
+        // Bounded attempts exhausted: surface the stable recovery screen.
+        throw err;
       }
     }
   });
 }
 
-const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
+const AdminApp = lazyWithRetry(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
 // 4:5 reader at /article/:slug. See docs/ARCHITECTURE.md.
-const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+const Shop = lazyWithRetry(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 
 // Reads :id from the URL and passes it to Shop so the AlcoveModal opens for
 // that product. Defined at module level so React treats it as a stable type.
@@ -170,6 +152,7 @@ import { Story, ContentType, ViewState, Person, InventoryItem, Section } from '.
 import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
+import { classifyIncident } from './lib/incidents';
 import { currentHostStoreSlug } from './lib/storeHost';
 import { getArticleRenderMode } from './lib/articleRenderMode';
 import { useAuth } from './hooks/useAuth';
@@ -208,7 +191,7 @@ import { PreloadIndicator } from './components/shared/PreloadIndicator';
 import { CartFlyAnimation } from './components/shared/CartFlyAnimation';
 import { CartToast } from './components/shared/CartToast';
 import { WalkthroughDock } from './components/shared/WalkthroughDock';
-import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
+import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
 
@@ -568,18 +551,25 @@ const AppContent = () => {
     setTimeout(() => setToast({ show: false, message: '' }), duration);
   };
 
-  // Show API error toast when the Worker is unreachable
+  // Classify the actual failure rather than describing every HTTP/API error as
+  // a connection problem. Authenticated sessions also leave one deduplicated,
+  // sanitized incident record for later diagnosis.
   const apiErrorShownRef = useRef(false);
   useEffect(() => {
     if (inventoryError && !apiErrorShownRef.current) {
       apiErrorShownRef.current = true;
-      showToast('Connection issue — please try again shortly.', 5000);
+      const incident = classifyIncident(inventoryErrorObj, { route: '/api/products/public', method: 'GET' });
+      showToast(incident.userMessage, 5000);
+      if (isAuthenticated) {
+        const { userMessage: _userMessage, ...report } = incident;
+        void api.incidents.report(report).catch(() => { /* reporting must never block the user */ });
+      }
     }
     if (!inventoryError) {
       apiErrorShownRef.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inventoryError]);
+  }, [inventoryError, inventoryErrorObj, isAuthenticated]);
 
   const toggleSave = (id: string) => {
     const isCurrentlySaved = savedStoryIds[id];
@@ -760,7 +750,7 @@ const AppContent = () => {
       {/* Admin Toolbar — visible only for admin users */}
 
       {/* Scroll Progress Bar */}
-      {!isFocusedShareRoute && <ScrollProgressBar />}
+      {!isFocusedShareRoute && shouldShowGlobalScrollProgress(location.pathname) && <ScrollProgressBar />}
 
 
       {/* Pull to Refresh Indicator */}

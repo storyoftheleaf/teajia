@@ -15,6 +15,7 @@ import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
 import { deliverVerificationCode } from './verificationDelivery';
+import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertIncident, type IncidentStatus } from './incidents';
 
 interface Env {
   DB: D1Database;
@@ -39,11 +40,9 @@ interface Env {
   APP_URL?: string;
   // Origin used to build the Google OAuth `redirect_uri`. It must EXACTLY match
   // one of the "Authorized redirect URIs" on the Google Cloud console OAuth
-  // client, AND be reachable by the user's browser. In mainland China the
-  // *.workers.dev host is blocked, so production pins this to the China-reachable
-  // custom domain (https://api.teajia.com) so the redirect_uri stays correct
-  // even if the worker is reached via workers.dev. Defaults to the inbound
-  // request origin when unset (correct for local dev on localhost).
+  // client. Production pins this to the registered workers.dev callback; after
+  // the code exchange, APP_URL returns the user to the public site. Defaults to
+  // the inbound request origin when unset (correct for local dev on localhost).
   // → Register `${OAUTH_REDIRECT_ORIGIN}/api/auth/google/callback` in Google Cloud.
   OAUTH_REDIRECT_ORIGIN?: string;
   // Optional — set to 'true' to enable hard-coded dev admin credentials
@@ -62,6 +61,8 @@ interface Env {
   // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
   // stays as a fallback when this is unset.
   LOGIN_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
+  // Scoped machine credential used only by the repository incident-queue exporter.
+  INCIDENT_EXPORT_TOKEN?: string;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -330,8 +331,7 @@ async function maybeIssueRefreshedToken(
   // account changes (adds/removals) that happened since the last login.
   const memberships = await loadMemberships(env, claims.sub);
   const activeAccountId = claims.active_account_id
-    || memberships[0]?.account_id
-    || null;
+    || await resolveInitialAccountId(env, claims.platform_role ?? null, memberships);
 
   return createToken(env.JWT_SECRET, {
     sub: claims.sub,
@@ -424,6 +424,26 @@ async function loadMemberships(env: Env, userId: string): Promise<AccountMembers
   } catch {
     return [];
   }
+}
+
+// Choose the account used when a session has no explicit active-account
+// context yet. Platform-tier users operate across the network, so they must
+// still land in the active platform account even when they have no ordinary
+// account_members rows.
+export async function resolveInitialAccountId(
+  env: Env,
+  platformRole: PlatformRole,
+  memberships: AccountMembership[],
+): Promise<string | null> {
+  if (memberships[0]?.account_id) return memberships[0].account_id;
+  if (platformRole !== 'platform_owner' && platformRole !== 'platform_admin') return null;
+
+  const account = await env.DB.prepare(
+    "SELECT id FROM accounts WHERE is_platform_owner = 1 AND status = 'active' ORDER BY created_at ASC LIMIT 1"
+  ).first();
+  const accountId = account?.id as string | undefined;
+  if (!accountId) throw new Error('Active platform account unavailable');
+  return accountId;
 }
 
 // Resolve the bundle set for a single membership row given role, account kind,
@@ -1249,8 +1269,8 @@ const handleLogin: Handler = async (request, env) => {
         await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(upgraded, user.id).run();
       }
       const memberships = await loadMemberships(env, user.id as string);
-      const activeAccountId = memberships[0]?.account_id || null;
       const platformRole = (user.platform_role as PlatformRole) ?? null;
+      const activeAccountId = await resolveInitialAccountId(env, platformRole, memberships);
       const token = await createToken(env.JWT_SECRET, {
         sub: user.id as string,
         email: user.email as string,
@@ -1268,7 +1288,10 @@ const handleLogin: Handler = async (request, env) => {
         active_account_id: activeAccountId,
       });
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Active platform account unavailable') {
+      return json({ error: 'Platform account bootstrap failed', reason: 'platform_account_unavailable' }, 503);
+    }
     // Table may not exist yet — fall through to env-based auth
   }
 
@@ -1479,16 +1502,16 @@ const handleRefreshToken: Handler = async (request, env) => {
   }
 
   const memberships = await loadMemberships(env, claims.sub);
+  const platformRole = (user?.platform_role as PlatformRole) ?? claims.platform_role ?? null;
   const activeAccountId = claims.active_account_id
-    || memberships[0]?.account_id
-    || null;
+    || await resolveInitialAccountId(env, platformRole, memberships);
 
   const newToken = await createToken(env.JWT_SECRET, {
     sub: claims.sub,
     email: (user?.email as string) ?? claims.email,
     name: (user?.name as string) ?? claims.name,
     role: (user?.role as string) ?? claims.role ?? 'user',
-    platform_role: (user?.platform_role as PlatformRole) ?? claims.platform_role ?? null,
+    platform_role: platformRole,
     username: (user?.username as string | null) ?? (claims as any).username ?? null,
     memberships,
     active_account_id: activeAccountId,
@@ -1865,10 +1888,9 @@ const handleGoogleAuth: Handler = async (request, env) => {
   // account panel passes ?return=/ so customers come back to the site.
   const rawReturn = url.searchParams.get('return') || '/admin';
   const returnPath = rawReturn.startsWith('/') && !rawReturn.startsWith('//') ? rawReturn : '/admin';
-  // Pin the redirect_uri to the China-reachable, Google-registered host. Using
-  // the raw inbound `origin` means a request that arrives via *.workers.dev (or
-  // any preview host) would send an unregistered redirect_uri → Google returns
-  // "Error 400: redirect_uri_mismatch". OAUTH_REDIRECT_ORIGIN keeps it stable.
+  // Pin the redirect_uri to the Google-registered host. Using the raw inbound
+  // `origin` makes requests routed through another host send an unregistered
+  // redirect_uri, which Google rejects with `redirect_uri_mismatch`.
   const redirectUri = `${(env.OAUTH_REDIRECT_ORIGIN || origin).replace(/\/$/, '')}/api/auth/google/callback`;
   const state = await signOAuthState(env.JWT_SECRET, returnPath);
   const params = new URLSearchParams({
@@ -1947,12 +1969,18 @@ const handleGoogleCallback: Handler = async (request, env) => {
   if (!user) return errRedirect('account_error');
 
   const memberships = await loadMemberships(env, user.id as string);
-  const activeAccountId = memberships[0]?.account_id || null;
+  const platformRole = (user.platform_role as PlatformRole) ?? null;
+  let activeAccountId: string | null;
+  try {
+    activeAccountId = await resolveInitialAccountId(env, platformRole, memberships);
+  } catch {
+    return errRedirect('account_error');
+  }
   const token = await createToken(env.JWT_SECRET, {
     sub: user.id as string,
     email: user.email as string,
     role: user.role as string,
-    platform_role: (user.platform_role as PlatformRole) ?? null,
+    platform_role: platformRole,
     name: user.name as string,
     username: (user.username as string | null) ?? null,
     memberships,
@@ -12463,8 +12491,7 @@ const handleGetAccountsMe: Handler = async (request, env) => {
 
   const memberships = await loadMemberships(env, claims.sub);
   const activeAccountId = claims.active_account_id
-    || memberships[0]?.account_id
-    || null;
+    || await resolveInitialAccountId(env, claims.platform_role ?? null, memberships);
   return json({ memberships, active_account_id: activeAccountId });
 };
 
@@ -19584,6 +19611,62 @@ async function handleApplyInvoiceLineRepair(request: Request, env: Env): Promise
   return json({ changed_lines, preview_key: preview.preview_key });
 }
 
+async function handleCreateIncident(request: Request, env: Env): Promise<Response> {
+  const authErr = await requireAuth(request, env);
+  if (authErr) return authErr;
+  const contentLength = Number(request.headers.get('content-length') || 0);
+  if (contentLength > 8 * 1024) return json({ error: 'Incident payload exceeds 8 KB' }, 413);
+  const claims = parseToken(isAuthed(request)!);
+  if (!claims) return json({ error: 'Unauthorized', reason: 'invalid' }, 401);
+  try {
+    const raw = await request.json();
+    const incident = normalizeIncidentInput(raw as Record<string, unknown>);
+    const row = await upsertIncident(env.DB, incident, {
+      accountId: request.headers.get('X-Teajia-Account') || claims.active_account_id || null,
+      userId: claims.sub,
+    });
+    return json({ incident: incidentToApi(row || { id: null, signature: incident.signature }) }, 201);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid incident';
+    return json({ error: message }, message.includes('8 KB') ? 413 : 400);
+  }
+}
+
+function hasIncidentExportCredential(request: Request, env: Env): boolean {
+  if (!env.INCIDENT_EXPORT_TOKEN) return false;
+  const header = request.headers.get('Authorization');
+  return header === `Bearer ${env.INCIDENT_EXPORT_TOKEN}`;
+}
+
+async function handleListIncidents(request: Request, env: Env): Promise<Response> {
+  if (!hasIncidentExportCredential(request, env)) {
+    const authErr = await requirePlatformAdmin(request, env);
+    if (authErr) return authErr;
+  }
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM incident_ledger
+     WHERE status IN ('open', 'acknowledged', 'repairing', 'observing')
+     ORDER BY
+      CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,
+      last_seen DESC`
+  ).all<Record<string, unknown>>();
+  return json({ incidents: results.map(incidentToApi) });
+}
+
+async function handleUpdateIncident(request: Request, env: Env, params: Record<string, string>): Promise<Response> {
+  const authErr = await requirePlatformAdmin(request, env);
+  if (authErr) return authErr;
+  const body = await request.json().catch(() => null) as { status?: string; resolution_ref?: string } | null;
+  if (!body || !INCIDENT_STATUSES.includes(body.status as IncidentStatus)) return json({ error: 'Invalid incident status' }, 400);
+  const resolutionRef = typeof body.resolution_ref === 'string' ? body.resolution_ref.slice(0, 240) : null;
+  const result = await env.DB.prepare(`UPDATE incident_ledger SET status = ?, resolution_ref = ?,
+    resolved_at = CASE WHEN ? = 'resolved' THEN datetime('now') ELSE NULL END WHERE id = ?`)
+    .bind(body.status, resolutionRef, body.status, params.id).run();
+  if (!result.meta.changes) return json({ error: 'Incident not found' }, 404);
+  const row = await env.DB.prepare('SELECT * FROM incident_ledger WHERE id = ?').bind(params.id).first<Record<string, unknown>>();
+  return json({ incident: incidentToApi(row || {}) });
+}
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -19600,6 +19683,7 @@ const routes: [string, string, Handler][] = [
   ['POST', '/api/auth/reset-password', handleResetPassword],
   ['GET', '/api/auth/google', handleGoogleAuth],
   ['GET', '/api/auth/google/callback', handleGoogleCallback],
+  ['POST', '/api/incidents', handleCreateIncident],
 
   // Accounts / Multi-store
   ['GET', '/api/accounts/me', handleGetAccountsMe],
@@ -19631,6 +19715,8 @@ const routes: [string, string, Handler][] = [
   ['PUT',  '/api/platform/accounts/:id/trust-tier', handlePlatformSetTrustTier],
   ['PUT',  '/api/platform/accounts/:id/features/:feature', handlePlatformToggleFeature],
   ['GET',  '/api/platform/audit-log', handlePlatformAuditLog],
+  ['GET',  '/api/platform/incidents', handleListIncidents],
+  ['PATCH','/api/platform/incidents/:id', handleUpdateIncident],
   ['GET',  '/api/platform/applications', handlePlatformListApplications],
   ['POST', '/api/platform/applications/:id/decide', handlePlatformDecideApplication],
   ['POST', '/api/platform/tea-masters/invite', handlePlatformInviteTeaMaster],

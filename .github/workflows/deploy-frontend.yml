@@ -1,10 +1,15 @@
 name: Deploy frontend
 
 # The live site (teajia.com / www.teajia.com) is the Cloudflare Pages project
-# `teajiafinal`. Its dashboard git integration was building PREVIEW deploys off
-# feature branches, NOT production off main — so pushes to main left production
-# stale. This workflow makes the frontend deploy to teajiafinal PRODUCTION on
-# every push to main, the same way deploy-worker.yml handles the API.
+# `teajiafinal`. Cloudflare's Git integration deploys main to production.
+# Keep this workflow as a manual recovery path only: running both pipelines on
+# every push produced two production deployments for the same commit, rotating
+# the active build twice and increasing the chance of stale lazy chunks in
+# already-open admin sessions.
+#
+# This workflow does not gate Git-integrated deploys. `npm run build` performs
+# the authoritative Pages-only check against Cloudflare's own WORKER_ORIGIN
+# environment binding before the Git integration can produce a deployment.
 #
 # teajia.pages.dev (project `teajia`) is a stale/abandoned project — do not
 # deploy there.
@@ -12,17 +17,11 @@ name: Deploy frontend
 # Required GitHub repo secrets (already present, shared with deploy-worker.yml):
 #   CLOUDFLARE_API_TOKEN   — needs Cloudflare Pages: Edit (in addition to Workers)
 #   CLOUDFLARE_ACCOUNT_ID  — the account that owns teajiafinal
+# Required GitHub repo variable (manual recovery workflow only):
+#   WORKER_ORIGIN — mirror of the teajiafinal Pages runtime binding
 
 on:
-  push:
-    branches: [main]
-    # Frontend lives everywhere except the worker; deploy on any non-worker
-    # change. (Worker-only pushes are handled by deploy-worker.yml.)
-    paths-ignore:
-      - 'worker/**'
-      - 'docs/**'
-      - '**/*.md'
-  # Manual trigger from the Actions tab — e.g. to force a redeploy.
+  # Manual fallback if Cloudflare's Git integration ever needs recovery.
   workflow_dispatch:
 
 concurrency:
@@ -37,6 +36,9 @@ jobs:
       # Public, baked-in at build time (import.meta.env.VITE_API_URL). Not a
       # secret — it's the public worker URL. Keep in sync with .env.local.
       VITE_API_URL: 'https://teajia-api.lightcodes.workers.dev'
+      # Public Pages Function upstream. Keep this repository variable in sync
+      # with the WORKER_ORIGIN runtime binding on the teajiafinal project.
+      WORKER_ORIGIN: ${{ vars.WORKER_ORIGIN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +48,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Required deployment configuration
+        run: npm run check:deploy-config
 
       # Gates: a type error or color-rule violation fails the deploy instead of
       # shipping it. Same checks CLAUDE.md requires before every commit.

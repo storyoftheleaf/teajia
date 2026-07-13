@@ -40,6 +40,23 @@ test('published D1 articles remain available after archive retirement', async ({
   await expect(page.getByRole('heading', { name: 'Live Story' }).first()).toBeVisible();
 });
 
+test('legacy openArticle events route Article stories by slug', async ({ page }) => {
+  await page.goto('/read');
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('openArticle', {
+    detail: {
+      story: {
+        id: 'legacy-id',
+        slug: 'live-story',
+        title: 'Live Story',
+        type: 'Article',
+      },
+    },
+  })));
+
+  await expect(page).toHaveURL('/article/live-story');
+  await expect(page.getByRole('heading', { name: 'Live Story' }).first()).toBeVisible();
+});
+
 test('retired article destinations stay absent from public entry points', async ({ page }) => {
   await page.goto('/read');
 
@@ -55,4 +72,8 @@ test('retired article destinations stay absent from public entry points', async 
     await expect(page.getByText('Article not found', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Live Story' })).toHaveCount(0);
   }
+  await page.goto('/read');
+  await page.locator('#main-content').getByRole('button', { name: 'Your Table' }).click();
+  await expect(page.getByRole('link', { name: 'Saved stories' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Reading history' })).toHaveCount(0);
 });

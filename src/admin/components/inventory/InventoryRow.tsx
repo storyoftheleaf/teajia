@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { GhostInput } from '../ProductEditPanel';
 import type { Product } from '../../types';
 import { fmtNum } from '../../../utils/formatNumber';
@@ -21,6 +21,8 @@ export interface InventoryRowProps {
   stickyFirstCol?: boolean;
   /** Mobile swipe table left-aligns every column (numbers included). */
   alignLeft?: boolean;
+  /** Restores the exact pre-horizontal-swipe mobile row typography/content. */
+  legacyMobileLayout?: boolean;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -47,7 +49,7 @@ export interface InventoryRowProps {
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, stickyFirstCol, alignLeft, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
@@ -104,7 +106,9 @@ function InventoryRowBase(props: InventoryRowProps) {
         // and desktop (alignLeft is set in both) so the two surfaces read the
         // same. The old larger 17px desktop name only applies to legacy non-
         // unified layouts (none currently, but kept as the fallback).
-        const nameWeightCls = (stickyFirstCol || alignLeft)
+        const nameWeightCls = legacyMobileLayout
+          ? 'font-display text-ui-17 leading-snug truncate font-medium'
+          : (stickyFirstCol || alignLeft)
           ? 'font-display text-ui-15 leading-snug truncate font-normal'
           : 'font-display text-ui-17 leading-snug truncate font-medium';
         // The pinned column sits ON TOP of the card surface as the rest of the
@@ -126,12 +130,11 @@ function InventoryRowBase(props: InventoryRowProps) {
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
         const houseName = product.givenName?.trim() || 'Unnamed';
-        const subtitle = (
-          <>
-            {product.year && <span className="num opacity-80 mr-1">{product.year}</span>}
-            <span>{houseName}</span>
-          </>
-        );
+        const subtitle = legacyMobileLayout
+          ? product.givenName
+            ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
+            : product.form || ' '
+          : <>{product.year && <span className="num opacity-80 mr-1">{product.year}</span>}<span>{houseName}</span></>;
         return (
           <td
             key={colKey}
@@ -141,7 +144,25 @@ function InventoryRowBase(props: InventoryRowProps) {
           >
             <div className="flex flex-col justify-center">
               {isEditMode ? (
-                <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
+                <div className="flex min-w-0 items-center gap-1">
+                  <GhostInput value={displayName} onSave={(val) => onProductUpdate(product.id, 'productName', val)} className={`min-w-0 flex-1 ${nameWeightCls} ${nameTone}`} ariaLabel="Product name" />
+                  <label className="tap-target inline-flex shrink-0 items-center gap-0.5 text-ui-9 uppercase tracking-[0.06em] text-tea-text-sec hover:text-tea-text" aria-label={`Change type for ${displayName}`}>
+                    <Plus size={9} aria-hidden="true" />
+                    <select
+                      data-testid="inline-type-selector"
+                      value=""
+                      onChange={(event) => {
+                        if (event.target.value) onProductUpdate(product.id, 'type', event.target.value);
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                      className="w-8 appearance-none bg-transparent text-ui-9 uppercase text-tea-text-sec outline-none cursor-pointer"
+                      aria-label={`Change type for ${displayName}`}
+                    >
+                      <option value="">Type</option>
+                      {TYPE_OPTIONS.map((type) => <option key={type} value={type} className="bg-tea-surface text-tea-text">{type}</option>)}
+                    </select>
+                  </label>
+                </div>
               ) : (
                 <span className={`${nameWeightCls} ${nameTone}`}>{displayName}</span>
               )}
@@ -157,18 +178,7 @@ function InventoryRowBase(props: InventoryRowProps) {
         return (
           <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 text-tea-text-sec align-middle overflow-hidden ${fr}`}>
             {isEditMode ? (
-              <label className="inline-flex items-center cursor-pointer">
-                <select
-                  value={product.type}
-                  onChange={(e) => onProductUpdate(product.id, 'type', e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="bg-transparent outline-none appearance-none cursor-pointer text-ui-13 font-bold hover:opacity-80 focus-visible:ring-2 focus-visible:ring-tea-gold/50 rounded"
-                  style={{ color: typeColor }}
-                  aria-label="Tea type"
-                >
-                  {TYPE_OPTIONS.map((t) => <option key={t} value={t} className="bg-tea-surface text-tea-text">{t}</option>)}
-                </select>
-              </label>
+              <span className="font-bold truncate block" style={{ color: typeColor }}>{product.type}</span>
             ) : (
               // The type is carried by the word itself, tinted + bold in the
               // type's colour — the separate colour dot was redundant ink.
@@ -373,6 +383,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.splitViewCols === next.splitViewCols &&
   prev.splitView === next.splitView &&
   prev.stickyFirstCol === next.stickyFirstCol &&
+  prev.legacyMobileLayout === next.legacyMobileLayout &&
   prev.alignLeft === next.alignLeft &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&
