@@ -52,7 +52,7 @@ const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
-// 4:5 reader at /article/:slug. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
+// 4:5 reader at /article/:slug. See docs/ARCHITECTURE.md.
 const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 
 // Reads :id from the URL and passes it to Shop so the AlcoveModal opens for

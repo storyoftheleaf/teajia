@@ -6,7 +6,7 @@ import type { ContributorPullQuote } from '../types';
 
 // /people/:slug. Public contributor profile page.
 //
-// See docs/CONTRIBUTOR_PROFILES_PLAN.md for the full anatomy.
+// See docs/ARCHITECTURE.md for the contributor/account boundary.
 // Sections rendered here: Masthead, Origin, Now, Inspirations, Words,
 // Elsewhere, Closing line. Pull-quotes, Hands on, Hosting, Voice,
 // Pouring today, Where to find them are reserved for later waves.

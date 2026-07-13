@@ -3841,7 +3841,7 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
 //
 // We DO NOT forward the OAuth params in the redirect query string. Claude
 // mobile's in-app browser was observed to drop the query string on the 302
-// follow (see docs/MCP_MOBILE_OAUTH_TODO.md), leaving the consent page with no
+// follow, leaving the consent page with no
 // client_id/code_challenge. Instead we persist the request in D1 and redirect
 // to `/admin/oauth-consent/<request_id>` — a path segment, which survives the
 // hop reliably. The consent page reads the id from the path and fetches the

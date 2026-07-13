@@ -633,7 +633,7 @@ async function requireAccountRole(
 
 // Bundle-aware authorization (Members & Access). Use this for any handler
 // whose access maps to a capability bundle. The authorization matrix lives in
-// docs/NETWORK_ROLLOUT_PLAN.md.
+// docs/ARCHITECTURE.md.
 //
 // Examples:
 //   requireBundle(request, env, 'catalog')  — edit canonical, carry teas, suggest edits
@@ -15820,7 +15820,7 @@ const handleGetPublicArticle: Handler = async (request, env, params) => {
 // ── Contributors — Public ─────────────────────────────────────────────────────
 // GET /api/people — list of published contributors for the directory page.
 // GET /api/people/:slug — single profile + woven content.
-// Per docs/CONTRIBUTOR_PROFILES_PLAN.md.
+// Per docs/ARCHITECTURE.md.
 
 const handleListPublicContributors: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
@@ -18562,7 +18562,7 @@ const handleDecideSuggestion: Handler = async (request, env, params) => {
 
 // ── Wholesale orders (Step 4 — cross-account transactional layer) ───────────
 //
-// Per docs/NETWORK_ROLLOUT_PLAN.md Step 4 + docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
+// Per docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
 //
 // Lifecycle:
 //   draft → submitted → confirmed → shipped → received
@@ -19245,7 +19245,7 @@ const handleGetWholesaleOrder: Handler = async (request, env, params) => {
 
 // ── Network adoption queue (Step 6 — cross-pollination) ────────────────────
 //
-// Per docs/NETWORK_ROLLOUT_PLAN.md Step 6:
+// Per docs/NETWORK_UI_BRIEF.md:
 // A partner who originates a tea profile (one Adrian doesn't yet curate) can
 // flag it as a candidate for network-wide adoption. Adrian (or another platform
 // tier user) reviews and either adopts (transferring curated_by_account_id to

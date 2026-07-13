@@ -45,7 +45,7 @@ Teajia remains deliberately human-led:
 ## Documentation contract
 
 - [VISION.md](VISION.md): philosophy and boundaries
-- [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md): current map and seven active tracks
+- [CONSOLIDATED_DIRECTION.md](CONSOLIDATED_DIRECTION.md): current map and three active engineering tracks
 - [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md): only manual/external/editorial launch checklist
 - [CHANGELOG.md](CHANGELOG.md): implementation history
 - Architecture, design, route, and operator documents: current references, not competing roadmaps

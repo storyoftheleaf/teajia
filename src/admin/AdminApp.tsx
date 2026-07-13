@@ -68,7 +68,7 @@ import { TeawareCatalog } from './components/TeawareCatalog';
 // Code-split (Wave 1): the three heaviest admin surfaces load on demand so the
 // admin shell isn't gated on a single ~1.8 MB download. Their route elements
 // are wrapped in Suspense via PageTransition below. Dashboard going lazy also
-// evicts recharts from the shell chunk. See docs/ADMIN_CODE_SPLIT_PLAN.md.
+// evicts recharts from the shell chunk. Follow-up lives in docs/tracks/08-platform-hardening.md.
 const InventoryView = lazy(() => import('./components/InventoryView').then((m) => ({ default: m.InventoryView })));
 import { CartPanel } from '../components/shared/CartPanel';
 import { ToastProvider, useToast } from './components/Toast';

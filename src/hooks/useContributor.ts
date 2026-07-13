@@ -10,7 +10,7 @@ import type {
 // Returns the contributor row joined with articles by, pull-quotes about,
 // host account, products attributed, and the seasonal stamp.
 //
-// See docs/CONTRIBUTOR_PROFILES_PLAN.md.
+// See docs/ARCHITECTURE.md.
 
 export const useContributor = (slug: string | undefined) => {
   return useQuery({

@@ -13,30 +13,23 @@ The platform foundation and the three launch-to-real-use releases are implemente
 
 The second category is governed only by [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md). It must not be copied into tracks or new checklists.
 
-## Seven active tracks
+## Three active engineering tracks
 
 | Track | Role now |
 |---|---|
 | [1 — Launch Integrity](tracks/01-launch-integrity.md) | Own the reading-memory/saved-story decision and any genuine launch-integrity regression |
-| [2 — First Operator & Trusted Users](tracks/02-first-operator-and-users.md) | Turn validated operator use into product learning; do not substitute more infrastructure for use |
-| [3 — Read & the Editorial Engine](tracks/03-read-editorial-engine.md) | Improve editorial quality and contributor practice after real material enters the system |
-| [5 — Curate & Personal Tea Memory](tracks/05-curate-tea-memory.md) | Deepen sourcing and personal memory while preserving human curation and distinct data models |
-| [7 — Events & Gatherings](tracks/07-events-gatherings.md) | Refine invite, gathering, and remembrance flows from actual hosted events |
+| [5 — Product & Curate Integrity](tracks/05-curate-tea-memory.md) | Keep sourcing, member tea memory, and first-operator product loops coherent |
 | [8 — Platform Hardening](tracks/08-platform-hardening.md) | Reduce worker, error-contract, migration, performance, and operational debt proportionally |
-| [9 — Coherence & IA Finishing](tracks/09-coherence-ia-finishing.md) | Improve connective UX and route clarity without a general IA redesign |
 
 ## Retired tracks
 
-- **Track 4 — China Reachability:** technical scope landed in Release 3. Actual mainland verification belongs in `LAUNCH_VALIDATION.md`.
-- **Track 6 — Commerce in the Inquiry Model:** technical scope landed in Release 1. Production repair judgment and the real inquiry-to-fulfillment proof belong in `LAUNCH_VALIDATION.md`.
-
-Their implementation history remains in Git and `CHANGELOG.md`; the retired track files were removed so they cannot be mistaken for active queues.
+Tracks 2, 3, 4, 6, 7, and 9 are retired. Their implemented technical scope is recorded in Git and `CHANGELOG.md`; remaining operator, editorial, mainland, commerce-proof, and optional decision work belongs only in `LAUNCH_VALIDATION.md`.
 
 ## Sequencing
 
 1. Resolve and verify the reading-memory/saved-story discrepancy.
 2. Use `LAUNCH_VALIDATION.md` as the sole launch sequence and completion record.
-3. Feed evidence from real use into the seven active tracks.
+3. Feed evidence from real use into the three active engineering tracks.
 4. Prefer content, operating proof, and small corrections over new platform foundations.
 
 ## Guardrails

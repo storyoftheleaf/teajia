@@ -1,6 +1,6 @@
 -- 049_profile_suggestions.sql
 -- Step 3 (Suggestions / card-as-editor) of the Network Rollout.
--- Per docs/NETWORK_ROLLOUT_PLAN.md and docs/NETWORK_UI_BRIEF.md Surface 6.
+-- Per docs/NETWORK_UI_BRIEF.md Surface 6.
 --
 -- The editorial governance model: partners propose canonical changes by
 -- editing a tea card directly. The card UI bundles changes from multiple
