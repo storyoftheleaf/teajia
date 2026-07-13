@@ -15,7 +15,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByText('Your sample list is empty', { exact: true }).filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Capture tea' }).click();
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
-    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toBeFocused();
+    await expect(page.getByPlaceholder('Tea name…').filter({ visible: true })).toBeFocused();
     await trigger.click();
     await page.getByRole('button', { name: 'Browse Library' }).click();
     await expect(page.getByRole('tab', { name: 'Library', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -29,7 +29,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     const setId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].id);
     await page.goto(`/admin/samples?set=${encodeURIComponent(setId)}`);
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
@@ -44,9 +44,9 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample Cart/).first().click();
+    await page.getByText(/Sample list/).first().click();
     const labels = page.getByRole('button', { name: 'Print labels' });
     await labels.click();
     await expect(page.getByText('Print Labels', { exact: true })).toBeVisible();
@@ -120,22 +120,78 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('button', { name: 'Sample order (1)' }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect.poll(async () => page.evaluate(() => {
       const saved = JSON.parse(localStorage.getItem('teajia-samples') || '{}');
       return saved.state?.sampleSets?.length ?? 0;
-    }), { message: 'Save as Sample Set must persist a historical set' }).toBe(1);
+    }), { message: 'Save as sample batch must persist a historical set' }).toBe(1);
 
     await page.goto('/admin/samples', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
   });
 
+  test('saving a sample list links the same requested batch into the Library tasting queue', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      const entry = createEmptyEntry('tea');
+      entry.id = 'compass-tea-1';
+      entry.name = '1998 Dong Ding';
+      entry.decision = 'selected';
+      entry.verdict = 'love';
+      useTeaCompassStore.getState().addEntry(entry);
+    });
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /To taste/ }).click();
+    await expect(page.getByText('Requested', { exact: true }).first()).toBeVisible();
+    const setName = await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const linked = useTeaCompassStore.getState().entries.find((entry: { id: string }) => entry.id === 'compass-tea-1');
+      return { setId: linked.sampleSetId, decision: linked.decision, verdict: linked.verdict, status: linked.status };
+    });
+    expect(setName).toMatchObject({ decision: 'selected', verdict: 'love', status: 'noted' });
+    await page.getByRole('button', { name: /Sample list —/ }).click();
+    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
+  });
+
+  test('a failed portion write keeps the list and retries the same batch', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    let failed = false;
+    await page.route('**/api/admin/samples', async route => {
+      if (route.request().method() === 'POST' && !failed) {
+        failed = true;
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary sample write failure' }) });
+      }
+      return route.fallback();
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByRole('alert')).toContainText('Temporary sample write failure');
+    await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
+    const firstSetId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].id);
+    await page.getByRole('button', { name: 'Retry saving sample batch' }).click();
+    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    const savedSetIds = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets.map((set: { id: string }) => set.id));
+    expect(savedSetIds).toEqual([firstSetId]);
+  });
+
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     const historical = await page.evaluate(() => {
       const saved = JSON.parse(localStorage.getItem('teajia-samples') || '{}');
       return saved.state?.samples?.[0];
@@ -144,7 +200,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', compassEntryId: 'compass-tea-1', tastings: [],
     });
     await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample Cart/).first().click();
+    await page.getByText(/Sample list/).first().click();
     await page.getByRole('button', { name: 'Open in Curate to taste' }).click();
     await expect(page).toHaveURL(/\/admin\/compass\?entry=compass-tea-1/);
   });
@@ -153,10 +209,10 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await page.getByRole('button', { name: 'Manage sample sets' }).click();
     await expect(page.getByRole('heading', { name: /Sample Sets|Samples/ }).first()).toBeVisible();
-    await page.getByText(/Sample Cart/).first().click();
+    await page.getByText(/Sample list/).first().click();
     await page.getByRole('button', { name: 'Batch details' }).click();
     await expect(page.getByRole('button', { name: 'Sourcing', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Gifted', exact: true })).toBeVisible();
@@ -171,8 +227,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('button', { name: 'Open in Curate to taste' })).toBeVisible();
     const visibleStatusControl = page.locator('button[title="Click to change status"]').filter({ visible: true });
     await expect(visibleStatusControl).toHaveCount(1);
-    await visibleStatusControl.click();
-    await visibleStatusControl.click();
+    for (let step = 0; step < 4; step += 1) await visibleStatusControl.click();
     await expect(page.getByRole('button', { name: 'Graduate to inventory' })).toBeVisible();
     await page.evaluate(async () => {
       // @ts-expect-error Vite source modules are available in Playwright.

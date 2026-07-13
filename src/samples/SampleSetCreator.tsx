@@ -16,6 +16,7 @@ import type { VendorDetails } from '../components/TeaCompass/types';
 import { buildVarietyDataMap, getTeaVarietyNames, getTeaVarietySuggestions } from '../data/teaVarieties';
 import { useCustomers, useProducts } from '../admin/hooks/useAdminData';
 import { api } from '../lib/api';
+import { compassLifecycleForSample } from './sampleLifecycle';
 
 const PURPOSE_OPTIONS: { value: SampleSetPurpose; label: string }[] = [
   { value: 'sourcing', label: 'Sourcing' },
@@ -131,6 +132,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
     compassEntry.year = year ? parseInt(year, 10) : undefined;
     compassEntry.originRegion = region.trim() || undefined;
     compassEntry.isSample = true;
+    compassEntry.sampleState = 'received';
     compassEntry.sampleSetId = setId;
     compassEntry.sampleGrams = grams;
     compassEntry.teaKey = sample.teaKey;
@@ -399,7 +401,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
 
       <button
         onClick={() => {
-          const order: SampleStatus[] = ['untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'];
+          const order: SampleStatus[] = ['requested', 'received', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'];
           const idx = order.indexOf(sample.status);
           const next = order[(idx + 1) % order.length];
           onStatusChange(sample.id, next);
@@ -784,11 +786,13 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
       s.originRegion?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const batchComplete = useMemo(() =>
-    activeSamples.length > 0 && activeSamples.every(s => s.status !== 'untasted'),
+    activeSamples.length > 0 && activeSamples.every(s => !['requested', 'received', 'untasted'].includes(s.status)),
     [activeSamples]
   );
 
   const statusCounts = useMemo(() => ({
+    requested: activeSamples.filter(s => s.status === 'requested').length,
+    received: activeSamples.filter(s => s.status === 'received').length,
     untasted: activeSamples.filter(s => s.status === 'untasted').length,
     tasted: activeSamples.filter(s => s.status === 'tasted').length,
     favorite: activeSamples.filter(s => s.status === 'favorite').length,
@@ -877,11 +881,28 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
 
   const handleStatusChange = useCallback((sampleId: string, status: SampleStatus) => {
     updateSampleStatus(sampleId, status);
-    if (status === 'ordered') {
-      const s = samples.find(x => x.id === sampleId);
-      if (s) setLedgerPromptName(s.name);
+    const sample = samples.find(candidate => candidate.id === sampleId);
+    if (sample?.compassEntryId) {
+      const sampleState = compassLifecycleForSample({ ...sample, status });
+      if (sampleState) updateCompassEntry(sample.compassEntryId, { isSample: true, sampleState, sampleSetId: sample.setId });
     }
-  }, [updateSampleStatus, samples]);
+    if (status === 'ordered') {
+      if (sample) setLedgerPromptName(sample.name);
+    }
+  }, [updateSampleStatus, samples, updateCompassEntry]);
+
+  // A tasting is stronger evidence than a manually chosen workflow label.
+  // Keep the Library queue in step without deriving sourcing status, decision,
+  // or verdict from favorite/pass labels.
+  useEffect(() => {
+    for (const sample of samples) {
+      if (!sample.compassEntryId || sample.tastings.length === 0) continue;
+      const entry = compassEntries.find(candidate => candidate.id === sample.compassEntryId);
+      if (entry && entry.sampleState !== 'tasted') {
+        updateCompassEntry(entry.id, { isSample: true, sampleState: 'tasted', sampleSetId: sample.setId });
+      }
+    }
+  }, [samples, compassEntries, updateCompassEntry]);
 
   const handleBatchVendorSelect = useCallback((vendorId: string | undefined, vendorName: string) => {
     if (!activeSetId) return;
@@ -1234,6 +1255,8 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
               <span className="text-ui-10 uppercase tracking-wider text-tea-gold font-medium w-full">Batch complete</span>
             )}
             {[
+              { label: 'requested', count: statusCounts.requested },
+              { label: 'received', count: statusCounts.received },
               { label: 'untasted', count: statusCounts.untasted },
               { label: 'tasted', count: statusCounts.tasted },
               { label: 'favorite', count: statusCounts.favorite },
@@ -1267,7 +1290,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
 
           {/* Status filter pills */}
           <div className="flex flex-wrap gap-1 mb-3">
-            {(['all', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
+            {(['all', 'requested', 'received', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -1344,7 +1367,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
 
         {/* Status filter */}
         <div className="flex flex-wrap gap-1 mb-3">
-          {(['all', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
+          {(['all', 'requested', 'received', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}

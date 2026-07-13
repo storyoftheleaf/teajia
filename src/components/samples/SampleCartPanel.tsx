@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { FlaskConical, Printer, MessageCircle, BookOpen, Trash2, X, Check } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import { useSampleStore } from '../../samples/sampleStore';
-import { createEmptySample, createEmptySampleSet } from '../../samples/types';
+import { sampleRepository } from '../../samples/sampleRepository';
+import {
+  buildSampleBatchDraft,
+  sampleListSignatureForRetry,
+  saveSampleBatchLifecycle,
+  type SampleBatchDraft,
+} from '../../samples/sampleLifecycle';
+import { useTeaCompassStore } from '../../lib/teaCompassStore';
+import { syncCompassEntries } from '../../lib/teaCompassSync';
+import { useAppStore } from '../../lib/store';
 
 const GRAM_PRESETS = [5, 10, 15, 25, 50];
 
@@ -78,8 +87,12 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
 
   const addSample = useSampleStore((s) => s.addSample);
   const addSampleSet = useSampleStore((s) => s.addSampleSet);
+  const accountScopeId = useSampleStore((s) => s.accountScopeId);
 
   const [savedConfirm, setSavedConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const pendingDraftRef = useRef<{ accountId: string; draft: SampleBatchDraft } | null>(null);
 
   const isEmpty = items.length === 0;
   const totalGrams = items.reduce((s, i) => s + i.grams, 0);
@@ -109,31 +122,58 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const handleSaveAsSet = () => {
-    const set = createEmptySampleSet({ purpose: 'sourcing' });
-    set.name = `Sample Cart — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  const handleSaveAsSet = async () => {
+    if (saving) return;
+    const accountId = useAppStore.getState().activeAccountId;
+    if (!accountId || accountScopeId !== accountId) {
+      setSaveError('Choose an account, then retry saving this sample list.');
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    const signature = sampleListSignatureForRetry(items);
+    const draft = pendingDraftRef.current?.accountId === accountId && pendingDraftRef.current.draft.signature === signature
+      ? pendingDraftRef.current.draft
+      : buildSampleBatchDraft(items);
+    pendingDraftRef.current = { accountId, draft };
 
-    const samples = items.map((item) => {
-      const s = createEmptySample(set.id, {
-        sourceName: item.vendorName,
-        type: item.type as any,
+    try {
+      await saveSampleBatchLifecycle({
+        accountId,
+        draft,
+        isCurrentAccount: (expected) => (
+          useAppStore.getState().activeAccountId === expected
+          && useSampleStore.getState().accountScopeId === expected
+          && useTeaCompassStore.getState().accountScopeId === expected
+        ),
+        persistSamples: async ({ sampleSet, samples }) => {
+          const state = useSampleStore.getState();
+          if (!state.getSampleSet(sampleSet.id)) addSampleSet(sampleSet);
+          for (const sample of samples) {
+            if (!useSampleStore.getState().getSample(sample.id)) addSample(sample);
+          }
+          const result = await sampleRepository.sync(accountId);
+          if (result.status !== 'synced') throw new Error('The sample batch did not finish syncing. Retry when the connection is available.');
+        },
+        getCompassEntry: (id) => useTeaCompassStore.getState().entries.find((entry) => entry.id === id),
+        updateCompassEntry: (id, update) => useTeaCompassStore.getState().updateEntry(id, update),
+        persistCompass: async (entryIds) => {
+          await syncCompassEntries(accountId);
+          const current = useTeaCompassStore.getState();
+          if (current.accountScopeId !== accountId || entryIds.some((id) => !current.entries.find((entry) => entry.id === id)?.synced)) {
+            throw new Error('The batch was saved, but Library linkage is still pending. Retry to finish linking it.');
+          }
+        },
+        clearList: clear,
       });
-      s.name = item.name;
-      s.chineseName = item.chineseName;
-      s.grams = item.grams;
-      s.compassEntryId = item.compassEntryId;
-      s.productId = item.productId;
-      s.teaKey = item.teaKey;
-      return s;
-    });
-
-    set.sampleIds = samples.map((s) => s.id);
-    addSampleSet(set);
-    for (const sample of samples) addSample(sample);
-
-    clear();
-    setSavedConfirm(true);
-    setTimeout(() => setSavedConfirm(false), 3000);
+      pendingDraftRef.current = null;
+      setSavedConfirm(true);
+      setTimeout(() => setSavedConfirm(false), 3000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'This sample list could not be saved. Retry without clearing it.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -176,7 +216,12 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
 
       {/* ── Content ── */}
       <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
-        {isEmpty ? (
+        {savedConfirm ? (
+          <div className="flex min-h-40 items-center justify-center gap-2 px-6 text-ui-12 text-tea-gold">
+            <Check size={13} />
+            Saved as sample batch — list cleared
+          </div>
+        ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <FlaskConical size={28} className="text-tea-gold/20 mb-4" />
             <p className="font-serif text-ui-14 text-tea-text/50 mb-1">Your sample list is empty</p>
@@ -252,21 +297,22 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
       {!isEmpty && (
         <div className="shrink-0 px-4 py-3 border-t border-tea-border space-y-2">
 
-          {savedConfirm ? (
-            <div className="flex items-center justify-center gap-2 py-2 text-ui-12 text-tea-gold">
-              <Check size={13} />
-              Saved as Sample Set — cart cleared
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSaveAsSet}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors"
-            >
-              <BookOpen size={13} />
-              Save as Sample Set
-            </button>
-          )}
+          <>
+              {saveError && (
+                <p role="alert" className="rounded-md bg-tea-elevated px-3 py-2 text-ui-12 text-tea-text-sec">
+                  {saveError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleSaveAsSet}
+                disabled={saving}
+                className="w-full min-h-11 flex items-center justify-center gap-2 rounded-xl bg-tea-gold/10 text-tea-gold text-ui-12 font-semibold hover:bg-tea-gold/15 transition-colors disabled:opacity-50"
+              >
+                <BookOpen size={13} />
+                {saving ? 'Saving sample batch…' : saveError ? 'Retry saving sample batch' : 'Save as sample batch'}
+              </button>
+          </>
 
           <div className="flex gap-2">
             <button

@@ -315,8 +315,13 @@ export const BrowseCard: React.FC<BrowseCardProps> = ({ entry, onEdit, tasteQueu
               </p>
 
               {/* Rating + status badge */}
-              {(rating != null || verdict || isBought || isWishlisted || isIncoming || isPassed) && (
+              {(entry.sampleState || rating != null || verdict || isBought || isWishlisted || isIncoming || isPassed) && (
                 <div className="flex items-center gap-2">
+                  {entry.sampleState && (
+                    <span className="text-ui-12 text-tea-gold font-medium">
+                      {entry.sampleState.charAt(0).toUpperCase() + entry.sampleState.slice(1)}
+                    </span>
+                  )}
                   {rating != null && (
                     <span className="text-ui-12 font-semibold tabular-nums" style={typeColor ? { color: typeColor } : undefined}>
                       {rating}/10

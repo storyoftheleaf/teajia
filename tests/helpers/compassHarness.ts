@@ -9,6 +9,8 @@ export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' })
 export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
+  const sampleSets: Array<Record<string, any>> = [];
+  const samples: Array<Record<string, any>> = [];
   await page.addInitScript(({ token, items, preserveSamplesOnNavigation }) => {
     localStorage.setItem('teajia_token', token);
     localStorage.removeItem('teajia-storage');
@@ -33,6 +35,62 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
     const scopedContext = options?.contextAfterInitial && counts.get(requestKey)! > 1
       ? options.contextAfterInitial
       : options?.contextByAccount?.[accountId];
+    if (requestKey === 'POST /api/compass/sync') {
+      const body = route.request().postDataJSON() as { entries?: Array<{ id: string }> };
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ syncedIds: (body.entries ?? []).map(entry => entry.id) }) });
+    }
+    if (requestKey === 'GET /api/admin/sample-sets') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sets: sampleSets }) });
+    }
+    if (requestKey === 'GET /api/admin/samples') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ samples }) });
+    }
+    if (requestKey === 'POST /api/admin/sample-sets') {
+      const input = route.request().postDataJSON() as Record<string, any>;
+      const now = new Date().toISOString();
+      const row = { ...input, account_id: accountId, created_at: now, updated_at: now };
+      sampleSets.push(row);
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(row) });
+    }
+    if (requestKey === 'POST /api/admin/samples') {
+      const input = route.request().postDataJSON() as Record<string, any>;
+      const now = new Date().toISOString();
+      const row = { ...input, account_id: accountId, created_at: now, updated_at: now, tastings: [] };
+      samples.push(row);
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(row) });
+    }
+    const sampleSetMatch = path.match(/^\/api\/admin\/sample-sets\/([^/]+)$/);
+    if (sampleSetMatch && route.request().method() === 'PUT') {
+      const index = sampleSets.findIndex(row => row.id === sampleSetMatch[1]);
+      const row = { ...(sampleSets[index] ?? { id: sampleSetMatch[1], account_id: accountId }), ...route.request().postDataJSON(), updated_at: new Date().toISOString() };
+      if (index >= 0) sampleSets[index] = row; else sampleSets.push(row);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
+    }
+    if (sampleSetMatch && route.request().method() === 'DELETE') {
+      const index = sampleSets.findIndex(row => row.id === sampleSetMatch[1]);
+      if (index >= 0) sampleSets.splice(index, 1);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    }
+    const sampleMatch = path.match(/^\/api\/admin\/samples\/([^/]+)$/);
+    if (sampleMatch && route.request().method() === 'PUT') {
+      const index = samples.findIndex(row => row.id === sampleMatch[1]);
+      const row = { ...(samples[index] ?? { id: sampleMatch[1], account_id: accountId }), ...route.request().postDataJSON(), updated_at: new Date().toISOString() };
+      if (index >= 0) samples[index] = row; else samples.push(row);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(row) });
+    }
+    if (sampleMatch && route.request().method() === 'DELETE') {
+      const index = samples.findIndex(row => row.id === sampleMatch[1]);
+      if (index >= 0) samples.splice(index, 1);
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) });
+    }
+    const tastingMatch = path.match(/^\/api\/samples\/([^/]+)\/tastings$/);
+    if (tastingMatch && route.request().method() === 'POST') {
+      const input = route.request().postDataJSON() as Record<string, any>;
+      const tasting = { id: input.id ?? crypto.randomUUID(), sample_id: tastingMatch[1], ...input, created_at: new Date().toISOString() };
+      const sample = samples.find(row => row.id === tastingMatch[1]);
+      if (sample) sample.tastings = [...(sample.tastings ?? []), tasting];
+      return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(tasting) });
+    }
     const responses: Record<string, unknown> = {
       'GET /api/auth/me': { id: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', memberships, active_account_id: 'acct-bali' },
       'POST /api/auth/refresh': { token: COMPASS_TOKEN },

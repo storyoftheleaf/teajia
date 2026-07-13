@@ -21,9 +21,9 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample Cart/).first().click();
+    await page.getByText(/Sample list/).first().click();
     await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
 
     await page.getByLabel('Inventory holding').selectOption('holding-1');
@@ -74,9 +74,9 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample Cart/).first().click();
+    await page.getByText(/Sample list/).first().click();
     await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
     await page.getByLabel('Inventory holding').selectOption('holding-1');
     await page.getByRole('button', { name: 'Save holding link' }).click();
@@ -103,6 +103,11 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     expect(completed.holdingUsePendingIdempotencyKey).toBeUndefined();
     expect(appliedKeys.size).toBe(1);
     await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      return useSampleStore.getState().samples.length;
+    })).toBeGreaterThan(0);
     const hydrated = await page.evaluate(async () => {
       // @ts-expect-error Vite source modules are available in Playwright.
       const { useSampleStore } = await import('/src/samples/sampleStore.ts');
@@ -119,7 +124,7 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM], preserveSamplesOnNavigation: true });
     await openCompass(page);
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
-    await page.getByRole('button', { name: 'Save as Sample Set' }).click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
     const identity = await page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('teajia-samples') || '{}').state;
       return { setId: state.sampleSets[0].id, sample: state.samples[0] };
@@ -128,7 +133,7 @@ test.describe('sample portions and physical holdings stay distinct', () => {
       compassEntryId: 'compass-tea-1', productId: 'product-42', teaKey: 'oolong:1998-dong-ding',
     });
     await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample Cart/).first().click();
+    await page.getByText(/Sample list/).first().click();
     await page.getByRole('button', { name: 'Batch details' }).click();
     for (const purpose of ['Sourcing', 'Gifted', 'Event', 'Panel']) await expect(page.getByRole('button', { name: purpose, exact: true })).toBeVisible();
     await page.evaluate(async () => {

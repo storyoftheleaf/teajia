@@ -19,6 +19,8 @@ import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
 import { SampleOrderModal } from '../components/samples/SampleOrderModal';
 import { TeaReviewsComparison } from '../components/tasting/TeaReviewsComparison';
 import { QuickInvoiceModal } from '../admin/components/QuickInvoiceModal';
+import { useTeaCompassStore } from '../lib/teaCompassStore';
+import { compassLifecycleForSample } from '../samples/sampleLifecycle';
 
 /* ─── Verdict icons ─── */
 const VERDICT_ICONS: Record<TastingVerdict, React.ComponentType<{ size?: number }>> = {
@@ -40,6 +42,7 @@ const SamplePage: React.FC = () => {
   const addTastingToStore = useSampleStore((s) => s.addTasting);
   const updateStatus = useSampleStore((s) => s.updateSampleStatus);
   const updateSample = useSampleStore((s) => s.updateSample);
+  const updateCompassEntry = useTeaCompassStore((s) => s.updateEntry);
 
   const { toasts, dismiss, showError } = useToast();
 
@@ -120,6 +123,13 @@ const SamplePage: React.FC = () => {
 
     // Write to sample store (sourcing record)
     addTastingToStore(sample.id, tasting);
+    if (sample.compassEntryId) {
+      updateCompassEntry(sample.compassEntryId, {
+        isSample: true,
+        sampleState: 'tasted',
+        sampleSetId: sample.setId,
+      });
+    }
 
     // Sync to server
     try {
@@ -138,21 +148,29 @@ const SamplePage: React.FC = () => {
     setSample((prev) => prev ? {
       ...prev,
       tastings: [...(prev.tastings || []), tasting],
-      status: prev.status === 'untasted' ? 'tasted' : prev.status,
+      status: ['requested', 'received', 'untasted'].includes(prev.status) ? 'tasted' : prev.status,
     } : prev);
-  }, [sample, isAdmin, addTastingToStore]);
+  }, [sample, isAdmin, addTastingToStore, updateCompassEntry]);
 
   const handleStatusChange = useCallback((newStatus: SampleStatus) => {
     if (!sample) return;
     const prevStatus = sample.status;
+    const previousCompassState = sample.compassEntryId
+      ? useTeaCompassStore.getState().entries.find(entry => entry.id === sample.compassEntryId)?.sampleState
+      : undefined;
     updateStatus(sample.id, newStatus);
+    if (sample.compassEntryId) {
+      const sampleState = compassLifecycleForSample({ ...sample, status: newStatus });
+      if (sampleState) updateCompassEntry(sample.compassEntryId, { isSample: true, sampleState, sampleSetId: sample.setId });
+    }
     setSample((prev) => prev ? { ...prev, status: newStatus } : prev);
     api.samples.update(sample.id, { status: newStatus }).catch(() => {
       updateStatus(sample.id, prevStatus);
+      if (sample.compassEntryId) updateCompassEntry(sample.compassEntryId, { sampleState: previousCompassState ?? null });
       setSample((prev) => prev ? { ...prev, status: prevStatus } : prev);
       showError('Status update failed — please try again');
     });
-  }, [sample, updateStatus, showError]);
+  }, [sample, updateStatus, showError, updateCompassEntry]);
 
   const handleSaveEdit = useCallback(() => {
     if (!sample) return;
