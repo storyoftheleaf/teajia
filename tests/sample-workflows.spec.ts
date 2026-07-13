@@ -20,10 +20,10 @@ test.describe('sample portions and physical holdings stay distinct', () => {
       await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ after_balance: 32 }) });
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
-    await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample list/).first().click();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await page.getByRole('button', { name: /Sample list —/ }).click();
     await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
 
     await page.getByLabel('Inventory holding').selectOption('holding-1');
@@ -73,10 +73,10 @@ test.describe('sample portions and physical holdings stay distinct', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'movement-1', after_balance: 32, already_applied: true }) });
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
-    await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample list/).first().click();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await page.getByRole('button', { name: /Sample list —/ }).click();
     await page.getByRole('button', { name: 'Edit 1998 Dong Ding' }).click();
     await page.getByLabel('Inventory holding').selectOption('holding-1');
     await page.getByRole('button', { name: 'Save holding link' }).click();
@@ -123,7 +123,7 @@ test.describe('sample portions and physical holdings stay distinct', () => {
   test('persists history, identity, tastings, labels, and both source destinations across reopen', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM], preserveSamplesOnNavigation: true });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     const identity = await page.evaluate(() => {
       const state = JSON.parse(localStorage.getItem('teajia-samples') || '{}').state;
@@ -132,8 +132,8 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     expect(identity.sample).toMatchObject({
       compassEntryId: 'compass-tea-1', productId: 'product-42', teaKey: 'oolong:1998-dong-ding',
     });
-    await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample list/).first().click();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await page.getByRole('button', { name: /Sample list —/ }).click();
     await page.getByRole('button', { name: 'Batch details' }).click();
     for (const purpose of ['Sourcing', 'Gifted', 'Event', 'Panel']) await expect(page.getByRole('button', { name: purpose, exact: true })).toBeVisible();
     await page.evaluate(async () => {
@@ -154,15 +154,15 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await expect(page).toHaveURL(/\/admin\/compass\?entry=compass-tea-1/);
 
     await page.goto(`/admin/samples?set=${encodeURIComponent(identity.setId)}`);
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
     await page.getByRole('button', { name: 'Open inventory product' }).click();
     await expect(page).toHaveURL(/\/admin\/stock\?panel=product-42/);
 
     await page.goto(`/admin/samples?set=${encodeURIComponent(identity.setId)}`);
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample batches' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
     const persisted = await page.evaluate(async () => {
       // @ts-expect-error Vite source modules are available in Playwright.
@@ -176,5 +176,52 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     expect(persisted.disk.samples[0].tastings).toHaveLength(1);
     expect(persisted.hydrated).toMatchObject({ teaKey: 'oolong:1998-dong-ding', productId: 'product-42' });
     expect(persisted.hydrated.tastings).toHaveLength(1);
+  });
+});
+
+test.describe('Sample list and Sample batches interface', () => {
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('does not create an untitled batch until a name is confirmed', async ({ page }) => {
+    await installCompassHarness(page);
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample list (0)' }).first().click();
+    await expect(page.getByRole('heading', { name: 'Sample list' })).toBeVisible();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await expect(page.getByRole('heading', { name: 'Sample batches' })).toBeVisible();
+
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      return useSampleStore.getState().sampleSets.length;
+    })).toBe(0);
+
+    await page.getByRole('button', { name: 'New batch' }).click();
+    const name = page.getByLabel('Batch name');
+    await expect(name).toBeVisible();
+    await expect(name).toHaveCSS('font-size', '16px');
+    await expect(page.getByRole('button', { name: 'Create batch' })).toBeDisabled();
+    await name.fill('July Wuyi samples');
+    await page.getByRole('button', { name: 'Create batch' }).click();
+
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      return useSampleStore.getState().sampleSets.map((set: { name: string }) => set.name);
+    })).toEqual(['July Wuyi samples']);
+  });
+
+  test('keeps sample-list operations reachable with mobile touch targets', async ({ page }) => {
+    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
+
+    for (const label of ['Save as sample batch', 'Print sample list', 'Share sample list on WhatsApp']) {
+      const control = page.getByRole('button', { name: label });
+      await expect(control).toBeVisible();
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    await expect(page.getByText('1998 Dong Ding')).toHaveCSS('font-size', '16px');
   });
 });

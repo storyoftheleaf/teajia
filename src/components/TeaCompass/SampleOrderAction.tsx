@@ -70,35 +70,35 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         ref={triggerRef}
         type="button"
         onClick={() => onOpenChange(true)}
-        aria-label={`Sample order (${count})`}
-        className="tap-target inline-flex min-h-8 items-center gap-1.5 rounded-md px-2 text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
+        aria-label={`Sample list (${count})`}
+        className="tap-target inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
       >
         <FlaskConical size={15} />
-        <span>Sample order</span>
+        <span>Sample list</span>
         <span className="tabular-nums text-tea-text-dim">({count})</span>
       </button>
 
       {open && createPortal((
-        <div ref={dialogRef} className="fixed inset-0 z-modal flex bg-tea-bg" role="dialog" aria-modal="true" aria-label="Sample order">
+        <div ref={dialogRef} className="fixed inset-0 z-modal flex bg-tea-bg" role="dialog" aria-modal="true" aria-label="Samples workspace">
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex min-h-14 shrink-0 items-center gap-3 border-b border-tea-border px-4">
               <button
                 ref={closeRef}
                 type="button"
                 onClick={close}
-                aria-label="Close Sample order"
+                aria-label="Close Samples workspace"
                 className="tap-target inline-flex h-8 w-8 items-center justify-center rounded-md text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text"
               >
                 <X size={17} />
               </button>
-              <h2 className="font-display text-ui-17 text-tea-text">{managing ? 'Sample sets' : 'Sample order'}</h2>
+              <h2 className="font-display text-ui-16 text-tea-text">{managing ? 'Sample batches' : 'Sample list'}</h2>
               <div className="flex-1" />
               <button
                 type="button"
                 onClick={() => onManagingChange(!managing)}
                 className="tap-target min-h-11 rounded-md px-3 text-ui-12 text-tea-gold transition-colors hover:bg-tea-accent-sub"
               >
-                {managing ? 'Current order' : 'Manage sample sets'}
+                {managing ? 'Back to Sample list' : 'View Sample batches'}
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto pb-nav">

@@ -33,14 +33,14 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
       <button
         type="button"
         onClick={handleClick}
-        className={`px-3 py-1.5 rounded-xl text-ui-12 font-medium transition-colors ${
+        className={`tap-target min-h-11 px-3 rounded-md text-ui-12 font-medium transition-colors ${
           inCart
             ? 'bg-tea-gold/15 text-tea-gold'
             : 'bg-tea-surface text-tea-text-sec hover:bg-tea-gold/10 hover:text-tea-gold'
         } ${className}`}
-        title={inCart ? 'Remove from sample pack' : 'Add to sample pack'}
+        title={inCart ? 'Remove from Sample list' : 'Add to Sample list'}
       >
-        {inCart ? 'In Sample Pack' : 'Sample'}
+        {inCart ? 'In Sample list' : 'Add to Sample list'}
       </button>
     );
   }
@@ -49,15 +49,15 @@ export const AddToSampleButton: React.FC<AddToSampleButtonProps> = ({
     <button
       type="button"
       onClick={handleClick}
-      className={`text-ui-10 uppercase tracking-[0.08em] transition-colors ${
+      className={`tap-target min-h-11 text-ui-12 transition-colors ${
         inCart
           ? 'text-tea-gold'
           : 'text-tea-text-sec hover:text-tea-gold'
       } ${className}`}
-      title={inCart ? 'Remove from sample pack' : 'Add to sample pack'}
-      aria-label={inCart ? 'Remove from sample pack' : 'Add to sample pack'}
+      title={inCart ? 'Remove from Sample list' : 'Add to Sample list'}
+      aria-label={inCart ? 'Remove from Sample list' : 'Add to Sample list'}
     >
-      {inCart ? 'In Pack' : 'Sample'}
+      {inCart ? 'In list' : 'Sample list'}
     </button>
   );
 };

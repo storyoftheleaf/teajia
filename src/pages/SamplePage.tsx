@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Leaf, MessageCircle, Phone, Star,
@@ -36,6 +36,7 @@ const STATUS_FLOW: SampleStatus[] = ['untasted', 'tasted', 'favorite', 'ordering
 const SamplePage: React.FC = () => {
   const { sampleId } = useParams<{ sampleId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAdmin } = useAuth();
 
   const storeSample = useSampleStore((s) => s.getSample(sampleId || ''));
@@ -52,6 +53,14 @@ const SamplePage: React.FC = () => {
 
   // Tasting session state
   const [showTasting, setShowTasting] = useState(false);
+
+  useEffect(() => {
+    if (!sample || searchParams.get('taste') !== '1') return;
+    setShowTasting(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('taste');
+    setSearchParams(next, { replace: true });
+  }, [sample, searchParams, setSearchParams]);
 
   // Customer order modal
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -371,7 +380,7 @@ const SamplePage: React.FC = () => {
               className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-tea-border text-tea-text-sec text-xs font-semibold hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
             >
               <Leaf size={14} />
-              Save for later
+              Taste and add to Journal
             </button>
           </motion.div>
         )}

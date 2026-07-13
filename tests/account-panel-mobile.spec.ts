@@ -281,3 +281,28 @@ test.describe('Destination pages — health check', () => {
     });
   }
 });
+
+test.describe('Member sample continuation', () => {
+  test('links lifecycle rows to detail and the tasting journal flow', async ({ page }) => {
+    await injectAuth(page);
+    await page.route('**/api/me/samples', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        samples: [
+          { id: 'requested-1', tea_name: 'Spring Green', status: 'requested', sent_at: '2026-07-01T00:00:00.000Z', notes: null },
+          { id: 'received-1', tea_name: 'Wuyi Oolong', status: 'received', sent_at: '2026-07-02T00:00:00.000Z', notes: 'Rest the leaves before tasting.' },
+          { id: 'tasted-1', tea_name: 'Old Tree Red', status: 'tasted', sent_at: '2026-07-03T00:00:00.000Z', notes: null },
+        ],
+      }),
+    }));
+    await goto(page, '/account/samples');
+
+    for (const state of ['Requested', 'Received', 'Tasted']) await expect(page.getByText(state, { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Wuyi Oolong sample' })).toHaveAttribute('href', '/s/received-1');
+    await expect(page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' })).toHaveAttribute('href', '/s/received-1?taste=1');
+    await expect(page.getByRole('link', { name: 'View Old Tree Red tasting' })).toHaveAttribute('href', '/s/tasted-1');
+    const tasteBox = await page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' }).boundingBox();
+    expect(tasteBox?.height).toBeGreaterThanOrEqual(44);
+  });
+});
