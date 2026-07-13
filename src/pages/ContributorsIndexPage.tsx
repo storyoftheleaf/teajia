@@ -5,7 +5,7 @@ import type { ContributorListItem } from '../types';
 
 // /people. The directory. v1 is a typeset alphabetical list, not a card
 // grid. The relational map upgrade is deferred (see step 13 in
-// docs/CONTRIBUTOR_PROFILES_PLAN.md).
+// docs/ARCHITECTURE.md).
 
 function groupAlphabetical(rows: ContributorListItem[]): Array<[string, ContributorListItem[]]> {
   const map = new Map<string, ContributorListItem[]>();

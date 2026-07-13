@@ -821,18 +821,11 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
 
 export const api = {
   incidents: {
-    report: async (incident: Record<string, unknown>) => {
-      const init: ApiRequestInit = { method: 'POST', body: JSON.stringify(incident), retryTimeouts: true };
-      try {
-        return await authedFetch(`${API_URL}/api/incidents`, init);
-      } catch (error) {
-        // A broken Pages proxy cannot report its own configuration failure.
-        // Make one best-effort direct Worker attempt; this remains a fallback
-        // because the workers.dev host is not reliably reachable in China.
-        if (incident.category !== 'configuration') throw error;
-        return authedFetch('https://teajia-api.lightcodes.workers.dev/api/incidents', init);
-      }
-    },
+    // Keep browser traffic on the public same-origin proxy. A direct Worker
+    // fallback would bypass the China-reachable boundary and the CSP.
+    report: (incident: Record<string, unknown>) => authedFetch(`${API_URL}/api/incidents`, {
+      method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
+    }),
     list: () => authedFetch(`${API_URL}/api/platform/incidents`),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,

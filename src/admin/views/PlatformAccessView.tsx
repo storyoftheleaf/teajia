@@ -18,7 +18,7 @@ const TIER_CHIP_ACTIVE = 'bg-tea-gold/10 text-tea-text ring-1 ring-inset ring-te
 const TIER_CHIP_INACTIVE = 'bg-tea-elevated text-tea-text-sec';
 
 // Platform tier — Members & Access at /admin/access/platform.
-// Per docs/NETWORK_ROLLOUT_PLAN.md §7-9.
+// Per docs/ARCHITECTURE.md.
 // Two registers in one component: this is the platform-tier register
 // showing the union of all accounts. Adrian acts on the network from here.
 

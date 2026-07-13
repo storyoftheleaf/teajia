@@ -1,115 +1,31 @@
-# src/admin — Index
+# Admin code index
 
-> Admin views for Owner / Tea Master / Platform tiers. Routing in AdminApp.tsx (~25 routes). Each route gates on tier or bundle. For tier model see `/docs/ARCHITECTURE.md` §1.2. For full action inventory with status/file:line see `/docs/_audit/02_owner_master.md`.
+> Navigation aid for Owner, Staff, Tea Master, and Platform surfaces. Current role and capability rules live in [`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md); routes live in [`AdminApp.tsx`](AdminApp.tsx).
 
-## Where things live
+## Structure
 
-- **AdminApp.tsx** — main route table, layout shell, tier gates, OperatingAsBanner for platform ops
-- **components/** — shared admin building blocks (forms, panels, modals, drawers)
-- **views/** — top-level admin pages (one file per route, mostly)
-- **types.ts** — admin-specific types (separate from src/types.ts which is global)
+- `AdminApp.tsx` — admin shell, route table, lazy boundaries, and height chain.
+- `toolRegistry.ts` — operator/staff tool metadata, routes, capability visibility, and grouping.
+- `components/` — shared panels, forms, tables, event/editorial tools, inventory, and Curate UI.
+- `views/` — top-level routed admin destinations.
+- `types.ts` — admin-specific types; shared product/account types live in `src/types.ts`.
 
-## Routes by bundle
+## Product areas
 
-| Route | View component | Bundle required | Status | Notes |
-|-------|----------------|-----------------|--------|-------|
-| /admin | DashboardView | — | WIRED | Home admin screen; no gate |
-| /admin/activity | ActivityView | Sell | WIRED | Transaction log; activity ledger |
-| /admin/inventory | InventoryView | Stock | STUB | Stock view; no owner gate applied |
-| /admin/compass | TeaCompass | Catalog | WIRED | Tea sourcing UI; vendor/sourcing |
-| /admin/capture | QuickCapture | Catalog | STUB | Data entry for vendors; catalog intent |
-| /admin/events | EventsManager | Gather | WIRED | Event manager; also hosts venues/interest tabs |
-| /admin/events?tab=venues | VenueManager | Gather | WIRED | Venue and space manager |
-| /admin/people | PeopleView | Sell | WIRED | Customer/contact list and profiles |
-| /admin/catalog | CatalogBrowse | Catalog | WIRED | Network catalog browser (Step 1) |
-| /admin/catalog/edit/:id | PartnerListingEdit | Catalog | WIRED | Partner listing editor |
-| /admin/suggestions | SuggestionsInbox | Catalog | WIRED | Incoming profile suggestions (Step 3) |
-| /admin/wholesale | WholesaleOrdersList | Sell | WIRED | Buyer/supplier order list (Step 4) |
-| /admin/wholesale/draft | WholesaleOrderDraft | Sell | WIRED | Draft order editor |
-| /admin/wholesale/:id | WholesaleOrderTimeline | Sell | WIRED | Order timeline + state machine |
-| /admin/network | NetworkLanding | Catalog or Sell | WIRED | Network adoption landing (Steps 1–4) |
-| /admin/purchase-orders | PeopleView tab | Stock | WIRED | PO list; bundle-visible through toolRegistry |
+- Stock and receipts — `components/InventoryView.tsx` and `components/inventory/`.
+- Curate and sourcing — `components/TeaCompass/`, Sources/People views, and import/intake surfaces.
+- People and commerce — customer views, invoices, orders, wholesale, and purchase orders.
+- Gather — event manager, event detail, venues, reminders, and post-session drafting.
+- Publish — Magazine/article editor, collections, contributors, and product stories.
+- Account/platform — access, settings, activity, audit, adoption, and platform administration.
 
-## Management routes
+## Invariants
 
-| Route | View component | Tier | Status | Notes |
-|-------|----------------|------|--------|-------|
-| /admin/magazine | MagazineView | Publish | WIRED | Editorial UI; owner or Publish bundle |
-| /admin/collections | CollectionsView | Publish | WIRED | Collection list; owner or Publish bundle |
-| /admin/collections/:id/edit | CollectionEditView | Publish | WIRED | Collection editor |
-| /admin/collections/:id/inbound | InboundCollectionView | Publish | WIRED | Inbound (published-to-me) items |
-| /admin/people?tab=team | PeopleView tab | Members | WIRED | Staff roster; owner or Members bundle |
-| /admin/access | AccessView | Members | WIRED | Member bundles assignment |
-| /admin/contact-tags | ContactTagsView | Owner | WIRED | Custom customer tags |
-| /admin/account-settings | AccountSettingsView | Owner | WIRED | Account profile/config |
+- Preserve the Inventory height chain documented in the repository `AGENTS.md`; wrappers must pass `flex-1 min-h-0` or `h-full` correctly.
+- Client visibility never replaces Worker authorization.
+- Full-screen admin overlays use `z-modal`, not `z-50`.
+- Keep Cancel/Back/Close placement and the mobile bottom-navigation clearance contract.
+- Register new operator tools in `toolRegistry.ts` and update [`docs/SITE_MAP.md`](../../docs/SITE_MAP.md) when routes change.
+- Routing or navigation-label changes require explicit confirmation.
 
-## Platform Admin only
-
-| Route | View component | Tier | Status | Notes |
-|------|----------------|------|--------|-------|
-| /admin/access/platform | PlatformAccessView | Platform | WIRED | Platform tier assignment; canonical members-and-access destination per NETWORK_ROLLOUT_PLAN Step 0 |
-| /admin/activity?platform=1 | ActivityView (mode) | Platform | WIRED | Platform activity log (all accounts) |
-| /admin/platform | PlatformAdminView | Platform | WIRED | Platform owner dashboard |
-| /admin/adoptions | AdoptionQueue | Platform | WIRED | Network catalog adoption queue (Step 5) |
-| /admin/audit-log | PlatformAuditLogPage | Platform | WIRED | Platform audit trail |
-
-## Cross-cutting components
-
-**Most-used shared admin UI building blocks:**
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| ProductEditPanel | components/ | Product (tea/teaware) editor modal; save → api.products.update |
-| ProductStoryView | views/ | Product detail, sourcing, story editor |
-| QuickInvoiceModal | components/ | One-click invoice creation popup |
-| QuickCapture | components/ | Data entry form for sourcing/tasting |
-| EventForm | components/ | Event creation/edit form (shared with EventDetail) |
-| AttendeeTable | components/ | Attendee roster with approval workflow |
-| PostSessionEditor | components/ | Tasting notes and recap data form |
-| TeaMenuEditor | components/ | Event tea menu builder |
-| TastingEditorModal | components/ | Tasting feedback collection |
-| VenueManager | components/ | Venue and event space CRUD |
-| CustomerProfilePage | components/ | Customer detail, order history, tags |
-| InvoicePdf | components/ | Invoice PDF renderer (uses PurchaseOrderPdf) |
-| PurchaseOrderPdf | components/ | PO PDF renderer |
-| EditOrderModal | components/ | Order editor (invoice/PO line items) |
-| SplitOrderModal | components/ | Order split tool |
-| CsvImportModal | components/ | Bulk product/customer CSV upload |
-| StockLedgerPanel | components/ | Stock transaction history viewer |
-| CommandPalette | components/ | Quick-command launcher (39+ actions) |
-| ErrorBoundary | components/ | Fallback UI on render crash |
-| TeaTable | components/ | Product list table with sort/filter |
-| TeaIllustration | components/ | Visual product card renderer |
-
-## Key invariants
-
-- **AdminApp.tsx tier gate at lines ~143–149** — ProtectedRoute wrapper checks tier/bundle per-route. See `/CLAUDE.md` "InventoryView height chain" before adding wrappers.
-- **toolRegistry.ts (51 tools)** — `/src/components/AccountPanel/toolRegistry.ts` drives what shows in Operator launchpad. All tools require `isOwner=true` EXCEPT: activity, quick-invoice, people, inventory, compass, capture, vendors, events, venues, interest-signups (6 non-owner tools).
-- **/admin/access is canonical members-and-access destination** — per `/docs/NETWORK_ROLLOUT_PLAN.md` Step 0. PlatformAccessView is platform-tier-only variant.
-- **/admin/access/platform gates to platform tier only** — no fallback for Owner/Master tiers.
-
-## Common pitfalls
-
-1. **Tier-gated routes show tools whose handlers are bundle-gated** → Tea Masters see network tools they can't use. See `_audit/02` organizational concern #1.
-2. **Many admin actions check bundles client-side but not server-side** → 31 enforcement gaps total. Examples: GET /api/admin/events, PUT /api/collections/:id (implicit account scope, no requireBundle).
-3. **ProductEditPanel save → api.products.update has no requireBundle('stock') check** — any member can edit product metadata regardless of bundle.
-4. **Stock RPC handlers lack any authorization** — POST /api/rpc/increment-stock, /fulfill-invoice, /void-invoice have zero checks (HIGH RISK).
-5. **Owner-gated tools (toolRegistry requires:'owner') bypass bundle system** — Magazine, Collections, Team, Access, Settings use tier-level gate instead of requireBundle.
-
-## When adding a new admin view
-
-1. **Add route to AdminApp.tsx** — import view component at top, add Route in the main Routes block
-2. **Decide: bundle-gated or owner-only?** — check _audit/02 section B–G for bundle definitions
-3. **Add server-side requireBundle() to the worker handler** — do NOT rely on client gate alone. High-risk endpoints (stock, invoice, event) must enforce.
-4. **Add row to docs/SITE_MAP.md "Admin Routes" section** — keep tier visibility matrix in sync
-5. **If it's a tool in the Operator launchpad, register in toolRegistry.ts** — add entry to tools array with {id, label, group, requires, icon}
-6. **Test tier gates** — use test tokens: Location Owner, Tea Master, Staff, Platform Admin, Platform Owner
-7. **Update this INDEX.md** — add route + component + bundle + status to the appropriate section
-
-## See also
-
-- `/docs/ARCHITECTURE.md` §1–2 — authorization model, tier definitions, account tenancy
-- `/docs/_audit/02_owner_master.md` — full admin action inventory (127 entries); status, file:line, enforcement gaps
-- `/docs/SITE_MAP.md` — all routes by tier visibility (public, member, owner, platform)
-- `/worker/INDEX.md` — API routes by bundle; enforcement status
-- `/CLAUDE.md` — system-level invariants, high-level flows
+Open admin and platform cleanup belongs in [`docs/tracks/08-platform-hardening.md`](../../docs/tracks/08-platform-hardening.md), not in copied route inventories.

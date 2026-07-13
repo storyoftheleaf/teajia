@@ -99,3 +99,68 @@ export function createPostSessionLoadCoordinator(
     cancel() { generation += 1; },
   };
 }
+
+export function createPostSessionUploadGuard(onUploaded: (url: string) => void) {
+  let activeEventId: string | null = null;
+  let generation = 0;
+
+  return {
+    activate(eventId: string) {
+      if (eventId === activeEventId) return;
+      activeEventId = eventId;
+      generation += 1;
+    },
+    begin(eventId: string) {
+      const startedGeneration = ++generation;
+      const isCurrent = () => eventId === activeEventId && startedGeneration === generation;
+      return {
+        isCurrent,
+        append(url: string) {
+          if (!isCurrent()) return false;
+          onUploaded(url);
+          return true;
+        },
+      };
+    },
+    cancel() {
+      activeEventId = null;
+      generation += 1;
+    },
+  };
+}
+
+interface PostSessionUploadOperation {
+  isCurrent(): boolean;
+  append(url: string): boolean;
+}
+
+interface PostSessionUploadCallbacks {
+  onSuccess(count: number): void;
+  onError(error: unknown): void;
+  onComplete(): void;
+}
+
+export function postSessionUploadErrorMessage(error: unknown): string {
+  return (error as any)?.message || 'Upload failed';
+}
+
+export async function runPostSessionUpload<TFile, TPrepared>(
+  files: readonly TFile[],
+  operation: PostSessionUploadOperation,
+  prepare: (file: TFile) => Promise<TPrepared>,
+  upload: (file: TPrepared) => Promise<string>,
+  callbacks: PostSessionUploadCallbacks,
+) {
+  try {
+    for (const file of files) {
+      const prepared = await prepare(file);
+      const url = await upload(prepared);
+      if (!operation.append(url)) return;
+    }
+    if (operation.isCurrent()) callbacks.onSuccess(files.length);
+  } catch (error) {
+    if (operation.isCurrent()) callbacks.onError(error);
+  } finally {
+    if (operation.isCurrent()) callbacks.onComplete();
+  }
+}

@@ -183,10 +183,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // ── Nav data ──────────────────────────────────────────────────────────────
 
   const browseItems: NavItem[] = [
-    // Read lands on /read (the unified Read section), NOT the archived
-    // /magazine-archive listing. `path` overrides the section→view routing
-    // exactly like the BottomTabBar "Read" tab; it still highlights as the
-    // MAGAZINE section so the active state matches the tab bar.
+    // Read lands on the unified /read section. `path` overrides the
+    // section→view routing exactly like the BottomTabBar "Read" tab; it still
+    // highlights as MAGAZINE so the active state matches the tab bar.
     { id: 'MAGAZINE',  label: 'Read',    icon: <Icons.Magazine  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'MAGAZINE'  as Section, path: '/read' },
     { id: 'LEARN',     label: 'Craft',   icon: <Icons.School    className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'LEARN'     as Section },
     { id: 'OFFERINGS', label: 'Advise',  icon: <Icons.Sparkles  className="w-[18px] h-[18px]" strokeWidth={1.75} />, section: 'OFFERINGS' as Section },
