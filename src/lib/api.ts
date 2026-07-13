@@ -30,6 +30,7 @@ export interface CurateImportItem {
   price_amount?: number | null; currency?: string | null; price_basis?: 'per_pack' | 'line_total' | 'unknown';
   price_amount_exact?: string | null;
   total_quantity_grams?: number | null; total_units?: number | null; line_cost?: number | null; unit_cost?: number | null;
+  line_cost_exact?: string | null; unit_cost_exact?: string | null;
   blocking_fields?: string[]; manually_corrected_fields?: string[];
   proposed_compass_entry_id?: string | null; proposed_product_id?: string | null;
   acquired?: boolean | null; duplicate_resolution?: 'new' | 'matched' | 'unresolved' | null;

@@ -14,6 +14,7 @@ import { ImportEvidencePreview } from './ImportEvidencePreview';
 import { failedImportSourceIds, unmatchedImportEvidence } from './importEvidenceSelection';
 import { ImportEvidenceCard } from './ImportEvidenceCard';
 import type { ImportHoldingOption, ImportIdentityOption } from './ImportItemRow';
+import { ImportCompletionSummary } from './ImportCompletionSummary';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -70,11 +71,13 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const [busyId, setBusyId] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [completion, setCompletion] = useState<CurateImportFinalizeResult | null>(null);
   const retryAction = useRef<null | (() => Promise<void>)>(null);
   const createIdempotencyKey = useRef(crypto.randomUUID());
   const closeRef = useRef<HTMLButtonElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const evidenceKind: CurateImportSourceKind = useMemo(() => draft.evidence.some(item => item.kind === 'photo') ? 'photo' : draft.evidence.length ? 'invoice' : 'paste', [draft.evidence]);
   const draftDirty = state.phase !== 'review' && (draft.text.trim().length > 0 || draft.journeyId !== null || draft.evidence.length > 0);
   const persistedEvidenceSources = state.detail?.sources.filter(source => source.r2_object_key) ?? [];
@@ -93,6 +96,18 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   };
 
   useEffect(() => { closeRef.current?.focus(); }, []);
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    const surface = overlay?.parentElement;
+    if (!overlay || !surface) return;
+    const siblings = Array.from(surface.children).filter(child => child !== overlay) as HTMLElement[];
+    const previous = siblings.map(element => ({ element, ariaHidden: element.getAttribute('aria-hidden'), inert: element.inert }));
+    siblings.forEach(element => { element.setAttribute('aria-hidden', 'true'); element.inert = true; });
+    return () => previous.forEach(({ element, ariaHidden, inert }) => {
+      if (ariaHidden == null) element.removeAttribute('aria-hidden'); else element.setAttribute('aria-hidden', ariaHidden);
+      element.inert = inert;
+    });
+  }, []);
   useEffect(() => {
     if (!initialDetail && draftDirty) preserveDraft();
   }, [accountId, draft, draftDirty, initialDetail]);
@@ -284,7 +299,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     const action = async () => {
       const batchId = state.detail!.batch.id;
       const result = await api.curateImports.finalize(batchId, `curate-import-finalize:${batchId}`);
-      await onFinalized(result);
+      setCompletion(result);
+      try { await onFinalized(result); } catch { /* The durable receipt summary remains available if background refresh fails. */ }
     };
     try { setOperationError(null); await action(); }
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not add this import to Inventory')); }
@@ -299,7 +315,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   };
 
   return (
-    <div className="fixed inset-0 z-modal flex bg-tea-bg/80" role="presentation">
+    <div ref={overlayRef} className="fixed inset-0 z-modal flex bg-tea-bg/80" role="presentation">
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="curate-import-title" className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-tea-border bg-tea-elevated text-tea-text">
         <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-tea-border px-4">
           <button ref={closeRef} type="button" disabled={Boolean(busyId)} onClick={requestClose} aria-label="Close Import" className="tap-target flex h-8 w-8 items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-50"><X size={18} /></button>
@@ -314,7 +330,9 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
             <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p>{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button>}</div>
           </div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
-          {state.phase === 'review' && state.detail && <ImportBatchReview detail={normalizeImportDetail(state.detail)} journeyLookup={journeyLookup} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryJourneys={loadJourneys} onRetryVendors={loadVendors} onRetryIdentities={loadIdentities} onRetryHoldings={loadHoldings} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />}
+          {state.phase === 'review' && state.detail && (completion
+            ? <ImportCompletionSummary detail={normalizeImportDetail(state.detail)} result={completion} onClose={onClose} onNew={onNew} />
+            : <ImportBatchReview detail={normalizeImportDetail(state.detail)} journeyLookup={journeyLookup} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryJourneys={loadJourneys} onRetryVendors={loadVendors} onRetryIdentities={loadIdentities} onRetryHoldings={loadHoldings} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />)}
         </div>
         {confirmClose && <div className="absolute inset-0 z-10 flex items-center justify-center bg-tea-bg/80 p-4" role="alertdialog" aria-modal="true" aria-labelledby="import-draft-close-title" aria-describedby="import-draft-close-copy">
           <div className="w-full max-w-sm rounded-md border border-tea-border bg-tea-elevated p-5">

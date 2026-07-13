@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { FileText, Image, Loader2, RotateCcw, Trash2 } from 'lucide-react';
 import type { ImportEvidence } from './importTypes';
 
@@ -21,6 +21,14 @@ const statusCopy = (item: ImportEvidence) => {
   return 'Ready to upload';
 };
 
+const ReplaceEvidenceButton: React.FC<{ item: ImportEvidence; disabled: boolean; onReplace: (id: string, file: File) => void }> = ({ item, disabled, onReplace }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return <>
+    <input ref={inputRef} disabled={disabled} tabIndex={-1} aria-hidden="true" aria-label={`Replace ${item.name}`} className="sr-only" type="file" onChange={event => { const file = event.target.files?.[0]; if (file) onReplace(item.id, file); event.target.value = ''; }} />
+    <button type="button" disabled={disabled} onClick={() => inputRef.current?.click()} aria-label={`Replace attachment ${item.name}`} className="tap-target inline-flex min-h-11 items-center gap-1 px-1 text-ui-11 text-tea-gold disabled:opacity-50"><RotateCcw size={14} aria-hidden="true" /> Replace</button>
+  </>;
+};
+
 export const ImportEvidencePreview: React.FC<Props> = ({ evidence, onRemove, onReplace, onClear, disabled = false }) => {
   if (!evidence.length) return null;
   return (
@@ -34,10 +42,7 @@ export const ImportEvidencePreview: React.FC<Props> = ({ evidence, onRemove, onR
           <li key={item.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-text-sec">
             {item.status === 'uploading' ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : item.kind === 'photo' ? <Image size={15} aria-hidden="true" /> : <FileText size={15} aria-hidden="true" />}
             <div className="min-w-0 flex-1"><p className="truncate text-tea-text">{item.name}</p><p className={item.status === 'failed' ? 'text-tea-gold' : 'text-tea-text-dim'}>{statusCopy(item)}</p></div>
-            {onReplace && <span className="relative inline-flex min-h-11 items-center gap-1 px-1 text-ui-11 text-tea-gold focus-within:ring-1 focus-within:ring-tea-gold">
-              <RotateCcw size={14} aria-hidden="true" /> Replace
-              <input disabled={disabled} className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed" type="file" aria-label={`Replace ${item.name}`} onChange={event => { const file = event.target.files?.[0]; if (file) onReplace(item.id, file); event.target.value = ''; }} />
-            </span>}
+            {onReplace && <ReplaceEvidenceButton item={item} disabled={disabled} onReplace={onReplace} />}
             {onRemove && <button type="button" disabled={disabled} onClick={() => onRemove(item.id)} aria-label={`Remove ${item.name}`} className="tap-target inline-flex min-h-11 items-center gap-1 px-1 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50"><Trash2 size={14} aria-hidden="true" /> Remove</button>}
           </li>
         ))}

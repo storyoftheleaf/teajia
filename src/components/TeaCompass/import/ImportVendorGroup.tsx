@@ -42,7 +42,7 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
             <input disabled={Boolean(busyId) || !['ready', 'empty'].includes(vendorLookup.status)} value={newVendorName} onChange={event => setNewVendorName(event.target.value)} placeholder={vendorLookup.status === 'error' ? 'Retry existing vendors first' : group.proposed_vendor_name || 'Vendor name'} className="mt-1 min-h-11 w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold disabled:opacity-50 lg:text-ui-13" />
           </label>
           <div className="flex justify-between gap-3">
-            <button type="button" onClick={() => setChanging(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button>
+            <button type="button" disabled={Boolean(busyId)} onClick={() => setChanging(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel</button>
             <button type="button" disabled={Boolean(busyId) || !['ready', 'empty'].includes(vendorLookup.status) || !newVendorName.trim()} onClick={() => void onCreateVendor(group.id, newVendorName.trim()).then(ok => { if (ok) { setNewVendorName(''); setChanging(false); } })} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg disabled:opacity-50">Create vendor</button>
           </div>
         </div>

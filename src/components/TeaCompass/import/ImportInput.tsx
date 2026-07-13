@@ -48,11 +48,11 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
       </div>
       <ImportJourneyPicker lookup={journeyLookup} journeyId={draft.journeyId} busy={busy} onRetry={onRetryJourneys} onSelect={async journeyId => { if (busy) return false; onChange(current => ({ ...current, journeyId })); return true; }} onCreate={onCreateJourney} />
       <div className="flex flex-wrap gap-2">
-        <input ref={photoRef} disabled={busy} tabIndex={-1} className="sr-only" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple aria-label="Add photos" onChange={event => { addFiles(event.target.files, 'photo'); event.target.value = ''; }} />
+        <input ref={photoRef} disabled={busy} tabIndex={-1} aria-hidden="true" aria-label="Add photos" className="sr-only" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple onChange={event => { addFiles(event.target.files, 'photo'); event.target.value = ''; }} />
         <button type="button" disabled={busy} onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text disabled:opacity-50">
           <Camera size={16} /> Add photos
         </button>
-        <input ref={fileRef} disabled={busy} tabIndex={-1} className="sr-only" type="file" accept=".pdf,.csv,.json,.txt,.doc,.docx,application/pdf,application/json,text/csv,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple aria-label="Add files or invoices" onChange={event => { addFiles(event.target.files, 'file'); event.target.value = ''; }} />
+        <input ref={fileRef} disabled={busy} tabIndex={-1} aria-hidden="true" aria-label="Add files or invoices" className="sr-only" type="file" accept=".pdf,.csv,.json,.txt,.doc,.docx,application/pdf,application/json,text/csv,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onChange={event => { addFiles(event.target.files, 'file'); event.target.value = ''; }} />
         <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text disabled:opacity-50">
           <FileUp size={16} /> Add files or invoices
         </button>
@@ -60,7 +60,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
       </div>
       <ImportEvidencePreview evidence={draft.evidence} disabled={busy} onRemove={id => onChange(current => ({ ...current, evidence: current.evidence.filter(item => item.id !== id) }))} onReplace={replaceFile} onClear={() => onChange(current => ({ ...current, evidence: [] }))} />
       {draft.evidence.some(item => item.kind === 'photo' || /\.(pdf|docx?)$/i.test(item.name)) && <p className="text-ui-12 leading-relaxed text-tea-text-sec">Photos and PDFs are analyzed with the pasted text. DOC and DOCX stay attached as reference-only. Originals remain private evidence, and uncertain readings stay marked for review.</p>}
-      <p className="text-ui-12 leading-relaxed text-tea-text-dim">Nothing is added to your Library until you review it. Uncertain fields stay visibly marked.</p>
+      <p className="text-ui-12 leading-relaxed text-tea-text-sec">Review reuses or creates a Library identity, then adds acquired quantity and cost to Inventory. Nothing is added until you confirm the batch.</p>
       <button ref={submitRef} type="button" disabled={busy || !canSubmit} onClick={() => { if (!busy) onSubmit(); }} className="tap-target ml-auto flex min-h-11 items-center justify-center rounded-md bg-tea-gold px-5 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">
         Start import
       </button>

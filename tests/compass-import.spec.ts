@@ -155,7 +155,11 @@ async function installAnalyzedImportApi(page: Page) {
   await page.route('**/api/curate/imports/batch-analyzed/finalize', async route => {
     finalizeCalls += 1;
     detail.batch.review_state = 'completed';
-    return route.fulfill({ json: { batch: detail.batch, receipts: [{ id: 'receipt-chen' }, { id: 'receipt-lin' }], items: detail.items } });
+    return route.fulfill({ json: {
+      batch: detail.batch,
+      receipts: [{ id: 'receipt-chen', vendor_group_id: 'group-chen' }, { id: 'receipt-lin', vendor_group_id: 'group-lin' }],
+      items: detail.items.map(item => ({ id: item.id, compassEntryId: `library-${item.id}`, productId: `holding-${item.id}`, movementId: `movement-${item.id}` })),
+    } });
   });
   return {
     detail,
@@ -302,8 +306,12 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
     await page.keyboard.press('Shift+Tab');
     await expect(page.locator('button').filter({ hasText: 'Add files or invoices' })).toBeFocused();
-    await expect(page.getByLabel('Add photos')).toHaveAttribute('tabindex', '-1');
-    await expect(page.getByLabel('Add files or invoices')).toHaveAttribute('tabindex', '-1');
+    await expect(page.getByRole('button', { name: 'Add photos' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Add files or invoices' })).toHaveCount(1);
+    await expect(page.locator('input[type="file"][aria-hidden="true"]')).toHaveCount(2);
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const compassSurface = dialog.locator('xpath=../..');
+    expect(await compassSurface.locator(':scope > *').filter({ hasNot: dialog }).evaluateAll(elements => elements.every(element => element.getAttribute('aria-hidden') === 'true' && element.hasAttribute('inert')))).toBe(true);
     await page.getByRole('button', { name: 'Close Import' }).click();
     await expect(trigger).toBeFocused();
     await expect(name).toHaveValue('Field tea');
@@ -489,7 +497,9 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved evidence.')).toBeVisible();
     const abandon = page.getByRole('button', { name: 'Abandon import' });
     await abandon.click();
-    await expect(page.getByRole('alertdialog', { name: 'Confirm abandon import' })).toBeVisible();
+    const confirmation = page.getByRole('group', { name: 'Abandon import confirmation' });
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation).toContainText('permanently stop reviewing this import');
     await expect(page.getByRole('button', { name: 'Cancel abandon' })).toBeFocused();
     await page.getByRole('button', { name: 'Cancel abandon' }).click();
     await expect(abandon).toBeFocused();
@@ -523,7 +533,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add photos').setInputFiles({ name: 'one.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('one') });
     await expect(page.getByText('one.jpg')).toBeVisible();
-    const replacePicker = page.getByLabel('Replace one.jpg');
+    const replacePicker = page.getByRole('button', { name: 'Replace attachment one.jpg' });
     await expect(replacePicker).toBeVisible();
     await replacePicker.focus();
     await expect(replacePicker).toBeFocused();
@@ -620,6 +630,7 @@ test.describe('analyzed inventory import review', () => {
 
     const readyRow = rows.nth(0);
     await readyRow.getByRole('button', { name: 'Edit tea' }).click();
+    await readyRow.getByRole('button', { name: 'All details' }).click();
     await expect(readyRow.getByLabel(/English (inventory )?name/i)).toHaveValue('Yunnan Ancient Tree Raw Pu’er');
     await readyRow.getByLabel(/English (inventory )?name/i).fill('Yunnan Ancient Tree Raw Pu’er — Spring Lot');
     await expect(readyRow.getByLabel('Sourcing run')).toHaveCount(0);
@@ -630,6 +641,9 @@ test.describe('analyzed inventory import review', () => {
     const uncertainRow = rows.nth(9);
     await uncertainRow.scrollIntoViewIfNeeded();
     await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
+    await expect(uncertainRow.getByRole('button', { name: 'All details' })).toBeVisible();
+    await expect(uncertainRow.getByLabel('Tea type')).toHaveCount(0);
+    await expect(uncertainRow.getByLabel('Production or classification')).toHaveCount(0);
     await uncertainRow.getByLabel('Pack count').fill('3');
     await uncertainRow.getByLabel('Inventory purpose').selectOption('working');
     await uncertainRow.getByLabel('Library tea identity').click();
@@ -648,6 +662,12 @@ test.describe('analyzed inventory import review', () => {
 
     await uncertainRow.getByRole('button', { name: 'Save tea' }).click();
     await expect(finalAction).toBeEnabled();
+    await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
+    await uncertainRow.getByRole('button', { name: 'All details' }).click();
+    await expect(uncertainRow.getByLabel('Pack count')).toHaveValue('3');
+    await expect(uncertainRow.getByLabel('Tea type')).toBeVisible();
+    await expect(uncertainRow.getByLabel('Production or classification')).toBeVisible();
+    await uncertainRow.getByRole('button', { name: 'Close editing' }).click();
     const uncertainCorrection = api.correctionBodies.find(body => body.name === analyzedTeaNames[9][0]);
     expect(uncertainCorrection).toBeTruthy();
     expect(uncertainCorrection?.parsed_data).toMatchObject({
@@ -660,6 +680,13 @@ test.describe('analyzed inventory import review', () => {
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     await finalAction.click();
     await expect.poll(api.finalizeCalls).toBe(1);
+    const completion = dialog.getByRole('region', { name: 'Import complete' });
+    await expect(completion).toBeVisible();
+    await expect(completion.getByText('10 Library identities')).toBeVisible();
+    await expect(completion.getByText('10 Inventory holdings')).toBeVisible();
+    await expect(completion.getByRole('link', { name: /Open Inventory holding/ })).toHaveCount(10);
+    await expect(completion.getByText(/2 vendor receipts/)).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/compass/);
   });
 
   test('searches ranked vendor, Library identity, and compatible Inventory holding matches', async ({ page }) => {
@@ -797,6 +824,7 @@ test.describe('analyzed inventory import review', () => {
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
     await row.getByRole('button', { name: 'Edit tea' }).click();
+    await row.getByRole('button', { name: 'All details' }).click();
     await expect(row.getByText('Selected: Yunnan service holding')).toBeVisible();
     await row.getByLabel('Inventory purpose').selectOption('personal');
     await expect(row.getByText('Selected: Yunnan service holding')).toHaveCount(0);

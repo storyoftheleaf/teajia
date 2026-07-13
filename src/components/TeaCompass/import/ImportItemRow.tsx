@@ -19,6 +19,16 @@ interface ImportItemRowProps {
 
 const fieldClass = 'mt-1 min-h-11 w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold lg:text-ui-13';
 const value = (input: unknown) => input == null ? '' : String(input);
+const draftFromItem = (item: CurateImportItem, identityBlocked: boolean, productBlocked: boolean) => ({
+  english_name: value(item.english_name || item.name), original_name: value(item.original_name),
+  pack_weight: value(item.pack_weight), weight_unit: value(item.weight_unit), pack_count: value(item.pack_count),
+  price_amount: value(item.price_amount_exact ?? item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
+  tea_type: value(item.parsed_data?.type), classification: value(item.parsed_data?.classification), year: value(item.parsed_data?.year),
+  form: value(item.parsed_data?.form), origin: value(item.parsed_data?.originRegion), description: value(item.parsed_data?.description),
+  purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(identityBlocked ? '' : item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || 'new'),
+  product_id: value(productBlocked ? '' : item.proposed_product_id || 'new'),
+  acquired: item.acquired === true ? 'yes' : '',
+});
 const packEquation = (item: CurateImportItem) => {
   const pack = item.pack_weight && item.weight_unit ? `${item.pack_weight}${item.weight_unit}` : null;
   const count = item.pack_count ? `×${item.pack_count}` : null;
@@ -29,21 +39,13 @@ const packEquation = (item: CurateImportItem) => {
 
 export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identityLookup, holdingLookup, onRetryIdentities, onRetryHoldings, onUpdate }) => {
   const [expanded, setExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(false);
   const identityResolutionTouched = useRef(false);
   const holdingResolutionTouched = useRef(false);
   const blockerKeys = (item.blocking_fields || []).map(field => field.replace(/_/g, '').toLocaleLowerCase());
   const identityBlocked = blockerKeys.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
   const productBlocked = blockerKeys.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
-  const [draft, setDraft] = useState({
-    english_name: value(item.english_name || item.name), original_name: value(item.original_name),
-    pack_weight: value(item.pack_weight), weight_unit: value(item.weight_unit), pack_count: value(item.pack_count),
-    price_amount: value(item.price_amount_exact ?? item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
-    tea_type: value(item.parsed_data?.type), classification: value(item.parsed_data?.classification), year: value(item.parsed_data?.year),
-    form: value(item.parsed_data?.form), origin: value(item.parsed_data?.originRegion), description: value(item.parsed_data?.description),
-    purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(identityBlocked ? '' : item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || 'new'),
-    product_id: value(productBlocked ? '' : item.proposed_product_id || 'new'),
-    acquired: item.acquired === true ? 'yes' : '',
-  });
+  const [draft, setDraft] = useState(() => draftFromItem(item, identityBlocked, productBlocked));
   const label = item.english_name || item.name || item.raw_text || `Item ${item.position + 1}`;
   const identityOptions = useMemo(() => identityLookup.options.filter(option => option.category === item.category), [identityLookup.options, item.category]);
   const identityState = useMemo<LookupState<ImportIdentityOption>>(() => ({ ...identityLookup, options: identityOptions, status: identityLookup.status === 'ready' && identityOptions.length === 0 ? 'empty' : identityLookup.status }), [identityLookup, identityOptions]);
@@ -56,6 +58,13 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
   const compatibleProposedHolding = holdingOptions.find(option => option.id === item.proposed_product_id);
   const proposedHoldingName = compatibleProposedHolding?.name || 'New Inventory holding';
   useEffect(() => {
+    if (!expanded) return;
+    setDraft(draftFromItem(item, identityBlocked, productBlocked));
+    setDetailsExpanded(false);
+    identityResolutionTouched.current = false;
+    holdingResolutionTouched.current = false;
+  }, [expanded, item, identityBlocked, productBlocked]);
+  useEffect(() => {
     if (holdingLookup.status !== 'ready' && holdingLookup.status !== 'empty') return;
     const productId = validateImportHoldingSelection(draft.product_id, holdingLookup.options, { category: item.category, compassEntryId: selectedIdentityId, purpose: draft.purpose || null });
     if (productId === draft.product_id) return;
@@ -64,6 +73,11 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
   }, [draft.product_id, draft.purpose, holdingLookup.options, holdingLookup.status, item.category, selectedIdentityId]);
   const blocking = importBlockingMessage(item);
   const editLabel = item.category === 'tea' ? 'tea' : 'item';
+  const hasBlocker = (...keys: string[]) => blockerKeys.some(field => keys.includes(field));
+  const quantityBlocking = hasBlocker('packweight', 'weightunit', 'packcount', 'totalquantitygrams', 'totalunits', 'quantity');
+  const costBlocking = hasBlocker('priceamount', 'linecost', 'pricebasis', 'currency');
+  const identitySelectionBlocking = identityBlocked || productBlocked;
+  const acquisitionBlocking = hasBlocker('acquired', 'acquisitionstate', 'physicalstock', 'acquiredintostock', 'inventorypurpose', 'purpose');
   const set = (key: keyof typeof draft, next: string) => setDraft(current => ({ ...current, [key]: next }));
   const setPurpose = (purpose: string) => {
     const productId = validateImportHoldingSelection(draft.product_id, holdingLookup.options, { category: item.category, compassEntryId: selectedIdentityId, purpose: purpose || null });
@@ -100,6 +114,24 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
     };
     if (await onUpdate(updates)) setExpanded(false);
   };
+  const quantityFields = <>
+    <label className="block text-ui-11 text-tea-text-sec">Pack weight<input inputMode="decimal" value={draft.pack_weight} onChange={event => set('pack_weight', event.target.value)} className={fieldClass} /></label>
+    <label className="block text-ui-11 text-tea-text-sec">Weight unit<select value={draft.weight_unit} onChange={event => set('weight_unit', event.target.value)} className={fieldClass}><option value="">Choose unit</option><option value="g">g</option><option value="kg">kg</option><option value="count">count</option></select></label>
+    <label className="block text-ui-11 text-tea-text-sec">Pack count<input inputMode="numeric" value={draft.pack_count} onChange={event => set('pack_count', event.target.value)} className={fieldClass} /></label>
+  </>;
+  const costFields = <>
+    <label className="block text-ui-11 text-tea-text-sec">Price amount<input inputMode="decimal" value={draft.price_amount} onChange={event => set('price_amount', event.target.value)} className={fieldClass} /></label>
+    <label className="block text-ui-11 text-tea-text-sec">Currency<input value={draft.currency} onChange={event => set('currency', event.target.value)} placeholder="CNY" className={fieldClass} /></label>
+    <label className="block text-ui-11 text-tea-text-sec">Price interpretation<select value={draft.price_basis} onChange={event => set('price_basis', event.target.value)} className={fieldClass}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></label>
+  </>;
+  const identityFields = <>
+    <ImportMatchPicker label="Library tea identity" lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} />
+    <ImportMatchPicker label="Inventory holding" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={proposedHoldingName} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} />
+  </>;
+  const acquisitionFields = <>
+    <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => setPurpose(event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
+    <label className="block text-ui-11 text-tea-text-sec">Acquired into physical stock<select value={draft.acquired} onChange={event => set('acquired', event.target.value)} className={fieldClass}><option value="">Needs confirmation</option><option value="yes">Yes, add to physical stock</option></select></label>
+  </>;
   return (
     <article data-testid="import-item-row" className="py-2">
       <div className="flex min-w-0 items-start gap-2">
@@ -114,25 +146,26 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
       </div>
       {expanded && (
         <fieldset disabled={busy} className="mt-3 space-y-3 border-l-2 border-tea-border pl-3">
-          {item.raw_text && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Original evidence</p><p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p></div>}
-          <label className="block text-ui-11 text-tea-text-sec">English inventory name<input value={draft.english_name} onChange={event => set('english_name', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Original or Chinese name<input value={draft.original_name} onChange={event => set('original_name', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Tea type or classification<input value={draft.tea_type} onChange={event => set('tea_type', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Classification<input value={draft.classification} onChange={event => set('classification', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Year<input inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Form<input value={draft.form} onChange={event => set('form', event.target.value)} placeholder="Cake, loose, brick…" className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Origin<input value={draft.origin} onChange={event => set('origin', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Description<textarea rows={3} value={draft.description} onChange={event => set('description', event.target.value)} className={`${fieldClass} py-2`} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Pack weight<input inputMode="decimal" value={draft.pack_weight} onChange={event => set('pack_weight', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Weight unit<select value={draft.weight_unit} onChange={event => set('weight_unit', event.target.value)} className={fieldClass}><option value="">Choose unit</option><option value="g">g</option><option value="kg">kg</option><option value="count">count</option></select></label>
-          <label className="block text-ui-11 text-tea-text-sec">Pack count<input inputMode="numeric" value={draft.pack_count} onChange={event => set('pack_count', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Price amount<input inputMode="decimal" value={draft.price_amount} onChange={event => set('price_amount', event.target.value)} className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Currency<input value={draft.currency} onChange={event => set('currency', event.target.value)} placeholder="CNY" className={fieldClass} /></label>
-          <label className="block text-ui-11 text-tea-text-sec">Price interpretation<select value={draft.price_basis} onChange={event => set('price_basis', event.target.value)} className={fieldClass}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></label>
-          <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => setPurpose(event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
-          <ImportMatchPicker label="Library tea identity" lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} />
-          <ImportMatchPicker label="Inventory holding" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={proposedHoldingName} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} />
-          <label className="block text-ui-11 text-tea-text-sec">Acquired into physical stock<select value={draft.acquired} onChange={event => set('acquired', event.target.value)} className={fieldClass}><option value="">Needs confirmation</option><option value="yes">Yes, add to physical stock</option></select></label>
+          {item.raw_text && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Evidence used for this item</p><p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p></div>}
+          {identitySelectionBlocking && identityFields}
+          {quantityBlocking && quantityFields}
+          {costBlocking && costFields}
+          {acquisitionBlocking && acquisitionFields}
+          <button type="button" aria-expanded={detailsExpanded} onClick={() => setDetailsExpanded(open => !open)} className="tap-target flex min-h-11 w-full items-center justify-between border-y border-tea-border text-left text-ui-12 text-tea-text-sec hover:text-tea-text"><span>All details</span>{detailsExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</button>
+          {detailsExpanded && <div className="space-y-3">
+            <label className="block text-ui-11 text-tea-text-sec">English inventory name<input value={draft.english_name} onChange={event => set('english_name', event.target.value)} className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Original or Chinese name<input value={draft.original_name} onChange={event => set('original_name', event.target.value)} className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Tea type<input value={draft.tea_type} onChange={event => set('tea_type', event.target.value)} placeholder="Pu’er, oolong, white…" className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Production or classification<input value={draft.classification} onChange={event => set('classification', event.target.value)} placeholder="Raw, ripe, charcoal-roasted…" className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Year<input inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Form<input value={draft.form} onChange={event => set('form', event.target.value)} placeholder="Cake, loose, brick…" className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Origin<input value={draft.origin} onChange={event => set('origin', event.target.value)} className={fieldClass} /></label>
+            <label className="block text-ui-11 text-tea-text-sec">Description<textarea rows={3} value={draft.description} onChange={event => set('description', event.target.value)} className={`${fieldClass} py-2`} /></label>
+            {!identitySelectionBlocking && identityFields}
+            {!quantityBlocking && quantityFields}
+            {!costBlocking && costFields}
+            {!acquisitionBlocking && acquisitionFields}
+          </div>}
           <div className="flex justify-between gap-3"><button type="button" onClick={() => setExpanded(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button><button type="button" disabled={busy || !draft.english_name.trim()} onClick={() => void submit()} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg disabled:opacity-50">{busy ? 'Saving…' : `Save ${editLabel}`}</button></div>
         </fieldset>
       )}

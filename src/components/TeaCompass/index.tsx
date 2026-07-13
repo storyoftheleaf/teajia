@@ -27,7 +27,6 @@ import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
 import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { ImportPanel } from './import/ImportPanel';
 import { ImportBatchChip } from './ImportBatchChip';
-import { inventoryTargetFromFinalize } from './import/importReviewDomain';
 import { SampleOrderAction } from './SampleOrderAction';
 import { CaptureActionFooter } from './CaptureActionFooter';
 
@@ -382,11 +381,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     window.requestAnimationFrame(() => importTriggerRef.current?.focus());
   }, []);
 
-  const openFinalizedImport = useCallback(async (result: CurateImportFinalizeResult) => {
-    const productId = inventoryTargetFromFinalize(result);
-    closeImport();
-    navigate(productId ? `/admin/stock?panel=${encodeURIComponent(productId)}` : '/admin/stock');
-  }, [closeImport, navigate]);
+  const handleFinalizedImport = useCallback(async (_result: CurateImportFinalizeResult) => {
+    localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
+    setImportDetails(current => importDetail ? current.filter(detail => detail.batch.id !== importDetail.batch.id) : current);
+    await queryClient.invalidateQueries({ queryKey: ['curate-imports'] });
+  }, [activeAccountId, importDetail, queryClient]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -1666,7 +1665,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           accountId={activeAccountId || 'guest'}
           initialDetail={importDetail}
           onDetailChange={rememberImportDetail}
-          onFinalized={openFinalizedImport}
+          onFinalized={handleFinalizedImport}
           onClose={closeImport}
           onNew={beginNewImport}
         />
