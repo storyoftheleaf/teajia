@@ -22,9 +22,6 @@ test('repository keeps only the reviewed live stock-media references and CSP dec
     [
       ['public/_headers | https://images.unsplash.com', 1],
       ['public/_headers | https://picsum.photos', 1],
-      ['src/AboutPage.tsx | https://images.unsplash.com', 1],
-      ['src/constants.ts | https://picsum.photos', 8],
-      ['src/content/people.ts | https://picsum.photos', 5],
     ],
   );
 });

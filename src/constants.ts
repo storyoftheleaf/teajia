@@ -224,7 +224,6 @@ export const STARTER_TEA_SETS: StarterSet[] = [
     shortDescription: 'Explore three classic teas with a versatile brewing vessel.',
     description: 'A guided introduction to the world of loose-leaf tea. This set pairs three distinct varieties — a crisp green, a fragrant oolong, and a delicate white — with a glass infuser that lets you watch the leaves unfurl. Each tea is portioned at 50g, enough for weeks of daily brewing and the kind of repeated steepings where real appreciation begins.',
     idealFor: 'First-time loose-leaf drinkers ready to move beyond tea bags',
-    image: 'https://picsum.photos/400/500?random=401',
     price: '$52',
     discount: 'Save $10 vs. individual items',
     items: [
@@ -241,7 +240,6 @@ export const STARTER_TEA_SETS: StarterSet[] = [
     shortDescription: 'Discover aged Puerh with traditional Yixing clay brewing.',
     description: 'Puerh is tea at its most patient — fermented, aged, and transformed by time. This set includes a raw sheng puerh that rewards careful brewing with layers of camphor, sweetness, and stone-fruit complexity. The unglazed Yixing clay pot absorbs the tea\'s oils over time, developing a seasoned patina that improves every session. The included puerh knife lets you break cakes cleanly.',
     idealFor: 'Tea drinkers curious about aged and fermented teas',
-    image: 'https://picsum.photos/400/500?random=303',
     price: '$89',
     discount: 'Save $15 vs. individual items',
     items: [
@@ -257,7 +255,6 @@ export const STARTER_TEA_SETS: StarterSet[] = [
     shortDescription: 'Master gongfu brewing with premium oolong and tools.',
     description: 'Gongfu cha — "tea with skill" — is the traditional Chinese method of brewing with small vessels, high leaf ratios, and multiple rapid infusions. This set provides everything for a proper session: a porcelain gaiwan for precise temperature control, a fairness pitcher to ensure even distribution, a tasting cup sized for contemplation, and a premium oolong that reveals new character across eight or more steepings.',
     idealFor: 'Anyone ready to learn traditional Chinese gongfu brewing',
-    image: 'https://picsum.photos/400/500?random=302',
     price: '$72',
     discount: 'Save $12 vs. individual items',
     items: [
@@ -274,7 +271,6 @@ export const STARTER_TEA_SETS: StarterSet[] = [
     shortDescription: 'Classic black tea service for elegant afternoon sessions.',
     description: 'The afternoon tea tradition is one of slowing down — a deliberate pause in the day. This set includes a full-bodied black tea with malt and honey notes, a ceramic teapot that retains heat beautifully, a fine-mesh strainer for a clean pour, and a sand timer for consistent steeping. Simple enough for everyday use, refined enough for guests.',
     idealFor: 'Those who want a daily ritual or a way to host friends over tea',
-    image: 'https://picsum.photos/400/500?random=305',
     price: '$55',
     discount: 'Save $10 vs. individual items',
     items: [
@@ -294,7 +290,6 @@ export const STARTER_TEAWARE_SETS: StarterSet[] = [
     shortDescription: 'Complete gongfu brewing setup for traditional ceremony.',
     description: 'The foundation of a proper gongfu tea table. The ceramic gaiwan gives you direct control over steep time and water flow. The fairness pitcher ensures every cup from a session tastes identical. The small tasting cup concentrates aroma and invites slow sipping. The bamboo scoop completes the ritual with a tactile, natural measuring tool.',
     idealFor: 'Building a dedicated tea space at home',
-    image: 'https://picsum.photos/400/500?random=402',
     price: '$58',
     discount: 'Save $9 vs. individual items',
     items: [
@@ -311,7 +306,6 @@ export const STARTER_TEAWARE_SETS: StarterSet[] = [
     shortDescription: 'Versatile brewing tools for everyday convenience.',
     description: 'Not everyone wants ceremony — sometimes you just want excellent tea, fast. This kit pairs two infuser styles (basket and glass) so you can match vessel to mood: quick office mug or slow weekend steep. The precision strainer catches even the finest leaves, and the bamboo scoop replaces guessing with consistency.',
     idealFor: 'Busy people who want great tea without the ritual',
-    image: 'https://picsum.photos/400/500?random=403',
     price: '$42',
     discount: 'Save $7 vs. individual items',
     items: [
@@ -328,7 +322,6 @@ export const STARTER_TEAWARE_SETS: StarterSet[] = [
     shortDescription: 'Portable tea setup for brewing on the go.',
     description: 'Your tea practice shouldn\'t stop at the front door. The double-walled travel tumbler keeps tea hot for hours without burning your hands. The silicone bag diffuser works with any cup you find along the way. The porcelain tasting cup is small enough to pack but beautiful enough to make a hotel room feel like home.',
     idealFor: 'Frequent travelers and commuters who refuse bad tea',
-    image: 'https://picsum.photos/400/500?random=306',
     price: '$38',
     discount: 'Save $6 vs. individual items',
     items: [
@@ -344,7 +337,6 @@ export const STARTER_TEAWARE_SETS: StarterSet[] = [
     shortDescription: 'Simple, refined pieces for mindful tea moments.',
     description: 'Sometimes less is the entire point. A single porcelain cup, a clear glass infuser that turns brewing into a visual meditation, and a hand-carved bamboo scoop. No clutter, no fuss — just the essentials for one person to sit quietly with a good tea. The kind of set that makes you want to brew more often.',
     idealFor: 'Minimalists and solo tea drinkers who value simplicity',
-    image: 'https://picsum.photos/400/500?random=404',
     price: '$35',
     discount: 'Save $5 vs. individual items',
     items: [
