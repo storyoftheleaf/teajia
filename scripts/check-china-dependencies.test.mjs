@@ -3,7 +3,31 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { scanChinaDependencies, verifyBuiltReachabilityPolicy } from './check-china-dependencies.mjs';
+
+test('repository keeps only the reviewed live stock-media references and CSP declarations', async () => {
+  const repositoryRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..');
+  const result = await scanChinaDependencies(repositoryRoot);
+  const sourceAndPublicMedia = result.inventory.filter(({ file, kind }) =>
+    kind === 'blocked-media' && (file.startsWith('src/') || file.startsWith('public/'))
+  );
+  const reviewedReferences = new Map();
+  for (const { file, value } of sourceAndPublicMedia) {
+    const key = `${file} | ${value}`;
+    reviewedReferences.set(key, (reviewedReferences.get(key) ?? 0) + 1);
+  }
+  assert.deepEqual(
+    [...reviewedReferences].sort(([left], [right]) => left.localeCompare(right)),
+    [
+      ['public/_headers | https://images.unsplash.com', 1],
+      ['public/_headers | https://picsum.photos', 1],
+      ['src/AboutPage.tsx | https://images.unsplash.com', 1],
+      ['src/constants.ts | https://picsum.photos', 8],
+      ['src/content/people.ts | https://picsum.photos', 5],
+    ],
+  );
+});
 
 test('flags blocked runtime media and browser Worker origins', async () => {
   const root = await mkdtemp(join(tmpdir(), 'teajia-china-'));

@@ -203,8 +203,6 @@ import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
-import { COMMUNITY_MEMBERS } from './data/communityMembers';
-import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 
 // View Transitions API feature detection (#46)
 const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
