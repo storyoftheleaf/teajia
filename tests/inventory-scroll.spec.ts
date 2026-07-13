@@ -275,7 +275,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(columns).toHaveCSS('position', 'static');
 
     const expectedColumns = testInfo.project.name === 'Mobile Chrome'
-      ? ['Product', 'Stock', 'Retail', 'Type', 'Source']
+      ? ['Product', 'Year', 'Stock', 'Retail']
       : ['Product', 'Stock', 'Retail', 'Type', 'Source', 'Origin', 'Leaf', 'Year'];
     for (const label of expectedColumns) {
       await expect(columns.getByText(label, { exact: true })).toBeVisible();

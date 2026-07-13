@@ -21,6 +21,8 @@ export interface InventoryRowProps {
   stickyFirstCol?: boolean;
   /** Mobile swipe table left-aligns every column (numbers included). */
   alignLeft?: boolean;
+  /** Restores the exact pre-horizontal-swipe mobile row typography/content. */
+  legacyMobileLayout?: boolean;
   rowHeight: number;
   isPanelOpen: boolean;
   isDropdownOpen: boolean;
@@ -47,7 +49,7 @@ export interface InventoryRowProps {
 function InventoryRowBase(props: InventoryRowProps) {
   const {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
-    splitView, stickyFirstCol, alignLeft, rowHeight, isPanelOpen, isDropdownOpen,
+    splitView, stickyFirstCol, alignLeft, legacyMobileLayout, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
     onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, navigate,
   } = props;
@@ -104,7 +106,9 @@ function InventoryRowBase(props: InventoryRowProps) {
         // and desktop (alignLeft is set in both) so the two surfaces read the
         // same. The old larger 17px desktop name only applies to legacy non-
         // unified layouts (none currently, but kept as the fallback).
-        const nameWeightCls = (stickyFirstCol || alignLeft)
+        const nameWeightCls = legacyMobileLayout
+          ? 'font-display text-ui-17 leading-snug truncate font-medium'
+          : (stickyFirstCol || alignLeft)
           ? 'font-display text-ui-15 leading-snug truncate font-normal'
           : 'font-display text-ui-17 leading-snug truncate font-medium';
         // The pinned column sits ON TOP of the card surface as the rest of the
@@ -126,12 +130,11 @@ function InventoryRowBase(props: InventoryRowProps) {
         // Subtitle slot is always rendered (with &nbsp; fallback) so every row
         // has the same height regardless of whether a givenName/form is present.
         const houseName = product.givenName?.trim() || 'Unnamed';
-        const subtitle = (
-          <>
-            {product.year && <span className="num opacity-80 mr-1">{product.year}</span>}
-            <span>{houseName}</span>
-          </>
-        );
+        const subtitle = legacyMobileLayout
+          ? product.givenName
+            ? <>{product.givenName}{product.form && <span className="ml-1 opacity-70">· {product.form}</span>}</>
+            : product.form || ' '
+          : <>{product.year && <span className="num opacity-80 mr-1">{product.year}</span>}<span>{houseName}</span></>;
         return (
           <td
             key={colKey}
@@ -380,6 +383,7 @@ export const InventoryRow = React.memo(InventoryRowBase, (prev, next) =>
   prev.splitViewCols === next.splitViewCols &&
   prev.splitView === next.splitView &&
   prev.stickyFirstCol === next.stickyFirstCol &&
+  prev.legacyMobileLayout === next.legacyMobileLayout &&
   prev.alignLeft === next.alignLeft &&
   prev.rowHeight === next.rowHeight &&
   prev.isPanelOpen === next.isPanelOpen &&

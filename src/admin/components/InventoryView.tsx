@@ -544,11 +544,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     isEditMode,
   });
 
-  // Every visible column keeps the established fixed width and type scale on
-  // every screen. Mobile clips the wide ledger rather than resizing its cells.
+  // Exact pre-swipe mobile behavior from the parent of d845508e: Origin is
+  // trimmed before render; desktop keeps the persisted view unchanged.
   const visibleCols = useMemo(
-    () => allVisibleCols,
-    [allVisibleCols],
+    () => (isMobile ? allVisibleCols.filter(col => col.key !== 'originRegion') : allVisibleCols),
+    [isMobile, allVisibleCols],
   );
 
   // Initialize review drafts when switching to Pending filter or when pending products change
@@ -634,8 +634,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return Math.max(MIN_MOBILE_COL_PX, base);
   };
 
+  const MOBILE_HIDDEN_COLS = new Set(['type', 'originRegion', 'vendor', 'form']);
   const renderCols = useMemo(() => {
-    if (isMobile && splitView) return splitViewCols;
+    if (isMobile) {
+      const narrowCols = splitView ? splitViewCols : visibleCols;
+      return narrowCols.filter(col => !MOBILE_HIDDEN_COLS.has(col.key));
+    }
     if (unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
       const byKey = new Map<string, ColDef>(visibleCols.map(c => [c.key, c]));
       // Source (vendor) and Leaf (form) aren't in the desktop All view's columns,
@@ -672,11 +676,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [renderCols, inventoryMobileColWidths],
   );
-  // Preserve the existing fixed ledger geometry. The mobile scroll host clips
-  // this width on the right instead of scaling columns or allowing x-scroll.
-  const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
+  // Mobile uses the original percentage colgroup classes; the later fixed-pixel
+  // system remains desktop-only.
+  const mobileTableStyle = unifiedLayout && !isMobile ? { minWidth: mobileTableMinWidth } : undefined;
   const renderColEl = (col: ColDef) =>
-    unifiedLayout
+    unifiedLayout && !isMobile
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
       : <col key={col.key} className={col.defaultWidth} />;
 
@@ -1228,7 +1232,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
       return (
         <th
           aria-sort={ariaSort}
-          className={`relative font-sans text-ui-10 uppercase tracking-[0.12em] text-tea-text-dim font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
+          className={`relative font-sans ${isMobile ? 'text-ui-11 tracking-caps' : 'text-ui-10 tracking-[0.12em]'} uppercase text-tea-text-dim font-medium px-3 py-1 border-b border-tea-border ${align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'} ${stickyCls}`}
         >
           <button
             type="button"
@@ -2141,14 +2145,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+              <table className={`w-full table-fixed border-collapse ${unifiedLayout && !isMobile ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
                 <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                   <tr>
                     {renderCols.map((col, i) => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={unifiedLayout} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={!isMobile && unifiedLayout} />
                     ))}
                   </tr>
                 </thead>
@@ -2174,7 +2178,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+                      <table className={`w-full table-fixed border-collapse ${unifiedLayout && !isMobile ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2197,7 +2201,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   stickyFirstCol={false}
-                                  alignLeft={unifiedLayout}
+                                  alignLeft={!isMobile && unifiedLayout}
+                                  legacyMobileLayout={isMobile}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
                                   isDropdownOpen={rowDropdownId === product.id}
@@ -2241,7 +2246,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+            <table className={`w-full table-fixed border-collapse ${unifiedLayout && !isMobile ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2259,7 +2264,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))
                         ) : (
                           renderCols.map((col, i) => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={unifiedLayout} />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={!isMobile && unifiedLayout} />
                           ))
                         )}
                     </tr>
@@ -2280,7 +2285,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
                               stickyFirstCol={false}
-                              alignLeft={unifiedLayout}
+                              alignLeft={!isMobile && unifiedLayout}
+                              legacyMobileLayout={isMobile}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
                               isDropdownOpen={rowDropdownId === product.id}
