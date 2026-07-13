@@ -26,7 +26,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
   const [draft, setDraft] = useState({
     english_name: value(item.english_name || item.name), original_name: value(item.original_name),
     pack_weight: value(item.pack_weight), weight_unit: value(item.weight_unit), pack_count: value(item.pack_count),
-    price_amount: value(item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
+    price_amount: value(item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
     tea_type: value(item.parsed_data?.type), classification: value(item.parsed_data?.classification), year: value(item.parsed_data?.year),
     form: value(item.parsed_data?.form), origin: value(item.parsed_data?.originRegion), description: value(item.parsed_data?.description),
     purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || (!identityBlocked && 'new')),
@@ -45,13 +45,13 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
       description: draft.description.trim() || null, inventoryPurpose: draft.purpose || null,
       compassSelection: draft.compass_entry_id || null, productSelection: draft.product_id || null, acquired: draft.acquired === 'yes',
       packWeight: draft.pack_weight ? Number(draft.pack_weight) : null, weightUnit: draft.weight_unit || null,
-      packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount ? Number(draft.price_amount) : null,
+      packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount.trim() || null,
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis,
     });
     const updates: Partial<CurateImportItem> = {
       name: draft.english_name.trim() || null, english_name: draft.english_name.trim() || null, original_name: draft.original_name.trim() || null,
       pack_weight: draft.pack_weight ? Number(draft.pack_weight) : null, weight_unit: (draft.weight_unit || null) as CurateImportItem['weight_unit'],
-      pack_count: draft.pack_count ? Number(draft.pack_count) : null, price_amount: draft.price_amount ? Number(draft.price_amount) : null,
+      pack_count: draft.pack_count ? Number(draft.pack_count) : null,
       currency: draft.currency.trim().toUpperCase() || null, price_basis: draft.price_basis as CurateImportItem['price_basis'],
       parsed_data: parsedValues,
     };

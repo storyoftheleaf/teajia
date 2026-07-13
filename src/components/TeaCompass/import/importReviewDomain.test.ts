@@ -107,13 +107,23 @@ describe('review navigation and journey helpers', () => {
       englishName: 'Tea', originalName: null, type: 'raw puer', classification: null, year: 2024, form: 'cake',
       originRegion: 'Yunnan', description: null, inventoryPurpose: 'working', compassSelection: 'compass-1',
       productSelection: 'product-1', acquired: true, packWeight: 357, weightUnit: 'g', packCount: 1,
-      priceAmount: 80, currency: 'CNY', priceBasis: 'per_pack',
+      priceAmount: '80', currency: 'CNY', priceBasis: 'per_pack',
     });
     expect(payload).toMatchObject({ type: 'raw puer', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1', acquired: true, duplicateResolution: 'matched' });
     expect(payload).not.toHaveProperty('teaType');
     expect(payload).not.toHaveProperty('compassEntryId');
     expect(payload).not.toHaveProperty('productId');
     expect(payload).not.toHaveProperty('acquiredIntoStock');
+  });
+
+  it('serializes fractional price corrections as canonical decimal strings', () => {
+    const payload = buildImportCorrectionParsedData({ sourceItemId: 'source-1', confidence: { priceAmount: 0.4 } }, {
+      englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null,
+      originRegion: null, description: null, inventoryPurpose: 'working', compassSelection: 'new', productSelection: 'new',
+      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '21.500', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(payload).toMatchObject({ priceAmount: '21.5', priceAmountExact: '21.5' });
+    expect(typeof payload.priceAmount).toBe('string');
   });
 
   it('promotes Worker identity and stock fields into normalized editor aliases', () => {

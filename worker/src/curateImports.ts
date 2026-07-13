@@ -681,16 +681,26 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
   const vendorId = `curate-vendor-${params.groupId}`;
   const deterministicWinner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
   if (deterministicWinner && normalizedName(String(deterministicWinner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
-  const results = await env.DB.batch([
-    env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
+  const groupUncertainty = parseJson(group.uncertainty_json, {}) as Record<string, unknown>;
+  delete groupUncertainty.vendor;
+  const groupItems = await env.DB.prepare('SELECT * FROM curate_import_items WHERE vendor_group_id = ? AND account_id = ?').bind(params.groupId, ctx.accountId).all<Record<string, unknown>>();
+  const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', ?, 'curate_import' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
       .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId),
-    env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, vendor_confidence = 1, uncertainty_json = '{}', updated_at = datetime('now')
+    env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now')
       WHERE id = ? AND account_id = ?
         AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ? AND name = ?)
         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
       .bind(vendorId, params.groupId, ctx.accountId, vendorId, ctx.accountId, name, params.id, ctx.accountId),
-  ]);
+    env.DB.prepare("UPDATE curate_import_vendor_groups SET vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+      .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, params.id, ctx.accountId)];
+  for (const item of groupItems.results) {
+    const parsed = parseJson(item.parsed_data_json, {}) as Record<string, unknown>;
+    const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(field => field !== 'vendor') : [];
+    statements.push(env.DB.prepare("UPDATE curate_import_items SET parsed_data_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+      .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.id, ctx.accountId));
+  }
+  const results = await env.DB.batch(statements);
   const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
   if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
   if (!(results[1]?.meta.changes ?? 0)) return terminalResponse();

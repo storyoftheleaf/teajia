@@ -53,7 +53,7 @@ export const resolveImportBlockingFields = (fields: string[], values: Record<str
   if (key === 'packcount') return !(typeof values.packCount === 'number' && values.packCount > 0);
   if (key === 'packweight') return !(typeof values.packWeight === 'number' && values.packWeight > 0);
   if (key === 'weightunit') return !values.weightUnit;
-  if (key === 'priceamount') return !(typeof values.priceAmount === 'number' && values.priceAmount >= 0);
+  if (key === 'priceamount') return !((typeof values.priceAmount === 'number' && values.priceAmount >= 0) || (typeof values.priceAmount === 'string' && /^\d+(?:\.\d+)?$/.test(values.priceAmount)));
   if (key === 'pricebasis') return !values.priceBasis || values.priceBasis === 'unknown';
   if (key === 'currency') return !values.currency;
   if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return values.duplicateResolution !== 'new' && !values.proposedCompassEntryId;
@@ -78,7 +78,7 @@ export interface ImportCorrectionDraft {
   englishName: string | null; originalName: string | null; type: string | null; classification: string | null;
   year: number | null; form: string | null; originRegion: string | null; description: string | null;
   inventoryPurpose: string | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
-  packWeight: number | null; weightUnit: string | null; packCount: number | null; priceAmount: number | null;
+  packWeight: number | null; weightUnit: string | null; packCount: number | null; priceAmount: string | null;
   currency: string | null; priceBasis: string;
 }
 
@@ -86,6 +86,14 @@ export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>,
   const createsIdentity = draft.compassSelection === 'new';
   const proposedCompassEntryId = createsIdentity ? null : draft.compassSelection;
   const proposedProductId = createsIdentity || draft.productSelection === 'new' ? null : draft.productSelection;
+  const priceAmount = (() => {
+    const source = draft.priceAmount?.trim();
+    if (!source || !/^\d+(?:\.\d+)?$/.test(source)) return null;
+    const [whole, fraction = ''] = source.split('.');
+    const canonicalWhole = whole.replace(/^0+(?=\d)/, '') || '0';
+    const canonicalFraction = fraction.replace(/0+$/, '');
+    return canonicalFraction ? `${canonicalWhole}.${canonicalFraction}` : canonicalWhole;
+  })();
   return {
     ...withoutImportDerivedFields(parsed),
     englishName: draft.englishName, originalName: draft.originalName, type: draft.type,
@@ -94,7 +102,7 @@ export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>,
     proposedCompassEntryId, proposedProductId, acquired: draft.acquired,
     duplicateResolution: createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved',
     packWeight: draft.packWeight, weightUnit: draft.weightUnit, packCount: draft.packCount,
-    priceAmount: draft.priceAmount, currency: draft.currency, priceBasis: draft.priceBasis,
+    priceAmount, priceAmountExact: priceAmount, currency: draft.currency, priceBasis: draft.priceBasis,
   };
 };
 

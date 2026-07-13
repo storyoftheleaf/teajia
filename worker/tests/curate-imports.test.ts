@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src/index';
+import { validateImportForFinalization } from '../src/curateImportFinalize';
+import { buildImportCorrectionParsedData } from '../../src/components/TeaCompass/import/importReviewDomain';
 
 const JWT_SECRET = 'test-secret';
 type Row = Record<string, unknown> & { id: string };
@@ -463,7 +465,14 @@ describe('Curate import provenance API', () => {
     }) }] }), { status: 200 }));
     const analyzed = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
     expect(analyzed.items[0].parsed_data.blockingFields).toContain('priceAmount');
-    const corrected = { ...analyzed.items[0].parsed_data, priceAmount: '21.5' };
+    const corrected = buildImportCorrectionParsedData(analyzed.items[0].parsed_data, {
+      englishName: analyzed.items[0].parsed_data.englishName, originalName: analyzed.items[0].parsed_data.originalName,
+      type: analyzed.items[0].parsed_data.type, classification: analyzed.items[0].parsed_data.classification,
+      year: analyzed.items[0].parsed_data.year, form: analyzed.items[0].parsed_data.form, originRegion: analyzed.items[0].parsed_data.originRegion,
+      description: analyzed.items[0].parsed_data.description, inventoryPurpose: 'working', compassSelection: 'new', productSelection: 'new',
+      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '21.5', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(corrected).toMatchObject({ priceAmount: '21.5', priceAmountExact: '21.5' });
     const response = await request(db, `/api/curate/imports/${batch.id}/items/${analyzed.items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: corrected }) });
     expect(response.status).toBe(200);
     const reviewed = await response.json() as any;
@@ -508,14 +517,25 @@ describe('Curate import provenance API', () => {
 
   it('creates a vendor through the existing customer model and assigns the complete group', async () => {
     const db = new ImportDb();
-    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'New vendor' }) });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'New vendor', items: [{ name: 'Tea' }] }) });
     const { batch } = await created.json() as any;
-    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', proposed_vendor_name: null, resolved_vendor_customer_id: null, vendor_confidence: 0.3, uncertainty_json: '{"vendor":"unclear","origin":"Yunnan or Sichuan"}' });
+    const itemId = [...db.items.keys()][0];
+    db.items.get(itemId)!.vendor_group_id = 'group-a';
+    db.items.get(itemId)!.parsed_data_json = JSON.stringify({ ...itemProposal('create-vendor'), inventoryPurpose: 'working', duplicateResolution: 'new', blockingFields: ['vendor'] });
     const response = await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'New Tea Farm' }) });
     expect(response.status).toBe(201);
     const body = await response.json() as any;
     expect(db.customers.get(body.vendor.id)).toMatchObject({ account_id: 'account-a', name: 'New Tea Farm', tags: '["vendor"]' });
     expect(db.groups.get('group-a')?.resolved_vendor_customer_id).toBe(body.vendor.id);
+    expect(db.groups.get('group-a')).toMatchObject({ vendor_confidence: 1, uncertainty_json: '{"origin":"Yunnan or Sichuan"}' });
+    const resolvedParsed = JSON.parse(String(db.items.get(itemId)?.parsed_data_json));
+    expect(resolvedParsed.blockingFields).toEqual([]);
+    expect(validateImportForFinalization({
+      batch: { id: batch.id, accountId: 'account-a', journeyId: null, reviewState: 'reviewing' },
+      groups: [{ id: 'group-a', vendorId: String(body.vendor.id), vendorName: 'New Tea Farm', position: 0 }],
+      items: [{ id: itemId, groupId: 'group-a', category: 'tea', name: 'Tea', compassEntryId: null, productId: null, duplicateResolution: 'new', quantity: 100, unit: 'g', packCount: 1, lineCost: 20, currency: 'USD', unitCost: 0.2, purpose: 'working', blockingFields: resolvedParsed.blockingFields }],
+    })).toEqual([]);
     const retry = await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'New Tea Farm' }) });
     expect(retry.status).toBe(200);
     expect((await retry.json() as any).vendor.id).toBe(body.vendor.id);
