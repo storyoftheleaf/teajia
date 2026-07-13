@@ -351,7 +351,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
 const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
-  'session_reserve_grams', 'inventory_purpose', 'stock_known_at', 'storage_location',
+  'session_reserve_grams', 'inventory_purpose', 'stock_known_at',
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([
@@ -371,22 +371,28 @@ function splitProductUpdateByDomain(data: Record<string, any>): {
   stock: Record<string, any>;
   commercial: Record<string, any>;
   publication: Record<string, any>;
-  legacy: Record<string, any>;
 } {
   const groups = {
     catalog: {} as Record<string, any>,
     stock: {} as Record<string, any>,
     commercial: {} as Record<string, any>,
     publication: {} as Record<string, any>,
-    legacy: {} as Record<string, any>,
   };
+
+  const unknown: string[] = [];
 
   for (const [key, value] of Object.entries(data)) {
     if (PRODUCT_CATALOG_UPDATE_FIELDS.has(key)) groups.catalog[key] = value;
     else if (PRODUCT_STOCK_UPDATE_FIELDS.has(key)) groups.stock[key] = value;
     else if (PRODUCT_COMMERCIAL_UPDATE_FIELDS.has(key)) groups.commercial[key] = value;
     else if (PRODUCT_PUBLICATION_UPDATE_FIELDS.has(key)) groups.publication[key] = value;
-    else groups.legacy[key] = value;
+    else unknown.push(key);
+  }
+
+  if (unknown.length > 0) {
+    throw new ApiError('Unsupported fields for this product update', 400, {
+      code: 'validation_failed', details: { fields: unknown },
+    });
   }
 
   return groups;
@@ -406,9 +412,6 @@ async function updateProductByDomain(id: string, data: Record<string, any>) {
   if (Object.keys(groups.stock).length > 0) result = await putProductUpdate(id, '/stock', groups.stock);
   if (Object.keys(groups.commercial).length > 0) result = await putProductUpdate(id, '/commercial', groups.commercial);
   if (Object.keys(groups.publication).length > 0) result = await putProductUpdate(id, '/publication', groups.publication);
-  // Preserve compatibility for fields that the broad legacy endpoint already
-  // accepts or safely ignores while callers are migrated field by field.
-  if (Object.keys(groups.legacy).length > 0) result = await putProductUpdate(id, '', groups.legacy);
   return result;
 }
 
@@ -978,12 +981,6 @@ export const api = {
       return authedFetch(`${API_URL}/api/products/bulk`, {
         method: 'POST',
         body: JSON.stringify({ products, batch_id: batchId, receipt_label: receiptLabel }),
-      });
-    },
-    update: async (id: string, data: Record<string, any>) => {
-      return authedFetch(`${API_URL}/api/products/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
       });
     },
     updateByDomain: updateProductByDomain,

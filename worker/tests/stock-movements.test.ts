@@ -128,7 +128,7 @@ function b64(input: string | Uint8Array) { const bytes = typeof input === 'strin
 async function jwt(account = 'account-a') { const now = Math.floor(Date.now() / 1000); const data = `${b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${b64(JSON.stringify({ sub: 'actor', email: 'actor@example.com', active_account_id: account, iat: now, exp: now + 3600 }))}`; const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return `${data}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))))}`; }
 async function movementRequest(db: MovementDb, product: string, body: Row, account = 'account-a') { return worker.fetch(new Request(`https://test/api/products/${product}/movements`, { method: 'POST', headers: { Authorization: `Bearer ${await jwt(account)}`, 'X-Teajia-Account': account, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), { DB: db, JWT_SECRET: SECRET } as any); }
 async function receiveRequest(db: MovementDb, lineId: string, requestBody: Row) { return worker.fetch(new Request(`https://test/api/inventory/receipt-lines/${lineId}/receive`, { method:'POST', headers:{ Authorization:`Bearer ${await jwt()}`, 'X-Teajia-Account':'account-a', 'Content-Type':'application/json' }, body:JSON.stringify(requestBody) }), { DB:db, JWT_SECRET:SECRET } as any); }
-async function legacyStockRequest(db: MovementDb, productId: string, stock_grams: number) { return worker.fetch(new Request(`https://test/api/products/${productId}`, { method:'PUT', headers:{ Authorization:`Bearer ${await jwt()}`, 'X-Teajia-Account':'account-a', 'Content-Type':'application/json', 'Idempotency-Key':'legacy-recount' }, body:JSON.stringify({ stock_grams }) }), { DB:db, JWT_SECRET:SECRET } as any); }
+async function absoluteStockRequest(db: MovementDb, productId: string, stock_grams: number) { return worker.fetch(new Request(`https://test/api/products/${productId}/stock`, { method:'PUT', headers:{ Authorization:`Bearer ${await jwt()}`, 'X-Teajia-Account':'account-a', 'Content-Type':'application/json', 'Idempotency-Key':'stock-recount' }, body:JSON.stringify({ stock_grams }) }), { DB:db, JWT_SECRET:SECRET } as any); }
 const body = (movement_type: string, extra: Row = {}) => ({ movement_type, quantity: 3, unit: 'g', expected_balance: 20, idempotency_key: `${movement_type}-1`, note: 'field note', ...extra });
 
 describe('POST product stock movements', () => {
@@ -225,8 +225,8 @@ describe('POST product stock movements', () => {
     expect((await Promise.all(responses.map(response => response.json() as Promise<any>))).map(result => result.already_received).sort()).toEqual([false,true]);
     expect(db.ledger).toHaveLength(1); expect(db.ledger[0].batch_id).toBe('receipt-receipt');
   });
-  it('routes legacy absolute stock editing through exactly one recount ledger movement', async () => {
-    const db = new MovementDb(); const response = await legacyStockRequest(db,'tea',12);
-    expect(response.status).toBe(200); expect(db.products.get('tea')?.stock_grams).toBe(12); expect(db.ledger).toHaveLength(1); expect(db.ledger[0]).toMatchObject({ movement_type:'recount',delta:-8,idempotency_key:'legacy-recount' });
+  it('routes absolute stock command editing through exactly one recount ledger movement', async () => {
+    const db = new MovementDb(); const response = await absoluteStockRequest(db,'tea',12);
+    expect(response.status).toBe(200); expect(db.products.get('tea')?.stock_grams).toBe(12); expect(db.ledger).toHaveLength(1); expect(db.ledger[0]).toMatchObject({ movement_type:'recount',delta:-8,idempotency_key:'stock-recount' });
   });
 });

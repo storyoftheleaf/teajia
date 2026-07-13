@@ -15,6 +15,8 @@ type FakeDbOptions = {
   email?: string;
   mcpScopes?: string[];
   platformAccountId?: string | null;
+  customerRelationshipKinds?: string[];
+  customerExists?: boolean;
 };
 
 function b64encodeUtf8(str: string): string {
@@ -64,7 +66,7 @@ class FakeStatement {
 
   async first() {
     const sql = normalizeSql(this.sql);
-    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId } = this.options;
+    const { role, bundles, platformRole, accountStatus, userId, email, mcpScopes, platformAccountId, customerExists } = this.options;
 
     if (sql.includes('from mcp_tokens where token_hash = ?')) {
       return {
@@ -88,6 +90,12 @@ class FakeStatement {
     if (sql.includes('select id from teaware_collection where id = ? and account_id = ?')) {
       return { id: 'teaware_test' };
     }
+    if (sql.includes('select id from products where id = ? and account_id = ?')) {
+      return { id: 'prod_test' };
+    }
+    if (sql.includes('from customers where id = ? and account_id = ?')) {
+      return customerExists ? { id: 'cus_test', account_id: ACCOUNT_ID, name: 'Customer', contacts: '[]', tags: '[]' } : null;
+    }
     if (sql.includes('from accounts') && sql.includes('is_platform_owner = 1')) {
       return platformAccountId ? { id: platformAccountId } : null;
     }
@@ -104,6 +112,12 @@ class FakeStatement {
 
   async all() {
     const sql = normalizeSql(this.sql);
+    if (sql.includes('from contact_relationships') && sql.includes('customer_id')) {
+      return { results: this.options.customerRelationshipKinds.map(kind => ({ customer_id: 'cus_test', kind })) };
+    }
+    if (sql.includes('from invoices where customer_id = ?')) {
+      return { results: [{ id: 'invoice-private', customer_id: 'cus_test', account_id: ACCOUNT_ID }] };
+    }
     if (sql.includes('from contributors') && sql.includes('display_name')) {
       return { results: [{ id: 'writer', slug: 'writer', display_name: 'Writer', status: 'published' }] };
     }
@@ -157,6 +171,8 @@ function makeEnv(options: FakeDbOptions = {}) {
     email: options.email ?? 'staff@example.com',
     mcpScopes: options.mcpScopes ?? ['inventory:read', 'stock:write', 'customers:read', 'sales:write'],
     platformAccountId: options.platformAccountId ?? null,
+    customerRelationshipKinds: options.customerRelationshipKinds ?? ['buyer'],
+    customerExists: options.customerExists ?? true,
   };
   return {
     JWT_SECRET,
@@ -198,6 +214,74 @@ describe('worker authorization boundaries', () => {
       code: 'validation_failed',
       details: { fields: [malicious] },
     });
+  });
+
+  it.each([
+    ['buyer', 'sell'],
+    ['vendor', 'catalog'],
+    ['event_guest', 'gather'],
+    ['collection_recipient', 'publish'],
+    ['contributor', 'publish'],
+  ])('authorizes %s customer reads and writes with only the %s bundle', async (kind, bundle) => {
+    const env = makeEnv({ role: 'staff', bundles: [bundle], customerRelationshipKinds: [kind] });
+    const read = await worker.fetch(await authedRequest('/api/customers/cus_test'), env);
+    const write = await worker.fetch(await authedRequest('/api/customers/cus_test', {
+      method: 'PUT', body: JSON.stringify({ name: 'Updated' }),
+    }), env);
+    expect(read.status).toBe(200);
+    expect(write.status).toBe(200);
+  });
+
+  it('denies customer reads and writes when no relationship capability matches', async () => {
+    const env = makeEnv({ role: 'staff', bundles: ['gather'], customerRelationshipKinds: ['buyer'] });
+    const read = await worker.fetch(await authedRequest('/api/customers/cus_test'), env);
+    const write = await worker.fetch(await authedRequest('/api/customers/cus_test', {
+      method: 'PUT', body: JSON.stringify({ name: 'Updated' }),
+    }), env);
+    expect(read.status).toBe(403);
+    expect(write.status).toBe(403);
+  });
+
+  it('denies the customer list to a no-bundle member', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers'),
+      makeEnv({ role: 'staff', bundles: [] }),
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it('allows any matching capability for a mixed-relationship customer', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers/cus_test'),
+      makeEnv({ role: 'staff', bundles: ['gather'], customerRelationshipKinds: ['buyer', 'event_guest'] }),
+    );
+    expect(response.status).toBe(200);
+  });
+
+  it('keeps personal connections and destructive customer deletion owner-only', async () => {
+    const staffEnv = makeEnv({ role: 'staff', bundles: ['catalog', 'stock', 'publish', 'gather', 'sell', 'members'], customerRelationshipKinds: ['personal_connection'] });
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test'), staffEnv)).status).toBe(403);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test', { method: 'DELETE' }), staffEnv)).status).toBe(403);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test'), makeEnv({ role: 'owner', customerRelationshipKinds: ['personal_connection'] }))).status).toBe(200);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test'), makeEnv({ platformRole: 'platform_admin', customerRelationshipKinds: ['personal_connection'] }))).status).toBe(200);
+    expect((await worker.fetch(await authedRequest('/api/customers/cus_test', { method: 'DELETE' }), makeEnv({ role: 'owner' }))).status).toBe(200);
+  });
+
+  it('does not embed customer invoices for a non-sell capability', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers/cus_test'),
+      makeEnv({ role: 'staff', bundles: ['catalog'], customerRelationshipKinds: ['vendor'] }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ orders: [] });
+  });
+
+  it('returns customer not found without disclosing another record', async () => {
+    const response = await worker.fetch(
+      await authedRequest('/api/customers/missing'),
+      makeEnv({ role: 'staff', bundles: ['sell'], customerExists: false }),
+    );
+    expect(response.status).toBe(404);
   });
 
   it('bootstraps a membership-free platform owner into the active platform account', async () => {
@@ -269,7 +353,22 @@ describe('worker authorization boundaries', () => {
     const body = await response.json() as any;
 
     expect(response.status).toBe(400);
-    expect(body.fields).toContain('product_name');
+    expect(body.code).toBe('validation_failed');
+    expect(body.details?.fields).toContain('product_name');
+  });
+
+  it('does not expose the generic product update route', async () => {
+    const response = await worker.fetch(await authedRequest('/api/products/prod_test', {
+      method: 'PUT', body: JSON.stringify({ stock_grams: 500 }),
+    }), makeEnv({ role: 'staff', bundles: ['catalog'] }));
+    expect(response.status).toBe(404);
+  });
+
+  it('accepts inventory purpose only through the stock command', async () => {
+    const response = await worker.fetch(await authedRequest('/api/products/prod_test/stock', {
+      method: 'PUT', body: JSON.stringify({ inventory_purpose: 'working' }),
+    }), makeEnv({ role: 'staff', bundles: ['stock'] }));
+    expect(response.status).toBe(200);
   });
 
   it('requires the catalog bundle for source supplied-product reads', async () => {

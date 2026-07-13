@@ -2404,28 +2404,6 @@ const handleBulkCreateProducts: Handler = async (request, env) => {
   return json({ inserted: results.filter(row => row.status === 'inserted').length, replayed: results.filter(row => row.status === 'replayed').length, movements: newLines.filter(line => line.movementInput).length + replayBalances.length, skipped: results.filter(row => row.status === 'skipped').length, skippedNames: skipped, results });
 };
 
-const PRODUCT_UPDATE_COLUMNS = new Set([
-  'product_name', 'type', 'origin', 'year', 'harvest', 'form', 'price', 'cost',
-  'stock', 'stock_unit', 'status', 'description', 'notes', 'tags', 'moods',
-  'tasting_notes', 'brewing_notes', 'vendor', 'vendor_url', 'image_url',
-  'altitude', 'cultivar', 'processing', 'format',
-  // Extended product fields
-  'given_name', 'chinese_name', 'origin_country', 'origin_region', 'stock_grams',
-  'cost_amount', 'cost_currency', 'shipping_rate_per_kg', 'quantity_purchased',
-  'low_stock_threshold', 'recheck_stock', 'markup_multiplier', 'fixed_retail_price_usd',
-  'is_personal', 'can_reorder', 'is_public', 'is_featured', 'is_curated',
-  'lore', 'is_custom_wisdom', 'show_wisdom', 'processing_notes', 'terroir',
-  'mood', 'experience', 'material', 'capacity_ml', 'teaware_category',
-  'additional_images', 'bag_photo_url', 'quantity_units', 'vendor_id', 'is_sample', 'in_transit',
-  'inventory_purpose', 'stock_known_at',
-  'in_transit_grams', 'in_transit_eta',
-  'tasting', 'tasting_source',
-  'sold_out_at', 'stock_verified_at', 'source_compass_entry_id',
-  'updated_at', 'last_synced_at', 'tea_key', 'vendor_url',
-  'wholesale_price', 'catalog_visible', 'price_per_gram_usd',
-  'session_reserve_grams',
-]);
-
 const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
   'product_name', 'given_name', 'chinese_name', 'type', 'form', 'origin', 'origin_country',
   'origin_region', 'year', 'harvest', 'altitude', 'cultivar', 'processing', 'format',
@@ -2438,7 +2416,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
 const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'stock_known_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
-  'session_reserve_grams',
+  'session_reserve_grams', 'inventory_purpose', 'is_sample', 'is_personal',
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_COLUMNS = new Set([
@@ -2464,7 +2442,7 @@ async function applyProductUpdate(
   env: Env,
   params: Record<string, string>,
   ctx: AccountCtx,
-  allowedColumns = PRODUCT_UPDATE_COLUMNS,
+  allowedColumns: Set<string>,
   rejectUnknown = false,
   auditAction = 'product.updated',
 ): Promise<Response> {
@@ -2509,7 +2487,8 @@ async function applyProductUpdate(
     if (unknown.length > 0) {
       return json({
         error: 'Unsupported fields for this product update command',
-        fields: unknown,
+        code: 'validation_failed',
+        details: { fields: unknown },
       }, 400);
     }
   }
@@ -2640,12 +2619,6 @@ async function applyProductUpdate(
 
   return json({ success: true });
 }
-
-const handleUpdateProduct: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'catalog');
-  if ('error' in ctx) return ctx.error;
-  return applyProductUpdate(request, env, params, ctx);
-};
 
 function makeProductCommandUpdateHandler(
   bundle: Bundle,
@@ -3986,6 +3959,53 @@ async function listContactRelationshipsForCustomer(env: Env, accountId: string, 
   return relationships.get(customerId) ?? [];
 }
 
+const CONTACT_RELATIONSHIP_BUNDLE: Partial<Record<ContactRelationshipKind, Bundle>> = {
+  buyer: 'sell',
+  vendor: 'catalog',
+  event_guest: 'gather',
+  collection_recipient: 'publish',
+  contributor: 'publish',
+};
+
+function canAccessCustomerRelationships(ctx: AccountCtx, relationships: ContactRelationshipKind[]): boolean {
+  if (ctx.role === 'owner') return true;
+  if (relationships.includes('personal_connection')) return false;
+  return relationships.some(kind => {
+    const bundle = CONTACT_RELATIONSHIP_BUNDLE[kind];
+    return Boolean(bundle && ctx.bundles.includes(bundle));
+  });
+}
+
+async function requireCustomerCapability(
+  request: Request,
+  env: Env,
+  customerId: string,
+): Promise<
+  | { ctx: AccountCtx; customer: Record<string, any>; relationships: ContactRelationshipKind[] }
+  | { error: Response }
+> {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx;
+  const customer = await env.DB.prepare(
+    'SELECT * FROM customers WHERE id = ? AND account_id = ?'
+  ).bind(customerId, ctx.accountId).first() as Record<string, any> | null;
+  if (!customer) return { error: json({ error: 'Customer not found', code: 'not_found' }, 404) };
+
+  const relationships = await listContactRelationshipsForCustomer(env, ctx.accountId, customerId);
+  if (ctx.role !== 'owner' && relationships.includes('personal_connection')) {
+    return { error: json({ error: 'Owner-tier access required for this contact', code: 'owner_required' }, 403) };
+  }
+  const requiredBundles = [...new Set(relationships.map(kind => CONTACT_RELATIONSHIP_BUNDLE[kind]).filter((bundle): bundle is Bundle => Boolean(bundle)))];
+  if (canAccessCustomerRelationships(ctx, relationships)) return { ctx, customer, relationships };
+  return {
+    error: json({
+      error: 'Insufficient capability for this contact',
+      code: 'insufficient_customer_capability',
+      details: { required_bundles: requiredBundles },
+    }, 403),
+  };
+}
+
 async function ensureContactRelationship(
   env: Env,
   accountId: string,
@@ -4249,6 +4269,9 @@ const handleGetCustomers: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+  if (ctx.role !== 'owner' && !ctx.bundles.some(bundle => ['catalog', 'publish', 'gather', 'sell'].includes(bundle))) {
+    return json({ error: 'Insufficient capability for contacts', code: 'insufficient_customer_capability' }, 403);
+  }
 
   const url = new URL(request.url);
   const typeFilter = url.searchParams.get('type'); // 'customer' | 'supplier' | null (all)
@@ -4318,7 +4341,9 @@ const handleGetCustomers: Handler = async (request, env) => {
     (result.results as any[]).map(c => c.id),
   );
 
-  const customers = (result.results as any[]).map(c => ({
+  const customers = (result.results as any[]).filter(c =>
+    canAccessCustomerRelationships(ctx, relationshipMap.get(c.id) || [])
+  ).map(c => ({
     ...c,
     contacts: typeof c.contacts === 'string' ? JSON.parse(c.contacts || '[]') : (c.contacts ?? []),
     tags: typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags ?? []),
@@ -4329,17 +4354,13 @@ const handleGetCustomers: Handler = async (request, env) => {
 };
 
 const handleGetCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireAccount(request, env);
-  if ('error' in ctx) return ctx.error;
+  const authorized = await requireCustomerCapability(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const { ctx, customer, relationships } = authorized;
   const { accountId } = ctx;
 
-  const customer = await env.DB.prepare(
-    'SELECT * FROM customers WHERE id = ? AND account_id = ?'
-  ).bind(params.id, accountId).first();
-  if (!customer) return json({ error: 'Customer not found' }, 404);
-
   let orders: any[] = [];
-  try {
+  if (ctx.role === 'owner' || ctx.bundles.includes('sell')) try {
     const result = await env.DB.prepare(
       'SELECT * FROM invoices WHERE customer_id = ? AND account_id = ? ORDER BY created_at DESC'
     ).bind(params.id, accountId).all();
@@ -4350,7 +4371,7 @@ const handleGetCustomer: Handler = async (request, env, params) => {
     ...customer,
     contacts: typeof customer.contacts === 'string' ? JSON.parse(customer.contacts || '[]') : (customer.contacts ?? []),
     tags: typeof customer.tags === 'string' ? JSON.parse(customer.tags || '[]') : (customer.tags ?? []),
-    relationship_kinds: await listContactRelationshipsForCustomer(env, accountId, params.id),
+    relationship_kinds: relationships,
     orders,
   };
   return json(parsed);
@@ -4810,9 +4831,9 @@ const handleCreateCustomer: Handler = async (request, env) => {
 };
 
 const handleUpdateCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'gather');
-  if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const authorized = await requireCustomerCapability(request, env, params.id);
+  if ('error' in authorized) return authorized.error;
+  const { accountId } = authorized.ctx;
 
   const body = await request.json() as Record<string, any>;
   delete body.account_id;
@@ -4839,9 +4860,13 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
 };
 
 const handleDeleteCustomer: Handler = async (request, env, params) => {
-  const ctx = await requireBundle(request, env, 'gather');
+  const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+
+  const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!customer) return json({ error: 'Customer not found', code: 'not_found' }, 404);
 
   try {
     await env.DB.prepare(
@@ -19816,7 +19841,6 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/products/:id/commercial', handleUpdateProductCommercial],
   ['PUT', '/api/products/:id/publication', handleUpdateProductPublication],
   ['PUT', '/api/products/:id/shown', handleUpdateProductVisibility],
-  ['PUT', '/api/products/:id', handleUpdateProduct],
   ['DELETE', '/api/products/:id', handleDeleteProduct],
   ['POST', '/api/products/:id/featured', handleSetProductFeatured],
   ['POST', '/api/products/:id/enhance-image', handleEnhanceProductImage],
