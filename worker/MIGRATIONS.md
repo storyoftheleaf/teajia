@@ -18,19 +18,11 @@ absorbs the cumulative result of the numbered migrations — including the core
 tables (`products`, `invoices`, `invoice_line_items`, `customers`,
 `activity_logs`) that exist **only** here and in no numbered migration.
 
-> tables are not defined there, so it produces a broken schema. The numbered
-> files are a forward-only **reconciliation journal** applied ad-hoc to the
-> already-live remote D1 as the schema evolved; they are not a replayable
-> migration history and there is no `[[migrations]]` runner in `wrangler.toml`
-> tracking which have been applied.
-> ⚠️ Do **not** rebuild from `migrations/` alone: the base tables live in
-> `schema.sql`. Numbered files are forward changes applied by `wrangler d1
-> migrations apply`, which records their filenames in D1's migration ledger.
-> tables are not defined there, so it produces a broken schema. The numbered
-> files are a forward-only **reconciliation journal** applied ad-hoc to the
-> already-live remote D1 as the schema evolved; they are not a replayable
-> migration history and there is no `[[migrations]]` runner in `wrangler.toml`
-> tracking which have been applied.
+> ⚠️ Do **not** rebuild from `migrations/` alone: those base tables are not
+> defined there, so it produces a broken schema. The numbered files are a
+> forward-only reconciliation journal applied to the already-live D1 as the
+> schema evolved. `wrangler d1 migrations apply` records their filenames in
+> D1's migration ledger.
 
 ## Applying a new migration
 
@@ -41,6 +33,12 @@ wrangler d1 migrations apply teajia-db --remote
 
 Then **fold the change into `schema.sql`** so the canonical source stays
 current (e.g. migrations 086–088 are already reflected there).
+
+Migration `118_email_verification_and_provider_jobs.sql` adds purpose-bound,
+nonce-bound signup email challenges, durable `users.email_verified_at` identity
+state, and account-scoped provider job locks. It backfills verification only for
+identities already vouched for by Google, a platform role, or an active account
+membership. Apply it before deploying the corresponding Worker.
 
 Caveats baked into this repo's history:
 - SQLite `ALTER TABLE ... ADD COLUMN` has **no `IF NOT EXISTS`** — column-adding

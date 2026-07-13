@@ -8,7 +8,7 @@
 
 Teajia is a working multi-store tea operating platform, not a foundation waiting to be built. It includes account-scoped inventory and stock movement, inquiry-led commerce, customer order detail, events, Curate, tasting memory, personal Cellar/Favorites/Journal surfaces, a unified D1 article engine, contributor publishing, and more than 40 MCP tools.
 
-Releases 1–3 of the launch-to-real-use program are implemented on the branch and locally verified. Invoice semantics and repair tooling, Read entry routing, email OTP delivery, tenancy-isolation coverage, customer order detail, starred-note curation, event-to-article drafting, personal-tea wiring, China-critical dependency removal, same-origin browser APIs, contact fallback, and contributor publishing are present and tested. Platform hardening now also includes strict frontend null checking, reproducible browser tests, stable REST errors, domain-scoped product/contact mutations, durable abuse limits, session revocation, private retryable transcription, bounded provider uploads, OAuth input/write controls, and exact browser origins.
+Releases 1–3 of the launch-to-real-use program are implemented on the branch and locally verified. Invoice semantics and repair tooling, Read entry routing, email OTP delivery, tenancy-isolation coverage, customer order detail, starred-note curation, event-to-article drafting, personal-tea wiring, China-critical dependency removal, same-origin browser APIs, contact fallback, and contributor publishing are present and tested. Platform hardening now also includes strict frontend null checking, reproducible browser tests, stable REST errors, verified-email identity activation, protected owner invariants, tenant-safe synchronization, domain-scoped product/contact mutations, live MCP authorization, durable and locked provider limits, private retryable transcription, paged recording expiry, bounded `.xlsx` intake, immutable CI action pins, and exact browser origins.
 
 The real-world launch is not complete. Deployment, production-data judgment, real operators, mainland conditions, and approved editorial content cannot be proven by local fixtures. Their single checklist is [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md).
 
@@ -23,8 +23,8 @@ This is distinct from the repaired Read entry paths and live editorial article r
 | Area | Current state |
 |---|---|
 | Commerce | Inquiry-led flow, per-unit invoice invariant, customer order detail, fulfillment, and previewable repair path implemented |
-| Authentication | Email OTP and Google OAuth retained; deleted users cannot refresh, password changes invalidate earlier JWTs, and public/OAuth abuse limits fail closed |
-| Tenancy | Account scoping, taxonomy-aware contact capabilities, private recording ownership, and dedicated cross-account denial coverage implemented |
+| Authentication | Email OTP and Google OAuth retained; signup and invitation privilege require verified email, protected owner credentials cannot be reset by lower tiers, deleted users cannot refresh, and browser/MCP authority is revalidated or revoked on security changes |
+| Tenancy | Account scoping, owner-floor rules, tenant/author-safe note synchronization, capability-partitioned product creation, private recording ownership, and dedicated cross-account denial coverage implemented |
 | Personal tea | Journal, Favorites, and API-backed Cellar are distinct and connected |
 | Events | Event lifecycle and idempotent post-session article drafting implemented |
 | Editorial | Unified article engine, contributor administration, author selection, pull quotes, and public contributor rendering implemented |

@@ -10,7 +10,7 @@ Status: the autonomous hardening queue shipped on `codex/platform-hardening`. On
 
 ## Shipped hardening
 
-The changelog and Git retain the implementation evidence. The completed queue includes reproducible Playwright, blocking action-button lint, dead reference deletion, taxonomy-aware customer capabilities, removal of generic product mutation, stable REST error codes, canonical migration `017` rehearsals through `117`, dedicated durable abuse limits, frontend `strictNullChecks`, private lossless transcription with retry/discard and server expiry, dynamic-SQL identifier allowlists for updates and creates, join-code identity proof, browser/MCP session invalidation, generic duplicate-RSVP handling, bounded provider uploads, OAuth write limiting/validation, exact CORS origins, and fixable production dependency upgrades.
+The changelog and Git retain the implementation evidence. The completed queue includes reproducible Playwright, blocking action-button lint, dead reference deletion, taxonomy-aware customer capabilities, removal of generic product mutation, stable REST error codes, canonical migration `017` rehearsals through `118`, dedicated durable abuse limits, frontend `strictNullChecks`, private lossless transcription with retry/discard and server expiry, dynamic-SQL identifier allowlists for updates and creates, join-code identity proof, browser and live MCP authorization invalidation, verified-email signup and invitation activation, protected owner invariants, tenant-safe note synchronization, capability-partitioned product intake, bounded and locked provider work, paged recording cleanup, bounded `.xlsx` parsing, immutable GitHub Action pins, exact CORS origins, and fixable production dependency upgrades.
 
 Production migration evidence was read-only: `d1_migrations` contained both historical `017` filenames as rows 18 and 19 with the same timestamp; the inspection reported zero writes. Repository history plus the convergent `018` migration establishes `017_multi_account_patched.sql` as the single retained artifact.
 
@@ -18,8 +18,23 @@ Production migration evidence was read-only: `d1_migrations` contained both hist
 
 Worker modularization, further admin code splitting or idle prefetch, a general IndexedDB mutation queue, and server-side unified search are not active obligations. Open a focused plan only when measured bundle/runtime cost, recurring change risk, offline field use, or search behavior supplies concrete acceptance criteria.
 
-`xlsx@0.18.5` remains an operator-triggered dependency risk: npm reports prototype-pollution and ReDoS advisories with no registry fix. Intake is an authenticated admin workflow, not a remotely parsed server upload, so replacement is a focused parser/product decision rather than a hidden launch claim. Do not broaden workbook intake to untrusted public files before replacing or isolating this parser.
+The vulnerable SheetJS dependency is removed. Intake retains CSV and `.xlsx`,
+drops legacy `.xls`, and preflights workbook size, structure, worksheet bounds,
+entry count, compression ratio, and actual streamed expansion before ExcelJS
+parses the same private byte copy.
+
+`npm audit` reports no Critical or High findings. Its two remaining Moderate
+entries are one advisory counted against both ExcelJS and its transitive
+`uuid@8.3.2`: the affected UUID v3/v5/v6 caller-supplied-buffer path is not the
+UUID v4 path ExcelJS uses for conditional-format identifiers.
 
 ## Validation
+
+Fresh local clean-install evidence for the Critical/High follow-up: Worker
+439/439; focused security/parser/frontend 50/50; platform guards 6/6; China
+scanner 11/11 with zero runtime violations; AccountPanel mobile 27/27; and the
+Inventory Desktop/Mobile matrix 11 passed with one intentionally desktop-only
+case skipped on mobile. TypeScript, color lint, production build, migration
+rehearsals, and the zero-Critical/High npm audit gate passed.
 
 Physical-device, mainland-network, deployed-environment, and production checks are tracked in [Launch Validation](../LAUNCH_VALIDATION.md).
