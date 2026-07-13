@@ -17,10 +17,10 @@ import type { TastingData } from '../types';
 import { TastingSession } from '../components/tasting/TastingSession';
 import { TastingProfileStrip } from '../components/tasting/TastingProfileStrip';
 import { SampleOrderModal } from '../components/samples/SampleOrderModal';
-import { TeaReviewsComparison } from '../components/tasting/TeaReviewsComparison';
 import { QuickInvoiceModal } from '../admin/components/QuickInvoiceModal';
 import { useTeaCompassStore } from '../lib/teaCompassStore';
 import { compassLifecycleForSample } from '../samples/sampleLifecycle';
+import { sampleFromApi } from '../samples/sampleRepository';
 
 /* ─── Verdict icons ─── */
 const VERDICT_ICONS: Record<TastingVerdict, React.ComponentType<{ size?: number }>> = {
@@ -94,7 +94,7 @@ const SamplePage: React.FC = () => {
     setLoading(true);
     api.samples.get(sampleId)
       .then((data: any) => {
-        setSample(data as TeaSample);
+        setSample(sampleFromApi(data));
         setLoading(false);
       })
       .catch(() => {
@@ -564,25 +564,10 @@ const SamplePage: React.FC = () => {
               onClose={() => setShowTasting(false)}
               onAfterSave={handleTastingSave}
               showVerdict
-              writeDraftReview={isAdmin && !!((sample as any).tea_key || (sample as any).teaKey)}
               onCreatePO={isAdmin ? () => setShowPOModal(true) : undefined}
             />
           )}
         </AnimatePresence>
-
-        {/* Cross-account tasting panel */}
-        {(sample as any).teaKey || (sample as any).tea_key ? (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-8"
-          >
-            <TeaReviewsComparison
-              teaKey={(sample as any).teaKey || (sample as any).tea_key}
-            />
-          </motion.div>
-        ) : null}
 
         {/* Admin: Promote to Inventory */}
         {isAdmin && sample.status === 'favorite' && !sample.productId && (

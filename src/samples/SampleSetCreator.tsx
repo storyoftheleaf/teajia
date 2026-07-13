@@ -198,7 +198,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
                 initial={{ opacity: 0, x: 4 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0 }}
-                className="text-ui-11 text-tea-gold"
+                className="text-ui-12 text-tea-gold"
               >
                 Added ✓
               </motion.span>
@@ -233,7 +233,7 @@ function QuickAddSheet({ setId, sourceName, sourceId, onClose }: QuickAddSheetPr
               className={inputCls}
             />
             {duplicateProduct && (
-              <div className="text-ui-11 text-tea-gold mt-1.5 flex items-center gap-1.5">
+              <div className="text-ui-12 text-tea-gold mt-1.5 flex items-center gap-1.5">
                 <span>Already in stock:</span>
                 <span className="font-medium">{(duplicateProduct as any).givenName || (duplicateProduct as any).productName}</span>
                 {(duplicateProduct as any).stockGrams > 0 && (
@@ -359,7 +359,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -100 }}
       transition={{ duration: 0.2 }}
-      className={`flex items-center gap-2 px-3 py-2 bg-tea-surface rounded mb-1.5 ${sample.status === 'untasted' ? 'opacity-60' : ''}`}
+      className={`flex flex-wrap items-center gap-2 px-3 py-2 bg-tea-surface rounded mb-1.5 ${sample.status === 'untasted' ? 'opacity-60' : ''}`}
     >
       {bulkMode && (
         <button
@@ -368,15 +368,15 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           aria-label={`${isSelected ? 'Deselect' : 'Select'} ${sample.name || 'sample'}`}
           style={isSelected ? { background: 'var(--tea-gold)', borderColor: 'var(--tea-gold)' } : {}}
         >
-          {isSelected && <span className="text-tea-bg text-ui-10">✓</span>}
+          {isSelected && <span className="text-tea-bg text-ui-12">✓</span>}
         </button>
       )}
 
-      <span className="badge-status badge-status-gold text-ui-10 shrink-0 w-8 text-center">
+      <span className="badge-status badge-status-gold text-ui-12 shrink-0 w-8 text-center">
         {sample.type ? TYPE_SHORT[sample.type] || sample.type.slice(0, 3).toUpperCase() : '---'}
       </span>
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1 basis-36">
         <div className="text-ui-16 text-tea-text truncate">{sample.name || 'Unnamed'}</div>
         <div className="flex items-center gap-2 text-ui-12 text-tea-text-dim">
           {sample.year && <span className="num">{sample.year}</span>}
@@ -384,17 +384,17 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
           {sample.originRegion && <span className="truncate">{sample.originRegion}</span>}
         </div>
         {sample.tastings && sample.tastings.length > 0 && (
-          <div className="text-ui-10 text-tea-gold">
+          <div className="text-ui-12 text-tea-gold">
             {sample.tastings.length} tasting{sample.tastings.length !== 1 ? 's' : ''}
           </div>
         )}
         {noteCount != null && noteCount > 0 && (
-          <div className="text-ui-10 text-tea-text-dim">
+          <div className="text-ui-12 text-tea-text-dim">
             {noteCount} note{noteCount !== 1 ? 's' : ''}
           </div>
         )}
         {sample.notes && (
-          <div className="text-ui-10 text-tea-text-dim truncate mt-0.5 italic">
+          <div className="text-ui-12 text-tea-text-dim truncate mt-0.5 italic">
             {sample.notes.slice(0, 60)}{sample.notes.length > 60 ? '…' : ''}
           </div>
         )}
@@ -444,7 +444,7 @@ function SampleCard({ sample, onEdit, onDelete, onStatusChange, onTaste, onGradu
         <button
           type="button"
           onClick={() => navigate(`/admin/stock?panel=${encodeURIComponent(sample.productId!)}`)}
-          className="tap-target shrink-0 px-1 text-ui-9 text-tea-gold hover:text-tea-gold-lt"
+          className="tap-target min-h-11 shrink-0 px-1 text-ui-12 text-tea-gold hover:text-tea-gold-lt"
           aria-label="Open inventory product"
         >
           In stock
@@ -519,13 +519,13 @@ function BatchCard({ sampleSet, tastedCount, totalCount, favoriteCount, graduate
       {(favoriteCount > 0 || graduatedCount > 0 || passedCount > 0) && (
         <div className="flex items-center gap-3 mt-1">
           {favoriteCount > 0 && (
-            <span className="text-ui-10 text-tea-text-dim num">{favoriteCount} fav</span>
+            <span className="text-ui-12 text-tea-text-dim num">{favoriteCount} fav</span>
           )}
           {graduatedCount > 0 && (
-            <span className="text-ui-10 text-tea-gold num">{graduatedCount} in stock</span>
+            <span className="text-ui-12 text-tea-gold num">{graduatedCount} in stock</span>
           )}
           {passedCount > 0 && (
-            <span className="text-ui-10 text-tea-text-dim num">{passedCount} passed</span>
+            <span className="text-ui-12 text-tea-text-dim num">{passedCount} passed</span>
           )}
         </div>
       )}
@@ -602,13 +602,13 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="nav-control nav-control-close" aria-label="Close"><X size={14} /></button>
+            <button onClick={onClose} className="tap-target nav-control nav-control-close" aria-label="Close"><X size={14} /></button>
             <h3 className="text-ui-16 font-semibold text-tea-text">Import from Library</h3>
           </div>
           {defaultVendorId && (
             <button
               onClick={() => setVendorOnly(!vendorOnly)}
-              className={`pill text-ui-10 ${vendorOnly ? 'pill-active' : ''}`}
+              className={`tap-target min-h-11 pill text-ui-12 ${vendorOnly ? 'pill-active' : ''}`}
             >
               {vendorOnly ? 'From this vendor' : 'All entries'}
             </button>
@@ -624,10 +624,10 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
         />
         <div className="overflow-y-auto mb-3" style={{ maxHeight: '40vh' }}>
           {filtered.length === 0 ? (
-            <p className="text-sm text-tea-text-dim text-center py-4">No compass entries to import</p>
+            <p className="text-ui-16 text-tea-text-dim text-center py-4">No Library entries to import</p>
           ) : (
             filtered.map((e) => (
-              <label key={e.id} className="flex items-center gap-3 px-2 py-2 rounded cursor-pointer hover:bg-tea-bg transition-colors">
+              <label key={e.id} className="flex min-h-11 items-center gap-3 px-2 py-2 rounded cursor-pointer hover:bg-tea-bg transition-colors">
                 <input
                   type="checkbox"
                   checked={selected.has(e.id)}
@@ -640,17 +640,17 @@ function CompassImportModal({ setId, onClose, defaultVendorId, defaultVendorName
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-ui-16 text-tea-text truncate">{e.name || 'Unnamed'}</div>
-                  <div className="text-ui-10 text-tea-text-dim">
+                  <div className="text-ui-12 text-tea-text-dim">
                     {[e.type, e.year, e.originRegion].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                {e.isSample && <span className="text-ui-9 text-tea-gold shrink-0">Sample</span>}
+                {e.isSample && <span className="text-ui-12 text-tea-gold shrink-0">Sample</span>}
               </label>
             ))
           )}
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-ui-11 text-tea-text-dim">{selected.size} selected</span>
+          <span className="text-ui-12 text-tea-text-dim">{selected.size} selected</span>
           <button
             onClick={handleImport}
             disabled={selected.size === 0}
@@ -979,18 +979,18 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
       )}
 
       {ledgerPromptName && !embeddedMode && (
-        <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
+        <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-ui-16"
              style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
           <span className="flex-1 text-ui-12 text-tea-text-sec truncate">
             <span className="text-tea-text font-medium">{ledgerPromptName}</span> marked as ordered
           </span>
           <button
             onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
-            className="pill pill-active text-ui-11 shrink-0"
+            className="tap-target min-h-11 pill pill-active text-ui-12 shrink-0"
           >
             Open Ledger
           </button>
-          <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-sec hover:text-tea-text" aria-label="Dismiss">
+          <button onClick={() => setLedgerPromptName(null)} className="tap-target text-tea-text-sec hover:text-tea-text" aria-label="Dismiss">
             <X size={14} />
           </button>
         </div>
@@ -1054,7 +1054,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
     return (
       <div className={embeddedMode === 'detail' ? '' : 'min-h-screen bg-tea-bg text-tea-text'}>
         {/* Top bar */}
-        <div className="flex items-center gap-2 px-3 pt-3 pb-2 shrink-0"
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 pb-2 shrink-0"
           style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
           {embeddedMode !== 'detail' && (
             <button
@@ -1073,12 +1073,12 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             onChange={(e) => updateSampleSet(activeSet.id, { name: e.target.value })}
             placeholder="Batch name..."
             aria-label="Batch name"
-            className="min-h-11 flex-1 min-w-0 bg-transparent text-tea-text text-ui-16 font-medium
+            className="min-h-11 flex-1 basis-40 min-w-0 bg-transparent text-tea-text text-ui-16 font-medium
                        placeholder:text-tea-text-dim focus:outline-none"
           />
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
             <button
               onClick={(event) => {
                 if (activeSamples.length === 0) return;
@@ -1110,18 +1110,18 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
         </div>
 
         {ledgerPromptName && (
-          <div className="flex items-center gap-3 px-4 py-2.5 text-sm"
+          <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-ui-16"
                style={{ background: 'color-mix(in srgb, var(--tea-gold) 6%, var(--tea-bg))', borderBottom: '1px solid var(--tea-accent-sub)' }}>
             <span className="flex-1 text-ui-12 text-tea-text-sec truncate">
               <span className="text-tea-text font-medium">{ledgerPromptName}</span> marked as ordered
             </span>
             <button
               onClick={() => { navigate('/admin/compass?tab=buying'); setLedgerPromptName(null); }}
-              className="pill pill-active text-ui-11 shrink-0"
+              className="tap-target min-h-11 pill pill-active text-ui-12 shrink-0"
             >
               Open Ledger
             </button>
-            <button onClick={() => setLedgerPromptName(null)} className="text-tea-text-dim hover:text-tea-text">
+            <button onClick={() => setLedgerPromptName(null)} className="tap-target text-tea-text-sec hover:text-tea-text" aria-label="Dismiss">
               <X size={14} />
             </button>
           </div>
@@ -1177,7 +1177,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                   {/* Customer picker — customer-gifted only */}
                   {activeSet.purpose === 'customer-gifted' && (
                     <div className="flex items-center gap-2 relative">
-                      <span className="text-ui-10 uppercase tracking-wider text-tea-text-dim shrink-0">Customer</span>
+                      <span className="text-ui-12 text-tea-text-sec shrink-0">Customer</span>
                       <div className="flex-1 relative">
                         <input
                           type="text"
@@ -1194,7 +1194,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                                      placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
                         />
                         {activeSet.customerId && (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-10 text-tea-gold">✓ linked</span>
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-ui-12 text-tea-gold">✓ linked</span>
                         )}
                         {customerSearchOpen && (
                           <div className="absolute top-full left-0 right-0 z-50 bg-tea-elevated rounded shadow-lg mt-0.5 max-h-40 overflow-y-auto"
@@ -1206,7 +1206,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                               .map(c => (
                                 <button
                                   key={c.id}
-                                  className="w-full text-left px-3 py-2 text-sm text-tea-text hover:bg-tea-surface transition-colors"
+                                  className="tap-target min-h-11 w-full text-left px-3 py-2 text-ui-16 text-tea-text hover:bg-tea-surface transition-colors"
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     updateSampleSet(activeSet.id, { customerName: c.name, customerId: c.id });
@@ -1215,12 +1215,12 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                                   }}
                                 >
                                   <div>{c.name}</div>
-                                  {c.company && <div className="text-ui-10 text-tea-text-dim">{c.company}</div>}
+                                  {c.company && <div className="text-ui-12 text-tea-text-dim">{c.company}</div>}
                                 </button>
                               ))
                             }
                             {customerQuery && !allCustomers.find(c => c.name.toLowerCase() === customerQuery.toLowerCase()) && (
-                              <div className="px-3 py-2 text-ui-11 text-tea-text-dim italic">Type to search or enter a name</div>
+                              <div className="px-3 py-2 text-ui-12 text-tea-text-dim italic">Type to search or enter a name</div>
                             )}
                           </div>
                         )}
@@ -1281,7 +1281,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             style={batchComplete ? { background: 'color-mix(in srgb, var(--tea-gold) 8%, var(--tea-surface))' } : { borderBottom: '1px solid var(--tea-accent-sub)' }}
           >
             {batchComplete && (
-              <span className="text-ui-10 uppercase tracking-wider text-tea-gold font-medium w-full">Batch complete</span>
+              <span className="text-ui-12 text-tea-gold font-medium w-full">Batch complete</span>
             )}
             {[
               { label: 'requested', count: statusCounts.requested },
@@ -1295,7 +1295,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             ].map(({ label, count }) => (
               <span
                 key={label}
-                className={`text-ui-11 num ${count > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}
+                className={`text-ui-12 num ${count > 0 ? 'text-tea-gold' : 'text-tea-text-dim'}`}
               >
                 {count} {label}
               </span>
@@ -1371,17 +1371,17 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
         style={{ borderBottom: '1px solid var(--tea-accent-sub)' }}>
         <button
           onClick={() => setView('batches')}
-          className="p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
+          className="tap-target p-1 -ml-1 text-tea-text-sec hover:text-tea-text transition-colors"
           aria-label="Back to batches"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-sm font-semibold text-tea-text">
+        <h1 className="text-ui-16 font-semibold text-tea-text">
           All Samples <span className="text-tea-text-dim num">· {allSamples.length}</span>
         </h1>
       </div>
 
-      <div className="px-4 pt-3 pb-24">
+      <div className="px-4 pt-3 pb-nav-gap">
         {/* Search */}
         <div className="mb-2">
           <input
@@ -1389,7 +1389,8 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="search samples"
-            className="w-full bg-tea-surface text-tea-text rounded px-3 py-1.5 text-sm
+            aria-label="Search all samples"
+            className="min-h-11 w-full bg-tea-surface text-tea-text rounded-md px-3 py-1.5 text-ui-16
                        placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
           />
         </div>
@@ -1400,7 +1401,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`pill text-ui-10 ${statusFilter === s ? 'pill-active' : ''}`}
+              className={`tap-target min-h-11 pill text-ui-12 ${statusFilter === s ? 'pill-active' : ''}`}
             >
               {s === 'all' ? 'All' : SAMPLE_STATUS_CONFIG[s].label}
             </button>
@@ -1411,7 +1412,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           {allFilteredSamples.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-tea-text-dim">
               <Leaf size={24} className="mb-2 opacity-40" />
-              <p className="text-sm">Nothing matched — try different words.</p>
+              <p className="text-ui-16">Nothing matched. Try different words.</p>
             </div>
           ) : (
             <AnimatePresence mode="popLayout">
@@ -1456,9 +1457,9 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
 
       {/* Bulk action bar — hidden in embedded split layout (fixed bar bleeds across columns) */}
       {!embeddedMode && bulkMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-nav left-0 right-0 z-modal bg-tea-elevated px-4 py-3 flex items-center gap-3"
+        <div className="fixed bottom-nav left-0 right-0 z-modal bg-tea-elevated px-4 py-3 flex flex-wrap items-center gap-3"
           style={{ borderTop: '1px solid var(--tea-accent-sub)' }}>
-          <span className="text-sm text-tea-text flex-1">{selectedIds.size} selected</span>
+          <span className="text-ui-16 text-tea-text flex-1">{selectedIds.size} selected</span>
           {(['tasted', 'favorite', 'ordering', 'passed'] as SampleStatus[]).map(s => (
             <button
               key={s}
@@ -1467,7 +1468,7 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
                 setSelectedIds(new Set());
                 setBulkMode(false);
               }}
-              className="pill text-ui-11"
+              className="tap-target min-h-11 pill text-ui-12"
             >
               → {SAMPLE_STATUS_CONFIG[s].label}
             </button>
@@ -1515,13 +1516,13 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
           <div className="flex-shrink-0 bg-tea-bg/95 backdrop-blur-sm px-4 py-3 flex items-center gap-3 border-b border-tea-border">
             <button
               onClick={closeLabels}
-              className="flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
+              className="tap-target min-h-11 flex items-center gap-1.5 text-tea-text-sec hover:text-tea-text transition-colors"
               aria-label="Back to sample set"
             >
               <ArrowLeft size={18} />
-              <span className="text-sm">Back</span>
+              <span className="text-ui-12">Back</span>
             </button>
-            <span className="text-sm font-medium text-tea-text ml-1">Print Labels</span>
+            <span className="text-ui-16 font-medium text-tea-text ml-1">Print labels</span>
           </div>
           <div className="flex-1 overflow-auto pb-nav-gap">
             <SampleLabelSheet samples={activeSamples} showSetName={activeSet.name} />
@@ -1705,15 +1706,15 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 mb-4">
-          <button onClick={onClose} className="nav-control nav-control-close" aria-label="Close">
+          <button onClick={onClose} className="tap-target nav-control nav-control-close" aria-label="Close">
             <X size={14} />
           </button>
-          <h3 className="text-sm font-semibold text-tea-text">Edit Sample</h3>
+          <h3 className="text-ui-16 font-semibold text-tea-text">Edit sample</h3>
         </div>
 
         <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '60vh' }}>
           <div>
-            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Name</label>
+            <label className="text-ui-12 text-tea-text-sec block mb-1">Name</label>
             <AutocompleteInput
               value={sample.name}
               onChange={(val) => updateSample(sampleId, { name: val })}
@@ -1721,29 +1722,29 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
               itemData={editVarietyNameMap}
               hintSuggestions={editHintSuggestions}
               onSelect={handleEditVarietySelect}
-              className="w-full bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm
+              className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
 
           <div>
-            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Chinese Name</label>
+            <label className="text-ui-12 text-tea-text-sec block mb-1">Chinese name</label>
             <input
               type="text"
               value={sample.chineseName || ''}
               onChange={(e) => updateSample(sampleId, { chineseName: e.target.value || undefined })}
-              className="w-full bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm
+              className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
 
           <div>
-            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Type</label>
+            <label className="text-ui-12 text-tea-text-sec block mb-1">Type</label>
             <div className="flex flex-wrap gap-1">
               {TEA_TYPES.map((t) => (
                 <button
                   key={t}
-                  className={`pill ${sample.type === t ? 'pill-active' : ''}`}
+                  className={`tap-target min-h-11 pill text-ui-12 ${sample.type === t ? 'pill-active' : ''}`}
                   onClick={() => updateSample(sampleId, { type: sample.type === t ? undefined : t })}
                 >
                   {t}
@@ -1754,22 +1755,22 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Year</label>
+              <label className="text-ui-12 text-tea-text-sec block mb-1">Year</label>
               <input
                 type="number"
                 value={sample.year || ''}
                 onChange={(e) => updateSample(sampleId, { year: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                className="w-full bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm num
+                className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16 num
                            focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
               />
             </div>
             <div className="flex-1">
-              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Grams</label>
+              <label className="text-ui-12 text-tea-text-sec block mb-1">Grams</label>
               <div className="flex flex-wrap gap-1">
                 {SAMPLE_GRAM_PRESETS.map((g) => (
                   <button
                     key={g}
-                    className={`pill num ${sample.grams === g ? 'pill-active' : ''}`}
+                    className={`tap-target min-h-11 pill text-ui-12 num ${sample.grams === g ? 'pill-active' : ''}`}
                     onClick={() => updateSample(sampleId, { grams: g })}
                   >
                     {g}
@@ -1785,7 +1786,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                     if (!isNaN(v) && v > 0) updateSample(sampleId, { grams: v });
                   }}
                   placeholder="custom g"
-                  className="w-20 bg-tea-bg text-tea-text rounded px-2 py-1 text-xs num
+                  className="min-h-11 w-24 bg-tea-bg text-tea-text rounded-md px-2 py-1 text-ui-16 num
                              placeholder:text-tea-text-dim focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
                 />
               </div>
@@ -1793,22 +1794,22 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </div>
 
           <div>
-            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Region</label>
+            <label className="text-ui-12 text-tea-text-sec block mb-1">Region</label>
             <input
               type="text"
               value={sample.originRegion || ''}
               onChange={(e) => updateSample(sampleId, { originRegion: e.target.value || undefined })}
-              className="w-full bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm
+              className="min-h-11 w-full bg-tea-bg text-tea-text rounded-md px-2 py-1.5 text-ui-16
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
 
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim">Status</label>
+              <label className="text-ui-12 text-tea-text-sec">Status</label>
               <div className="group relative">
                 <Info size={11} className="text-tea-text-dim cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-52 bg-tea-elevated text-tea-text-sec text-ui-10 rounded p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 leading-relaxed">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-52 bg-tea-elevated text-tea-text-sec text-ui-12 rounded p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 leading-relaxed">
                   Untasted → Tasted → Favorite / To Order → Ordered → Passed
                 </div>
               </div>
@@ -1819,7 +1820,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 return (
                   <button
                     key={status}
-                    className={`pill ${sample.status === status ? 'pill-active' : ''}`}
+                    className={`tap-target min-h-11 pill text-ui-12 ${sample.status === status ? 'pill-active' : ''}`}
                     onClick={() => updateSample(sampleId, { status })}
                   >
                     {cfg.label}
@@ -1830,19 +1831,19 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
           </div>
 
           <div>
-            <label className="text-ui-10 uppercase tracking-wider text-tea-text-dim block mb-1">Notes</label>
+            <label className="text-ui-12 text-tea-text-sec block mb-1">Notes</label>
             <textarea
               value={sample.notes || ''}
               onChange={(e) => updateSample(sampleId, { notes: e.target.value || undefined })}
               rows={3}
-              className="w-full bg-tea-bg text-tea-text rounded px-2 py-1.5 text-sm resize-none
+              className="w-full bg-tea-bg text-tea-text rounded-md px-2 py-2 text-ui-16 resize-none
                          focus:outline-none focus:ring-1 focus:ring-tea-gold/30"
             />
           </div>
 
           <div className="border-t border-tea-border pt-3">
-            <label htmlFor={`sample-holding-${sampleId}`} className="text-ui-10 uppercase tracking-wider text-tea-text-sec block mb-1">Inventory holding</label>
-            <p className="text-ui-11 text-tea-text-sec mb-2">Optional physical stock source. Linking never changes stock.</p>
+            <label htmlFor={`sample-holding-${sampleId}`} className="text-ui-12 text-tea-text-sec block mb-1">Inventory holding</label>
+            <p className="text-ui-12 text-tea-text-sec mb-2">Optional physical stock source. Linking never changes stock.</p>
             <div className="flex flex-wrap gap-2">
               <select
                 id={`sample-holding-${sampleId}`}
@@ -1859,7 +1860,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
                 Save holding link
               </button>
             </div>
-            {holdingMessage && <p role="status" className="mt-2 text-ui-11 text-tea-text-sec">{holdingMessage}</p>}
+            {holdingMessage && <p role="status" className="mt-2 text-ui-12 text-tea-text-sec">{holdingMessage}</p>}
             {linkedHolding && !sample.completedHoldingMovement && (
               <button ref={useHoldingButtonRef} type="button" onClick={() => setConfirmingUse(true)} className="tap-target mt-2 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
                 {sample.holdingUsePendingIdempotencyKey ? `Retry ${sample.holdingUsePendingQuantity ?? sample.grams}g sample use` : `Use ${sample.grams}g from holding`}
@@ -1867,7 +1868,7 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
             )}
             {linkedHolding && sample.completedHoldingMovement && (
               <div className="mt-2">
-                <p className="text-ui-11 text-tea-text-sec">This portion’s {sample.completedHoldingMovement.quantity}g use is recorded.</p>
+                <p className="text-ui-12 text-tea-text-sec">This portion’s {sample.completedHoldingMovement.quantity}g use is recorded.</p>
                 <button type="button" onClick={prepareAnotherHoldingUse} className="tap-target mt-1 text-ui-12 text-tea-gold hover:text-tea-gold-lt">
                   Record another sample use
                 </button>
@@ -1879,8 +1880,8 @@ function SampleEditModal({ sampleId, onClose }: { sampleId: string; onClose: () 
         {confirmingUse && linkedHolding && (
           <div role="dialog" aria-modal="true" aria-label="Confirm sample use" onKeyDown={handleHoldingUseDialogKeyDown} className="fixed inset-x-4 top-4 bottom-nav-gap z-10 flex items-end justify-center rounded bg-black/50 p-3">
             <div className="w-full rounded bg-tea-elevated p-3">
-              <p className="text-ui-13 text-tea-text">Record {sample.grams}g used from {linkedHolding.givenName || linkedHolding.productName}?</p>
-              <p className="mt-1 text-ui-11 text-tea-text-sec">This is the only action here that changes Inventory stock.</p>
+              <p className="text-ui-16 text-tea-text">Record {sample.grams}g used from {linkedHolding.givenName || linkedHolding.productName}?</p>
+              <p className="mt-1 text-ui-12 text-tea-text-sec">This is the only action here that changes Inventory stock.</p>
               <div className="mt-3 flex justify-between gap-3">
                 <button ref={cancelHoldingUseRef} type="button" onClick={closeHoldingUseConfirmation} className="tap-target text-ui-12 text-tea-text-sec hover:text-tea-text" aria-label="Cancel sample use">Cancel</button>
                 <button ref={confirmHoldingUseRef} type="button" disabled={usingHolding} onClick={confirmHoldingUse} className="tap-target rounded bg-tea-gold px-3 py-2 text-ui-12 text-tea-bg disabled:opacity-50">

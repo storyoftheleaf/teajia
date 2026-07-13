@@ -148,7 +148,7 @@ test.describe('sample portions and physical holdings stay distinct', () => {
     await expect(page.getByText('1 tasting')).toBeVisible();
 
     await page.getByRole('button', { name: 'Print labels' }).click();
-    await expect(page.getByText('Print Labels', { exact: true })).toBeVisible();
+    await expect(page.getByText('Print labels', { exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Open in Curate to taste' }).click();
     await expect(page).toHaveURL(/\/admin\/compass\?entry=compass-tea-1/);
@@ -209,6 +209,15 @@ test.describe('Sample list and Sample batches interface', () => {
       const { useSampleStore } = await import('/src/samples/sampleStore.ts');
       return useSampleStore.getState().sampleSets.map((set: { name: string }) => set.name);
     })).toEqual(['July Wuyi samples']);
+
+    await page.getByRole('button', { name: 'Back to batches' }).click();
+    await page.getByRole('button', { name: /All/ }).click();
+    const allSearch = page.getByLabel('Search all samples');
+    await expect(allSearch).toHaveCSS('font-size', '16px');
+    for (const control of await page.getByRole('button', { name: /^(All|Requested|Received|Untasted|Tasted|Favorite|To Order|Ordered|Passed)$/ }).all()) {
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
   });
 
   test('keeps sample-list operations reachable with mobile touch targets', async ({ page }) => {

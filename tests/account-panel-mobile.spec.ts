@@ -296,6 +296,17 @@ test.describe('Member sample continuation', () => {
         ],
       }),
     }));
+    await page.route('**/api/samples/received-1', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'received-1', account_id: 'acct-bali', set_id: 'member-set-1', name: 'Wuyi Oolong',
+        chinese_name: '武夷乌龙', type: 'Oolong', status: 'received', grams: 12,
+        notes: 'Rest the leaves before tasting.', photos: '[]', created_by: 'admin',
+        created_at: '2026-07-02T00:00:00.000Z', updated_at: '2026-07-02T00:00:00.000Z',
+        tastings: [],
+      }),
+    }));
     await goto(page, '/account/samples');
 
     for (const state of ['Requested', 'Received', 'Tasted']) await expect(page.getByText(state, { exact: true })).toBeVisible();
@@ -304,5 +315,12 @@ test.describe('Member sample continuation', () => {
     await expect(page.getByRole('link', { name: 'View Old Tree Red tasting' })).toHaveAttribute('href', '/s/tasted-1');
     const tasteBox = await page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' }).boundingBox();
     expect(tasteBox?.height).toBeGreaterThanOrEqual(44);
+
+    await page.getByRole('link', { name: 'Taste Wuyi Oolong and add to Journal' }).click();
+    await expect(page).toHaveURL(/\/s\/received-1$/);
+    await expect(page.getByRole('heading', { name: 'Wuyi Oolong' })).toBeVisible();
+    await expect(page.getByText('Received', { exact: true })).toBeVisible();
+    await expect(page.getByText('12g', { exact: true })).toBeVisible();
+    await expect(page.getByText('Wuyi Oolong', { exact: true }).last()).toBeVisible();
   });
 });
