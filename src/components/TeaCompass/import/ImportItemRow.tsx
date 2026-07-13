@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
 import { buildImportCorrectionParsedData, compatibleImportHoldings, importBlockingMessage, reviewedFieldsForImportSave, validateImportHoldingSelection, type ImportMatchOption } from './importReviewDomain';
@@ -29,7 +29,8 @@ const packEquation = (item: CurateImportItem) => {
 
 export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identityLookup, holdingLookup, onRetryIdentities, onRetryHoldings, onUpdate }) => {
   const [expanded, setExpanded] = useState(false);
-  const [identityTouched, setIdentityTouched] = useState(false);
+  const identityResolutionTouched = useRef(false);
+  const holdingResolutionTouched = useRef(false);
   const blockerKeys = (item.blocking_fields || []).map(field => field.replace(/_/g, '').toLocaleLowerCase());
   const identityBlocked = blockerKeys.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
   const productBlocked = blockerKeys.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
@@ -52,30 +53,43 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
   }), [draft.purpose, holdingLookup.options, item.category, selectedIdentityId]);
   const holdingState = useMemo<LookupState<ImportHoldingOption>>(() => ({ ...holdingLookup, options: holdingOptions, status: holdingLookup.status === 'ready' && holdingOptions.length === 0 ? 'empty' : holdingLookup.status }), [holdingLookup, holdingOptions]);
   const proposedIdentityName = identityLookup.options.find(option => option.id === item.proposed_compass_entry_id)?.name || (item.proposed_compass_entry_id ? `Library identity ${item.proposed_compass_entry_id}` : 'New Library identity');
-  const proposedHoldingName = holdingLookup.options.find(option => option.id === item.proposed_product_id)?.name || (item.proposed_product_id ? `Inventory holding ${item.proposed_product_id}` : 'New Inventory holding');
+  const compatibleProposedHolding = holdingOptions.find(option => option.id === item.proposed_product_id);
+  const proposedHoldingName = compatibleProposedHolding?.name || 'New Inventory holding';
   useEffect(() => {
     if (holdingLookup.status !== 'ready' && holdingLookup.status !== 'empty') return;
-    setDraft(current => {
-      const compassEntryId = current.compass_entry_id && current.compass_entry_id !== 'new' ? current.compass_entry_id : null;
-      const productId = validateImportHoldingSelection(current.product_id, holdingLookup.options, { category: item.category, compassEntryId, purpose: current.purpose || null });
-      return productId === current.product_id ? current : { ...current, product_id: productId };
-    });
-  }, [draft.compass_entry_id, draft.purpose, holdingLookup.options, holdingLookup.status, item.category]);
+    const productId = validateImportHoldingSelection(draft.product_id, holdingLookup.options, { category: item.category, compassEntryId: selectedIdentityId, purpose: draft.purpose || null });
+    if (productId === draft.product_id) return;
+    setDraft(current => ({ ...current, product_id: productId }));
+    holdingResolutionTouched.current = true;
+  }, [draft.product_id, draft.purpose, holdingLookup.options, holdingLookup.status, item.category, selectedIdentityId]);
   const blocking = importBlockingMessage(item);
   const editLabel = item.category === 'tea' ? 'tea' : 'item';
   const set = (key: keyof typeof draft, next: string) => setDraft(current => ({ ...current, [key]: next }));
+  const setPurpose = (purpose: string) => {
+    const productId = validateImportHoldingSelection(draft.product_id, holdingLookup.options, { category: item.category, compassEntryId: selectedIdentityId, purpose: purpose || null });
+    if (productId !== draft.product_id) holdingResolutionTouched.current = true;
+    setDraft(current => ({ ...current, purpose, product_id: productId }));
+  };
+  const setIdentity = (compassEntryId: string) => {
+    const selectedCompassId = compassEntryId && compassEntryId !== 'new' ? compassEntryId : null;
+    const productId = compassEntryId === 'new' ? 'new' : validateImportHoldingSelection(draft.product_id, holdingLookup.options, { category: item.category, compassEntryId: selectedCompassId, purpose: draft.purpose || null });
+    identityResolutionTouched.current = true;
+    if (productId !== draft.product_id) holdingResolutionTouched.current = true;
+    setDraft(current => ({ ...current, compass_entry_id: compassEntryId, product_id: productId }));
+  };
   const submit = async () => {
     const parsedValues = buildImportCorrectionParsedData(item.parsed_data, {
       englishName: draft.english_name.trim() || null, originalName: draft.original_name.trim() || null,
       type: draft.tea_type.trim() || null, classification: draft.classification.trim() || null,
       year: draft.year ? Number(draft.year) : null, form: draft.form.trim() || null, originRegion: draft.origin.trim() || null,
       description: draft.description.trim() || null, inventoryPurpose: draft.purpose || null,
-      compassSelection: draft.compass_entry_id || null, productSelection: draft.product_id || null, identityTouched, acquired: draft.acquired === 'yes',
+      compassSelection: draft.compass_entry_id || null, productSelection: draft.product_id || null,
+      identityTouched: identityResolutionTouched.current, productSelectionTouched: holdingResolutionTouched.current, acquired: draft.acquired === 'yes',
       packWeight: draft.pack_weight ? Number(draft.pack_weight) : null, weightUnit: draft.weight_unit || null,
       packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount.trim() || null,
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis,
     });
-    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id, identityTouched);
+    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id, identityResolutionTouched.current || holdingResolutionTouched.current);
     const updates: CurateImportItemUpdate = {
       name: draft.english_name.trim() || null, english_name: draft.english_name.trim() || null, original_name: draft.original_name.trim() || null,
       pack_weight: draft.pack_weight ? Number(draft.pack_weight) : null, weight_unit: (draft.weight_unit || null) as CurateImportItem['weight_unit'],
@@ -115,9 +129,9 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
           <label className="block text-ui-11 text-tea-text-sec">Price amount<input inputMode="decimal" value={draft.price_amount} onChange={event => set('price_amount', event.target.value)} className={fieldClass} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Currency<input value={draft.currency} onChange={event => set('currency', event.target.value)} placeholder="CNY" className={fieldClass} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Price interpretation<select value={draft.price_basis} onChange={event => set('price_basis', event.target.value)} className={fieldClass}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></label>
-          <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => set('purpose', event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
-          <ImportMatchPicker label="Library tea identity" lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={selection => { setIdentityTouched(true); set('compass_entry_id', selection); if (selection === 'new') set('product_id', 'new'); else if (draft.product_id === 'new') set('product_id', ''); }} />
-          <ImportMatchPicker label="Inventory holding" lookup={holdingState} selectedId={draft.product_id} proposedId={item.proposed_product_id} proposedName={proposedHoldingName} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { setIdentityTouched(true); set('product_id', selection); }} />
+          <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => setPurpose(event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
+          <ImportMatchPicker label="Library tea identity" lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} />
+          <ImportMatchPicker label="Inventory holding" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={proposedHoldingName} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} />
           <label className="block text-ui-11 text-tea-text-sec">Acquired into physical stock<select value={draft.acquired} onChange={event => set('acquired', event.target.value)} className={fieldClass}><option value="">Needs confirmation</option><option value="yes">Yes, add to physical stock</option></select></label>
           <div className="flex justify-between gap-3"><button type="button" onClick={() => setExpanded(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button><button type="button" disabled={busy || !draft.english_name.trim()} onClick={() => void submit()} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg disabled:opacity-50">{busy ? 'Saving…' : `Save ${editLabel}`}</button></div>
         </fieldset>

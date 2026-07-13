@@ -95,6 +95,9 @@ describe('review navigation and journey helpers', () => {
       { id: 'pot', name: 'Jingmai pot', category: 'teaware', compassEntryId: 'identity-1', purpose: 'working' },
       { id: 'unknown-purpose', name: 'Unclassified Jingmai', category: 'tea', compassEntryId: 'identity-1', purpose: null },
     ], { category: 'tea', compassEntryId: 'identity-1', purpose: 'working' }).map(option => option.id)).toEqual(['working']);
+    expect(compatibleImportHoldings([
+      { id: 'unrelated', name: 'Unrelated holding', category: 'tea', compassEntryId: 'identity-2', purpose: 'working' },
+    ], { category: 'tea', compassEntryId: null, purpose: 'working' })).toEqual([]);
   });
 
   it('clears a selected holding when its Library identity changes', () => {
@@ -201,6 +204,16 @@ describe('review navigation and journey helpers', () => {
       acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
     });
     expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' });
+  });
+
+  it('persists an explicitly invalidated holding as null without clearing its compatible identity', () => {
+    const payload = buildImportCorrectionParsedData({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' }, {
+      englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
+      description: null, inventoryPurpose: 'personal', compassSelection: 'compass-1', productSelection: null,
+      identityTouched: false, productSelectionTouched: true, acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1,
+      priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: null });
   });
 
   it('uses category-aware Inventory action nouns', () => {

@@ -149,6 +149,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   }, [busyId, confirmClose, draftDirty, onClose]);
 
   const runImport = async () => {
+    if (busyId) return;
     setState(current => ({ ...current, phase: 'parsing', error: null }));
     await new Promise(resolve => window.setTimeout(resolve, 250));
     let detail = state.detail;
@@ -305,7 +306,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           <div><h2 id="curate-import-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Import into Curate</h2><p className="text-ui-11 text-tea-text-dim">Capture now. Decide later.</p></div>
         </header>
         <div className="pb-nav flex-1 overflow-y-auto px-4 py-5 sm:px-6" aria-live="polite">
-          {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeyLookup={journeyLookup} onRetryJourneys={loadJourneys} onCreateJourney={createJourney} />}
+          {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeyLookup={journeyLookup} onRetryJourneys={loadJourneys} busy={Boolean(busyId)} onCreateJourney={createJourney} />}
           {state.phase === 'parsing' && <div className="space-y-4"><div role="status" className="flex min-h-32 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your evidence…</div><ImportEvidencePreview evidence={draft.evidence} /></div>}
           {state.phase === 'error' && <div className="space-y-4">
             {persistedEvidenceSources.length > 0 && <div className="space-y-2" aria-label="Persisted evidence outcomes">{persistedEvidenceSources.map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}

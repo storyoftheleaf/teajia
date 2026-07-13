@@ -694,6 +694,11 @@ test.describe('analyzed inventory import review', () => {
     const row = dialog.getByTestId('import-item-row').nth(9);
     await row.getByRole('button', { name: 'Edit tea' }).click();
     await expect(row.getByText('Suggested: Jingmai Mountain Raw Pu’er')).toBeVisible();
+    const holdingPicker = row.getByRole('combobox', { name: 'Inventory holding' });
+    await holdingPicker.click();
+    await expect(row.getByRole('option').filter({ hasText: 'Jingmai service holding' })).toHaveCount(0);
+    await expect(row.getByRole('option').filter({ hasText: 'Create new Inventory holding' })).toBeVisible();
+    await holdingPicker.press('Escape');
     const identityPicker = row.getByRole('combobox', { name: 'Library tea identity' });
     await identityPicker.click();
     await expect(identityPicker).toHaveAttribute('aria-expanded', 'true');
@@ -702,7 +707,7 @@ test.describe('analyzed inventory import review', () => {
     await identityPicker.click();
     await row.getByRole('option').filter({ hasText: 'Jingmai Mountain Raw Pu’er' }).click();
     await row.getByLabel('Inventory purpose').selectOption('working');
-    await row.getByLabel('Inventory holding').click();
+    await holdingPicker.click();
     await expect(row.getByRole('option').filter({ hasText: 'Jingmai service holding' })).toBeVisible();
     await expect(row.getByRole('option').filter({ hasText: 'Jingmai personal holding' })).toHaveCount(0);
     await row.getByRole('option').filter({ hasText: 'Jingmai service holding' }).click();
@@ -778,6 +783,54 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog).toBeVisible();
     releaseSave();
     await expect(first.getByRole('button', { name: 'Edit tea' })).toBeEnabled();
+  });
+
+  test('persists an explicitly cleared proposed holding after purpose makes it incompatible', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const firstItem = api.detail.items[0];
+    firstItem.proposed_compass_entry_id = 'identity-yunnan';
+    firstItem.proposed_product_id = 'holding-working';
+    Object.assign(firstItem.parsed_data, { proposedCompassEntryId: 'identity-yunnan', proposedProductId: 'holding-working', duplicateResolution: 'matched' });
+    await page.route('**/api/compass/entries', route => route.fulfill({ json: { entries: [{ id: 'identity-yunnan', name: 'Yunnan Ancient Tree Raw Pu’er', category: 'tea' }] } }));
+    await page.route('**/api/products', route => route.fulfill({ json: [{ id: 'holding-working', given_name: 'Yunnan service holding', type: 'tea', source_compass_entry_id: 'identity-yunnan', inventory_purpose: 'working' }] }));
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
+    await row.getByRole('button', { name: 'Edit tea' }).click();
+    await expect(row.getByText('Selected: Yunnan service holding')).toBeVisible();
+    await row.getByLabel('Inventory purpose').selectOption('personal');
+    await expect(row.getByText('Selected: Yunnan service holding')).toHaveCount(0);
+    await row.getByRole('button', { name: 'Save tea' }).click();
+    const correction = api.correctionBodies.find(body => body.name === firstItem.english_name);
+    expect(correction?.parsed_data).toMatchObject({ proposedCompassEntryId: 'identity-yunnan', proposedProductId: null });
+  });
+
+  test('locks import input while a sourcing run is being created', async ({ page }) => {
+    let releaseCreate!: () => void;
+    const createGate = new Promise<void>(resolve => { releaseCreate = resolve; });
+    let importCreates = 0;
+    page.on('request', request => { if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/curate/imports') importCreates += 1; });
+    await page.route('**/api/curate/journeys', async route => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      await createGate;
+      return route.fulfill({ json: { id: 'journey-new', account_id: 'acct-bali', name: 'Yunnan run', year: 2026 } });
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await dialog.getByLabel('Paste a list or invoice text').fill('Tea one');
+    await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
+    await dialog.getByRole('button', { name: 'Create new sourcing run' }).click();
+    await dialog.getByLabel('New sourcing run name').fill('Yunnan run');
+    await dialog.getByRole('button', { name: 'Create run' }).click();
+    await expect(dialog.getByLabel('Paste a list or invoice text')).toBeDisabled();
+    await expect(dialog.locator('button').filter({ hasText: 'Add photos' })).toBeDisabled();
+    await expect(dialog.locator('button').filter({ hasText: 'Add files or invoices' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Start import' })).toBeDisabled();
+    expect(importCreates).toBe(0);
+    releaseCreate();
+    await expect(dialog.getByLabel('Paste a list or invoice text')).toBeEnabled();
+    await expect(dialog.getByRole('button', { name: 'Start import' })).toBeEnabled();
   });
 
   test('keeps every visible import input at 16px on mobile', async ({ page }, testInfo) => {

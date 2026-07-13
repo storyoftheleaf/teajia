@@ -7,6 +7,7 @@ interface Props {
   onRemove?: (id: string) => void;
   onReplace?: (id: string, file: File) => void;
   onClear?: () => void;
+  disabled?: boolean;
 }
 
 const statusCopy = (item: ImportEvidence) => {
@@ -20,13 +21,13 @@ const statusCopy = (item: ImportEvidence) => {
   return 'Ready to upload';
 };
 
-export const ImportEvidencePreview: React.FC<Props> = ({ evidence, onRemove, onReplace, onClear }) => {
+export const ImportEvidencePreview: React.FC<Props> = ({ evidence, onRemove, onReplace, onClear, disabled = false }) => {
   if (!evidence.length) return null;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <p className="text-ui-11 uppercase tracking-[0.12em] text-tea-text-dim">Attached evidence</p>
-        {onClear && <button type="button" onClick={onClear} aria-label="Clear all attachments" className="tap-target min-h-11 text-ui-11 text-tea-text-sec hover:text-tea-text">Clear all</button>}
+        {onClear && <button type="button" disabled={disabled} onClick={onClear} aria-label="Clear all attachments" className="tap-target min-h-11 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Clear all</button>}
       </div>
       <ul className="grid gap-2" aria-label="Attached evidence">
         {evidence.map(item => (
@@ -35,9 +36,9 @@ export const ImportEvidencePreview: React.FC<Props> = ({ evidence, onRemove, onR
             <div className="min-w-0 flex-1"><p className="truncate text-tea-text">{item.name}</p><p className={item.status === 'failed' ? 'text-tea-gold' : 'text-tea-text-dim'}>{statusCopy(item)}</p></div>
             {onReplace && <span className="relative inline-flex min-h-11 items-center gap-1 px-1 text-ui-11 text-tea-gold focus-within:ring-1 focus-within:ring-tea-gold">
               <RotateCcw size={14} aria-hidden="true" /> Replace
-              <input className="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="file" aria-label={`Replace ${item.name}`} onChange={event => { const file = event.target.files?.[0]; if (file) onReplace(item.id, file); event.target.value = ''; }} />
+              <input disabled={disabled} className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed" type="file" aria-label={`Replace ${item.name}`} onChange={event => { const file = event.target.files?.[0]; if (file) onReplace(item.id, file); event.target.value = ''; }} />
             </span>}
-            {onRemove && <button type="button" onClick={() => onRemove(item.id)} aria-label={`Remove ${item.name}`} className="tap-target inline-flex min-h-11 items-center gap-1 px-1 text-ui-11 text-tea-text-sec hover:text-tea-text"><Trash2 size={14} aria-hidden="true" /> Remove</button>}
+            {onRemove && <button type="button" disabled={disabled} onClick={() => onRemove(item.id)} aria-label={`Remove ${item.name}`} className="tap-target inline-flex min-h-11 items-center gap-1 px-1 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50"><Trash2 size={14} aria-hidden="true" /> Remove</button>}
           </li>
         ))}
       </ul>

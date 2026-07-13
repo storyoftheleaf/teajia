@@ -35,7 +35,7 @@ export const ImportMatchPicker = <T extends ImportMatchOption>({ label, lookup, 
     if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); setActive(index => Math.min(index + 1, Math.max(choices.length - 1, 0))); }
     else if (event.key === 'ArrowUp') { event.preventDefault(); setOpen(true); setActive(index => index <= 0 ? Math.max(choices.length - 1, 0) : index - 1); }
     else if (event.key === 'Enter' && open && choices[active]) { event.preventDefault(); choose(choices[active]); }
-    else if (event.key === 'Escape') setOpen(false);
+    else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(false); }
   };
   return (
     <div className="space-y-1.5" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false); }}>

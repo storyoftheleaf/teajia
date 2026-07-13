@@ -50,8 +50,9 @@ export const rankImportMatches = <T extends ImportMatchOption>(options: T[], que
 };
 
 export const compatibleImportHoldings = <T extends ImportMatchOption>(options: T[], selection: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }): T[] => options.filter(option =>
-  (!option.category || option.category === selection.category)
-  && (!selection.compassEntryId || option.compassEntryId === selection.compassEntryId)
+  Boolean(selection.compassEntryId)
+  && (!option.category || option.category === selection.category)
+  && option.compassEntryId === selection.compassEntryId
   && (!selection.purpose || option.purpose === selection.purpose),
 );
 
@@ -118,15 +119,17 @@ export interface ImportCorrectionDraft {
   packWeight: number | null; weightUnit: string | null; packCount: number | null; priceAmount: string | null;
   currency: string | null; priceBasis: string;
   identityTouched?: boolean;
+  productSelectionTouched?: boolean;
 }
 
 export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>, draft: ImportCorrectionDraft) => {
   const identityTouched = draft.identityTouched !== false;
-  const compassSelection = draft.compassSelection ?? (typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : parsed.duplicateResolution === 'new' ? 'new' : null);
-  const productSelection = draft.productSelection ?? (typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null);
+  const productSelectionTouched = draft.productSelectionTouched === true;
+  const compassSelection = identityTouched ? draft.compassSelection : draft.compassSelection ?? (typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : parsed.duplicateResolution === 'new' ? 'new' : null);
+  const productSelection = productSelectionTouched ? draft.productSelection : draft.productSelection ?? (typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null);
   const createsIdentity = identityTouched ? compassSelection === 'new' : parsed.duplicateResolution === 'new';
   const proposedCompassEntryId = identityTouched ? (createsIdentity ? null : compassSelection) : parsed.proposedCompassEntryId ?? null;
-  const proposedProductId = identityTouched ? (createsIdentity || productSelection === 'new' ? null : productSelection) : parsed.proposedProductId ?? null;
+  const proposedProductId = createsIdentity || productSelection === 'new' ? null : productSelection;
   const priceAmount = (() => {
     const source = draft.priceAmount?.trim();
     if (!source || !/^\d+(?:\.\d+)?$/.test(source)) return null;
