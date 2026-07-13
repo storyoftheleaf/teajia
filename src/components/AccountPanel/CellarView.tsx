@@ -113,7 +113,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
 
   const accountName = (id: string | null | undefined): string =>
     memberships.find(m => m.account_id === id)?.account_name
-    ?? (activeAccount?.id === id ? activeAccount.name : null)
+    ?? (activeAccount && activeAccount.id === id ? activeAccount.name : null)
     ?? 'a location';
 
   return (

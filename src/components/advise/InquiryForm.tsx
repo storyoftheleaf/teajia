@@ -31,7 +31,7 @@ export function restoreInquiryDraft(value: unknown, preselect?: string): Inquiry
   if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
   const draft = value as Record<string, unknown>;
   const scalar = (field: keyof Omit<InquiryFormData, 'interests'>): string =>
-    typeof draft[field] === 'string' ? draft[field] : fallback[field];
+    typeof draft[field] === 'string' ? draft[field] : (fallback[field] ?? '');
   return {
     name: scalar('name'),
     email: scalar('email'),

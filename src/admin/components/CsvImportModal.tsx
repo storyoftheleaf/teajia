@@ -93,7 +93,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
   };
 
   const validateRow = (row: StagingRow): { isValid: boolean, status: string, errors: string[] } => {
-    const errors = [];
+    const errors: string[] = [];
     let status = 'Active';
 
     // 1. Critical Identity Fields (Must exist to be valid row)

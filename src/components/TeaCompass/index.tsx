@@ -899,7 +899,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         )}
                       </AnimatePresence>}
 
-                      {(!initialDevelopmentProduct || developmentStarted) && <CaptureCard
+                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && <CaptureCard
                         entryId={activeEntryId}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}

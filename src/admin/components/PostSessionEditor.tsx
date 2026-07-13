@@ -333,7 +333,7 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
                     <td className="py-2 px-2 text-tea-text text-xs">{note.teaName || '—'}</td>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-0.5">
-                        {renderLeaves(note.rating)}
+                        {renderLeaves(note.rating ?? 0)}
                       </div>
                     </td>
                     <td className="py-2 px-2 text-tea-text-sec text-xs max-w-[200px] truncate" title={note.impression}>
