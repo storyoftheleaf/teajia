@@ -5,6 +5,7 @@ import { createSampleStore, useSampleStore } from './sampleStore';
 import { createSampleCartStore, useSampleCartStore } from './sampleCartStore';
 import { createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { useAppStore } from '../lib/store';
+import { buildSampleBatchDraft, saveSampleBatchLifecycle } from './sampleLifecycle';
 
 describe('sample account isolation', () => {
   beforeEach(() => {
@@ -14,7 +15,7 @@ describe('sample account isolation', () => {
       sampleTombstones: [], sampleSetTombstones: [],
       accountScopeId: null, dataByAccount: {},
     });
-    useSampleCartStore.setState({ items: [], accountScopeId: null, itemsByAccount: {} });
+    useSampleCartStore.setState({ items: [], accountScopeId: null, itemsByAccount: {}, pendingOperation: null, pendingOperationsByAccount: {} });
   });
 
   it('partitions sample sets and portions by active account', () => {
@@ -63,6 +64,60 @@ describe('sample account isolation', () => {
     expect(useSampleCartStore.getState().items.map((item) => item.id)).toEqual(['cart-a']);
     useSampleCartStore.getState().switchAccount(null);
     expect(useSampleCartStore.getState().items).toEqual([]);
+  });
+
+  it('partitions a pending batch retry by account', () => {
+    useSampleCartStore.getState().switchAccount('acct-a');
+    const operationA = buildSampleBatchDraft([{ id: 'a', name: 'A', grams: 10 }], { setId: 'set-a', sampleId: () => 'sample-a' });
+    useSampleCartStore.getState().setPendingOperation(operationA);
+    useSampleCartStore.getState().switchAccount('acct-b');
+    expect(useSampleCartStore.getState().pendingOperation).toBeNull();
+    const operationB = buildSampleBatchDraft([{ id: 'b', name: 'B', grams: 10 }], { setId: 'set-b', sampleId: () => 'sample-b' });
+    useSampleCartStore.getState().setPendingOperation(operationB);
+    useSampleCartStore.getState().switchAccount('acct-a');
+    expect(useSampleCartStore.getState().pendingOperation?.sampleSet.id).toBe('set-a');
+    useSampleCartStore.getState().switchAccount('acct-b');
+    expect(useSampleCartStore.getState().pendingOperation?.sampleSet.id).toBe('set-b');
+  });
+
+  it('rehydrates a failed Compass retry and completes with the same remote ids', async () => {
+    const values = new Map<string, string>();
+    const storage: StateStorage = {
+      getItem: (name) => values.get(name) ?? null,
+      setItem: (name, value) => { values.set(name, value); },
+      removeItem: (name) => { values.delete(name); },
+    };
+    useAppStore.setState({ activeAccountId: 'acct-a' });
+    const storageAdapter = () => createJSONStorage<ReturnType<typeof useSampleCartStore.getState>>(() => storage);
+    const beforeReload = createSampleCartStore(storageAdapter());
+    beforeReload.getState().switchAccount('acct-a');
+    beforeReload.getState().addItem({ id: 'entry-1', name: 'Tea', grams: 10, compassEntryId: 'entry-1' });
+    const operation = buildSampleBatchDraft(beforeReload.getState().items, { setId: 'stable-set', sampleId: () => 'stable-sample' });
+    beforeReload.getState().setPendingOperation(operation);
+    const entry = { id: 'entry-1', synced: false } as any;
+    await expect(saveSampleBatchLifecycle({
+      accountId: 'acct-a', draft: operation, isCurrentAccount: () => true,
+      persistSamples: async () => undefined, getCompassEntry: () => entry,
+      updateCompassEntry: (_id, updates) => Object.assign(entry, updates),
+      persistCompass: async () => { throw new Error('Compass offline'); },
+      clearList: () => { beforeReload.getState().completePendingOperation(operation.sampleSet.id); },
+    })).rejects.toThrow('Compass offline');
+
+    const afterReload = createSampleCartStore(storageAdapter());
+    expect(afterReload.getState().pendingOperation).toMatchObject({
+      sampleSet: { id: 'stable-set' }, samples: [{ id: 'stable-sample' }],
+    });
+    const retriedIds: string[] = [];
+    await saveSampleBatchLifecycle({
+      accountId: 'acct-a', draft: afterReload.getState().pendingOperation!, isCurrentAccount: () => true,
+      persistSamples: async (draft) => { retriedIds.push(draft.sampleSet.id, ...draft.samples.map(sample => sample.id)); },
+      getCompassEntry: () => entry, updateCompassEntry: (_id, updates) => Object.assign(entry, updates),
+      persistCompass: async () => { entry.synced = true; },
+      clearList: () => { afterReload.getState().completePendingOperation('stable-set'); },
+    });
+    expect(retriedIds).toEqual(['stable-set', 'stable-sample']);
+    expect(afterReload.getState().items).toEqual([]);
+    expect(afterReload.getState().pendingOperation).toBeNull();
   });
 
   it('moves legacy sample and cart data into only the first known account', () => {

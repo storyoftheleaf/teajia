@@ -1,12 +1,8 @@
 import type { CompassSampleState, TeaCompassEntry } from '../components/TeaCompass/types';
-import type { SampleCartItem } from './sampleCartStore';
-import { createEmptySample, createEmptySampleSet, type SampleSet, type SampleStatus, type TeaSample } from './types';
+import type { PendingSampleBatchOperation, SampleCartItem } from './sampleCartStore';
+import { createEmptySample, createEmptySampleSet, type SampleStatus, type TeaSample } from './types';
 
-export interface SampleBatchDraft {
-  signature: string;
-  sampleSet: SampleSet;
-  samples: TeaSample[];
-}
+export type SampleBatchDraft = PendingSampleBatchOperation;
 
 function sampleListSignature(items: SampleCartItem[]): string {
   return JSON.stringify(items.map((item) => ({

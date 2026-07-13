@@ -6,7 +6,7 @@ const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   const sampleSets: Array<Record<string, any>> = [];
@@ -20,14 +20,21 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       notes: '', photos: '[]', audio_clips: '[]', created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }] : [];
   })).map((entry) => ({ ...entry }));
-  await page.addInitScript(({ token, items, preserveSamplesOnNavigation }) => {
+  await page.addInitScript(({ token, items, preserveSamplesOnNavigation, preserveSampleCartOnNavigation }) => {
     localStorage.setItem('teajia_token', token);
     localStorage.removeItem('teajia-storage');
-    localStorage.setItem('teajia-sample-cart', JSON.stringify({ state: { items }, version: 0 }));
     const hasBooted = sessionStorage.getItem('compass-harness-booted') === '1';
+    if (!preserveSampleCartOnNavigation || !hasBooted) {
+      localStorage.setItem('teajia-sample-cart', JSON.stringify({ state: { items }, version: 0 }));
+    }
     if (!preserveSamplesOnNavigation || !hasBooted) localStorage.removeItem('teajia-samples');
     sessionStorage.setItem('compass-harness-booted', '1');
-  }, { token: COMPASS_TOKEN, items: options?.sampleCart ?? [], preserveSamplesOnNavigation: options?.preserveSamplesOnNavigation ?? false });
+  }, {
+    token: COMPASS_TOKEN,
+    items: options?.sampleCart ?? [],
+    preserveSamplesOnNavigation: options?.preserveSamplesOnNavigation ?? false,
+    preserveSampleCartOnNavigation: options?.preserveSampleCartOnNavigation ?? false,
+  });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     const accountId = route.request().headers()['x-teajia-account'] ?? 'acct-bali';

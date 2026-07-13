@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
+import { compassRequestCount, expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 const CART_ITEM = { id: 'compass-tea-1', name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', vendorName: 'Chen Family', grams: 10, compassEntryId: 'compass-tea-1' };
 
@@ -213,6 +213,43 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
     const savedSetIds = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets.map((set: { id: string }) => set.id));
     expect(savedSetIds).toEqual([firstSetId]);
+  });
+
+  test('reopens a failed Compass linkage retry with the same persisted batch ids', async ({ page }) => {
+    await installCompassHarness(page, {
+      sampleCart: [CART_ITEM], preserveSamplesOnNavigation: true, preserveSampleCartOnNavigation: true,
+    });
+    let failed = false;
+    await page.route('**/api/compass/sync', async route => {
+      if (!failed) {
+        failed = true;
+        return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Compass linkage rejected once' }) });
+      }
+      return route.fallback();
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByRole('alert')).toContainText('Library linkage is still pending');
+    const beforeReload = await page.evaluate(() => {
+      const state = JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state;
+      return {
+        setId: state.pendingOperation.sampleSet.id,
+        sampleIds: state.pendingOperation.samples.map((sample: { id: string }) => sample.id),
+      };
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
+    expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(1);
+    expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(1);
+    const afterRetry = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state);
+    expect(afterRetry.pendingOperation).toBeNull();
+    expect(afterRetry.items).toEqual([]);
+    const sampleState = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state);
+    expect(sampleState.sampleSets.filter((set: { id: string }) => set.id === beforeReload.setId)).toHaveLength(1);
+    expect(sampleState.samples.map((sample: { id: string }) => sample.id)).toEqual(expect.arrayContaining(beforeReload.sampleIds));
   });
 
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {

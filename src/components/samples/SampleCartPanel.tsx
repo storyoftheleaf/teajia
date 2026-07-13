@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { FlaskConical, Printer, MessageCircle, BookOpen, Trash2, X, Check } from 'lucide-react';
 import { useSampleCartStore } from '../../samples/sampleCartStore';
 import { useSampleStore } from '../../samples/sampleStore';
@@ -7,7 +7,6 @@ import {
   buildSampleBatchDraft,
   sampleListSignatureForRetry,
   saveSampleBatchLifecycle,
-  type SampleBatchDraft,
 } from '../../samples/sampleLifecycle';
 import { useTeaCompassStore } from '../../lib/teaCompassStore';
 import { syncCompassEntries } from '../../lib/teaCompassSync';
@@ -84,6 +83,9 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
   const removeItem = useSampleCartStore((s) => s.removeItem);
   const updateGrams = useSampleCartStore((s) => s.updateGrams);
   const clear = useSampleCartStore((s) => s.clear);
+  const pendingOperation = useSampleCartStore((s) => s.pendingOperation);
+  const setPendingOperation = useSampleCartStore((s) => s.setPendingOperation);
+  const completePendingOperation = useSampleCartStore((s) => s.completePendingOperation);
 
   const addSample = useSampleStore((s) => s.addSample);
   const addSampleSet = useSampleStore((s) => s.addSampleSet);
@@ -92,7 +94,6 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const pendingDraftRef = useRef<{ accountId: string; draft: SampleBatchDraft } | null>(null);
 
   const isEmpty = items.length === 0;
   const totalGrams = items.reduce((s, i) => s + i.grams, 0);
@@ -132,10 +133,10 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
     setSaving(true);
     setSaveError(null);
     const signature = sampleListSignatureForRetry(items);
-    const draft = pendingDraftRef.current?.accountId === accountId && pendingDraftRef.current.draft.signature === signature
-      ? pendingDraftRef.current.draft
+    const draft = pendingOperation?.signature === signature
+      ? pendingOperation
       : buildSampleBatchDraft(items);
-    pendingDraftRef.current = { accountId, draft };
+    if (draft !== pendingOperation) setPendingOperation(draft);
 
     try {
       await saveSampleBatchLifecycle({
@@ -164,9 +165,12 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
             throw new Error('The batch was saved, but Library linkage is still pending. Retry to finish linking it.');
           }
         },
-        clearList: clear,
+        clearList: () => {
+          if (!completePendingOperation(draft.sampleSet.id)) {
+            throw new Error('The sample batch was saved, but the list changed before completion. Review the current list before saving again.');
+          }
+        },
       });
-      pendingDraftRef.current = null;
       setSavedConfirm(true);
       setTimeout(() => setSavedConfirm(false), 3000);
     } catch (error) {
