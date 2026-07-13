@@ -11,6 +11,15 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
   requestCounts.set(page, new Map());
   const sampleSets: Array<Record<string, any>> = [];
   const samples: Array<Record<string, any>> = [];
+  const compassEntries: Array<Record<string, any>> = (options?.compassEntries ?? (options?.sampleCart ?? []).flatMap((raw) => {
+    const item = raw as Record<string, any>;
+    return item.compassEntryId ? [{
+      id: item.compassEntryId, name: item.name ?? '', chinese_name: item.chineseName ?? null,
+      type: item.type ?? null, vendor_name: item.vendorName ?? null, category: 'tea', status: 'noted',
+      decision: null, verdict: null, sample_state: null, sample_set_id: null,
+      notes: '', photos: '[]', audio_clips: '[]', created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }] : [];
+  })).map((entry) => ({ ...entry }));
   await page.addInitScript(({ token, items, preserveSamplesOnNavigation }) => {
     localStorage.setItem('teajia_token', token);
     localStorage.removeItem('teajia-storage');
@@ -37,7 +46,15 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       : options?.contextByAccount?.[accountId];
     if (requestKey === 'POST /api/compass/sync') {
       const body = route.request().postDataJSON() as { entries?: Array<{ id: string }> };
+      for (const entry of body.entries ?? []) {
+        const index = compassEntries.findIndex(candidate => candidate.id === entry.id);
+        if (index >= 0) compassEntries[index] = { ...compassEntries[index], ...entry };
+        else compassEntries.push({ ...entry });
+      }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ syncedIds: (body.entries ?? []).map(entry => entry.id) }) });
+    }
+    if (requestKey === 'GET /api/compass/entries') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ entries: compassEntries }) });
     }
     if (requestKey === 'GET /api/admin/sample-sets') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ sets: sampleSets }) });
@@ -103,7 +120,7 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
       'PUT /api/user/favorites': { ok: true },
       'GET /api/tasting-journal': { entries: [] }, 'GET /api/tea-discovery': { profile: null },
       'GET /api/notes': { notes: [] }, 'GET /api/customers': [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }],
-      'GET /api/compass/incoming': [], 'GET /api/compass/entries': { entries: options?.compassEntries ?? [] }, 'POST /api/compass/sync': [],
+      'GET /api/compass/incoming': [],
       'GET /api/vendors': [], 'GET /api/sources': [], 'GET /api/admin/events': [],
       'GET /api/curate/journeys': { journeys: scopedContext?.journeys ?? (options?.contextEmpty ? [] : [{ id: 'journey-taiwan', account_id: 'acct-bali', name: 'Taiwan', season: 'Spring', year: 2026 }]) },
       'GET /api/curate/visits': { visits: scopedContext?.visits ?? (options?.contextEmpty ? [] : [{ id: 'visit-chen', account_id: 'acct-bali', journey_id: 'journey-taiwan', vendor_id: 'vendor-chen', vendor_name: 'Chen Family', place: 'Taipei' }]) },

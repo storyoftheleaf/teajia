@@ -6,7 +6,7 @@ export const COMPASS_COLUMNS = [
   'origin_region', 'tea_key', 'price_amount', 'price_currency', 'price_per_unit_grams',
   'category', 'teaware_category', 'material', 'capacity_ml', 'quantity', 'era',
   'vendor_id', 'vendor_name', 'linked_customer_id', 'notes', 'tasting', 'photos', 'audio_clips',
-  'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'sample_state', 'session_id',
+  'status', 'buy_quantity_grams', 'buy_quantity_units', 'buy_total', 'verdict', 'decision', 'sample_state', 'sample_set_id', 'session_id',
   'journey_id', 'visit_id',
   'draft_product_id', 'source_entry_id', 'created_at', 'updated_at',
 ] as const;

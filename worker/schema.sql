@@ -624,6 +624,7 @@ CREATE TABLE IF NOT EXISTS tea_compass_entries (
   verdict TEXT,
   decision TEXT CHECK (decision IS NULL OR decision IN ('considering', 'selected', 'passed_on')),
   sample_state TEXT CHECK (sample_state IS NULL OR sample_state IN ('requested', 'received', 'tasted')),
+  sample_set_id TEXT REFERENCES tea_sample_sets(id),
   journey_id TEXT,
   visit_id TEXT,
   import_item_id TEXT,
@@ -638,6 +639,7 @@ CREATE INDEX IF NOT EXISTS idx_compass_entries_session ON tea_compass_entries(se
 CREATE INDEX IF NOT EXISTS idx_compass_entries_verdict ON tea_compass_entries(verdict);
 CREATE INDEX IF NOT EXISTS idx_compass_account_decision ON tea_compass_entries(account_id, decision);
 CREATE INDEX IF NOT EXISTS idx_compass_account_sample_state ON tea_compass_entries(account_id, sample_state);
+CREATE INDEX IF NOT EXISTS idx_compass_account_sample_set ON tea_compass_entries(account_id, sample_set_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_compass_import_item ON tea_compass_entries(account_id, user_id, import_item_id) WHERE import_item_id IS NOT NULL;
 
 -- Operational sample workflow (migrations 0007, 017, and 021). Sets precede

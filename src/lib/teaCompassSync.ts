@@ -25,6 +25,7 @@ const CAMEL_TO_SNAKE: Record<string, string> = {
   journeyId: 'journey_id',
   visitId: 'visit_id',
   sampleState: 'sample_state',
+  sampleSetId: 'sample_set_id',
   teaKey: 'tea_key',
   createdAt: 'created_at',
   updatedAt: 'updated_at',
@@ -244,7 +245,10 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   if (!isTokenScopedToAccount(requestedAccountId)) return;
 
   try {
-    const data = await api.compass.list();
+    const [data, sampleData] = await Promise.all([
+      api.compass.list(),
+      api.samples.list().catch(() => ({ samples: [] })),
+    ]);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
     const rawServerIds = new Set<string>((data.entries || []).map((r: any) => r.id));
@@ -254,8 +258,40 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // Drop them from BOTH the server set and local state so a not-yet-deleted
     // row can't reappear here (the "I deleted it and it came back" bug).
     const deleted = new Set(store.deletedIds);
+    const linkedSamples = new Map<string, any>();
+    for (const sample of sampleData.samples ?? []) {
+      // The API is newest-first. One encounter may have appeared in several
+      // historical batches; its current queue link is the newest portion.
+      if (sample.compass_entry_id && !linkedSamples.has(sample.compass_entry_id)) {
+        linkedSamples.set(sample.compass_entry_id, sample);
+      }
+    }
     const serverEntries: TeaCompassEntry[] = (data.entries || [])
       .map(toCamelCase)
+      .map((entry: TeaCompassEntry) => {
+        const sample = linkedSamples.get(entry.id);
+        if (!sample) return entry;
+        const sampleStateCandidate = Array.isArray(sample.tastings) && sample.tastings.length > 0
+          ? 'tasted'
+          : sample.status === 'requested'
+            ? 'requested'
+            : sample.status === 'received' || sample.status === 'untasted'
+              ? 'received'
+              : undefined;
+        const lifecycleRank = { requested: 1, received: 2, tasted: 3 } as const;
+        const sampleState = sampleStateCandidate && (
+          !entry.sampleState || lifecycleRank[sampleStateCandidate] > lifecycleRank[entry.sampleState]
+        ) ? sampleStateCandidate : entry.sampleState ?? undefined;
+        const sampleSetId = sample.set_id || entry.sampleSetId;
+        const recovered = sampleSetId !== entry.sampleSetId || (sampleState != null && sampleState !== entry.sampleState);
+        return {
+          ...entry,
+          isSample: true,
+          sampleSetId,
+          ...(sampleState ? { sampleState } : {}),
+          synced: recovered ? false : entry.synced,
+        };
+      })
       .filter((e: TeaCompassEntry) => !deleted.has(e.id));
     const localEntries = store.entries.filter(e => !deleted.has(e.id));
 
@@ -270,7 +306,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
     // Library. Carry them over from the local copy whenever the server
     // version wins the merge.
     const CLIENT_ONLY_FIELDS = [
-      'vendorDetails', 'tastingHistory', 'isSample', 'sampleSetId',
+      'vendorDetails', 'tastingHistory', 'isSample',
       'sampleGrams', 'sampleVerdict', 'sampleWouldBuy', 'tasteOrder',
     ] as const;
     const withClientFields = (server: TeaCompassEntry, local: TeaCompassEntry): TeaCompassEntry => {

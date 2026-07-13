@@ -9,7 +9,17 @@ export interface SampleBatchDraft {
 }
 
 function sampleListSignature(items: SampleCartItem[]): string {
-  return JSON.stringify(items.map((item) => [item.id, item.grams, item.compassEntryId ?? null]));
+  return JSON.stringify(items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    chineseName: item.chineseName ?? null,
+    type: item.type ?? null,
+    vendorName: item.vendorName ?? null,
+    grams: item.grams,
+    compassEntryId: item.compassEntryId ?? null,
+    productId: item.productId ?? null,
+    teaKey: item.teaKey ?? null,
+  })));
 }
 
 export function buildSampleBatchDraft(
@@ -76,6 +86,10 @@ export async function saveSampleBatchLifecycle(options: {
   const linkedIds = Array.from(new Set(options.draft.samples
     .map((sample) => sample.compassEntryId)
     .filter((id): id is string => Boolean(id))));
+  const missingIds = linkedIds.filter((id) => !options.getCompassEntry(id));
+  if (missingIds.length > 0) {
+    throw new Error(`The sample batch was saved, but Compass entry ${missingIds.join(', ')} could not be linked. Restore the entry or remove it from the list, then retry.`);
+  }
   const updatedIds: string[] = [];
   for (const id of linkedIds) {
     if (options.getCompassEntry(id)) {

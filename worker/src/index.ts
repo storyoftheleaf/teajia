@@ -9761,7 +9761,12 @@ function decodeCompassWrite(body: Record<string, unknown>, rejectUnknown: boolea
 
 async function validateCompassContext(env: Env, accountId: string, values: Partial<Record<CompassColumn, unknown>>, existing?: Record<string, unknown> | null): Promise<Response | null> {
   const error = await validateCurateContextPair(env, accountId, values, existing);
-  return error ? json({ error }, 400) : null;
+  if (error) return json({ error }, 400);
+  if (values.sample_set_id === undefined || values.sample_set_id === null) return null;
+  if (typeof values.sample_set_id !== 'string' || !values.sample_set_id) return json({ error: 'Sample set not found' }, 404);
+  const sampleSet = await env.DB.prepare('SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?')
+    .bind(values.sample_set_id, accountId).first();
+  return sampleSet ? null : json({ error: 'Sample set not found' }, 404);
 }
 
 const handleGetCompassEntries: Handler = async (request, env) => {

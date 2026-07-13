@@ -22,6 +22,10 @@ const promotionMigration = readFileSync(
   new URL('../migrations/106_compass_promotion_identity.sql', import.meta.url),
   'utf8',
 );
+const durableCompassSampleMigration = readFileSync(
+  new URL('../migrations/120_compass_sample_set.sql', import.meta.url),
+  'utf8',
+);
 const schemaThrough098 = readFileSync(
   new URL('./fixtures/schema-through-098.sql', import.meta.url),
   'utf8',
@@ -116,7 +120,7 @@ describe('Curate and Inventory migration rehearsal', () => {
   it('upgrades the committed production-faithful migration-098 snapshot without data loss', () => {
     const database = databaseFor(
       'teajia-curate-migrations-',
-      schemaThrough098 + seed + migrations + promotionMigration + promotionMigration,
+      schemaThrough098 + seed + migrations + promotionMigration + promotionMigration + durableCompassSampleMigration,
     );
 
     expect(query(database, `
@@ -157,10 +161,10 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 
-  it('matches the canonical schema for every table changed or created by migrations 099-107', () => {
+  it('matches the canonical schema for every Curate/Inventory table changed through migration 120', () => {
     const upgraded = databaseFor(
       'teajia-upgraded-schema-',
-      schemaThrough098 + migrations + promotionMigration,
+      schemaThrough098 + migrations + promotionMigration + durableCompassSampleMigration,
     );
     const canonical = databaseFor('teajia-canonical-schema-', canonicalSchema);
 

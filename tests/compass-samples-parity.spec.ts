@@ -132,20 +132,11 @@ test.describe('Sample workflows remain reachable outside the capture method row'
   });
 
   test('saving a sample list links the same requested batch into the Library tasting queue', async ({ page }) => {
-    await installCompassHarness(page, { sampleCart: [CART_ITEM] });
+    await installCompassHarness(page, { sampleCart: [CART_ITEM], preserveSamplesOnNavigation: true, compassEntries: [{
+      id: 'compass-tea-1', name: '1998 Dong Ding', category: 'tea', status: 'noted', decision: 'selected', verdict: 'love',
+      notes: '', photos: '[]', audio_clips: '[]', created_at: '2026-07-13T00:00:00.000Z', updated_at: '2026-07-13T00:00:00.000Z',
+    }] });
     await openCompass(page);
-    await page.evaluate(async () => {
-      // @ts-expect-error Vite source modules are available in Playwright.
-      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
-      // @ts-expect-error Vite source modules are available in Playwright.
-      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
-      const entry = createEmptyEntry('tea');
-      entry.id = 'compass-tea-1';
-      entry.name = '1998 Dong Ding';
-      entry.decision = 'selected';
-      entry.verdict = 'love';
-      useTeaCompassStore.getState().addEntry(entry);
-    });
     await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
@@ -163,6 +154,43 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('button', { name: /Sample list —/ }).click();
     await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
+    const status = page.locator('button[title="Click to change status"]').filter({ visible: true });
+    await expect(status).toHaveText('Requested');
+    await status.click();
+    await expect(status).toHaveText('Received');
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const entry = useTeaCompassStore.getState().entries.find((candidate: { id: string }) => candidate.id === 'compass-tea-1');
+      return { sampleState: entry.sampleState, decision: entry.decision, verdict: entry.verdict, status: entry.status };
+    })).toEqual({ sampleState: 'received', decision: 'selected', verdict: 'love', status: 'noted' });
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useSampleStore } = await import('/src/samples/sampleStore.ts');
+      const sample = useSampleStore.getState().samples[0];
+      useSampleStore.getState().addTasting(sample.id, {
+        id: 'actual-tasting', tasterId: 'admin', tasting: { aroma: ['orchid'] }, verdict: 'pass', wouldBuy: false,
+        createdAt: '2026-07-13T01:00:00.000Z',
+      });
+    });
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const entry = useTeaCompassStore.getState().entries.find((candidate: { id: string }) => candidate.id === 'compass-tea-1');
+      return { sampleState: entry.sampleState, decision: entry.decision, verdict: entry.verdict, status: entry.status };
+    })).toEqual({ sampleState: 'tasted', decision: 'selected', verdict: 'love', status: 'noted' });
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { syncCompassEntries } = await import('/src/lib/teaCompassSync.ts');
+      await syncCompassEntries('acct-bali');
+    });
+    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await page.evaluate(() => localStorage.removeItem('teajia-compass'));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    await page.getByRole('button', { name: /To taste/ }).click();
+    await expect(page.getByRole('button', { name: /Sample list —/ })).toBeVisible();
+    await expect(page.getByText('Tasted', { exact: true }).first()).toBeVisible();
   });
 
   test('a failed portion write keeps the list and retries the same batch', async ({ page }) => {

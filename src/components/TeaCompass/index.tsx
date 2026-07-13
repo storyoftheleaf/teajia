@@ -107,7 +107,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const { addNote } = useNotesStore();
 
   const addSampleTasting = useSampleStore((s) => s.addTasting);
-  const updateSampleStatus = useSampleStore((s) => s.updateSampleStatus);
   const samplesList = useSampleStore((s) => s.samples);
 
   const navigate = useNavigate();
@@ -434,18 +433,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         addSampleTasting(linkedSample.id, tastingRecord);
         // addTasting in sampleStore auto-advances status from untasted → tasted
 
-        // Auto-advance sample status based on tasting verdict
-        const verdict = committed.sampleVerdict;
-        if (verdict === 'love' &&
-            (linkedSample.status === 'untasted' || linkedSample.status === 'tasted')) {
-          updateSampleStatus(linkedSample.id, 'favorite');
-        } else if (verdict === 'pass' &&
-                   linkedSample.status !== 'ordered' &&
-                   linkedSample.status !== 'ordering' &&
-                   linkedSample.status !== 'favorite') {
-          updateSampleStatus(linkedSample.id, 'passed');
-        }
-        // 'like' and 'neutral' — addTasting already advances untasted → tasted
+        // The tasting record advances only the explicit sample lifecycle.
+        // Verdict remains tasting evidence; it never infers an operational or
+        // sourcing status.
       }
     }
 
@@ -469,7 +459,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     // Burst continuity: the form resets but run + vendor chips stay sticky,
     // and the scroll returns to the photo hero for the next capture.
     scrollContainerRef.current?.scrollTo({ top: 0 });
-  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, updateSampleStatus, setFromLibrary]);
+  }, [getSessionEntries, activeEntryId, setActiveEntry, startNewCapture, getEntry, samplesList, addSampleTasting, setFromLibrary]);
 
   const handleDoneClick = useCallback(() => {
     if (!activeEntryId) return;

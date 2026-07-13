@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { syncMock, listMock, tokenAccount } = vi.hoisted(() => ({
+const { syncMock, listMock, samplesListMock, tokenAccount } = vi.hoisted(() => ({
   syncMock: vi.fn(),
   listMock: vi.fn(),
+  samplesListMock: vi.fn(),
   tokenAccount: { current: 'acct-a' as string | null },
 }));
 
@@ -16,6 +17,7 @@ vi.mock('./api', () => ({
       promote: vi.fn(),
       list: listMock,
     },
+    samples: { list: samplesListMock },
   },
 }));
 
@@ -31,6 +33,8 @@ describe('Compass sync acknowledgements', () => {
   beforeEach(() => {
     syncMock.mockReset();
     listMock.mockReset();
+    samplesListMock.mockReset();
+    samplesListMock.mockResolvedValue({ samples: [] });
     tokenAccount.current = 'acct-a';
     useTeaCompassStore.setState({
       entries: [],
@@ -56,6 +60,37 @@ describe('Compass sync acknowledgements', () => {
     await hydrateCompassEntries('acct-a');
 
     expect(useTeaCompassStore.getState().entries[0]?.name).toBe('');
+  });
+
+  it('recovers durable batch linkage and lifecycle from server-backed samples', async () => {
+    listMock.mockResolvedValue({ entries: [{
+      ...entry('linked-entry'), synced: undefined, photos: '[]', audio_clips: '[]',
+      decision: 'selected', verdict: 'love', status: 'noted', sample_state: null, sample_set_id: null,
+    }] });
+    samplesListMock.mockResolvedValue({ samples: [{
+      id: 'portion-1', account_id: 'acct-a', compass_entry_id: 'linked-entry', set_id: 'batch-1',
+      status: 'received', tastings: [],
+    }] });
+
+    await hydrateCompassEntries('acct-a');
+
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({
+      id: 'linked-entry', sampleSetId: 'batch-1', sampleState: 'received', isSample: true,
+      decision: 'selected', verdict: 'love', status: 'noted', synced: false,
+    });
+  });
+
+  it('never downgrades a durable Compass lifecycle from lagging sample logistics', async () => {
+    listMock.mockResolvedValue({ entries: [{
+      ...entry('already-tasted'), synced: undefined, photos: '[]', audio_clips: '[]',
+      sample_state: 'tasted', sample_set_id: 'batch-1',
+    }] });
+    samplesListMock.mockResolvedValue({ samples: [{
+      id: 'portion-1', account_id: 'acct-a', compass_entry_id: 'already-tasted', set_id: 'batch-1',
+      status: 'requested', tastings: [],
+    }] });
+    await hydrateCompassEntries('acct-a');
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ sampleState: 'tasted', sampleSetId: 'batch-1', synced: true });
   });
 
   it('marks only acknowledged ids synced and keeps collisions queued', async () => {
