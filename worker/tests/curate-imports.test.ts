@@ -191,7 +191,14 @@ class ImportStatement {
     }
     if (table && sql.startsWith('delete')) {
       const row = table.get(String(this.values[0]));
-      if (!row || row.account_id !== this.values[1]) return { success: true, meta: { changes: 0 } };
+      const accountId = sql.includes('batch_id = ?') ? this.values[2] : this.values[1];
+      if (!row || row.account_id !== accountId) return { success: true, meta: { changes: 0 } };
+      if (sql.includes('batch_id = ?') && row.batch_id !== this.values[1]) return { success: true, meta: { changes: 0 } };
+      if (sql.includes('where analysis_attempt_token = ?')) {
+        const guardedBatch = this.db.batches.get(String(this.values[4]));
+        if (!guardedBatch || guardedBatch.account_id !== this.values[5] || guardedBatch.analysis_attempt_token !== this.values[3]
+          || ['completed', 'abandoned'].includes(String(guardedBatch.review_state)) || guardedBatch.finalize_idempotency_key != null) return { success: true, meta: { changes: 0 } };
+      }
       if (table === this.db.customers && sql.includes('not exists (select 1 from curate_import_vendor_groups')) {
         const referenced = [...this.db.groups.values()].some(group => group.account_id === this.values[2] && group.resolved_vendor_customer_id === this.values[3]);
         if (referenced) return { success: true, meta: { changes: 0 } };
@@ -637,6 +644,28 @@ describe('Curate import provenance API', () => {
     expect(rerun.items).toHaveLength(1);
     expect(rerun.items[0].parsed_data.englishName).toBe('My corrected inventory name');
     expect(rerun.items[0].manually_corrected_fields).toContain('parsed_data.englishName');
+  });
+
+  it('retains the vendor group for a manually corrected item omitted by a full reanalysis', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Omitted correction', pasted_text: 'Two possible lines' }) });
+    const { batch, sources } = await created.json() as any;
+    const provider = vi.spyOn(globalThis, 'fetch');
+    provider.mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'first pass', language: 'en', groups: [{ key: 'old-vendor', proposedVendorName: 'Original Vendor', items: [itemProposal('corrected-line', sources[0].id)] }],
+    }) }] }), { status: 200 }));
+    const first = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    const correctedItem = first.items[0];
+    expect((await request(db, `/api/curate/imports/${batch.id}/items/${correctedItem.id}`, { method: 'PUT', body: JSON.stringify({ name: 'Keep my correction' }) })).status).toBe(200);
+    provider.mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'second pass', language: 'en', groups: [{ key: 'new-vendor', proposedVendorName: 'New Vendor', items: [itemProposal('new-line', sources[0].id)] }],
+    }) }] }), { status: 200 }));
+
+    const rerun = await (await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' })).json() as any;
+    const retained = rerun.items.find((candidate: any) => candidate.id === correctedItem.id);
+
+    expect(retained).toMatchObject({ name: 'Keep my correction', vendor_group_id: correctedItem.vendor_group_id });
+    expect(rerun.groups.map((group: any) => group.id)).toContain(correctedItem.vendor_group_id);
   });
 
   it('recomputes client-edited totals and blockers instead of trusting submitted derived fields', async () => {
@@ -1153,6 +1182,31 @@ describe('Curate import provenance API', () => {
     const beta = [...db.items.values()].find(item => item.source_id === 'source-b');
     expect(JSON.parse(String(alpha?.parsed_data_json)).englishName).toBe('Alpha original');
     expect(JSON.parse(String(beta?.parsed_data_json)).englishName).toBe('Beta retried');
+  });
+
+  it('keeps identical provider group keys isolated by evidence source during selective retry', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Source-local vendor groups' }) });
+    const { batch } = await created.json() as any;
+    db.sources.set('source-a', { id: 'source-a', batch_id: batch.id, account_id: 'account-a', kind: 'paste', pasted_text: 'Alpha evidence', analysis_status: 'failed', metadata_json: '{}' });
+    db.sources.set('source-b', { id: 'source-b', batch_id: batch.id, account_id: 'account-a', kind: 'paste', pasted_text: 'Beta evidence', analysis_status: 'failed', metadata_json: '{}' });
+    const provider = vi.spyOn(globalThis, 'fetch');
+    provider.mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'alpha', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Alpha Vendor', items: [itemProposal('alpha-line', 'source-a:0-5')] }] }) }] }), { status: 200 }));
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: ['source-a'] }) })).status).toBe(200);
+    const alphaGroup = [...db.groups.values()][0];
+    alphaGroup.resolved_vendor_customer_id = 'vendor-alpha';
+    provider.mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'beta', language: 'en', groups: [{ key: 'vendor', proposedVendorName: 'Beta Vendor', items: [itemProposal('beta-line', 'source-b:0-4')] }] }) }] }), { status: 200 }));
+
+    expect((await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: ['source-b'] }) })).status).toBe(200);
+    const groups = [...db.groups.values()];
+    const betaGroup = groups.find(group => group.proposed_vendor_name === 'Beta Vendor');
+    const alphaItem = [...db.items.values()].find(candidate => candidate.source_id === 'source-a');
+    const betaItem = [...db.items.values()].find(candidate => candidate.source_id === 'source-b');
+
+    expect(groups).toHaveLength(2);
+    expect(alphaItem?.vendor_group_id).toBe(alphaGroup.id);
+    expect(betaItem?.vendor_group_id).toBe(betaGroup?.id);
+    expect(betaGroup?.resolved_vendor_customer_id).toBeNull();
   });
 
   it('refuses per-source retry for evidence that is not failed', async () => {

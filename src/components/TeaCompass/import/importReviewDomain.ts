@@ -226,11 +226,18 @@ export const buildImportReviewModel = (detail: CurateImportDetail): ImportReview
   }).filter(group => group.items.length > 0);
 
   const rows = orderedGroups.flatMap(group => group.items);
-  const totals = new Map<string, number>();
+  const totals = new Map<string, { amount: number; complete: boolean }>();
   for (const { item } of rows) {
-    if (item.currency && Number.isFinite(item.line_cost)) totals.set(item.currency, (totals.get(item.currency) || 0) + Number(item.line_cost));
+    if (!item.currency) continue;
+    const current = totals.get(item.currency) ?? { amount: 0, complete: true };
+    if (Number.isFinite(item.line_cost)) current.amount += Number(item.line_cost);
+    else current.complete = false;
+    totals.set(item.currency, current);
   }
-  const currencyTotals = Array.from(totals, ([currency, amount]) => ({ currency, amount })).sort((a, b) => a.currency.localeCompare(b.currency));
+  const currencyTotals = Array.from(totals, ([currency, total]) => ({ currency, ...total }))
+    .filter(total => total.complete)
+    .map(({ currency, amount }) => ({ currency, amount }))
+    .sort((a, b) => a.currency.localeCompare(b.currency));
   const readyCount = rows.filter(row => row.ready).length;
   return {
     groups: orderedGroups, readyCount, needsReviewCount: rows.length - readyCount, currencyTotals,

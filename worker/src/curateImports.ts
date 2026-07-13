@@ -415,8 +415,28 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     validateEvidenceReferences(normalized, evidence);
     const evidenceReferences = evidenceReferencesBySource(normalized);
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
+    const groupSourceIds = (group: (typeof normalized.groups)[number]) => [...new Set(group.items
+      .map(item => item.evidenceRefs[0]?.split(':')[0])
+      .filter((sourceId): sourceId is string => Boolean(sourceId)))]
+      .sort();
+    const persistedGroupKey = (group: (typeof normalized.groups)[number]) => requestedSourceIds
+      ? JSON.stringify([groupSourceIds(group), group.key])
+      : group.key;
+    const existingSourceIdsByGroup = new Map<string, string[]>();
+    for (const item of itemsResult.results) if (typeof item.vendor_group_id === 'string' && typeof item.source_id === 'string') {
+      const sourceIds = existingSourceIdsByGroup.get(item.vendor_group_id) ?? [];
+      if (!sourceIds.includes(item.source_id)) sourceIds.push(item.source_id);
+      existingSourceIdsByGroup.set(item.vendor_group_id, sourceIds.sort());
+    }
+    const sameSourceIds = (left: string[], right: string[]) => left.length === right.length && left.every((value, index) => value === right[index]);
+    const existingGroupFor = (group: (typeof normalized.groups)[number]) => {
+      const exact = existingGroups.get(persistedGroupKey(group));
+      if (exact || !requestedSourceIds) return exact;
+      const legacy = existingGroups.get(group.key);
+      return legacy && sameSourceIds(existingSourceIdsByGroup.get(String(legacy.id)) ?? [], groupSourceIds(group)) ? legacy : undefined;
+    };
     normalized.groups = normalized.groups.map(group => {
-      const existing = existingGroups.get(group.key);
+      const existing = existingGroupFor(group);
       const vendorConfirmed = typeof existing?.resolved_vendor_customer_id === 'string';
       const uncertainty = { ...(group.uncertainty ?? {}) };
       if (vendorConfirmed) delete uncertainty.vendor;
@@ -437,7 +457,8 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     let position = 0;
     for (let groupPosition = 0; groupPosition < normalized.groups.length; groupPosition++) {
       const group = normalized.groups[groupPosition];
-      const existingGroup = existingGroups.get(group.key);
+      const groupKey = persistedGroupKey(group);
+      const existingGroup = existingGroupFor(group);
       const groupId = existingGroup ? String(existingGroup.id) : crypto.randomUUID();
       keptGroupIds.add(groupId);
       const matched = vendorMatch(group.proposedVendorName, vendors);
@@ -445,13 +466,13 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
       const confidence = group.vendorConfidence ?? matched.confidence;
       const resolvedVendor = confidence != null && confidence >= 0.9 ? proposedCandidate : null;
       if (existingGroup) statements.push(env.DB.prepare(
-        `UPDATE curate_import_vendor_groups SET position = ?, proposed_vendor_name = ?, resolved_vendor_customer_id = COALESCE(resolved_vendor_customer_id, ?), vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now')
+        `UPDATE curate_import_vendor_groups SET position = ?, group_key = ?, proposed_vendor_name = ?, resolved_vendor_customer_id = COALESCE(resolved_vendor_customer_id, ?), vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now')
          WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
-      ).bind(groupPosition, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), groupId, ctx.accountId, attemptToken, params.id, ctx.accountId));
+      ).bind(groupPosition, groupKey, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), groupId, ctx.accountId, attemptToken, params.id, ctx.accountId));
       else statements.push(env.DB.prepare(
         `INSERT INTO curate_import_vendor_groups (id, batch_id, account_id, position, group_key, proposed_vendor_name, resolved_vendor_customer_id, vendor_confidence, uncertainty_json)
          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
-      ).bind(groupId, params.id, ctx.accountId, groupPosition, group.key, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), attemptToken, params.id, ctx.accountId));
+      ).bind(groupId, params.id, ctx.accountId, groupPosition, groupKey, group.proposedVendorName, resolvedVendor, confidence, JSON.stringify(group.uncertainty ?? {}), attemptToken, params.id, ctx.accountId));
       for (const proposed of group.items) {
         const proposedSourceId = proposed.evidenceRefs[0]?.split(':')[0] ?? null;
         const existing = existingItems.get(itemIdentity(proposedSourceId, proposed.sourceItemId));
@@ -480,6 +501,9 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     }
     for (const row of itemsResult.results) if (!requestedSourceIds && !keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
       statements.push(env.DB.prepare("DELETE FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
+    }
+    for (const row of itemsResult.results) if (!requestedSourceIds && !keptItemIds.has(String(row.id)) && (parseJson(row.manually_corrected_fields_json, []) as unknown[]).length && typeof row.vendor_group_id === 'string') {
+      keptGroupIds.add(row.vendor_group_id);
     }
     for (const row of groupsResult.results) if (!requestedSourceIds && !keptGroupIds.has(String(row.id))) {
       statements.push(env.DB.prepare("DELETE FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));

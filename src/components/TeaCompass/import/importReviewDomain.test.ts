@@ -43,6 +43,21 @@ describe('buildImportReviewModel', () => {
     expect(model.currencyTotals).toEqual([{ currency: 'CNY', amount: 1180 }, { currency: 'USD', amount: 24 }]);
   });
 
+  it('suppresses a currency aggregate when an exact-only line cannot safely participate', () => {
+    const model = buildImportReviewModel(detail({
+      groups: [detail().groups[1]],
+      items: [
+        item({ id: 'safe', line_cost: 20, currency: 'USD' }),
+        item({
+          id: 'exact-only', position: 1, line_cost: null, line_cost_exact: '999999999999999.99', currency: 'USD',
+          parsed_data: { inventoryPurpose: 'working', lineCost: null, lineCostExact: '999999999999999.99' },
+        }),
+      ],
+    }));
+
+    expect(model.currencyTotals).toEqual([]);
+  });
+
   it('requires every vendor group and blocking item field to be resolved', () => {
     expect(buildImportReviewModel(detail()).canFinalize).toBe(false);
     const resolved = detail({
