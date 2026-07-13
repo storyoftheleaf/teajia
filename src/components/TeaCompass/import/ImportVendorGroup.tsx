@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { ImportReviewGroupRow } from './importReviewDomain';
 import { ImportItemRow } from './ImportItemRow';
-import type { CurateImportItem } from '../../../lib/api';
+import type { CurateImportItem, CurateImportItemUpdate } from '../../../lib/api';
 
 export interface ImportVendorOption { id: string; name: string }
 
@@ -9,7 +9,7 @@ interface Props {
   group: ImportReviewGroupRow;
   vendorOptions: ImportVendorOption[];
   busyId: string | null;
-  onUpdateItem: (item: CurateImportItem, updates: Partial<CurateImportItem>) => Promise<boolean>;
+  onUpdateItem: (item: CurateImportItem, updates: CurateImportItemUpdate) => Promise<boolean>;
   onChangeVendor: (groupId: string, vendorId: string) => Promise<boolean>;
   onCreateVendor: (groupId: string, name: string) => Promise<boolean>;
 }

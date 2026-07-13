@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { AlertCircle, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import type { CurateImportItem } from '../../../lib/api';
-import { buildImportCorrectionParsedData, importBlockingMessage } from './importReviewDomain';
+import type { CurateImportItem, CurateImportItemUpdate } from '../../../lib/api';
+import { buildImportCorrectionParsedData, importBlockingMessage, reviewedFieldsForImportSave } from './importReviewDomain';
 
 interface ImportItemRowProps {
   item: CurateImportItem;
   busy: boolean;
-  onUpdate: (updates: Partial<CurateImportItem>) => Promise<boolean>;
+  onUpdate: (updates: CurateImportItemUpdate) => Promise<boolean>;
 }
 
 const fieldClass = 'mt-1 min-h-11 w-full rounded-md border border-tea-border bg-tea-elevated px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold lg:text-ui-13';
@@ -49,12 +49,14 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
       packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount.trim() || null,
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis,
     });
-    const updates: Partial<CurateImportItem> = {
+    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id);
+    const updates: CurateImportItemUpdate = {
       name: draft.english_name.trim() || null, english_name: draft.english_name.trim() || null, original_name: draft.original_name.trim() || null,
       pack_weight: draft.pack_weight ? Number(draft.pack_weight) : null, weight_unit: (draft.weight_unit || null) as CurateImportItem['weight_unit'],
       pack_count: draft.pack_count ? Number(draft.pack_count) : null,
       currency: draft.currency.trim().toUpperCase() || null, price_basis: draft.price_basis as CurateImportItem['price_basis'],
       parsed_data: parsedValues,
+      ...(reviewedFields.length ? { reviewed_fields: reviewedFields } : {}),
     };
     if (await onUpdate(updates)) setExpanded(false);
   };

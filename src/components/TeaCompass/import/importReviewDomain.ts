@@ -1,4 +1,4 @@
-import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
+import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportReviewedField, CurateImportVendorGroup } from '../../../lib/api';
 import type { CurateJourney } from '../types';
 
 export interface ImportReviewItemRow {
@@ -134,6 +134,12 @@ export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportD
     };
   }),
 });
+
+export const reviewedFieldsForImportSave = (item: CurateImportItem, compassSelection: string, productSelection: string): CurateImportReviewedField[] => {
+  const blockers = (item.blocking_fields ?? []).map(field => field.replace(/_/g, '').toLocaleLowerCase());
+  const identityBlocked = blockers.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
+  return identityBlocked && Boolean(compassSelection || productSelection) ? ['identity'] : [];
+};
 
 export const importItemNoun = (items: Array<Pick<CurateImportItem, 'category'>>, count = items.length) => {
   if (items.every(item => item.category === 'tea')) return count === 1 ? 'tea' : 'teas';

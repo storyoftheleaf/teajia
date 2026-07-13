@@ -158,6 +158,12 @@ class ImportStatement {
       if (sql.includes("analysis_state = case when analysis_state = 'analyzing' then 'complete'")) row.analysis_state = row.analysis_state === 'analyzing' ? 'complete' : row.analysis_state;
       return { success: true, meta: { changes: 1 } };
     }
+    if (table && sql.startsWith('delete')) {
+      const row = table.get(String(this.values[0]));
+      if (!row || row.account_id !== this.values[1]) return { success: true, meta: { changes: 0 } };
+      table.delete(String(this.values[0]));
+      return { success: true, meta: { changes: 1 } };
+    }
     return { success: true, meta: { changes: 0 } };
   }
 }
@@ -541,6 +547,41 @@ describe('Curate import provenance API', () => {
     expect(reviewed.parsed_data.uncertainty).not.toHaveProperty('identity');
   });
 
+  it('clears unchanged proposed identity confidence only with explicit identity affirmation', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Identity affirmation', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const parsed = { ...itemProposal('identity-affirmation'), inventoryPurpose: 'working', duplicateResolution: 'matched', proposedCompassEntryId: 'entry-a', proposedProductId: 'product-a', confidence: { identity: 0.4 }, uncertainty: { identity: 'match needs confirmation' }, blockingFields: ['identity'] };
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify(parsed);
+    const response = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: parsed, reviewed_fields: ['identity'] }) });
+    expect(response.status).toBe(200);
+    const reviewed = await response.json() as any;
+    expect(reviewed.parsed_data.blockingFields).not.toContain('identity');
+    expect(reviewed.parsed_data.confidence).not.toHaveProperty('identity');
+    expect(reviewed.parsed_data.uncertainty).not.toHaveProperty('identity');
+  });
+
+  it('rejects unknown explicit review fields', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Invalid affirmation', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const response = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ reviewed_fields: ['not-a-review-field'] }) });
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects contradictory exact prices and ignores equivalent derived-only changes for review', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Exact price integrity', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const parsed = { ...itemProposal('exact-integrity'), inventoryPurpose: 'working', priceAmount: '21.5', priceAmountExact: '21.5', confidence: { priceAmount: 0.4 }, uncertainty: { priceAmount: 'confirm price' }, blockingFields: ['priceAmount'] };
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify(parsed);
+    const contradictory = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: { ...parsed, priceAmountExact: '22' } }) });
+    expect(contradictory.status).toBe(400);
+    const equivalent = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ parsed_data: { ...parsed, priceAmountExact: '21.500' } }) });
+    expect(equivalent.status).toBe(200);
+    expect((await equivalent.json() as any).parsed_data.blockingFields).toContain('priceAmount');
+  });
+
   it('treats explicit vendor selection as authoritative and clears vendor blockers for the group', async () => {
     const db = new ImportDb();
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Confirmed Vendor', tags: '["vendor"]' });
@@ -647,6 +688,21 @@ describe('Curate import provenance API', () => {
     const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-case/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Case Farm' }) });
     expect(result.status).toBe(201);
     expect(db.groups.get('group-case')).toMatchObject({ resolved_vendor_customer_id: 'curate-vendor-group-case', uncertainty_json: '{"origin":"Fujian"}' });
+  });
+
+  it.each([
+    ['punctuation', 'Liu-Family Tea', 'Liu Family Tea'],
+    ['repeated spacing', 'Liu   Family Tea', 'Liu Family Tea'],
+    ['equivalent accents', 'Café Tea', 'Cafe Tea'],
+  ])('assigns a deterministic vendor winner with normalized %s', async (_case, winnerName, requestedName) => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Normalized winner' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-normalized', { id: 'group-normalized', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'normalized', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{"vendor":"confirm"}' });
+    db.vendorWinnerBeforeInsert = { id: 'curate-vendor-group-normalized', account_id: 'account-a', name: winnerName, tags: '["vendor"]' };
+    const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-normalized/vendor`, { method: 'POST', body: JSON.stringify({ name: requestedName }) });
+    expect(result.status).toBe(201);
+    expect(db.groups.get('group-normalized')?.resolved_vendor_customer_id).toBe('curate-vendor-group-normalized');
   });
 
   it('bounds vendor candidates after vendor-tag filtering', async () => {

@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import type { CurateJourney } from '../types';
-import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
+import type { CurateImportDetail, CurateImportItem, CurateImportItemUpdate } from '../../../lib/api';
 import { buildImportReviewModel, importItemNoun } from './importReviewDomain';
 import { ImportBatchSummary } from './ImportBatchSummary';
 import { ImportVendorGroup, type ImportVendorOption } from './ImportVendorGroup';
@@ -11,7 +11,7 @@ interface ImportBatchReviewProps {
   journeys: CurateJourney[];
   vendorOptions: ImportVendorOption[];
   busyId: string | null;
-  onUpdate: (item: CurateImportItem, updates: Partial<CurateImportItem>) => Promise<boolean>;
+  onUpdate: (item: CurateImportItem, updates: CurateImportItemUpdate) => Promise<boolean>;
   onSetJourney: (journeyId: string | null) => Promise<boolean>;
   onCreateJourney: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
   onChangeVendor: (groupId: string, vendorId: string) => Promise<boolean>;

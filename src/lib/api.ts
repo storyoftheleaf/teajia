@@ -29,6 +29,8 @@ export interface CurateImportItem {
   proposed_compass_entry_id?: string | null; proposed_product_id?: string | null;
   acquired?: boolean | null; duplicate_resolution?: 'new' | 'matched' | 'unresolved' | null;
 }
+export type CurateImportReviewedField = 'vendor' | 'identity' | 'englishName' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceBasis' | 'priceAmount' | 'currency' | 'acquired';
+export type CurateImportItemUpdate = Partial<CurateImportItem> & { reviewed_fields?: CurateImportReviewedField[] };
 export interface CurateImportBatch {
   id: string; title: string; review_state: 'pending' | 'reviewing' | 'completed' | 'abandoned';
   journey_id: string | null; visit_id: string | null;
@@ -2098,7 +2100,7 @@ export const api = {
       authedFetch(`${API_URL}/api/curate/imports/${id}/journey`, { method: 'PUT', body: JSON.stringify({ journey_id: journeyId }), retryTimeouts: true }),
     finalize: (id: string, idempotencyKey: string): Promise<CurateImportFinalizeResult> =>
       authedFetch(`${API_URL}/api/curate/imports/${id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: idempotencyKey }), retryTimeouts: true }),
-    updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> => {
+    updateItem: (batchId: string, itemId: string, updates: CurateImportItemUpdate): Promise<CurateImportItem> => {
       const richFields: Array<[keyof CurateImportItem, string]> = [
         ['english_name', 'englishName'], ['original_name', 'originalName'], ['pack_weight', 'packWeight'],
         ['weight_unit', 'weightUnit'], ['pack_count', 'packCount'], ['price_amount', 'priceAmount'],

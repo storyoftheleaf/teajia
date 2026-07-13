@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
-import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, normalizeImportDetail } from './importReviewDomain';
+import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
 import { filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, resolveImportBlockingFields, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
@@ -141,6 +141,13 @@ describe('review navigation and journey helpers', () => {
       inventoryPurpose: 'working', priceAmount: null, priceAmountExact: '999999999999999.99', lineCost: null, lineCostExact: '999999999999999.99',
     } })] }));
     expect(normalized.items[0]).toMatchObject({ price_amount: null, price_amount_exact: '999999999999999.99' });
+  });
+
+  it('affirms a blocked identity only when Save has an explicit identity or holding selection', () => {
+    const blocked = item({ blocking_fields: ['identity'], proposed_compass_entry_id: 'compass-1', proposed_product_id: 'product-1' });
+    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1')).toEqual(['identity']);
+    expect(reviewedFieldsForImportSave(blocked, '', '')).toEqual([]);
+    expect(reviewedFieldsForImportSave(item(), 'new', 'new')).toEqual([]);
   });
 
   it('uses category-aware Inventory action nouns', () => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, X } from 'lucide-react';
-import { api, ApiError, type CurateImportDetail, type CurateImportFinalizeResult, type CurateImportItem, type CurateImportSourceKind } from '../../../lib/api';
+import { api, ApiError, type CurateImportDetail, type CurateImportFinalizeResult, type CurateImportItem, type CurateImportItemUpdate, type CurateImportSourceKind } from '../../../lib/api';
 import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
 import type { ImportDraft, ImportPanelState } from './importTypes';
@@ -121,7 +121,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     const detail = normalizeImportDetail(await api.curateImports.get(batchId));
     setState(current => ({ ...current, detail })); onDetailChange(detail);
   };
-  const updateItem = async (item: CurateImportItem, updates: Partial<CurateImportItem>) => {
+  const updateItem = async (item: CurateImportItem, updates: CurateImportItemUpdate) => {
     if (busyId) return false;
     setBusyId(item.id);
     const action = async () => { replaceItem(await api.curateImports.updateItem(item.batch_id, item.id, updates)); await refreshDetail(item.batch_id); };

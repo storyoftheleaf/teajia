@@ -167,7 +167,7 @@ function canonicalReviewMoney(value: unknown): string | null {
 }
 
 function materialReviewChanged(blocker: string, before: Record<string, unknown>, after: Record<string, unknown>) {
-  if (blocker === 'priceAmount') return canonicalReviewMoney(before.priceAmountExact ?? before.priceAmount) !== canonicalReviewMoney(after.priceAmountExact ?? after.priceAmount);
+  if (blocker === 'priceAmount') return canonicalReviewMoney(before.priceAmount ?? before.priceAmountExact) !== canonicalReviewMoney(after.priceAmount ?? after.priceAmountExact);
   if (blocker === 'identity') return ['duplicateResolution', 'proposedCompassEntryId', 'proposedProductId']
     .some(field => JSON.stringify(before[field]) !== JSON.stringify(after[field]));
   return JSON.stringify(before[blocker]) !== JSON.stringify(after[blocker]);
@@ -705,17 +705,19 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
   const vendorId = `curate-vendor-${params.groupId}`;
   const deterministicWinner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
   if (deterministicWinner && normalizedName(String(deterministicWinner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
+  const inserted = await env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', ?, 'curate_import' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
+    .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId).run();
+  const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
+  if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
   const groupUncertainty = parseJson(group.uncertainty_json, {}) as Record<string, unknown>;
   delete groupUncertainty.vendor;
   const groupItems = await env.DB.prepare('SELECT * FROM curate_import_items WHERE vendor_group_id = ? AND account_id = ?').bind(params.groupId, ctx.accountId).all<Record<string, unknown>>();
-  const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
-      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', ?, 'curate_import' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
-      .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId),
-    env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now')
+  const statements: D1PreparedStatement[] = [env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now')
       WHERE id = ? AND account_id = ?
-        AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ? AND lower(trim(name)) = lower(trim(?)))
+        AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ?)
         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
-      .bind(vendorId, params.groupId, ctx.accountId, vendorId, ctx.accountId, name, params.id, ctx.accountId),
+      .bind(vendorId, params.groupId, ctx.accountId, vendorId, ctx.accountId, params.id, ctx.accountId),
     env.DB.prepare("UPDATE curate_import_vendor_groups SET vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
       .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId)];
   for (const item of groupItems.results) {
@@ -725,9 +727,10 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
       .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId));
   }
   const results = await env.DB.batch(statements);
-  const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
-  if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
-  if (!(results[1]?.meta.changes ?? 0)) return terminalResponse();
+  if (!(results[0]?.meta.changes ?? 0)) {
+    if (inserted.meta.changes) await env.DB.prepare("DELETE FROM customers WHERE id = ? AND account_id = ? AND source = 'curate_import'").bind(vendorId, ctx.accountId).run();
+    return terminalResponse();
+  }
   const [vendor, updated] = await Promise.all([
     env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>(),
     env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>(),
@@ -1001,6 +1004,8 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
         if (key === 'parsed_data') {
           const submitted = object(value);
           if (!submitted) return response({ error: 'Invalid update' }, 400);
+          if ('priceAmount' in submitted && 'priceAmountExact' in submitted
+            && canonicalReviewMoney(submitted.priceAmount) !== canonicalReviewMoney(submitted.priceAmountExact)) return response({ error: 'priceAmountExact must match priceAmount' }, 400);
           const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
           const reviewed = new Set(explicitReviewedFields);
           for (const blocker of new Set(Object.values(MATERIAL_REVIEW_BLOCKERS))) if (materialReviewChanged(blocker, before, submitted)) reviewed.add(blocker);
