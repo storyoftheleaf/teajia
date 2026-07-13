@@ -820,6 +820,24 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
 }
 
 export const api = {
+  incidents: {
+    report: async (incident: Record<string, unknown>) => {
+      const init: ApiRequestInit = { method: 'POST', body: JSON.stringify(incident), retryTimeouts: true };
+      try {
+        return await authedFetch(`${API_URL}/api/incidents`, init);
+      } catch (error) {
+        // A broken Pages proxy cannot report its own configuration failure.
+        // Make one best-effort direct Worker attempt; this remains a fallback
+        // because the workers.dev host is not reliably reachable in China.
+        if (incident.category !== 'configuration') throw error;
+        return authedFetch('https://teajia-api.lightcodes.workers.dev/api/incidents', init);
+      }
+    },
+    list: () => authedFetch(`${API_URL}/api/platform/incidents`),
+    update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
+      method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
+    }),
+  },
   inventoryReceipts: {
     list: (includeClosed = false) => authedFetch(`${API_URL}/api/inventory/receipts?include_closed=${includeClosed ? '1' : '0'}`),
     create: (body: Record<string, unknown>, idempotencyKey = crypto.randomUUID()) => authedFetch(`${API_URL}/api/inventory/receipts`, { method: 'POST', body: JSON.stringify({ ...body, idempotency_key: idempotencyKey }), retryTimeouts: true }),

@@ -1,0 +1,85 @@
+name: Sync incident repair queue
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+concurrency:
+  group: incident-repair-queue
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Operationally independent of the Pages proxy so a proxy outage can
+      # still be inspected and exported.
+      INCIDENT_API_URL: https://teajia-api.lightcodes.workers.dev/api/platform/incidents
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Fetch sanitized platform incident ledger
+        id: fetch
+        env:
+          INCIDENT_QUEUE_TOKEN: ${{ secrets.INCIDENT_EXPORT_TOKEN }}
+        run: |
+          if [ -z "$INCIDENT_QUEUE_TOKEN" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Incident queue export is not configured; skipping."
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          umask 077
+          curl --silent --show-error --fail \
+            --header "Authorization: Bearer $INCIDENT_QUEUE_TOKEN" \
+            "$INCIDENT_API_URL" > "$RUNNER_TEMP/teajia-incidents.json"
+
+      - name: Export deterministic repair queue
+        if: steps.fetch.outputs.configured == 'true'
+        run: npm run incidents:export < "$RUNNER_TEMP/teajia-incidents.json"
+
+      - name: Detect material queue changes
+        if: steps.fetch.outputs.configured == 'true'
+        id: changes
+        run: |
+          if [ -z "$(git status --porcelain -- ops/incidents)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "changed_count=0" >> "$GITHUB_OUTPUT"
+          else
+            changed_count="$(git status --porcelain -- ops/incidents/evidence | awk 'END { print NR }')"
+            if [ "$changed_count" -eq 0 ]; then changed_count=1; fi
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "changed_count=$changed_count" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push material queue changes
+        if: steps.fetch.outputs.configured == 'true' && steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "teajia-incident-bot"
+          git config user.email "teajia-incident-bot@users.noreply.github.com"
+          git add ops/incidents
+          git commit -m "chore(ops): sync incident repair queue [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Notify i64 OS once
+        if: steps.fetch.outputs.configured == 'true' && steps.changes.outputs.changed == 'true'
+        env:
+          I64OS_CAPTURE_ENDPOINT: ${{ secrets.I64OS_CAPTURE_ENDPOINT }}
+          I64OS_CAPTURE_TOKEN: ${{ secrets.I64OS_CAPTURE_TOKEN }}
+        run: |
+          node scripts/notify-i64os-incidents.mjs \
+            --changed-count "${{ steps.changes.outputs.changed_count }}" \
+            --deployment "$GITHUB_SHA" \
+            < "$RUNNER_TEMP/teajia-incidents.json"

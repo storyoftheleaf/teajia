@@ -8,11 +8,17 @@
 > first. When a note is no longer relevant, move it to "Resolved" with a
 > one-line stamp explaining why.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-07-13
 
 ---
 
 ## Active
+
+### Incident queue automation uses a scoped machine credential
+
+**Recorded:** 2026-07-13
+**Context:** Runtime incidents are deduplicated in D1. The daily GitHub workflow reads only the sanitized platform incident endpoint using `INCIDENT_EXPORT_TOKEN`, writes the deterministic `ops/incidents/` queue, and optionally sends one compact i64 OS capture. The workflow safely skips until the matching Worker and GitHub secrets are configured; it never falls back to an expiring human JWT.
+**Revisit if:** the repository moves away from GitHub Actions or Cloudflare Access becomes the preferred service-to-service identity. Replace the shared scoped token rather than broadening the endpoint or embedding a human session.
 
 ### Auth re-verifies platform_role and membership from D1 on every request
 

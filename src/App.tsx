@@ -145,6 +145,7 @@ import { Story, ContentType, ViewState, Person, InventoryItem, Section } from '.
 import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
 import { api, setToken, hydrateAccountStateFromToken } from './lib/api';
+import { classifyIncident } from './lib/incidents';
 import { currentHostStoreSlug } from './lib/storeHost';
 import { getArticleRenderMode } from './lib/articleRenderMode';
 import { useAuth } from './hooks/useAuth';
@@ -557,18 +558,25 @@ const AppContent = () => {
     setTimeout(() => setToast({ show: false, message: '' }), duration);
   };
 
-  // Show API error toast when the Worker is unreachable
+  // Classify the actual failure rather than describing every HTTP/API error as
+  // a connection problem. Authenticated sessions also leave one deduplicated,
+  // sanitized incident record for later diagnosis.
   const apiErrorShownRef = useRef(false);
   useEffect(() => {
     if (inventoryError && !apiErrorShownRef.current) {
       apiErrorShownRef.current = true;
-      showToast('Connection issue — please try again shortly.', 5000);
+      const incident = classifyIncident(inventoryErrorObj, { route: '/api/products/public', method: 'GET' });
+      showToast(incident.userMessage, 5000);
+      if (isAuthenticated) {
+        const { userMessage: _userMessage, ...report } = incident;
+        void api.incidents.report(report).catch(() => { /* reporting must never block the user */ });
+      }
     }
     if (!inventoryError) {
       apiErrorShownRef.current = false;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inventoryError]);
+  }, [inventoryError, inventoryErrorObj, isAuthenticated]);
 
   const toggleSave = (id: string) => {
     const isCurrentlySaved = savedStoryIds[id];

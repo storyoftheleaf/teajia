@@ -76,6 +76,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { ErrorBoundary } from './components/ErrorBoundary';
 const DashboardView = lazy(() => import('./components/DashboardView').then((m) => ({ default: m.DashboardView })));
 import { NoMembershipGate } from './components/NoMembershipGate';
+import { shouldShowNoMembershipGate } from './membershipGate';
 import { AccountSettingsView } from './views/AccountSettingsView';
 import { StoreLaunchPlaybookView } from './views/StoreLaunchPlaybookView';
 import { PlatformAdminView } from './views/PlatformAdminView';
@@ -418,8 +419,10 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
   }, [location.pathname]);
 
   // Gate: authenticated user with no memberships yet — show waiting screen
-  const needsMembershipGate =
-    isAuthenticated && !isDevAdmin && memberships.length === 0;
+  const isPlatformTier = platformRole === 'platform_owner' || platformRole === 'platform_admin';
+  const needsMembershipGate = shouldShowNoMembershipGate({
+    isAuthenticated, isDevAdmin, platformRole, membershipCount: memberships.length,
+  });
 
   // Early return for missing configuration (after all hooks)
   if (!isConfigured) {
@@ -496,7 +499,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
     setInventorySearchQuery('');
   };
 
-  const isPlatformOwner = platformRole === 'platform_owner' || platformRole === 'platform_admin';
+  const isPlatformOwner = isPlatformTier;
   const isOperatingAs = isPlatformOwner && !!activeAccountId && !memberships.some(m => m.account_id === activeAccountId);
   const operatingAsName = isOperatingAs
     ? (memberships.find(m => m.account_id === activeAccountId)?.account_name || 'this account')
