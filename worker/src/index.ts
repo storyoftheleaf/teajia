@@ -12751,10 +12751,18 @@ const handleCreateSample: Handler = async (request, env) => {
   const id = body.id || crypto.randomUUID();
   const userEmail = getUserEmail(request);
 
+  if (typeof body.set_id !== 'string' || !body.set_id) {
+    return json({ error: 'set_id required' }, 400);
+  }
+  const ownedSet = await env.DB.prepare(
+    'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
+  ).bind(body.set_id, accountId).first();
+  if (!ownedSet) return json({ error: 'Sample set not found for active account' }, 400);
+
   const cols = [
     'name', 'chinese_name', 'type', 'form', 'year', 'origin_region',
     'source_id', 'source_name', 'source_contact', 'product_id',
-    'compass_entry_id', 'set_id', 'status', 'grams', 'notes', 'photos',
+    'compass_entry_id', 'set_id', 'status', 'grams', 'notes', 'photos', 'tea_key',
     'created_by', 'user_id',
   ];
   const present = cols.filter(c => body[c] !== undefined);
@@ -12805,6 +12813,13 @@ const handleUpdateSample: Handler = async (request, env, params) => {
   if ('error' in validated) return validated.error;
   const cols = validated.fields;
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
+
+  if (cols.includes('set_id')) {
+    const ownedSet = await env.DB.prepare(
+      'SELECT id FROM tea_sample_sets WHERE id = ? AND account_id = ?'
+    ).bind(body.set_id, accountId).first();
+    if (!ownedSet) return json({ error: 'Sample set not found for active account' }, 400);
+  }
 
   for (const c of cols) {
     if ((c === 'photos' || c === 'source_contact') && typeof body[c] === 'object') {
@@ -12871,7 +12886,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
   delete body.account_id;
   const id = body.id || crypto.randomUUID();
 
-  const cols = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'user_id'];
+  const cols = ['name', 'source_id', 'source_name', 'purpose', 'notes', 'shared_with', 'panel_account_ids', 'user_id'];
   const present = cols.filter(c => body[c] !== undefined);
   const allCols = ['id', 'account_id', ...present];
   if (!present.includes('user_id')) allCols.push('user_id');
@@ -12882,7 +12897,7 @@ const handleCreateSampleSet: Handler = async (request, env) => {
   const values: any[] = [id, accountId];
   for (const c of present) {
     let val = body[c] ?? null;
-    if (c === 'shared_with' && typeof val === 'object') {
+    if ((c === 'shared_with' || c === 'panel_account_ids') && typeof val === 'object') {
       val = JSON.stringify(val);
     }
     values.push(val);
@@ -12920,6 +12935,9 @@ const handleUpdateSampleSet: Handler = async (request, env, params) => {
 
   if (cols.includes('shared_with') && typeof body.shared_with === 'object') {
     body.shared_with = JSON.stringify(body.shared_with);
+  }
+  if (cols.includes('panel_account_ids') && typeof body.panel_account_ids === 'object') {
+    body.panel_account_ids = JSON.stringify(body.panel_account_ids);
   }
 
   const sets = cols.map(c => `${c} = ?`).join(', ');

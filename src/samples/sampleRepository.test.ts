@@ -93,7 +93,47 @@ describe('sample repository', () => {
     expect(await hydration).toEqual({ status: 'stale' });
     expect(useSampleStore.getState().samples).toEqual([]);
     useSampleStore.getState().switchAccount('acct-a');
-    expect(useSampleStore.getState().samples.map((sample) => sample.id)).toEqual(['server-sample']);
+    expect(useSampleStore.getState().samples).toEqual([]);
+  });
+
+  it('discards responses after token readiness changes or a newer hydrate starts', async () => {
+    const releases: Array<() => void> = [];
+    const responses = [
+      { sets: [{ ...remoteSet, name: 'Older' }] },
+      { sets: [{ ...remoteSet, name: 'Newer' }] },
+      { sets: [{ ...remoteSet, name: 'Revoked' }] },
+    ];
+    let setCall = 0;
+    const remote = {
+      sampleSets: {
+        list: vi.fn(async () => {
+          const call = setCall++;
+          await new Promise<void>((resolve) => { releases[call] = resolve; });
+          return responses[call];
+        }),
+        create: vi.fn(), update: vi.fn(), remove: vi.fn(),
+      },
+      samples: {
+        list: vi.fn().mockResolvedValue({ samples: [remoteSample] }),
+        create: vi.fn(), update: vi.fn(), remove: vi.fn(),
+      },
+    };
+    let ready = true;
+    const repository = createSampleRepository({ remote, isReady: () => ready });
+    useSampleStore.getState().switchAccount('acct-a');
+
+    const older = repository.hydrate('acct-a');
+    const newer = repository.hydrate('acct-a');
+    releases[1]();
+    expect(await newer).toEqual({ status: 'hydrated' });
+    releases[0]();
+    expect(await older).toEqual({ status: 'stale' });
+    expect(useSampleStore.getState().getSampleSet('server-set')?.name).toBe('Newer');
+
+    const tokenRevoked = repository.hydrate('acct-a');
+    ready = false;
+    releases[2]();
+    expect(await tokenRevoked).toEqual({ status: 'stale' });
   });
 
   it('reconciles repeatedly without duplicates and preserves unsynced local work', async () => {

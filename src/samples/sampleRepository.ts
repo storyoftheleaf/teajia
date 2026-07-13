@@ -150,14 +150,21 @@ export function createSampleRepository(options: {
   const remote = options.remote ?? { sampleSets: api.sampleSets, samples: api.samples };
   const isReady = options.isReady ?? isTokenScopedToAccount;
   const store = options.store ?? useSampleStore;
+  let hydrationGeneration = 0;
 
   return {
     async hydrate(accountId: string): Promise<{ status: 'not-ready' | 'hydrated' | 'stale' }> {
+      const requestGeneration = ++hydrationGeneration;
       if (!isReady(accountId)) return { status: 'not-ready' };
       const [setsResponse, samplesResponse] = await Promise.all([
         remote.sampleSets.list(),
         remote.samples.list(),
       ]);
+      if (
+        requestGeneration !== hydrationGeneration
+        || !isReady(accountId)
+        || store.getState().accountScopeId !== accountId
+      ) return { status: 'stale' };
       const samples = samplesResponse.samples.map(sampleFromApi);
       const sampleSets = setsResponse.sets.map((set) => sampleSetFromApi(set, samples));
       const active = store.getState().reconcileRemote(accountId, samples, sampleSets);
