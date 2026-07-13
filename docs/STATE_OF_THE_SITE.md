@@ -8,7 +8,7 @@
 
 Teajia is a working multi-store tea operating platform, not a foundation waiting to be built. It includes account-scoped inventory and stock movement, inquiry-led commerce, customer order detail, events, Curate, tasting memory, personal Cellar/Favorites/Journal surfaces, a unified D1 article engine, contributor publishing, and more than 40 MCP tools.
 
-Releases 1–3 of the launch-to-real-use program are implemented on the branch and locally verified. Invoice semantics and repair tooling, Read entry routing, email OTP delivery, tenancy-isolation coverage, customer order detail, starred-note curation, event-to-article drafting, personal-tea wiring, China-critical dependency removal, same-origin browser APIs, contact fallback, and contributor publishing are present and tested.
+Releases 1–3 of the launch-to-real-use program are implemented on the branch and locally verified. Invoice semantics and repair tooling, Read entry routing, email OTP delivery, tenancy-isolation coverage, customer order detail, starred-note curation, event-to-article drafting, personal-tea wiring, China-critical dependency removal, same-origin browser APIs, contact fallback, and contributor publishing are present and tested. Platform hardening now also includes strict frontend null checking, reproducible browser tests, stable REST errors, domain-scoped product/contact mutations, durable abuse limits, session revocation, private retryable transcription, bounded provider uploads, OAuth input/write controls, and exact browser origins.
 
 The real-world launch is not complete. Deployment, production-data judgment, real operators, mainland conditions, and approved editorial content cannot be proven by local fixtures. Their single checklist is [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION.md).
 
@@ -23,13 +23,13 @@ This is distinct from the repaired Read entry paths and live editorial article r
 | Area | Current state |
 |---|---|
 | Commerce | Inquiry-led flow, per-unit invoice invariant, customer order detail, fulfillment, and previewable repair path implemented |
-| Authentication | Email OTP provider boundary implemented with Google OAuth retained; real deployed receipt remains external validation |
-| Tenancy | Account scoping plus dedicated cross-account denial coverage implemented |
+| Authentication | Email OTP and Google OAuth retained; deleted users cannot refresh, password changes invalidate earlier JWTs, and public/OAuth abuse limits fail closed |
+| Tenancy | Account scoping, taxonomy-aware contact capabilities, private recording ownership, and dedicated cross-account denial coverage implemented |
 | Personal tea | Journal, Favorites, and API-backed Cellar are distinct and connected |
 | Events | Event lifecycle and idempotent post-session article drafting implemented |
 | Editorial | Unified article engine, contributor administration, author selection, pull quotes, and public contributor rendering implemented |
 | China readiness | Runtime stock-media dependencies removed; browser APIs centralized/same-origin; contact fallback and service-worker policy implemented |
-| Design system | Semantic tokens, named text scale, tap targets, modal layers, and lint enforcement active |
+| Design system | Semantic tokens, named text scale, tap targets, modal layers, strict null checking, and blocking action-button lint active |
 | Launch | Incomplete until the checks in `LAUNCH_VALIDATION.md` are performed |
 
 ## Product boundary

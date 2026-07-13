@@ -26,7 +26,7 @@ Only three engineering queues remain active. Human, operator, editorial, and dep
 |---|---|---|
 | 01 | [Launch Integrity](tracks/01-launch-integrity.md) | Close the reading-memory/saved-story discrepancy; keep launch behavior trustworthy |
 | 05 | [Product & Curate Integrity](tracks/05-curate-tea-memory.md) | Keep sourcing, member tea memory, and first-operator product loops coherent |
-| 08 | [Platform Hardening](tracks/08-platform-hardening.md) | Reduce structural risk and operational debt |
+| 08 | [Platform Hardening](tracks/08-platform-hardening.md) | Await one explicit Sources/Personal navigation approval; shipped hardening is in the changelog |
 
 ## Product and design references
 

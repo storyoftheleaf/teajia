@@ -19,7 +19,7 @@ The second category is governed only by [LAUNCH_VALIDATION.md](LAUNCH_VALIDATION
 |---|---|
 | [1 — Launch Integrity](tracks/01-launch-integrity.md) | Own the reading-memory/saved-story decision and any genuine launch-integrity regression |
 | [5 — Product & Curate Integrity](tracks/05-curate-tea-memory.md) | Keep sourcing, member tea memory, and first-operator product loops coherent |
-| [8 — Platform Hardening](tracks/08-platform-hardening.md) | Reduce worker, error-contract, migration, performance, and operational debt proportionally |
+| [8 — Platform Hardening](tracks/08-platform-hardening.md) | Hold the one explicit Sources/Personal navigation approval gate; completed hardening is recorded in Git and the changelog |
 
 ## Retired tracks
 
