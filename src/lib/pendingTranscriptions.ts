@@ -21,8 +21,8 @@ export interface PendingTranscriptionRepository {
 
 export type PendingTranscriptionResult =
   | { id: string; contextKey: string; status: 'complete'; text: string }
-  | { id: string; status: 'failed'; error: string }
-  | { id: string; status: 'superseded' };
+  | { id: string; contextKey: string; status: 'failed'; error: string }
+  | { id: string; contextKey: string; status: 'superseded' };
 
 interface PendingTranscriptionServiceOptions {
   repository: PendingTranscriptionRepository;
@@ -63,7 +63,7 @@ export function createPendingTranscriptionService({
       const response = await transcribe(transcribing.blob);
       if (latestByContext.get(transcribing.contextKey) !== transcribing.id) {
         await repository.delete(transcribing.id);
-        return { id: transcribing.id, status: 'superseded' };
+        return { id: transcribing.id, contextKey: transcribing.contextKey, status: 'superseded' };
       }
 
       const text = response.text.trim();
@@ -83,7 +83,7 @@ export function createPendingTranscriptionService({
         error: SAVED_FAILURE_MESSAGE,
       };
       await repository.put(failed);
-      return { id: failed.id, status: 'failed', error: SAVED_FAILURE_MESSAGE };
+      return { id: failed.id, contextKey: failed.contextKey, status: 'failed', error: SAVED_FAILURE_MESSAGE };
     }
   };
 
@@ -106,7 +106,7 @@ export function createPendingTranscriptionService({
 
     async retry(id) {
       const recording = await repository.get(id);
-      if (!recording) return { id, status: 'failed', error: 'Saved recording not found.' };
+      if (!recording) return { id, contextKey: 'unknown', status: 'failed', error: 'Saved recording not found.' };
       latestByContext.set(recording.contextKey, recording.id);
       return attempt(recording);
     },

@@ -104,6 +104,6 @@ describe('pending transcription service', () => {
     resolveFirst?.({ text: 'old result' });
 
     expect(newer).toMatchObject({ status: 'complete', text: 'new result' });
-    await expect(older).resolves.toEqual({ id: 'recording-1', status: 'superseded' });
+    await expect(older).resolves.toEqual({ id: 'recording-1', contextKey: 'curate:same-entry', status: 'superseded' });
   });
 });

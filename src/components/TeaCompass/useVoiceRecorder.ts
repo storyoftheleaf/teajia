@@ -36,8 +36,10 @@ export function useVoiceRecorder(
   const streamRef = useRef<MediaStream | null>(null);
   const mountedRef = useRef(true);
   const onTranscriptRef = useRef(onTranscript);
+  const contextKeyRef = useRef(contextKey);
 
   useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
+  useEffect(() => { contextKeyRef.current = contextKey; }, [contextKey]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -67,6 +69,7 @@ export function useVoiceRecorder(
 
   const applyResult = useCallback(async (result: PendingTranscriptionResult) => {
     if (!mountedRef.current) return;
+    if (result.contextKey !== contextKeyRef.current) return;
     if (result.status === 'complete') {
       const accepted = onTranscriptRef.current(result.text, result.contextKey);
       if (accepted === false) {
