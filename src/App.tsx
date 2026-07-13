@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspens
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { clearStaleAppCaches } from './lib/recoverFromChunkError';
+import { claimChunkRecoveryAttempt, clearChunkRecoveryAttempt } from './lib/chunkRecovery';
 
 // Recover from a failed chunk load. Two distinct failure modes are handled:
 //
@@ -17,44 +18,47 @@ import { clearStaleAppCaches } from './lib/recoverFromChunkError';
 //     at a name that no longer exists. Retrying the same URL can't fix that, so
 //     after the retries are exhausted we drop any stale caches and reload once.
 //
-// Reload is capped at once per 10s; if a load still fails after that we rethrow
-// so the nearest ErrorBoundary shows a real message (with a reload affordance)
-// instead of an endless spinner.
+// Each lazy bundle gets ONE automatic reload per browser session. The circuit
+// breaker is cleared only after that bundle imports successfully. A time-based
+// cooldown is unsafe here: retries + cache cleanup + startup can outlast the
+// cooldown and turn a missing chunk into an endless reload loop.
 function lazyWithReload<T extends { default: React.ComponentType<unknown> }>(
+  scope: string,
   factory: () => Promise<T>
 ): React.LazyExoticComponent<T['default']> {
   return lazy(async () => {
     const delays = [400, 1200, 2500]; // ms of backoff between fetch retries
     for (let attempt = 0; ; attempt++) {
       try {
-        return await factory();
+        const loaded = await factory();
+        clearChunkRecoveryAttempt(sessionStorage, scope);
+        return loaded;
       } catch (err) {
         if (attempt < delays.length) {
           await new Promise((r) => setTimeout(r, delays[attempt]));
           continue; // transient blip — retry the same import
         }
-        // Retries exhausted. Assume a stale hash and reload once per 10s.
-        const last = Number(sessionStorage.getItem('chunkReloadAt') || '0');
-        const now = Date.now();
-        if (now - last > 10_000) {
-          sessionStorage.setItem('chunkReloadAt', String(now));
+        // Retries exhausted. Assume a stale hash and reload exactly once. If
+        // the next boot still cannot import this bundle, keep the marker and
+        // surface the ErrorBoundary instead of reloading again.
+        if (claimChunkRecoveryAttempt(sessionStorage, scope)) {
           await clearStaleAppCaches();
           window.location.reload();
           return new Promise<T>(() => {}); // page is reloading; brief suspend is fine
         }
-        throw err; // already tried a reload — surface to the ErrorBoundary, don't hang
+        throw err;
       }
     }
   });
 }
 
-const AdminApp = lazyWithReload(() => import('./admin/AdminApp'));
+const AdminApp = lazyWithReload('admin', () => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
 // 4:5 reader at /article/:slug. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
 const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
-const Shop = lazyWithReload(() => import('./components/Shop').then(m => ({ default: m.Shop })));
+const Shop = lazyWithReload('shop', () => import('./components/Shop').then(m => ({ default: m.Shop })));
 
 // Reads :id from the URL and passes it to Shop so the AlcoveModal opens for
 // that product. Defined at module level so React treats it as a stable type.
