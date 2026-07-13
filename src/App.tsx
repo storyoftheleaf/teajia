@@ -118,7 +118,15 @@ const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
-const DeveloperDocsPage = lazy(() => import('./pages/DeveloperDocsPage'));
+// Repository docs can contain historical external URLs and are a development
+// tool, so do not ship their raw contents in the public production bundle.
+const DeveloperDocsPage = import.meta.env.DEV
+  ? lazy(() => import('./pages/DeveloperDocsPage'))
+  : () => (
+      <div className="min-h-dvh flex items-center justify-center px-6 pb-nav text-center">
+        <p className="font-serif text-ui-15 text-tea-text-sec">The development library is available in local development only.</p>
+      </div>
+    );
 const BriefingPage = lazy(() => import('./pages/BriefingPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));

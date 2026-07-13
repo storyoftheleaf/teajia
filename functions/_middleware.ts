@@ -96,6 +96,38 @@ const STATIC_META: Record<string, Meta> = {
 
 interface Env { WORKER_ORIGIN?: string }
 
+const WORKER_PROXY_PATHS = new Set([
+  '/.well-known/oauth-protected-resource',
+  '/.well-known/oauth-protected-resource/mcp',
+  '/.well-known/oauth-authorization-server',
+  '/.well-known/oauth-authorization-server/mcp',
+  '/.well-known/openid-configuration',
+]);
+
+export function isWorkerProxyPath(pathname: string): boolean {
+  return pathname === '/mcp' || pathname.startsWith('/mcp/') ||
+    pathname.startsWith('/oauth/') || WORKER_PROXY_PATHS.has(pathname);
+}
+
+export async function proxyToWorker(request: Request, configuredOrigin?: string): Promise<Response> {
+  const workerOrigin = configuredWorkerOrigin(configuredOrigin);
+  if (!workerOrigin) {
+    return Response.json({ error: 'API upstream is not configured.' }, { status: 503 });
+  }
+  const incoming = new URL(request.url);
+  const target = new URL(incoming.pathname + incoming.search, workerOrigin);
+  try {
+    const headers = new Headers(request.headers);
+    // Never forward a client-supplied value: only Pages establishes the public
+    // origin that OAuth discovery metadata is allowed to advertise.
+    headers.set('X-Teajia-Public-Origin', incoming.origin);
+    const proxied = new Request(new Request(target.toString(), request), { headers });
+    return await fetch(proxied, { redirect: 'manual' });
+  } catch {
+    return Response.json({ error: 'Upstream API unreachable. Please try again.' }, { status: 502 });
+  }
+}
+
 function configuredWorkerOrigin(value?: string): URL | null {
   try {
     const origin = new URL(value || '');
@@ -156,6 +188,8 @@ class HeadRewriter {
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
+  // These protocol endpoints must reach the Worker before the SPA fallback.
+  if (isWorkerProxyPath(url.pathname)) return proxyToWorker(request, context.env.WORKER_ORIGIN);
   // Normalize trailing slashes but keep "/" as the homepage (not "/read").
   const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/+$/, '');
 

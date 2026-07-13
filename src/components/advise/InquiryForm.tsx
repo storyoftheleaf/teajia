@@ -6,6 +6,7 @@ import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/advise';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { getApiOrigin } from '../../lib/api';
 
 interface InquiryFormProps {
   isOpen: boolean;
@@ -13,8 +14,8 @@ interface InquiryFormProps {
   preselect?: string;
 }
 
-export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, preselect }) => {
-  const [formData, setFormData] = useState<InquiryFormData>({
+function emptyInquiry(preselect?: string): InquiryFormData {
+  return {
     name: '',
     email: '',
     location: '',
@@ -22,8 +23,46 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     interests: preselect ? [preselect] : [],
     vision: '',
     referral: '',
-  });
+  };
+}
+
+export function restoreInquiryDraft(value: unknown, preselect?: string): InquiryFormData {
+  const fallback = emptyInquiry(preselect);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
+  const draft = value as Record<string, unknown>;
+  const scalar = (field: keyof Omit<InquiryFormData, 'interests'>): string =>
+    typeof draft[field] === 'string' ? draft[field] : fallback[field];
+  return {
+    name: scalar('name'),
+    email: scalar('email'),
+    location: scalar('location'),
+    whatsapp: scalar('whatsapp'),
+    vision: scalar('vision'),
+    referral: scalar('referral'),
+    interests: Array.isArray(draft.interests) && draft.interests.every(item => typeof item === 'string')
+      ? draft.interests
+      : fallback.interests,
+  };
+}
+
+export function inquiryMailto(data: InquiryFormData): string {
+  const details = [
+    `Name: ${data.name}`,
+    `Email: ${data.email}`,
+    data.whatsapp ? `WhatsApp: ${data.whatsapp}` : '',
+    data.location ? `Location: ${data.location}` : '',
+    data.interests.length ? `Interests: ${data.interests.join(', ')}` : '',
+    data.referral ? `Referral: ${data.referral}` : '',
+  ].filter(Boolean);
+  const body = [...details, '', data.vision].join('\n');
+  return `mailto:hello@teajia.com?subject=${encodeURIComponent(`Tea inquiry from ${data.name}`)}&body=${encodeURIComponent(body)}`;
+}
+
+export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, preselect }) => {
+  const [formData, setFormData] = useState<InquiryFormData>(() => emptyInquiry(preselect));
   const [submitted, setSubmitted] = useState(false);
+  const [deliveryError, setDeliveryError] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
@@ -53,15 +92,14 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
       // Save trigger element for focus restoration (#14)
       triggerRef.current = document.activeElement as HTMLElement;
       setSubmitted(false);
-      setFormData({
-        name: '',
-        email: '',
-        location: '',
-        whatsapp: '',
-        interests: preselect ? [preselect] : [],
-        vision: '',
-        referral: '',
-      });
+      setDeliveryError(false);
+      setDraftSaved(false);
+      try {
+        const restored = JSON.parse(localStorage.getItem('teajia_inquiry_draft') || 'null');
+        setFormData(restoreInquiryDraft(restored, preselect));
+      } catch {
+        setFormData(emptyInquiry(preselect));
+      }
       setSheetDragY(0);
       requestAnimationFrame(() => setIsVisible(true));
     } else {
@@ -119,12 +157,13 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }) => {
+  const saveToLocalStorage = (entry: InquiryFormData & { timestamp: string }): boolean => {
     try {
-      const existing = JSON.parse(localStorage.getItem('teajia_inquiries') || '[]');
-      localStorage.setItem('teajia_inquiries', JSON.stringify([...existing, entry]));
+      localStorage.setItem('teajia_inquiry_draft', JSON.stringify(entry));
+      return true;
     } catch (err) {
       console.error('[InquiryForm] Failed to save locally:', err);
+      return false;
     }
   };
 
@@ -141,6 +180,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
       return;
     }
     setErrors({});
+    setDeliveryError(false);
     setSubmitting(true);
 
     const entry = { ...formData, timestamp: new Date().toISOString() };
@@ -155,27 +195,26 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
       referral: formData.referral,
     };
 
-    // Try API first, fall back to localStorage
-    const apiUrl = import.meta.env.VITE_API_URL;
-    if (apiUrl) {
-      try {
-        const res = await fetch(`${apiUrl}/api/inquiries`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`API responded ${res.status}`);
-      } catch (err) {
-        console.warn('[InquiryForm] API submission failed, saving locally:', err);
-        saveToLocalStorage(entry);
-      }
-    } else {
-      saveToLocalStorage(entry);
+    // Keep an offline draft, but only show success after confirmed API delivery.
+    const apiUrl = getApiOrigin();
+    try {
+      if (!apiUrl) throw new Error('API origin is not configured');
+      const res = await fetch(`${apiUrl}/api/inquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`API responded ${res.status}`);
+      setSubmitted(true);
+      try { localStorage.removeItem('teajia_inquiry_draft'); } catch { /* delivery still succeeded */ }
+      setTimeout(handleClose, 1500);
+    } catch (err) {
+      console.warn('[InquiryForm] API submission failed, saving draft locally:', err);
+      setDraftSaved(saveToLocalStorage(entry));
+      setDeliveryError(true);
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
-    setSubmitted(true);
-    setTimeout(handleClose, 1500);
   };
 
   const reducedMotion = useReducedMotion();
@@ -346,8 +385,16 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
               </div>
 
               <div className="mt-8">
+                {deliveryError && (
+                  <div role="alert" className="mb-4 text-ui-14 leading-relaxed text-tea-text-sec">
+                    Your message was not delivered. {draftSaved ? 'Your draft is saved on this device; ' : 'This browser could not save your draft; '}retry below or{' '}
+                    <a className="text-tea-text underline underline-offset-4 hover:text-tea-gold" href={inquiryMailto(formData)}>
+                      email hello@teajia.com
+                    </a>.
+                  </div>
+                )}
                 <Button type="submit" variant="primary" fullWidth loading={submitting} disabled={submitting}>
-                  Send
+                  {deliveryError ? 'Retry' : 'Send'}
                 </Button>
               </div>
             </form>

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
-import { getTokenClaims, hasToken } from '../../lib/api';
+import { getApiOrigin, getTokenClaims, hasToken } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // OAuth 2.1 consent screen. Reached when an MCP client (Claude desktop/mobile,
@@ -17,7 +17,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 // Flow: log in if needed → pick scopes → approve → POST /oauth/authorize/decision
 // with our JWT → receive a redirect into the client's redirect_uri with `code=`.
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || '';
+const API_URL = getApiOrigin();
 
 interface ConsentParams {
   request_id: string | null;

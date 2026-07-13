@@ -27,9 +27,21 @@ async function filesBelow(directory) {
 async function documentationChunks(root) {
   try {
     const manifest = JSON.parse(await readFile(resolve(root, 'dist/.vite/manifest.json'), 'utf8'));
-    return new Set(Object.values(manifest)
-      .filter(entry => typeof entry?.src === 'string' && (entry.src.startsWith('docs/') || entry.src.includes('/docs/')))
-      .map(entry => `dist/${entry.file}`));
+    const isDocumentation = entry => typeof entry?.src === 'string' &&
+      (entry.src.startsWith('docs/') || entry.src.includes('/docs/'));
+    const runtimeReachable = new Set();
+    const visit = key => {
+      if (runtimeReachable.has(key)) return;
+      runtimeReachable.add(key);
+      const entry = manifest[key];
+      for (const dependency of [...(entry?.imports || []), ...(entry?.dynamicImports || [])]) visit(dependency);
+    };
+    for (const [key, entry] of Object.entries(manifest)) {
+      if (!isDocumentation(entry)) visit(key);
+    }
+    return new Set(Object.entries(manifest)
+      .filter(([key, entry]) => isDocumentation(entry) && !runtimeReachable.has(key))
+      .map(([, entry]) => `dist/${entry.file}`));
   } catch { return new Set(); }
 }
 

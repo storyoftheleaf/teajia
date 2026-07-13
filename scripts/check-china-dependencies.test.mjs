@@ -6,24 +6,23 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scanChinaDependencies, verifyBuiltReachabilityPolicy } from './check-china-dependencies.mjs';
 
-test('repository keeps only the reviewed live stock-media references and CSP declarations', async () => {
+test('repository has no blocked stock-media references in runtime source or public policy', async () => {
   const repositoryRoot = join(fileURLToPath(new URL('.', import.meta.url)), '..');
   const result = await scanChinaDependencies(repositoryRoot);
   const sourceAndPublicMedia = result.inventory.filter(({ file, kind }) =>
     kind === 'blocked-media' && (file.startsWith('src/') || file.startsWith('public/'))
   );
-  const reviewedReferences = new Map();
-  for (const { file, value } of sourceAndPublicMedia) {
-    const key = `${file} | ${value}`;
-    reviewedReferences.set(key, (reviewedReferences.get(key) ?? 0) + 1);
-  }
-  assert.deepEqual(
-    [...reviewedReferences].sort(([left], [right]) => left.localeCompare(right)),
-    [
-      ['public/_headers | https://images.unsplash.com', 1],
-      ['public/_headers | https://picsum.photos', 1],
-    ],
-  );
+  assert.deepEqual(sourceAndPublicMedia, []);
+});
+
+test('flags an injected Worker origin in an executable production chunk', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'teajia-built-origin-'));
+  await mkdir(join(root, 'dist', 'assets'), { recursive: true });
+  await writeFile(join(root, 'dist', 'assets', 'app.js'), "fetch('https://teajia-api.lightcodes.workers.dev/api/inquiries')");
+  const result = await scanChinaDependencies(root);
+  assert.deepEqual(result.violations.map(({ file, kind }) => ({ file, kind })), [
+    { file: 'dist/assets/app.js', kind: 'browser-api-origin' },
+  ]);
 });
 
 test('flags blocked runtime media and browser Worker origins', async () => {
@@ -84,6 +83,20 @@ test('ignores generated chunks proven by the Vite manifest to contain documentat
   await writeFile(join(root, 'dist', 'assets', 'app.js'), "fetch('https://api.teajia.com/runtime')");
   const result = await scanChinaDependencies(root);
   assert.deepEqual(result.violations.map(v => v.file), ['dist/assets/app.js']);
+});
+
+test('scans a documentation chunk when a runtime entry imports it', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'teajia-china-'));
+  await mkdir(join(root, 'dist', '.vite'), { recursive: true });
+  await mkdir(join(root, 'dist', 'assets'), { recursive: true });
+  await writeFile(join(root, 'dist', '.vite', 'manifest.json'), JSON.stringify({
+    'docs/guide.md': { file: 'assets/guide.js', src: 'docs/guide.md' },
+    'src/main.tsx': { file: 'assets/app.js', src: 'src/main.tsx', imports: ['docs/guide.md'] },
+  }));
+  await writeFile(join(root, 'dist', 'assets', 'guide.js'), "fetch('https://api.teajia.com/runtime')");
+  await writeFile(join(root, 'dist', 'assets', 'app.js'), "import './guide.js'");
+  const result = await scanChinaDependencies(root);
+  assert.deepEqual(result.violations.map(v => v.file), ['dist/assets/guide.js']);
 });
 
 test('built policy requires same-origin API/media routes, no runtime Google Fonts, and uncached OTP', async () => {

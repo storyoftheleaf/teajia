@@ -227,8 +227,7 @@ function hasMcpScope(auth: McpAuth, scope: McpScope): boolean {
 // The `resource_metadata` parameter points clients at our protected-resource
 // metadata document, which in turn points them at the auth server.
 function unauthorized(request: Request, message: string): Response {
-  const url = new URL(request.url);
-  const origin = `${url.protocol}//${url.host}`;
+  const origin = originOf(request);
   const body = JSON.stringify({ jsonrpc: '2.0', id: null, error: { code: -32001, message } });
   return new Response(body, {
     status: 401,
@@ -3740,8 +3739,20 @@ function isAllowedRedirectUri(uri: string): boolean {
   return false;
 }
 
-function originOf(request: Request): string {
+export function originOf(request: Request): string {
   const u = new URL(request.url);
+  const forwarded = request.headers.get('X-Teajia-Public-Origin');
+  if (forwarded) {
+    try {
+      const candidate = new URL(forwarded);
+      const host = candidate.hostname.toLowerCase();
+      const allowedHost = host === 'teajia.com' || host === 'www.teajia.com' ||
+        host === 'teajiafinal.pages.dev' || host.endsWith('.teajiafinal.pages.dev');
+      if (candidate.protocol === 'https:' && allowedHost && candidate.origin === forwarded.replace(/\/$/, '')) {
+        return candidate.origin;
+      }
+    } catch { /* fall through to the direct request origin */ }
+  }
   return `${u.protocol}//${u.host}`;
 }
 
