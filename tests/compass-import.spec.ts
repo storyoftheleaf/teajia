@@ -160,6 +160,7 @@ async function installAnalyzedImportApi(page: Page) {
 
 async function installImportApi(page: Page) {
   let attempts = 0;
+  let analysisAttempts = 0;
   const items: ImportItem[] = [];
   const sources: Array<Record<string, unknown>> = [];
   const groups: Array<Record<string, unknown>> = [];
@@ -211,6 +212,17 @@ async function installImportApi(page: Page) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detail()) });
     }
     if (method === 'POST' && path === '/api/curate/imports/batch-1/analyze') {
+      analysisAttempts += 1;
+      const retrySource = sources.find(source => (source.metadata as Record<string, unknown>)?.filename === 'retry-source.pdf');
+      if (retrySource && analysisAttempts === 1) {
+        Object.assign(retrySource, { analysis_status: 'failed', analysis_error: 'analysis_evidence_unavailable' });
+        if (batch) Object.assign(batch, { review_state: 'pending', analysis_state: 'failed', analysis_error: 'analysis_no_usable_evidence' });
+        return route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'Import analysis failed', code: 'analysis_no_usable_evidence' }) });
+      }
+      if (retrySource && analysisAttempts > 1) {
+        const body = request.postDataJSON() as { source_ids?: string[] };
+        if (JSON.stringify(body.source_ids) !== JSON.stringify([retrySource.id])) return route.fulfill({ status: 409, json: { error: 'Retry must target only failed evidence' } });
+      }
       if (batch) Object.assign(batch, { review_state: 'reviewing', analysis_state: 'completed', analysis_language: 'en', analysis_overview: `${items.length} items analyzed from saved evidence.` });
       for (const source of sources) if (source.analysis_status !== 'reference_only') source.analysis_status = 'analyzed';
       groups.splice(0, groups.length, ...(items.length ? [{
@@ -430,6 +442,18 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Evidence storage is not configured. Your file was not saved.')).toBeVisible();
     await expect(page.getByTestId('import-item-row')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
+  });
+
+  test('reloads persisted source outcomes after initial analysis failure and retries only failed evidence', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'retry-source.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+
+    await expect(page.getByText('Analysis failed · analysis_evidence_unavailable')).toBeVisible();
+    const retryRequest = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/api/curate/imports/batch-1/analyze') && request.postDataJSON()?.source_ids);
+    await page.getByRole('button', { name: 'Retry import' }).click();
+    expect((await retryRequest).postDataJSON()).toEqual({ source_ids: ['evidence-0'] });
   });
 
   test('recovers saved evidence and its grouped incomplete batch after reload', async ({ page }) => {
