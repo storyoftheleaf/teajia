@@ -704,8 +704,8 @@ test.describe('analyzed inventory import review', () => {
     await expect(completion.getByText(/2 vendor receipts/)).toBeVisible();
     await expect(completion.getByText('Library identity reused · Inventory holding reused')).toBeVisible();
     await expect(completion.getByText('Taiwan · Spring · 2026')).toBeVisible();
-    await expect(completion.getByRole('link', { name: /Chen Family Ancient Tree Tea Cooperative.*receipt/ })).toHaveAttribute('href', '/admin/stock?incoming=1');
-    await expect(completion.getByRole('link', { name: /Lin Family High Mountain Tea Workshop.*receipt/ })).toHaveAttribute('href', '/admin/stock?incoming=1');
+    await expect(completion.getByRole('link', { name: /Chen Family Ancient Tree Tea Cooperative.*receipt/ })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
+    await expect(completion.getByRole('link', { name: /Lin Family High Mountain Tea Workshop.*receipt/ })).toHaveAttribute('href', '/admin/stock?receipt=receipt-lin');
     await expect(completion.getByRole('link', { name: /Open Library identity/ }).first()).toHaveAttribute('href', /\/admin\/compass\?tab=library&entry=/);
     await expect(page).toHaveURL(/\/admin\/compass/);
   });

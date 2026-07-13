@@ -296,6 +296,24 @@ function itemProposal(sourceItemId: string, evidenceRef = 'source') {
 describe('Curate import provenance API', () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it('returns the finalized Journey through the HTTP response', async () => {
+    const db = new ImportDb();
+    db.batches.set('batch-finalized', {
+      id: 'batch-finalized', account_id: 'account-a', created_by_user_id: 'user-a', review_state: 'completed',
+      finalize_idempotency_key: 'finish-key', finalize_result_json: JSON.stringify({
+        batchId: 'batch-finalized', idempotencyKey: 'finish-key',
+        journey: { id: 'journey-a', name: 'Taiwan · Spring · 2026' }, receipts: [], items: [],
+      }),
+    });
+
+    const result = await request(db, '/api/curate/imports/batch-finalized/finalize', {
+      method: 'POST', body: JSON.stringify({ idempotency_key: 'finish-key' }),
+    });
+
+    expect(result.status).toBe(200);
+    expect(await result.json()).toMatchObject({ journey: { id: 'journey-a', name: 'Taiwan · Spring · 2026' } });
+  });
+
   it('analyzes account-scoped evidence into ordered vendor groups and normalized items', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({

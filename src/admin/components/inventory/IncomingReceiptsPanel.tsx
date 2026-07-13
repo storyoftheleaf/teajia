@@ -3,7 +3,7 @@ import { ArrowLeft, Loader2, PackageCheck } from 'lucide-react';
 import { api } from '../../../lib/api';
 import type { InventoryReceipt } from '../../types';
 
-export function IncomingReceiptsPanel({ onClose }: { onClose: () => void }) {
+export function IncomingReceiptsPanel({ onClose, receiptId }: { onClose: () => void; receiptId?: string | null }) {
   const [receipts, setReceipts] = useState<InventoryReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
@@ -11,10 +11,14 @@ export function IncomingReceiptsPanel({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {
     setLoading(true);
-    try { setReceipts(await api.inventoryReceipts.list()); setError(null); }
+    try {
+      const loaded = await api.inventoryReceipts.list(Boolean(receiptId));
+      setReceipts(receiptId ? loaded.filter(receipt => receipt.id === receiptId) : loaded);
+      setError(null);
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load incoming stock.'); }
     finally { setLoading(false); }
-  }, []);
+  }, [receiptId]);
   useEffect(() => { void load(); }, [load]);
 
   const act = async (key: string, action: () => Promise<unknown>) => {
@@ -24,17 +28,19 @@ export function IncomingReceiptsPanel({ onClose }: { onClose: () => void }) {
     finally { setWorking(null); }
   };
 
-  return <section className="flex-1 min-h-0 overflow-auto pb-nav-gap bg-tea-bg" aria-label="Incoming stock">
+  const title = receiptId ? 'Receipt details' : 'Incoming stock';
+
+  return <section className="flex-1 min-h-0 overflow-auto pb-nav-gap bg-tea-bg" aria-label={title}>
     <div className="sticky top-0 z-10 bg-tea-bg border-b border-tea-border px-4 py-3 flex items-center gap-3">
       <div className="flex items-center gap-2 min-w-0">
         <button className="tap-target text-tea-text-sec hover:text-tea-text" onClick={onClose} aria-label="Back to inventory"><ArrowLeft size={20}/></button>
-        <div><h2 className="font-display text-ui-20 text-tea-text">Incoming stock</h2><p className="text-ui-12 text-tea-text-sec">Expected stock stays separate from current on-hand stock until it arrives.</p></div>
+        <div><h2 className="font-display text-ui-20 text-tea-text">{title}</h2><p className="text-ui-12 text-tea-text-sec">{receiptId ? 'The finalized vendor receipt and its inventory movements.' : 'Expected stock stays separate from current on-hand stock until it arrives.'}</p></div>
       </div>
     </div>
     <div className="max-w-3xl mx-auto p-4 space-y-3">
       {error && <div role="alert" className="border border-tea-border bg-tea-elevated rounded-md px-3 py-2 text-ui-12 text-tea-text">{error} <button onClick={() => void load()} className="ml-2 underline text-tea-text-sec hover:text-tea-text">Try again</button></div>}
       {loading && <div className="py-16 flex justify-center"><Loader2 className="animate-spin text-tea-gold"/></div>}
-      {!loading && receipts.length === 0 && <div className="py-16 text-center"><PackageCheck className="mx-auto text-tea-text-sec mb-3"/><p className="font-display text-ui-17 text-tea-text">Nothing on the way</p></div>}
+      {!loading && receipts.length === 0 && <div className="py-16 text-center"><PackageCheck className="mx-auto text-tea-text-sec mb-3"/><p className="font-display text-ui-17 text-tea-text">{receiptId ? 'Receipt not found' : 'Nothing on the way'}</p></div>}
       {receipts.map(receipt => <article key={receipt.id} className="border border-tea-border bg-tea-surface rounded-xl overflow-hidden">
         <header className="px-4 py-3 border-b border-tea-border flex flex-wrap items-start justify-between gap-2">
           <div><div className="font-display text-ui-15 text-tea-text">{receipt.vendor_name || (receipt.legacy ? 'Earlier incoming stock' : 'Incoming receipt')}</div><div className="text-ui-11 text-tea-text-sec">{[receipt.source_kind, receipt.source_ref].filter(Boolean).join(' · ')}</div></div>

@@ -62,7 +62,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
       </div>
 
       {result.receipts.length > 0 && <div className="space-y-1" aria-label="Vendor receipts">
-        {result.receipts.map(receipt => <a key={receipt.id} href="/admin/stock?incoming=1" className="tap-target flex min-h-11 items-center justify-between border-b border-tea-border text-ui-12 text-tea-gold"><span>{receipt.vendorName} receipt</span><ArrowRight size={14} aria-hidden="true" /></a>)}
+        {result.receipts.map(receipt => <a key={receipt.id} href={`/admin/stock?receipt=${encodeURIComponent(receipt.id)}`} className="tap-target flex min-h-11 items-center justify-between border-b border-tea-border text-ui-12 text-tea-gold"><span>{receipt.vendorName} receipt</span><ArrowRight size={14} aria-hidden="true" /></a>)}
       </div>}
 
       <div className="flex flex-wrap justify-between gap-3 border-t border-tea-border pt-3">

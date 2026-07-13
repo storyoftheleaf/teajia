@@ -667,7 +667,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         if (!(changed.meta.changes ?? 0)) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was finalized by another request');
       },
     }, params.id, idempotencyKey);
-    return response({ batch: await scopedBatch(env, params.id, ctx.accountId), receipts: result.receipts, items: result.items });
+    return response({ batch: await scopedBatch(env, params.id, ctx.accountId), journey: result.journey, receipts: result.receipts, items: result.items });
   } catch (error) {
     if (error instanceof CurateImportFinalizeError) {
       const status = error.code === 'not_found' ? 404 : 409;
