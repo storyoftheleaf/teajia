@@ -21,7 +21,9 @@ type FinalizedRow = {
 const UNGROUPED = '__ungrouped__';
 
 const amount = (item: CurateImportDetail['items'][number]) => {
-  const value = item.line_cost_exact ?? item.line_cost;
+  const parsedExact = item.parsed_data.lineCostExact;
+  const exactValue = item.line_cost_exact ?? (typeof parsedExact === 'string' ? parsedExact : null);
+  const value = exactValue ?? (typeof item.line_cost === 'number' && Number.isFinite(item.line_cost) && Math.abs(item.line_cost) <= Number.MAX_SAFE_INTEGER ? `${item.line_cost}` : null);
   return value == null ? 'Cost not recorded' : `${item.currency || ''} ${value}`.trim();
 };
 
@@ -103,7 +105,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
                     {item.original_name && <p className="mt-0.5 break-words font-chinese text-ui-12 text-tea-text-sec">{item.original_name}</p>}
                     <p className="mt-2 text-ui-11 text-tea-text-sec">{quantity(item)} · {amount(item)}</p>
                     <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-ui-11 text-tea-text-sec">
-                      <span>Tea record {identityDisposition}</span>
+                      <span>{item.category === 'teaware' ? 'Teaware' : 'Tea'} record {identityDisposition}</span>
                       <span>Stock record {holdingDisposition}</span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">

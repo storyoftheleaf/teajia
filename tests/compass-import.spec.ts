@@ -399,7 +399,7 @@ test.describe('Curate Import panel', () => {
     await expect(completion.getByText('1 teaware item added · No sourcing run', { exact: true })).toBeVisible();
     await expect(completion.getByTestId('completion-vendor-ledger')).toHaveCount(1);
     await expect(completion.getByTestId('completion-ledger-row')).toHaveCount(1);
-    await expect(completion.getByText('Tea record created', { exact: true })).toBeVisible();
+    await expect(completion.getByText('Teaware record created', { exact: true })).toBeVisible();
     await expect(completion.getByText('Stock record created', { exact: true })).toBeVisible();
   });
 
@@ -786,6 +786,8 @@ test.describe('analyzed inventory import review', () => {
     if (testInfo.project.name === 'Mobile Chrome') await page.setViewportSize({ width: 390, height: 844 });
     const api = await installAnalyzedImportApi(page);
     api.detail.items[1].total_quantity_grams = 1001;
+    api.detail.items[1].line_cost = null;
+    api.detail.items[1].parsed_data.lineCostExact = '999999999999999.99';
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
 
@@ -910,7 +912,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstFinalizedTea.getByText('1kg · CNY 760', { exact: true })).toBeVisible();
     await expect(firstFinalizedTea.getByText('Tea record reused', { exact: true })).toBeVisible();
     await expect(firstFinalizedTea.getByText('Stock record reused', { exact: true })).toBeVisible();
-    await expect(chenLedger.getByTestId('completion-ledger-row').nth(1).getByText('1001g · CNY 760', { exact: true })).toBeVisible();
+    await expect(chenLedger.getByTestId('completion-ledger-row').nth(1).getByText('1001g · CNY 999999999999999.99', { exact: true })).toBeVisible();
     await expect(chenVendorHeading).toHaveClass(/font-display/);
     await expect(chenVendorHeading).toHaveClass(/text-ui-28/);
     await expect(chenLedger.getByRole('link', { name: 'Open received receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
