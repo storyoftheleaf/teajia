@@ -35,7 +35,7 @@ export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, 
         <div className="min-w-0"><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Sourcing run · optional</p><p className="truncate text-ui-12 text-tea-text">{selectedLabel}</p></div>
         <button type="button" disabled={busy || lookup.status === 'loading'} aria-expanded={expanded} aria-label={`${journeyId ? 'Change' : 'Add'} sourcing run`} onClick={() => setExpanded(open => !open)} className="tap-target shrink-0 text-ui-10 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{journeyId ? 'Change' : 'Add'}</button>
       </div>
-      {expanded && <div className="space-y-2 border-l-2 border-tea-border pl-3">
+      {expanded && <div className="space-y-2 border-t border-tea-border pt-3">
       <label className="block text-ui-11 text-tea-text-sec"><span className="mb-1 block">Find a sourcing run</span>
         <input aria-label="Search sourcing runs" disabled={busy || !lookupReady} value={query} onChange={event => setQuery(event.target.value)} placeholder={lookup.status === 'loading' ? 'Loading sourcing runs…' : lookup.status === 'error' ? 'Retry sourcing runs' : 'Search sourcing runs'} className={`${controlClass} disabled:opacity-50`} />
       </label>
@@ -46,7 +46,7 @@ export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, 
       {lookup.status === 'error' && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 text-ui-11 text-tea-text-sec"><span>{lookup.error || 'Could not load sourcing runs.'}</span><button type="button" disabled={busy} onClick={onRetry} className="tap-target min-h-11 text-tea-gold disabled:opacity-50">Retry</button></div>}
       {lookup.status === 'empty' && <p className="text-ui-11 text-tea-text-sec">No existing sourcing runs.</p>}
       {!creating ? <button type="button" disabled={busy || !lookupReady} onClick={() => setCreating(true)} className="tap-target min-h-11 text-ui-11 text-tea-gold disabled:opacity-50">Create new sourcing run</button> : (
-        <div className="space-y-2 border-l-2 border-tea-border pl-3">
+        <div className="space-y-2 border-t border-tea-border pt-3">
           <label className="block text-ui-11 text-tea-text-sec">Run name<input aria-label="New sourcing run name" disabled={busy} value={name} onChange={event => setName(event.target.value)} className={`${controlClass} disabled:opacity-50`} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Season<input aria-label="New sourcing run season" disabled={busy} value={season} onChange={event => setSeason(event.target.value)} className={`${controlClass} disabled:opacity-50`} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Year<input aria-label="New sourcing run year" disabled={busy} inputMode="numeric" value={year} onChange={event => setYear(event.target.value)} className={`${controlClass} disabled:opacity-50`} /></label>

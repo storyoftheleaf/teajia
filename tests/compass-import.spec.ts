@@ -697,7 +697,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Vendor list or invoice').fill(Array.from({ length: 30 }, (_, index) => `Tea ${index + 1}`).join('\n'));
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('30 teas · 1 vendor')).toBeVisible();
+    await expect(page.getByTestId('import-batch-context')).toContainText('30 teas from 1 vendor');
     await expect(page.getByTestId('import-item-row')).toHaveCount(30);
     await page.getByTestId('import-item-row').last().scrollIntoViewIfNeeded();
     await expect(page.getByTestId('import-item-row').last()).toContainText('Tea 30');
@@ -710,6 +710,65 @@ test.describe('analyzed inventory import review', () => {
     await installCompassHarness(page);
   });
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('presents a vendor-led review and cycles through actual blockers', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    api.detail.items[1].blocking_fields = ['english_name'];
+    api.detail.items[1].confidence = 0.54;
+    api.detail.items[1].uncertainty = { english_name: 'The translated name needs confirmation' };
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await expect(dialog.getByText('AI reading', { exact: true })).toBeVisible();
+    const overview = dialog.getByText(api.detail.batch.analysis_overview!, { exact: true });
+    await expect(overview).toHaveClass(/italic/);
+    await expect(overview).not.toHaveClass(/border|rounded|bg-tea-surface/);
+    await expect(dialog.getByTestId('import-batch-context')).toContainText('10 teas');
+    await expect(dialog.getByTestId('import-batch-context')).toContainText('2 vendors');
+    await expect(dialog.getByTestId('import-batch-context')).toContainText('10kg');
+    await expect(dialog.getByTestId('import-batch-context')).toContainText('CNY 3,800');
+    await expect(dialog.getByTestId('import-batch-context')).toContainText('TWD 6,000');
+
+    const groups = dialog.getByTestId('import-vendor-group');
+    const firstGroup = groups.first();
+    const firstVendorName = firstGroup.getByRole('heading', { name: api.detail.groups[0].resolved_vendor_name! });
+    await expect(firstVendorName).toHaveClass(/font-display/);
+    await expect(firstVendorName).toHaveClass(/text-ui-28/);
+    await expect(firstGroup).not.toHaveClass(/rounded|bg-tea-surface/);
+    await expect(firstGroup.getByText('Needs review', { exact: true })).toHaveCount(1);
+    await expect(firstGroup.getByText('Ready', { exact: true })).toHaveCount(1);
+
+    const firstGroupRows = firstGroup.getByTestId('import-item-row');
+    await expect(firstGroupRows.first()).toHaveAttribute('data-import-item-id', api.detail.items[1].id);
+    await expect(firstGroupRows.first()).toHaveAttribute('data-blocked', 'true');
+    await expect(firstGroupRows.nth(1)).toHaveAttribute('data-blocked', 'false');
+    await expect(firstGroupRows.first()).toHaveAttribute('tabindex', '-1');
+    await expect(firstGroupRows.first()).toHaveClass(/scroll-mt/);
+    await expect(firstGroupRows.first().getByText(api.detail.items[1].english_name!, { exact: true })).toHaveClass(/font-display/);
+    await expect(firstGroupRows.first().getByText(api.detail.items[1].english_name!, { exact: true })).toHaveClass(/text-ui-20/);
+    await expect(firstGroupRows.first().locator('.font-mono')).toHaveCount(1);
+
+    const secondGroup = groups.nth(1);
+    await expect(secondGroup.getByText('Needs review', { exact: true })).toHaveCount(1);
+    await expect(secondGroup.getByText('Ready', { exact: true })).toHaveCount(1);
+    await expect(secondGroup.getByTestId('import-item-row').first()).toHaveAttribute('data-import-item-id', api.detail.items[9].id);
+
+    const nextIssue = dialog.getByRole('button', { name: 'Next issue' });
+    await expect(dialog.getByText('2 unresolved', { exact: true })).toBeVisible();
+    await nextIssue.click();
+    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`)).toBeFocused();
+    await nextIssue.click();
+    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[9].id}"]`)).toBeFocused();
+    await nextIssue.click();
+    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`)).toBeFocused();
+    await expect(dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ })).toHaveCount(0);
+
+    await firstGroup.getByRole('button', { name: /^Change vendor for / }).click();
+    await expect(firstGroup.locator('.border-l-2')).toHaveCount(0);
+    await expect(dialog.locator('.border-l-2')).toHaveCount(0);
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  });
 
   test('groups ten editable teas by vendor without repeated controls or overflow', async ({ page }, testInfo) => {
     if (testInfo.project.name === 'Mobile Chrome') await page.setViewportSize({ width: 390, height: 844 });
@@ -736,6 +795,8 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.getByRole('button', { name: 'Change sourcing run' })).toBeVisible();
     await expect(dialog.getByTestId('import-vendor-group')).toHaveCount(2);
     await expect(dialog.getByRole('button', { name: /^Change vendor for / })).toHaveCount(2);
+    await expect(dialog.getByTestId('import-vendor-group').first().getByText('Needs review', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByTestId('import-vendor-group').first().getByText('Ready', { exact: true })).toHaveCount(1);
     await expect(dialog.getByText('Chen Family Ancient Tree Tea Cooperative of Xishuangbanna', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Lin Family High Mountain Tea Workshop, Nantou County', { exact: true })).toBeVisible();
 
@@ -746,18 +807,21 @@ test.describe('analyzed inventory import review', () => {
 
     const rows = dialog.getByTestId('import-item-row');
     await expect(rows).toHaveCount(10);
-    const compactHeights = await rows.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
-    expect(Math.max(...compactHeights.slice(0, -1)), 'ready collapsed review rows should stay compact').toBeLessThanOrEqual(120);
-    expect(compactHeights.at(-1), 'the row listing all required confirmations should stay compact').toBeLessThanOrEqual(150);
+    const readyHeights = await dialog.locator('[data-blocked="false"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
+    const blockedHeights = await dialog.locator('[data-blocked="true"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
+    expect(Math.max(...readyHeights), 'ready collapsed review rows should stay compact').toBeLessThanOrEqual(120);
+    expect(Math.max(...blockedHeights), 'rows listing required confirmations should stay compact').toBeLessThanOrEqual(150);
     for (let index = 0; index < analyzedTeaNames.length; index += 1) {
-      await rows.nth(index).scrollIntoViewIfNeeded();
-      await expect(rows.nth(index)).toContainText(analyzedTeaNames[index][0]);
-      await expect(rows.nth(index)).toContainText(analyzedTeaNames[index][1]);
+      const itemRow = dialog.locator(`[data-import-item-id="analyzed-item-${index + 1}"]`);
+      await itemRow.scrollIntoViewIfNeeded();
+      await expect(itemRow).toContainText(analyzedTeaNames[index][0]);
+      await expect(itemRow).toContainText(analyzedTeaNames[index][1]);
     }
 
     const finalAction = dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ });
     await expect(dialog.getByText('Confirm pack count, weight or unit, price interpretation, currency, tea identity, physical stock status, and Inventory purpose.')).toBeVisible();
-    await expect(finalAction).toBeDisabled();
+    await expect(finalAction).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'Next issue' })).toBeVisible();
 
     const readyRow = rows.nth(0);
     await readyRow.getByRole('button', { name: 'Edit tea' }).click();
@@ -769,7 +833,7 @@ test.describe('analyzed inventory import review', () => {
     await readyRow.getByRole('button', { name: 'Save tea' }).click();
     await expect(readyRow).toContainText('Yunnan Ancient Tree Raw Pu’er — Spring Lot');
 
-    const uncertainRow = rows.nth(9);
+    const uncertainRow = dialog.locator('[data-import-item-id="analyzed-item-10"]');
     await uncertainRow.scrollIntoViewIfNeeded();
     await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
     await expect(uncertainRow.getByRole('button', { name: 'All details' })).toBeVisible();
@@ -777,7 +841,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(uncertainRow.getByLabel('Production or classification')).toHaveCount(0);
     await uncertainRow.getByLabel('Pack count').fill('3');
     await uncertainRow.getByLabel('Inventory purpose').selectOption('working');
-    await uncertainRow.getByLabel('Library tea identity').click();
+    await uncertainRow.getByLabel('Match tea').click();
     await uncertainRow.getByRole('option').filter({ hasText: 'Create new Library identity' }).click();
     await uncertainRow.getByLabel('Acquired into physical stock').selectOption('yes');
     await expect(uncertainRow.getByLabel('Sourcing run')).toHaveCount(0);
@@ -910,15 +974,15 @@ test.describe('analyzed inventory import review', () => {
     await vendorSearch.press('ArrowDown');
     await vendorSearch.press('Enter');
 
-    const row = dialog.getByTestId('import-item-row').nth(9);
+    const row = dialog.locator('[data-import-item-id="analyzed-item-10"]');
     await row.getByRole('button', { name: 'Edit tea' }).click();
     await expect(row.getByText('Suggested: Jingmai Mountain Raw Pu’er')).toBeVisible();
-    const holdingPicker = row.getByRole('combobox', { name: 'Inventory holding' });
+    const holdingPicker = row.getByRole('combobox', { name: 'Choose stock record' });
     await holdingPicker.click();
     await expect(row.getByRole('option').filter({ hasText: 'Jingmai service holding' })).toHaveCount(0);
     await expect(row.getByRole('option').filter({ hasText: 'Create new Inventory holding' })).toBeVisible();
     await holdingPicker.press('Escape');
-    const identityPicker = row.getByRole('combobox', { name: 'Library tea identity' });
+    const identityPicker = row.getByRole('combobox', { name: 'Match tea' });
     await identityPicker.click();
     await expect(identityPicker).toHaveAttribute('aria-expanded', 'true');
     await identityPicker.press('Tab');
@@ -996,7 +1060,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(first.getByRole('button', { name: 'Saving…' })).toBeDisabled();
     await expect(dialog.getByTestId('import-item-row').nth(1).getByRole('button', { name: 'Edit tea' })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: /^Change vendor for / }).first()).toBeDisabled();
-    await expect(dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Next issue' })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeVisible();

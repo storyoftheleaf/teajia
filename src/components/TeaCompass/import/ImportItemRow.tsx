@@ -144,8 +144,8 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
     <label className="block text-ui-11 text-tea-text-sec">Price interpretation<select value={draft.price_basis} onChange={event => set('price_basis', event.target.value)} className={fieldClass}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></label>
   </>;
   const identityFields = <>
-    <ImportMatchPicker label="Library tea identity" lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} />
-    <ImportMatchPicker label="Inventory holding" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={proposedHoldingName} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} />
+    <div><ImportMatchPicker label="Match tea" lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} /><p className="mt-1 text-ui-10 text-tea-text-dim">Library tea identity</p></div>
+    <div><ImportMatchPicker label="Choose stock record" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={proposedHoldingName} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} /><p className="mt-1 text-ui-10 text-tea-text-dim">Inventory holding</p></div>
   </>;
   const acquisitionFields = <>
     <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => setPurpose(event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
@@ -156,11 +156,11 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
     <label className="block text-ui-11 text-tea-text-sec">Original or Chinese name<input value={draft.original_name} onChange={event => set('original_name', event.target.value)} className={fieldClass} /></label>
   </>;
   return (
-    <article data-testid="import-item-row" className="py-2">
+    <article data-testid="import-item-row" data-import-item-id={item.id} data-blocked={blocking ? 'true' : 'false'} tabIndex={-1} className="scroll-mt-24 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
       <div className="flex min-w-0 items-start gap-2">
         <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${blocking ? 'text-tea-gold' : 'bg-tea-accent-sub text-tea-gold'}`} aria-label={blocking ? 'Needs review' : 'Ready'}>{blocking ? <AlertCircle size={16} /> : <Check size={13} />}</span>
         <div className="min-w-0 flex-1">
-          <p className="break-words text-ui-14 font-medium leading-snug text-tea-text">{label}</p>
+          <p className="break-words font-display text-ui-20 leading-snug text-tea-text">{label}</p>
           {item.original_name && <p className="break-words font-chinese text-ui-12 text-tea-text-sec">{item.original_name}</p>}
           <p className="mt-0.5 break-words font-mono text-ui-10 text-tea-text-dim">{packEquation(item)}{item.total_quantity_grams ? ` · ${item.total_quantity_grams}g total` : ''}{item.line_cost != null ? ` · ${item.currency || ''} ${item.line_cost}` : ''}</p>
           {blocking && <p role="alert" className="mt-1 text-ui-11 text-tea-gold">{blocking}</p>}
@@ -168,7 +168,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
         <button type="button" disabled={busy} aria-expanded={expanded} onClick={() => setExpanded(open => !open)} className="tap-target flex min-h-11 shrink-0 items-center gap-1 text-ui-10 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{expanded ? 'Close editing' : `Edit ${editLabel}`}{expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}</button>
       </div>
       {expanded && (
-        <fieldset disabled={busy} className="mt-3 space-y-3 border-l-2 border-tea-border pl-3">
+        <fieldset disabled={busy} className="mt-3 space-y-3 border-t border-tea-border pt-3">
           {(item.raw_text || evidenceReferences.length > 0) && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Evidence used for this item</p>{item.raw_text && <p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p>}{evidenceReferences.map(reference => <p key={reference} className="mt-1 break-words font-mono text-ui-10 text-tea-text-sec">{evidenceReferenceLabel(reference)}</p>)}</div>}
           {namingBlocking && namingFields}
           {identitySelectionBlocking && identityFields}

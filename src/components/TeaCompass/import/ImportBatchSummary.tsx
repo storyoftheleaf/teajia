@@ -23,17 +23,15 @@ const quantityLabel = (grams: number, units: number) => {
   return parts.join(' + ') || 'Quantity needs review';
 };
 
+const currencyLabel = (currency: string, amount: number) => `${currency} ${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
 export const ImportBatchSummary: React.FC<Props> = ({ model, overview, journeyId, journeyLookup, busy, onRetryJourneys, onJourneyChange, onCreateJourney, itemNoun }) => (
-  <section aria-labelledby="import-summary-heading" className="space-y-3 border-b border-tea-border pb-4">
-    <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h3 id="import-summary-heading" className="text-ui-14 font-medium text-tea-text">{model.readyCount + model.needsReviewCount} {itemNoun} · {model.groups.length} {model.groups.length === 1 ? 'vendor' : 'vendors'}</h3>
-      <span className="text-ui-11 text-tea-text-dim">{model.needsReviewCount ? `${model.needsReviewCount} need review` : 'Ready to add'}</span>
-    </div>
-    {overview && <p className="text-ui-13 leading-relaxed text-tea-text-sec">{overview}</p>}
-    <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-ui-11 text-tea-text-sec">
-      <span>{quantityLabel(model.totalQuantityGrams, model.totalUnits)}</span>
-      {model.currencyTotals.map(total => <span key={total.currency}>{total.currency} {total.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>)}
-    </div>
+  <section aria-labelledby="import-summary-heading" className="space-y-4 border-b border-tea-border pb-4">
+    <h3 id="import-summary-heading" className="sr-only">Import batch context</h3>
+    <p data-testid="import-batch-context" className="font-mono text-ui-11 text-tea-text-sec">
+      {model.readyCount + model.needsReviewCount} {itemNoun} from {model.groups.length} {model.groups.length === 1 ? 'vendor' : 'vendors'} · {quantityLabel(model.totalQuantityGrams, model.totalUnits)}{model.currencyTotals.map(total => ` · ${currencyLabel(total.currency, total.amount)}`).join('')}
+    </p>
+    {overview && <div className="space-y-1"><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">AI reading</p><p className="max-w-[70ch] font-body text-ui-13 italic leading-relaxed text-tea-text-sec">{overview}</p></div>}
     <ImportJourneyPicker lookup={journeyLookup} journeyId={journeyId} busy={busy} onRetry={onRetryJourneys} onSelect={onJourneyChange} onCreate={onCreateJourney} />
   </section>
 );

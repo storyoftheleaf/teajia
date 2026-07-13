@@ -6,6 +6,7 @@ import { ImportBatchSummary } from './ImportBatchSummary';
 import { ImportVendorGroup, type ImportVendorOption } from './ImportVendorGroup';
 import { ImportEvidenceCard } from './ImportEvidenceCard';
 import type { ImportIdentityOption, ImportHoldingOption } from './ImportItemRow';
+import { nextBlockingImportItemId } from './importFolioPresentation';
 
 interface ImportBatchReviewProps {
   detail: CurateImportDetail;
@@ -32,6 +33,7 @@ interface ImportBatchReviewProps {
 
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, journeyLookup, vendorLookup, identityLookup, holdingLookup, busyId, onRetryJourneys, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdate, onSetJourney, onCreateJourney, onChangeVendor, onCreateVendor, onFinalize, onRetryAnalysis, onDefer, onNew, onAbandon }) => {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
   const abandonRef = useRef<HTMLButtonElement>(null);
   const model = useMemo(() => buildImportReviewModel(detail), [detail]);
   const itemCount = detail.items.length;
@@ -39,6 +41,16 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   const primaryCurrency = model.currencyTotals.length === 1 ? model.currencyTotals[0] : null;
   const failedSourceIds = detail.sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
   const finalLabel = `Add ${itemCount} ${itemLabel} to Inventory`;
+  const blockerItems = model.groups.flatMap(group => group.items.map(row => ({ id: row.item.id, blocking_fields: row.blockingFields })));
+  const vendorUnresolved = model.groups.some(group => !group.vendorResolved);
+  const goToNextIssue = () => {
+    const nextId = nextBlockingImportItemId(blockerItems, currentIssueId);
+    if (!nextId) return;
+    setCurrentIssueId(nextId);
+    const row = document.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(nextId)}"]`);
+    row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row?.focus({ preventScroll: true });
+  };
   return (
     <div className="space-y-5">
       <ImportBatchSummary model={model} overview={detail.batch.analysis_overview} journeyId={detail.batch.journey_id} journeyLookup={journeyLookup} busy={Boolean(busyId)} onRetryJourneys={onRetryJourneys} onJourneyChange={onSetJourney} onCreateJourney={onCreateJourney} itemNoun={itemLabel} />
@@ -49,8 +61,10 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       {confirmAbandon && <div role="group" aria-label="Abandon import confirmation" className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3"><p className="text-ui-12 text-tea-text">Keep the saved evidence, but permanently stop reviewing this import?</p><div className="flex justify-between gap-3"><button autoFocus type="button" disabled={Boolean(busyId)} onClick={() => { setConfirmAbandon(false); requestAnimationFrame(() => abandonRef.current?.focus()); }} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel abandon</button><button type="button" disabled={Boolean(busyId)} onClick={() => void onAbandon()} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">Confirm abandon</button></div></div>}
       <div className="flex flex-wrap justify-between gap-2 border-t border-tea-border pt-3"><button ref={abandonRef} type="button" disabled={Boolean(busyId)} onClick={() => setConfirmAbandon(true)} aria-expanded={confirmAbandon} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Abandon import</button><div className="flex flex-wrap gap-3"><button type="button" disabled={Boolean(busyId)} onClick={onDefer} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Review later</button><button type="button" disabled={Boolean(busyId)} onClick={onNew} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">New import</button></div></div>
       <div className="sticky bottom-0 bg-tea-elevated pb-nav-gap pt-3">
-        {!model.canFinalize && <p className="mb-2 text-ui-11 text-tea-text-sec">Resolve {model.needsReviewCount ? `${model.needsReviewCount} tea ${model.needsReviewCount === 1 ? 'issue' : 'issues'}` : 'each vendor'} before adding stock.</p>}
-        <button type="button" aria-label={finalLabel} disabled={Boolean(busyId) || !model.canFinalize} onClick={() => void onFinalize()} className="tap-target min-h-11 w-full rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">{busyId === '__finalize' ? 'Adding to Inventory…' : `${finalLabel}${primaryCurrency ? ` · ${primaryCurrency.currency} ${primaryCurrency.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : ''}`}</button>
+        {model.needsReviewCount > 0 ? <div className="flex items-center justify-between gap-3"><p className="text-ui-12 text-tea-text-sec">{model.needsReviewCount} unresolved</p><button type="button" disabled={Boolean(busyId)} onClick={goToNextIssue} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:opacity-50">Next issue</button></div> : <>
+          {vendorUnresolved && <p className="mb-2 text-ui-11 text-tea-text-sec">Choose each vendor before adding stock.</p>}
+          <button type="button" aria-label={finalLabel} disabled={Boolean(busyId) || !model.canFinalize} onClick={() => void onFinalize()} className="tap-target min-h-11 w-full rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">{busyId === '__finalize' ? 'Adding to Inventory…' : `${finalLabel}${primaryCurrency ? ` · ${primaryCurrency.currency} ${primaryCurrency.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : ''}`}</button>
+        </>}
       </div>
     </div>
   );
