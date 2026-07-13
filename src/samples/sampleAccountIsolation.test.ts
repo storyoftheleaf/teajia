@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import { createEmptySample, createEmptySampleSet } from './types';
-import { useSampleStore } from './sampleStore';
-import { useSampleCartStore } from './sampleCartStore';
+import { createSampleStore, useSampleStore } from './sampleStore';
+import { createSampleCartStore, useSampleCartStore } from './sampleCartStore';
+import { createJSONStorage, type StateStorage } from 'zustand/middleware';
 
 describe('sample account isolation', () => {
   beforeEach(() => {
@@ -61,5 +63,35 @@ describe('sample account isolation', () => {
     expect(useSampleStore.getState().dataByAccount['acct-first']?.samples.map((item) => item.id)).toEqual(['legacy-sample']);
     expect(useSampleCartStore.getState().items).toEqual([]);
     expect(useSampleCartStore.getState().itemsByAccount['acct-first']?.map((item) => item.id)).toEqual(['legacy-cart']);
+  });
+
+  it('rehydrates v0 persisted sample and cart data for one-time first-account adoption', async () => {
+    const values = new Map<string, string>();
+    const storage: StateStorage = {
+      getItem: (name) => values.get(name) ?? null,
+      setItem: (name, value) => { values.set(name, value); },
+      removeItem: (name) => { values.delete(name); },
+    };
+    const legacySet = { ...createEmptySampleSet(), id: 'persisted-set', name: 'Persisted' };
+    const legacySample = { ...createEmptySample('persisted-set'), id: 'persisted-sample', name: 'Persisted portion' };
+    values.set('teajia-samples', JSON.stringify({
+      state: { samples: [legacySample], sampleSets: [legacySet] }, version: 0,
+    }));
+    values.set('teajia-sample-cart', JSON.stringify({
+      state: { items: [{ id: 'persisted-cart', name: 'Persisted cart', grams: 10 }] }, version: 0,
+    }));
+    const sampleStorage = createJSONStorage<ReturnType<typeof useSampleStore.getState>>(() => storage);
+    const cartStorage = createJSONStorage<ReturnType<typeof useSampleCartStore.getState>>(() => storage);
+    const rehydratedSamples = createSampleStore(sampleStorage);
+    const rehydratedCart = createSampleCartStore(cartStorage);
+    rehydratedSamples.getState().switchAccount('acct-first');
+    rehydratedCart.getState().switchAccount('acct-first');
+    rehydratedSamples.getState().switchAccount('acct-second');
+    rehydratedCart.getState().switchAccount('acct-second');
+
+    expect(rehydratedSamples.getState().dataByAccount['acct-first']?.samples.map((item) => item.id)).toEqual(['persisted-sample']);
+    expect(rehydratedCart.getState().itemsByAccount['acct-first']?.map((item) => item.id)).toEqual(['persisted-cart']);
+    expect(rehydratedSamples.getState().samples).toEqual([]);
+    expect(rehydratedCart.getState().items).toEqual([]);
   });
 });

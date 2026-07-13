@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { TeaCompassEntry, CompassCategory, BrowseGrouping, BrowseFilter, BrowseSort, BrowseLayout, LibraryFilters } from '../components/TeaCompass/types';
 import { createEmptyEntry, entryIsSample, normalizeCompassEntry } from '../components/TeaCompass/types';
 import type { Currency } from '../admin/types';
-import { api, hasToken } from './api';
+import { api, hasToken, isTokenScopedToAccount } from './api';
 import { useNotesStore } from './notesStore';
 import { useAppStore } from './store';
 
@@ -11,6 +11,7 @@ interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
   entries: TeaCompassEntry[];
   accountScopeId: string | null;
+  accountScopeRevision: number;
   entriesByAccount: Record<string, TeaCompassEntry[]>;
   deletedIdsByAccount: Record<string, string[]>;
   pendingPromotionsByAccount: Record<string, string[]>;
@@ -230,6 +231,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
     (set, get) => ({
       entries: [],
       accountScopeId: activeAccountScope(),
+      accountScopeRevision: 0,
       entriesByAccount: {},
       deletedIdsByAccount: {},
       pendingPromotionsByAccount: {},
@@ -294,6 +296,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           deletedIdsByAccount,
           pendingPromotionsByAccount,
           accountScopeId: accountId,
+          accountScopeRevision: state.accountScopeRevision + 1,
           draftsByAccount,
           draftAccountScopeId: accountId,
         };
@@ -356,6 +359,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
       removeEntry: (id) => {
         // Drop it from local state immediately so the UI responds at once...
         const accountId = get().accountScopeId;
+        const accountRevision = get().accountScopeRevision;
         const existed = get().entries.some((e) => e.id === id);
         set((state) => ({
           entries: state.entries.filter((e) => e.id !== id),
@@ -374,14 +378,14 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         // per-card delete look broken. Fired unconditionally for any committed
         // entry: a row that never reached D1 just no-ops the DELETE (the
         // worker's WHERE clause matches nothing), which is harmless.
-        if (existed && hasToken()) {
+        if (existed && hasToken() && isTokenScopedToAccount(accountId)) {
           // A row that never reached D1 no-ops the DELETE harmlessly (WHERE matches
           // nothing → 200). A thrown error means we genuinely couldn't reach the
           // server, so flag it: otherwise the row silently reappears on next
           // hydrate and the delete looks like it "didn't take".
           void api.compass.remove(id)
             .then(() => set((s) => {
-              if (s.accountScopeId === accountId) {
+              if (s.accountScopeId === accountId && s.accountScopeRevision === accountRevision) {
                 return { syncError: false, deletedIds: s.deletedIds.filter((d) => d !== id) };
               }
               if (!accountId) return s;
@@ -393,7 +397,10 @@ export const useTeaCompassStore = create<TeaCompassState>()(
               };
             }))
             .catch(() => {
-              if (get().accountScopeId === accountId) set({ syncError: true });
+              const current = get();
+              if (current.accountScopeId === accountId && current.accountScopeRevision === accountRevision) {
+                set({ syncError: true });
+              }
             }); // keep the tombstone — hydrate retries
         }
       },

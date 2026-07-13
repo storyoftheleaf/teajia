@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, type PersistStorage } from 'zustand/middleware';
 import type { TeaSample, SampleSet, SampleTasting, SampleStatus } from './types';
 
 interface SampleStoreState {
@@ -56,7 +56,8 @@ interface SampleStoreState {
   getSetForSample: (sampleId: string) => SampleSet | undefined;
 }
 
-export const useSampleStore = create<SampleStoreState>()(
+export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
+  return create<SampleStoreState>()(
   persist(
     (set, get) => ({
       samples: [],
@@ -242,6 +243,7 @@ export const useSampleStore = create<SampleStoreState>()(
       name: 'teajia-samples',
       version: 1,
       migrate: (persisted) => persisted,
+      ...(storage ? { storage } : {}),
       partialize: (state) => {
         const dataByAccount = { ...state.dataByAccount };
         if (state.accountScopeId) {
@@ -261,4 +263,7 @@ export const useSampleStore = create<SampleStoreState>()(
       },
     }
   )
-);
+  );
+}
+
+export const useSampleStore = createSampleStore();

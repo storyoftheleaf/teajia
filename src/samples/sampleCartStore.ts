@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, type PersistStorage } from 'zustand/middleware';
 
 export interface SampleCartItem {
   id: string;
@@ -26,7 +26,8 @@ interface SampleCartState {
   isInCart: (id: string) => boolean;
 }
 
-export const useSampleCartStore = create<SampleCartState>()(
+export function createSampleCartStore(storage?: PersistStorage<SampleCartState>) {
+  return create<SampleCartState>()(
   persist(
     (set, get) => ({
       items: [],
@@ -70,6 +71,7 @@ export const useSampleCartStore = create<SampleCartState>()(
       name: 'teajia-sample-cart',
       version: 1,
       migrate: (persisted) => persisted,
+      ...(storage ? { storage } : {}),
       partialize: (state) => {
         const itemsByAccount = { ...state.itemsByAccount };
         if (state.accountScopeId) itemsByAccount[state.accountScopeId] = state.items;
@@ -81,4 +83,7 @@ export const useSampleCartStore = create<SampleCartState>()(
       },
     }
   )
-);
+  );
+}
+
+export const useSampleCartStore = createSampleCartStore();

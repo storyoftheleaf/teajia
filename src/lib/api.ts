@@ -232,6 +232,12 @@ function getToken(): string | null {
   return localStorage.getItem('teajia_token') || sessionStorage.getItem('teajia_token');
 }
 
+export const AUTH_TOKEN_CHANGED_EVENT = 'teajia:auth-token-changed';
+
+function announceTokenChange() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(AUTH_TOKEN_CHANGED_EVENT));
+}
+
 export function setToken(token: string) {
   // Persist to localStorage so sessions survive browser restarts and deploys.
   // iOS Safari private mode / strict ITP can throw on localStorage.setItem —
@@ -245,12 +251,14 @@ export function setToken(token: string) {
     } catch { /* storage fully blocked — session cannot be persisted */ }
   }
   _invalidateClaimsCache();
+  announceTokenChange();
 }
 
 export function clearToken() {
   try { localStorage.removeItem('teajia_token'); } catch { /* ignore */ }
   try { sessionStorage.removeItem('teajia_token'); } catch { /* ignore */ }
   _invalidateClaimsCache();
+  announceTokenChange();
 }
 
 export type PendingSignup = {
@@ -834,6 +842,12 @@ export function getTokenClaims(): TokenClaims | null {
   } catch {
     return null;
   }
+}
+
+/** Remote account-scoped work is safe only after the JWT refreshed to the
+ * same account as the optimistic UI selection. */
+export function isTokenScopedToAccount(accountId: string | null): boolean {
+  return !!accountId && getTokenClaims()?.active_account_id === accountId;
 }
 
 /**

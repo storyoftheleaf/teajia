@@ -3,8 +3,10 @@ import { useNotesStore } from './notesStore';
 import {
   entryHasDeliberateInput,
   restoreCompassDraftsForAccount,
+  migrateCompassPersistedState,
   useTeaCompassStore,
 } from './teaCompassStore';
+import { useAppStore } from './store';
 import { createEmptyEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
 
 const deliberateFragments: Array<[string, Partial<TeaCompassEntry>]> = [
@@ -254,5 +256,39 @@ describe('account-scoped committed Curate entries', () => {
     expect(useTeaCompassStore.getState().entries).toEqual([]);
     expect(useTeaCompassStore.getState().entriesByAccount['acct-first']?.map((item) => item.id)).toEqual(['legacy']);
     expect(useTeaCompassStore.getState().entriesByAccount['acct-second']).toBeUndefined();
+  });
+
+  it('restores entries, tombstones, and promotions across A to B to A', () => {
+    const a = { ...createEmptyEntry('tea'), id: 'entry-a', name: 'A' };
+    const b = { ...createEmptyEntry('tea'), id: 'entry-b', name: 'B' };
+    useTeaCompassStore.getState().switchAccount('acct-a');
+    useTeaCompassStore.setState({ entries: [a], deletedIds: ['deleted-a'], pendingPromotions: ['promote-a'] });
+
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    useTeaCompassStore.setState({ entries: [b], deletedIds: ['deleted-b'], pendingPromotions: ['promote-b'] });
+
+    useTeaCompassStore.getState().switchAccount('acct-a');
+    expect(useTeaCompassStore.getState()).toMatchObject({
+      entries: [{ id: 'entry-a' }], deletedIds: ['deleted-a'], pendingPromotions: ['promote-a'],
+    });
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    expect(useTeaCompassStore.getState()).toMatchObject({
+      entries: [{ id: 'entry-b' }], deletedIds: ['deleted-b'], pendingPromotions: ['promote-b'],
+    });
+  });
+
+  it('migrates v7 committed entries, tombstones, and promotions into the active account only', () => {
+    useAppStore.setState({ activeAccountId: 'acct-active' });
+    const legacy = { ...createEmptyEntry('tea'), id: 'legacy-v7', name: 'Legacy' };
+
+    const migrated = migrateCompassPersistedState({
+      entries: [legacy], deletedIds: ['deleted-v7'], pendingPromotions: ['promote-v7'],
+      draftAccountScopeId: 'acct-old-draft',
+    }, 7) as ReturnType<typeof useTeaCompassStore.getState>;
+
+    expect(migrated.entriesByAccount).toEqual({ 'acct-active': [legacy] });
+    expect(migrated.deletedIdsByAccount).toEqual({ 'acct-active': ['deleted-v7'] });
+    expect(migrated.pendingPromotionsByAccount).toEqual({ 'acct-active': ['promote-v7'] });
+    expect(migrated.entriesByAccount['acct-old-draft']).toBeUndefined();
   });
 });

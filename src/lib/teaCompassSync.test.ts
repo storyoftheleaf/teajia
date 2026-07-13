@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { syncMock, listMock } = vi.hoisted(() => ({ syncMock: vi.fn(), listMock: vi.fn() }));
+const { syncMock, listMock, tokenAccount } = vi.hoisted(() => ({
+  syncMock: vi.fn(),
+  listMock: vi.fn(),
+  tokenAccount: { current: 'acct-a' as string | null },
+}));
 
 vi.mock('./api', () => ({
   hasToken: () => true,
+  isTokenScopedToAccount: (accountId: string) => tokenAccount.current === accountId,
   api: {
     compass: {
       sync: syncMock,
@@ -26,6 +31,7 @@ describe('Compass sync acknowledgements', () => {
   beforeEach(() => {
     syncMock.mockReset();
     listMock.mockReset();
+    tokenAccount.current = 'acct-a';
     useTeaCompassStore.setState({
       entries: [],
       entriesByAccount: {},
@@ -86,6 +92,7 @@ describe('Compass sync acknowledgements', () => {
     });
 
     useTeaCompassStore.getState().switchAccount('acct-b');
+    tokenAccount.current = 'acct-b';
     await syncCompassEntries('acct-b');
 
     const payload = syncMock.mock.calls[0]?.[0] as Array<{ id: string }>;
@@ -102,6 +109,38 @@ describe('Compass sync acknowledgements', () => {
     expect(syncMock).not.toHaveBeenCalled();
     expect(listMock).not.toHaveBeenCalled();
     expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['a-only']);
+  });
+
+  it('waits for the refreshed JWT account before starting remote work', async () => {
+    useTeaCompassStore.setState({ accountScopeId: 'acct-b', entries: [entry('b-unsynced')] });
+    tokenAccount.current = 'acct-a';
+
+    await hydrateCompassEntries('acct-b');
+    expect(await syncCompassEntries('acct-b')).toBe(0);
+    expect(listMock).not.toHaveBeenCalled();
+    expect(syncMock).not.toHaveBeenCalled();
+
+    tokenAccount.current = 'acct-b';
+    listMock.mockResolvedValue({ entries: [] });
+    syncMock.mockResolvedValue({ synced: 1, syncedIds: ['b-unsynced'] });
+    await hydrateCompassEntries('acct-b');
+    expect(await syncCompassEntries('acct-b')).toBe(1);
+    expect(listMock).toHaveBeenCalledTimes(1);
+    expect(syncMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores stale sync acknowledgements after switching accounts', async () => {
+    let resolveSync!: (value: { synced: number; syncedIds: string[] }) => void;
+    syncMock.mockReturnValue(new Promise((resolve) => { resolveSync = resolve; }));
+    useTeaCompassStore.setState({ accountScopeId: 'acct-a', entries: [entry('a-pending')] });
+
+    const pending = syncCompassEntries('acct-a');
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    useTeaCompassStore.getState().switchAccount('acct-a');
+    resolveSync({ synced: 1, syncedIds: ['a-pending'] });
+    expect(await pending).toBe(0);
+
+    expect(useTeaCompassStore.getState().entries[0]).toMatchObject({ id: 'a-pending', synced: false });
   });
 
   it('ignores a stale hydrate response after the active account changes', async () => {

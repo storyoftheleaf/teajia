@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTeaCompassStore } from '../lib/teaCompassStore';
 import { hydrateCompassEntries, syncCompassEntries, compassHasPendingWork } from '../lib/teaCompassSync';
-import { hasToken } from '../lib/api';
+import { AUTH_TOKEN_CHANGED_EVENT, hasToken, isTokenScopedToAccount } from '../lib/api';
 import { useAppStore } from '../lib/store';
 import { useSampleStore } from '../samples/sampleStore';
 import { useSampleCartStore } from '../samples/sampleCartStore';
@@ -27,6 +27,13 @@ export function useCompassSync(isAuthenticated: boolean) {
   const hasFetchedRef = useRef(false);
   const prevAuthRef = useRef(isAuthenticated);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tokenRevision, setTokenRevision] = useState(0);
+
+  useEffect(() => {
+    const handleTokenChange = () => setTokenRevision((revision) => revision + 1);
+    window.addEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+    return () => window.removeEventListener(AUTH_TOKEN_CHANGED_EVENT, handleTokenChange);
+  }, []);
 
   // Keep every local Curate surface on the same explicit account facade.
   // Null is intentional: signed-out/unknown account state must expose nothing.
@@ -42,7 +49,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     const justLoggedIn = isAuthenticated && !prevAuthRef.current;
     prevAuthRef.current = isAuthenticated;
 
-    if (!isAuthenticated || !activeAccountId) {
+    if (!isAuthenticated || !activeAccountId || !isTokenScopedToAccount(activeAccountId)) {
       hasFetchedRef.current = false;
       return;
     }
@@ -53,11 +60,11 @@ export function useCompassSync(isAuthenticated: boolean) {
         .then(() => syncCompassEntries(activeAccountId))
         .catch(() => {});
     }
-  }, [activeAccountId, isAuthenticated]);
+  }, [activeAccountId, isAuthenticated, tokenRevision]);
 
   // Debounced push of unsynced entries after entries change
   useEffect(() => {
-    if (!isAuthenticated || !activeAccountId || !hasToken()) return;
+    if (!isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
     if (!hasFetchedRef.current) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
