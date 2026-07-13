@@ -1256,6 +1256,7 @@ const AppContent = () => {
          onUpdateQuantity={handleUpdateCartQuantity}
          onAddItem={addToPublicCart}
          whatsappNumber={activeStore?.whatsapp_number}
+         contactEmail={activeStore?.contact_email}
       />
     </div>
   );

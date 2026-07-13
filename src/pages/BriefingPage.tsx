@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, Circle } from '@phosphor-icons/react';
 import { useAuth } from '../hooks/useAuth';
-import { api } from '../lib/api';
+import { api, getApiOrigin } from '../lib/api';
 import { useWalkthrough } from '../lib/walkthroughStore';
 
 /**
@@ -17,10 +17,7 @@ import { useWalkthrough } from '../lib/walkthroughStore';
  * /api/admin/feature-status. Admin-only at the route; owner-only at the tile.
  */
 
-// Prod uses api.teajia.com (workers.dev is blocked in China); dev honors the env var.
-const API = import.meta.env.PROD
-  ? 'https://api.teajia.com'
-  : (import.meta.env.VITE_API_URL || 'https://teajia-api.lightcodes.workers.dev');
+const API = getApiOrigin();
 
 type Step = {
   text: string;        // the instruction

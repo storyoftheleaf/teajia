@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
 import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
-import { buildOrderMessage, buildWhatsAppUrl } from '../../lib/whatsapp';
+import { buildOrderMessage } from '../../lib/whatsapp';
+import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
 import { useAppStore } from '../../lib/store';
 import { formatCurrency } from '../../admin/utils';
 import { useRates } from '../../admin/hooks/useAdminData';
@@ -10,8 +11,6 @@ import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
 import { api } from '../../lib/api';
-
-const TEAJIA_WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '+18313259164';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,6 +26,7 @@ export interface PublicCartProps {
    * default. Used by per-store storefronts under /store/:slug.
    */
   whatsappNumber?: string;
+  contactEmail?: string;
   onClose?: () => void;
 }
 
@@ -40,8 +40,7 @@ const STEPS = [
   { key: 'CONFIRM' as const, label: 'Review' },
 ];
 
-export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, onClose }) => {
-  const effectiveWhatsAppNumber = whatsappNumber && whatsappNumber.trim() ? whatsappNumber : TEAJIA_WHATSAPP_NUMBER;
+export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUpdateQuantity, onAddItem, isOpen, whatsappNumber, contactEmail, onClose }) => {
   const [step, setStep] = useState<CheckoutStep>('CART');
   const [details, setDetails] = useState({ name: '', contact: '', location: '', notes: '' });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -164,6 +163,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     subtotal: fmtShopPrice(subtotal),
     total: fmtShopPrice(subtotal),
   }), [cart, details, subtotal, orderRef]);
+  const contactChannels = useMemo(() => resolveContactChannels({ whatsappNumber, email: contactEmail, subject: `Tea Order - ${details.name}`, message: orderMessage }), [whatsappNumber, contactEmail, details.name, orderMessage]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
 
@@ -209,20 +209,19 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     // Validate the resolved phone before opening WhatsApp. buildWhatsAppUrl
     // silently falls back to a recipient-less wa.me link when digits < 7,
     // which sends nothing — surface a clear error and offer email instead.
-    const digits = String(effectiveWhatsAppNumber || '').replace(/\D/g, '');
-    if (digits.length < 7) {
+    if (!contactChannels.whatsapp) {
       setCheckoutError("This store doesn't have WhatsApp ordering set up. Please use Email or Copy text below to send your order.");
       return;
     }
     setCheckoutError(null);
-    window.open(buildWhatsAppUrl(String(effectiveWhatsAppNumber), orderMessage));
+    window.open(contactChannels.whatsapp.href);
     showSuccess('whatsapp');
     persistInquiry('whatsapp');
   };
 
   const handleEmail = () => {
-    const subject = `Tea Order - ${details.name}`;
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(orderMessage)}`);
+    if (!contactChannels.email) { setCheckoutError(CONTACT_UNAVAILABLE); return; }
+    window.open(contactChannels.email.href);
     showSuccess('email');
     persistInquiry('email');
   };
@@ -590,7 +589,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
 
               {/* Send actions — WhatsApp is the intentional primary channel; alternatives step down to text links */}
               <div className="flex flex-col gap-3">
-                <Button
+                {contactChannels.whatsapp && <Button
                   onClick={handleWhatsApp}
                   variant="primary"
                   fullWidth
@@ -598,15 +597,15 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   className="py-4 uppercase tracking-[0.2em] text-xs rounded-none"
                 >
                   Send via WhatsApp
-                </Button>
+                </Button>}
                 <div className="flex items-center justify-center gap-6 pt-1">
-                  <button
+                  {contactChannels.email && <button
                     onClick={handleEmail}
                     className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
                   >
                     Email
-                  </button>
-                  <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />
+                  </button>}
+                  {(contactChannels.whatsapp || contactChannels.email) && <span className="block w-px h-3 bg-tea-border" aria-hidden="true" />}
                   <button
                     onClick={handleCopy}
                     className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec hover:text-tea-text underline underline-offset-[6px] decoration-tea-border hover:decoration-tea-gold transition-colors min-h-[44px]"
@@ -614,6 +613,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                     Copy text
                   </button>
                 </div>
+                {contactChannels.unavailable && <p className="text-center text-sm text-tea-text-sec">{CONTACT_UNAVAILABLE}</p>}
               </div>
 
               <p className="text-center text-xs text-tea-text-sec italic">

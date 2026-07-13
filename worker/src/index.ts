@@ -13891,7 +13891,7 @@ const handleGetNetworkStores: Handler = async (_request, env) => {
 const handleGetPublicAccount: Handler = async (_request, env, params) => {
   const acc = await env.DB.prepare(
     `SELECT id, slug, name, tagline, description, logo_url, cover_image_url,
-            location_city, location_country, whatsapp_number, currency_default
+            location_city, location_country, whatsapp_number, contact_email, currency_default
      FROM accounts
      WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
   ).bind(params.slug).first();

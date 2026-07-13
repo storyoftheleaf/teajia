@@ -195,9 +195,14 @@ import { useAppStore } from './store';
 // ride the one hostname that stays reachable in China. Using the live origin
 // (rather than a bare '') keeps API_URL truthy so the "Continue with Google"
 // surfaces still render. Dev honors VITE_API_URL to target a local/workers.dev API.
-export const API_URL = import.meta.env.PROD
-  ? (typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com')
-  : (import.meta.env.VITE_API_URL || '');
+export function getApiOrigin(): string {
+  if (import.meta.env.PROD) {
+    return typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com';
+  }
+  return (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+}
+
+export const API_URL = getApiOrigin();
 const REQUEST_TIMEOUT_MS = 30_000;
 
 // Public base URL for share links (collection links sent to recipients). These

@@ -3,9 +3,9 @@ import { relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RULES = [
-  { kind: 'blocked-media', re: /https:\/\/(?:images\.unsplash\.com|source\.unsplash\.com|picsum\.photos)\b/g },
-  { kind: 'browser-api-origin', re: /https:\/\/teajia-api\.lightcodes\.workers\.dev\b/g },
-  { kind: 'google-font-runtime', re: /https:\/\/fonts\.(?:googleapis|gstatic)\.com\b/g },
+  { kind: 'blocked-media', re: /(?:https?:)?\/\/(?:images\.unsplash\.com|source\.unsplash\.com|picsum\.photos)\b/g },
+  { kind: 'browser-api-origin', re: /(?:https?:)?\/\/(?:teajia-api\.lightcodes\.workers\.dev|api\.teajia\.com)\b/g },
+  { kind: 'google-font-runtime', re: /(?:https?:)?\/\/fonts\.(?:googleapis|gstatic)\.com\b/g },
 ];
 const ROOTS = ['src', 'public', 'functions', 'dist'];
 const BINARY_EXTENSIONS = /\.(?:png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|pdf|zip|gz|mp[34]|mov)$/i;
@@ -41,7 +41,7 @@ export async function scanChinaDependencies(root) {
           const edgeOrigin = displayFile.startsWith('functions/') && rule.kind === 'browser-api-origin';
           const finding = { file: displayFile, line, kind: edgeOrigin ? 'edge-origin' : rule.kind, value: match[0] };
           inventory.push(finding);
-          if (!edgeOrigin) violations.push(finding);
+          if (!edgeOrigin || rule.kind === 'browser-api-origin') violations.push(finding);
         }
       }
     }
