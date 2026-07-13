@@ -23,7 +23,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       location: 'Hangzhou, China',
       interests: ['Oolong', 'Gongfu Tea', 'Ceramics'],
       expertise: 'Advanced',
-      avatar: 'https://picsum.photos/200/200?random=201'
     },
     {
       id: 'member-2',
@@ -31,7 +30,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       location: 'Seoul, South Korea',
       interests: ['Korean Green Tea', 'Meditation', 'Community'],
       expertise: 'Intermediate',
-      avatar: 'https://picsum.photos/200/200?random=202'
     },
     {
       id: 'member-3',
@@ -39,7 +37,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       location: 'São Paulo, Brazil',
       interests: ['Tea Tastings', 'Mindfulness', 'Brewing'],
       expertise: 'Beginner',
-      avatar: 'https://picsum.photos/200/200?random=203'
     },
     {
       id: 'member-4',
@@ -47,7 +44,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       location: 'Kyoto, Japan',
       interests: ['Matcha', 'Tea Ceremony', 'Pottery'],
       expertise: 'Advanced',
-      avatar: 'https://picsum.photos/200/200?random=204'
     },
     {
       id: 'member-5',
@@ -55,7 +51,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       location: 'London, United Kingdom',
       interests: ['Black Tea', 'Tea Blending', 'Writing'],
       expertise: 'Intermediate',
-      avatar: 'https://picsum.photos/200/200?random=205'
     },
     {
       id: 'member-6',
@@ -63,7 +58,6 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
       location: 'Chaoshan, China',
       interests: ['Puerh Tea', 'Tea Trading', 'History'],
       expertise: 'Advanced',
-      avatar: 'https://picsum.photos/200/200?random=206'
     },
   ];
 
@@ -196,11 +190,12 @@ export const ResourcesPage: React.FC<ResourcesPageProps> = ({ resources }) => {
                   <div className="p-6 flex flex-col h-full">
                     {/* Avatar */}
                     <div className="flex justify-center mb-4">
-                      <img
-                        src={member.avatar}
-                        alt={member.name}
-                        className="w-20 h-20 rounded-full object-cover border-2 border-tea-border"
-                      />
+                      <div
+                        className="w-20 h-20 rounded-full border border-tea-border bg-tea-accent-sub flex items-center justify-center text-ui-20 text-tea-text-sec"
+                        aria-label={member.name}
+                      >
+                        {member.name.split(/\s+/).map((part: string) => part[0]).join('').slice(0, 2)}
+                      </div>
                     </div>
 
                     {/* Name & Location */}

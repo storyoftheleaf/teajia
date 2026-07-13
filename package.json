@@ -12,6 +12,8 @@
     "audit": "node scripts/audit.mjs",
     "intake:findings": "node scripts/intake-findings.mjs",
     "test:worker": "vitest run worker/tests",
+    "test:china-scan": "node --test scripts/check-china-dependencies.test.mjs",
+    "audit:china": "node scripts/check-china-dependencies.mjs .",
     "test:mobile": "npx playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list"
   },
   "dependencies": {
