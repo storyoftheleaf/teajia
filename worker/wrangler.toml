@@ -93,3 +93,15 @@ name = "RSVP_LIMITER"
 type = "ratelimit"
 namespace_id = "1006"
 simple = { limit = 10, period = 60 }
+
+[[unsafe.bindings]]
+name = "OAUTH_REGISTER_LIMITER"
+type = "ratelimit"
+namespace_id = "1007"
+simple = { limit = 10, period = 60 }
+
+[[unsafe.bindings]]
+name = "OAUTH_AUTHORIZE_LIMITER"
+type = "ratelimit"
+namespace_id = "1008"
+simple = { limit = 30, period = 60 }

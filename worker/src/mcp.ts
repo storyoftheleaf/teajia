@@ -29,9 +29,13 @@
 type Env = {
   DB: D1Database;
   JWT_SECRET: string;
+  OAUTH_REGISTER_LIMITER?: RateLimiterBinding;
+  OAUTH_AUTHORIZE_LIMITER?: RateLimiterBinding;
   // The wider Env interface in index.ts has many more fields — only the ones
   // the MCP server actually reads are listed here so this module is portable.
 };
+
+type RateLimiterBinding = { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
 
 // ── small JSON helpers (mirroring index.ts so we don't import its 16k lines) ──
 function json(data: unknown, status = 200): Response {
@@ -3694,6 +3698,17 @@ function corsJson(data: unknown, status = 200): Response {
   });
 }
 
+async function enforceOAuthLimit(binding: RateLimiterBinding | undefined, request: Request): Promise<Response | null> {
+  if (!binding) return null;
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  try {
+    const result = await binding.limit({ key: ip });
+    return result.success ? null : corsJson({ error: 'slow_down', error_description: 'Too many requests' }, 429);
+  } catch {
+    return corsJson({ error: 'temporarily_unavailable', error_description: 'Rate limit service unavailable' }, 503);
+  }
+}
+
 // Allowlist of redirect_uri targets we will 302 to with an OAuth `code=`.
 // Dynamic client registration (RFC 7591) lets ANY caller register a client,
 // so validating the requested redirect_uri only against the client's own
@@ -3788,19 +3803,37 @@ export function oauthAuthorizationServerMetadata(request: Request): Response {
 // use a known, bounded set of schemes/hosts (claude://oauth,
 // https://claude.ai/..., etc.), so this does not break legitimate clients.
 export async function oauthRegister(request: Request, env: Env): Promise<Response> {
-  if (request.method !== 'POST') return corsJson({ error: 'Method not allowed' }, 405);
+  if (request.method !== 'POST') return corsJson({ error: 'invalid_request', error_description: 'POST required' }, 405);
+  const limited = await enforceOAuthLimit(env.OAUTH_REGISTER_LIMITER, request);
+  if (limited) return limited;
+
+  const declaredLength = Number(request.headers.get('content-length') || 0);
+  if (declaredLength > 16_384) return corsJson({ error: 'invalid_client_metadata', error_description: 'Registration metadata too large' }, 400);
 
   let body: any;
   try {
-    body = await request.json();
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).byteLength > 16_384) {
+      return corsJson({ error: 'invalid_client_metadata', error_description: 'Registration metadata too large' }, 400);
+    }
+    body = JSON.parse(raw);
   } catch {
     return corsJson({ error: 'invalid_request', error_description: 'Body must be JSON' }, 400);
   }
 
-  const clientName = String(body?.client_name || 'Unknown Client').slice(0, 120);
-  const redirectUris = Array.isArray(body?.redirect_uris) ? body.redirect_uris.filter((u: any) => typeof u === 'string') : [];
-  if (redirectUris.length === 0) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Registration metadata must be an object' }, 400);
+  }
+  const clientName = body.client_name === undefined ? 'Unknown Client' : body.client_name;
+  if (typeof clientName !== 'string' || clientName.length < 1 || clientName.length > 120) {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'client_name must be 1-120 characters' }, 400);
+  }
+  const redirectUris = body.redirect_uris;
+  if (!Array.isArray(redirectUris) || redirectUris.length === 0 || redirectUris.length > 10 || redirectUris.some((u: unknown) => typeof u !== 'string' || u.length > 2048)) {
     return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uris required' }, 400);
+  }
+  if (new Set(redirectUris).size !== redirectUris.length) {
+    return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uris must be unique' }, 400);
   }
   // Reject the whole registration if ANY redirect_uri is off-allowlist — we
   // won't store a client we'd later refuse to redirect to anyway.
@@ -3811,14 +3844,33 @@ export async function oauthRegister(request: Request, env: Env): Promise<Respons
       error_description: `redirect_uri not permitted: ${disallowed}`,
     }, 400);
   }
-  const grantTypes = Array.isArray(body?.grant_types) ? body.grant_types : ['authorization_code'];
-  const responseTypes = Array.isArray(body?.response_types) ? body.response_types : ['code'];
+  const grantTypes = body.grant_types === undefined ? ['authorization_code'] : body.grant_types;
+  const responseTypes = body.response_types === undefined ? ['code'] : body.response_types;
+  if (!Array.isArray(grantTypes) || grantTypes.length !== 1 || grantTypes[0] !== 'authorization_code') {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Only authorization_code is supported' }, 400);
+  }
+  if (!Array.isArray(responseTypes) || responseTypes.length !== 1 || responseTypes[0] !== 'code') {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Only code response type is supported' }, 400);
+  }
+  if (body.token_endpoint_auth_method !== undefined && body.token_endpoint_auth_method !== 'none') {
+    return corsJson({ error: 'invalid_client_metadata', error_description: 'Only public PKCE clients are supported' }, 400);
+  }
 
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO oauth_clients (id, client_name, redirect_uris, grant_types, response_types)
-     VALUES (?, ?, ?, ?, ?)`
-  ).bind(id, clientName, JSON.stringify(redirectUris), JSON.stringify(grantTypes), JSON.stringify(responseTypes)).run();
+  const redirectsJson = JSON.stringify(redirectUris);
+  const grantsJson = JSON.stringify(grantTypes);
+  const responsesJson = JSON.stringify(responseTypes);
+  const existing = await env.DB.prepare(
+    `SELECT id FROM oauth_clients
+     WHERE client_name = ? AND redirect_uris = ? AND grant_types = ? AND response_types = ? LIMIT 1`
+  ).bind(clientName, redirectsJson, grantsJson, responsesJson).first() as { id: string } | null;
+
+  const id = existing?.id || crypto.randomUUID();
+  if (!existing) {
+    await env.DB.prepare(
+      `INSERT INTO oauth_clients (id, client_name, redirect_uris, grant_types, response_types)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(id, clientName, redirectsJson, grantsJson, responsesJson).run();
+  }
 
   // Per RFC 7591 section 3.2.1
   return corsJson({
@@ -3856,28 +3908,67 @@ const FRONTEND_ORIGIN = 'https://teajia.com';
 const AUTHORIZE_REQUEST_TTL_MS = 15 * 60 * 1000;
 
 export async function oauthAuthorize(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'GET') return corsJson({ error: 'invalid_request', error_description: 'GET required' }, 405);
+  const limited = await enforceOAuthLimit(env.OAUTH_AUTHORIZE_LIMITER, request);
+  if (limited) return limited;
   const url = new URL(request.url);
   const q = url.searchParams;
   const now = Date.now();
+
+  const clientId = q.get('client_id') || '';
+  const redirectUri = q.get('redirect_uri') || '';
+  const responseType = q.get('response_type') || '';
+  const codeChallenge = q.get('code_challenge') || '';
+  const challengeMethod = q.get('code_challenge_method') || '';
+  const state = q.get('state');
+  const scope = q.get('scope');
+  if (!clientId || clientId.length > 128 || redirectUri.length > 2048 || responseType !== 'code'
+    || !/^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge) || challengeMethod !== 'S256'
+    || (state !== null && state.length > 512) || (scope !== null && scope !== '' && scope !== 'mcp')) {
+    return corsJson({ error: 'invalid_request', error_description: 'Invalid authorization request' }, 400);
+  }
+  const client = await env.DB.prepare('SELECT redirect_uris, grant_types, response_types FROM oauth_clients WHERE id = ?')
+    .bind(clientId).first() as { redirect_uris: string; grant_types: string; response_types: string } | null;
+  if (!client) return corsJson({ error: 'invalid_request', error_description: 'Unknown client_id' }, 400);
+  let registered: string[] = [];
+  let registeredGrants: string[] = [];
+  let registeredResponses: string[] = [];
+  try {
+    registered = JSON.parse(client.redirect_uris);
+    registeredGrants = JSON.parse(client.grant_types);
+    registeredResponses = JSON.parse(client.response_types);
+  } catch { /* invalid stored client */ }
+  if (!registeredGrants.includes('authorization_code') || !registeredResponses.includes('code')) {
+    return corsJson({ error: 'unauthorized_client', error_description: 'Client is not registered for authorization code flow' }, 400);
+  }
+  if (!registered.includes(redirectUri) || !isAllowedRedirectUri(redirectUri)) {
+    return corsJson({ error: 'invalid_redirect_uri', error_description: 'redirect_uri not registered' }, 400);
+  }
 
   // Opportunistic cleanup of expired pending requests.
   env.DB.prepare('DELETE FROM oauth_authorize_requests WHERE expires_at < ?')
     .bind(now).run().catch(() => {});
 
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
+  const existing = await env.DB.prepare(
+    `SELECT id FROM oauth_authorize_requests
+     WHERE client_id = ? AND redirect_uri = ? AND response_type = ? AND code_challenge = ?
+       AND code_challenge_method = ? AND COALESCE(state, '') = ? AND COALESCE(scope, '') = ? AND expires_at >= ?
+     LIMIT 1`
+  ).bind(clientId, redirectUri, responseType, codeChallenge, challengeMethod, state || '', scope || '', now).first() as { id: string } | null;
+  const id = existing?.id || crypto.randomUUID();
+  if (!existing) await env.DB.prepare(
     `INSERT INTO oauth_authorize_requests
        (id, client_id, redirect_uri, response_type, code_challenge, code_challenge_method, state, scope, expires_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
-    q.get('client_id') || '',
-    q.get('redirect_uri') || '',
-    q.get('response_type') || 'code',
-    q.get('code_challenge') || '',
-    q.get('code_challenge_method') || '',
-    q.get('state'),
-    q.get('scope'),
+    clientId,
+    redirectUri,
+    responseType,
+    codeChallenge,
+    challengeMethod,
+    state,
+    scope,
     now + AUTHORIZE_REQUEST_TTL_MS,
   ).run();
 
