@@ -19,6 +19,8 @@ const quantity = (item: CurateImportDetail['items'][number]) => item.total_quant
   ? `${item.total_quantity_grams >= 1000 ? `${Number((item.total_quantity_grams / 1000).toFixed(2))}kg` : `${item.total_quantity_grams}g`}`
   : item.total_units ? `${item.total_units} ${item.total_units === 1 ? 'unit' : 'units'}` : 'Quantity recorded';
 
+const connectedLabel = (count: number, singular: string, plural: string) => `${count} ${count === 1 ? singular : plural} connected`;
+
 export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClose, onNew }) => {
   const sourceById = new Map(detail.items.map(item => [item.id, item]));
   const rows = result.items.flatMap(finalized => {
@@ -38,9 +40,9 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2" aria-label="Created records">
-        <div className="rounded-md border border-tea-border bg-tea-surface p-3"><strong className="block text-ui-20 font-medium text-tea-text">{rows.length}</strong><span className="text-ui-11 text-tea-text-sec">{rows.length} Library identities</span></div>
-        <div className="rounded-md border border-tea-border bg-tea-surface p-3"><strong className="block text-ui-20 font-medium text-tea-text">{rows.length}</strong><span className="text-ui-11 text-tea-text-sec">{rows.length} Inventory holdings</span></div>
+      <div className="grid grid-cols-2 gap-2" aria-label="Connected records">
+        <div className="rounded-md border border-tea-border bg-tea-surface p-3"><strong className="block text-ui-20 font-medium text-tea-text">{rows.length}</strong><span className="text-ui-11 text-tea-text-sec">{connectedLabel(rows.length, 'Library identity', 'Library identities')}</span></div>
+        <div className="rounded-md border border-tea-border bg-tea-surface p-3"><strong className="block text-ui-20 font-medium text-tea-text">{rows.length}</strong><span className="text-ui-11 text-tea-text-sec">{connectedLabel(rows.length, 'Inventory holding', 'Inventory holdings')}</span></div>
       </div>
 
       <div className="space-y-2">

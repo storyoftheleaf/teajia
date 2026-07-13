@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type Route } from '@playwright/test';
 import { expectNoUnhandledCompassApi, installCompassHarness, openCompass } from './helpers/compassHarness';
 
 type ImportItem = {
@@ -349,7 +349,11 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Paste a list or invoice text').fill('Clay pot — 2 units');
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Add 1 teaware item to Inventory' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Add 1 teaware item to Inventory' }).click();
+    const completion = page.getByRole('region', { name: 'Import complete' });
+    await expect(completion.getByLabel('Connected records')).toBeVisible();
+    await expect(completion.getByText('1 Library identity connected')).toBeVisible();
+    await expect(completion.getByText('1 Inventory holding connected')).toBeVisible();
   });
 
   test('shows every incomplete batch and clears account A import state immediately on account switch', async ({ page }) => {
@@ -698,8 +702,9 @@ test.describe('analyzed inventory import review', () => {
     await expect.poll(api.finalizeCalls).toBe(1);
     const completion = dialog.getByRole('region', { name: 'Import complete' });
     await expect(completion).toBeVisible();
-    await expect(completion.getByText('10 Library identities')).toBeVisible();
-    await expect(completion.getByText('10 Inventory holdings')).toBeVisible();
+    await expect(completion.getByLabel('Connected records')).toBeVisible();
+    await expect(completion.getByText('10 Library identities connected')).toBeVisible();
+    await expect(completion.getByText('10 Inventory holdings connected')).toBeVisible();
     await expect(completion.getByRole('link', { name: /Open Inventory holding/ })).toHaveCount(10);
     await expect(completion.getByText(/2 vendor receipts/)).toBeVisible();
     await expect(completion.getByText('Library identity reused · Inventory holding reused')).toBeVisible();
@@ -708,6 +713,42 @@ test.describe('analyzed inventory import review', () => {
     await expect(completion.getByRole('link', { name: /Lin Family High Mountain Tea Workshop.*receipt/ })).toHaveAttribute('href', '/admin/stock?receipt=receipt-lin');
     await expect(completion.getByRole('link', { name: /Open Library identity/ }).first()).toHaveAttribute('href', /\/admin\/compass\?tab=library&entry=/);
     await expect(page).toHaveURL(/\/admin\/compass/);
+    await completion.getByRole('button', { name: 'Close summary' }).click();
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByLabel('Paste a list or invoice text')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row')).toHaveCount(0);
+  });
+
+  test('preserves active edits when vendor, identity, and holding lookups resolve late', async ({ page }) => {
+    const gates = new Map<string, { promise: Promise<void>; release: () => void }>();
+    for (const key of ['vendor', 'identity', 'holding']) {
+      let release!: () => void;
+      gates.set(key, { promise: new Promise<void>(resolve => { release = resolve; }), release: () => release() });
+    }
+    const lookupResponses = new Map<string, number>();
+    const delayed = (key: string, body: unknown) => async (route: Route) => {
+      await gates.get(key)!.promise;
+      lookupResponses.set(key, (lookupResponses.get(key) ?? 0) + 1);
+      return route.fulfill({ json: body });
+    };
+    await installAnalyzedImportApi(page);
+    await page.route('**/api/customers', delayed('vendor', [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }]));
+    await page.route('**/api/compass/entries', delayed('identity', { entries: [{ id: 'identity-yunnan', name: 'Yunnan Tea', category: 'tea' }] }));
+    await page.route('**/api/products', delayed('holding', [{ id: 'holding-yunnan', given_name: 'Yunnan holding', type: 'tea', source_compass_entry_id: 'identity-yunnan', inventory_purpose: 'working' }]));
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
+    await row.getByRole('button', { name: 'Edit tea' }).click();
+    await row.getByRole('button', { name: 'All details' }).click();
+    const name = row.getByLabel('English inventory name');
+    await name.fill('Typed while matching');
+
+    for (const key of ['vendor', 'identity', 'holding']) {
+      gates.get(key)!.release();
+      await expect.poll(() => lookupResponses.get(key) ?? 0).toBeGreaterThanOrEqual(1);
+      await expect(name).toHaveValue('Typed while matching');
+    }
+    await expect(row.getByRole('button', { name: 'Close editing' })).toBeVisible();
   });
 
   test('promotes naming blockers and referenced image or PDF evidence before all details', async ({ page }) => {

@@ -72,6 +72,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const [operationError, setOperationError] = useState<string | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const [completion, setCompletion] = useState<CurateImportFinalizeResult | null>(null);
+  const normalizedDetail = useMemo(() => state.detail ? normalizeImportDetail(state.detail) : null, [state.detail]);
   const retryAction = useRef<null | (() => Promise<void>)>(null);
   const createIdempotencyKey = useRef(crypto.randomUUID());
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -338,9 +339,9 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
             <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p>{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button>}</div>
           </div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
-          {state.phase === 'review' && state.detail && (completion
-            ? <ImportCompletionSummary detail={normalizeImportDetail(state.detail)} result={completion} onClose={onClose} onNew={onNew} />
-            : <ImportBatchReview detail={normalizeImportDetail(state.detail)} journeyLookup={journeyLookup} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryJourneys={loadJourneys} onRetryVendors={loadVendors} onRetryIdentities={loadIdentities} onRetryHoldings={loadHoldings} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />)}
+          {state.phase === 'review' && normalizedDetail && (completion
+            ? <ImportCompletionSummary detail={normalizedDetail} result={completion} onClose={onClose} onNew={onNew} />
+            : <ImportBatchReview detail={normalizedDetail} journeyLookup={journeyLookup} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryJourneys={loadJourneys} onRetryVendors={loadVendors} onRetryIdentities={loadIdentities} onRetryHoldings={loadHoldings} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />)}
         </div>
       </div>
     </div>

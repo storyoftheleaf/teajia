@@ -235,9 +235,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (importAccountId !== activeAccountId) return;
     if (importDetail?.batch.review_state === 'completed' || importDetail?.batch.review_state === 'abandoned') {
       setImportDetails(current => current.filter(detail => detail.batch.id !== importDetail.batch.id));
+      if (importPointerId === importDetail.batch.id) setImportPointerId(null);
+      setImportDetail(null);
+      if (activeAccountId) localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
       return;
     }
-    const imports = incompleteImports?.imports ?? [];
+    const imports = (incompleteImports?.imports ?? []).filter(detail => detail.batch.review_state !== 'completed' && detail.batch.review_state !== 'abandoned');
     const selected = importPointerId && pointedImport && pointedImport.batch.review_state !== 'completed' && pointedImport.batch.review_state !== 'abandoned' ? pointedImport : imports[0] ?? null;
     setImportDetails(selected && !imports.some(detail => detail.batch.id === selected.batch.id) ? [selected, ...imports] : imports);
     if (!importDetail) setImportDetail(selected);
@@ -381,9 +384,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     window.requestAnimationFrame(() => importTriggerRef.current?.focus());
   }, []);
 
-  const handleFinalizedImport = useCallback(async (_result: CurateImportFinalizeResult) => {
+  const handleFinalizedImport = useCallback(async (result: CurateImportFinalizeResult) => {
+    const finalizedId = result.batch?.id ?? result.batchId ?? importDetail?.batch.id ?? null;
     localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
-    setImportDetails(current => importDetail ? current.filter(detail => detail.batch.id !== importDetail.batch.id) : current);
+    if (finalizedId) {
+      queryClient.setQueryData<{ imports: CurateImportDetail[] }>(['curate-imports', 'incomplete', activeAccountId], current => current
+        ? { ...current, imports: current.imports.filter(detail => detail.batch.id !== finalizedId) }
+        : current);
+    }
+    setImportDetails(current => finalizedId ? current.filter(detail => detail.batch.id !== finalizedId) : current);
+    setImportDetail(null);
+    setImportPointerId(null);
     await queryClient.invalidateQueries({ queryKey: ['curate-imports'] });
   }, [activeAccountId, importDetail, queryClient]);
 
