@@ -10,6 +10,7 @@ import { TeawareCatalog } from '../TeawareCatalog';
 import { SectionSkeleton } from '../shared/SectionSkeleton';
 import { Icons } from '../Icons';
 import { api } from '../../lib/api';
+import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
 
 interface StorefrontProps {
   onAddToCart: (item: InventoryItem, qty: number, total: number) => void;
@@ -556,9 +557,12 @@ const StorefrontAboutSection: React.FC<{ store: Account }> = ({ store }) => {
 
 const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
   const location = [store.location_city, store.location_country].filter(Boolean).join(', ');
-  const waHref = store.whatsapp_number
-    ? `https://wa.me/${store.whatsapp_number.replace(/[^\d]/g, '')}`
-    : null;
+  const contact = resolveContactChannels({
+    whatsappNumber: store.whatsapp_number,
+    email: store.contact_email,
+    subject: `Inquiry for ${store.name}`,
+    message: `Hello ${store.name}, I'd like to ask about your tea.`
+  });
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6 text-center">
@@ -569,11 +573,11 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
         </div>
       )}
 
-      {waHref && (
+      {contact.whatsapp && (
         <div>
           <p className="label-caps text-tea-text-dim mb-1">WhatsApp</p>
           <a
-            href={waHref}
+            href={contact.whatsapp.href}
             target="_blank"
             rel="noopener noreferrer"
             className="link-text hover:text-tea-text transition-colors"
@@ -583,11 +587,11 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
         </div>
       )}
 
-      {store.contact_email && (
+      {contact.email && store.contact_email && (
         <div>
           <p className="label-caps text-tea-text-dim mb-1">Email</p>
           <a
-            href={`mailto:${store.contact_email}`}
+            href={contact.email.href}
             className="link-text hover:text-tea-text transition-colors"
           >
             {store.contact_email}
@@ -595,8 +599,8 @@ const StorefrontContactSection: React.FC<{ store: Account }> = ({ store }) => {
         </div>
       )}
 
-      {!waHref && !store.contact_email && !location && (
-        <p className="body-light italic">No contact details yet.</p>
+      {contact.unavailable && (
+        <p className="body-light italic">{CONTACT_UNAVAILABLE}</p>
       )}
     </div>
   );

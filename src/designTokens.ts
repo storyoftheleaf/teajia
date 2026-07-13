@@ -51,19 +51,6 @@ export const FONT_STACKS = {
   chineseCalligraphy: ['Ma Shan Zheng', 'cursive'],
 } as const;
 
-/**
- * Google Fonts import URL (for index.html <link>):
- *
- * Cormorant Garamond:          400, 500, 600 (normal + italic 400, 500)
- * Lora:              400, 500, 600, 700 (normal + italic 400, 500)
- * Plus Jakarta Sans: 300, 400, 500, 600
- * IBM Plex Mono:     400, 500
- * Noto Serif SC:     200, 400, 700
- * Ma Shan Zheng:     400
- *
- * https://fonts.googleapis.com/css2?family=Cormorant Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+SC:wght@200;400;700&family=Ma+Shan+Zheng&display=swap
- */
-
 export const TYPE_SCALE = {
   /** Page titles, hero headings — Cormorant Garamond 400 (300 hairline strokes broke up in sunlight) */
   display: {

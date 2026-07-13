@@ -24,13 +24,42 @@ async function filesBelow(directory) {
   return files;
 }
 
+async function documentationChunks(root) {
+  try {
+    const manifest = JSON.parse(await readFile(resolve(root, 'dist/.vite/manifest.json'), 'utf8'));
+    return new Set(Object.values(manifest)
+      .filter(entry => typeof entry?.src === 'string' && (entry.src.startsWith('docs/') || entry.src.includes('/docs/')))
+      .map(entry => `dist/${entry.file}`));
+  } catch { return new Set(); }
+}
+
+export async function verifyBuiltReachabilityPolicy(root) {
+  const issues = [];
+  let headers = '';
+  let serviceWorker = '';
+  try { headers = await readFile(resolve(root, 'dist/_headers'), 'utf8'); } catch { return issues; }
+  try { serviceWorker = await readFile(resolve(root, 'dist/sw.js'), 'utf8'); } catch { issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'missing service worker' }); return issues; }
+  if (/teajia-api\.lightcodes\.workers\.dev|api\.teajia\.com/.test(headers)) issues.push({ file: 'dist/_headers', line: 1, kind: 'built-policy', value: 'blocked API origin in CSP' });
+  const apiGetOnly = /startsWith\(["']\/api\/["']\)[\s\S]{0,500}["']GET["']/.test(serviceWorker);
+  const ownedMedia = /startsWith\(["']\/media\/["']\)/.test(serviceWorker);
+  if (!apiGetOnly || !ownedMedia) issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'missing same-origin GET-only API/media policy' });
+  if (/fonts\.(?:googleapis|gstatic)/.test(serviceWorker)) issues.push({ file: 'dist/sw.js', line: 1, kind: 'built-policy', value: 'Google Fonts runtime cache' });
+  for (const route of ['/api/verify/request', '/api/verify/confirm']) {
+    const block = headers.match(new RegExp(`${route.replace(/\//g, '\\/')}[\\s\\S]*?(?=\\n\\S|$)`))?.[0] || '';
+    if (!/Cache-Control:\s*no-store/i.test(block)) issues.push({ file: 'dist/_headers', line: 1, kind: 'built-policy', value: `${route} is cacheable` });
+  }
+  return issues;
+}
+
 export async function scanChinaDependencies(root) {
   const absoluteRoot = resolve(root);
+  const docChunks = await documentationChunks(absoluteRoot);
   const violations = [];
   const inventory = [];
   for (const scanRoot of ROOTS) {
     for (const file of await filesBelow(resolve(absoluteRoot, scanRoot))) {
       const displayFile = relative(absoluteRoot, file).split(sep).join('/');
+      if (docChunks.has(displayFile)) continue;
       if (TEST_FILE.test(displayFile) || file.endsWith('.map') || BINARY_EXTENSIONS.test(file)) continue;
       let content;
       try { content = await readFile(file, 'utf8'); } catch { continue; }
@@ -46,6 +75,9 @@ export async function scanChinaDependencies(root) {
       }
     }
   }
+  const builtPolicy = await verifyBuiltReachabilityPolicy(absoluteRoot);
+  violations.push(...builtPolicy);
+  inventory.push(...builtPolicy);
   return { violations, inventory };
 }
 
