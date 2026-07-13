@@ -925,6 +925,14 @@ function buildProductMirrorStmts(
     profileCols.push(`${profileCol} = ?`);
     profileVals.push(body[bodyKey] ?? null);
   }
+  if (body.status !== undefined) {
+    profileCols.push('status = ?');
+    profileVals.push(body.status === 'Archived' ? 'archived' : body.status === 'Draft' ? 'draft' : 'published');
+  }
+  if (body.is_public !== undefined) {
+    profileCols.push('network_visible = ?');
+    profileVals.push(body.is_public ? 1 : 0);
+  }
   if (profileCols.length > 0) {
     profileCols.push("updated_at = datetime('now')");
     stmts.push(
@@ -934,7 +942,8 @@ function buildProductMirrorStmts(
   }
 
   // Listing mirror — inventory + per-account fields. Listing status mirrors
-  // products.status: legacy 'Archived' → listing 'archived', anything else stays 'active'.
+  // products.status: preserve Draft as non-active until Publish capability
+  // explicitly promotes it. Archived remains the soft-delete state.
   const listingCols: string[] = [];
   const listingVals: any[] = [];
   for (const bodyKey of Object.keys(body)) {
@@ -945,7 +954,7 @@ function buildProductMirrorStmts(
   }
   if (body.status !== undefined) {
     listingCols.push('status = ?');
-    listingVals.push(body.status === 'Archived' ? 'archived' : 'active');
+    listingVals.push(body.status === 'Archived' ? 'archived' : body.status === 'Draft' ? 'draft' : 'active');
   }
   if (listingCols.length > 0) {
     listingCols.push("updated_at = datetime('now')");
@@ -974,9 +983,11 @@ function buildListingStatusMirror(
   env: Env, productId: string, productStatus: string
 ): D1PreparedStatement {
   // Legacy products.status values: 'Active' | 'Sold Out' | 'Draft' | 'Archived'.
-  // Only 'Archived' maps to listing.status='archived' (soft-delete = stopped carrying).
-  // 'Sold Out' is just stock=0 and stays 'active' on the listing per Decision 13.
-  const listingStatus = productStatus === 'Archived' ? 'archived' : 'active';
+  // Draft listings remain non-active until an explicit Publish-capable command.
+  // 'Sold Out' is just stock=0 and stays 'active' per Decision 13.
+  const listingStatus = productStatus === 'Archived' ? 'archived'
+    : productStatus === 'Draft' ? 'draft'
+    : 'active';
   return env.DB.prepare(
     `UPDATE product_listings SET status = ?, sold_out_at = ?, updated_at = datetime('now') WHERE id = ?`
   ).bind(listingStatus, productStatus === 'Sold Out' ? new Date().toISOString() : null, `list_${productId}`);
@@ -986,7 +997,7 @@ function buildListingStatusMirror(
 // is created. Skips teaware. Mirrors the migration 048 backfill shape so old
 // and new rows look identical regardless of which path created them.
 function buildProductMirrorInserts(
-  env: Env, productId: string, accountId: string, body: Record<string, any>
+  env: Env, productId: string, accountId: string, body: Record<string, any>, forceDraftListing = false,
 ): D1PreparedStatement[] {
   // Teaware: no profile/listing row per the rollout plan.
   if (body.type === 'Teaware') return [];
@@ -1005,7 +1016,9 @@ function buildProductMirrorInserts(
   const profileStatus = body.status === 'Archived' ? 'archived'
     : body.status === 'Draft' ? 'draft'
     : 'published';
-  const listingStatus = body.status === 'Archived' ? 'archived' : 'active';
+  const listingStatus = body.status === 'Archived' ? 'archived'
+    : forceDraftListing ? 'draft'
+    : 'active';
 
   const profileInsert = env.DB.prepare(`
     INSERT INTO tea_profiles (
@@ -2289,6 +2302,16 @@ const handleCreateProduct: Handler = async (request, env) => {
   if (capabilityError) return capabilityError;
   const ownerError = await validateProductOwnerAssignment(env, ctx, body);
   if (ownerError) return ownerError;
+  const canPublish = ctx.isPlatform || ctx.role === 'owner' || ctx.bundles.includes('publish');
+  if (!canPublish) {
+    // Database and mirror defaults historically meant Active/public. A
+    // Catalog-only caller must instead create a private draft in every model.
+    body.status = 'Draft';
+    body.is_public = 0;
+    body.catalog_visible = 0;
+    body.is_featured = 0;
+    body.is_curated = 0;
+  }
   let purposeWrite;
   try { purposeWrite = decodeInventoryPurposeWrite(body); }
   catch (error) { return json({ error: (error as Error).message }, 400); }
@@ -2356,7 +2379,7 @@ const handleCreateProduct: Handler = async (request, env) => {
 
   // Mirror: create the profile + listing pair alongside the legacy product row
   // so partner catalog browse reflects the new tea immediately.
-  const mirrorInserts = buildProductMirrorInserts(env, id, accountId, body);
+  const mirrorInserts = buildProductMirrorInserts(env, id, accountId, body, !canPublish);
 
   if (mirrorInserts.length > 0) {
     await env.DB.batch([insertProduct, ...mirrorInserts]);

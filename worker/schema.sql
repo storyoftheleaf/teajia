@@ -407,7 +407,7 @@ CREATE TABLE IF NOT EXISTS product_listings (
   in_transit INTEGER DEFAULT 0,
   show_wisdom INTEGER DEFAULT 1,
   is_custom_wisdom INTEGER DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'active',
+  status TEXT NOT NULL DEFAULT 'active', -- draft | active | archived
   archived_at TEXT,
   archived_reason TEXT,
   sold_out_at TEXT,
