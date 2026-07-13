@@ -112,7 +112,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
   const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-11 h-11';
-  const btnCls = isLg ? 'w-11 h-11 rounded-md' : 'w-11 h-11 rounded-md';
+  const btnCls = 'min-h-11 rounded-md px-3';
   const btnIcon = isLg ? 18 : 16;
   const btnGap = 'gap-1.5';
   const stripGap = 'gap-2';
@@ -855,7 +855,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // one contained unit instead of loose buttons floating on the page.
   const stripRow = (
     <>
-      <div className={`field-recessed bg-tea-elevated rounded-xl p-1.5 inline-flex items-center ${stripGap} flex-wrap ${isLg ? 'flex-1 min-w-0' : 'w-fit'}`}>
+      <div className={`field-recessed flex w-full min-w-0 flex-wrap items-center rounded-md bg-tea-elevated p-1.5 ${stripGap}`}>
         {validPhotos.map((url, i) => (
           <button
             key={url}
@@ -903,21 +903,23 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         ))}
 
 
-        <div className={`flex flex-row ${isLg ? 'ml-auto' : ''} ${btnGap} shrink-0`}>
+        <div className={`flex min-w-0 flex-1 flex-row justify-end ${btnGap}`}>
           {/* Sparkles = AI label scanner. Quiet at rest (gold-scarcity) —
               gold only lights up on the just-scanned success tick. */}
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} flex items-center justify-center border shrink-0 transition-all ${
+            className={`${btnCls} curate-action shrink-0 border transition-all ${
               justExtracted
                 ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
                 : 'bg-tea-surface border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
             }`}
             aria-label="Scan label"
             title="Scan label"
+            data-curate-action
           >
             {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
+            <span>{justExtracted ? 'Label read' : 'Scan label'}</span>
           </button>
 
           {/* Camera icon = plain gallery picker. Quieter visual weight so
@@ -925,11 +927,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} flex items-center justify-center bg-tea-surface border border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30 shrink-0 transition-colors`}
+            className={`${btnCls} curate-action shrink-0 border border-tea-border bg-tea-surface text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text`}
             aria-label="Add photo"
             title="Add photo"
+            data-curate-action
           >
             <Camera size={btnIcon} strokeWidth={1.5} />
+            <span>Add photo</span>
           </button>
         </div>
       </div>

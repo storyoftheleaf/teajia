@@ -496,6 +496,18 @@ test.describe('Curate Library decisions and retrieval', () => {
     const purpose = page.getByLabel('Inventory purpose').filter({ visible: true });
     await expect(purpose).toHaveValue('working');
     await expect(page.getByLabel('Acquisition').filter({ visible: true })).toHaveValue('purchase');
+    const sourceBuy = page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Buy', exact: true });
+    await expect(sourceBuy).toHaveAttribute('aria-expanded', 'true');
+    await sourceBuy.click();
+    await expect(purpose).toBeHidden();
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite source import.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      useTeaCompassStore.getState().updateEntry('selected', { notes: 'picker stays closed after this update' });
+    });
+    await expect(purpose).toBeHidden();
+    await sourceBuy.click();
+    await expect(purpose).toBeVisible();
     const purchasePanel = purpose.locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
     await purchasePanel.locator('input[type="number"]').fill('25');
     await purchasePanel.getByRole('button', { name: 'Add to Ledger' }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });

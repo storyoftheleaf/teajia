@@ -13,12 +13,14 @@ test.describe('Curate responsive preservation', () => {
 
   test('uses Tea, Teaware, and Import as capture methods with persistent sample access', async ({ page }) => {
     await openCompass(page);
-    const methods = page.getByRole('tablist', { name: 'Capture method' }).first();
+    const captureMethodControls = page.getByRole('tablist', { name: 'Capture method' });
+    await expect(captureMethodControls).toHaveCount(1);
+    const methods = captureMethodControls.first();
     await expect(methods.getByRole('tab', { name: 'Tea', exact: true })).toBeVisible();
     await expect(methods.getByRole('tab', { name: 'Teaware', exact: true })).toBeVisible();
     await expect(methods.getByRole('tab', { name: 'Import', exact: true })).toBeVisible();
     await expect(methods.getByRole('tab', { name: 'Samples', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Sample order (0)' }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sample list (0)' }).first()).toBeVisible();
   });
 
   test('capture content clears the mobile bottom navigation', async ({ page }, testInfo) => {

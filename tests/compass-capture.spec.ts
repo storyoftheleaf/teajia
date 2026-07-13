@@ -14,6 +14,30 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toBeVisible();
   });
 
+  test('keeps the complete sourcing spine visible with labelled evidence actions', async ({ page }) => {
+    await openCompass(page);
+
+    for (const section of ['Identity', 'Provenance', 'Pricing', 'Profile', 'Notes', 'Intent', 'Storage', 'Buy']) {
+      await expect(page.getByRole('heading', { name: section, exact: true }).filter({ visible: true })).toHaveCount(1);
+    }
+    await expect(page.getByRole('button', { name: 'Scan label', exact: true }).filter({ visible: true })).toContainText('Scan label');
+    await expect(page.getByRole('button', { name: 'Add photo', exact: true }).filter({ visible: true })).toContainText('Add photo');
+  });
+
+  test('uses one compact readable type scale and full touch targets in Source', async ({ page }) => {
+    await openCompass(page);
+
+    const workingInputs = page.locator('[data-curate-source] input:not([type="file"]), [data-curate-source] select, [data-curate-source] textarea').filter({ visible: true });
+    for (const input of await workingInputs.all()) {
+      expect(parseFloat(await input.evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
+    }
+
+    for (const action of await page.locator('[data-curate-source] [data-curate-action]').filter({ visible: true }).all()) {
+      const box = await action.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
   test('creates exactly one blank shell on signed-in mount and an empty account switch', async ({ page }) => {
     await openCompass(page);
     const draftState = () => page.evaluate(async () => {

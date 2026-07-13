@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRi
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
-import { TEA_TYPE_COLORS, TYPOGRAPHY_CLASSES } from '../../designTokens';
+import { TEA_TYPE_COLORS } from '../../designTokens';
 import type { Currency } from '../../admin/types';
 import type { CurateReceiptProposal, InventoryPurposeValue, ReceiptAcquisitionKind, TastingData } from '../../types';
 import type { TastingCategoryId } from '../../data/tastingTaxonomy';
@@ -154,7 +154,7 @@ function getTypeChipStyle(type: TeaType): { bg: string; text: string } {
  *  Groups content by whitespace, not by a gold rule; used sparingly (Notes
  *  always; Profile only when tasting data exists) so gold stays scarce. */
 const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
-  <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
+  <h2 className="curate-section-title">{label}</h2>
 );
 
 /** Field label — sits directly above a typed input in the capture form.
@@ -164,7 +164,7 @@ const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
  *  placeholder disappears. */
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span
-    className="block font-sans text-ui-11 font-medium text-tea-text-sec mb-1.5"
+    className="curate-support mb-1.5 block font-medium"
     style={{ letterSpacing: '0.02em' }}
   >
     {children}
@@ -216,6 +216,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [buyingQty, setBuyingQty] = useState(100);
   const [justAddedToLedger, setJustAddedToLedger] = useState(false);
   const [showBuyPicker, setShowBuyPicker] = useState(false);
+  const consumedPurchaseHandoffRef = useRef<string | null>(null);
   useEffect(() => onBuyExpandedChange?.(showBuyPicker), [onBuyExpandedChange, showBuyPicker]);
   const [receiptPurpose, setReceiptPurpose] = useState<InventoryPurposeValue>('working');
   const [receiptAcquisition, setReceiptAcquisition] = useState<ReceiptAcquisitionKind>('purchase');
@@ -230,7 +231,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setReceiptError('');
   }, [entry?.id]);
   useEffect(() => {
-    if (!entry || !openPurchasePicker) return;
+    if (!entry || !openPurchasePicker) {
+      consumedPurchaseHandoffRef.current = null;
+      return;
+    }
+    if (consumedPurchaseHandoffRef.current === entry.id) return;
+    consumedPurchaseHandoffRef.current = entry.id;
     const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
     setBuyingQty(unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100));
     setShowBuyPicker(true);
@@ -698,15 +704,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   if (!entry) return null;
 
-  const shellClass = 'surface-warm relative px-4 md:px-6 max-w-3xl mx-auto w-full space-y-5';
+  const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-4 px-4 md:px-6';
   // Mobile shell flows the warm surface PAST the inline Done and BEHIND the
   // floating bottom-nav pill. pb-nav-gap-lg gives 2rem + nav + safe-area so the
   // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
   // no bottom nav.
   const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
-  const sourceShellClass = 'px-0 py-1';
-  const fieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
-  const tallFieldClass = 'field-recessed bg-tea-surface border border-tea-border rounded-md px-3 py-2.5 text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors';
+  const sourceShellClass = 'rounded-md border border-tea-border bg-tea-accent-sub px-3 py-2';
+  const fieldClass = 'curate-field field-recessed px-3 py-2.5';
+  const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
   const selectClass = (selected: boolean) =>
     `shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base border border-tea-border transition-colors ${
       selected
@@ -1495,11 +1501,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // Tea name — the hero. Large display serif, still just a bottom hairline.
   // This is the ONE serif element in the capture form — everything else
   // below is font-sans so the form reads as one typographic system.
-  const nameHeadlineClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2 font-sans text-ui-20 font-medium text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  const nameHeadlineClass = 'curate-primary min-h-11 rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
 
   // ── Tea card layout ────────────────────────
   return (
-    <div className={mobileShellClass}>
+    <div className={mobileShellClass} data-curate-source>
       {/* ← Library back link — shown when navigated from Library */}
       {onReturnToLibrary && (
         <button
@@ -1567,14 +1573,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           carries meaning, no swatch/box) so the picker vs. typed contrast
           starts right here. The zone header does the labelling job for the
           name field so the hero keeps its large placeholder. ─── */}
-      <div className="pt-1 space-y-2.5">
+      <section className="curate-section space-y-2.5">
         <QuietEyebrow label="Identity" />
         <div>
           <AutocompleteInput
             value={entry.name}
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
-            placeholder={entry.type ? `${entry.type} name…` : 'Tea name…'}
+            placeholder={entry.type ? `${entry.type} name…` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
             className={`w-full ${nameHeadlineClass}`}
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
@@ -1627,12 +1633,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             })}
           </div>
         </BottomSheet>
-      </div>
+      </section>
 
       {/* ─── Provenance zone — origin, year, Chinese name. Boxed, labelled
           fields: the persistent label survives once the placeholder (now just
           an example) disappears. ─── */}
-      <div className="pt-5 space-y-3">
+      <section className="curate-section space-y-3">
         <QuietEyebrow label="Provenance" />
         <div className="flex items-end gap-4">
           <div className="flex-1 min-w-0">
@@ -1689,10 +1695,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ─── Pricing zone — cost, unit, retail preview tucked close beneath. ─── */}
-      <div className="pt-5 space-y-2.5">
+      <section className="curate-section space-y-2.5">
         <QuietEyebrow label="Pricing" />
         <div className="space-y-2">
           <PricingRow
@@ -1720,7 +1726,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             />
           )}
         </div>
-      </div>
+      </section>
 
       {/* Duplicate nudge */}
       <AnimatePresence>
@@ -1763,9 +1769,20 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           asked that they never sit behind a second tap. ─── */}
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
-      {hasTasting && entry.tasting && (
-        <div className="pt-6 space-y-2.5">
+      <section className="curate-section space-y-2.5">
           <QuietEyebrow label="Profile" />
+          {!hasTasting && (
+            <button
+              type="button"
+              onClick={openTastingOverlay}
+              className="curate-action w-full justify-start border-b border-tea-border px-1 text-left"
+              data-curate-action
+            >
+              Add tasting profile
+            </button>
+          )}
+          {hasTasting && entry.tasting && (
+            <>
           {/* Quality 1–10 — same segment toggle as TastingSession */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
@@ -1784,9 +1801,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     onClick={() => handleQualityChange(v)}
                     role="radio"
                     aria-checked={isSelected}
-                    className={`font-sans tabular-nums flex-1 py-2.5 text-ui-11 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
+                    className={`curate-support tabular-nums flex-1 py-2.5 font-medium transition-all duration-150 min-h-[44px] relative z-[1] ${
                       isSelected ? 'text-tea-gold' : 'text-tea-text-sec hover:text-tea-text'
                     }${i < 9 ? ' weight-seg-div' : ''}`}
+                    data-curate-action
                     style={{
                       background: isSelected
                         ? 'radial-gradient(ellipse 120% 120% at 50% 50%, rgb(var(--tea-gold-rgb) / 0.14) 0%, rgb(var(--tea-gold-rgb) / 0.04) 70%)'
@@ -1813,11 +1831,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onRemove={handleTastingStripRemove}
             variant="cloud"
           />
-        </div>
-      )}
+            </>
+          )}
+      </section>
 
       {/* ─── Notes zone ─── */}
-      <div className="pt-6 space-y-2">
+      <section className="curate-section space-y-2">
         <QuietEyebrow label="Notes" />
         <NoteThread
           compassEntryId={entry.id}
@@ -1826,32 +1845,35 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           hideTastingArtifacts
           sans
         />
-      </div>
+      </section>
 
-      <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
+      <section className="curate-section space-y-2">
+        <QuietEyebrow label="Intent" />
+        <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
+        <p className="curate-support text-tea-text-dim">Details detected in notes appear here for review.</p>
+      </section>
 
-      {/* Storage (only for Sheng/Shou/Dark) */}
-      {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && (
-        <>
-          <div className="border-t border-tea-border" />
+      <section className="curate-section space-y-2">
+          <QuietEyebrow label="Storage" />
           <div className="flex gap-1.5 flex-wrap">
             {STORAGE_OPTIONS.map((st) => (
               <button
                 key={st}
                 type="button"
                 onClick={() => { userTapped.current.add('storage'); update({ storage: entry.storage === st ? undefined : st }); }}
-                className={entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'}
+                className={`${entry.storage === st ? 'tag-selectable-active' : 'tag-selectable'} curate-support tap-target min-h-11`}
+                data-curate-action
               >
                 {st}
               </button>
             ))}
           </div>
-        </>
-      )}
+      </section>
 
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
-      <div id={purchasePickerId} className="space-y-2">
+      <section id={purchasePickerId} className="curate-section space-y-2">
+        <QuietEyebrow label="Buy" />
         <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Ledger link */}
         {isInLedger && (
@@ -1882,7 +1904,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     <button
                       type="button"
                       onClick={() => setBuyingQty(Math.max(buyStep, buyingQty - buyStep))}
-                      className="w-7 h-7 rounded-full bg-tea-surface/80 flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
+                      className="curate-action tap-target h-11 w-11 rounded-md bg-tea-surface text-tea-text-sec active:bg-tea-elevated"
+                      data-curate-action
+                      aria-label="Decrease buying quantity"
                     >
                       <Minus size={12} />
                     </button>
@@ -1900,7 +1924,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     <button
                       type="button"
                       onClick={() => setBuyingQty(buyingQty + buyStep)}
-                      className="w-7 h-7 rounded-full bg-tea-surface/80 flex items-center justify-center text-tea-text-sec active:bg-tea-elevated transition-colors"
+                      className="curate-action tap-target h-11 w-11 rounded-md bg-tea-surface text-tea-text-sec active:bg-tea-elevated"
+                      data-curate-action
+                      aria-label="Increase buying quantity"
                     >
                       <Plus size={12} />
                     </button>
@@ -1923,9 +1949,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                         key={g}
                         type="button"
                         onClick={() => setBuyingQty(g)}
-                        className={`py-0.5 px-2 rounded text-ui-11 tabular-nums transition-colors ${
+                        className={`curate-support tap-target min-h-11 rounded px-2 tabular-nums transition-colors ${
                           buyingQty === g ? 'bg-tea-accent-sub text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'
                         }`}
+                        data-curate-action
                       >
                         {g}g
                       </button>
@@ -1940,7 +1967,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       aria-label="Inventory purpose"
                       value={receiptPurpose}
                       onChange={(event) => setReceiptPurpose(event.target.value as InventoryPurposeValue)}
-                      className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text outline-none focus:border-tea-gold"
+                      className="curate-field w-full px-2"
                     >
                       <option value="working">Working</option>
                       <option value="sample">Sample</option>
@@ -1953,7 +1980,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       aria-label="Acquisition"
                       value={receiptAcquisition}
                       onChange={(event) => setReceiptAcquisition(event.target.value as ReceiptAcquisitionKind)}
-                      className="min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-2 text-ui-12 text-tea-text outline-none focus:border-tea-gold"
+                      className="curate-field w-full px-2"
                     >
                       <option value="purchase">Purchase</option>
                       <option value="free_sample">Free sample</option>
@@ -1968,7 +1995,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   type="button"
                   onClick={handleAddToLedger}
                   disabled={receiptBusy}
-                  className="w-full py-1.5 rounded-md bg-tea-gold text-tea-bg font-semibold text-ui-11 uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="curate-action w-full rounded-md bg-tea-gold px-3 font-semibold text-tea-bg active:opacity-80"
+                  data-curate-action
                 >
                   {receiptBusy ? 'Adding…' : 'Add to Ledger'}
                 </button>
@@ -2007,7 +2035,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </section>
 
       <CaptureActionFooter
         className="lg:hidden pt-1"

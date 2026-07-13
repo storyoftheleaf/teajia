@@ -86,7 +86,8 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         onClick={() => setRunSheetOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={runSheetOpen}
-        className={`tap-target pill-quiet shrink-0 ${runSheetOpen ? 'pill-quiet-on' : ''}`}
+        className={`curate-support tap-target pill-quiet shrink-0 ${runSheetOpen ? 'pill-quiet-on' : ''}`}
+        data-curate-action
       >
         <span className="truncate">{runLabel}</span>
         <ChevronDown size={12} className="shrink-0 text-tea-text-dim" />
@@ -98,7 +99,8 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
         type="button"
         onClick={onToggleVendor}
         aria-expanded={vendorOpen}
-        className={`tap-target pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
+        className={`curate-support tap-target pill-quiet min-w-0 ${vendorOpen ? 'pill-quiet-on' : ''}`}
+        data-curate-action
       >
         <span className="truncate">{vendorName || 'Vendor'}</span>
         <ChevronDown
@@ -112,7 +114,8 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           type="button"
           onClick={onShare}
           aria-label="Share"
-          className="tap-target pill-quiet shrink-0"
+          className="curate-support tap-target pill-quiet shrink-0"
+          data-curate-action
         >
           <Share2 size={13} aria-hidden="true" />
         </button>
@@ -123,7 +126,8 @@ export const CaptureContextChips: React.FC<CaptureContextChipsProps> = ({
           type="button"
           onClick={() => startNewCapture(category)}
           aria-label="Start a new entry"
-          className="tap-target pill-quiet"
+          className="curate-support tap-target pill-quiet"
+          data-curate-action
         >
           <Plus size={14} aria-hidden="true" />
         </button>

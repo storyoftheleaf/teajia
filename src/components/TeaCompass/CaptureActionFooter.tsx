@@ -11,7 +11,7 @@ interface CaptureActionFooterProps {
   className?: string;
 }
 
-const quietActionClass = 'tap-target min-h-11 rounded-md border border-tea-border bg-transparent text-ui-13 font-medium text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text';
+const quietActionClass = 'curate-action tap-target min-h-11 rounded-md border border-tea-border bg-transparent font-medium text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text';
 
 export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   onBuy,
@@ -31,6 +31,7 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       aria-label="Buy"
       aria-expanded={buyExpanded}
       aria-controls={purchasePickerId}
+      data-curate-action
     >
       Buy
     </button>
@@ -39,12 +40,13 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       onClick={onDone}
       disabled={!doneEnabled}
       data-testid={doneTestId}
-      className="tap-target min-h-11 rounded-md bg-tea-gold text-ui-13 font-medium tracking-[0.06em] text-tea-bg transition-colors hover:bg-tea-gold-lt disabled:cursor-not-allowed disabled:opacity-40"
+      className="curate-action tap-target min-h-11 rounded-md bg-tea-gold font-medium tracking-[0.04em] text-tea-bg hover:bg-tea-gold-lt disabled:cursor-not-allowed disabled:opacity-40"
       aria-label="Done"
+      data-curate-action
     >
       Done
     </button>
-    <button type="button" onClick={onSample} className={quietActionClass} aria-label="Sample">
+    <button type="button" onClick={onSample} className={quietActionClass} aria-label="Sample" data-curate-action>
       Sample
     </button>
   </div>

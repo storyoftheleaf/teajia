@@ -1,5 +1,4 @@
 import React from 'react';
-import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 import type { CompassDecision } from './types';
 
 const OPTIONS: Array<{ value: CompassDecision; label: string }> = [
@@ -14,7 +13,7 @@ export const DecisionControl: React.FC<{
   compact?: boolean;
 }> = ({ value, onChange, compact = false }) => (
   <fieldset>
-    <legend className={`mb-2 ${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>
+    <legend className="curate-support mb-2 text-tea-text-dim">
       Sourcing decision
     </legend>
     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Sourcing decision">
@@ -25,11 +24,12 @@ export const DecisionControl: React.FC<{
           aria-checked={value === option.value}
           key={option.value}
           onClick={() => onChange(value === option.value ? null : option.value)}
-          className={`tap-target inline-flex min-h-11 items-center rounded-md border px-3 text-ui-12 transition-colors ${
+          className={`curate-support tap-target inline-flex min-h-11 items-center rounded-md border px-3 transition-colors ${
             value === option.value
               ? 'border-tea-gold bg-tea-accent-sub text-tea-text'
               : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'
           } ${compact ? 'flex-1 justify-center' : ''}`}
+          data-curate-action
         >
           {option.label}
         </button>

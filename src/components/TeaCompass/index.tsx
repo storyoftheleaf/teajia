@@ -1164,7 +1164,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             className={`flex flex-col overflow-hidden ${
               libraryGrid
                 ? 'flex-1 min-w-0'
-                : 'w-[320px] xl:w-[400px] 2xl:w-[460px] shrink-0 border-r border-tea-border'
+                : 'w-[264px] shrink-0 border-r border-tea-border'
             }`}
           >
 
@@ -1213,30 +1213,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     transition={{ duration: 0.2 }}
                     className="flex flex-col gap-3"
                   >
-                    {/* Capture method: Tea / Teaware / Import */}
-                    <div className="flex gap-0 rounded-md bg-tea-surface/30 p-0.5 relative" role="group" aria-label="Capture method">
-                      <motion.div
-                        className="absolute top-0.5 bottom-0.5 rounded-[5px] bg-tea-surface"
-                        animate={{
-                          left: captureOption === 'tea' ? '2px' : captureOption === 'teaware' ? '33.33%' : '66.66%',
-                          right: captureOption === 'tea' ? '66.66%' : captureOption === 'teaware' ? '33.33%' : '2px',
-                        }}
-                        transition={{ duration: 0.1, ease: 'easeOut' }}
-                      />
-                      <button type="button" aria-pressed={captureOption === 'tea'} onClick={() => handleCaptureOption('tea')}
-                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'tea' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                        Tea
-                      </button>
-                      <button type="button" aria-pressed={captureOption === 'teaware'} onClick={() => handleCaptureOption('teaware')}
-                        className={`flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] ${captureOption === 'teaware' ? 'text-tea-text' : 'text-tea-text-dim hover:text-tea-text-sec'}`}>
-                        Teaware
-                      </button>
-                      <button type="button" aria-pressed={importOpen} onClick={(event) => openImportFrom(event.currentTarget)}
-                        className="flex-1 text-center py-1.5 text-ui-12 font-medium rounded-[5px] transition-colors relative z-[1] text-tea-text-dim hover:text-tea-text-sec">
-                        Import
-                      </button>
-                    </div>
-
                     {/* SessionStack */}
                     <SessionStack
                         sessionEntries={sessionEntries}
@@ -1622,7 +1598,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
                 {showCaptureActionBar && (
                   <CaptureActionFooter
-                    className="bg-tea-surface p-2"
+                    className="mx-auto w-full max-w-3xl bg-tea-surface p-2"
                     onBuy={() => captureCardActionsRef.current?.toggleBuy()}
                     onDone={handleDoneClick}
                     onSample={() => captureCardActionsRef.current?.openTasting()}

@@ -97,7 +97,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           <select
             value={priceCurrency}
             onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-            className="self-center bg-transparent text-ui-11 text-tea-text-dim tabular-nums border-none outline-none cursor-pointer appearance-none shrink-0 pl-1 pr-1 py-2.5"
+            className="curate-primary self-center shrink-0 cursor-pointer appearance-none border-none bg-transparent py-2.5 pl-1 pr-1 text-tea-text-dim outline-none tabular-nums"
             style={{ backgroundImage: 'none' }}
             aria-label="Currency"
           >
@@ -112,7 +112,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
             style={noSpinnerStyle}
-            className="flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none font-sans text-base tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="curate-primary flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             aria-label="Price"
           />
         </div>
@@ -132,7 +132,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                   unit.onGramsChange(val === '' ? undefined : Number(val));
                 }}
                 style={noSpinnerStyle}
-                className="flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none font-sans text-base tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="curate-primary flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 aria-label="Grams"
               />
               <span
@@ -147,10 +147,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               <button
                 type="button"
                 onClick={() => setFormSheetOpen(true)}
-                className={`flex-1 min-w-0 flex items-center justify-between gap-1 bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 font-sans text-base transition-colors focus:border-tea-gold focus:outline-none ${
+                className={`curate-action flex-1 min-w-0 justify-between gap-1 bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 transition-colors focus:border-tea-gold focus:outline-none ${
                   unit.form ? 'text-tea-text font-medium' : 'text-tea-text-sec'
                 }`}
                 aria-label="Tea form"
+                data-curate-action
               >
                 <span className="truncate">{unit.form || 'Form'}</span>
                 <ChevronDown size={14} className={unit.form ? 'text-tea-gold shrink-0' : 'text-tea-text-sec shrink-0'} />
@@ -159,7 +160,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
           </>
         ) : (
           <div
-            className="shrink-0 flex items-stretch bg-tea-surface rounded-md border border-tea-border"
+            className="min-h-11 shrink-0 flex items-stretch bg-tea-surface rounded-md border border-tea-border"
             aria-label={`Quantity: ${unit.quantity} count`}
           >
             <button
@@ -167,6 +168,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               onClick={() => unit.onQuantityChange(Math.max(1, unit.quantity - 1))}
               className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-r border-r-tea-border"
               aria-label="Decrease quantity"
+              data-curate-action
             >
               <Minus size={12} />
             </button>
@@ -184,6 +186,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
               onClick={() => unit.onQuantityChange(unit.quantity + 1)}
               className="w-7 self-stretch flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors border-l border-l-tea-border"
               aria-label="Increase quantity"
+              data-curate-action
             >
               <Plus size={12} />
             </button>
