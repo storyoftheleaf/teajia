@@ -9,6 +9,98 @@ type ImportItem = {
 };
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
 const manualAddFailureByPage = new WeakMap<Page, { remaining: number }>();
+
+const analyzedTeaNames = [
+  ['Yunnan Ancient Tree Raw Pu’er', '云南古树生普'],
+  ['Menghai Spring Sheng Pu’er', '勐海春尖生普'],
+  ['Yiwu Old Arbor Raw Pu’er', '易武古树生茶'],
+  ['Jingmai Mountain Raw Pu’er', '景迈山生普'],
+  ['Bulang Mountain Ripe Pu’er', '布朗山熟普'],
+  ['Alishan High Mountain Oolong', '阿里山高山乌龙'],
+  ['Lishan Winter Oolong', '梨山冬片'],
+  ['Sun Moon Lake Red Jade', '日月潭红玉'],
+  ['Oriental Beauty Oolong', '东方美人'],
+  ['Shan Lin Xi Charcoal Oolong', '杉林溪炭焙乌龙'],
+] as const;
+
+function analyzedImportDetail() {
+  const groups = [
+    {
+      id: 'group-chen', batch_id: 'batch-analyzed', position: 0,
+      proposed_vendor_name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna',
+      resolved_vendor_customer_id: 'vendor-chen',
+      resolved_vendor_name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna',
+      confidence: 0.98, uncertainty: {},
+    },
+    {
+      id: 'group-lin', batch_id: 'batch-analyzed', position: 1,
+      proposed_vendor_name: 'Lin Family High Mountain Tea Workshop, Nantou County',
+      resolved_vendor_customer_id: 'vendor-lin',
+      resolved_vendor_name: 'Lin Family High Mountain Tea Workshop, Nantou County',
+      confidence: 0.93, uncertainty: {},
+    },
+  ];
+  const items = analyzedTeaNames.map(([englishName, originalName], index) => ({
+    id: `analyzed-item-${index + 1}`, batch_id: 'batch-analyzed', source_id: 'source-analyzed',
+    vendor_group_id: index < 5 ? 'group-chen' : 'group-lin', position: index, category: 'tea' as const,
+    name: englishName, english_name: englishName, original_name: originalName,
+    raw_text: `${originalName} 500g ×2 ¥380`,
+    parsed_data: { english_name: englishName, original_name: originalName },
+    confidence: index === 9 ? 0.51 : 0.96,
+    uncertainty: index === 9 ? {
+      pack_count: 'The multiplier is faint in the photograph',
+      weight_unit: 'The unit is partly covered',
+      price_basis: 'The invoice does not clearly say per pack',
+      currency: 'The currency mark is blurred',
+    } : {},
+    review_state: 'pending' as const, compass_entry_id: null, reserved_compass_entry_id: `compass-${index + 1}`,
+    pack_weight: 500, weight_unit: 'g', pack_count: 2, price_amount: index < 5 ? 380 : 600,
+    currency: index < 5 ? 'CNY' : 'TWD', price_basis: 'per_pack',
+    total_quantity_grams: 1000, total_units: null, line_cost: index < 5 ? 760 : 1200,
+    unit_cost: index < 5 ? 0.76 : 1.2, blocking_fields: index === 9 ? ['pack_count', 'weight_unit', 'price_basis', 'currency'] : [],
+    evidence_refs: [`source-analyzed:${index * 20}-${index * 20 + 18}`],
+  }));
+  return {
+    batch: {
+      id: 'batch-analyzed', title: 'Two vendor Chinese tea list', review_state: 'reviewing',
+      journey_id: null, visit_id: null, analysis_state: 'completed', analysis_language: 'zh',
+      analysis_overview: '10 teas found across 2 vendors. Chinese names translated; one pack count needs confirmation.',
+      analysis_error: null,
+    },
+    sources: [{ id: 'source-analyzed', batch_id: 'batch-analyzed', kind: 'paste', pasted_text: 'Chinese vendor list', r2_object_key: null, metadata: {} }],
+    groups,
+    items,
+  };
+}
+
+async function installAnalyzedImportApi(page: Page) {
+  const detail = analyzedImportDetail();
+  let finalizeCalls = 0;
+  await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [detail] } }));
+  await page.route('**/api/curate/imports/batch-analyzed', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: detail });
+    return route.fallback();
+  });
+  await page.route('**/api/curate/imports/batch-analyzed/items/*', async route => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    const itemId = new URL(route.request().url()).pathname.split('/').at(-1);
+    const item = detail.items.find(candidate => candidate.id === itemId)!;
+    Object.assign(item, route.request().postDataJSON());
+    if (item.id === 'analyzed-item-10') {
+      item.blocking_fields = [];
+      item.uncertainty = {};
+      item.confidence = 0.96;
+    }
+    return route.fulfill({ json: item });
+  });
+  await page.route('**/api/curate/imports/batch-analyzed/finalize', async route => {
+    finalizeCalls += 1;
+    detail.batch.review_state = 'completed';
+    return route.fulfill({ json: { batch: detail.batch, receipts: [{ id: 'receipt-chen' }, { id: 'receipt-lin' }], items: detail.items } });
+  });
+  return { detail, finalizeCalls: () => finalizeCalls };
+}
+
 async function installImportApi(page: Page) {
   let attempts = 0;
   const items: ImportItem[] = [];
@@ -369,5 +461,93 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByTestId('import-item-row')).toHaveCount(10);
     await page.getByRole('button', { name: 'Show 10 more' }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(20);
+  });
+});
+
+test.describe('analyzed inventory import review', () => {
+  test.beforeEach(async ({ page }) => {
+    await installCompassHarness(page);
+  });
+  test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
+
+  test('groups ten editable teas by vendor without repeated controls or overflow', async ({ page }, testInfo) => {
+    if (testInfo.project.name === 'Mobile Chrome') await page.setViewportSize({ width: 390, height: 844 });
+    const api = await installAnalyzedImportApi(page);
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel('Sourcing run')).toHaveCount(1);
+    await expect(dialog.getByTestId('import-vendor-group')).toHaveCount(2);
+    await expect(dialog.getByRole('button', { name: /^Change vendor for / })).toHaveCount(2);
+    await expect(dialog.getByText('Chen Family Ancient Tree Tea Cooperative of Xishuangbanna', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Lin Family High Mountain Tea Workshop, Nantou County', { exact: true })).toBeVisible();
+
+    const changeActions = dialog.getByRole('button', { name: /^Change vendor for / });
+    for (let index = 0; index < await changeActions.count(); index += 1) {
+      expect(await changeActions.nth(index).evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeLessThanOrEqual(13);
+    }
+
+    const rows = dialog.getByTestId('import-item-row');
+    await expect(rows).toHaveCount(10);
+    const compactHeights = await rows.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
+    expect(Math.max(...compactHeights), 'collapsed review rows should stay compact').toBeLessThanOrEqual(120);
+    for (let index = 0; index < analyzedTeaNames.length; index += 1) {
+      await rows.nth(index).scrollIntoViewIfNeeded();
+      await expect(rows.nth(index)).toContainText(analyzedTeaNames[index][0]);
+      await expect(rows.nth(index)).toContainText(analyzedTeaNames[index][1]);
+    }
+
+    const finalAction = dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ });
+    await expect(dialog.getByText('Confirm pack count, weight or unit, price interpretation, and currency.')).toBeVisible();
+    await expect(finalAction).toBeDisabled();
+
+    const readyRow = rows.nth(0);
+    await readyRow.getByRole('button', { name: 'Edit tea' }).click();
+    await expect(readyRow.getByLabel(/English (inventory )?name/i)).toHaveValue('Yunnan Ancient Tree Raw Pu’er');
+    await readyRow.getByLabel(/English (inventory )?name/i).fill('Yunnan Ancient Tree Raw Pu’er — Spring Lot');
+    await expect(readyRow.getByLabel('Sourcing run')).toHaveCount(0);
+    await expect(readyRow.getByRole('button', { name: /^Change vendor for / })).toHaveCount(0);
+    await readyRow.getByRole('button', { name: 'Save tea' }).click();
+    await expect(readyRow).toContainText('Yunnan Ancient Tree Raw Pu’er — Spring Lot');
+
+    const uncertainRow = rows.nth(9);
+    await uncertainRow.scrollIntoViewIfNeeded();
+    await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
+    await uncertainRow.getByLabel('Pack count').fill('3');
+    await expect(uncertainRow.getByLabel('Sourcing run')).toHaveCount(0);
+    await expect(uncertainRow.getByRole('button', { name: /^Change vendor for / })).toHaveCount(0);
+
+    if (testInfo.project.name === 'Mobile Chrome') {
+      const controlFontSizes = await dialog.locator('input:visible, textarea:visible, select:visible').evaluateAll(elements =>
+        elements.map(element => ({ label: element.getAttribute('aria-label') || element.getAttribute('name') || element.tagName, size: Number.parseFloat(getComputedStyle(element).fontSize) })),
+      );
+      expect(controlFontSizes.length).toBeGreaterThan(0);
+      expect(controlFontSizes.filter(control => control.size < 16), `Mobile import controls below 16px: ${JSON.stringify(controlFontSizes)}`).toEqual([]);
+    }
+
+    await uncertainRow.getByRole('button', { name: 'Save tea' }).click();
+    await expect(finalAction).toBeEnabled();
+
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await finalAction.click();
+    await expect.poll(api.finalizeCalls).toBe(1);
+  });
+
+  test('keeps every visible import input at 16px on mobile', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'Mobile Chrome', 'iOS-style focus zoom is a mobile-only constraint');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [] } }));
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const controls = dialog.locator('input:visible, textarea:visible, select:visible');
+    await expect(controls.first()).toBeVisible();
+    const controlFontSizes = await controls.evaluateAll(elements =>
+      elements.map(element => ({ label: element.getAttribute('aria-label') || element.getAttribute('name') || element.tagName, size: Number.parseFloat(getComputedStyle(element).fontSize) })),
+    );
+    expect(controlFontSizes.filter(control => control.size < 16), `Mobile import controls below 16px: ${JSON.stringify(controlFontSizes)}`).toEqual([]);
   });
 });
