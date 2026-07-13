@@ -27,8 +27,8 @@ const amount = (item: CurateImportDetail['items'][number]) => {
 
 const quantity = (item: CurateImportDetail['items'][number]) => {
   if (item.total_quantity_grams != null) {
-    return item.total_quantity_grams >= 1000
-      ? `${Number((item.total_quantity_grams / 1000).toFixed(2))}kg`
+    return item.total_quantity_grams >= 1000 && item.total_quantity_grams % 1000 === 0
+      ? `${item.total_quantity_grams / 1000}kg`
       : `${item.total_quantity_grams}g`;
   }
   if (item.total_units != null) return `${item.total_units} ${item.total_units === 1 ? 'unit' : 'units'}`;
@@ -84,7 +84,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
               <header className="flex flex-wrap items-end justify-between gap-3 border-b border-tea-border p-4 sm:p-5">
                 <div className="min-w-0 flex-1">
                   <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Vendor receipt</p>
-                  <h4 className="mt-1 break-words font-display text-ui-20 font-normal leading-tight text-tea-text">{vendorName}</h4>
+                  <h4 className="mt-1 break-words font-display text-ui-28 font-normal leading-tight text-tea-text">{vendorName}</h4>
                   <p className="mt-1 text-ui-11 text-tea-text-sec">{groupRows.length} {groupNoun} received</p>
                 </div>
                 {receipt?.id ? (

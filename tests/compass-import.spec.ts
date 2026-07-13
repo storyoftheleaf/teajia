@@ -785,6 +785,7 @@ test.describe('analyzed inventory import review', () => {
   test('groups ten editable teas by vendor without repeated controls or overflow', async ({ page }, testInfo) => {
     if (testInfo.project.name === 'Mobile Chrome') await page.setViewportSize({ width: 390, height: 844 });
     const api = await installAnalyzedImportApi(page);
+    api.detail.items[1].total_quantity_grams = 1001;
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
 
@@ -901,7 +902,7 @@ test.describe('analyzed inventory import review', () => {
     const vendorLedgers = completion.getByTestId('completion-vendor-ledger');
     await expect(vendorLedgers).toHaveCount(2);
     const chenLedger = completion.getByRole('region', { name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna vendor receipt' });
-    await expect(chenLedger.getByRole('heading', { name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna' })).toHaveClass(/font-display/);
+    const chenVendorHeading = chenLedger.getByRole('heading', { name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna' });
     await expect(chenLedger.getByTestId('completion-ledger-row')).toHaveCount(5);
     const firstFinalizedTea = chenLedger.getByTestId('completion-ledger-row').first();
     await expect(firstFinalizedTea.getByRole('heading', { name: 'Yunnan Ancient Tree Raw Pu’er — Spring Lot' })).toHaveClass(/font-serif/);
@@ -909,6 +910,9 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstFinalizedTea.getByText('1kg · CNY 760', { exact: true })).toBeVisible();
     await expect(firstFinalizedTea.getByText('Tea record reused', { exact: true })).toBeVisible();
     await expect(firstFinalizedTea.getByText('Stock record reused', { exact: true })).toBeVisible();
+    await expect(chenLedger.getByTestId('completion-ledger-row').nth(1).getByText('1001g · CNY 760', { exact: true })).toBeVisible();
+    await expect(chenVendorHeading).toHaveClass(/font-display/);
+    await expect(chenVendorHeading).toHaveClass(/text-ui-28/);
     await expect(chenLedger.getByRole('link', { name: 'Open received receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
 
     const linLedger = completion.getByRole('region', { name: 'Lin Family High Mountain Tea Workshop, Nantou County vendor receipt' });
