@@ -12683,18 +12683,23 @@ const handleRequestSample: Handler = async (request, env) => {
   // Reuse the requester's open set when one exists. The deterministic fallback
   // id plus INSERT OR IGNORE makes simultaneous first requests converge on the
   // same owned set without relying on a global or cross-tenant bucket.
-  const existingRequestSet = await env.DB.prepare(
-    `SELECT id FROM tea_sample_sets
+  const requestSetCandidates = await env.DB.prepare(
+    `SELECT id, notes FROM tea_sample_sets
      WHERE account_id = ? AND user_id = ? AND purpose = 'customer-request'
-     ORDER BY created_at DESC LIMIT 1`
-  ).bind(accountId, claims.sub).first() as { id?: string } | null;
+     ORDER BY created_at DESC`
+  ).bind(accountId, claims.sub).all();
+  const candidateRows = requestSetCandidates.results as Array<{ id?: string; notes?: string | null }>;
+  const openRequestSet = candidateRows.find((candidate) => {
+    if (!candidate.id || !candidate.notes) return false;
+    try { return JSON.parse(candidate.notes).open === true; } catch { return false; }
+  });
   const requestSetDigest = await crypto.subtle.digest(
     'SHA-256',
     new TextEncoder().encode(`${accountId}\u0000${claims.sub}\u0000customer-request`),
   );
   const deterministicRequestSetId = `customer-request:${Array.from(new Uint8Array(requestSetDigest))
-    .map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 32)}`;
-  const setId = existingRequestSet?.id || deterministicRequestSetId;
+    .map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 32)}:${candidateRows.length}`;
+  const setId = openRequestSet?.id || deterministicRequestSetId;
   const setName = `Sample requests — ${claims.email || 'customer'}`;
   const setNotes = JSON.stringify({ kind: 'customer-request', open: true, requested_by_user_id: claims.sub });
 
@@ -12707,7 +12712,7 @@ const handleRequestSample: Handler = async (request, env) => {
     env.DB.prepare(
       `INSERT INTO tea_samples (id, account_id, name, product_id, set_id, status, grams, notes, user_id, created_by)
        VALUES (?, ?, ?, ?, ?, 'requested', ?, ?, ?, ?)`
-    ).bind(id, accountId, sampleName, product_id, setId, quantity_grams, metaNotes, claims.sub, claims.email || 'customer'),
+    ).bind(id, accountId, sampleName, product_id, setId, quantity_grams, metaNotes, claims.sub, 'customer'),
   ]);
 
   return json({ id, set_id: setId, status: 'requested' }, 201);

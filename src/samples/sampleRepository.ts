@@ -34,7 +34,7 @@ function arrayValue(value: unknown): string[] {
   try { return arrayValue(JSON.parse(value)); } catch { return []; }
 }
 
-const SAMPLE_STATUSES = new Set<SampleStatus>(['untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed']);
+const SAMPLE_STATUSES = new Set<SampleStatus>(['requested', 'received', 'untasted', 'tasted', 'favorite', 'ordering', 'ordered', 'passed']);
 
 export function sampleFromApi(row: SampleApiRow): SyncedTeaSample {
   return {
@@ -133,7 +133,7 @@ function sampleUpdatesToApi(updates: Partial<TeaSample>): Partial<SampleApiWrite
     name: 'name', chineseName: 'chinese_name', type: 'type', form: 'form', year: 'year',
     originRegion: 'origin_region', sourceId: 'source_id', sourceName: 'source_name', sourceContact: 'source_contact',
     productId: 'product_id', compassEntryId: 'compass_entry_id', setId: 'set_id', status: 'status', grams: 'grams',
-    notes: 'notes', photos: 'photos', teaKey: 'tea_key', createdBy: 'created_by',
+    notes: 'notes', photos: 'photos', teaKey: 'tea_key',
   };
   const output: Partial<SampleApiWrite> = {};
   for (const [clientKey, apiKey] of Object.entries(keyMap) as Array<[keyof TeaSample, keyof SampleApiWrite]>) {
@@ -150,25 +150,106 @@ export function createSampleRepository(options: {
   const remote = options.remote ?? { sampleSets: api.sampleSets, samples: api.samples };
   const isReady = options.isReady ?? isTokenScopedToAccount;
   const store = options.store ?? useSampleStore;
-  let hydrationGeneration = 0;
+  let operationGeneration = 0;
+  const canApply = (generation: number, accountId: string) => (
+    generation === operationGeneration
+    && isReady(accountId)
+    && store.getState().accountScopeId === accountId
+  );
 
   return {
     async hydrate(accountId: string): Promise<{ status: 'not-ready' | 'hydrated' | 'stale' }> {
-      const requestGeneration = ++hydrationGeneration;
+      const requestGeneration = ++operationGeneration;
       if (!isReady(accountId)) return { status: 'not-ready' };
       const [setsResponse, samplesResponse] = await Promise.all([
         remote.sampleSets.list(),
         remote.samples.list(),
       ]);
       if (
-        requestGeneration !== hydrationGeneration
-        || !isReady(accountId)
-        || store.getState().accountScopeId !== accountId
+        !canApply(requestGeneration, accountId)
       ) return { status: 'stale' };
       const samples = samplesResponse.samples.map(sampleFromApi);
       const sampleSets = setsResponse.sets.map((set) => sampleSetFromApi(set, samples));
       const active = store.getState().reconcileRemote(accountId, samples, sampleSets);
       return { status: active ? 'hydrated' : 'stale' };
+    },
+    async sync(accountId: string): Promise<{ status: 'not-ready' | 'synced' | 'stale' }> {
+      const requestGeneration = ++operationGeneration;
+      if (!isReady(accountId)) return { status: 'not-ready' };
+      const [initialSets, initialSamples] = await Promise.all([
+        remote.sampleSets.list(),
+        remote.samples.list(),
+      ]);
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+
+      const snapshot = store.getState();
+      const remoteSetsById = new Map(initialSets.sets.map((set) => [set.id, set]));
+      const remoteSamplesById = new Map(initialSamples.samples.map((sample) => [sample.id, sample]));
+
+      for (const id of snapshot.sampleTombstones) {
+        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        if (remoteSamplesById.has(id)) await remote.samples.remove(id);
+        remoteSamplesById.delete(id);
+      }
+      for (const id of snapshot.sampleSetTombstones) {
+        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        if (remoteSetsById.has(id)) await remote.sampleSets.remove(id);
+        remoteSetsById.delete(id);
+        for (const [sampleId, sample] of remoteSamplesById) {
+          if (sample.set_id === id) remoteSamplesById.delete(sampleId);
+        }
+      }
+
+      // Sets are the parent record for every sample. Persist all set outbox
+      // entries before attempting any sample create/update.
+      for (const sampleSet of snapshot.sampleSets.filter((item) => item.synced !== true)) {
+        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        const persisted = sampleSet.accountId === accountId || remoteSetsById.has(sampleSet.id);
+        const row = persisted && remoteSetsById.has(sampleSet.id)
+          ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet))
+          : await remote.sampleSets.create(sampleSetToApi(sampleSet));
+        remoteSetsById.set(row.id, row);
+      }
+      for (const sample of snapshot.samples.filter((item) => !item.synced)) {
+        if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+        if (!remoteSetsById.has(sample.setId)) {
+          throw new Error(`Cannot sync sample ${sample.id}: set ${sample.setId} is not persisted`);
+        }
+        const persisted = sample.accountId === accountId || remoteSamplesById.has(sample.id);
+        const row = persisted && remoteSamplesById.has(sample.id)
+          ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample))
+          : await remote.samples.create(sampleToApi(sample));
+        remoteSamplesById.set(row.id, row);
+      }
+
+      const [finalSets, finalSamples] = await Promise.all([
+        remote.sampleSets.list(),
+        remote.samples.list(),
+      ]);
+      if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
+      const samples = finalSamples.samples.map(sampleFromApi);
+      const sampleSets = finalSets.sets.map((set) => sampleSetFromApi(set, samples));
+      const current = store.getState();
+      const committedSampleIds = snapshot.samples.filter((sample) => (
+        !sample.synced
+        && current.samples.find((candidate) => candidate.id === sample.id)?.updatedAt === sample.updatedAt
+      )).map((sample) => sample.id);
+      const committedSetIds = snapshot.sampleSets.filter((sampleSet) => (
+        sampleSet.synced !== true
+        && current.sampleSets.find((candidate) => candidate.id === sampleSet.id)?.updatedAt === sampleSet.updatedAt
+      )).map((sampleSet) => sampleSet.id);
+      if (!store.getState().markRemoteCommitted(
+        accountId,
+        committedSampleIds,
+        committedSetIds,
+      )) return { status: 'stale' };
+      if (!store.getState().clearRemoteTombstones(
+        accountId,
+        snapshot.sampleTombstones,
+        snapshot.sampleSetTombstones,
+      )) return { status: 'stale' };
+      const active = store.getState().reconcileRemote(accountId, samples, sampleSets);
+      return { status: active ? 'synced' : 'stale' };
     },
     async createSet(sampleSet: SampleSet): Promise<SyncedSampleSet> {
       return sampleSetFromApi(await remote.sampleSets.create(sampleSetToApi(sampleSet)), []);

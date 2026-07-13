@@ -877,23 +877,11 @@ export default function SampleSetCreator({ embeddedMode, initialSetId, onNestedO
 
   const handleStatusChange = useCallback((sampleId: string, status: SampleStatus) => {
     updateSampleStatus(sampleId, status);
-    const sample = samples.find(s => s.id === sampleId);
-    if (sample?.compassEntryId) {
-      const compassStatusMap: Record<SampleStatus, string> = {
-        untasted: 'noted',
-        tasted: 'noted',
-        favorite: 'want',
-        ordering: 'buying',
-        ordered: 'incoming',
-        passed: 'pass',
-      };
-      updateCompassEntry(sample.compassEntryId, { status: compassStatusMap[status] as any });
-    }
     if (status === 'ordered') {
       const s = samples.find(x => x.id === sampleId);
       if (s) setLedgerPromptName(s.name);
     }
-  }, [updateSampleStatus, samples, updateCompassEntry]);
+  }, [updateSampleStatus, samples]);
 
   const handleBatchVendorSelect = useCallback((vendorId: string | undefined, vendorName: string) => {
     if (!activeSetId) return;

@@ -25,9 +25,14 @@ import { sampleRepository } from '../samples/sampleRepository';
 export function useCompassSync(isAuthenticated: boolean) {
   const activeAccountId = useAppStore((s) => s.activeAccountId);
   const entries = useTeaCompassStore((s) => s.entries);
+  const samples = useSampleStore((s) => s.samples);
+  const sampleSets = useSampleStore((s) => s.sampleSets);
+  const sampleTombstones = useSampleStore((s) => s.sampleTombstones);
+  const sampleSetTombstones = useSampleStore((s) => s.sampleSetTombstones);
   const hasFetchedRef = useRef(false);
   const prevAuthRef = useRef(isAuthenticated);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sampleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tokenRevision, setTokenRevision] = useState(0);
 
   useEffect(() => {
@@ -60,7 +65,11 @@ export function useCompassSync(isAuthenticated: boolean) {
       hydrateCompassEntries(activeAccountId)
         .then(() => syncCompassEntries(activeAccountId))
         .catch(() => {});
-      sampleRepository.hydrate(activeAccountId).catch(() => {});
+      sampleRepository.hydrate(activeAccountId)
+        .then((result) => {
+          if (result.status === 'hydrated') return sampleRepository.sync(activeAccountId);
+        })
+        .catch(() => {});
     }
   }, [activeAccountId, isAuthenticated, tokenRevision]);
 
@@ -79,12 +88,30 @@ export function useCompassSync(isAuthenticated: boolean) {
     };
   }, [activeAccountId, entries, isAuthenticated]);
 
+  // Existing Samples UI writes only to the store. This durable outbox bridge
+  // observes those unchanged actions and persists them after the same quiet
+  // period as Compass entries.
+  useEffect(() => {
+    if (!isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
+    if (!hasFetchedRef.current) return;
+    if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
+    sampleDebounceRef.current = setTimeout(() => {
+      sampleRepository.sync(activeAccountId).catch(() => {});
+    }, 2000);
+    return () => {
+      if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
+    };
+  }, [activeAccountId, isAuthenticated, samples, sampleSets, sampleTombstones, sampleSetTombstones]);
+
   // Retry sync when the browser transitions back online
   useEffect(() => {
     if (!isAuthenticated || !activeAccountId) return;
 
     const handleOnline = () => {
-      if (hasToken()) syncCompassEntries(activeAccountId).catch(() => {});
+      if (hasToken()) {
+        syncCompassEntries(activeAccountId).catch(() => {});
+        sampleRepository.sync(activeAccountId).catch(() => {});
+      }
     };
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
@@ -103,6 +130,14 @@ export function useCompassSync(isAuthenticated: boolean) {
       if (hasToken() && compassHasPendingWork(activeAccountId)) {
         syncCompassEntries(activeAccountId).catch(() => {});
       }
+      const sampleState = useSampleStore.getState();
+      const samplesPending = sampleState.accountScopeId === activeAccountId && (
+        sampleState.samples.some((sample) => !sample.synced)
+        || sampleState.sampleSets.some((sampleSet) => sampleSet.synced !== true)
+        || sampleState.sampleTombstones.length > 0
+        || sampleState.sampleSetTombstones.length > 0
+      );
+      if (hasToken() && samplesPending) sampleRepository.sync(activeAccountId).catch(() => {});
     };
     const interval = setInterval(retryIfPending, 30_000);
     const handleVisible = () => {

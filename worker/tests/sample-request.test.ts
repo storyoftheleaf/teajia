@@ -51,7 +51,12 @@ class SampleRequestDb {
         }
         return null;
       },
-      all: async () => ({ results: [] }),
+      all: async () => {
+        if (normalized.includes('from tea_sample_sets') && normalized.includes("purpose = 'customer-request'")) {
+          return { results: this.sampleSets.filter((set) => set.account_id === values[0] && set.user_id === values[1]) };
+        }
+        return { results: [] };
+      },
       run: async () => {
         if (normalized.startsWith('insert or ignore into tea_sample_sets')) {
           const [id, accountId, name, purpose, notes, userId] = values;
@@ -180,6 +185,7 @@ describe('customer sample requests', () => {
       account_id: ACCOUNT_ID,
       user_id: USER_ID,
       set_id: db.sampleSets[0].id,
+      created_by: 'customer',
     });
   });
 
@@ -191,6 +197,23 @@ describe('customer sample requests', () => {
     expect(db.sampleSets).toHaveLength(1);
     expect(db.samples).toHaveLength(2);
     expect(db.samples[0].set_id).toBe(db.samples[1].set_id);
+  });
+
+  it('creates the next deterministic batch when prior request sets are closed', async () => {
+    const db = new SampleRequestDb();
+    expect((await requestSample(db)).status).toBe(201);
+    const closedId = String(db.sampleSets[0].id);
+    db.sampleSets[0].notes = JSON.stringify({ kind: 'customer-request', open: false });
+
+    expect((await requestSample(db)).status).toBe(201);
+    expect(db.sampleSets).toHaveLength(2);
+    const openId = String(db.sampleSets[1].id);
+    expect(openId).not.toBe(closedId);
+    expect(db.samples[1].set_id).toBe(openId);
+
+    expect((await requestSample(db)).status).toBe(201);
+    expect(db.sampleSets).toHaveLength(2);
+    expect(db.samples[2].set_id).toBe(openId);
   });
 });
 

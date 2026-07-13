@@ -8,6 +8,8 @@ const UNSCOPED_LEGACY_ACCOUNT = '__legacy_unscoped__';
 interface SampleAccountData {
   samples: TeaSample[];
   sampleSets: SampleSet[];
+  sampleTombstones: string[];
+  sampleSetTombstones: string[];
   activeSampleId: string | null;
   activeSetId: string | null;
 }
@@ -16,10 +18,14 @@ interface SampleStoreState {
   // Data
   samples: TeaSample[];
   sampleSets: SampleSet[];
+  sampleTombstones: string[];
+  sampleSetTombstones: string[];
   accountScopeId: string | null;
   dataByAccount: Record<string, SampleAccountData>;
   switchAccount: (accountId: string | null) => void;
   reconcileRemote: (accountId: string, samples: TeaSample[], sampleSets: SampleSet[]) => boolean;
+  markRemoteCommitted: (accountId: string, sampleIds: string[], sampleSetIds: string[]) => boolean;
+  clearRemoteTombstones: (accountId: string, sampleIds: string[], sampleSetIds: string[]) => boolean;
 
   // Active selections
   activeSampleId: string | null;
@@ -68,6 +74,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
     (set, get) => ({
       samples: [],
       sampleSets: [],
+      sampleTombstones: [],
+      sampleSetTombstones: [],
       accountScopeId: null,
       dataByAccount: {},
       activeSampleId: null,
@@ -80,6 +88,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           dataByAccount[state.accountScopeId] = {
             samples: state.samples,
             sampleSets: state.sampleSets,
+            sampleTombstones: state.sampleTombstones,
+            sampleSetTombstones: state.sampleSetTombstones,
             activeSampleId: state.activeSampleId,
             activeSetId: state.activeSetId,
           };
@@ -91,6 +101,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           dataByAccount[accountId] = dataByAccount[UNSCOPED_LEGACY_ACCOUNT] ?? {
             samples: state.samples,
             sampleSets: state.sampleSets,
+            sampleTombstones: state.sampleTombstones,
+            sampleSetTombstones: state.sampleSetTombstones,
             activeSampleId: state.activeSampleId,
             activeSetId: state.activeSetId,
           };
@@ -100,6 +112,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
         return {
           samples: target?.samples ?? [],
           sampleSets: target?.sampleSets ?? [],
+          sampleTombstones: target?.sampleTombstones ?? [],
+          sampleSetTombstones: target?.sampleSetTombstones ?? [],
           activeSampleId: target?.activeSampleId ?? null,
           activeSetId: target?.activeSetId ?? null,
           accountScopeId: accountId,
@@ -114,19 +128,27 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             ? {
                 samples: state.samples,
                 sampleSets: state.sampleSets,
+                sampleTombstones: state.sampleTombstones,
+                sampleSetTombstones: state.sampleSetTombstones,
                 activeSampleId: state.activeSampleId,
                 activeSetId: state.activeSetId,
               }
             : state.dataByAccount[accountId] ?? {
-                samples: [], sampleSets: [], activeSampleId: null, activeSetId: null,
+                samples: [], sampleSets: [], sampleTombstones: [], sampleSetTombstones: [], activeSampleId: null, activeSetId: null,
               };
-          const samplesById = new Map(remoteSamples.map((sample) => [sample.id, sample]));
+          const deletedSampleIds = new Set(current.sampleTombstones ?? []);
+          const deletedSetIds = new Set(current.sampleSetTombstones ?? []);
+          const samplesById = new Map(remoteSamples
+            .filter((sample) => !deletedSampleIds.has(sample.id) && !deletedSetIds.has(sample.setId))
+            .map((sample) => [sample.id, sample]));
           for (const local of current.samples) {
             if (!local.synced) samplesById.set(local.id, local);
           }
           const samples = Array.from(samplesById.values());
 
-          const setsById = new Map(remoteSets.map((sampleSet) => [sampleSet.id, sampleSet]));
+          const setsById = new Map(remoteSets
+            .filter((sampleSet) => !deletedSetIds.has(sampleSet.id))
+            .map((sampleSet) => [sampleSet.id, sampleSet]));
           const setsWithLocalWork = new Set(samples.filter((sample) => !sample.synced).map((sample) => sample.setId));
           for (const localSet of current.sampleSets) {
             if (localSet.synced !== true || setsWithLocalWork.has(localSet.id)) {
@@ -140,6 +162,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           const nextAccountData: SampleAccountData = {
             samples,
             sampleSets,
+            sampleTombstones: current.sampleTombstones ?? [],
+            sampleSetTombstones: current.sampleSetTombstones ?? [],
             activeSampleId: samples.some((sample) => sample.id === current.activeSampleId) ? current.activeSampleId : null,
             activeSetId: sampleSets.some((sampleSet) => sampleSet.id === current.activeSetId) ? current.activeSetId : null,
           };
@@ -149,6 +173,43 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           return { ...nextAccountData, dataByAccount };
         });
         return appliedToActiveAccount;
+      },
+
+      clearRemoteTombstones: (accountId, sampleIds, sampleSetIds) => {
+        if (get().accountScopeId !== accountId) return false;
+        const sampleIdSet = new Set(sampleIds);
+        const sampleSetIdSet = new Set(sampleSetIds);
+        set((state) => ({
+          sampleTombstones: state.sampleTombstones.filter((id) => !sampleIdSet.has(id)),
+          sampleSetTombstones: state.sampleSetTombstones.filter((id) => !sampleSetIdSet.has(id)),
+          dataByAccount: {
+            ...state.dataByAccount,
+            [accountId]: {
+              samples: state.samples,
+              sampleSets: state.sampleSets,
+              sampleTombstones: state.sampleTombstones.filter((id) => !sampleIdSet.has(id)),
+              sampleSetTombstones: state.sampleSetTombstones.filter((id) => !sampleSetIdSet.has(id)),
+              activeSampleId: state.activeSampleId,
+              activeSetId: state.activeSetId,
+            },
+          },
+        }));
+        return true;
+      },
+
+      markRemoteCommitted: (accountId, sampleIds, sampleSetIds) => {
+        if (get().accountScopeId !== accountId) return false;
+        const sampleIdSet = new Set(sampleIds);
+        const sampleSetIdSet = new Set(sampleSetIds);
+        set((state) => ({
+          samples: state.samples.map((sample) => sampleIdSet.has(sample.id)
+            ? { ...sample, accountId, synced: true }
+            : sample),
+          sampleSets: state.sampleSets.map((sampleSet) => sampleSetIdSet.has(sampleSet.id)
+            ? { ...sampleSet, accountId, synced: true }
+            : sampleSet),
+        }));
+        return true;
       },
 
       addSample: (sample) =>
@@ -166,6 +227,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
       removeSample: (id) =>
         set((state) => {
           const sample = state.samples.find((s) => s.id === id);
+          const tombstone = sample?.accountId === state.accountScopeId ? id : null;
           return {
             samples: state.samples.filter((s) => s.id !== id),
             sampleSets: state.sampleSets.map((ss) =>
@@ -174,6 +236,9 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
                 : ss
             ),
             activeSampleId: state.activeSampleId === id ? null : state.activeSampleId,
+            sampleTombstones: tombstone
+              ? Array.from(new Set([...state.sampleTombstones, tombstone]))
+              : state.sampleTombstones,
           };
         }),
 
@@ -184,7 +249,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
               ? {
                   ...s,
                   tastings: [...s.tastings, tasting],
-                  status: s.status === 'untasted' ? 'tasted' : s.status,
+                  status: ['requested', 'received', 'untasted'].includes(s.status) ? 'tasted' : s.status,
                   updatedAt: new Date().toISOString(),
                   synced: false,
                 }
@@ -224,6 +289,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
         set((state) => {
           const sampleSet = state.sampleSets.find((ss) => ss.id === id);
           const idsToRemove = new Set(sampleSet?.sampleIds || []);
+          const tombstone = sampleSet?.accountId === state.accountScopeId ? id : null;
           return {
             sampleSets: state.sampleSets.filter((ss) => ss.id !== id),
             samples: state.samples.filter((s) => !idsToRemove.has(s.id)),
@@ -232,6 +298,9 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
               state.activeSampleId && idsToRemove.has(state.activeSampleId)
                 ? null
                 : state.activeSampleId,
+            sampleSetTombstones: tombstone
+              ? Array.from(new Set([...state.sampleSetTombstones, tombstone]))
+              : state.sampleSetTombstones,
           };
         }),
 
@@ -302,6 +371,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           dataByAccount[state.accountScopeId] = {
             samples: state.samples,
             sampleSets: state.sampleSets,
+            sampleTombstones: state.sampleTombstones,
+            sampleSetTombstones: state.sampleSetTombstones,
             activeSampleId: state.activeSampleId,
             activeSetId: state.activeSetId,
           };
@@ -309,6 +380,8 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
         return {
           samples: state.samples,
           sampleSets: state.sampleSets,
+          sampleTombstones: state.sampleTombstones,
+          sampleSetTombstones: state.sampleSetTombstones,
           accountScopeId: state.accountScopeId,
           dataByAccount,
         };
@@ -330,6 +403,8 @@ function mergeSamplePersistedState(
   const facade: SampleAccountData = {
     samples: persisted.samples ?? [],
     sampleSets: persisted.sampleSets ?? [],
+    sampleTombstones: persisted.sampleTombstones ?? [],
+    sampleSetTombstones: persisted.sampleSetTombstones ?? [],
     activeSampleId: persisted.activeSampleId ?? null,
     activeSetId: persisted.activeSetId ?? null,
   };
@@ -349,6 +424,8 @@ function mergeSamplePersistedState(
     ...persisted,
     samples: target?.samples ?? [],
     sampleSets: target?.sampleSets ?? [],
+    sampleTombstones: target?.sampleTombstones ?? [],
+    sampleSetTombstones: target?.sampleSetTombstones ?? [],
     activeSampleId: target?.activeSampleId ?? null,
     activeSetId: target?.activeSetId ?? null,
     accountScopeId: activeAccountId,

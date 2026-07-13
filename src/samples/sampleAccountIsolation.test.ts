@@ -11,6 +11,7 @@ describe('sample account isolation', () => {
     useAppStore.setState({ activeAccountId: null });
     useSampleStore.setState({
       samples: [], sampleSets: [], activeSampleId: null, activeSetId: null,
+      sampleTombstones: [], sampleSetTombstones: [],
       accountScopeId: null, dataByAccount: {},
     });
     useSampleCartStore.setState({ items: [], accountScopeId: null, itemsByAccount: {} });
@@ -35,6 +36,20 @@ describe('sample account isolation', () => {
     useSampleStore.getState().switchAccount('acct-b');
     expect(useSampleStore.getState().sampleSets.map((item) => item.id)).toEqual(['set-b']);
     expect(useSampleStore.getState().samples).toEqual([]);
+  });
+
+  it('keeps deletion outboxes scoped to their owning account', () => {
+    useSampleStore.getState().switchAccount('acct-a');
+    useSampleStore.getState().addSampleSet({
+      ...createEmptySampleSet(), id: 'server-set-a', accountId: 'acct-a', synced: true,
+    });
+    useSampleStore.getState().removeSampleSet('server-set-a');
+    expect(useSampleStore.getState().sampleSetTombstones).toEqual(['server-set-a']);
+
+    useSampleStore.getState().switchAccount('acct-b');
+    expect(useSampleStore.getState().sampleSetTombstones).toEqual([]);
+    useSampleStore.getState().switchAccount('acct-a');
+    expect(useSampleStore.getState().sampleSetTombstones).toEqual(['server-set-a']);
   });
 
   it('partitions the sample cart and clears the visible cart when signed out', () => {

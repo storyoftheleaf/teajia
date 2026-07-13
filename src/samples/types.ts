@@ -2,8 +2,8 @@ import type { TastingData } from '../types';
 import type { Currency } from '../admin/types';
 import type { TeaType, TeaForm, VendorDetails } from '../components/TeaCompass/types';
 
-export type SampleStatus = 'untasted' | 'tasted' | 'favorite' | 'ordering' | 'ordered' | 'passed';
-export type SampleSetPurpose = 'sourcing' | 'customer-gifted' | 'event' | 'panel';
+export type SampleStatus = 'requested' | 'received' | 'untasted' | 'tasted' | 'favorite' | 'ordering' | 'ordered' | 'passed';
+export type SampleSetPurpose = 'sourcing' | 'customer-request' | 'customer-gifted' | 'event' | 'panel';
 export type TastingVerdict = 'love' | 'like' | 'neutral' | 'pass';
 
 export interface SampleTasting {
@@ -154,6 +154,8 @@ export const VERDICT_CONFIG: Record<TastingVerdict, { label: string; color: stri
 
 // Status display config
 export const SAMPLE_STATUS_CONFIG: Record<SampleStatus, { label: string; color: string }> = {
+  requested: { label: 'Requested', color: 'bg-tea-surface text-tea-text-sec' },
+  received: { label: 'Received', color: 'bg-tea-accent-sub text-tea-gold' },
   untasted: { label: 'Untasted', color: 'bg-tea-surface text-tea-text-sec' },
   tasted: { label: 'Tasted', color: 'bg-tea-accent-sub text-tea-gold' },
   favorite: { label: 'Favorite', color: 'bg-tea-gold/10 text-tea-gold' },
