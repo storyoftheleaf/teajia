@@ -2,15 +2,17 @@ import React, { useRef } from 'react';
 import { Camera, FileUp } from 'lucide-react';
 import { ImportEvidencePreview } from './ImportEvidencePreview';
 import type { ImportDraft, ImportEvidence } from './importTypes';
+import type { CurateJourney } from '../types';
 
 interface ImportInputProps {
   draft: ImportDraft;
   onChange: React.Dispatch<React.SetStateAction<ImportDraft>>;
   onSubmit: () => void;
   submitRef?: React.RefObject<HTMLButtonElement | null>;
+  journeys: CurateJourney[];
 }
 
-export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSubmit, submitRef }) => {
+export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSubmit, submitRef, journeys }) => {
   const photoRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const addFiles = (files: FileList | null, kind: ImportEvidence['kind']) => {
@@ -28,9 +30,15 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
           onChange={event => { const text = event.target.value; onChange(current => ({ ...current, text })); }}
           rows={8}
           placeholder="Paste WeChat fragments, a vendor list, or invoice lines. One item per line works well."
-          className="w-full resize-y rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-14 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/20"
+          className="w-full resize-y rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/20 lg:text-ui-14"
         />
       </div>
+      <label className="block text-ui-12 text-tea-text-sec">Sourcing run <span className="text-tea-text-dim">· optional</span>
+        <select aria-label="Sourcing run" value={draft.journeyId || ''} onChange={event => onChange(current => ({ ...current, journeyId: event.target.value || null }))} className="mt-2 min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none focus:border-tea-gold lg:text-ui-13">
+          <option value="">No sourcing run</option>
+          {journeys.map(journey => <option key={journey.id} value={journey.id}>{[journey.name, journey.season, journey.year].filter(Boolean).join(' · ')}</option>)}
+        </select>
+      </label>
       <div className="flex flex-wrap gap-2">
         <input ref={photoRef} tabIndex={-1} className="sr-only" type="file" accept="image/*" multiple aria-label="Add photos" onChange={event => addFiles(event.target.files, 'photo')} />
         <button type="button" onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">

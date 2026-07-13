@@ -19,12 +19,32 @@ export interface CurateImportItem {
   confidence: number | null; uncertainty: Record<string, unknown>;
   review_state: 'pending' | 'reviewing' | 'accepted' | 'merged' | 'abandoned';
   compass_entry_id: string | null; reserved_compass_entry_id: string;
+  vendor_group_id?: string | null;
+  original_name?: string | null; english_name?: string | null;
+  pack_weight?: number | null; weight_unit?: 'g' | 'kg' | 'count' | null; pack_count?: number | null;
+  price_amount?: number | null; currency?: string | null; price_basis?: 'per_pack' | 'line_total' | 'unknown';
+  total_quantity_grams?: number | null; total_units?: number | null; line_cost?: number | null; unit_cost?: number | null;
+  blocking_fields?: string[]; manually_corrected_fields?: string[];
+  proposed_compass_entry_id?: string | null; proposed_product_id?: string | null;
 }
 export interface CurateImportBatch {
   id: string; title: string; review_state: 'pending' | 'reviewing' | 'completed' | 'abandoned';
   journey_id: string | null; visit_id: string | null;
+  analysis_state?: 'pending' | 'analyzing' | 'complete' | 'completed' | 'failed' | null;
+  analysis_overview?: string | null; analysis_language?: string | null; analysis_version?: string | null;
+  analysis_model?: string | null; analysis_error?: string | null; completed_at?: string | null;
 }
-export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[] }
+export interface CurateImportVendorGroup {
+  id: string; batch_id: string; position: number; proposed_vendor_name: string | null;
+  resolved_vendor_customer_id: string | null; resolved_vendor_name?: string | null;
+  confidence?: number | null; vendor_confidence?: number | null; uncertainty: Record<string, unknown>;
+}
+export interface CurateImportFinalizeResult {
+  batch: CurateImportBatch;
+  receipts: Array<{ id: string; vendor_group_id?: string; [key: string]: unknown }>;
+  items: CurateImportItem[];
+}
+export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[]; groups: CurateImportVendorGroup[] }
 
 export interface AdminEventPostSession extends Record<string, unknown> {
   id: string | null;
@@ -2065,8 +2085,29 @@ export const api = {
       method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name), 'X-Client-Evidence-Id': clientEvidenceId },
     }),
     getEvidence: (batchId: string, sourceId: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/imports/${batchId}/sources/${sourceId}/content`),
-    updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> =>
-      authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
+    analyze: (id: string): Promise<CurateImportDetail> =>
+      authedFetch(`${API_URL}/api/curate/imports/${id}/analyze`, { method: 'POST', body: JSON.stringify({}), retryTimeouts: true }),
+    updateGroup: (batchId: string, groupId: string, updates: { resolved_vendor_customer_id?: string | null; proposed_vendor_name?: string | null }): Promise<CurateImportVendorGroup> =>
+      authedFetch(`${API_URL}/api/curate/imports/${batchId}/groups/${groupId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
+    createVendorForGroup: (batchId: string, groupId: string, vendor: { name: string; contact?: string | null }): Promise<CurateImportVendorGroup> =>
+      authedFetch(`${API_URL}/api/curate/imports/${batchId}/groups/${groupId}/vendor`, { method: 'POST', body: JSON.stringify(vendor), retryTimeouts: true }),
+    setJourney: (id: string, journeyId: string | null): Promise<CurateImportDetail> =>
+      authedFetch(`${API_URL}/api/curate/imports/${id}/journey`, { method: 'PUT', body: JSON.stringify({ journey_id: journeyId }), retryTimeouts: true }),
+    finalize: (id: string, idempotencyKey: string): Promise<CurateImportFinalizeResult> =>
+      authedFetch(`${API_URL}/api/curate/imports/${id}/finalize`, { method: 'POST', body: JSON.stringify({ idempotency_key: idempotencyKey }), retryTimeouts: true }),
+    updateItem: (batchId: string, itemId: string, updates: Partial<CurateImportItem>): Promise<CurateImportItem> => {
+      const richFields: Array<[keyof CurateImportItem, string]> = [
+        ['english_name', 'englishName'], ['original_name', 'originalName'], ['pack_weight', 'packWeight'],
+        ['weight_unit', 'weightUnit'], ['pack_count', 'packCount'], ['price_amount', 'priceAmount'],
+        ['currency', 'currency'], ['price_basis', 'priceBasis'], ['total_quantity_grams', 'totalQuantityGrams'],
+        ['total_units', 'totalUnits'], ['line_cost', 'lineCost'], ['unit_cost', 'unitCost'], ['blocking_fields', 'blockingFields'],
+      ];
+      const payload: Record<string, unknown> = { ...updates };
+      const parsedData: Record<string, unknown> = { ...(updates.parsed_data || {}) };
+      for (const [clientKey, serverKey] of richFields) if (clientKey in updates) { parsedData[serverKey] = updates[clientKey]; delete payload[clientKey]; }
+      if (Object.keys(parsedData).length) payload.parsed_data = parsedData;
+      return authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}`, { method: 'PUT', body: JSON.stringify(payload), retryTimeouts: true });
+    },
     acceptItem: (batchId: string, itemId: string): Promise<CurateImportItem & { already_accepted?: boolean }> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/items/${itemId}/accept`, { method: 'POST', retryTimeouts: true }),
     mergeItem: (batchId: string, itemId: string, compassEntryId: string): Promise<CurateImportItem> =>

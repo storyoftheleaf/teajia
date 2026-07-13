@@ -7,6 +7,7 @@ export interface ImportDraft {
   text: string;
   evidence: ImportEvidence[];
   sourceKind: CurateImportSourceKind;
+  journeyId: string | null;
 }
 export interface ImportPanelState {
   phase: ImportPhase;
