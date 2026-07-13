@@ -2,7 +2,7 @@
 
 **Status:** Approved direction, ready for implementation planning
 **Date:** 2026-07-13
-**Surface:** Curate (`/admin/compass`), with Source as the primary redesign target
+**Surface:** Curate (`/admin/compass`) across Source, Library, Ledger header consistency, Sample list, Sample batches, and member Sample history
 **Primary context:** Mobile sourcing first, desktop sourcing second
 
 ## 1. Purpose
@@ -22,6 +22,8 @@ This redesign improves the physical interface without reducing its capability. I
 7. **Editorial form, not dashboard.** Use whitespace, baselines, and dividers before cards. Do not introduce nested cards, KPI blocks, large bordered panels, or decorative pills.
 8. **Bronze is rare.** Bronze marks selection, focus, and the primary commitment action. It is not used to decorate every group.
 9. **Behavior is preserved.** Capture remains order-independent. Autosave, incomplete-entry handling, vendor selection, run management, journey context, photographs, pricing, notes, Buy, Done, and Sample retain their existing behavior.
+10. **The current product direction wins.** Co-Tasting and cross-account review aggregation are removed from Curate because the canonical direction explicitly killed those social flows.
+11. **Integrity precedes presentation.** Account isolation, honest hydration state, sample persistence, and sample-to-Library linkage must be repaired before the redesigned surfaces depend on them.
 
 ## 3. Complete preservation inventory
 
@@ -201,7 +203,101 @@ The implementation should preserve behavior by refining existing components rath
 - `src/components/TeaCompass/CaptureActionFooter.tsx`: mobile navigation clearance, desktop sheet alignment, readable state hierarchy.
 - `src/styles/card-utilities.css`: reusable Curate field, section, and action styles only when repetition justifies them.
 
-No state store, API, worker, route, or database change is expected.
+## 7A. Library design
+
+Library is the committed encounter archive and decision workspace between Source and Inventory. It is not a passive gallery and must preserve its current retrieval, tasting, decision, sample, sharing, completion, and Inventory functions.
+
+### Visible structure
+
+- Search remains first.
+- All, To taste, and Selected remain the three primary lenses.
+- Filters, sort, and List/Photos remain directly visible.
+- Active filters are named and individually removable rather than summarized only as a count.
+- Incoming shares remain visible with accept and decline actions.
+- Co-Tasting is removed from both responsive render paths.
+
+### Filters
+
+All current filter dimensions remain. The existing sheet groups them as:
+
+1. Encounter: journey, vendor, place, date.
+2. Tea: category, type, origin, year, price, photos.
+3. State: sourcing decision, tasting verdict, possession.
+4. Samples and Inventory: sample lifecycle and physical purpose.
+5. Completeness: missing name, price, type, origin, or notes.
+
+### Entry rows
+
+- Each entry uses one semantic disclosure control followed by a separate action strip. Interactive elements are never nested inside another button.
+- The collapsed row shows identity, origin or vendor, year/type, price when known, possession, sourcing decision, tasting verdict, and sample lifecycle when relevant.
+- Mobile expands the row inline.
+- Desktop starts as a coherent full-width list or grid. Selecting an entry creates one master-detail layout with the complete action set in the detail panel rather than duplicating actions between rail and panel.
+- Every action is at least a 44px target on mobile.
+- Buy opens the existing acquisition or receipt flow. It is never a visible no-op.
+- Share is available from Library detail without reopening Source.
+- Sample language reads `Add to sample list` and `In sample list`.
+
+### Loading and failure
+
+- Library distinguishes hydrating, empty, offline with local data, and failed-to-load states.
+- A failed hydration never renders the empty-library message.
+- Retry is visible for remote failures.
+
+## 7B. Samples design and lifecycle
+
+The interface distinguishes four independent concepts:
+
+1. Sourcing decision.
+2. Tasting verdict.
+3. Sample lifecycle: requested, received, tasted.
+4. Physical possession in Inventory.
+
+These states are never translated into one another implicitly.
+
+### Sample list
+
+`Sample list` is the temporary vendor-grouped working request. It preserves:
+
+- Add or remove from Library and relevant product surfaces.
+- Gram presets and custom grams.
+- Vendor grouping.
+- Print and WhatsApp output.
+- Save as sample batch.
+
+Saving the list creates an account-scoped server-backed sample set and portions, links every source Compass entry, sets the lifecycle to requested, and makes the entries immediately appear under Library's To taste lens. The local list clears only after the server accepts the batch.
+
+### Sample batches
+
+`Sample batches` is the persistent operational record for sourcing, gifts, events, and panels. It preserves batch naming, vendor, purpose, notes, labels, filtering, tasting, status, archive, delete, import from Compass, quick add, and bulk actions.
+
+- Sets and portions are hydrated from and written to the existing D1 APIs.
+- Existing local records are reconciled without duplication and remain available during migration.
+- QR labels resolve from another device.
+- Creating or editing a batch does not create an empty untitled batch until the user deliberately starts one.
+- Operational sample status does not overwrite sourcing decision or tasting verdict.
+
+### Member Samples
+
+Member Sample history becomes actionable without becoming a new social surface:
+
+- Each row opens the existing `/s/:id` detail.
+- Requested, Received, and Tasted are visible.
+- Received samples offer `Taste / add to Journal` when a linked tea is available.
+- Empty, loading, and error states are distinct.
+
+### Sample request repair
+
+The customer sample-request handler must always create or attach to a valid account-scoped set before inserting a portion. Worker tests cover the schema contract.
+
+## 7C. Account isolation
+
+- Committed Compass entries are partitioned by active account in local persistence.
+- Switching accounts immediately clears the prior account's committed view, restores the selected account's cached entries, and hydrates that account from the server.
+- Unsynced entries can never be submitted under a different active account.
+- Sample list, sample sets, and sample portions use account-partitioned caches.
+- A signed-out or missing-account state does not inherit the last account's data.
+
+The visual redesign itself remains presentation-led, but the verified account-isolation and sample-persistence defects require focused store, API, Worker, and test changes. No unrelated schema or routing work is included.
 
 ## 8. Responsive and accessibility requirements
 
@@ -236,7 +332,9 @@ No state store, API, worker, route, or database change is expected.
 - No backend, schema, or API work.
 - No redesign of Library or Ledger content beyond shared header consistency unless required to prevent a regression.
 - No change to sourcing decision semantics.
-- No change to autosave, commit, purchasing, sampling, import, or sync behavior.
+- No change to order-independent capture, autosave, commit, or Import semantics. Samples changes are limited to the verified account, persistence, lifecycle, language, and accessibility repairs defined above.
+- No social Co-Tasting or cross-account review aggregation.
+- No algorithmic recommendations, ratings aggregation, or engagement mechanics.
 
 ## 11. Acceptance criteria
 
@@ -254,4 +352,11 @@ The redesign is complete when:
 10. `npm run lint`, `npm run lint:colors`, and relevant component tests pass.
 11. `npm run test:mobile` passes with the development server running on port 7777.
 12. Desktop and mobile screenshots of `/admin/compass` show consistent hierarchy, spacing, and typography in the actual authenticated interface.
-
+13. Switching accounts cannot reveal or sync another account's Curate or Samples data.
+14. Saving a sample list creates a server-backed batch and immediately populates Library's To taste lens.
+15. A printed sample QR resolves from a second browser/device through D1.
+16. The sample-request Worker path satisfies the non-null set relationship.
+17. Library distinguishes loading, empty, and error states.
+18. Buy performs a real acquisition action or is replaced by an accurate existing action.
+19. Member Sample rows open detail and provide a tasting/journal continuation where applicable.
+20. Co-Tasting is absent from Curate and no cross-account review aggregation is introduced.
