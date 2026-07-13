@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { api, ApiError, type CurateImportDetail, type CurateImportFinalizeResult, type CurateImportItem, type CurateImportItemUpdate, type CurateImportSourceKind, type LookupState } from '../../../lib/api';
 import { ImportInput } from './ImportInput';
 import { ImportBatchReview } from './ImportBatchReview';
@@ -14,6 +14,8 @@ import { failedImportSourceIds, unmatchedImportEvidence } from './importEvidence
 import { ImportEvidenceCard } from './ImportEvidenceCard';
 import type { ImportHoldingOption, ImportIdentityOption } from './ImportItemRow';
 import { ImportCompletionSummary } from './ImportCompletionSummary';
+import { ImportFolioHeader } from './ImportFolioHeader';
+import { folioPhase, folioPhaseContext } from './importFolioPresentation';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -82,6 +84,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const draftDirty = state.phase !== 'review' && (draft.text.trim().length > 0 || draft.journeyId !== null || draft.evidence.length > 0);
   const persistedEvidenceSources = state.detail?.sources.filter(source => source.r2_object_key) ?? [];
   const unmatchedLocalEvidence = unmatchedImportEvidence(draft.evidence, state.detail?.sources ?? []);
+  const currentFolioPhase = folioPhase({ phase: state.phase, completion: Boolean(completion) });
+  const folioContext = folioPhaseContext(currentFolioPhase, normalizedDetail, completion);
 
   const preserveDraft = () => saveImportDraft(accountId, {
     text: draft.text,
@@ -319,13 +323,11 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   };
 
   return (
-    <div ref={overlayRef} className="fixed inset-0 z-modal flex bg-tea-bg/80" role="presentation">
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="curate-import-title" className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-tea-border bg-tea-elevated text-tea-text">
-        <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-tea-border px-4">
-          <button ref={closeRef} type="button" disabled={Boolean(busyId)} onClick={requestClose} aria-label="Close Import" className="tap-target flex h-8 w-8 items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-50"><X size={18} /></button>
-          <div><h2 id="curate-import-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Import into Curate</h2><p className="text-ui-11 text-tea-text-dim">Capture now. Decide later.</p></div>
-        </header>
-        <div className="pb-nav flex-1 overflow-y-auto px-4 py-5 sm:px-6" aria-live="polite">
+    <div ref={overlayRef} data-testid="import-folio-shell" className="fixed inset-0 sidebar-inset z-modal bg-tea-bg text-tea-text" role="presentation">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="curate-import-title" className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-tea-bg">
+        <ImportFolioHeader phase={currentFolioPhase} context={folioContext} busy={Boolean(busyId)} closeRef={closeRef} onClose={requestClose} />
+        <div className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
+          <div className="pb-nav mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 lg:py-10">
           {confirmClose && <div role="group" aria-label="Keep import draft" className="mb-4 rounded-md border border-tea-border bg-tea-surface p-4">
             <h3 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Keep import draft?</h3>
             <p className="mt-2 text-ui-13 leading-relaxed text-tea-text-sec">Your pasted text, sourcing run, and attachment names are saved for this account. Files will need to be reselected.</p>
@@ -345,6 +347,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           {state.phase === 'review' && normalizedDetail && (completion
             ? <ImportCompletionSummary detail={normalizedDetail} result={completion} onClose={onClose} onNew={onNew} />
             : <ImportBatchReview detail={normalizedDetail} journeyLookup={journeyLookup} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryJourneys={loadJourneys} onRetryVendors={loadVendors} onRetryIdentities={loadIdentities} onRetryHoldings={loadHoldings} onUpdate={updateItem} onSetJourney={setJourney} onCreateJourney={createJourney} onChangeVendor={changeVendor} onCreateVendor={createVendor} onFinalize={finalize} onRetryAnalysis={retryAnalysis} onDefer={onClose} onNew={onNew} onAbandon={abandon} />)}
+          </div>
         </div>
       </div>
     </div>

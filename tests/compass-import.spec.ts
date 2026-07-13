@@ -320,19 +320,35 @@ test.describe('Curate Import panel', () => {
   });
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
-  test('opens as a temporary modal, traps focus, and restores the unchanged tea draft', async ({ page }) => {
+  test('opens as a full-screen Curate workspace and preserves capture state', async ({ page }) => {
     await openCompass(page);
     const name = page.getByRole('textbox', { name: 'Tea name…' });
     await name.fill('Field tea');
     const trigger = page.getByRole('tab', { name: 'Import' }).first();
     await trigger.click();
-    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
+
+    const shell = page.getByTestId('import-folio-shell');
+    await expect(shell).toBeVisible();
+    await expect(shell).toHaveClass(/fixed/);
+    await expect(shell).toHaveClass(/inset-0/);
+    await expect(shell).toHaveClass(/sidebar-inset/);
+    await expect(shell).toHaveClass(/z-modal/);
+    await expect(shell).toHaveClass(/bg-tea-bg/);
+    await expect(shell).not.toHaveClass(/max-w-2xl|ml-auto|border-l/);
+
+    const dialog = page.getByRole('dialog', { name: 'Import' });
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    const progress = page.getByRole('navigation', { name: 'Import progress' });
+    await expect(progress).toContainText('EvidenceReviewAdded');
+    await expect(progress).toHaveAttribute('data-current-phase', 'evidence');
+    await expect(progress.locator('[aria-current="step"]')).toHaveText('Evidence');
+    await expect(page.getByText('Add vendor evidence', { exact: true })).toBeVisible();
+    await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
     await page.keyboard.press('Shift+Tab');
     await expect(page.locator('button').filter({ hasText: 'Add files or invoices' })).toBeFocused();
     await expect(page.getByRole('button', { name: 'Add photos' })).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Add files or invoices' })).toHaveCount(1);
     await expect(page.locator('input[type="file"][aria-hidden="true"]')).toHaveCount(2);
-    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const compassSurface = dialog.locator('xpath=../..');
     expect(await compassSurface.locator(':scope > *').filter({ hasNot: dialog }).evaluateAll(elements => elements.every(element => element.getAttribute('aria-hidden') === 'true' && element.hasAttribute('inert')))).toBe(true);
     await page.getByRole('button', { name: 'Close Import' }).click();
@@ -680,6 +696,10 @@ test.describe('analyzed inventory import review', () => {
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await expect(dialog).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Import progress' })).toHaveAttribute('data-current-phase', 'review');
+    await expect(page.getByRole('navigation', { name: 'Import progress' }).locator('[aria-current="step"]')).toHaveText('Review');
+    await expect(page.getByText('Review 10 teas from 2 vendors', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('import-folio-shell').locator('header').getByText('1 need review', { exact: true })).toBeVisible();
     await expect(dialog.locator('select[aria-label="Sourcing run"]')).toHaveCount(0);
     await expect(dialog.getByText('No sourcing run')).toBeVisible();
     await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
