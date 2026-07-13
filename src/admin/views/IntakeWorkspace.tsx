@@ -15,6 +15,7 @@ import {
   autoMap, loadRememberedMapping, rememberMapping, rowToStaged,
   stagedToProduct, isReadyItem, extractedToStaged,
 } from '../lib/intakeMapping';
+import { assertSupportedIntakeFile, parseXlsxIntake } from '../lib/xlsxIntake';
 
 interface SheetSource {
   id: string;
@@ -127,15 +128,16 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
         complete: (res: any) => ingestSheet(file.name, res.data),
         error: () => showToast(`Could not parse ${file.name}`, 'error'),
       });
-    } else if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+    } else if (lower.endsWith('.xlsx')) {
       try {
-        const XLSX = await import('xlsx');
-        const wb = XLSX.read(await file.arrayBuffer());
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: '' });
+        const rows = await parseXlsxIntake(await file.arrayBuffer());
         ingestSheet(file.name, rows);
-      } catch {
-        showToast(`Could not read ${file.name}`, 'error');
+      } catch (error) {
+        showToast(error instanceof Error ? `${file.name}: ${error.message}` : `Could not read ${file.name}`, 'error');
+      }
+    } else if (lower.endsWith('.xls')) {
+      try { assertSupportedIntakeFile(file.name); } catch (error) {
+        showToast(error instanceof Error ? error.message : `Unsupported file: ${file.name}`, 'error');
       }
     } else if (file.type.startsWith('image/')) {
       const src: ImageSource = { id: nextId(), kind: 'image', name: file.name, status: 'extracting' };
@@ -317,7 +319,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           <div className="relative flex flex-col items-center gap-2 text-tea-text">
             <Inbox size={40} strokeWidth={1.25} className="text-tea-gold" />
             <span className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Drop to load</span>
-            <span className="text-ui-12 text-tea-text-sec">Spreadsheets, Excel & photos</span>
+            <span className="text-ui-12 text-tea-text-sec">CSV, .xlsx & photos</span>
           </div>
         </div>
       )}
@@ -331,7 +333,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           </div>
           <h1 className={`${TYPOGRAPHY_CLASSES.h2} text-tea-text`}>Intake Workspace</h1>
           <p className="text-ui-13 text-tea-text-sec mt-1 max-w-xl">
-            Load any spreadsheet, Excel file, or item photo. Map columns once, then sort each item
+            Load a CSV or .xlsx spreadsheet, or an item photo. Map columns once, then sort each item
             into your <span className="text-tea-text">Shop</span> list (available for sale) or your{' '}
             <span className="text-tea-text">Personal</span> list (your own purchases).
           </p>
@@ -409,7 +411,7 @@ export const IntakeWorkspace: React.FC<{ onRefresh?: () => void; rates?: Rate[] 
           )}
 
           <input
-            ref={fileInputRef} type="file" multiple accept=".csv,.xlsx,.xls,image/*"
+            ref={fileInputRef} type="file" multiple accept=".csv,.xlsx,image/*"
             className="hidden"
             onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
           />
@@ -481,7 +483,7 @@ const HeroDropzone: React.FC<{ onBrowse: () => void; dragging: boolean }> = ({ o
     </div>
     <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text mb-1.5`}>Drag your files in</h2>
     <p className="text-ui-13 text-tea-text-sec max-w-sm mb-5">
-      Drop a spreadsheet of an order, an Excel export, or a photo of an item — paste a screenshot
+      Drop a CSV or .xlsx export, or a photo of an item — paste a screenshot
       too. Anything you load is staged for review before it touches inventory.
     </p>
     <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-tea-gold text-tea-bg text-ui-13 font-semibold">
@@ -489,7 +491,7 @@ const HeroDropzone: React.FC<{ onBrowse: () => void; dragging: boolean }> = ({ o
     </span>
     <div className="flex items-center gap-2 mt-6">
       <FormatChip icon={<FileSpreadsheet size={12} />} label="CSV" />
-      <FormatChip icon={<FileSpreadsheet size={12} />} label="Excel" />
+      <FormatChip icon={<FileSpreadsheet size={12} />} label=".xlsx" />
       <FormatChip icon={<ImageIcon size={12} />} label="Photos" />
     </div>
   </button>
