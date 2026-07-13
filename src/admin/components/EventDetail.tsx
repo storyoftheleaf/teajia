@@ -328,18 +328,28 @@ export const EventDetail: React.FC = () => {
   const [draftArticle, setDraftArticle] = useState<DbArticle | null>(null);
   const [drafting, setDrafting] = useState(false);
   const [draftExisting, setDraftExisting] = useState(false);
+  const draftEventIdRef = useRef(id);
+
+  useEffect(() => {
+    draftEventIdRef.current = id;
+    setDraftArticle(null);
+    setDraftExisting(false);
+    setDrafting(false);
+  }, [id]);
 
   const handleCreateArticleDraft = async () => {
     if (!id) return;
+    const eventId = id;
     setDrafting(true);
     try {
-      const result = await api.events.createArticleDraft(id);
+      const result = await api.events.createArticleDraft(eventId);
+      if (draftEventIdRef.current !== eventId) return;
       setDraftExisting(result.existing);
       setDraftArticle(result.article);
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : 'Could not create the photo essay draft.', 'error');
     } finally {
-      setDrafting(false);
+      if (draftEventIdRef.current === eventId) setDrafting(false);
     }
   };
 
@@ -806,12 +816,16 @@ export const EventDetail: React.FC = () => {
                   className="tap-target inline-flex items-center gap-1.5 rounded-md bg-tea-gold px-3 py-2 text-ui-12 font-medium text-tea-bg transition-colors hover:bg-tea-gold/90 disabled:opacity-50"
                 >
                   {drafting ? <Loader2 size={13} className="animate-spin" /> : <Edit3 size={13} />}
-                  {draftExisting ? 'Open existing draft' : 'Create photo essay draft'}
+                  {draftExisting
+                    ? draftArticle?.status === 'draft' ? 'Open existing draft' : 'Open existing article'
+                    : 'Create photo essay draft'}
                 </button>
               </div>
               {draftExisting && (
                 <p className="mt-3 border-t border-tea-border pt-3 text-ui-12 text-tea-text-sec">
-                  An article draft already exists for this event. Open existing draft.
+                  {draftArticle?.status === 'draft'
+                    ? 'An article draft already exists for this event. Open existing draft.'
+                    : 'An article already exists for this event. Open existing article.'}
                 </p>
               )}
             </section>
