@@ -879,6 +879,62 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
   return claims;
 }
 
+export interface SampleSetApiWrite {
+  id?: string;
+  name?: string;
+  source_id?: string;
+  source_name?: string;
+  purpose?: string;
+  notes?: string;
+  shared_with?: string[];
+  panel_account_ids?: string[];
+}
+
+export interface SampleSetApiRow extends SampleSetApiWrite {
+  id: string;
+  account_id: string;
+  name: string;
+  purpose: string;
+  created_at: string;
+  updated_at: string;
+  user_id?: string;
+}
+
+export interface SampleApiWrite {
+  id?: string;
+  name?: string;
+  chinese_name?: string;
+  type?: string;
+  form?: string;
+  year?: number;
+  origin_region?: string;
+  source_id?: string;
+  source_name?: string;
+  source_contact?: Record<string, unknown>;
+  product_id?: string;
+  compass_entry_id?: string;
+  set_id?: string;
+  status?: string;
+  grams?: number;
+  notes?: string;
+  photos?: string[];
+  tea_key?: string;
+  created_by?: string;
+}
+
+export interface SampleApiRow extends SampleApiWrite {
+  id: string;
+  account_id: string;
+  name: string;
+  set_id: string;
+  status: string;
+  grams: number;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  user_id?: string;
+}
+
 export const api = {
   incidents: {
     // Keep browser traffic on the public same-origin proxy. A direct Worker
@@ -2254,33 +2310,33 @@ export const api = {
       return handleResponse(res);
     },
     // Customer: request a sample
-    request: async (data: { product_id: string; quantity_grams: number; note?: string; account_id?: string }): Promise<{ id: string; status: string }> => {
+    request: async (data: { product_id: string; quantity_grams: number; note?: string; account_id?: string }): Promise<{ id: string; set_id: string; status: string }> => {
       return authedFetch(`${API_URL}/api/samples/request`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
     // Admin: list all samples
-    list: async (params?: { setId?: string; status?: string }) => {
+    list: async (params?: { setId?: string; status?: string }): Promise<{ samples: SampleApiRow[] }> => {
       const qp = new URLSearchParams();
       if (params?.setId) qp.set('setId', params.setId);
       if (params?.status) qp.set('status', params.status);
       const qs = qp.toString();
       return authedFetch(`${API_URL}/api/admin/samples${qs ? `?${qs}` : ''}`)
     },
-    create: async (sample: Record<string, any>) => {
+    create: async (sample: SampleApiWrite): Promise<SampleApiRow> => {
       return authedFetch(`${API_URL}/api/admin/samples`, {
         method: 'POST',
         body: JSON.stringify(sample),
       });
     },
-    update: async (id: string, updates: Record<string, any>) => {
+    update: async (id: string, updates: Partial<SampleApiWrite>): Promise<SampleApiRow> => {
       return authedFetch(`${API_URL}/api/admin/samples/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
       });
     },
-    remove: async (id: string) => {
+    remove: async (id: string): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/admin/samples/${id}`, {
         method: 'DELETE',
       });
@@ -3106,22 +3162,22 @@ export const api = {
   },
 
   sampleSets: {
-    list: async () => {
+    list: async (): Promise<{ sets: SampleSetApiRow[] }> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets`)
     },
-    create: async (set: Record<string, any>) => {
+    create: async (set: SampleSetApiWrite): Promise<SampleSetApiRow> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets`, {
         method: 'POST',
         body: JSON.stringify(set),
       });
     },
-    update: async (id: string, updates: Record<string, any>) => {
+    update: async (id: string, updates: Partial<SampleSetApiWrite>): Promise<SampleSetApiRow> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
       });
     },
-    remove: async (id: string) => {
+    remove: async (id: string): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets/${id}`, {
         method: 'DELETE',
       });

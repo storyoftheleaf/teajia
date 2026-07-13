@@ -20,6 +20,8 @@ export interface SampleTasting {
 
 export interface TeaSample {
   id: string;
+  /** Owning tenant once persisted; absent only for legacy/offline drafts. */
+  accountId?: string;
 
   // Identity (printed on label — NO source info)
   name: string;
@@ -74,6 +76,8 @@ export interface TeaSample {
 
 export interface SampleSet {
   id: string;
+  /** Owning tenant once persisted; absent only for legacy/offline drafts. */
+  accountId?: string;
   name: string;               // "March 2026 — Wuyi trip"
   sourceId?: string;
   sourceName?: string;
@@ -87,6 +91,7 @@ export interface SampleSet {
   customerName?: string;    // Denormalized customer name
   createdAt: string;
   updatedAt: string;
+  synced?: boolean;
 }
 
 // Helper to create empty sample
@@ -132,6 +137,7 @@ export function createEmptySampleSet(defaults?: {
     purpose: defaults?.purpose || 'sourcing',
     createdAt: now,
     updatedAt: now,
+    synced: false,
   };
 }
 

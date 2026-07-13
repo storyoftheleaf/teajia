@@ -12679,13 +12679,38 @@ const handleRequestSample: Handler = async (request, env) => {
   const sampleName = `${product.given_name || product.product_name || 'Tea'} sample`;
   const metaNotes = JSON.stringify({ quantity_grams, note: note || '', requested_by_user_id: claims.sub });
 
-  const id = crypto.randomUUID();
-  await env.DB.prepare(
-    `INSERT INTO tea_samples (id, account_id, name, product_id, status, grams, notes, user_id, created_by)
-     VALUES (?, ?, ?, ?, 'requested', ?, ?, ?, ?)`
-  ).bind(id, accountId, sampleName, product_id, quantity_grams, metaNotes, claims.sub, claims.email || 'customer').run();
+  // A request is an operational sample portion, so it must belong to a set.
+  // Reuse the requester's open set when one exists. The deterministic fallback
+  // id plus INSERT OR IGNORE makes simultaneous first requests converge on the
+  // same owned set without relying on a global or cross-tenant bucket.
+  const existingRequestSet = await env.DB.prepare(
+    `SELECT id FROM tea_sample_sets
+     WHERE account_id = ? AND user_id = ? AND purpose = 'customer-request'
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(accountId, claims.sub).first() as { id?: string } | null;
+  const requestSetDigest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(`${accountId}\u0000${claims.sub}\u0000customer-request`),
+  );
+  const deterministicRequestSetId = `customer-request:${Array.from(new Uint8Array(requestSetDigest))
+    .map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 32)}`;
+  const setId = existingRequestSet?.id || deterministicRequestSetId;
+  const setName = `Sample requests — ${claims.email || 'customer'}`;
+  const setNotes = JSON.stringify({ kind: 'customer-request', open: true, requested_by_user_id: claims.sub });
 
-  return json({ id, status: 'requested' }, 201);
+  const id = crypto.randomUUID();
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO tea_sample_sets (id, account_id, name, purpose, notes, user_id)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).bind(setId, accountId, setName, 'customer-request', setNotes, claims.sub),
+    env.DB.prepare(
+      `INSERT INTO tea_samples (id, account_id, name, product_id, set_id, status, grams, notes, user_id, created_by)
+       VALUES (?, ?, ?, ?, ?, 'requested', ?, ?, ?, ?)`
+    ).bind(id, accountId, sampleName, product_id, setId, quantity_grams, metaNotes, claims.sub, claims.email || 'customer'),
+  ]);
+
+  return json({ id, set_id: setId, status: 'requested' }, 201);
 };
 
 // Admin: GET /api/admin/samples

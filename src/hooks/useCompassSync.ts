@@ -5,6 +5,7 @@ import { AUTH_TOKEN_CHANGED_EVENT, hasToken, isTokenScopedToAccount } from '../l
 import { useAppStore } from '../lib/store';
 import { useSampleStore } from '../samples/sampleStore';
 import { useSampleCartStore } from '../samples/sampleCartStore';
+import { sampleRepository } from '../samples/sampleRepository';
 
 /**
  * Syncs the Tea Compass entries between local Zustand store and D1.
@@ -59,6 +60,7 @@ export function useCompassSync(isAuthenticated: boolean) {
       hydrateCompassEntries(activeAccountId)
         .then(() => syncCompassEntries(activeAccountId))
         .catch(() => {});
+      sampleRepository.hydrate(activeAccountId).catch(() => {});
     }
   }, [activeAccountId, isAuthenticated, tokenRevision]);
 

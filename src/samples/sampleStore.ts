@@ -19,6 +19,7 @@ interface SampleStoreState {
   accountScopeId: string | null;
   dataByAccount: Record<string, SampleAccountData>;
   switchAccount: (accountId: string | null) => void;
+  reconcileRemote: (accountId: string, samples: TeaSample[], sampleSets: SampleSet[]) => boolean;
 
   // Active selections
   activeSampleId: string | null;
@@ -106,6 +107,50 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
         };
       }),
 
+      reconcileRemote: (accountId, remoteSamples, remoteSets) => {
+        let appliedToActiveAccount = false;
+        set((state) => {
+          const current = state.accountScopeId === accountId
+            ? {
+                samples: state.samples,
+                sampleSets: state.sampleSets,
+                activeSampleId: state.activeSampleId,
+                activeSetId: state.activeSetId,
+              }
+            : state.dataByAccount[accountId] ?? {
+                samples: [], sampleSets: [], activeSampleId: null, activeSetId: null,
+              };
+          const samplesById = new Map(remoteSamples.map((sample) => [sample.id, sample]));
+          for (const local of current.samples) {
+            if (!local.synced) samplesById.set(local.id, local);
+          }
+          const samples = Array.from(samplesById.values());
+
+          const setsById = new Map(remoteSets.map((sampleSet) => [sampleSet.id, sampleSet]));
+          const setsWithLocalWork = new Set(samples.filter((sample) => !sample.synced).map((sample) => sample.setId));
+          for (const localSet of current.sampleSets) {
+            if (localSet.synced !== true || setsWithLocalWork.has(localSet.id)) {
+              setsById.set(localSet.id, localSet);
+            }
+          }
+          const sampleSets = Array.from(setsById.values()).map((sampleSet) => ({
+            ...sampleSet,
+            sampleIds: samples.filter((sample) => sample.setId === sampleSet.id).map((sample) => sample.id),
+          }));
+          const nextAccountData: SampleAccountData = {
+            samples,
+            sampleSets,
+            activeSampleId: samples.some((sample) => sample.id === current.activeSampleId) ? current.activeSampleId : null,
+            activeSetId: sampleSets.some((sampleSet) => sampleSet.id === current.activeSetId) ? current.activeSetId : null,
+          };
+          const dataByAccount = { ...state.dataByAccount, [accountId]: nextAccountData };
+          if (state.accountScopeId !== accountId) return { dataByAccount };
+          appliedToActiveAccount = true;
+          return { ...nextAccountData, dataByAccount };
+        });
+        return appliedToActiveAccount;
+      },
+
       addSample: (sample) =>
         set((state) => ({
           samples: [sample, ...state.samples],
@@ -165,13 +210,13 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
 
       addSampleSet: (sampleSet) =>
         set((state) => ({
-          sampleSets: [sampleSet, ...state.sampleSets],
+          sampleSets: [{ ...sampleSet, synced: sampleSet.synced ?? false }, ...state.sampleSets],
         })),
 
       updateSampleSet: (id, updates) =>
         set((state) => ({
           sampleSets: state.sampleSets.map((ss) =>
-            ss.id === id ? { ...ss, ...updates, updatedAt: new Date().toISOString() } : ss
+            ss.id === id ? { ...ss, ...updates, updatedAt: new Date().toISOString(), synced: false } : ss
           ),
         })),
 
@@ -193,7 +238,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
       archiveSampleSet: (id) => {
         set((state) => ({
           sampleSets: state.sampleSets.map((ss) =>
-            ss.id === id ? { ...ss, archived: true, updatedAt: new Date().toISOString() } : ss
+            ss.id === id ? { ...ss, archived: true, updatedAt: new Date().toISOString(), synced: false } : ss
           ),
           activeSetId: state.activeSetId === id ? null : state.activeSetId,
         }));
@@ -227,7 +272,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             samples: [...newSamples, ...state.samples],
             sampleSets: state.sampleSets.map((ss) =>
               ss.id === setId
-                ? { ...ss, sampleIds: [...ss.sampleIds, ...newSamples.map((s) => s.id)], updatedAt: now }
+                ? { ...ss, sampleIds: [...ss.sampleIds, ...newSamples.map((s) => s.id)], updatedAt: now, synced: false }
                 : ss
             ),
           };
