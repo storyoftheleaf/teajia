@@ -1549,7 +1549,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             value={entry.name}
             onChange={(val) => update({ name: val })}
             suggestions={allNameSuggestions}
-            placeholder={entry.type ? `${entry.type} name (e.g., Tieguanyin, Bingdao…)` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
+            placeholder={entry.type ? `${entry.type} name…` : 'Tea name…'}
             className={`w-full ${nameHeadlineClass}`}
             onSelect={handleNameAutocompleteSelect}
             itemData={{ ...varietyNameMap, ...productNameMap }}
@@ -1558,10 +1558,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium uppercase transition-opacity hover:opacity-80"
+            className="mt-1 px-1 flex items-center gap-1 font-sans text-ui-11 font-medium uppercase tracking-[1.2px] transition-opacity hover:opacity-80"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
           >
-            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11 uppercase">+ Type</span>}
+            {entry.type || <span className="text-tea-text-sec font-medium text-ui-11 uppercase tracking-[1.2px]">+ Type</span>}
             <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
           </button>
         </div>
