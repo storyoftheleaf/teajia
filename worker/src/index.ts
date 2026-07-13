@@ -61,8 +61,16 @@ interface Env {
   // Optional so local dev (no binding) still runs; the in-memory checkRateLimit
   // stays as a fallback when this is unset.
   LOGIN_LIMITER?: { limit: (opts: { key: string }) => Promise<{ success: boolean }> };
+  VERIFY_LIMITER?: RateLimiterBinding;
+  JOIN_CODE_LIMITER?: RateLimiterBinding;
+  PROVIDER_LIMITER?: RateLimiterBinding;
+  RSVP_LIMITER?: RateLimiterBinding;
   // Scoped machine credential used only by the repository incident-queue exporter.
   INCIDENT_EXPORT_TOKEN?: string;
+}
+
+interface RateLimiterBinding {
+  limit: (opts: { key: string }) => Promise<{ success: boolean }>;
 }
 
 type Handler = (request: Request, env: Env, params: Record<string, string>) => Promise<Response>;
@@ -1142,6 +1150,16 @@ function restError(
   details?: Record<string, unknown>,
 ): Response {
   return json({ error, ...(code ? { code } : {}), ...(details ? { details } : {}) }, status);
+}
+
+async function enforceDurableLimit(binding: RateLimiterBinding | undefined, key: string): Promise<Response | null> {
+  if (!binding) return null; // Wrangler local development has no native binding.
+  try {
+    const result = await binding.limit({ key });
+    return result.success ? null : restError(429, 'Too many requests', 'rate_limited');
+  } catch {
+    return restError(503, 'Rate limit service unavailable', 'rate_limit_unavailable');
+  }
 }
 
 function validatedUpdateFields(
@@ -5697,11 +5715,13 @@ const handleGenerateWisdom: Handler = async (request, env) => {
 // characters from the tea's English name + context. Always reviewed before it
 // is saved.
 const handleGenerateChineseName: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:chinese-name`);
+  if (limited) return limited;
 
   if (!env.ANTHROPIC_API_KEY) {
-    return json({ error: 'no_ai_provider' }, 503);
+    return restError(503, 'AI provider unavailable', 'provider_unavailable');
   }
 
   const { name, type, originRegion, year } = (await request.json()) as {
@@ -5710,7 +5730,7 @@ const handleGenerateChineseName: Handler = async (request, env) => {
     originRegion?: string;
     year?: number;
   };
-  if (!name || !name.trim()) return json({ error: 'name required' }, 400);
+  if (!name || !name.trim()) return restError(400, 'name required', 'validation_failed', { field: 'name' });
 
   const context = [
     `Tea name (English / romanized): ${name.trim()}`,
@@ -5763,31 +5783,39 @@ const handleGenerateChineseName: Handler = async (request, env) => {
   });
 
   if (!claudeRes.ok) {
-    return json({ error: `Claude API error: ${claudeRes.status}` }, 502);
+    console.error(`Chinese-name upstream error: ${claudeRes.status}`);
+    return restError(502, 'Name generation failed', 'provider_error');
   }
   const claudeData = (await claudeRes.json()) as any;
   const toolUse = claudeData.content?.find((b: any) => b.type === 'tool_use');
-  if (!toolUse) return json({ error: 'no_output' }, 500);
+  if (!toolUse) return restError(502, 'Name generation failed', 'provider_invalid_response');
   return json(toolUse.input);
 };
 
 // ── Audio Transcription (Groq Whisper) ──
 const handleTranscribe: Handler = async (request, env) => {
-  const authErr = await requireAuth(request, env);
-  if (authErr) return authErr;
+  const ctx = await requireBundle(request, env, 'catalog');
+  if ('error' in ctx) return ctx.error;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${ctx.accountId}:${ctx.userId}:transcribe`);
+  if (limited) return limited;
 
   if (!env.GROQ_API_KEY) {
-    return json({ error: 'GROQ_API_KEY not configured' }, 503);
+    return restError(503, 'Transcription provider unavailable', 'provider_unavailable');
   }
 
   const contentType = request.headers.get('Content-Type') || '';
   if (!contentType.includes('multipart/form-data')) {
-    return json({ error: 'Expected multipart/form-data' }, 400);
+    return restError(400, 'Expected multipart/form-data', 'invalid_content_type');
   }
+
+  const preReadError = validateContentLength(request, MAX_AUDIO_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
-  if (!file) return json({ error: 'No audio file provided' }, 400);
+  if (!file) return restError(400, 'No audio file provided', 'validation_failed', { field: 'file' });
+  const fileError = await validateUpload(file, 'audio', MAX_AUDIO_BYTES);
+  if (fileError) return fileError;
 
   // Forward to Groq Whisper API
   const groqForm = new FormData();
@@ -5807,7 +5835,7 @@ const handleTranscribe: Handler = async (request, env) => {
     // Log the upstream detail; return a generic message so the raw Groq error
     // body (which can carry request internals) never reaches the client.
     console.error(`Transcription upstream error: ${groqRes.status} — ${errText}`);
-    return json({ error: 'Transcription failed' }, 502);
+    return restError(502, 'Transcription failed', 'provider_error');
   }
 
   const result = await groqRes.json() as { text: string };
@@ -5987,9 +6015,11 @@ const handleGetActivityLogs: Handler = async (request, env) => {
 // The returned URL carries a `?v={ms}` cache buster so the CDN serves the
 // fresh bytes after an in-place overwrite.
 const handleUploadImage: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-image`);
+  if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -5999,10 +6029,14 @@ const handleUploadImage: Handler = async (request, env) => {
   if (!contentType.includes('multipart/form-data')) {
     return json({ error: 'Expected multipart/form-data' }, 400);
   }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
 
   const productId = (formData.get('product_id') as string | null)?.trim() || '';
   const slotRaw = (formData.get('slot') as string | null)?.trim() || '';
@@ -6010,7 +6044,7 @@ const handleUploadImage: Handler = async (request, env) => {
 
   // Stable key path — only when both inputs are provided and well-formed.
   let key: string;
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const ext = safeUploadExtension(file.type);
   if (productId && allowedSlots.has(slotRaw)) {
     if (!/^[a-zA-Z0-9_-]+$/.test(productId)) {
       return json({ error: 'Invalid product_id' }, 400);
@@ -6331,10 +6365,50 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+const MULTIPART_OVERHEAD_BYTES = 1024 * 1024;
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const AUDIO_MIME_TYPES = new Set(['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp4', 'video/webm']);
+
+function validateContentLength(request: Request, maxFileBytes: number): Response | null {
+  const raw = request.headers.get('content-length');
+  if (!raw) return null;
+  const length = Number(raw);
+  if (!Number.isSafeInteger(length) || length < 0) return restError(400, 'Invalid Content-Length', 'invalid_content_length');
+  return length > maxFileBytes + MULTIPART_OVERHEAD_BYTES
+    ? restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxFileBytes })
+    : null;
+}
+
+function safeUploadExtension(mime: string): string {
+  return ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'audio/webm': 'webm', 'video/webm': 'webm', 'audio/ogg': 'ogg', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a' } as Record<string, string>)[mime];
+}
+
+async function validateUpload(file: File, kind: 'image' | 'audio', maxBytes: number): Promise<Response | null> {
+  if (file.size > maxBytes) return restError(413, 'Upload too large', 'upload_too_large', { max_bytes: maxBytes });
+  const allowed = kind === 'image' ? IMAGE_MIME_TYPES : AUDIO_MIME_TYPES;
+  if (!allowed.has(file.type)) return restError(415, `Unsupported ${kind} type`, 'unsupported_media_type');
+  const bytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const ascii = String.fromCharCode(...bytes);
+  const valid = kind === 'image'
+    ? (file.type === 'image/jpeg' && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+      || (file.type === 'image/png' && bytes.slice(0, 8).every((v, i) => v === [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a][i]))
+      || (file.type === 'image/webp' && ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP')
+    : (['audio/webm', 'video/webm'].includes(file.type) && bytes.slice(0, 4).every((v, i) => v === [0x1a, 0x45, 0xdf, 0xa3][i]))
+      || (file.type === 'audio/ogg' && ascii.startsWith('OggS'))
+      || (['audio/wav', 'audio/x-wav'].includes(file.type) && ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WAVE')
+      || (file.type === 'audio/mpeg' && (ascii.startsWith('ID3') || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)))
+      || (file.type === 'audio/mp4' && ascii.slice(4, 8) === 'ftyp');
+  return valid ? null : restError(415, `Invalid ${kind} signature`, 'invalid_media_signature');
+}
+
 const handleExtractFromImage: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'catalog');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:extract-image`);
+  if (limited) return limited;
 
   // Prefer Claude (the production ANTHROPIC_API_KEY is live); fall back to
   // Gemini only if Claude isn't configured. Both keys missing is a hard 503;
@@ -6349,10 +6423,14 @@ const handleExtractFromImage: Handler = async (request, env) => {
   if (!contentType.includes('multipart/form-data')) {
     return json({ error: 'Expected multipart/form-data' }, 400);
   }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No image provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
 
   // Convert image to base64 for the vision model (chunked — see bytesToBase64).
   const arrayBuffer = await file.arrayBuffer();
@@ -6364,7 +6442,7 @@ const handleExtractFromImage: Handler = async (request, env) => {
   const skipUpload = formData.get('skip_upload') === '1';
   let imageUrl = '';
   if (env.MEDIA_BUCKET && !skipUpload) {
-    const ext = file.name.split('.').pop() || 'jpg';
+    const ext = safeUploadExtension(file.type);
     const key = `accounts/${accountId}/products/${crypto.randomUUID()}.${ext}`;
     await env.MEDIA_BUCKET.put(key, new Uint8Array(arrayBuffer), {
       httpMetadata: { contentType: mimeType },
@@ -8020,9 +8098,11 @@ const handleGetTastingNotes: Handler = async (request, env, params) => {
 
 // ── Flyer Upload (R2) — partitioned by account ──
 const handleUploadFlyer: Handler = async (request, env) => {
-  const ctx = await requireAccount(request, env);
+  const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
-  const { accountId } = ctx;
+  const { accountId, userId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${userId}:upload-flyer`);
+  if (limited) return limited;
 
   if (!env.MEDIA_BUCKET) {
     return json({ error: 'R2 media bucket not configured' }, 503);
@@ -8032,13 +8112,17 @@ const handleUploadFlyer: Handler = async (request, env) => {
   if (!contentType.includes('multipart/form-data')) {
     return json({ error: 'Expected multipart/form-data' }, 400);
   }
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
 
   if (!file) return json({ error: 'No file provided' }, 400);
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
 
-  const ext = file.name.split('.').pop() || 'jpg';
+  const ext = safeUploadExtension(file.type);
   const key = `accounts/${accountId}/flyers/${crypto.randomUUID()}.${ext}`;
 
   await env.MEDIA_BUCKET.put(key, file.stream(), {
@@ -8231,13 +8315,19 @@ const handleUploadVenuePhoto: Handler = async (request, env, params) => {
   const ctx = await requireBundle(request, env, 'gather');
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
+  const limited = await enforceDurableLimit(env.PROVIDER_LIMITER, `${accountId}:${ctx.userId}:upload-venue-photo`);
+  if (limited) return limited;
+  const preReadError = validateContentLength(request, MAX_IMAGE_BYTES);
+  if (preReadError) return preReadError;
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   if (!file) return json({ error: 'No file provided' }, 400);
-  // Reuse the existing flyer upload bucket
-  const key = `venues/${accountId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-  await (env as any).FLYER_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-  const url = `https://flyers.teajia.com/${key}`;
+  const fileError = await validateUpload(file, 'image', MAX_IMAGE_BYTES);
+  if (fileError) return fileError;
+  if (!env.MEDIA_BUCKET) return restError(503, 'R2 media bucket not configured', 'storage_unavailable');
+  const key = `accounts/${accountId}/venues/${crypto.randomUUID()}.${safeUploadExtension(file.type)}`;
+  await env.MEDIA_BUCKET.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
+  const url = `https://media.teajia.co/${key}`;
   return json({ url }, 201);
 };
 
@@ -10891,13 +10981,8 @@ async function verifyVerificationCode(code: string, signatureHex: string, secret
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.LOGIN_LIMITER) {
-    const { success } = await env.LOGIN_LIMITER.limit({ key: `verify:${verifyIp}` });
-    if (!success) return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
-  }
-  if (!checkRateLimit(`verify:${verifyIp}`, 5, 60000)) {
-    return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
-  }
+  const limited = await enforceDurableLimit(env.VERIFY_LIMITER, verifyIp);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
   const contact = body.contact?.trim().toLowerCase() || '';
@@ -15113,13 +15198,8 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // CF-Connecting-IP is Cloudflare-set and unspoofable; never fall back to the
   // client-controlled X-Forwarded-For header for a rate-limit key.
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
-  if (env.LOGIN_LIMITER) {
-    const { success } = await env.LOGIN_LIMITER.limit({ key: `joincode:${ip}` });
-    if (!success) return json({ error: 'Too many attempts. Please try again later.' }, 429);
-  }
-  if (!checkRateLimit(`joincode:${ip}`, 20, 60000)) {
-    return json({ error: 'Too many attempts. Please try again later.' }, 429);
-  }
+  const limited = await enforceDurableLimit(env.JOIN_CODE_LIMITER, ip);
+  if (limited) return limited;
 
   const body = await request.json() as { code?: string; first_name?: string; email?: string };
   const code = (body.code || '').trim();

@@ -53,9 +53,32 @@ async function api(db: VerificationDb, path: 'request' | 'confirm', body: any, e
   return { status: response.status, body: await response.json() as any };
 }
 
+class FakeLimiter {
+  keys: string[] = [];
+  constructor(private outcomes: Array<boolean | Error>) {}
+  async limit({ key }: { key: string }) {
+    this.keys.push(key);
+    const outcome = this.outcomes.shift() ?? true;
+    if (outcome instanceof Error) throw outcome;
+    return { success: outcome };
+  }
+}
+
 afterEach(() => { vi.restoreAllMocks(); deliveryCalls.length = 0; vi.useRealTimers(); });
 
 describe('purpose-aware verification routes', () => {
+  it('uses the dedicated durable limiter and fails closed when it is unavailable', async () => {
+    const denied = new FakeLimiter([false, true]);
+    expect((await api(new VerificationDb(), 'request', {}, { VERIFY_LIMITER: denied })).status).toBe(429);
+    expect((await api(new VerificationDb(), 'request', {}, { VERIFY_LIMITER: denied })).status).toBe(400);
+    expect(denied.keys).toHaveLength(2);
+
+    const broken = new FakeLimiter([new Error('binding unavailable')]);
+    expect(await api(new VerificationDb(), 'request', {}, { VERIFY_LIMITER: broken })).toEqual({
+      status: 503,
+      body: { error: 'Rate limit service unavailable', code: 'rate_limit_unavailable' },
+    });
+  });
   it('delivers normalized sign-in codes, stores only a hash, and issues password-equivalent claims', async () => {
     const db = new VerificationDb(); let issuedCode = '';
     const mathRandom = vi.spyOn(Math, 'random').mockImplementation(() => { throw new Error('Math.random must not be used'); });

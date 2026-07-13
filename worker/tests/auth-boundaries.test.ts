@@ -191,11 +191,58 @@ async function authedRequest(
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${token}`);
   headers.set('X-Teajia-Account', ACCOUNT_ID);
-  if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   return new Request(`https://worker.test${path}`, { ...options, headers });
 }
 
 describe('worker authorization boundaries', () => {
+  it.each([
+    ['/api/generate-chinese-name', 'catalog'],
+    ['/api/transcribe', 'catalog'],
+    ['/api/extract-from-image', 'catalog'],
+    ['/api/upload-image', 'catalog'],
+    ['/api/upload-flyer', 'gather'],
+  ])('requires the %s provider route to have its capability bundle', async (path, bundle) => {
+    const request = await authedRequest(path, { method: 'POST', body: '{}' });
+    const denied = await worker.fetch(request, makeEnv({ role: 'staff', bundles: [] }));
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ code: 'insufficient_bundle', details: { required_bundle: bundle } });
+  });
+
+  it('bounds provider uploads before and after multipart parsing', async () => {
+    const env = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), MEDIA_BUCKET: { put: async () => undefined } };
+    const oversized = await authedRequest('/api/upload-image', {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': String(12 * 1024 * 1024) },
+      body: '--x--',
+    });
+    const oversizedResponse = await worker.fetch(oversized, env);
+    expect(oversizedResponse.status).toBe(413);
+    expect(await oversizedResponse.json()).toMatchObject({ code: 'upload_too_large' });
+
+    const form = new FormData();
+    form.set('file', new File([new TextEncoder().encode('not really a png')], 'payload.php.png', { type: 'image/png' }));
+    const invalid = await worker.fetch(await authedRequest('/api/upload-image', { method: 'POST', body: form }), env);
+    expect(invalid.status).toBe(415);
+    expect(await invalid.json()).toMatchObject({ code: 'invalid_media_signature' });
+  });
+
+  it('isolates durable provider limits by user and operation and fails closed on binding errors', async () => {
+    const keys: string[] = [];
+    const limiter = { limit: async ({ key }: { key: string }) => { keys.push(key); return { success: false }; } };
+    const env = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), PROVIDER_LIMITER: limiter };
+    for (const path of ['/api/generate-chinese-name', '/api/transcribe']) {
+      const response = await worker.fetch(await authedRequest(path, { method: 'POST', body: '{}' }), env);
+      expect(response.status).toBe(429);
+      expect(await response.json()).toMatchObject({ code: 'rate_limited' });
+    }
+    expect(keys).toEqual(['acc_test:user_test:chinese-name', 'acc_test:user_test:transcribe']);
+
+    const broken = { ...makeEnv({ role: 'staff', bundles: ['catalog'] }), PROVIDER_LIMITER: { limit: async () => { throw new Error('offline'); } } };
+    const response = await worker.fetch(await authedRequest('/api/generate-chinese-name', { method: 'POST', body: '{}' }), broken);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ code: 'rate_limit_unavailable' });
+  });
   it('uses stable REST codes for missing auth and auth dependency failures', async () => {
     const missing = await worker.fetch(new Request('https://worker.test/api/customers'), makeEnv());
     expect(missing.status).toBe(401);
