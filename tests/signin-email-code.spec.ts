@@ -10,7 +10,7 @@ const jwt = [
   'signature',
 ].join('.');
 
-test('email code is the default non-Google sign-in path', async ({ page }) => {
+test('password is the default non-Google sign-in path and email code remains available', async ({ page }) => {
   const requests: Record<string, unknown>[] = [];
   await page.route('**/api/verify/request', async route => {
     requests.push(JSON.parse(route.request().postData() || '{}'));
@@ -25,9 +25,8 @@ test('email code is the default non-Google sign-in path', async ({ page }) => {
 
   await page.goto('/signin?returnTo=/read');
   await expect(page.getByRole('link', { name: 'Continue with Google' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Use password instead' })).toBeVisible();
-  await page.getByRole('button', { name: 'Use password instead' }).click();
   await expect(page.getByRole('textbox', { name: 'Password' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Use email code instead' })).toBeVisible();
   await page.getByRole('button', { name: 'Use email code instead' }).click();
   await page.getByLabel('Email address').fill('member@example.com');
   await page.getByRole('button', { name: 'Email me a code' }).click();
@@ -63,6 +62,7 @@ test('delivery failure keeps email editable and exposes retry', async ({ page })
   });
 
   await page.goto('/signin');
+  await page.getByRole('button', { name: 'Use email code instead' }).click();
   await page.getByLabel('Email address').fill('member@example.com');
   await page.getByRole('button', { name: 'Email me a code' }).click();
   await expect(page.getByRole('alert')).toHaveText('We could not send the code.');
@@ -91,6 +91,7 @@ test('permanent delivery failure hides retry and confirmation failure keeps the 
   }));
 
   await page.goto('/signin');
+  await page.getByRole('button', { name: 'Use email code instead' }).click();
   await page.getByLabel('Email address').fill('member@example.com');
   await page.getByRole('button', { name: 'Email me a code' }).click();
   await expect(page.getByRole('alert')).toHaveText('This email cannot receive a code.');
