@@ -4,11 +4,40 @@ import { describe, expect, it } from 'vitest';
 
 async function makeWorkbook(
   configure: (workbook: ExcelJS.Workbook) => void,
+  streamFiles = false,
 ): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
   configure(workbook);
-  const bytes = await workbook.xlsx.writeBuffer();
+  const writeOptions = { zip: { streamFiles } } as unknown as Parameters<typeof workbook.xlsx.writeBuffer>[0];
+  const bytes = await workbook.xlsx.writeBuffer(writeOptions);
   return Uint8Array.from(bytes as unknown as Iterable<number>).buffer;
+}
+
+function reverseCentralDirectory(source: ArrayBuffer): ArrayBuffer {
+  const bytes = new Uint8Array(source.slice(0));
+  const view = new DataView(bytes.buffer);
+  let eocdOffset = -1;
+  for (let offset = bytes.byteLength - 22; offset >= 0; offset -= 1) {
+    if (view.getUint32(offset, true) === 0x06054b50) { eocdOffset = offset; break; }
+  }
+  if (eocdOffset < 0) throw new Error('fixture has no ZIP end-of-central-directory record');
+  const directoryBytes = view.getUint32(eocdOffset + 12, true);
+  const directoryOffset = view.getUint32(eocdOffset + 16, true);
+  const entries: Uint8Array[] = [];
+  for (let offset = directoryOffset; offset < directoryOffset + directoryBytes;) {
+    const length = 46
+      + view.getUint16(offset + 28, true)
+      + view.getUint16(offset + 30, true)
+      + view.getUint16(offset + 32, true);
+    entries.push(bytes.slice(offset, offset + length));
+    offset += length;
+  }
+  let writeOffset = directoryOffset;
+  for (const entry of entries.reverse()) {
+    bytes.set(entry, writeOffset);
+    writeOffset += entry.byteLength;
+  }
+  return bytes.buffer;
 }
 
 async function loadParser() {
@@ -56,6 +85,30 @@ describe('parseXlsxIntake', () => {
     const { parseXlsxIntake } = await loadParser();
     await expect(parseXlsxIntake(bytes)).resolves.toEqual([
       { Name: 'Ruby 18', Origin: 'Taiwan', Price: 24 },
+    ]);
+  });
+
+  it('accepts valid ExcelJS workbooks that use streaming ZIP data descriptors', async () => {
+    const bytes = await makeWorkbook((workbook) => {
+      const sheet = workbook.addWorksheet('Tea');
+      sheet.addRow(['Name']);
+      sheet.addRow(['Ruby 18']);
+    }, true);
+
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(bytes)).resolves.toEqual([{ Name: 'Ruby 18' }]);
+  });
+
+  it('matches central entries by local-header order when the directory is reordered', async () => {
+    const bytes = await makeWorkbook((workbook) => {
+      const sheet = workbook.addWorksheet('Tea');
+      sheet.addRow(['Name', 'Origin']);
+      sheet.addRow(['Ruby 18', 'Taiwan']);
+    });
+
+    const { parseXlsxIntake } = await loadParser();
+    await expect(parseXlsxIntake(reverseCentralDirectory(bytes))).resolves.toEqual([
+      { Name: 'Ruby 18', Origin: 'Taiwan' },
     ]);
   });
 

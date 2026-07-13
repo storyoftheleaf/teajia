@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { Unzip, UnzipInflate } from 'fflate';
+import { strFromU8, Unzip, UnzipInflate } from 'fflate';
 
 export const XLSX_INTAKE_LIMITS = Object.freeze({
   maxFileBytes: 10 * 1024 * 1024,
@@ -35,12 +35,18 @@ export function assertSupportedIntakeFile(filename: string): void {
 }
 
 interface ZipPreflight {
-  entryCompressedBytes: number[];
+  entriesByLocalOffset: Array<{
+    compressedBytes: number;
+    name: string;
+    usesDataDescriptor: boolean;
+    localHeaderOffset: number;
+  }>;
   totalCompressedBytes: number;
 }
 
 function preflightXlsxZip(bytes: ArrayBuffer): ZipPreflight {
   const view = new DataView(bytes);
+  const archiveBytes = new Uint8Array(bytes);
   const minimumEocdBytes = 22;
   const maximumZipCommentBytes = 65_535;
   let eocdOffset = -1;
@@ -75,7 +81,7 @@ function preflightXlsxZip(bytes: ArrayBuffer): ZipPreflight {
   let totalCompressedBytes = 0;
   let totalUncompressedBytes = 0;
   let hasExcessiveEntryRatio = false;
-  const entryCompressedBytes: number[] = [];
+  const entriesByLocalOffset: ZipPreflight['entriesByLocalOffset'] = [];
   let traversedEntries = 0;
   const centralDirectoryEnd = centralDirectoryOffset + centralDirectoryBytes;
   while (offset < centralDirectoryEnd) {
@@ -84,12 +90,18 @@ function preflightXlsxZip(bytes: ArrayBuffer): ZipPreflight {
     }
     const compressedBytes = view.getUint32(offset + 20, true);
     const uncompressedBytes = view.getUint32(offset + 24, true);
+    const flags = view.getUint16(offset + 8, true);
     const filenameBytes = view.getUint16(offset + 28, true);
     const extraBytes = view.getUint16(offset + 30, true);
     const commentBytes = view.getUint16(offset + 32, true);
     totalCompressedBytes += compressedBytes;
     totalUncompressedBytes += uncompressedBytes;
-    entryCompressedBytes.push(compressedBytes);
+    entriesByLocalOffset.push({
+      compressedBytes,
+      name: strFromU8(archiveBytes.subarray(offset + 46, offset + 46 + filenameBytes), (flags & 0x0800) === 0),
+      usesDataDescriptor: (flags & 0x0008) !== 0,
+      localHeaderOffset: view.getUint32(offset + 42, true),
+    });
     if (uncompressedBytes > compressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
       hasExcessiveEntryRatio = true;
     }
@@ -110,19 +122,23 @@ function preflightXlsxZip(bytes: ArrayBuffer): ZipPreflight {
   if (hasExcessiveEntryRatio || totalUncompressedBytes > totalCompressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
     throw new Error('Workbook exceeds the 100:1 compression ratio limit.');
   }
-  return { entryCompressedBytes, totalCompressedBytes };
+  entriesByLocalOffset.sort((left, right) => left.localHeaderOffset - right.localHeaderOffset);
+  return { entriesByLocalOffset, totalCompressedBytes };
 }
 
 function validateActualZipExpansion(bytes: Uint8Array, preflight: ZipPreflight): void {
   let traversedEntries = 0;
   let totalOutputBytes = 0;
   const unzip = new Unzip((file) => {
-    const expectedCompressedBytes = preflight.entryCompressedBytes[traversedEntries];
+    const expected = preflight.entriesByLocalOffset[traversedEntries];
     traversedEntries += 1;
     if (traversedEntries > XLSX_INTAKE_LIMITS.maxZipEntries) {
       throw new Error(`Workbook exceeds the ${XLSX_INTAKE_LIMITS.maxZipEntries.toLocaleString('en-US')} ZIP entries limit.`);
     }
-    if (file.size == null || file.size !== expectedCompressedBytes) {
+    if (!expected || file.name !== expected.name) {
+      throw new Error('Workbook local entry does not match its central-directory record.');
+    }
+    if (!expected.usesDataDescriptor && file.size !== expected.compressedBytes) {
       throw new Error('Workbook local and central compressed sizes disagree.');
     }
     let entryOutputBytes = 0;
@@ -133,7 +149,7 @@ function validateActualZipExpansion(bytes: Uint8Array, preflight: ZipPreflight):
       if (totalOutputBytes > XLSX_INTAKE_LIMITS.maxUncompressedBytes) {
         throw new Error('Workbook actual decompressed data exceeds the 50 MB limit.');
       }
-      if (entryOutputBytes > expectedCompressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
+      if (entryOutputBytes > expected.compressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
         throw new Error('Workbook actual data exceeds the 100:1 per-entry compression ratio limit.');
       }
       if (totalOutputBytes > preflight.totalCompressedBytes * XLSX_INTAKE_LIMITS.maxCompressionRatio) {
@@ -149,7 +165,7 @@ function validateActualZipExpansion(bytes: Uint8Array, preflight: ZipPreflight):
     const end = Math.min(offset + inputChunkBytes, bytes.byteLength);
     unzip.push(bytes.subarray(offset, end), end === bytes.byteLength);
   }
-  if (traversedEntries !== preflight.entryCompressedBytes.length) {
+  if (traversedEntries !== preflight.entriesByLocalOffset.length) {
     throw new Error('Workbook decompression did not traverse every archive entry.');
   }
 }
