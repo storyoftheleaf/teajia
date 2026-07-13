@@ -146,6 +146,7 @@ async function mockInventoryApi(page: Page) {
 }
 
 async function shot(page: Page, name: string) {
+  fs.mkdirSync(SHOTS_DIR, { recursive: true });
   const safe = name.replace(/[^a-z0-9-]/gi, '_');
   await page.screenshot({ path: path.join(SHOTS_DIR, `${safe}.png`), fullPage: false });
 }
@@ -194,7 +195,7 @@ test.describe('Inventory page — scroll regression guard', () => {
     }
   });
 
-  test('three-row inventory header keeps only column headings sticky', async ({ page }, testInfo) => {
+  test('navigation plane stays sticky while the table scrolls behind without horizontal swipe', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === 'chromium', 'Covered by named desktop and mobile projects');
     await page.goto('/admin/stock', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
@@ -269,12 +270,21 @@ test.describe('Inventory page — scroll regression guard', () => {
       await expect(purpose.getByText(name, { exact: true })).toBeVisible();
     }
 
-    await expect(primary).toHaveCSS('position', 'static');
-    await expect(purpose).toHaveCSS('position', 'static');
-    await expect(columns).toHaveCSS('position', 'sticky');
+    const navigationPlane = primary.locator('xpath=ancestor::div[contains(@class,"sticky")][1]');
+    await expect(navigationPlane).toHaveCSS('position', 'sticky');
+    await expect(columns).toHaveCSS('position', 'static');
 
-    for (const label of ['Product', 'Stock', 'Retail', 'Type', 'Source', 'Origin', 'Leaf', 'Year']) {
+    const expectedColumns = testInfo.project.name === 'Mobile Chrome'
+      ? ['Product', 'Stock', 'Retail', 'Year']
+      : ['Product', 'Stock', 'Retail', 'Type', 'Source', 'Origin', 'Leaf', 'Year'];
+    for (const label of expectedColumns) {
       await expect(columns.getByText(label, { exact: true })).toBeVisible();
+    }
+    if (testInfo.project.name === 'Mobile Chrome') {
+      await expect(columns.getByText('Type', { exact: true })).toHaveCount(0);
+      await expect(columns.getByText('Origin', { exact: true })).toHaveCount(0);
+      await expect(columns.getByText('Source', { exact: true })).toHaveCount(0);
+      await expect(columns.getByText('Leaf', { exact: true })).toHaveCount(0);
     }
 
     const initialRowHeight = await primary.evaluate(el => el.getBoundingClientRect().height);
@@ -317,17 +327,25 @@ test.describe('Inventory page — scroll regression guard', () => {
     await expect(primary.getByRole('button', { name: /inventory actions/i })).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Escape');
 
-    const scrollHost = testInfo.project.name === 'Mobile Chrome'
-      ? columns.locator('xpath=ancestor::div[contains(@class,"overflow-auto")][1]')
-      : page.getByTestId('inventory-scroll');
+    const scrollHost = page.getByTestId('inventory-scroll');
     const before = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
     await scrollHost.evaluate(el => el.scrollTo({ top: 300, behavior: 'instant' as ScrollBehavior }));
     await page.waitForTimeout(100);
     const after = await Promise.all([primary, purpose, columns].map(row => row.evaluate(el => el.getBoundingClientRect().top)));
     const scrollTopEdge = await scrollHost.evaluate(el => el.getBoundingClientRect().top);
-    expect(after[0]).toBeLessThan(before[0] - 100);
-    expect(after[1]).toBeLessThan(before[1] - 100);
-    expect(Math.abs(after[2] - scrollTopEdge)).toBeLessThan(16);
+    expect(Math.abs(after[0] - scrollTopEdge)).toBeLessThan(16);
+    expect(after[1]).toBeGreaterThan(after[0]);
+    expect(after[1] - after[0]).toBeLessThan(50);
+    expect(after[2]).toBeLessThan(before[2] - 100);
+    expect(after[2]).toBeLessThan(after[1]);
+    await shot(page, `${testInfo.project.name}-sticky-navigation`);
+
+    if (testInfo.project.name === 'Mobile Chrome') {
+      const table = page.locator('[data-testid="inventory-column-row"]').locator('xpath=ancestor::table[1]');
+      const tableWidth = await table.evaluate(el => ({ client: el.clientWidth, scroll: el.scrollWidth }));
+      expect(tableWidth.scroll).toBeLessThanOrEqual(tableWidth.client + 1);
+      await expect(page.locator('[data-testid="inventory-column-row"]').locator('xpath=ancestor::div[contains(@class,"overscroll-contain")]')).toHaveCount(0);
+    }
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);

@@ -544,11 +544,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     isEditMode,
   });
 
-  // Every visible column is rendered on every screen size. On mobile the table
-  // becomes horizontally swipeable (see `mobileHScroll` below) with the Product
-  // column pinned, so we no longer drop Origin/Type to fit — the user swipes to
-  // reach them instead. Keeping header, colgroup, and rows driven off one list
-  // keeps the table from ever desyncing its column count.
+  // Mobile uses a single full-width table with no horizontal swipe. Type is
+  // available inline beside the product name in edit mode; Type and Origin are
+  // trimmed from the narrow read table so the operational numbers remain clear.
   const visibleCols = useMemo(
     () => allVisibleCols,
     [allVisibleCols],
@@ -595,25 +593,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return visibleCols.filter(col => essential.has(col.key));
   }, [visibleCols, inventoryCategory]);
 
-  // --- MOBILE HORIZONTAL SWIPE ---
-  // On a phone (no panel open) the table is too wide to fit, so instead of
-  // hiding columns we let it scroll sideways with the Product column pinned to
-  // the left. The user swipes left/right to bring Stock → Retail → Cost →
-  // Source into view while the tea's name stays put. Fixed px widths (below)
-  // make the table exceed the viewport so the surrounding overflow-auto
-  // container scrolls it; `table-fixed` honours the colgroup widths. When the
-  // edit panel is open it becomes a full-screen overlay on mobile, so this mode
-  // turns off and the compact split columns take over.
-  const mobileHScroll = isMobile && !splitView;
-
   // The inventory table now reads the SAME on phone and desktop: same column
   // order, same left-alignment, same tight spacing, same font size, same
   // fixed-px column widths that hug the data to the left. Desktop keeps only its
   // extra card buffer (gutter + border + rounded corners) and the page-level
   // vertical scroll; it does NOT get the mobile bounded-height scroll box or the
   // pinned first column (those exist only because a phone is narrow). So:
-  //   mobileHScroll  → mobile-only structure (bounded scroll box, sticky column)
-  //   unifiedLayout  → shared look (order, alignment, tightness, font, px widths)
+  //   unifiedLayout  → shared look (order, alignment, tightness, font)
   const unifiedLayout = !splitView;
 
   // Per-column pixel widths for the swipeable mobile table. Product is the
@@ -649,16 +635,15 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     return Math.max(MIN_MOBILE_COL_PX, base);
   };
 
-  // Mobile keeps every visible column (swipe to reach them); only the panel's
-  // compact split view still trims down, since it shares the screen on desktop.
-  //
-  // For the mobile All view we also REORDER and inject Source (vendor): the swipe
-  // table reads Product (pinned) → Year → Type → Stock → Cost → Source → Origin,
-  // the order Adrian wants the eye to meet first. Source isn't in the desktop All
-  // view's columns, so we pull its ColDef from TEA_COLUMN_DEFS only here. Desktop
-  // and every non-All view keep their natural visibleCols order untouched.
+  const MOBILE_HIDDEN_COLS = new Set(['type', 'originRegion', 'vendor', 'form']);
+
+  // Mobile restores the pre-swipe narrow ledger: Product, Stock, Retail and
+  // Year fit the viewport; richer identity fields remain on desktop/details.
   const renderCols = useMemo(() => {
-    if (isMobile && splitView) return splitViewCols;
+    if (isMobile) {
+      const narrowCols = splitView ? splitViewCols : visibleCols;
+      return narrowCols.filter(col => !MOBILE_HIDDEN_COLS.has(col.key));
+    }
     if (unifiedLayout && inventoryCategory === 'tea' && filterType === 'All') {
       const byKey = new Map<string, ColDef>(visibleCols.map(c => [c.key, c]));
       // Source (vendor) and Leaf (form) aren't in the desktop All view's columns,
@@ -695,13 +680,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [renderCols, inventoryMobileColWidths],
   );
-  // Both phone and desktop now use the fixed-px hug so the data nests left and
-  // the columns sit as close together as they do on mobile. (minWidth forces the
-  // overflow that the mobile scroll box scrolls; on desktop the card is wider
-  // than the sum, so the columns simply sit left with empty space to the right.)
-  const mobileTableStyle = unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
+  // Desktop retains its dense fixed-width ledger. Mobile returns to a normal
+  // width:100% table so nothing can slide horizontally.
+  const mobileTableStyle = isMobile
+    ? { width: '100%', maxWidth: '100%', minWidth: 0 }
+    : unifiedLayout ? { minWidth: mobileTableMinWidth } : undefined;
+  const mobileColWeight = (key: string) => key === 'productName' ? 3 : key === 'vendor' ? 1.7 : 1;
+  const mobileTableWeight = renderCols.reduce((sum, col) => sum + mobileColWeight(col.key), 0);
   const renderColEl = (col: ColDef) =>
-    unifiedLayout
+    isMobile
+      ? <col key={col.key} style={{ width: `${(mobileColWeight(col.key) / mobileTableWeight) * 100}%` }} />
+      : unifiedLayout
       ? <col key={col.key} style={{ width: mobileColPxWidth(col.key) }} />
       : <col key={col.key} className={col.defaultWidth} />;
 
@@ -1857,17 +1846,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           scrollRAFRef.current = requestAnimationFrame(() => setScrollTop(top));
         }}
       >
+        <div className="sticky top-0 z-priority bg-tea-bg">
+          {unifiedHeaderRows}
+        </div>
 
         {/* Active filter label was here — removed; count + label now live inside
             the bordered table card's top strip (canonical §20). */}
-
-        {(filterType === 'Pending' || glossaryMode) && (
-          <div className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
-            <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-visible">
-              {unifiedHeaderRows}
-            </div>
-          </div>
-        )}
 
         {/* STOCK VERIFICATION BANNER */}
         {filterType === 'Unverified' && (
@@ -2126,23 +2110,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         <div ref={tableWrapperRef} className="relative w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6">
           <div className="bg-tea-surface border-y md:border border-tea-border md:rounded-xl overflow-hidden md:overflow-visible">
 
-          {/* On mobile this wrapper owns BOTH scroll axes: a bounded height plus
-              overflow-auto makes it the vertical scroller too, so the table's
-              `sticky top-0` thead pins to THIS box (not the distant page scroller,
-              which clips it). The same box anchors the `sticky left-0` Product
-              column, so both axes resolve here and the header row stays visible
-              while the list scrolls. Desktop is an inert pass-through div. */}
-          <div
-            className={mobileHScroll ? 'overflow-auto overscroll-contain custom-scrollbar' : ''}
-            style={mobileHScroll ? {
-              // Fill from just under the sticky toolbar down to the bottom edge,
-              // so the list runs the full screen. The floating bottom nav sits
-              // OVER this box, so the inner table adds pb-nav clearance (below) to
-              // let the last rows scroll out from behind it.
-              maxHeight: 'calc(100dvh - 100px)',
-            } : undefined}
-          >
-          {filterType !== 'Pending' && !glossaryMode && unifiedHeaderRows}
+          {/* The outer inventory-scroll is the sole scroll owner. The table has
+              no nested horizontal or vertical scroller, so content moves behind
+              the sticky navigation plane above. */}
+          <div>
           {filterType !== 'Pending' && !glossaryMode && <>
           {/* Top strip — the orienting line: which view + how many (left), with
               stock-history demoted to a quiet trailing link (right) rather than a
@@ -2184,14 +2155,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''} ${isMobile ? 'inv-no-swipe' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
-                <thead data-testid="inventory-column-row" data-inventory-header-row className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
+                <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                   <tr>
                     {renderCols.map((col, i) => (
-                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
+                      <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={unifiedLayout} />
                     ))}
                   </tr>
                 </thead>
@@ -2208,7 +2179,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         if (next.has(groupKey)) next.delete(groupKey); else next.add(groupKey);
                         return next;
                       })}
-                      className={`w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left ${mobileHScroll ? 'sticky left-0' : ''}`}
+                      className="w-full flex items-center gap-3 px-5 py-2.5 bg-tea-bg/60 border-b border-tea-border hover:bg-tea-accent-sub transition-colors text-left"
                     >
                       {isCollapsed ? <ChevronRight size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
                       <span className="font-display text-ui-15 text-tea-text">{groupKey}</span>
@@ -2217,7 +2188,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''} ${isMobile ? 'inv-no-swipe' : ''}`} style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2239,7 +2210,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   visibleCols={renderCols}
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
-                                  stickyFirstCol={mobileHScroll}
+                                  stickyFirstCol={false}
                                   alignLeft={unifiedLayout}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
@@ -2284,7 +2255,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''} ${isMobile ? 'inv-no-swipe' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2294,7 +2265,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </colgroup>
 
                 {/* Canonical header — auto-aligned: numerics right, others left. */}
-                <thead data-testid="inventory-column-row" data-inventory-header-row className="sticky top-0 z-sticky bg-tea-surface/95 md:bg-tea-bg/95 backdrop-blur-sm">
+                <thead data-testid="inventory-column-row" data-inventory-header-row className="bg-tea-surface md:bg-tea-bg">
                     <tr>
                         {splitView ? (
                           renderSplitCols.map(col => (
@@ -2302,7 +2273,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           ))
                         ) : (
                           renderCols.map((col, i) => (
-                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} sticky={mobileHScroll && i === 0} forceLeft={unifiedLayout} resizable={mobileHScroll} />
+                            <SortHeader key={col.key} colKey={col.key as keyof Product} label={col.label} forceLeft={unifiedLayout} />
                           ))
                         )}
                     </tr>
@@ -2322,7 +2293,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               visibleCols={renderCols}
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
-                              stickyFirstCol={mobileHScroll}
+                              stickyFirstCol={false}
                               alignLeft={unifiedLayout}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
@@ -2379,7 +2350,6 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {/* Mobile: the bottom nav floats OVER this box, so add its clearance
               inside the scroller — the last rows scroll out from behind the nav
               instead of being trapped underneath it. Resets to 0 on desktop. */}
-          {mobileHScroll && <div className="pb-nav-gap" aria-hidden="true" />}
           </>}
           </div>
 

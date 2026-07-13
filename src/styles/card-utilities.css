@@ -2702,3 +2702,13 @@ input[type="number"]::-webkit-outer-spin-button {
    desktop spacing is untouched. */
 .inv-tight th,
 .inv-tight td { padding-left: 6px; padding-right: 6px; }
+
+/* Mobile inventory uses one viewport-width ledger, never a nested horizontal
+   scroller. Fixed-layout cells must be allowed to truncate inside their
+   percentage columns instead of contributing intrinsic min-content width. */
+.inv-no-swipe th,
+.inv-no-swipe td {
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+}
