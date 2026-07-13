@@ -445,6 +445,21 @@ describe('Curate import provenance API', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('persists guarded per-source outcomes when no source is usable', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Only unusable sources' }) });
+    const { batch } = await created.json() as any;
+    db.sources.set('word', { id: 'word', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/word`, analysis_status: 'pending', analysis_error: null, metadata_json: JSON.stringify({ content_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }) });
+    db.sources.set('missing', { id: 'missing', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/missing`, analysis_status: 'pending', analysis_error: null, metadata_json: JSON.stringify({ content_type: 'application/pdf' }) });
+    const bucket = { get: async () => null } as unknown as R2Bucket;
+
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', bucket);
+
+    expect(analyzed.status).toBe(422);
+    expect(db.sources.get('word')).toMatchObject({ analysis_status: 'reference_only', analysis_error: null });
+    expect(db.sources.get('missing')).toMatchObject({ analysis_status: 'failed', analysis_error: 'analysis_evidence_unavailable' });
+  });
+
   it('keeps DOC and DOCX reference-only while analyzing usable pasted and PDF evidence', async () => {
     for (const contentType of ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']) {
       const db = new ImportDb();
@@ -986,6 +1001,7 @@ describe('Curate import provenance API', () => {
     expect(completedBatch.analysis_state).toBe('complete');
     const originalGroups = [...db.groups.values()].map(row => ({ ...row }));
     const originalItems = [...db.items.values()].map(row => ({ ...row }));
+    const originalSources = [...db.sources.values()].map(row => ({ ...row }));
     releaseProvider(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
       overview: 'Late rewrite', language: 'en', groups: [{ key: 'late', proposedVendorName: 'Late vendor', items: [itemProposal('late-item', sources[0].id)] }],
     }) }] }), { status: 200 }));
@@ -996,6 +1012,40 @@ describe('Curate import provenance API', () => {
     expect(db.batches.get(batch.id)).toMatchObject(completedBatch);
     expect([...db.groups.values()]).toEqual(originalGroups);
     expect([...db.items.values()]).toEqual(originalItems);
+    expect([...db.sources.values()]).toEqual(originalSources);
+  });
+
+  it('retries only requested failed sources without reprocessing successful evidence', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Retry sources' }) });
+    const { batch } = await created.json() as any;
+    db.sources.set('done', { id: 'done', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: 'Already processed', r2_object_key: null, analysis_status: 'analyzed', analysis_error: null, reference_metadata_json: JSON.stringify({ references: ['done:0-4'] }), metadata_json: JSON.stringify({ content_type: 'text/plain' }) });
+    db.sources.set('failed', { id: 'failed', batch_id: batch.id, account_id: 'account-a', kind: 'file', pasted_text: null, r2_object_key: `curate/account-a/${batch.id}/failed.txt`, analysis_status: 'failed', analysis_error: 'analysis_evidence_unavailable', reference_metadata_json: '{}', metadata_json: JSON.stringify({ content_type: 'text/plain' }) });
+    const bucketGets: string[] = [];
+    const bucket = { get: async (key: string) => { bucketGets.push(key); return { body: new Response('Recovered tea').body }; } } as unknown as R2Bucket;
+    const provider = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({ overview: 'recovered', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items: [itemProposal('recovered', 'failed:0-9')] }] }) }] }), { status: 200 }));
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: ['failed'] }) }, 'account-a', 'user-a', bucket);
+
+    expect(result.status).toBe(200);
+    expect(bucketGets).toEqual([`curate/account-a/${batch.id}/failed.txt`]);
+    expect(String(provider.mock.calls[0][1]?.body)).not.toContain('Already processed');
+    expect(db.sources.get('done')).toMatchObject({ analysis_status: 'analyzed', analysis_error: null, reference_metadata_json: JSON.stringify({ references: ['done:0-4'] }) });
+    expect(db.sources.get('failed')).toMatchObject({ analysis_status: 'analyzed', analysis_error: null });
+  });
+
+  it('refuses per-source retry for evidence that is not failed', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'No duplicate retry', pasted_text: 'Processed' }) });
+    const { batch, sources } = await created.json() as any;
+    db.sources.get(sources[0].id)!.analysis_status = 'analyzed';
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST', body: JSON.stringify({ source_ids: [sources[0].id] }) });
+
+    expect(result.status).toBe(409);
+    expect(await result.json()).toMatchObject({ code: 'analysis_source_not_failed' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('does not turn a superseded provider failure into a generic analysis failure', async () => {

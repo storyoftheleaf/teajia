@@ -131,7 +131,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
       const uploadResults = await Promise.all(uploadable.map(async evidence => {
         try {
           const source = await api.curateImports.uploadEvidence(detail!.batch.id, evidence.file!, evidence.id);
-          setDraft(current => ({ ...current, evidence: current.evidence.map(item => item.id === evidence.id ? { ...item, status: 'uploaded', error: null } : item) }));
+          const status = source.analysis_status === 'reference_only' ? 'reference_only' as const : 'pending' as const;
+          setDraft(current => ({ ...current, evidence: current.evidence.map(item => item.id === evidence.id ? { ...item, status, error: null } : item) }));
           return { source, evidenceId: evidence.id, error: null };
         } catch (error) {
           const message = errorMessage(error, 'Evidence upload failed');
@@ -217,10 +218,10 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not create vendor')); return false; }
     finally { setBusyId(null); }
   };
-  const retryAnalysis = async () => {
+  const retryAnalysis = async (sourceIds?: string[]) => {
     if (!state.detail || busyId) return;
-    setBusyId('__analysis');
-    const action = async () => { const detail = normalizeImportDetail(await api.curateImports.analyze(state.detail!.batch.id)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
+    setBusyId(sourceIds?.length === 1 ? `source:${sourceIds[0]}` : '__analysis');
+    const action = async () => { const detail = normalizeImportDetail(await api.curateImports.analyze(state.detail!.batch.id, sourceIds)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
     try { setOperationError(null); await action(); }
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not analyze saved evidence')); }
     finally { setBusyId(null); }

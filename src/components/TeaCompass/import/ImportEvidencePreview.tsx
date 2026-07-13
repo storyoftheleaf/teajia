@@ -11,7 +11,9 @@ interface Props {
 
 const statusCopy = (item: ImportEvidence) => {
   if (item.status === 'uploading') return 'Uploading…';
-  if (item.status === 'uploaded') return 'Uploaded';
+  if (item.status === 'pending') return 'Uploaded · awaiting analysis';
+  if (item.status === 'analyzed') return 'Analyzed';
+  if (item.status === 'reference_only') return 'Reference only · not analyzed';
   if (item.status === 'reselect') return 'Reselect to upload';
   if (item.status === 'failed') return item.error || 'Upload failed';
   if (/\.(doc|docx)$/i.test(item.name)) return 'Reference only · not analyzed';

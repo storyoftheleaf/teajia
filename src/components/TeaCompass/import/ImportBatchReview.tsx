@@ -17,7 +17,7 @@ interface ImportBatchReviewProps {
   onChangeVendor: (groupId: string, vendorId: string) => Promise<boolean>;
   onCreateVendor: (groupId: string, name: string) => Promise<boolean>;
   onFinalize: () => Promise<void>;
-  onRetryAnalysis: () => Promise<void>;
+  onRetryAnalysis: (sourceIds?: string[]) => Promise<void>;
   onDefer: () => void;
   onNew: () => void;
   onAbandon: () => Promise<void>;
@@ -30,12 +30,13 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   const itemCount = detail.items.length;
   const itemLabel = importItemNoun(detail.items, itemCount);
   const primaryCurrency = model.currencyTotals.length === 1 ? model.currencyTotals[0] : null;
+  const failedSourceIds = detail.sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
   const finalLabel = `Add ${itemCount} ${itemLabel} to Inventory`;
   return (
     <div className="space-y-5">
       <ImportBatchSummary model={model} overview={detail.batch.analysis_overview} journeyId={detail.batch.journey_id} journeys={journeys} busy={Boolean(busyId)} onJourneyChange={onSetJourney} onCreateJourney={onCreateJourney} itemNoun={itemLabel} />
-      {(detail.batch.analysis_state === 'failed' || (!model.groups.length && detail.sources.length > 0)) && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface p-3"><div><p className="text-ui-13 text-tea-text">Analysis did not finish</p><p className="text-ui-11 text-tea-text-sec">{detail.batch.analysis_error || 'Your saved evidence is ready to analyze again.'}</p></div><button type="button" disabled={Boolean(busyId)} onClick={() => void onRetryAnalysis()} className="tap-target min-h-11 rounded-md border border-tea-gold px-3 text-ui-12 text-tea-gold disabled:opacity-50">{busyId === '__analysis' ? 'Analyzing…' : 'Retry analysis'}</button></div>}
-      {detail.sources.some(source => source.r2_object_key) && <div className="space-y-2" aria-label="Saved evidence">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}
+      {(detail.batch.analysis_state === 'failed' || (!model.groups.length && detail.sources.length > 0)) && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface p-3"><div><p className="text-ui-13 text-tea-text">Analysis did not finish</p><p className="text-ui-11 text-tea-text-sec">{detail.batch.analysis_error || 'Your saved evidence is ready to analyze again.'}</p></div>{failedSourceIds.length > 0 && <button type="button" disabled={Boolean(busyId)} onClick={() => void onRetryAnalysis(failedSourceIds)} className="tap-target min-h-11 rounded-md border border-tea-gold px-3 text-ui-12 text-tea-gold disabled:opacity-50">{busyId === '__analysis' ? 'Analyzing…' : 'Retry failed evidence'}</button>}</div>}
+      {detail.sources.some(source => source.r2_object_key) && <div className="space-y-2" aria-label="Saved evidence">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} analysisBusy={busyId === `source:${source.id}`} onRetry={sourceId => void onRetryAnalysis([sourceId])} />)}</div>}
       <div className="space-y-5">{model.groups.map(group => <ImportVendorGroup key={group.id} group={group} vendorOptions={vendorOptions} busyId={busyId} onUpdateItem={onUpdate} onChangeVendor={onChangeVendor} onCreateVendor={onCreateVendor} />)}</div>
       {!model.groups.length && <p className="rounded-md border border-tea-border bg-tea-surface p-4 text-ui-13 text-tea-text-sec">No analyzed teas yet. Retry analysis from this saved evidence.</p>}
       {confirmAbandon && <div role="alertdialog" aria-label="Confirm abandon import" className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3"><p className="text-ui-12 text-tea-text">Keep the evidence, but stop reviewing this import?</p><div className="flex justify-between gap-3"><button autoFocus type="button" onClick={() => { setConfirmAbandon(false); requestAnimationFrame(() => abandonRef.current?.focus()); }} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel abandon</button><button type="button" disabled={Boolean(busyId)} onClick={() => void onAbandon()} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">Confirm abandon</button></div></div>}

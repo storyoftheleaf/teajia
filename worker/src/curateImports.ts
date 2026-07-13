@@ -254,14 +254,10 @@ type AnalysisEvidenceSource = {
   objectKey?: string | null;
   pageCount?: number | null;
   analysisStatus: 'analyzed' | 'reference_only' | 'failed';
+  analysisError: string | null;
 };
 
 const ANALYSIS_SOURCE_MAX_BYTES = 5 * 1024 * 1024;
-
-async function markSourceAnalysis(env: ImportEnv, source: Record<string, unknown>, status: AnalysisEvidenceSource['analysisStatus'], error: string | null) {
-  await env.DB.prepare('UPDATE curate_import_sources SET analysis_status = ?, analysis_error = ? WHERE id = ? AND account_id = ?')
-    .bind(status, error, source.id, source.account_id).run();
-}
 
 async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>[]) {
   if (sources.length > 50) throw new Error('analysis_too_many_sources');
@@ -275,8 +271,7 @@ async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>
     const mediaType = typeof metadata.content_type === 'string' ? metadata.content_type : 'application/octet-stream';
     const base = { id: String(source.id), kind: String(source.kind), mediaType, objectKey: typeof source.r2_object_key === 'string' ? source.r2_object_key : null, pageCount: typeof metadata.page_count === 'number' ? metadata.page_count : null };
     if (mediaType === 'application/msword' || mediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      await markSourceAnalysis(env, source, 'reference_only', null);
-      evidenceSources.push({ ...base, text: null, analysisStatus: 'reference_only' });
+      evidenceSources.push({ ...base, text: null, analysisStatus: 'reference_only', analysisError: null });
       continue;
     }
     let failure: string | null = null;
@@ -307,14 +302,11 @@ async function analysisEvidence(env: ImportEnv, sources: Record<string, unknown>
       failure = error instanceof Error ? error.message : 'analysis_source_failed';
     }
     if (failure) {
-      await markSourceAnalysis(env, source, 'failed', failure);
-      evidenceSources.push({ ...base, text: null, analysisStatus: 'failed' });
+      evidenceSources.push({ ...base, text: null, analysisStatus: 'failed', analysisError: failure });
     } else {
-      await markSourceAnalysis(env, source, 'analyzed', null);
-      evidenceSources.push({ ...base, text: extractedText, analysisStatus: 'analyzed' });
+      evidenceSources.push({ ...base, text: extractedText, analysisStatus: 'analyzed', analysisError: null });
     }
   }
-  if (!evidenceSources.some(source => source.analysisStatus === 'analyzed' && Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
   return { evidence: { sources: evidenceSources }, media };
 }
 
@@ -338,26 +330,49 @@ function validateEvidenceReferences(proposal: ReturnType<typeof normalizeImportP
   }
 }
 
-async function persistEvidenceReferences(env: ImportEnv, accountId: string, proposal: ReturnType<typeof normalizeImportProposal>) {
+function evidenceReferencesBySource(proposal: ReturnType<typeof normalizeImportProposal>) {
   const references = new Map<string, string[]>();
   for (const ref of proposal.groups.flatMap(group => group.items).flatMap(item => item.evidenceRefs)) {
     const sourceId = ref.split(':')[0];
     references.set(sourceId, [...(references.get(sourceId) ?? []), ref]);
   }
-  await Promise.all([...references].map(([sourceId, refs]) => env.DB.prepare('UPDATE curate_import_sources SET reference_metadata_json = ? WHERE id = ? AND account_id = ?')
-    .bind(JSON.stringify({ references: [...new Set(refs)] }), sourceId, accountId).run()));
+  return references;
 }
 
-export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+function sourceAnalysisStatements(env: ImportEnv, batchId: string, accountId: string, attemptToken: string, sources: AnalysisEvidenceSource[], references = new Map<string, string[]>()) {
+  return sources.map(source => env.DB.prepare(
+    `UPDATE curate_import_sources SET analysis_status = ?, analysis_error = ?, reference_metadata_json = ?
+     WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
+  ).bind(source.analysisStatus, source.analysisError, JSON.stringify({ references: [...new Set(references.get(source.id) ?? [])] }), source.id, accountId, attemptToken, batchId, accountId));
+}
+
+export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);
   if (batchIsTerminal(batch)) return terminalResponse();
   if (!env.ANTHROPIC_API_KEY) return response({ error: 'Import analysis is not configured' }, 503);
+  let requestedSourceIds: string[] | null = null;
+  try {
+    const raw = await request.text();
+    if (raw) {
+      const body = object(JSON.parse(raw)) ?? {};
+      if (body.source_ids != null) {
+        if (!Array.isArray(body.source_ids) || body.source_ids.length < 1 || body.source_ids.length > 50 || body.source_ids.some(id => typeof id !== 'string' || !id || id.length > 100)) return response({ error: 'Invalid source retry selection' }, 400);
+        requestedSourceIds = [...new Set(body.source_ids as string[])];
+      }
+    }
+  } catch { return response({ error: 'Invalid JSON' }, 400); }
+  if (requestedSourceIds) {
+    const retrySources = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>();
+    const retryById = new Map(retrySources.results.map(source => [String(source.id), source]));
+    if (requestedSourceIds.some(id => retryById.get(id)?.analysis_status !== 'failed')) return response({ error: 'Only failed evidence can be retried', code: 'analysis_source_not_failed' }, 409);
+  }
   const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-4-20250514';
   const attemptToken = crypto.randomUUID();
   const started = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, analysis_attempt_token = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
     .bind(attemptToken, params.id, ctx.accountId).run();
   if (!(started.meta.changes ?? 0)) return analysisSupersededResponse();
+  let analyzedSources: AnalysisEvidenceSource[] = [];
   try {
     const [sourcesResult, vendorsResult, priorVendorEvidenceResult, journeysResult, identitiesResult, productsResult, groupsResult, itemsResult] = await Promise.all([
       env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>(),
@@ -386,7 +401,10 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
       }),
       products: productsResult.results.map(row => ({ id: String(row.id), compassEntryId: typeof row.source_compass_entry_id === 'string' ? row.source_compass_entry_id : null, name: typeof row.given_name === 'string' ? row.given_name : typeof row.product_name === 'string' ? row.product_name : null, category: row.type === 'Teaware' ? 'teaware' : 'tea', purpose: typeof row.inventory_purpose === 'string' ? row.inventory_purpose : null })),
     };
-    const { evidence, media } = await analysisEvidence(env, sourcesResult.results);
+    const selectedSources = requestedSourceIds ? sourcesResult.results.filter(source => requestedSourceIds!.includes(String(source.id))) : sourcesResult.results;
+    const { evidence, media } = await analysisEvidence(env, selectedSources);
+    analyzedSources = evidence.sources;
+    if (!evidence.sources.some(source => source.analysisStatus === 'analyzed' && Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
     const ai = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model, max_tokens: 8192, temperature: 0, messages: [{ role: 'user', content: [...media, { type: 'text', text: buildImportAnalysisPrompt(evidence, candidates) }] }] }),
@@ -394,7 +412,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
     validateEvidenceReferences(normalized, evidence);
-    await persistEvidenceReferences(env, ctx.accountId, normalized);
+    const evidenceReferences = evidenceReferencesBySource(normalized);
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
     normalized.groups = normalized.groups.map(group => {
       const existing = existingGroups.get(group.key);
@@ -410,7 +428,7 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
     const existingItems = new Map(itemsResult.results.map(row => [String((parseJson(row.parsed_data_json, {}) as Record<string, unknown>).sourceItemId ?? ''), row]));
     const keptGroupIds = new Set<string>();
     const keptItemIds = new Set<string>();
-    const statements: D1PreparedStatement[] = [];
+    const statements: D1PreparedStatement[] = sourceAnalysisStatements(env, params.id, ctx.accountId, attemptToken, analyzedSources, evidenceReferences);
     let position = 0;
     for (let groupPosition = 0; groupPosition < normalized.groups.length; groupPosition++) {
       const group = normalized.groups[groupPosition];
@@ -451,13 +469,13 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
         else statements.push(env.DB.prepare(
           `INSERT INTO curate_import_items (id, batch_id, source_id, account_id, created_by_user_id, position, category, name, raw_text, parsed_data_json, confidence, uncertainty_json, review_state, compass_entry_id, reserved_compass_entry_id, vendor_group_id, manually_corrected_fields_json)
            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reviewing', NULL, ?, ?, '[]' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
-        ).bind(itemId, params.id, null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId, attemptToken, params.id, ctx.accountId));
+        ).bind(itemId, params.id, proposed.evidenceRefs[0]?.split(':')[0] ?? null, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId, attemptToken, params.id, ctx.accountId));
       }
     }
-    for (const row of itemsResult.results) if (!keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
+    for (const row of itemsResult.results) if (!requestedSourceIds && !keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
       statements.push(env.DB.prepare("DELETE FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
     }
-    for (const row of groupsResult.results) if (!keptGroupIds.has(String(row.id))) {
+    for (const row of groupsResult.results) if (!requestedSourceIds && !keptGroupIds.has(String(row.id))) {
       statements.push(env.DB.prepare("DELETE FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
     }
     statements.push(env.DB.prepare(
@@ -469,9 +487,11 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
   } catch (error) {
     if (error instanceof AnalysisSupersededError) return analysisSupersededResponse();
     const message = error instanceof Error ? error.message.slice(0, 500) : 'analysis_failed';
-    const failed = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, analysis_attempt_token = NULL, updated_at = datetime('now') WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
-      .bind(message, attemptToken, params.id, ctx.accountId).run();
-    if (!(failed.meta.changes ?? 0)) return analysisSupersededResponse();
+    const failedStatements = sourceAnalysisStatements(env, params.id, ctx.accountId, attemptToken, analyzedSources);
+    failedStatements.push(env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'failed', analysis_error = ?, analysis_attempt_token = NULL, updated_at = datetime('now') WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
+      .bind(message, attemptToken, params.id, ctx.accountId));
+    const failed = await env.DB.batch(failedStatements);
+    if (!(failed.at(-1)?.meta.changes ?? 0)) return analysisSupersededResponse();
     const status = message === 'analysis_no_usable_evidence' ? 422 : message === 'analysis_unsupported_document' ? 415 : 502;
     return response({ error: 'Import analysis failed', code: message }, status);
   }

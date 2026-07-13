@@ -2093,8 +2093,8 @@ export const api = {
       method: 'POST', body: file, headers: { 'Content-Type': file.type, 'X-Filename': encodeURIComponent(file.name), 'X-Client-Evidence-Id': clientEvidenceId },
     }),
     getEvidence: (batchId: string, sourceId: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/imports/${batchId}/sources/${sourceId}/content`),
-    analyze: (id: string): Promise<CurateImportDetail> =>
-      authedFetch(`${API_URL}/api/curate/imports/${id}/analyze`, { method: 'POST', body: JSON.stringify({}), retryTimeouts: true }),
+    analyze: (id: string, sourceIds?: string[]): Promise<CurateImportDetail> =>
+      authedFetch(`${API_URL}/api/curate/imports/${id}/analyze`, { method: 'POST', body: JSON.stringify(sourceIds?.length ? { source_ids: sourceIds } : {}), retryTimeouts: true }),
     updateGroup: (batchId: string, groupId: string, updates: { resolved_vendor_customer_id?: string | null; proposed_vendor_name?: string | null }): Promise<CurateImportVendorGroup> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/groups/${groupId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
     createVendorForGroup: (batchId: string, groupId: string, vendor: { name: string; contact?: string | null }): Promise<CurateImportVendorGroup> =>

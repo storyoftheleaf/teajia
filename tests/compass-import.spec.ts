@@ -394,6 +394,7 @@ test.describe('Curate Import panel', () => {
   test('preflights the Worker 5 MB limit and labels DOCX as reference-only', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
+    await expect(page.getByText('DOC and DOCX are saved as reference-only and are not analyzed.')).toBeVisible();
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'too-large.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(6 * 1024 * 1024) });
     await expect(page.getByText('Files must be 5 MB or smaller')).toBeVisible();
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'vendor-notes.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('PK-docx') });

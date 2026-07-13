@@ -4,6 +4,7 @@ import { ImportEvidencePreview } from './ImportEvidencePreview';
 import type { ImportDraft, ImportEvidence } from './importTypes';
 import type { CurateJourney } from '../types';
 import { ImportJourneyPicker } from './ImportJourneyPicker';
+import { prepareImportEvidenceFile } from './importEvidenceSelection';
 
 interface ImportInputProps {
   draft: ImportDraft;
@@ -14,16 +15,9 @@ interface ImportInputProps {
   onCreateJourney: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
 }
 
-export const IMPORT_EVIDENCE_MAX_BYTES = 5 * 1024 * 1024;
-const SUPPORTED_TYPES = new Set([
-  'image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'application/json', 'text/plain', 'text/csv', 'application/csv',
-  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-]);
-
 const evidenceFromFile = (file: File, kind: ImportEvidence['kind'], id: string = crypto.randomUUID()): ImportEvidence => {
-  const supported = SUPPORTED_TYPES.has(file.type) || /\.(jpg|jpeg|png|webp|pdf|json|txt|csv|doc|docx)$/i.test(file.name);
-  const error = file.size > IMPORT_EVIDENCE_MAX_BYTES ? 'Files must be 5 MB or smaller' : !supported ? 'This file type cannot be analyzed' : null;
-  return { id, file, kind, name: file.name, size: file.size, type: file.type, status: error ? 'failed' : 'ready', error };
+  const prepared = prepareImportEvidenceFile(file);
+  return { id, file: prepared.file, kind, name: file.name, size: file.size, type: prepared.file?.type ?? file.type, status: prepared.error ? 'failed' : 'ready', error: prepared.error };
 };
 
 export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSubmit, submitRef, journeys, onCreateJourney }) => {
@@ -58,6 +52,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
         <button type="button" onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text">
           <FileUp size={16} /> Add files or invoices
         </button>
+        <p className="basis-full text-ui-11 text-tea-text-sec">DOC and DOCX are saved as reference-only and are not analyzed.</p>
       </div>
       <ImportEvidencePreview evidence={draft.evidence} onRemove={id => onChange(current => ({ ...current, evidence: current.evidence.filter(item => item.id !== id) }))} onReplace={replaceFile} onClear={() => onChange(current => ({ ...current, evidence: [] }))} />
       {draft.evidence.some(item => item.kind === 'photo' || /\.(pdf|docx?)$/i.test(item.name)) && <p className="text-ui-12 leading-relaxed text-tea-text-sec">Photos and PDFs are analyzed with the pasted text. DOC and DOCX stay attached as reference-only. Originals remain private evidence, and uncertain readings stay marked for review.</p>}
