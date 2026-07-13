@@ -8,12 +8,14 @@
 
 **Tech Stack:** React 19, TypeScript, React Router, React Query, Zustand, Tailwind v3 design tokens, Cloudflare Workers, D1/SQLite, Vitest, Playwright.
 
+**Implementation checkpoint (2026-07-12):** Release 2 is implemented and locally verified. The planned migration numbers `108` and `109` were drafts; the integrated files are `113_tasting_note_curation.sql` and `114_event_article_source.sql`. Lint, color lint, and production build passed; the Worker suite passed 314 tests; focused frontend units passed 12 tests; and 14 focused browser tests passed across Desktop and Mobile Chrome. The mandatory mobile suite previously passed 27/27 on the current feature set. Later post-session editor lifecycle changes have fresh focused test, lint, color-lint, and build coverage; they were not followed by another full mobile run. One non-blocking edge remains: an image upload completing after event navigation can briefly put its returned URL into the next event's in-memory gallery until save, but does not persist it automatically. Publication remains deliberate, no navigation labels changed, and all program-level human gates remain pending.
+
 ---
 
 ## Scope and file ownership
 
-- `worker/migrations/108_tasting_note_curation.sql` owns the private candidate and published-impression schema.
-- `worker/migrations/109_event_article_source.sql` owns the event/article association and idempotency constraint.
+- `worker/migrations/113_tasting_note_curation.sql` owns the private candidate and published-impression schema.
+- `worker/migrations/114_event_article_source.sql` owns the event/article association and idempotency constraint.
 - `worker/src/tastingNoteCuration.ts` owns candidate validation and SQL-independent response mapping.
 - `worker/src/eventArticleDraft.ts` owns deterministic event-to-article block construction.
 - `worker/src/index.ts` wires authenticated, capability-checked handlers and routes only; do not broaden its refactor.
@@ -27,7 +29,7 @@
 ### Task 1: Add and rehearse the tasting-note curation schema
 
 **Files:**
-- Create: `worker/migrations/108_tasting_note_curation.sql`
+- Create: `worker/migrations/113_tasting_note_curation.sql`
 - Create: `worker/tests/tasting-note-curation-migration.test.ts`
 
 - [ ] **Step 1: Write the failing migration rehearsal test**
@@ -38,9 +40,9 @@ import Database from 'better-sqlite3';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const sql = readFileSync(resolve('migrations/108_tasting_note_curation.sql'), 'utf8');
+const sql = readFileSync(resolve('migrations/113_tasting_note_curation.sql'), 'utf8');
 
-describe('108 tasting-note curation migration', () => {
+describe('113 tasting-note curation migration', () => {
   it('creates private candidates and separately published impressions idempotently', () => {
     const db = new Database(':memory:');
     db.exec('CREATE TABLE customer_tasting_journal (id TEXT PRIMARY KEY, account_id TEXT, user_id TEXT, product_id TEXT);');
@@ -61,7 +63,7 @@ describe('108 tasting-note curation migration', () => {
 
 Run: `npx vitest run worker/tests/tasting-note-curation-migration.test.ts`
 
-Expected: FAIL with `ENOENT ... 108_tasting_note_curation.sql`.
+Expected: FAIL with `ENOENT ... 113_tasting_note_curation.sql`.
 
 - [ ] **Step 3: Add the additive, rerunnable migration**
 
@@ -125,7 +127,7 @@ Expected: both migration suites PASS from clean in-memory schemas.
 - [ ] **Step 6: Commit the schema boundary**
 
 ```bash
-git add worker/migrations/108_tasting_note_curation.sql worker/tests/tasting-note-curation-migration.test.ts
+git add worker/migrations/113_tasting_note_curation.sql worker/tests/tasting-note-curation-migration.test.ts
 git commit -m "feat: add tasting note curation schema"
 ```
 
@@ -457,7 +459,7 @@ git commit -m "feat: curate attributed product impressions"
 ### Task 5: Add the event/article association and draft builder
 
 **Files:**
-- Create: `worker/migrations/109_event_article_source.sql`
+- Create: `worker/migrations/114_event_article_source.sql`
 - Create: `worker/src/eventArticleDraft.ts`
 - Create: `worker/tests/event-article-draft.test.ts`
 - Modify: `worker/src/index.ts`
@@ -538,7 +540,7 @@ Expected: PASS; wrong account/gather-only are denied and repeat creation returns
 - [ ] **Step 9: Commit event draft backend**
 
 ```bash
-git add worker/migrations/109_event_article_source.sql worker/src/eventArticleDraft.ts worker/src/index.ts worker/tests/event-article-draft.test.ts
+git add worker/migrations/114_event_article_source.sql worker/src/eventArticleDraft.ts worker/src/index.ts worker/tests/event-article-draft.test.ts
 git commit -m "feat: create article drafts from events"
 ```
 
@@ -753,4 +755,3 @@ Expected: only Release 2 migrations, worker/API tests and handlers, tasting cura
 - [ ] **Step 10: Record verification without claiming human-only gates**
 
 Update the implementation handoff with exact passing commands and note that real mainland-China testing, real operator launch checks, and real contributor content remain human-only gates outside Release 2.
-

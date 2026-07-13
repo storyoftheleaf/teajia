@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-12
 
-**Status:** Release 1 implemented and locally verified; Releases 2 and 3 not complete
+**Status:** Releases 1 and 2 implemented and locally verified; Release 3 pending
 
 **Program owner:** Teajia
 
@@ -72,6 +72,12 @@ Pending environment/human gates: receipt of a deployed Resend OTP end to end, th
 - Use existing account-page and loading/error/empty-state patterns.
 
 ## Release 2 — Product loops
+
+**Implementation checkpoint (2026-07-12):** Release 2 is implemented and locally verified. Members can privately star section-scoped tasting notes for human review; publish-capable staff can edit, dismiss, or promote candidates into durable, attributed product impressions. Event post-session data now makes an idempotent round trip into the existing article draft editor, and creation never auto-publishes. `/account/cellar` is a real API-backed route, Remember reaches Favorites, and Journal, Favorites, and Cellar have quiet cross-links while remaining distinct models. No navigation labels changed.
+
+The additive Release 2 migrations landed as `113_tasting_note_curation.sql` and `114_event_article_source.sql`. Verification evidence: lint, color lint, and production build passed; the Worker suite passed 314 tests; focused frontend units passed 12 tests; and the Release 2 browser journeys passed 14 tests across Desktop and Mobile Chrome. The mandatory mobile suite previously passed 27/27 on the current Release 2 feature set; subsequent post-session editor lifecycle changes were covered by fresh focused tests, lint, color lint, and build rather than a second full mobile run.
+
+Known non-blocking issue: after navigating between events, an image upload that finishes after navigation can briefly place its returned URL in the next event's in-memory gallery until save. It is not automatically persisted. Release 3 and the human-only gates below remain pending.
 
 ### 1. Starred-notes curation loop
 
