@@ -102,7 +102,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     return entry?.category || 'tea';
   });
 
-  const { activeAccountId, activeAccount } = useAppStore();
+  const { activeUserId, activeAccountId, activeAccount } = useAppStore();
   const switchDraftAccount = useTeaCompassStore((s) => s.switchDraftAccount);
   const { addNote } = useNotesStore();
 
@@ -543,7 +543,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   const handleVoiceTranscript = useCallback(
     (text: string, recordingContextKey: string) => {
-      const contextPrefix = `curate:${activeAccountId ?? 'guest'}:`;
+      const contextPrefix = `curate:${activeUserId ?? 'guest'}:${activeAccountId ?? 'guest'}:`;
       if (!recordingContextKey.startsWith(contextPrefix)) return false;
       const recordedEntryId = recordingContextKey.slice(contextPrefix.length);
       if (!recordedEntryId || recordedEntryId === 'unassigned') return false;
@@ -561,10 +561,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       syncNotes().catch(() => {});
       return true;
     },
-    [getEntry, addNote, activeAccountId, activeAccount]
+    [getEntry, addNote, activeUserId, activeAccountId, activeAccount]
   );
 
-  const voiceContextKey = `curate:${activeAccountId ?? 'guest'}:${activeEntryId ?? 'unassigned'}`;
+  const voiceUserId = activeUserId ?? 'guest';
+  const voiceContextKey = `curate:${voiceUserId}:${activeAccountId ?? 'guest'}:${activeEntryId ?? 'unassigned'}`;
   const {
     state: voiceState,
     errorMessage: voiceError,
@@ -572,7 +573,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     handlePress: handleVoicePress,
     retryPending: retryPendingVoice,
     discardPending: discardPendingVoice,
-  } = useVoiceRecorder(handleVoiceTranscript, voiceContextKey);
+  } = useVoiceRecorder(handleVoiceTranscript, voiceContextKey, voiceUserId);
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const pendingIncomingCount = visibleShares.length;
@@ -1146,6 +1147,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             {mode === 'sourcing' && voiceError && (
               <motion.div
                 key="voice-error"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
@@ -1633,6 +1637,9 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 <AnimatePresence>
                   {voiceError && (
                     <motion.div
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
