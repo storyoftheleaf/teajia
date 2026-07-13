@@ -180,10 +180,21 @@ describe('review navigation and journey helpers', () => {
 
   it('affirms a blocked identity only when Save has an explicit identity or holding selection', () => {
     const blocked = item({ blocking_fields: ['identity'], proposed_compass_entry_id: 'compass-1', proposed_product_id: 'product-1' });
-    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1', false)).toEqual([]);
-    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1', true)).toEqual(['identity']);
-    expect(reviewedFieldsForImportSave(blocked, '', '', true)).toEqual([]);
-    expect(reviewedFieldsForImportSave(item(), 'new', 'new', true)).toEqual([]);
+    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1', false, [])).toEqual([]);
+    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1', true, [])).toEqual(['identity']);
+    expect(reviewedFieldsForImportSave(blocked, '', '', true, [])).toEqual([]);
+    expect(reviewedFieldsForImportSave(item(), 'new', 'new', true, [])).toEqual([]);
+  });
+
+  it('confirms every visible material field even when a correct low-confidence value is unchanged', () => {
+    const blocked = item({ blocking_fields: ['english_name', 'pack_weight', 'price_amount', 'acquired'] });
+    const visible = ['englishName', 'packWeight', 'weightUnit', 'packCount', 'priceBasis', 'priceAmount', 'currency', 'acquired'] as const;
+    expect(reviewedFieldsForImportSave(blocked, '', '', false, [...visible])).toEqual(visible);
+  });
+
+  it('does not confirm hidden material fields that the editor did not show', () => {
+    const blocked = item({ blocking_fields: ['price_amount'] });
+    expect(reviewedFieldsForImportSave(blocked, '', '', false, ['priceAmount', 'currency', 'priceBasis'])).toEqual(['priceAmount', 'currency', 'priceBasis']);
   });
 
   it('preserves proposed identity resolution on an unrelated untouched Save', () => {

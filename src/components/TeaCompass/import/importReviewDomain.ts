@@ -177,10 +177,12 @@ export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportD
   }),
 });
 
-export const reviewedFieldsForImportSave = (item: CurateImportItem, compassSelection: string, productSelection: string, identityTouched: boolean): CurateImportReviewedField[] => {
+export const reviewedFieldsForImportSave = (item: CurateImportItem, compassSelection: string, productSelection: string, identityTouched: boolean, visibleMaterialFields: CurateImportReviewedField[] = []): CurateImportReviewedField[] => {
   const blockers = (item.blocking_fields ?? []).map(field => field.replace(/_/g, '').toLocaleLowerCase());
   const identityBlocked = blockers.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
-  return identityTouched && identityBlocked && Boolean(compassSelection || productSelection) ? ['identity'] : [];
+  const reviewed = Array.from(new Set(visibleMaterialFields));
+  if (identityTouched && identityBlocked && Boolean(compassSelection || productSelection)) reviewed.push('identity');
+  return reviewed;
 };
 
 export const importItemNoun = (items: Array<Pick<CurateImportItem, 'category'>>, count = items.length) => {

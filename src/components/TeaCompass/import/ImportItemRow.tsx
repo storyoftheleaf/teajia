@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import type { CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
+import type { CurateImportItem, CurateImportItemUpdate, CurateImportReviewedField, LookupState } from '../../../lib/api';
 import { buildImportCorrectionParsedData, compatibleImportHoldings, importBlockingMessage, reviewedFieldsForImportSave, validateImportHoldingSelection, type ImportMatchOption } from './importReviewDomain';
 import { ImportMatchPicker } from './ImportMatchPicker';
 
@@ -116,7 +116,13 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
       packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount.trim() || null,
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis,
     });
-    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id, identityResolutionTouched.current || holdingResolutionTouched.current);
+    const visibleMaterialFields: CurateImportReviewedField[] = [
+      ...(namingBlocking || detailsExpanded ? ['englishName' as const] : []),
+      ...(quantityBlocking || detailsExpanded ? ['packWeight' as const, 'weightUnit' as const, 'packCount' as const] : []),
+      ...(costBlocking || detailsExpanded ? ['priceBasis' as const, 'priceAmount' as const, 'currency' as const] : []),
+      ...(acquisitionBlocking || detailsExpanded ? ['acquired' as const] : []),
+    ];
+    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id, identityResolutionTouched.current || holdingResolutionTouched.current, visibleMaterialFields);
     const updates: CurateImportItemUpdate = {
       name: draft.english_name.trim() || null, english_name: draft.english_name.trim() || null, original_name: draft.original_name.trim() || null,
       pack_weight: draft.pack_weight ? Number(draft.pack_weight) : null, weight_unit: (draft.weight_unit || null) as CurateImportItem['weight_unit'],

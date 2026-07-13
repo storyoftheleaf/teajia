@@ -574,11 +574,12 @@ test.describe('Curate Import panel', () => {
   test('retries only the failed attachment after a partial upload', async ({ page }) => {
     const attempts = new Map<string, number>();
     let analysisAttempts = 0;
+    const analysisBodies: Array<Record<string, unknown>> = [];
     const ordinal = { ordinal: 0, injectSecondFailure: true };
     evidenceOrdinalByPage.set(page, ordinal);
     page.on('request', request => {
       if (request.method() === 'POST' && request.url().endsWith('/evidence')) { const id = request.headers()['x-client-evidence-id']; attempts.set(id, (attempts.get(id) || 0) + 1); }
-      if (request.method() === 'POST' && request.url().endsWith('/analyze')) analysisAttempts += 1;
+      if (request.method() === 'POST' && request.url().endsWith('/analyze')) { analysisAttempts += 1; analysisBodies.push(request.postDataJSON() as Record<string, unknown>); }
     });
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
@@ -603,6 +604,42 @@ test.describe('Curate Import panel', () => {
     await expect.poll(() => [...attempts.values()].sort()).toEqual([1, 2]);
     await expect.poll(() => ordinal.ordinal).toBe(3);
     await expect.poll(() => analysisAttempts).toBe(2);
+    expect(analysisBodies[1]).toEqual({ source_ids: ['evidence-1'] });
+  });
+
+  test('locks close, Escape, and import input across create, upload, and analyze', async ({ page }) => {
+    let releaseCreate!: () => void;
+    let releaseAnalyze!: () => void;
+    const createGate = new Promise<void>(resolve => { releaseCreate = resolve; });
+    const analyzeGate = new Promise<void>(resolve => { releaseAnalyze = resolve; });
+    let analyzeReached = false;
+    await page.route('**/api/curate/imports', async route => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      await createGate;
+      return route.fallback();
+    });
+    await page.route('**/api/curate/imports/batch-1/analyze', async route => {
+      analyzeReached = true;
+      await analyzeGate;
+      return route.fallback();
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await page.getByLabel('Paste a list or invoice text').fill('Locked tea');
+    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'locked.txt', mimeType: 'text/plain', buffer: Buffer.from('file tea') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+    await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeDisabled();
+    await expect(dialog.getByLabel('Paste a list or invoice text')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
+    releaseCreate();
+    await expect.poll(() => analyzeReached).toBe(true);
+    await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
+    releaseAnalyze();
+    await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeEnabled();
   });
 
   test('preserves separately selected files with the same filename', async ({ page }) => {
@@ -725,6 +762,9 @@ test.describe('analyzed inventory import review', () => {
       duplicateResolution: 'new', acquired: true, inventoryPurpose: 'working',
       proposedCompassEntryId: null, proposedProductId: null,
     });
+    expect(uncertainCorrection?.reviewed_fields).toEqual([
+      'packWeight', 'weightUnit', 'packCount', 'priceBasis', 'priceAmount', 'currency', 'acquired', 'identity',
+    ]);
     expect(Object.keys(uncertainCorrection?.parsed_data as Record<string, unknown>).filter(key => !workerImportParsedDataKeys.has(key))).toEqual([]);
 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

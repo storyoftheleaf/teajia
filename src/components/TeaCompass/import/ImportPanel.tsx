@@ -165,10 +165,11 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
 
   const runImport = async () => {
     if (busyId) return;
+    setBusyId('__import');
     setState(current => ({ ...current, phase: 'parsing', error: null }));
-    await new Promise(resolve => window.setTimeout(resolve, 250));
     let detail = state.detail;
     try {
+      await new Promise(resolve => window.setTimeout(resolve, 250));
       const reviewText = draft.text.trim();
       if (!detail) {
         detail = await api.curateImports.create({
@@ -206,9 +207,13 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
       }
       const uploadFailure = uploadResults.find(result => result.error);
       if (uploadFailure && !detail.sources.length) throw new Error(uploadFailure.error!);
-      const retrySourceIds = detail.batch.analysis_state === 'failed' ? failedImportSourceIds(detail.sources) : undefined;
+      const analysisWasComplete = detail.batch.analysis_state === 'complete' || detail.batch.analysis_state === 'completed';
+      const newlyUploadedSourceIds = uploadedSources.filter(source => source.analysis_status !== 'reference_only').map(source => source.id);
+      const retrySourceIds = detail.batch.analysis_state === 'failed'
+        ? failedImportSourceIds(detail.sources)
+        : analysisWasComplete ? newlyUploadedSourceIds : undefined;
       if (detail.batch.analysis_state === 'failed' && !retrySourceIds?.length) throw new Error('No failed evidence is available to retry');
-      detail = normalizeImportDetail(await api.curateImports.analyze(detail.batch.id, retrySourceIds));
+      if (!analysisWasComplete || retrySourceIds?.length) detail = normalizeImportDetail(await api.curateImports.analyze(detail.batch.id, retrySourceIds));
       if (uploadFailure) throw new Error(uploadFailure.error!);
       clearImportDraft(accountId);
       setState({ phase: 'review', detail, error: null });
@@ -221,7 +226,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
         } catch { /* Keep the last saved detail when refresh itself is unavailable. */ }
       }
       setState(current => ({ ...current, phase: 'error', detail: detail ?? current.detail, error: errorMessage(error, 'Import failed') }));
-    }
+    } finally { setBusyId(null); }
   };
   const replaceItem = (updated: CurateImportItem) => {
     setState(current => {
