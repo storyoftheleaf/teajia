@@ -73,6 +73,7 @@ export default defineConfig(({ mode }) => {
               // instead of failing outright. POSTs (login etc.) are never
               // cached by Workbox, so auth always goes to the network.
               urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+              method: 'GET',
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-cache',
@@ -97,14 +98,6 @@ export default defineConfig(({ mode }) => {
               options: {
                 cacheName: 'media-cache',
                 expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              },
-            },
-            {
-              urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'font-cache',
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
               },
             },
           ],
@@ -134,6 +127,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      manifest: true,
       outDir: 'dist',
       sourcemap: 'hidden',
       minify: 'terser',

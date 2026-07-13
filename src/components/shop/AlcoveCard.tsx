@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useScrollFade } from './alcove/hooks/useScrollFade';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
@@ -20,6 +21,7 @@ import { AlcoveSensoryGrid } from './alcove/AlcoveSensoryGrid';
 import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
+import { ProductImpressions, type ProductImpression } from './ProductImpressions';
 
 interface AlcoveCardProps {
   item: InventoryItem;
@@ -133,6 +135,11 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
 
   // Fetch events that featured this product
   const { data: productEvents, isLoading: eventsLoading } = useProductEvents(item.id);
+  const { data: impressions = [] } = useQuery<ProductImpression[]>({
+    queryKey: ['product-impressions', item.id],
+    queryFn: () => api.productImpressions.list(item.id),
+    staleTime: 60_000,
+  });
 
   // Related journal articles (stories with matching teaId, published articles only)
   const { stories } = useStories();
@@ -373,6 +380,8 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         isAdmin={isAdmin}
         onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
       />
+
+      <ProductImpressions impressions={impressions} />
 
       {/* Gallery: product image anchor before long editorial prose */}
       <AlcoveGallery

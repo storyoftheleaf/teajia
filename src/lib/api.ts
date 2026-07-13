@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, CurateReceiptProposal, DbArticle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
@@ -25,6 +25,19 @@ export interface CurateImportBatch {
   journey_id: string | null; visit_id: string | null;
 }
 export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[] }
+
+export interface AdminEventPostSession extends Record<string, unknown> {
+  id: string | null;
+  event_id: string;
+  tea_ledger: unknown | null;
+  playlist_url: string | null;
+  gallery_images: string[];
+  session_notes: string | null;
+  host_notes: string | null;
+  host_changes: string | null;
+  energy: string | null;
+  shared_tasting_notes: string[];
+}
 
 export interface AuditLogEntry {
   id: string;
@@ -182,9 +195,14 @@ import { useAppStore } from './store';
 // ride the one hostname that stays reachable in China. Using the live origin
 // (rather than a bare '') keeps API_URL truthy so the "Continue with Google"
 // surfaces still render. Dev honors VITE_API_URL to target a local/workers.dev API.
-export const API_URL = import.meta.env.PROD
-  ? (typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com')
-  : (import.meta.env.VITE_API_URL || '');
+export function getApiOrigin(): string {
+  if (import.meta.env.PROD) {
+    return typeof window !== 'undefined' ? window.location.origin : 'https://www.teajia.com';
+  }
+  return (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+}
+
+export const API_URL = getApiOrigin();
 const REQUEST_TIMEOUT_MS = 30_000;
 
 // Public base URL for share links (collection links sent to recipients). These
@@ -1452,12 +1470,16 @@ export const api = {
         method: 'POST',
       });
     },
+    getPostSession: (id: string): Promise<AdminEventPostSession> =>
+      authedFetch(`${API_URL}/api/admin/events/${id}/post-session`),
     upsertPostSession: async (id: string, data: Record<string, any>) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/post-session`, {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
+    createArticleDraft: (id: string): Promise<{ existing: boolean; article: DbArticle }> =>
+      authedFetch(`${API_URL}/api/admin/events/${id}/article-draft`, { method: 'POST' }),
     duplicate: async (id: string, newSlug: string) => {
       return authedFetch(`${API_URL}/api/admin/events/${id}/duplicate`, {
         method: 'POST',
@@ -1821,33 +1843,65 @@ export const api = {
     },
   },
 
-  // V2: Verification (quiet account — phone or email, no passwords)
+  // Verification codes power both event identity and passwordless sign-in.
   verify: {
-    requestCode: async (contact: string, method: 'whatsapp' | 'email') => {
+    requestCode: async (contact: string, purpose: 'signin' | 'event' = 'event') => {
       const res = await fetchWithTimeout(`${API_URL}/api/verify/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact, method }),
+        body: JSON.stringify({ contact, method: 'email', purpose }),
       });
       return handleResponse(res);
     },
-    confirmCode: async (contact: string, code: string) => {
+    confirmCode: async (contact: string, code: string, purpose: 'signin' | 'event' = 'event') => {
       const res = await fetchWithTimeout(`${API_URL}/api/verify/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact, code }),
+        body: JSON.stringify({ contact, code, purpose }),
       });
-      return handleResponse(res);
+      const data = await handleResponse(res);
+      if (purpose === 'signin' && typeof data?.token === 'string') {
+        setToken(data.token);
+        const claims = hydrateAccountStateFromToken();
+        if (claims) {
+          useAppStore.getState().setAuthUser({
+            email: claims.email,
+            username: claims.username ?? null,
+            name: claims.name,
+            role: claims.role,
+          });
+        }
+      }
+      return data;
     },
   },
 
   // V2: Guest journey (tea history, seals, impressions)
   journey: {
-    get: async (phone: string) => {
-      const res = await fetchWithTimeout(`${API_URL}/api/journey/${encodeURIComponent(phone)}`, {
+    get: async (contact: string, token: string) => {
+      const res = await fetchWithTimeout(`${API_URL}/api/journey/${encodeURIComponent(contact)}?token=${encodeURIComponent(token)}`, {
         headers: { 'Content-Type': 'application/json' },
       });
-      return handleResponse(res);
+      const data = await handleResponse(res);
+      return {
+        sessionsAttended: Number(data.sessions_attended ?? 0),
+        totalTeas: Number(data.total_teas ?? 0),
+        teaTypeMap: data.tea_type_map ?? {},
+        favorites: data.favorites ?? [],
+        impressions: (data.impressions ?? []).map((item: Record<string, unknown>) => ({
+          text: item.text,
+          teaName: item.tea_name,
+          eventTitle: item.event_title,
+          date: item.date,
+        })),
+        milestones: data.milestones ?? [],
+        seals: (data.seals ?? []).map((item: Record<string, unknown>) => ({
+          eventId: item.event_id,
+          title: item.title,
+          date: item.date,
+          flyerUrl: item.flyer_url,
+        })),
+      };
     },
   },
 
@@ -2143,6 +2197,25 @@ export const api = {
         body: JSON.stringify({ entries }),
       });
     },
+    starCandidate: (entryId: string, noteKey: string, data: { source_text: string; source_tasting?: unknown }) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, {
+        method: 'PUT', body: JSON.stringify(data),
+      }),
+    unstarCandidate: (entryId: string, noteKey: string) =>
+      authedFetch(`${API_URL}/api/tasting-journal/${entryId}/candidates/${encodeURIComponent(noteKey)}`, { method: 'DELETE' }),
+  },
+
+  tastingNoteCandidates: {
+    list: (status = 'starred') => authedFetch(`${API_URL}/api/admin/tasting-note-candidates?status=${encodeURIComponent(status)}`),
+    update: (id: string, data: { edited_text?: string; attribution_name?: string; attribution_detail?: string }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    promote: (id: string, data: { edited_text: string; attribution_name: string; attribution_detail?: string }) =>
+      authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}/promote`, { method: 'POST', body: JSON.stringify(data) }),
+    dismiss: (id: string) => authedFetch(`${API_URL}/api/admin/tasting-note-candidates/${id}/dismiss`, { method: 'POST' }),
+  },
+
+  productImpressions: {
+    list: async (productId: string) => handleResponse(await fetchWithTimeout(`${API_URL}/api/products/${encodeURIComponent(productId)}/impressions`)),
   },
 
   // Tea Discovery — the onboarding disposition profile (one per member, server-
@@ -3086,6 +3159,10 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/me/orders`, { headers: authHeaders() });
       return handleResponse(res);
     },
+    order: async (id: string): Promise<CustomerOrderDetail> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/me/orders/${encodeURIComponent(id)}`, { headers: authHeaders() });
+      return handleResponse(res);
+    },
     samples: async (): Promise<{
       samples: Array<{
         id: string;
@@ -3385,8 +3462,32 @@ export const api = {
         method: 'POST',
       });
     },
-    listAdminContributors: async () => {
+    listAdminContributors: async (): Promise<{ contributors: AdminContributor[] }> => {
       return authedFetch(`${API_URL}/api/admin/contributors`)
+    },
+    listContributorOptions: async (): Promise<{ contributors: ContributorOption[] }> => {
+      return authedFetch(`${API_URL}/api/admin/contributor-options`)
+    },
+    createContributor: async (data: ContributorWrite): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    getAdminContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}`);
+    },
+    updateContributor: async (contributorId: string, data: ContributorWrite): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    publishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/publish`, { method: 'POST' });
+    },
+    unpublishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/unpublish`, { method: 'POST' });
     },
     updateContributorContact: async (contributorId: string, customerId: string | null) => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/contact`, {

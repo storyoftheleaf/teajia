@@ -333,17 +333,21 @@ const JourneyPage: React.FC = () => {
   const [sessionToken, setSessionToken] = useState<string | null>(() => {
     return sessionStorage.getItem('journey_token');
   });
-  const [showVerify, setShowVerify] = useState(!verifiedContact);
+  const [showVerify, setShowVerify] = useState(!verifiedContact || !sessionToken);
   const [expandedSeal, setExpandedSeal] = useState<JourneySeal | null>(null);
 
   const { data: journey, isLoading } = useQuery<JourneyData>({
-    queryKey: ['journey', verifiedContact],
-    queryFn: () => api.journey.get(verifiedContact!),
-    enabled: !!verifiedContact,
+    queryKey: ['journey', verifiedContact, sessionToken],
+    queryFn: () => api.journey.get(verifiedContact!, sessionToken!),
+    enabled: !!verifiedContact && !!sessionToken,
     staleTime: 60_000,
   });
 
   const handleVerified = (contact: string, token: string) => {
+    if (!token) {
+      setShowVerify(true);
+      return;
+    }
     sessionStorage.setItem('journey_contact', contact);
     sessionStorage.setItem('journey_token', token);
     setVerifiedContact(contact);

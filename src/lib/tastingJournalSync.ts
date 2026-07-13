@@ -19,6 +19,13 @@ function toApiPayload(entry: CustomerTasting): Record<string, any> {
   };
 }
 
+export async function persistTastingJournalEntry(entry: CustomerTasting): Promise<void> {
+  await api.tastingJournal.sync([toApiPayload(entry)]);
+  useAppStore.setState(state => ({
+    tastingJournal: state.tastingJournal.map(item => item.id === entry.id ? { ...item, synced: true } : item),
+  }));
+}
+
 function safeParse<T>(value: unknown, fallback: T): T {
   if (typeof value !== 'string') return (value ?? fallback) as T;
   try { return JSON.parse(value) as T; } catch { return fallback; }

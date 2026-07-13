@@ -5,6 +5,7 @@ import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { TastingNote } from '../../types/events';
+import { createPostSessionLoadCoordinator, savePostSession } from './PostSessionEditorContract';
 
 interface PostSessionEditorProps {
   eventId: string;
@@ -18,43 +19,67 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [gallery, setGallery] = useState<string[]>([]);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [energy, setEnergy] = useState('');
+  const [sharedTastingNotes, setSharedTastingNotes] = useState('');
+  const [hostNotes, setHostNotes] = useState('');
+  const [hostChanges, setHostChanges] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [ledgerLoaded, setLedgerLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loaderRef = useRef<ReturnType<typeof createPostSessionLoadCoordinator> | null>(null);
 
-  // Load post-session data on mount
-  React.useEffect(() => {
-    if (ledgerLoaded) return;
-    const loadData = async () => {
-      try {
-        const events = await api.events.listAdmin();
-        const data = events.find((e: any) => e.id === eventId);
-        if (!data) { setLedgerLoaded(true); return; }
-        const postSession = data.post_session
-          ? (typeof data.post_session === 'string' ? JSON.parse(data.post_session) : data.post_session)
-          : {};
-        setTeaLedger(postSession.teaLedger || '');
-        setPlaylistUrl(postSession.playlistUrl || (data as any).playlist_url || '');
-        setGallery(postSession.gallery || []);
-        setSessionNotes(postSession.sessionNotes || '');
+  if (!loaderRef.current) {
+    loaderRef.current = createPostSessionLoadCoordinator(
+      api.events.getPostSession,
+      () => {
+        setTeaLedger('');
+        setPlaylistUrl('');
+        setGallery([]);
+        setSessionNotes('');
+        setEnergy('');
+        setSharedTastingNotes('');
+        setHostNotes('');
+        setHostChanges('');
+        setSaving(false);
+        setUploading(false);
+        setLedgerLoaded(false);
+        setLoadError(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      },
+      loaded => {
+        setTeaLedger(loaded.teaLedger);
+        setPlaylistUrl(loaded.playlistUrl);
+        setGallery(loaded.gallery);
+        setSessionNotes(loaded.sessionNotes);
+        setEnergy(loaded.energy);
+        setSharedTastingNotes(loaded.sharedTastingNotes);
+        setHostNotes(loaded.hostNotes);
+        setHostChanges(loaded.hostChanges);
         setLedgerLoaded(true);
-      } catch {
-        // Silently fail
-      }
-    };
-    loadData();
-  }, [eventId, ledgerLoaded]);
+        setLoadError(false);
+      },
+      () => {
+        setLedgerLoaded(true);
+        setLoadError(true);
+      },
+    );
+  }
+
+  // Reload when the same editor instance moves between event routes. The
+  // coordinator ignores any older request that resolves after the new event.
+  React.useEffect(() => {
+    void loaderRef.current!.load(eventId);
+    return () => loaderRef.current?.cancel();
+  }, [eventId]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.events.upsertPostSession(eventId, {
-        teaLedger,
-        playlistUrl,
-        gallery,
-        sessionNotes,
+      await savePostSession(api.events.upsertPostSession, eventId, {
+        teaLedger, playlistUrl, gallery, sessionNotes, energy, sharedTastingNotes, hostNotes, hostChanges,
       });
       showToast('Post-session data saved', 'success');
     } catch (err: any) {
@@ -213,15 +238,66 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
         />
       </div>
 
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Host Notes</label>
+          <textarea
+            value={hostNotes}
+            onChange={(e) => setHostNotes(e.target.value)}
+            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+            placeholder="Your observations as host"
+          />
+        </div>
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Host Changes</label>
+          <textarea
+            value={hostChanges}
+            onChange={(e) => setHostChanges(e.target.value)}
+            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+            placeholder="What you would change next time"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Session Energy</label>
+          <select
+            value={energy}
+            onChange={(e) => setEnergy(e.target.value)}
+            className="w-full border border-tea-border bg-tea-bg rounded-md px-3 py-2.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold"
+          >
+            <option value="">Not recorded</option>
+            <option value="intimate_warm">Intimate and warm</option>
+            <option value="lively">Lively</option>
+            <option value="contemplative">Contemplative</option>
+            <option value="exploratory">Exploratory</option>
+            <option value="meditative">Meditative</option>
+          </select>
+        </div>
+        <div>
+          <label className="label-caps text-tea-text-sec block mb-2">Shared Tasting Notes</label>
+          <textarea
+            value={sharedTastingNotes}
+            onChange={(e) => setSharedTastingNotes(e.target.value)}
+            className="w-full border border-tea-border bg-transparent rounded-md p-3 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold min-h-[100px] resize-y placeholder:text-tea-text-sec/50"
+            placeholder="One note per line"
+          />
+        </div>
+      </div>
+
       {/* Save button */}
       <div className="flex justify-end pt-2 border-t border-tea-border">
+        {loadError && (
+          <p className="mr-auto self-center text-xs text-tea-text-sec">Post-session data could not be loaded.</p>
+        )}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !ledgerLoaded || loadError}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10"
         >
-          {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-          Save Post-Session
+          {saving || !ledgerLoaded ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+          {!ledgerLoaded ? 'Loading Post-Session' : 'Save Post-Session'}
         </button>
       </div>
 

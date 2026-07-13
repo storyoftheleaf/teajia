@@ -12,6 +12,9 @@ import { formatRelativeDate, getDateGroup } from '../TeaCompass/BrowseCard';
 import type { CustomerTasting } from '../../types';
 import { entryEvent, latestTasting } from '../../lib/tastingAccessors';
 import { flattenTastingNotes, resolveTermLabel, resolveTermIcon, LIQUOR_COLORS } from '../../data/tastingTaxonomy';
+import { JournalSectionVoiceNote } from './JournalSectionVoiceNote';
+import { api } from '../../lib/api';
+import { persistTastingJournalEntry } from '../../lib/tastingJournalSync';
 
 interface TastingJournalProps {
   onBack: () => void;
@@ -33,6 +36,9 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recent');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [starredSections, setStarredSections] = useState<Record<string, boolean>>({});
+  const [pendingSections, setPendingSections] = useState<Record<string, boolean>>({});
+  const [sectionErrors, setSectionErrors] = useState<Record<string, string | null>>({});
 
   const handleShare = (entry: CustomerTasting) => {
     setShareCardEntry(entry);
@@ -159,6 +165,47 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
 
   const handleRestore = (id: string) => {
     updateTasting(id, { archived: false });
+  };
+
+  const updateSectionText = (entry: CustomerTasting, tastingId: string, text: string) => {
+    const tastings = entry.tastings.map(tasting => tasting.id === tastingId
+      ? { ...tasting, tasting: { ...tasting.tasting, voiceNote: text } }
+      : tasting);
+    const latestId = entry.tastings[entry.tastings.length - 1]?.id;
+    updateTasting(entry.id, {
+      tastings,
+      ...(latestId === tastingId ? {
+        note: {
+          ...entry.note,
+          tasting: { ...entry.note.tasting, voiceNote: text },
+          personalNote: text || undefined,
+          updatedAt: new Date().toISOString(),
+        },
+      } : {}),
+    });
+  };
+
+  const changeSectionStar = async (entry: CustomerTasting, tastingId: string, text: string, next: boolean) => {
+    const key = `${entry.id}:${tastingId}`;
+    const previous = !!starredSections[key];
+    setStarredSections(value => ({ ...value, [key]: next }));
+    setPendingSections(value => ({ ...value, [key]: true }));
+    setSectionErrors(value => ({ ...value, [key]: null }));
+    try {
+      if (next) {
+        const currentEntry = useAppStore.getState().tastingJournal.find(item => item.id === entry.id) ?? entry;
+        const tasting = currentEntry.tastings.find(item => item.id === tastingId)?.tasting;
+        await persistTastingJournalEntry(currentEntry);
+        await api.tastingJournal.starCandidate(currentEntry.id, tastingId, { source_text: text, source_tasting: tasting });
+      } else {
+        await api.tastingJournal.unstarCandidate(entry.id, tastingId);
+      }
+    } catch (cause: unknown) {
+      setStarredSections(value => ({ ...value, [key]: previous }));
+      setSectionErrors(value => ({ ...value, [key]: cause instanceof Error ? cause.message : 'Could not update this private review note.' }));
+    } finally {
+      setPendingSections(value => ({ ...value, [key]: false }));
+    }
   };
 
   const archivedCount = useMemo(
@@ -459,6 +506,15 @@ export const TastingJournal: React.FC<TastingJournalProps> = ({ onBack, onOrderT
                                   </div>
                                 </div>
                               )}
+
+                              <JournalSectionVoiceNote
+                                text={latest.tasting.voiceNote || ''}
+                                starred={!!starredSections[`${entry.id}:${latest.id}`]}
+                                starPending={!!pendingSections[`${entry.id}:${latest.id}`]}
+                                error={sectionErrors[`${entry.id}:${latest.id}`]}
+                                onTextChange={text => updateSectionText(entry, latest.id, text)}
+                                onStarChange={starred => changeSectionStar(entry, latest.id, latest.tasting.voiceNote || '', starred)}
+                              />
 
                               {/* Personal note */}
                               {entry.note.personalNote && (

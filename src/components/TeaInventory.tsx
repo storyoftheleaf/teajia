@@ -225,6 +225,12 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
     if (item) addRecentlyViewed(item.id);
   }, [addRecentlyViewed]);
 
+  useEffect(() => {
+    if (!initialProductId || viewItem) return;
+    const item = inventory.find(candidate => candidate.id === initialProductId);
+    if (item) setViewItem(item);
+  }, [initialProductId, inventory, viewItem, setViewItem]);
+
   // Keep the open card's data fresh. When React Query refetches inventory
   // (e.g. after an admin tasting save), re-derive viewItem from the new
   // inventory array so the card visually updates instead of holding the

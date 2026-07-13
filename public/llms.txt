@@ -8,7 +8,7 @@ Teajia is a single curated brand, not a marketplace or social network. Orders ar
 
 Teajia exposes an MCP server so AI assistants can help shoppers directly:
 
-- Public read-only MCP endpoint (no auth): `https://teajia-api.lightcodes.workers.dev/mcp/public`
+- Public read-only MCP endpoint (no auth): `https://teajia.com/mcp/public`
   - Tools: `search_tea`, `get_tea`, `browse_catalog`, `prepare_order`.
   - `prepare_order` returns a prefilled WhatsApp checkout link — assemble a basket for the shopper, then hand off to the human conversation to complete the order. It never places an order itself.
   - Scope a specific shop with `?account=<slug>`; defaults to the flagship Teajia shop.

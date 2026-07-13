@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Icons, SealIcon } from '../components/Icons';
-import { api, API_URL } from '../lib/api';
+import { Icons } from '../components/Icons';
+import { api, API_URL, ApiError } from '../lib/api';
 
 const inputClass = "w-full bg-tea-surface border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none transition-colors placeholder-tea-text-dim";
 const labelClass = "block label-caps text-tea-text-sec mb-1.5";
@@ -18,8 +18,12 @@ export default function SignInPage() {
     : undefined;
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [passwordMode, setPasswordMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [requestRetryable, setRequestRetryable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -41,15 +45,48 @@ export default function SignInPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const navigateAfterSignIn = () => navigate(safeReturnTo ?? state?.from ?? -1 as any);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       await auth.login(identifier.trim(), password);
-      navigate(safeReturnTo ?? state?.from ?? -1 as any);
+      navigateAfterSignIn();
     } catch (err: unknown) {
       setError((err as Error)?.message || 'Sign in failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCodeRequest = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setError('');
+    setRequestRetryable(false);
+    setLoading(true);
+    try {
+      await api.verify.requestCode(identifier.trim(), 'signin');
+      setCodeSent(true);
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Could not send code. Try again.');
+      setRequestRetryable(!(err instanceof ApiError) || err.data?.retryable !== false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCodeConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const result = await api.verify.confirmCode(identifier.trim(), code, 'signin');
+      if (!result?.token) throw new Error('Sign in could not be completed. Please request a new code.');
+      navigateAfterSignIn();
+    } catch (err: unknown) {
+      setError((err as Error)?.message || 'Incorrect code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -63,8 +100,7 @@ export default function SignInPage() {
         <p className="subtitle mt-2">A quiet welcome back.</p>
       </div>
 
-      {API_URL && (
-        <div className="mb-6">
+      <div className="mb-6">
           <a
             href={`${API_URL}/api/auth/google?return=${encodeURIComponent(safeReturnTo ?? '/?account=1')}`}
             className="w-full flex items-center justify-center gap-3 py-3 bg-tea-surface rounded-md border border-tea-border text-tea-text text-ui-14 hover:bg-tea-elevated transition-colors"
@@ -83,27 +119,33 @@ export default function SignInPage() {
             <span className="text-ui-11 uppercase tracking-[0.22em] text-tea-text-dim">Or</span>
             <div className="flex-1 h-px bg-tea-border" />
           </div>
-        </div>
-      )}
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={passwordMode ? handlePasswordSubmit : (codeSent ? handleCodeConfirm : handleCodeRequest)} className="space-y-4">
         <div>
-          <label className={labelClass}>Email or Username</label>
+          <label className={labelClass} htmlFor="signin-identifier">
+            {passwordMode ? 'Email or Username' : 'Email address'}
+          </label>
           <input
-            type="text"
+            id="signin-identifier"
+            type={passwordMode ? 'text' : 'email'}
             value={identifier}
-            onChange={e => setIdentifier(e.target.value)}
-            autoComplete="username"
+            onChange={e => { setIdentifier(e.target.value); setError(''); }}
+            autoComplete={passwordMode ? 'username' : 'email'}
             className={inputClass}
-            placeholder="email or username"
+            placeholder={passwordMode ? 'email or username' : 'you@example.com'}
             required
             autoFocus
+            readOnly={codeSent && !passwordMode}
           />
         </div>
-        <div>
-          <label className={labelClass}>Password</label>
+
+        {passwordMode && (
+          <div>
+          <label className={labelClass} htmlFor="signin-password">Password</label>
           <div className="relative">
             <input
+              id="signin-password"
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -133,29 +175,82 @@ export default function SignInPage() {
               Forgot password?
             </button>
           </div>
-        </div>
+          </div>
+        )}
+
+        {!passwordMode && codeSent && (
+          <div>
+            <label className={labelClass} htmlFor="signin-code">Verification code</label>
+            <input
+              id="signin-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              pattern="[0-9]{6}"
+              value={code}
+              onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+              className={`${inputClass} text-center tracking-[0.28em]`}
+              placeholder="123456"
+              required
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => { setCodeSent(false); setCode(''); setError(''); }}
+              className="mt-2 text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+            >
+              Change email
+            </button>
+          </div>
+        )}
 
         {error && (
-          <div className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
+          <div role="alert" className="flex items-start gap-2 p-3 rounded-md bg-tea-error/5 border border-tea-error/20">
             <Icons.AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-tea-error" />
             <span className="text-ui-12 text-tea-error">{error}</span>
           </div>
         )}
 
+        {!passwordMode && error && !codeSent && requestRetryable && (
+          <button
+            type="button"
+            onClick={() => void handleCodeRequest()}
+            disabled={loading}
+            className="text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+          >
+            Try again
+          </button>
+        )}
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (!passwordMode && codeSent && code.length !== 6)}
           className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-50"
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-tea-bg/30 border-t-tea-bg rounded-full animate-spin" />
           ) : (
-            'Sign In'
+            passwordMode ? 'Sign In' : codeSent ? 'Sign in' : 'Email me a code'
           )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPasswordMode(value => !value);
+            setCodeSent(false);
+            setCode('');
+            setError('');
+            setForgotOpen(false);
+          }}
+          className="w-full text-ui-13 text-tea-text-sec hover:text-tea-text transition-colors"
+        >
+          {passwordMode ? 'Use email code instead' : 'Use password instead'}
         </button>
       </form>
 
-      {forgotOpen && (
+      {passwordMode && forgotOpen && (
         <div className="mt-6 p-4 bg-tea-surface border border-tea-border rounded">
           {forgotSent ? (
             <div className="flex items-start gap-2">

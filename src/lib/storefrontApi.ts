@@ -10,7 +10,9 @@ import { publicProductToInventoryItem } from './adapters';
 // In production, call the API on the app's own origin (relative paths) so it
 // rides the China-reachable hostname via the Pages Function proxy — see the
 // note in src/lib/api.ts. Dev still targets VITE_API_URL.
-const API_URL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || '');
+import { getApiOrigin } from './api';
+
+const API_URL = getApiOrigin();
 
 const REQUEST_TIMEOUT_MS = 30_000;
 

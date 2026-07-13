@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { resolveTermLabel, resolveTermIcon, flattenTastingNotes } from '../../data/tastingTaxonomy';
 import type { TastingData } from '../../types';
 import { TastingSession } from '../../components/tasting/TastingSession';
+import { TastingNoteReviewQueue } from './TastingNoteReviewQueue';
 
 interface TeaReview {
   id: string;
@@ -131,6 +132,11 @@ export const TeaReviewsPanel: React.FC<TeaReviewsPanelProps> = ({
 
   return (
     <div className="space-y-4">
+      <section aria-labelledby="tasting-note-review-heading" className="space-y-2">
+        <h4 id="tasting-note-review-heading" className="text-ui-11 uppercase tracking-[0.12em] text-tea-text-sec">Private note review</h4>
+        <TastingNoteReviewQueue />
+      </section>
+
       {/* TastingSession — opens full-screen when adding a review */}
       {tastingOpen && (
         <TastingSession

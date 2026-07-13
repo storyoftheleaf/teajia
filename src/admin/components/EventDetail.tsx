@@ -20,6 +20,8 @@ import { EventStatus, BriefingCard, TastingNote, Venue } from '../../types/event
 import { VenueManager } from './VenueManager';
 import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '../constants';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
+import { ArticleEditorModal } from './ArticleEditorModal';
+import type { DbArticle } from '../../types';
 
 const statusToVariant = (status: EventStatus): StatusPillVariant => {
   switch (status) {
@@ -323,6 +325,33 @@ export const EventDetail: React.FC = () => {
   const [confirmClose, setConfirmClose] = useState(false);
   const [savingBriefing, setSavingBriefing] = useState(false);
   const [briefingCards, setBriefingCards] = useState<BriefingCard[] | null>(null);
+  const [draftArticle, setDraftArticle] = useState<DbArticle | null>(null);
+  const [drafting, setDrafting] = useState(false);
+  const [draftExisting, setDraftExisting] = useState(false);
+  const draftEventIdRef = useRef(id);
+
+  useEffect(() => {
+    draftEventIdRef.current = id;
+    setDraftArticle(null);
+    setDraftExisting(false);
+    setDrafting(false);
+  }, [id]);
+
+  const handleCreateArticleDraft = async () => {
+    if (!id) return;
+    const eventId = id;
+    setDrafting(true);
+    try {
+      const result = await api.events.createArticleDraft(eventId);
+      if (draftEventIdRef.current !== eventId) return;
+      setDraftExisting(result.existing);
+      setDraftArticle(result.article);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Could not create the photo essay draft.', 'error');
+    } finally {
+      if (draftEventIdRef.current === eventId) setDrafting(false);
+    }
+  };
 
   // Venue tab state
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -773,7 +802,35 @@ export const EventDetail: React.FC = () => {
 
         {/* ── Post-Session tab ── */}
         {activeTab === 'post-session' && (
-          <PostSessionEditor eventId={event.id} />
+          <div className="space-y-6">
+            <section aria-labelledby="photo-essay-draft-heading" className="rounded-md border border-tea-border bg-tea-surface p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 id="photo-essay-draft-heading" className="text-ui-14 font-medium text-tea-text">Event photo essay</h3>
+                  <p className="mt-1 text-ui-12 text-tea-text-sec">Turn the saved gallery and session notes into an editable draft.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCreateArticleDraft}
+                  disabled={drafting}
+                  className="tap-target inline-flex items-center gap-1.5 rounded-md bg-tea-gold px-3 py-2 text-ui-12 font-medium text-tea-bg transition-colors hover:bg-tea-gold/90 disabled:opacity-50"
+                >
+                  {drafting ? <Loader2 size={13} className="animate-spin" /> : <Edit3 size={13} />}
+                  {draftExisting
+                    ? draftArticle?.status === 'draft' ? 'Open existing draft' : 'Open existing article'
+                    : 'Create photo essay draft'}
+                </button>
+              </div>
+              {draftExisting && (
+                <p className="mt-3 border-t border-tea-border pt-3 text-ui-12 text-tea-text-sec">
+                  {draftArticle?.status === 'draft'
+                    ? 'An article draft already exists for this event. Open existing draft.'
+                    : 'An article already exists for this event. Open existing article.'}
+                </p>
+              )}
+            </section>
+            <PostSessionEditor eventId={event.id} />
+          </div>
         )}
 
         {/* ── Interest tab ── */}
@@ -1096,6 +1153,12 @@ export const EventDetail: React.FC = () => {
           event={event}
         />
       )}
+
+      <ArticleEditorModal
+        isOpen={!!draftArticle}
+        initialData={draftArticle ?? undefined}
+        onClose={() => setDraftArticle(null)}
+      />
     </div>
   );
 };

@@ -66,7 +66,9 @@ export const StoryModal: React.FC<StoryModalProps> = ({ story, onClose, onRead }
                  </div>
                  <span className="text-xs text-tea-text/60 font-mono">08:12 / {story.durationOrTime}</span>
                </div>
-               <img src={story.thumbnailUrl || 'https://picsum.photos/400/400'} className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay" alt="audio bg" loading="lazy" />
+               {story.thumbnailUrl && (
+                 <img src={story.thumbnailUrl} className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay" alt="audio bg" loading="lazy" />
+               )}
              </div>
            )}
 

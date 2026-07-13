@@ -5,7 +5,7 @@ export interface PageState { id: string; variant: LayoutVariant; content: string
 export const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export const DEFAULT_STORY: Story = {
-  id: '', type: ContentType.Article, status: 'draft', title: 'Untitled', subtitle: 'Subtitle', thumbnailUrl: 'https://picsum.photos/600/800', durationOrTime: '5 min', origin: 'In-house', description: '...', content: [], drawings: false
+  id: '', type: ContentType.Article, status: 'draft', title: 'Untitled', subtitle: 'Subtitle', thumbnailUrl: '', durationOrTime: '5 min', origin: 'In-house', description: '...', content: [], drawings: false
 };
 
 export const parsePagesFromStory = (story: Story): PageState[] => {

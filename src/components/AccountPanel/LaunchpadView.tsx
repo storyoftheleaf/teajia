@@ -194,7 +194,7 @@ export const LaunchpadView: React.FC<LaunchpadViewProps> = ({
         ? `${collectionCount} tea${collectionCount === 1 ? '' : 's'} kept`
         : 'no favorites yet',
       icon: <Heart {...ICON_PROPS} />,
-      onClick: () => { onClose(); navigate('/account/journey?tab=collection'); },
+      onClick: () => { onClose(); navigate('/account/collection'); },
     },
     {
       // Stock spine step 4: the personal cellar — tea the user actually owns,

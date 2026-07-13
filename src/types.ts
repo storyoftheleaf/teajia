@@ -366,6 +366,49 @@ export interface ContributorProfile {
   updated_at: string;
 }
 
+export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line'> {
+  contact_customer_id?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  contact_whatsapp?: string | null;
+}
+
+export interface ContributorOption {
+  id: string;
+  slug: string;
+  display_name: string;
+  status: 'draft' | 'published';
+}
+
+export interface ContributorWrite {
+  id?: string;
+  slug?: string;
+  display_name?: string;
+  chinese_name?: string | null;
+  role?: string | null;
+  pronouns?: string | null;
+  location_line?: string | null;
+  active_since?: string | null;
+  beginnings?: string | null;
+  now_text?: string | null;
+  now_stamp?: string | null;
+  now_updated_at?: string | null;
+  inspirations?: string | null;
+  closing?: string | null;
+  avatar_url?: string | null;
+  portrait_url?: string | null;
+  portrait_caption?: string | null;
+  voice_clip_url?: string | null;
+  voice_clip_caption?: string | null;
+  pouring_today_product_id?: string | null;
+  pouring_today_note?: string | null;
+  where_to_find_text?: string | null;
+  user_id?: string | null;
+  face_of_account_id?: string | null;
+  links?: ContributorLink[];
+}
+
 export interface Chapter {
   id: string;
   title: string;
@@ -387,6 +430,7 @@ export type StoryCategory = 'tea-feature' | 'interview' | 'science' | 'curated' 
 
 export interface Story {
   id: string;
+  slug?: string;
   type: ContentType;
   status: StoryStatus;
   title: string;
@@ -428,7 +472,7 @@ export interface LearnPath {
   modules: string[]; // Module IDs
 }
 
-export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY' | 'PAGE_READER';
+export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY';
 
 export interface CartItem {
   id: string;
@@ -1050,6 +1094,9 @@ export interface DbArticle {
   subtitle?: string;
   author_id?: string;
   author_name?: string;
+  subject_ids?: string[];
+  pull_quote?: string;
+  pull_quote_subject?: string;
   slug: string;
   status: 'draft' | 'published' | 'archived';
   category?: string;
@@ -1311,4 +1358,26 @@ export interface CurateReceiptProposal {
   status: 'pending' | 'accepted' | 'rejected'; idempotency_key: string; ledger_id?: string | null;
   proposed_by_user_id: string; reviewed_by_user_id?: string | null; reviewed_at?: string | null;
   created_at: string; updated_at: string;
+}
+
+export interface CustomerOrderDetail {
+  id: string;
+  invoice_number: string;
+  status: string;
+  created_at: string;
+  payment_date: string | null;
+  fulfilled_at: string | null;
+  currency: string;
+  items: Array<{
+    id: string;
+    product_id: string | null;
+    name: string;
+    quantity: number;
+    unit_price_usd: number;
+    line_total_usd: number;
+  }>;
+  subtotal_amount_usd: number;
+  shipping_amount_usd: number;
+  total_amount_usd: number;
+  contact: { whatsapp: string | null; email: string | null };
 }

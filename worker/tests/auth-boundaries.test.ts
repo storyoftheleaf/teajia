@@ -97,6 +97,9 @@ class FakeStatement {
 
   async all() {
     const sql = normalizeSql(this.sql);
+    if (sql.includes('from contributors') && sql.includes('display_name')) {
+      return { results: [{ id: 'writer', slug: 'writer', display_name: 'Writer', status: 'published' }] };
+    }
     // The public list query aliases the table (FROM articles a … WHERE a.status = 'published').
     if (sql.includes('from articles') && sql.includes("status = 'published'")) {
       return {
@@ -181,6 +184,16 @@ describe('worker authorization boundaries', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual([]);
+  });
+
+  it('allows publish staff to list safe contributor options while keeping contributor CRUD owner-only', async () => {
+    const optionsRequest = await authedRequest('/api/admin/contributor-options');
+    const optionsResponse = await worker.fetch(optionsRequest, makeEnv({ role: 'staff', bundles: ['publish'] }));
+    expect(optionsResponse.status).toBe(200);
+    expect(await optionsResponse.json()).toEqual({ contributors: [{ id: 'writer', slug: 'writer', display_name: 'Writer', status: 'published' }] });
+
+    const crudRequest = await authedRequest('/api/admin/contributors');
+    expect((await worker.fetch(crudRequest, makeEnv({ role: 'staff', bundles: ['publish'] }))).status).toBe(403);
   });
 
   it('denies product stock commands without the stock bundle', async () => {

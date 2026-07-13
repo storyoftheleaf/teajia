@@ -114,12 +114,14 @@ const ArticleEditorHarness = lazy(() => import('./pages/ArticleEditorHarness'));
 const DesignSystemShowcase = lazy(() => import('./pages/DesignSystemShowcase'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CollectionPage = lazy(() => import('./pages/CollectionPage'));
+const CellarPage = lazy(() => import('./pages/CellarPage'));
 const SharedCollectionsPage = lazy(() => import('./pages/SharedCollectionsPage'));
 const SignInPage = lazy(() => import('./pages/SignInPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const AccountSettingsPage = lazy(() => import('./pages/AccountSettingsPage'));
 const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
+const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
 const DeveloperDocsPage = lazy(() => import('./pages/DeveloperDocsPage'));
 const BriefingPage = lazy(() => import('./pages/BriefingPage'));
@@ -427,7 +429,9 @@ const AppContent = () => {
       setSelectedStory(story);
       setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
       if (story.type === ContentType.Article) {
-        setViewState('PAGE_READER');
+        const slug = story.slug || story.id;
+        navigate(`/article/${encodeURIComponent(slug)}`);
+        return;
       } else if (story.type === ContentType.PhotoEssay) {
         setViewState('PHOTO_ESSAY');
       } else {
@@ -437,7 +441,7 @@ const AppContent = () => {
     window.addEventListener('openArticle', handler);
     return () => window.removeEventListener('openArticle', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, magazineDefaultTab]);
+  }, [activeSection, magazineDefaultTab, navigate]);
 
   // Cart persistence handled by Zustand persist middleware
 
@@ -555,15 +559,13 @@ const AppContent = () => {
        setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
     }
 
-    let newViewState: ViewState;
     if (story.type === ContentType.Article) {
-      newViewState = 'PAGE_READER';
-    } else if (story.type === ContentType.PhotoEssay) {
-      newViewState = 'PHOTO_ESSAY';
-    } else {
-      newViewState = 'STORY_VIEW';
+      const slug = story.slug || story.id;
+      navigate(`/article/${encodeURIComponent(slug)}`);
+      return;
     }
-    setViewState(newViewState);
+
+    setViewState(story.type === ContentType.PhotoEssay ? 'PHOTO_ESSAY' : 'STORY_VIEW');
   };
 
   const handleBackToBrowse = () => {
@@ -1012,12 +1014,14 @@ const AppContent = () => {
                 <Route path="/account" element={<AccountRouteBridge onOpen={() => handleOpenAccount()} />} />
                 <Route path="/account/journal" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><JournalPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collection" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CollectionPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/cellar" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><CellarPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/collections" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SharedCollectionsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/journey" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountJourneyPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signin" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignInPage /></Suspense></ErrorBoundary>} />
                 <Route path="/signup" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SignUpPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/settings" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><AccountSettingsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/orders" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderHistoryPage /></Suspense></ErrorBoundary>} />
+                <Route path="/account/orders/:id" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><OrderDetailPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/samples" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><SampleHistoryPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/docs" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><DeveloperDocsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/account/briefing" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><BriefingPage /></Suspense></ErrorBoundary>} />
@@ -1103,7 +1107,7 @@ const AppContent = () => {
 
       {/* --- Full Screen Views --- */}
 
-      {/* Legacy 'PAGE_READER' overlay removed — articles route through /article/:slug. */}
+      {/* Legacy article overlay removed — articles route through /article/:slug. */}
 
       {viewState === 'READER' && selectedStory && (
          <ImagePreloaderProvider>
@@ -1256,6 +1260,7 @@ const AppContent = () => {
          onUpdateQuantity={handleUpdateCartQuantity}
          onAddItem={addToPublicCart}
          whatsappNumber={activeStore?.whatsapp_number}
+         contactEmail={activeStore?.contact_email}
       />
     </div>
   );

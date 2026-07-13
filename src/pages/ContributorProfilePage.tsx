@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { useContributor } from '../hooks/useContributor';
+import type { ContributorPullQuote } from '../types';
 
 // /people/:slug. Public contributor profile page.
 //
@@ -57,6 +58,18 @@ function Paragraphs({ text }: { text: string }) {
       ))}
     </>
   );
+}
+
+function ContributorPullQuoteBlock({ quote }: { quote?: ContributorPullQuote }) {
+  if (!quote?.pull_quote) return null;
+  return <Reveal>
+    <blockquote className="my-16 border-y border-tea-border py-8 md:my-24 md:py-10">
+      <p className="max-w-[52ch] font-display text-ui-26 font-light leading-snug text-tea-text md:text-[32px]">“{quote.pull_quote}”</p>
+      <cite className="mt-5 block text-ui-12 not-italic text-tea-text-sec">
+        <a href={`/article/${quote.article_slug}`} className="tap-target hover:text-tea-gold">{quote.article_title} →</a>
+      </cite>
+    </blockquote>
+  </Reveal>;
 }
 
 // Map an ISO date to "Season YYYY". Dec rolls forward.
@@ -266,7 +279,7 @@ export default function ContributorProfilePage() {
             </Reveal>
           )}
 
-          {/* PULL_QUOTE_AFTER_ORIGIN — Wave 4A inserts here */}
+          <ContributorPullQuoteBlock quote={data.pull_quotes[0]} />
 
           {data.now_text && (
             <Reveal>
@@ -287,7 +300,7 @@ export default function ContributorProfilePage() {
             </Reveal>
           )}
 
-          {/* PULL_QUOTE_AFTER_INSPIRATIONS — Wave 4A inserts here */}
+          <ContributorPullQuoteBlock quote={data.pull_quotes[1]} />
 
           {data.articles.length > 0 && (
             <Reveal>

@@ -2,23 +2,30 @@ import React, { useState } from 'react';
 import { Icons } from '../Icons';
 import { Button } from '../shared/Button';
 import { useScrollLock } from '../../hooks/useScrollLock';
-import { buildWhatsAppUrl } from '../../lib/whatsapp';
-
-const DEFAULT_PHONE = import.meta.env.VITE_WHATSAPP_NUMBER || '';
+import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
+import { useAppStore } from '../../lib/store';
 
 interface ProductInquiryProps {
   isOpen: boolean;
   onClose: () => void;
   productName: string;
   phone?: string;
+  email?: string;
 }
 
-type InquiryChannel = 'choose' | 'whatsapp' | 'email';
+type InquiryChannel = 'choose' | 'email';
 
 const INPUT_CLASS = 'w-full bg-tea-surface border border-tea-border p-3 text-tea-text text-base outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-gold rounded-md';
 
-export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone = DEFAULT_PHONE }) => {
+export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose, productName, phone, email }) => {
   useScrollLock(isOpen);
+  const activeAccount = useAppStore(s => s.activeAccount);
+  const contact = resolveContactChannels({
+    whatsappNumber: phone || activeAccount?.whatsapp_number,
+    email: email || activeAccount?.contact_email,
+    subject: `Inquiry about ${productName}`,
+    message: `Hi, I'd like to inquire about: ${productName}`,
+  });
 
   const [channel, setChannel] = useState<InquiryChannel>('choose');
   const [form, setForm] = useState({
@@ -26,7 +33,6 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     email: '',
     message: `I'm interested in ${productName}`,
   });
-  const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = () => {
@@ -39,21 +45,21 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
     }
     setErrors({});
 
-    const inquiries = JSON.parse(localStorage.getItem('teajia_inquiries') || '[]');
-    inquiries.push({ ...form, productName, timestamp: new Date().toISOString() });
-    localStorage.setItem('teajia_inquiries', JSON.stringify(inquiries));
-
-    setSubmitted(true);
+    const handoff = resolveContactChannels({
+      email: email || activeAccount?.contact_email,
+      subject: `Inquiry about ${productName}`,
+      message: `Name: ${form.name}\nReply to: ${form.email}\n\n${form.message}`,
+    }).email;
+    if (handoff) window.location.href = handoff.href;
   };
 
   const handleWhatsApp = () => {
     const message = `Hi, I'd like to inquire about: ${productName}\n\nPlease let me know about availability and details. Thank you!`;
-    window.open(buildWhatsAppUrl(phone, message), '_blank');
+    if (contact.whatsapp) window.open(contact.whatsapp.href, '_blank');
     handleClose();
   };
 
   const handleClose = () => {
-    setSubmitted(false);
     setChannel('choose');
     setForm({ name: '', email: '', message: `I'm interested in ${productName}` });
     setErrors({});
@@ -75,7 +81,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-2">
           <h3 className="font-serif text-xl text-tea-text">
-            {submitted ? 'Thank you' : `Interested in ${productName}?`}
+            {`Interested in ${productName}?`}
           </h3>
           <button
             onClick={handleClose}
@@ -86,14 +92,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
         </div>
 
         <div className="p-6 pt-4">
-          {submitted ? (
-            <div className="text-center py-8">
-              <Icons.Check className="w-12 h-12 text-tea-green mx-auto mb-4" />
-              <p className="text-sm text-tea-text-sec">
-                We'll be in touch about <span className="font-medium">{productName}</span>.
-              </p>
-            </div>
-          ) : channel === 'choose' ? (
+          {channel === 'choose' ? (
             /* Channel selection */
             <div className="space-y-3">
               <p className="text-sm text-tea-text-sec mb-4">
@@ -101,7 +100,7 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
               </p>
 
               {/* WhatsApp — primary */}
-              <button
+              {contact.whatsapp && <button
                 onClick={handleWhatsApp}
                 className="w-full flex items-center gap-4 p-4 rounded-md border border-tea-border hover:border-tea-gold/50 hover:bg-tea-gold/5 transition-all duration-200 group min-h-[56px]"
               >
@@ -111,10 +110,10 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                   <span className="text-xs text-tea-text-sec">Quick and direct — chat with us now</span>
                 </div>
                 <span className="text-tea-text/30 group-hover:text-tea-gold group-hover:translate-x-0.5 transition-all">&rarr;</span>
-              </button>
+              </button>}
 
               {/* Email form — secondary */}
-              <button
+              {contact.email && <button
                 onClick={() => setChannel('email')}
                 className="w-full flex items-center gap-4 p-4 rounded-md border border-tea-border hover:border-tea-gold/50 hover:bg-tea-gold/5 transition-all duration-200 group min-h-[56px]"
               >
@@ -124,7 +123,8 @@ export const ProductInquiry: React.FC<ProductInquiryProps> = ({ isOpen, onClose,
                   <span className="text-xs text-tea-text-sec">Leave your details and we'll follow up</span>
                 </div>
                 <span className="text-tea-text/30 group-hover:text-tea-gold group-hover:translate-x-0.5 transition-all">&rarr;</span>
-              </button>
+              </button>}
+              {contact.unavailable && <p className="py-6 text-center text-sm text-tea-text-sec">{CONTACT_UNAVAILABLE}</p>}
             </div>
           ) : (
             /* Email form */

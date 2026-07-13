@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import type { ContactMethod } from '../../types/events';
 
 interface VerifySheetProps {
   onClose: () => void;
@@ -19,9 +18,9 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
   useScrollLock(true);
 
   const [step, setStep] = useState<'contact' | 'code'>('contact');
-  const [method, setMethod] = useState<ContactMethod>('whatsapp');
   const [contact, setContact] = useState('');
   const [codeDigits, setCodeDigits] = useState(['', '', '', '', '', '']);
+  const [completionError, setCompletionError] = useState('');
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const [dragY, setDragY] = useState(0);
@@ -56,14 +55,20 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
   }, [dragY, onClose]);
 
   const requestMutation = useMutation({
-    mutationFn: () => api.verify.requestCode(contact.trim(), method),
-    onSuccess: () => setStep('code'),
+    mutationFn: () => api.verify.requestCode(contact.trim(), 'event'),
+    onSuccess: () => { setCompletionError(''); setStep('code'); },
   });
 
   const confirmMutation = useMutation({
-    mutationFn: () => api.verify.confirmCode(contact.trim(), codeDigits.join('')),
+    mutationFn: (submittedCode?: string) => api.verify.confirmCode(contact.trim(), submittedCode ?? codeDigits.join(''), 'event'),
     onSuccess: (data: any) => {
-      onVerified(contact.trim(), data.sessionToken ?? '');
+      const token = data.sessionToken ?? data.attendances?.[0]?.magic_token;
+      if (!token) {
+        setCompletionError("We couldn't find an event history for this email. Try another email or contact the tea house.");
+        return;
+      }
+      setCompletionError('');
+      onVerified(contact.trim(), token);
     },
   });
 
@@ -72,6 +77,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     const next = [...codeDigits];
     next[idx] = digit;
     setCodeDigits(next);
+    setCompletionError('');
     if (digit && idx < 5) {
       codeRefs.current[idx + 1]?.focus();
     }
@@ -79,7 +85,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     if (digit && idx === 5) {
       const full = next.join('');
       if (full.length === 6) {
-        confirmMutation.mutate();
+        confirmMutation.mutate(full);
       }
     }
   };
@@ -93,7 +99,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
     setCodeDigits(next);
     const lastFilled = Math.min(pasted.length, 6) - 1;
     codeRefs.current[lastFilled]?.focus();
-    if (pasted.length === 6) confirmMutation.mutate();
+    if (pasted.length === 6) confirmMutation.mutate(pasted);
   };
 
   const handleCodeKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -155,47 +161,29 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
           </p>
 
           <p className="body-light">
-            Enter your phone or email {purposeLabel}. We'll send a short code.
+            Enter your email {purposeLabel}. We'll send a short code.
           </p>
 
           {step === 'contact' && (
             <div key="step-contact" className="space-y-4 verify-step-enter">
-              {/* Method toggle — underline tabs */}
+              {/* Delivery method */}
               <div className="flex gap-6 border-b border-tea-border">
-                {(['whatsapp', 'email'] as ContactMethod[]).map((m) => {
-                  const isActive = method === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setMethod(m)}
-                      className={`relative -mb-px pb-2 pt-1 transition-colors ${
-                        isActive ? 'text-tea-text' : 'text-tea-text-sec hover:text-tea-text'
-                      }`}
-                    >
-                      <span className="text-ui-12 font-semibold">
-                        {m === 'whatsapp' ? 'WhatsApp' : 'Email'}
-                      </span>
-                      <span
-                        className={`absolute left-0 right-0 -bottom-px h-px transition-colors ${
-                          isActive ? 'bg-tea-gold' : 'bg-transparent'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
+                <div className="relative -mb-px pb-2 pt-1 text-tea-text" aria-label="Delivery method: Email">
+                  <span className="text-ui-12 font-semibold">Email</span>
+                  <span className="absolute left-0 right-0 -bottom-px h-px bg-tea-gold" />
+                </div>
               </div>
 
               <div>
                 <label className="label-caps block mb-2" htmlFor="verify-contact">
-                  {method === 'whatsapp' ? 'WhatsApp number' : 'Email address'}
+                  Email address
                 </label>
                 <input
                   id="verify-contact"
-                  type={method === 'email' ? 'email' : 'tel'}
+                  type="email"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  placeholder={method === 'email' ? 'your@email.com' : '0912-345-678'}
+                  placeholder="your@email.com"
                   autoFocus
                   aria-invalid={requestMutation.isError || undefined}
                   className={inputClass}
@@ -210,7 +198,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
               )}
 
               {/* Footer — Cancel-left, primary-right */}
-              <div className="flex justify-between items-center gap-3 pt-2">
+              <div className="flex justify-between items-center gap-3 pt-2 pb-nav-gap">
                 <button
                   type="button"
                   onClick={onClose}
@@ -240,8 +228,8 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 Code sent to <span className="text-tea-text">{contact}</span>.
                 <button
                   type="button"
-                  onClick={() => setStep('contact')}
-                  className="ml-2 text-tea-readgold hover:text-tea-text transition-colors font-semibold"
+                  onClick={() => { setCompletionError(''); setStep('contact'); }}
+                  className="ml-2 text-tea-gold hover:text-tea-text transition-colors font-semibold"
                 >
                   Change
                 </button>
@@ -280,8 +268,28 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 </p>
               )}
 
+              {completionError && (
+                <div role="alert" className="rounded-md border border-tea-border bg-tea-bg p-3 text-center">
+                  <p className="text-ui-12 text-tea-text-sec">{completionError}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCompletionError('');
+                      setContact('');
+                      setCodeDigits(['', '', '', '', '', '']);
+                      confirmMutation.reset();
+                      requestMutation.reset();
+                      setStep('contact');
+                    }}
+                    className="mt-3 min-h-11 px-3 text-ui-13 font-semibold text-tea-text-sec hover:text-tea-text transition-colors"
+                  >
+                    Try another email
+                  </button>
+                </div>
+              )}
+
               {/* Footer — Cancel-left, primary-right */}
-              <div className="flex justify-between items-center gap-3 pt-2">
+              <div className="flex justify-between items-center gap-3 pt-2 pb-nav-gap">
                 <button
                   type="button"
                   onClick={onClose}
@@ -292,7 +300,7 @@ const VerifySheet: React.FC<VerifySheetProps> = ({ onClose, onVerified, purpose 
                 <button
                   type="button"
                   disabled={!isCodeComplete || confirmMutation.isPending}
-                  onClick={() => confirmMutation.mutate()}
+                  onClick={() => confirmMutation.mutate(undefined)}
                   className="inline-flex items-center justify-center px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors min-w-[140px]"
                 >
                   {confirmMutation.isPending ? (

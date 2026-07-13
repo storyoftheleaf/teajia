@@ -203,6 +203,9 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_status TEXT DEFAULT 'unpaid',    -- unpaid | partial | paid
     payment_date TEXT,
     payment_method TEXT,
+    fulfilled_at TEXT,
+    fulfillment_claim_token TEXT,
+    fulfillment_claimed_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
@@ -220,6 +223,14 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_account_invoice_number_active
   ON invoices(account_id, invoice_number)
   WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_invoices_fulfillment_claim
+  ON invoices(account_id, fulfillment_claim_token);
+CREATE TRIGGER IF NOT EXISTS trg_products_nonnegative_stock
+BEFORE UPDATE OF stock_grams ON products
+FOR EACH ROW WHEN NEW.stock_grams < 0
+BEGIN
+  SELECT RAISE(ABORT, 'stock_grams cannot be negative');
+END;
 
 -- 5. Users Table
 CREATE TABLE IF NOT EXISTS users (
@@ -948,3 +959,111 @@ CREATE TABLE IF NOT EXISTS oauth_authorize_requests (
     created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
 );
 CREATE INDEX IF NOT EXISTS idx_oauth_authorize_requests_expires ON oauth_authorize_requests(expires_at);
+CREATE TABLE IF NOT EXISTS invoice_line_repairs (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  invoice_id TEXT NOT NULL REFERENCES invoices(id),
+  line_item_id TEXT NOT NULL REFERENCES invoice_line_items(id),
+  repair_key TEXT NOT NULL UNIQUE,
+  old_price_at_sale REAL NOT NULL,
+  new_price_at_sale REAL NOT NULL,
+  old_line_total REAL NOT NULL,
+  new_line_total REAL NOT NULL,
+  repaired_by TEXT NOT NULL REFERENCES users(id),
+  repaired_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_invoice_line_repairs_account_invoice
+  ON invoice_line_repairs(account_id, invoice_id);
+
+CREATE TABLE IF NOT EXISTS verification_challenges (
+  id TEXT PRIMARY KEY,
+  contact_normalized TEXT NOT NULL,
+  purpose TEXT NOT NULL CHECK (purpose IN ('signin', 'event')),
+  code_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  failed_attempts INTEGER NOT NULL DEFAULT 0,
+  delivered_at TEXT,
+  consumed_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_verification_challenges_contact_purpose
+  ON verification_challenges(contact_normalized, purpose, created_at DESC);
+CREATE TABLE IF NOT EXISTS tasting_note_candidates (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  journal_entry_id TEXT NOT NULL REFERENCES customer_tasting_journal(id),
+  note_key TEXT NOT NULL,
+  product_id TEXT NOT NULL REFERENCES products(id),
+  author_user_id TEXT NOT NULL REFERENCES users(id),
+  source_text TEXT NOT NULL,
+  source_tasting TEXT,
+  status TEXT NOT NULL DEFAULT 'starred' CHECK (status IN ('starred', 'promoted', 'dismissed')),
+  edited_text TEXT,
+  attribution_name TEXT,
+  attribution_detail TEXT,
+  promoted_at TEXT,
+  promoted_by TEXT REFERENCES users(id),
+  dismissed_at TEXT,
+  dismissed_by TEXT REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (author_user_id, journal_entry_id, note_key)
+);
+CREATE INDEX IF NOT EXISTS idx_tasting_note_candidates_account_status_created ON tasting_note_candidates(account_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tasting_note_candidates_account_product ON tasting_note_candidates(account_id, product_id);
+
+CREATE TABLE IF NOT EXISTS product_impressions (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(id),
+  product_id TEXT NOT NULL REFERENCES products(id),
+  candidate_id TEXT NOT NULL UNIQUE REFERENCES tasting_note_candidates(id),
+  text TEXT NOT NULL,
+  attribution_name TEXT NOT NULL,
+  attribution_detail TEXT,
+  published_at TEXT NOT NULL DEFAULT (datetime('now')),
+  published_by TEXT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_product_impressions_account_product_published ON product_impressions(account_id, product_id, published_at DESC);
+
+-- Event post-session editorial source and ordinary article drafts.
+CREATE TABLE IF NOT EXISTS event_post_session (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
+  account_id TEXT,
+  event_id TEXT UNIQUE NOT NULL REFERENCES events(id),
+  tea_ledger TEXT,
+  playlist_url TEXT,
+  gallery_images TEXT,
+  session_notes TEXT,
+  host_notes TEXT,
+  energy TEXT,
+  host_changes TEXT,
+  shared_tasting_notes TEXT,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS articles (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL DEFAULT 'acc_teajia_bali',
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  author_id TEXT,
+  slug TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  category TEXT,
+  tags TEXT NOT NULL DEFAULT '[]',
+  cover_image_url TEXT,
+  blocks TEXT NOT NULL DEFAULT '[]',
+  layout_template TEXT,
+  reading_time_mins INTEGER,
+  published_at TEXT,
+  source_event_id TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
+CREATE INDEX IF NOT EXISTS idx_articles_account_status ON articles(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_articles_account_source_event ON articles(account_id, source_event_id) WHERE source_event_id IS NOT NULL;

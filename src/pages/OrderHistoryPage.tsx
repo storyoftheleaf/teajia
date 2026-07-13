@@ -98,9 +98,12 @@ export default function OrderHistoryPage() {
         <ul className="space-y-2">
           {orders.map(order => (
             <li key={order.id}>
-              {/* TODO: route to a per-order status page once the WhatsApp-confirmed
-                  status flow has a UI surface. For now this is a static row. */}
-              <article className="rounded border border-tea-border bg-tea-surface px-4 py-3 flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={() => navigate(`/account/orders/${encodeURIComponent(order.id)}`)}
+                className="w-full min-h-11 rounded border border-tea-border bg-tea-surface px-4 py-3 flex items-center justify-between gap-4 text-left hover:border-tea-gold/30 transition-colors"
+                aria-label={`${order.invoice_number}, ${order.status}, ${formatTotal(order.total_amount_usd, order.currency)}`}
+              >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-ui-13 text-tea-text">{order.invoice_number}</span>
@@ -115,12 +118,13 @@ export default function OrderHistoryPage() {
                     )}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex items-center gap-2 shrink-0">
                   <p className="text-ui-14 text-tea-text font-medium">
                     {formatTotal(order.total_amount_usd, order.currency)}
                   </p>
+                  <Icons.ChevronRight className="w-4 h-4 text-tea-text-sec" aria-hidden="true" />
                 </div>
-              </article>
+              </button>
             </li>
           ))}
         </ul>

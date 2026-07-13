@@ -11,12 +11,17 @@ import {
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
+import { buildEventArticleDraft } from './eventArticleDraft';
+import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
+import { deliverVerificationCode } from './verificationDelivery';
 
 interface Env {
   DB: D1Database;
   MEDIA_BUCKET: R2Bucket;
   ADMIN_PASSWORD_HASH: string;
   JWT_SECRET: string;
+  VERIFICATION_CODE_SECRET?: string;
   ANTHROPIC_API_KEY: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
@@ -2384,7 +2389,7 @@ const PRODUCT_CATALOG_UPDATE_COLUMNS = new Set([
 
 const PRODUCT_STOCK_UPDATE_COLUMNS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
-  'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
+  'stock_verified_at', 'stock_known_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
   'session_reserve_grams',
 ]);
 
@@ -2460,6 +2465,10 @@ async function applyProductUpdate(
       }, 400);
     }
   }
+
+  const ownedProduct = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!ownedProduct) return json({ error: 'Product not found' }, 404);
 
   // Stock change logging — scoped lookup
   const extraStmts: D1PreparedStatement[] = [];
@@ -3001,6 +3010,10 @@ const handleGetInvoiceItems: Handler = async (request, env, params) => {
   if ('error' in ctx) return ctx.error;
   const { accountId } = ctx;
 
+  const invoice = await env.DB.prepare('SELECT id FROM invoices WHERE id = ? AND account_id = ?')
+    .bind(params.id, accountId).first();
+  if (!invoice) return json({ error: 'Invoice not found' }, 404);
+
   const result = await env.DB.prepare(
     `SELECT ili.*, p.given_name, p.product_name
      FROM invoice_line_items ili
@@ -3058,7 +3071,7 @@ const handleFulfillInvoice: Handler = async (request, env) => {
   const invoice = await env.DB.prepare('SELECT * FROM invoices WHERE id = ? AND account_id = ?')
     .bind(invoice_id, accountId).first() as Record<string, any> | null;
   if (!invoice) return json({ error: 'Invoice not found' }, 404);
-  if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 400);
+  if (invoice.inventory_deducted) return json({ error: 'Inventory already deducted' }, 409);
 
   const items = await env.DB.prepare(
     'SELECT * FROM invoice_line_items WHERE invoice_id = ? AND account_id = ?'
@@ -3094,64 +3107,23 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     }
   }
 
-  // ── Phase A: atomic, guarded stock deduction ───────────────────────────
-  // Each deduct is conditional on `stock_grams >= qty`. If a concurrent
-  // fulfillment drained stock since the pre-check, the row won't match and
-  // RETURNING is empty — we detect that, restore, and 409 before committing
-  // any of the downstream ledger / status / invoice state.
+  const fulfillmentClaim = crypto.randomUUID();
+  const claimed = await env.DB.prepare(
+    `UPDATE invoices SET fulfillment_claim_token = ?, fulfillment_claimed_at = datetime('now')
+     WHERE id = ? AND account_id = ? AND inventory_deducted = 0
+       AND (fulfillment_claim_token IS NULL OR fulfillment_claimed_at IS NULL OR fulfillment_claimed_at < datetime('now', '-5 minutes'))
+     RETURNING id`
+  ).bind(fulfillmentClaim, invoice_id, accountId).first();
+  if (!claimed) return json({ error: 'Invoice fulfillment is already in progress' }, 409);
+  const releaseClaim = () => env.DB.prepare(
+    'UPDATE invoices SET fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?'
+  ).bind(invoice_id, accountId, fulfillmentClaim).run();
+
+  // All stock, ledger, audit, and invoice writes below commit in one D1 batch.
+  // The non-negative-stock trigger aborts the whole batch if stock changed
+  // after the pre-check. A termination before this batch leaves only the
+  // leased claim, which can be reclaimed after five minutes.
   const deductLines = (items.results as any[]).filter(i => i.product_id);
-  const deductStmts: D1PreparedStatement[] = deductLines.map(item =>
-    env.DB.prepare(
-      'UPDATE products SET stock_grams = stock_grams - ? WHERE id = ? AND account_id = ? AND stock_grams >= ? RETURNING stock_grams'
-    ).bind(Number(item.quantity) || 0, item.product_id, accountId, Number(item.quantity) || 0)
-  );
-
-  // Maps product_id → balance_after taken from the actual RETURNING value.
-  const balanceAfter = new Map<string, number>();
-  if (deductStmts.length > 0) {
-    let deductResults: D1Result[];
-    try {
-      deductResults = await env.DB.batch(deductStmts);
-    } catch (err: any) {
-      console.error('handleFulfillInvoice deduct batch failed:', err);
-      return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
-    }
-
-    // Find any line whose guarded UPDATE matched no row (lost the race).
-    const failedIdx = deductResults.findIndex(r => (r.results?.length ?? 0) === 0);
-    if (failedIdx !== -1) {
-      // Compensate: add back the qty for every line that DID deduct, so the
-      // partial Phase-A commit is undone before we abort.
-      const restoreStmts: D1PreparedStatement[] = [];
-      deductResults.forEach((r, i) => {
-        if ((r.results?.length ?? 0) > 0) {
-          const qty = Number(deductLines[i].quantity) || 0;
-          restoreStmts.push(
-            env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-              .bind(qty, deductLines[i].product_id, accountId)
-          );
-        }
-      });
-      if (restoreStmts.length > 0) {
-        try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment rollback failed:', e); }
-      }
-      const failed = deductLines[failedIdx];
-      const product = products.get(failed.product_id as string);
-      return json({
-        error: 'insufficient_stock',
-        product_id: failed.product_id,
-        requested: Number(failed.quantity) || 0,
-        available: product ? Number(product.stock_grams) || 0 : 0,
-      }, 409);
-    }
-
-    deductResults.forEach((r, i) => {
-      const row = r.results?.[0] as { stock_grams?: number } | undefined;
-      balanceAfter.set(deductLines[i].product_id as string, Number(row?.stock_grams) || 0);
-    });
-  }
-
-  // ── Phase B: ledger, mirror, status, holds, invoice (atomic batch) ─────
   const stmts: D1PreparedStatement[] = [];
 
   for (const item of items.results as any[]) {
@@ -3159,84 +3131,77 @@ const handleFulfillInvoice: Handler = async (request, env) => {
     const product = products.get(item.product_id as string);
     const currentStock = product ? Number(product.stock_grams) || 0 : 0;
     const qty = Number(item.quantity) || 0;
-    // balance_after derived from the conditional UPDATE's RETURNING value, not
-    // the earlier (potentially stale) read.
-    const newBalance = balanceAfter.has(item.product_id as string)
-      ? (balanceAfter.get(item.product_id as string) as number)
-      : currentStock - qty;
+    const newBalance = currentStock - qty;
     const threshold = product ? Number(product.low_stock_threshold) || 0 : 0;
+
+    stmts.push(env.DB.prepare(
+      `UPDATE products SET stock_grams = stock_grams - ?
+       WHERE id = ? AND account_id = ?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+    ).bind(qty, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
 
     // Listing mirror — clamp to 0 (mirror the wholesale path's MAX(0, COALESCE(...))
     // pattern) so a mirror that drifted below the products row can't go negative.
     stmts.push(
       env.DB.prepare(
-        `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?`
-      ).bind(qty, `list_${item.product_id}`)
+        `UPDATE product_listings SET stock_grams = MAX(0, COALESCE(stock_grams, 0) - ?), updated_at = datetime('now') WHERE id = ?
+         AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+      ).bind(qty, `list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim)
     );
-    stmts.push(buildStockLedgerEntry(
-      env, item.product_id as string, -qty, newBalance, 'FULFILLMENT',
-      userEmail, invoice_id, invoice.invoice_number as string, null, accountId
-    ));
+    stmts.push(env.DB.prepare(
+      `INSERT INTO stock_ledger (id, product_id, delta, balance_after, reason, source_invoice_id, source_invoice_number, user_email, note, account_id)
+       SELECT ?, ?, ?, ?, 'FULFILLMENT', ?, ?, ?, NULL, ?
+       WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+    ).bind(crypto.randomUUID(), item.product_id, -qty, newBalance, invoice_id, invoice.invoice_number, userEmail, accountId, invoice_id, accountId, fulfillmentClaim));
 
     if (newBalance <= 0 && product && product.status !== 'Sold Out') {
       stmts.push(
-        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ?")
-          .bind(item.product_id, accountId)
+        env.DB.prepare("UPDATE products SET status = 'Sold Out', sold_out_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
+          .bind(item.product_id, accountId, invoice_id, accountId, fulfillmentClaim)
       );
-      stmts.push(buildListingStatusMirror(env, item.product_id as string, 'Sold Out'));
-      stmts.push(buildActivityLog(
-        env, 'PRODUCT_SOLD_OUT',
-        `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`,
-        userEmail, 'product', item.product_id as string, accountId
-      ));
+      stmts.push(env.DB.prepare("UPDATE product_listings SET status = 'Sold Out', updated_at = datetime('now') WHERE id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
+        .bind(`list_${item.product_id}`, invoice_id, accountId, fulfillmentClaim));
+      stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+        SELECT ?, 'PRODUCT_SOLD_OUT', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
+        .bind(crypto.randomUUID(), `${product.given_name || product.product_name} auto-archived (stock reached ${newBalance}g after fulfillment of ${invoice.invoice_number})`, userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
       // Set linked compass entry to depleted
       if (product.source_compass_entry_id) {
         stmts.push(
-          env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock'")
-            .bind(product.source_compass_entry_id)
+          env.DB.prepare("UPDATE tea_compass_entries SET status = 'depleted', updated_at = datetime('now') WHERE id = ? AND status = 'in_stock' AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)")
+            .bind(product.source_compass_entry_id, invoice_id, accountId, fulfillmentClaim)
         );
       }
     } else if (threshold > 0 && newBalance < threshold && currentStock >= threshold && product) {
       // Low-stock alert when fulfillment drops stock below the configured threshold
       const name = (product.given_name || product.product_name || item.product_id) as string;
-      stmts.push(buildActivityLog(
-        env, 'low_stock_alert',
-        JSON.stringify({ productName: name, stockGrams: newBalance, threshold }),
-        userEmail, 'product', item.product_id as string, accountId
-      ));
+      stmts.push(env.DB.prepare(`INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+        SELECT ?, 'low_stock_alert', ?, ?, 'product', ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`)
+        .bind(crypto.randomUUID(), JSON.stringify({ productName: name, stockGrams: newBalance, threshold }), userEmail, item.product_id, accountId, invoice_id, accountId, fulfillmentClaim));
     }
   }
 
   stmts.push(
-    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ?')
-      .bind(invoice_id, accountId)
+    env.DB.prepare('DELETE FROM stock_holds WHERE invoice_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)')
+      .bind(invoice_id, accountId, invoice_id, accountId, fulfillmentClaim)
   );
 
+  stmts.push(env.DB.prepare(
+    `INSERT INTO activity_logs (id, action, details, user_email, entity_type, entity_id, account_id)
+     SELECT ?, 'FULFILLMENT', ?, ?, 'invoice', ?, ?
+     WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?)`
+  ).bind(crypto.randomUUID(), `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`, userEmail, invoice_id, accountId, invoice_id, accountId, fulfillmentClaim));
+  const finalizeIndex = stmts.length;
   stmts.push(
-    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1 WHERE id = ? AND account_id = ?")
-      .bind(invoice_id, accountId)
+    env.DB.prepare("UPDATE invoices SET status = 'Filled', inventory_deducted = 1, fulfilled_at = COALESCE(fulfilled_at, datetime('now')), fulfillment_claim_token = NULL, fulfillment_claimed_at = NULL WHERE id = ? AND account_id = ? AND fulfillment_claim_token = ?")
+      .bind(invoice_id, accountId, fulfillmentClaim)
   );
-
-  stmts.push(buildActivityLog(
-    env, 'FULFILLMENT',
-    `Order ${invoice.invoice_number} marked as filled. Inventory deducted for ${items.results.length} item(s).`,
-    userEmail, 'invoice', invoice_id, accountId
-  ));
 
   try {
-    await env.DB.batch(stmts);
+    const results = await env.DB.batch(stmts);
+    if (Number(results[finalizeIndex]?.meta?.changes || 0) === 0) return json({ error: 'Invoice fulfillment lease was lost' }, 409);
   } catch (err: any) {
     console.error('handleFulfillInvoice batch failed:', err);
-    // Phase A already committed the stock deduction in a separate batch, so we
-    // MUST compensate it here — otherwise stock stays reduced with no invoice/
-    // ledger record and a retry would double-deduct.
-    if (deductLines.length > 0) {
-      const restoreStmts: D1PreparedStatement[] = deductLines.map(item =>
-        env.DB.prepare('UPDATE products SET stock_grams = stock_grams + ? WHERE id = ? AND account_id = ?')
-          .bind(Number(item.quantity) || 0, item.product_id, accountId)
-      );
-      try { await env.DB.batch(restoreStmts); } catch (e) { console.error('Fulfillment Phase-B rollback failed:', e); }
-    }
+    await releaseClaim().catch(() => {});
     return json({ error: 'Fulfillment failed — no changes were committed' }, 500);
   }
 
@@ -4507,8 +4472,7 @@ const handleListAdminContributors: Handler = async (request, env) => {
   const { accountId } = ctx;
 
   const rows = await env.DB.prepare(
-    `SELECT co.id, co.display_name, co.chinese_name, co.role, co.is_published,
-            co.contact_customer_id,
+    `SELECT co.*,
             c.name AS contact_name,
             c.email AS contact_email,
             c.phone AS contact_phone,
@@ -4519,7 +4483,208 @@ const handleListAdminContributors: Handler = async (request, env) => {
       ORDER BY co.display_name ASC`
   ).bind(accountId).all();
 
+  return json({ contributors: (rows.results ?? []).map(row => adminContributor(row as Record<string, any>)) });
+};
+
+// Publish-bundle-safe identity choices for article author/subject fields. This
+// intentionally excludes private contact links and the full contributor body.
+const handleListContributorOptions: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const rows = await env.DB.prepare(
+    `SELECT id, id AS slug, display_name,
+            CASE WHEN is_published = 1 THEN 'published' ELSE 'draft' END AS status
+       FROM contributors
+      WHERE account_id = ?
+      ORDER BY display_name ASC`
+  ).bind(ctx.accountId).all();
   return json({ contributors: rows.results ?? [] });
+};
+
+const CONTRIBUTOR_WRITE_FIELDS = [
+  'display_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since',
+  'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
+  'portrait_url', 'portrait_caption', 'voice_clip_url', 'voice_clip_caption',
+  'pouring_today_product_id', 'pouring_today_note', 'where_to_find_text', 'user_id',
+] as const;
+
+function parseContributorLinks(value: unknown): { value?: string; error?: string } {
+  if (value === undefined) return {};
+  if (!Array.isArray(value)) return { error: 'links must be an array' };
+  const normalized: Array<{ label: string; url: string }> = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return { error: 'Each link must have a label and https URL' };
+    const label = typeof (item as any).label === 'string' ? (item as any).label.trim() : '';
+    const rawUrl = typeof (item as any).url === 'string' ? (item as any).url.trim() : '';
+    let url: URL;
+    try { url = new URL(rawUrl); } catch { return { error: 'Each link must have a label and https URL' }; }
+    if (!label || url.protocol !== 'https:') return { error: 'Each link must have a label and https URL' };
+    normalized.push({ label, url: url.toString() });
+  }
+  return { value: JSON.stringify(normalized) };
+}
+
+function parseContributorWrite(body: Record<string, unknown>) {
+  const values: Record<string, string | null> = {};
+  for (const field of CONTRIBUTOR_WRITE_FIELDS) {
+    if (!(field in body)) continue;
+    const value = body[field];
+    if (value === null) values[field] = null;
+    else if (typeof value === 'string') values[field] = value.trim() || null;
+    else return { error: `${field} must be a string or null` };
+  }
+  if (typeof values.closing === 'string' && values.closing.length > 200) return { error: 'closing must be 200 characters or fewer' };
+  const links = parseContributorLinks(body.links);
+  if (links.error) return { error: links.error };
+  if (links.value !== undefined) values.links = links.value;
+  return { values };
+}
+
+function adminContributor(row: Record<string, any>) {
+  let links: unknown[] = [];
+  try { links = JSON.parse(row.links || '[]'); } catch { links = []; }
+  return { ...row, links };
+}
+
+function contributorHostStatements(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null, currentAccountId: string | null) {
+  const statements: D1PreparedStatement[] = [];
+  if (currentAccountId === accountId) {
+    statements.push(env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ? AND host_contributor_id = ?').bind(currentAccountId, contributorId));
+  }
+  if (requestedAccountId) {
+    statements.push(env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE face_of_account_id = ? AND account_id = ? AND id != ?').bind(requestedAccountId, accountId, contributorId));
+  }
+  statements.push(env.DB.prepare('UPDATE contributors SET face_of_account_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(requestedAccountId, contributorId, accountId));
+  if (requestedAccountId) {
+    statements.push(env.DB.prepare('UPDATE accounts SET host_contributor_id = ? WHERE id = ?').bind(contributorId, requestedAccountId));
+  }
+  return statements;
+}
+
+async function contributorJson(request: Request): Promise<Record<string, unknown> | Response> {
+  try {
+    const body = await request.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'A JSON object is required' }, 400);
+    return body as Record<string, unknown>;
+  } catch {
+    return json({ error: 'Malformed JSON body' }, 400);
+  }
+}
+
+async function validateContributorReferences(env: Env, accountId: string, values: Record<string, string | null>): Promise<Response | null> {
+  if (values.user_id) {
+    const member = await env.DB.prepare(
+      "SELECT user_id FROM account_members WHERE user_id = ? AND account_id = ? AND status = 'active'"
+    ).bind(values.user_id, accountId).first();
+    if (!member) return json({ error: 'user_id is not available in this account' }, 400);
+  }
+  if (values.pouring_today_product_id) {
+    const product = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?')
+      .bind(values.pouring_today_product_id, accountId).first();
+    if (!product) return json({ error: 'pouring_today_product_id is not available in this account' }, 400);
+  }
+  return null;
+}
+
+function contributorDatabaseError(error: unknown): Response {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/UNIQUE constraint failed: (?:contributors\.(?:id|face_of_account_id)|accounts\.host_contributor_id)/i.test(message)) {
+    return json({ error: 'Contributor slug or account host is unavailable' }, 409);
+  }
+  console.error('Contributor database error:', error);
+  return json({ error: 'Internal server error' }, 500);
+}
+
+const handleCreateAdminContributor: Handler = async (request, env) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const body = bodyResult;
+  const id = typeof body.id === 'string' ? body.id.trim() : typeof body.slug === 'string' ? body.slug.trim() : '';
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) return json({ error: 'A lowercase kebab-case contributor slug is required' }, 400);
+  const parsed = parseContributorWrite(body);
+  if ('error' in parsed) return json({ error: parsed.error }, 400);
+  if (!parsed.values.display_name) return json({ error: 'display_name is required' }, 400);
+  const referenceError = await validateContributorReferences(env, ctx.accountId, parsed.values);
+  if (referenceError) return referenceError;
+  if ('face_of_account_id' in body) {
+    if (body.face_of_account_id !== null && typeof body.face_of_account_id !== 'string') return json({ error: 'face_of_account_id must be a string or null' }, 400);
+    const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
+    if (requested !== null && requested !== ctx.accountId) return json({ error: 'Host account not found' }, 404);
+  }
+  if (await env.DB.prepare('SELECT id FROM contributors WHERE id = ?').bind(id).first()) {
+    return json({ error: 'Contributor slug is unavailable' }, 409);
+  }
+  const fields = Object.keys(parsed.values);
+  const insert = env.DB.prepare(
+    `INSERT INTO contributors (id, account_id, ${fields.join(', ')}, is_published, created_at, updated_at)
+     VALUES (?, ?, ${fields.map(() => '?').join(', ')}, 0, datetime('now'), datetime('now'))`
+  ).bind(id, ctx.accountId, ...fields.map(field => parsed.values[field]));
+  const statements: D1PreparedStatement[] = [insert];
+  if ('face_of_account_id' in body) {
+    const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
+    statements.push(...contributorHostStatements(env, ctx.accountId, id, requested, null));
+  }
+  try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
+  const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, any>>();
+  return json({ contributor: adminContributor(row || { id, account_id: ctx.accountId, ...parsed.values, is_published: 0 }) }, 201);
+};
+
+const handleGetAdminContributor: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return row ? json({ contributor: adminContributor(row) }) : json({ error: 'Contributor not found' }, 404);
+};
+
+const handleUpdateAdminContributor: Handler = async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare('SELECT id, face_of_account_id FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!existing) {
+    return json({ error: 'Contributor not found' }, 404);
+  }
+  const bodyResult = await contributorJson(request);
+  if (bodyResult instanceof Response) return bodyResult;
+  const body = bodyResult;
+  const parsed = parseContributorWrite(body);
+  if ('error' in parsed) return json({ error: parsed.error }, 400);
+  if ('display_name' in body && !parsed.values.display_name) return json({ error: 'display_name is required' }, 400);
+  const referenceError = await validateContributorReferences(env, ctx.accountId, parsed.values);
+  if (referenceError) return referenceError;
+  if ('face_of_account_id' in body) {
+    if (body.face_of_account_id !== null && typeof body.face_of_account_id !== 'string') return json({ error: 'face_of_account_id must be a string or null' }, 400);
+    const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
+    if (requested !== null && requested !== ctx.accountId) return json({ error: 'Host account not found' }, 404);
+  }
+  const fields = Object.keys(parsed.values);
+  const statements: D1PreparedStatement[] = [];
+  if (fields.length) statements.push(env.DB.prepare(`UPDATE contributors SET ${fields.map(field => `${field} = ?`).join(', ')}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`)
+    .bind(...fields.map(field => parsed.values[field]), params.id, ctx.accountId));
+  if ('face_of_account_id' in body) {
+    const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
+    statements.push(...contributorHostStatements(env, ctx.accountId, params.id, requested, (existing.face_of_account_id as string | null) || null));
+  }
+  if (statements.length) {
+    try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
+  }
+  const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return json({ contributor: adminContributor(row!) });
+};
+
+const setAdminContributorPublication = (published: boolean): Handler => async (request, env, params) => {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!row) return json({ error: 'Contributor not found' }, 404);
+  if (published && (typeof row.beginnings !== 'string' || !row.beginnings.trim())) {
+    return json({ error: 'beginnings is required before publication' }, 400);
+  }
+  await env.DB.prepare('UPDATE contributors SET is_published = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?')
+    .bind(published ? 1 : 0, params.id, ctx.accountId).run();
+  row.is_published = published ? 1 : 0;
+  return json({ contributor: adminContributor(row) });
 };
 
 const handlePutAdminContributorContact: Handler = async (request, env, params) => {
@@ -4610,9 +4775,14 @@ const handleUpdateCustomer: Handler = async (request, env, params) => {
   const cols = Object.keys(body).filter(k => CUSTOMER_ALLOWED_COLS.has(k));
   if (cols.length > 0) {
     const sets = cols.map(c => `${c} = ?`).join(', ');
-    await env.DB.prepare(
+    const result = await env.DB.prepare(
       `UPDATE customers SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
     ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+    if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Customer not found' }, 404);
+  } else {
+    const customer = await env.DB.prepare('SELECT id FROM customers WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId).first();
+    if (!customer) return json({ error: 'Customer not found' }, 404);
   }
 
   await ensureRelationshipsFromCustomerBody(env, accountId, params.id, body, 'manual');
@@ -7127,9 +7297,10 @@ const handleUpdateEvent: Handler = async (request, env, params) => {
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
 
   const sets = cols.map(c => `${c} = ?`).join(', ');
-  await env.DB.prepare(
+  const result = await env.DB.prepare(
     `UPDATE events SET ${sets}, updated_at = datetime('now') WHERE id = ? AND account_id = ?`
   ).bind(...cols.map(c => body[c] ?? null), params.id, accountId).run();
+  if (Number(result.meta?.changes || 0) === 0) return json({ error: 'Event not found' }, 404);
 
   return json({ success: true });
 };
@@ -7418,6 +7589,9 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   const teaLedger = body.tea_ledger ? (typeof body.tea_ledger === 'string' ? body.tea_ledger : JSON.stringify(body.tea_ledger)) : null;
   const galleryImages = body.gallery_images ? (typeof body.gallery_images === 'string' ? body.gallery_images : JSON.stringify(body.gallery_images)) : null;
+  const sharedTastingNotes = body.shared_tasting_notes
+    ? (typeof body.shared_tasting_notes === 'string' ? body.shared_tasting_notes : JSON.stringify(body.shared_tasting_notes))
+    : null;
 
   const existing = await env.DB.prepare(
     `SELECT id FROM event_post_session WHERE event_id = ?`
@@ -7425,16 +7599,100 @@ const handleUpsertPostSession: Handler = async (request, env, params) => {
 
   if (existing) {
     await env.DB.prepare(
-      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ? WHERE event_id = ?`
-    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, params.id).run();
+      `UPDATE event_post_session SET tea_ledger = ?, playlist_url = ?, gallery_images = ?, session_notes = ?, host_notes = ?, host_changes = ?, energy = ?, shared_tasting_notes = ? WHERE event_id = ? AND account_id = ?`
+    ).bind(teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes, params.id, accountId).run();
   } else {
     await env.DB.prepare(
-      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null).run();
+      `INSERT INTO event_post_session (id, account_id, event_id, tea_ledger, playlist_url, gallery_images, session_notes, host_notes, host_changes, energy, shared_tasting_notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), accountId, params.id, teaLedger, body.playlist_url || null, galleryImages, body.session_notes || null, body.host_notes || null, body.host_changes || null, body.energy || null, sharedTastingNotes).run();
   }
 
   return json({ success: true });
+};
+
+function parsePostSessionJson(value: unknown, fallback: unknown) {
+  if (value == null || value === '') return fallback;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function parsePostSessionStringArray(value: unknown): string[] {
+  const parsed = parsePostSessionJson(value, []);
+  return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+}
+
+const handleGetAdminPostSession: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'gather');
+  if ('error' in ctx) return ctx.error;
+  const guard = await assertEventInAccount(env, params.id, ctx.accountId);
+  if (guard) return guard;
+  const row = await env.DB.prepare(`SELECT * FROM event_post_session WHERE event_id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return json({
+    id: row?.id ?? null,
+    event_id: params.id,
+    tea_ledger: parsePostSessionJson(row?.tea_ledger, null),
+    playlist_url: row?.playlist_url ?? null,
+    gallery_images: parsePostSessionStringArray(row?.gallery_images),
+    session_notes: row?.session_notes ?? null,
+    host_notes: row?.host_notes ?? null,
+    host_changes: row?.host_changes ?? null,
+    energy: row?.energy ?? null,
+    shared_tasting_notes: parsePostSessionStringArray(row?.shared_tasting_notes),
+  });
+};
+
+function eventDraftArticleToApi(article: Record<string, any>) {
+  return {
+    ...article,
+    tags: article.tags ? JSON.parse(article.tags as string) : [],
+    blocks: article.blocks ? JSON.parse(article.blocks as string) : [],
+  };
+}
+
+const handleCreateEventArticleDraft: Handler = async (request, env, params) => {
+  const gather = await requireBundle(request, env, 'gather');
+  if ('error' in gather) return gather.error;
+  const publish = await requireBundle(request, env, 'publish');
+  if ('error' in publish) return publish.error;
+  const { accountId, userId } = publish;
+
+  const event = await env.DB.prepare(
+    `SELECT id, account_id, title, subtitle FROM events WHERE id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<Record<string, any>>();
+  if (!event) return json({ error: 'Event not found' }, 404);
+
+  const existing = await env.DB.prepare(
+    `SELECT * FROM articles WHERE account_id = ? AND source_event_id = ?`
+  ).bind(accountId, params.id).first<Record<string, any>>();
+  if (existing) return json({ existing: true, article: eventDraftArticleToApi(existing) });
+
+  const postSession = await env.DB.prepare(
+    `SELECT * FROM event_post_session WHERE event_id = ? AND account_id = ?`
+  ).bind(params.id, accountId).first<Record<string, any>>();
+  const draft = buildEventArticleDraft(event, postSession);
+  const id = crypto.randomUUID();
+  const slug = `${slugify(draft.title) || 'event'}-${params.id}`;
+  try {
+    await env.DB.prepare(`
+      INSERT INTO articles
+        (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, source_event_id)
+      VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id, accountId, draft.title, draft.subtitle, userId, slug, draft.category, '[]',
+      draft.cover_image_url, JSON.stringify(draft.blocks), draft.layout_template, params.id,
+    ).run();
+  } catch {
+    const raced = await env.DB.prepare(`SELECT * FROM articles WHERE account_id = ? AND source_event_id = ?`)
+      .bind(accountId, params.id).first<Record<string, any>>();
+    if (raced) return json({ existing: true, article: eventDraftArticleToApi(raced) });
+    return json({ error: 'Unable to create article draft' }, 500);
+  }
+
+  const article = await env.DB.prepare(`SELECT * FROM articles WHERE id = ? AND account_id = ?`)
+    .bind(id, accountId).first<Record<string, any>>();
+  return json({ existing: false, article: eventDraftArticleToApi(article!) }, 201);
 };
 
 const handleDuplicateEvent: Handler = async (request, env, params) => {
@@ -9001,6 +9259,7 @@ const handleUpdateCompassEntry: Handler = async (request, env, params) => {
   const decoded = decodeCompassWrite(body, true);
   if ('error' in decoded) return decoded.error;
   const existingContext = await env.DB.prepare('SELECT journey_id, visit_id FROM tea_compass_entries WHERE id = ? AND user_id = ? AND account_id = ?').bind(params.id, userId, accountId).first() as Record<string, unknown> | null;
+  if (!existingContext) return json({ error: 'Compass entry not found' }, 404);
   const contextError = await validateCompassContext(env, accountId, decoded.values, existingContext);
   if (contextError) return contextError;
   const cols = COMPASS_COLUMNS.filter(column => decoded.values[column] !== undefined);
@@ -10513,6 +10772,31 @@ const handleEventInterest: Handler = async (request, env, params) => {
   return json({ success: true }, 201);
 };
 
+const VERIFICATION_CODE_RANGE = 900_000;
+const UINT32_RANGE = 0x1_0000_0000;
+const VERIFICATION_REJECTION_LIMIT = Math.floor(UINT32_RANGE / VERIFICATION_CODE_RANGE) * VERIFICATION_CODE_RANGE;
+
+function generateVerificationCode(): string {
+  const sample = new Uint32Array(1);
+  do crypto.getRandomValues(sample); while (sample[0] >= VERIFICATION_REJECTION_LIMIT);
+  return String(100_000 + (sample[0] % VERIFICATION_CODE_RANGE));
+}
+
+async function verificationHmacKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+}
+
+async function signVerificationCode(code: string, secret: string): Promise<string> {
+  const signature = await crypto.subtle.sign('HMAC', await verificationHmacKey(secret), new TextEncoder().encode(code));
+  return [...new Uint8Array(signature)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyVerificationCode(code: string, signatureHex: string, secret: string): Promise<boolean> {
+  if (!/^[0-9a-f]{64}$/i.test(signatureHex)) return false;
+  const signature = Uint8Array.from(signatureHex.match(/../g) || [], byte => parseInt(byte, 16));
+  return crypto.subtle.verify('HMAC', await verificationHmacKey(secret), signature, new TextEncoder().encode(code));
+}
+
 // POST /api/verify/request
 const handleVerifyRequest: Handler = async (request, env) => {
   const verifyIp = request.headers.get('CF-Connecting-IP') || 'unknown';
@@ -10524,135 +10808,129 @@ const handleVerifyRequest: Handler = async (request, env) => {
     return json({ error: 'Too many verification requests. Please wait a minute.' }, 429);
   }
 
-  const body = await request.json() as { contact: string; method: 'whatsapp' | 'email' };
-  if (!body.contact) return json({ error: 'contact is required' }, 400);
-  if (!body.method || !['whatsapp', 'email'].includes(body.method)) {
-    return json({ error: 'method must be whatsapp or email' }, 400);
+  const body = await request.json().catch(() => ({})) as { contact?: string; purpose?: 'signin' | 'event'; method?: 'email' };
+  const contact = body.contact?.trim().toLowerCase() || '';
+  const purpose = body.purpose || 'event';
+  if (!contact) return json({ error: 'contact is required' }, 400);
+  if (!['signin', 'event'].includes(purpose)) return json({ error: 'purpose must be signin or event' }, 400);
+  if (body.method && body.method !== 'email') return json({ error: 'method must be email' }, 400);
+
+  const recent = await env.DB.prepare(
+    `SELECT id FROM verification_challenges
+     WHERE contact_normalized = ? AND purpose = ?
+       AND created_at > datetime('now', '-60 seconds')
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(contact, purpose).first();
+  if (recent) {
+    return json({ error: 'Please wait before requesting another code' }, 429);
   }
 
-  // Generate 6-digit code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+  let eventOwnerAccountId: string | null = null;
+  if (purpose === 'event') {
+    const ownerAccount = await env.DB.prepare('SELECT id FROM accounts WHERE is_platform_owner = 1 LIMIT 1').first();
+    if (!ownerAccount) return json({ error: 'Verification is not available' }, 503);
+    eventOwnerAccountId = ownerAccount.id as string;
+  }
 
-  // Quiet-account customers live under the platform-owner account — same
-  // scoping as /api/products/public and the public events list. Without this,
-  // lookups match (and leak) customers from other accounts with the same
-  // contact, and new customers are created with no account_id at all.
-  const ownerAccount = await env.DB.prepare(`SELECT id FROM accounts WHERE is_platform_owner = 1 LIMIT 1`).first();
-  if (!ownerAccount) return json({ error: 'Verification is not available' }, 503);
-  const ownerAccountId = ownerAccount.id as string;
+  const code = generateVerificationCode();
+  const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  const delivery = await deliverVerificationCode(env, { email: contact, code, purpose });
+  if (!delivery.delivered) return json({ error: 'We could not send the code.', retryable: delivery.retryable }, 503);
 
-  // Find or create customer by contact
-  const isEmail = body.method === 'email';
-  const existingCustomer = isEmail
-    ? await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE email = ? AND account_id = ?`).bind(body.contact, ownerAccountId).first()
-    : await env.DB.prepare(`SELECT id, verification_code, verification_expires FROM customers WHERE (phone = ? OR whatsapp = ?) AND account_id = ?`)
-        .bind(body.contact, body.contact, ownerAccountId).first();
-
-  // Rate limit: if a non-expired code was issued less than 60 seconds ago, reject
-  if (existingCustomer && existingCustomer.verification_code && existingCustomer.verification_expires) {
-    const expiresAt = new Date(existingCustomer.verification_expires as string);
-    const now = new Date();
-    if (expiresAt > now) {
-      // Code expires in at most 10 minutes from creation; if more than 9 minutes remain, it was issued < 60s ago
-      const msRemaining = expiresAt.getTime() - now.getTime();
-      if (msRemaining > 9 * 60 * 1000) {
-        return json({ error: 'Please wait before requesting another code' }, 429);
-      }
+  if (eventOwnerAccountId) {
+    const customer = await env.DB.prepare(
+      'SELECT id FROM customers WHERE lower(email) = lower(?) AND account_id = ?'
+    ).bind(contact, eventOwnerAccountId).first();
+    if (!customer) {
+      await env.DB.prepare(
+        `INSERT INTO customers (id, account_id, name, email, contact_preference)
+         VALUES (?, ?, NULL, ?, 'email')`
+      ).bind(crypto.randomUUID(), eventOwnerAccountId, contact).run();
     }
   }
 
-  if (existingCustomer) {
-    await env.DB.prepare(
-      `UPDATE customers SET verification_code = ?, verification_expires = ? WHERE id = ?`
-    ).bind(code, expires, existingCustomer.id).run();
-  } else {
-    const newId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO customers (id, account_id, name, phone, email, whatsapp, contact_preference, verification_code, verification_expires)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      newId,
-      ownerAccountId,
-      null,
-      isEmail ? null : body.contact,
-      isEmail ? body.contact : null,
-      isEmail ? null : body.contact,
-      body.method,
-      code,
-      expires
-    ).run();
-  }
+  const codeHash = await signVerificationCode(code, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  const deliveredAt = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO verification_challenges
+     (id, contact_normalized, purpose, code_hash, expires_at, delivered_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(crypto.randomUUID(), contact, purpose, codeHash, expires, deliveredAt).run();
 
-  // WhatsApp/email delivery is not built yet. The code is only echoed back
-  // under an explicit dev flag — echoing it in production would let anyone
-  // verify as any contact.
+  const response: Record<string, unknown> = { success: true, expires, retryable: true };
   if (env.DEV_RETURN_VERIFY_CODES === 'true') {
-    return json({ success: true, code, expires, _note: 'DEV_RETURN_VERIFY_CODES enabled — code echoed for development only' });
+    response.code = code;
   }
-  return json({ success: true, expires });
+  return json(response, 202);
 };
 
 // POST /api/verify/confirm
 const handleVerifyConfirm: Handler = async (request, env) => {
-  const body = await request.json() as { contact: string; code: string };
-  if (!body.contact || !body.code) return json({ error: 'contact and code are required' }, 400);
+  const body = await request.json().catch(() => ({})) as { contact?: string; code?: string; purpose?: 'signin' | 'event' };
+  const contact = body.contact?.trim().toLowerCase() || '';
+  const purpose = body.purpose || 'event';
+  if (!contact || !body.code) return json({ error: 'contact and code are required' }, 400);
+  if (!['signin', 'event'].includes(purpose)) return json({ error: 'purpose must be signin or event' }, 400);
 
-  // Same platform-owner scoping as handleVerifyRequest — never match a
-  // customer that belongs to another account.
-  const customer = await env.DB.prepare(
-    `SELECT id, name, phone, email, verification_code, verification_expires
-     FROM customers
-     WHERE (phone = ? OR whatsapp = ? OR email = ?)
-       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
-  ).bind(body.contact, body.contact, body.contact).first();
-
-  if (!customer) return json({ error: 'No account found for this contact' }, 404);
-
-  const expires = customer.verification_expires ? new Date(customer.verification_expires as string) : null;
-  if (!expires || expires <= new Date()) {
-    return json({ error: 'Verification code has expired' }, 401);
-  }
-
-  // Parse attempt-prefixed code: stored as "N:123456" where N is fail count, or plain "123456"
-  const storedRaw = (customer.verification_code as string) || '';
-  let failCount = 0;
-  let storedCode = storedRaw;
-  const prefixMatch = storedRaw.match(/^(\d+):(.+)$/);
-  if (prefixMatch) {
-    failCount = parseInt(prefixMatch[1], 10);
-    storedCode = prefixMatch[2];
-  }
-
-  if (storedCode !== body.code) {
-    failCount += 1;
-    if (failCount >= 3) {
-      // Invalidate the code after 3 failed attempts
-      await env.DB.prepare(
-        `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
-      ).bind(customer.id).run();
-      return json({ error: 'Too many attempts. Please request a new code.' }, 429);
-    }
-    // Store incremented fail count back
+  const challenge = await env.DB.prepare(
+    `SELECT id, code_hash, expires_at, failed_attempts, consumed_at
+     FROM verification_challenges
+     WHERE contact_normalized = ? AND purpose = ? AND consumed_at IS NULL
+     ORDER BY created_at DESC LIMIT 1`
+  ).bind(contact, purpose).first();
+  const genericError = { error: 'Invalid or expired verification code' };
+  if (!challenge || Number(challenge.failed_attempts) >= 3 || new Date(challenge.expires_at as string) <= new Date()) return json(genericError, 401);
+  const codeValid = await verifyVerificationCode(body.code, challenge.code_hash as string, env.VERIFICATION_CODE_SECRET || env.JWT_SECRET);
+  if (!codeValid) {
+    const nextFailedAttempts = Number(challenge.failed_attempts) + 1;
     await env.DB.prepare(
-      `UPDATE customers SET verification_code = ? WHERE id = ?`
-    ).bind(`${failCount}:${storedCode}`, customer.id).run();
-    return json({ error: 'Invalid verification code' }, 401);
+      `UPDATE verification_challenges
+       SET failed_attempts = failed_attempts + 1,
+           consumed_at = CASE WHEN failed_attempts + 1 >= 3 THEN datetime('now') ELSE consumed_at END
+       WHERE id = ? AND consumed_at IS NULL`
+    ).bind(challenge.id).run();
+    return nextFailedAttempts >= 3
+      ? json({ error: 'Too many attempts. Please request a new code.' }, 429)
+      : json(genericError, 401);
+  }
+  const consumed = await env.DB.prepare(
+    `UPDATE verification_challenges SET consumed_at = datetime('now')
+     WHERE id = ? AND code_hash = ? AND consumed_at IS NULL
+       AND expires_at > datetime('now') AND failed_attempts < 3`
+  ).bind(challenge.id, challenge.code_hash).run();
+  if (!consumed.meta?.changes) return json(genericError, 401);
+
+  if (purpose === 'signin') {
+    const user = await env.DB.prepare('SELECT id, email, username, name, role, platform_role FROM users WHERE lower(email) = lower(?) LIMIT 1').bind(contact).first();
+    if (!user) return json(genericError, 401);
+    const memberships = await loadMemberships(env, user.id as string);
+    const activeAccountId = memberships[0]?.account_id || null;
+    const platformRole = (user.platform_role as PlatformRole) ?? null;
+    const token = await createToken(env.JWT_SECRET, {
+      sub: user.id as string, email: user.email as string, role: user.role as string,
+      platform_role: platformRole, name: user.name as string,
+      username: (user.username as string | null) ?? null, memberships,
+      active_account_id: activeAccountId,
+    });
+    return json({ token, user: { id: user.id, email: user.email, username: user.username ?? null, name: user.name, role: user.role, platform_role: platformRole }, memberships, active_account_id: activeAccountId });
   }
 
-  // Clear the code after successful verify
-  await env.DB.prepare(
-    `UPDATE customers SET verification_code = NULL, verification_expires = NULL WHERE id = ?`
-  ).bind(customer.id).run();
+  const customer = await env.DB.prepare(
+    `SELECT id, account_id, name, phone, email FROM customers
+     WHERE (phone = ? OR whatsapp = ? OR lower(email) = lower(?))
+       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
+  ).bind(contact, contact, contact).first();
+  if (!customer) return json({ error: 'No account found for this contact' }, 404);
 
   // Fetch all magic tokens for this customer's event attendees
   const attendees = await env.DB.prepare(
     `SELECT ea.magic_token, ea.status, ea.event_id, e.title as event_title, e.event_date
      FROM event_attendees ea
      JOIN events e ON e.id = ea.event_id
-     WHERE ea.phone_number = ? OR ea.email = ?
+     WHERE ea.account_id = ? AND e.account_id = ?
+       AND (ea.phone_number = ? OR lower(ea.email) = lower(?))
      ORDER BY e.event_date DESC`
-  ).bind(body.contact, body.contact).all();
+  ).bind(customer.account_id, customer.account_id, contact, contact).all();
 
   return json({
     customer: {
@@ -10665,9 +10943,9 @@ const handleVerifyConfirm: Handler = async (request, env) => {
   });
 };
 
-// GET /api/journey/:phone
+// GET /api/journey/:contact
 const handleGetJourney: Handler = async (request, env, params) => {
-  const phone = decodeURIComponent(params.phone);
+  const contact = decodeURIComponent(params.phone).trim().toLowerCase();
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
 
@@ -10675,10 +10953,14 @@ const handleGetJourney: Handler = async (request, env, params) => {
     return json({ error: 'token is required' }, 401);
   }
 
-  // Verify the token matches a magic_token belonging to this phone number
+  // Verify the token belongs to the requested contact. Event verification now
+  // defaults to email, while legacy attendees may still be phone-only.
   const tokenRow = await env.DB.prepare(
-    `SELECT id FROM event_attendees WHERE magic_token = ? AND phone_number = ?`
-  ).bind(token, phone).first();
+    `SELECT ea.id, ea.account_id, ea.event_id
+     FROM event_attendees ea
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE ea.magic_token = ? AND (ea.phone_number = ? OR lower(ea.email) = lower(?))`
+  ).bind(token, contact, contact).first();
 
   if (!tokenRow) {
     return json({ error: 'Invalid or expired token' }, 403);
@@ -10686,9 +10968,9 @@ const handleGetJourney: Handler = async (request, env, params) => {
 
   const customer = await env.DB.prepare(
     `SELECT id, name FROM customers
-     WHERE (phone = ? OR whatsapp = ?)
-       AND account_id IN (SELECT id FROM accounts WHERE is_platform_owner = 1)`
-  ).bind(phone, phone).first();
+     WHERE (phone = ? OR whatsapp = ? OR lower(email) = lower(?))
+       AND account_id = ?`
+  ).bind(contact, contact, contact, tokenRow.account_id).first();
 
   if (!customer) return json({ error: 'No journey found for this contact' }, 404);
 
@@ -10696,10 +10978,12 @@ const handleGetJourney: Handler = async (request, env, params) => {
   const sessions = await env.DB.prepare(
     `SELECT ea.id as attendee_id, ea.event_id, e.title, e.event_date, e.flyer_image_url
      FROM event_attendees ea
-     JOIN events e ON e.id = ea.event_id
-     WHERE ea.phone_number = ? AND ea.status = 'confirmed' AND ea.attended = 1
+     JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+     WHERE (ea.phone_number = ? OR lower(ea.email) = lower(?))
+       AND ea.account_id = ? AND e.account_id = ?
+       AND ea.status = 'confirmed' AND ea.attended = 1
      ORDER BY e.event_date ASC`
-  ).bind(phone).all();
+  ).bind(contact, contact, tokenRow.account_id, tokenRow.account_id).all();
 
   const sessionsAttended = sessions.results.length;
   const seals = (sessions.results as Record<string, any>[]).map(s => ({
@@ -10726,12 +11010,13 @@ const handleGetJourney: Handler = async (request, env, params) => {
               etm.custom_name, p.given_name, p.product_name, p.type,
               e.title as event_title, e.event_date
        FROM event_tasting_notes etn
-       LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id
-       LEFT JOIN products p ON p.id = etm.product_id
-       JOIN event_attendees ea ON ea.id = etn.attendee_id
-       JOIN events e ON e.id = ea.event_id
-       WHERE etn.attendee_id IN (${placeholders})`
-    ).bind(...attendeeIds).all();
+       LEFT JOIN event_tea_menu etm ON etm.id = etn.tea_menu_id AND etm.account_id = etn.account_id
+       LEFT JOIN products p ON p.id = etm.product_id AND p.account_id = etn.account_id
+       JOIN event_attendees ea ON ea.id = etn.attendee_id AND ea.account_id = etn.account_id
+       JOIN events e ON e.id = ea.event_id AND e.account_id = ea.account_id
+       WHERE etn.attendee_id IN (${placeholders})
+         AND etn.account_id = ? AND ea.account_id = ? AND e.account_id = ?`
+    ).bind(...attendeeIds, tokenRow.account_id, tokenRow.account_id, tokenRow.account_id).all();
 
     totalTeas = notes.results.length;
 
@@ -11423,6 +11708,178 @@ const handleGetTastingJournal: Handler = async (request, env) => {
   return json(results);
 };
 
+const handleStarTastingNote: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const journal = await env.DB.prepare(
+    `SELECT id, product_id FROM customer_tasting_journal
+     WHERE id = ? AND account_id = ? AND user_id = ?`
+  ).bind(params.id, ctx.accountId, ctx.email).first<Record<string, any>>();
+  if (!journal?.product_id) return json({ error: 'Journal entry not found' }, 404);
+
+  let input;
+  try { input = parseCandidateInput(await request.json()); }
+  catch (error) { return json({ error: error instanceof Error ? error.message : 'Invalid candidate' }, 400); }
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  await env.DB.prepare(`
+    INSERT INTO tasting_note_candidates
+      (id, account_id, journal_entry_id, note_key, product_id, author_user_id, source_text, source_tasting, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'starred', ?, ?)
+    ON CONFLICT(author_user_id, journal_entry_id, note_key) DO UPDATE SET
+      source_text = excluded.source_text,
+      source_tasting = excluded.source_tasting,
+      updated_at = excluded.updated_at
+    WHERE tasting_note_candidates.status = 'starred'
+  `).bind(id, ctx.accountId, journal.id, params.noteKey, journal.product_id, ctx.userId, input.sourceText, input.sourceTasting, now, now).run();
+  const candidate = await env.DB.prepare(
+    `SELECT * FROM tasting_note_candidates WHERE account_id = ? AND author_user_id = ? AND journal_entry_id = ? AND note_key = ?`
+  ).bind(ctx.accountId, ctx.userId, journal.id, params.noteKey).first<Record<string, any>>();
+  if (!candidate) return json({ error: 'Candidate could not be saved' }, 409);
+  if (candidate.status !== 'starred') return json({ error: 'Promoted or dismissed candidates cannot be changed' }, 409);
+  return json(candidateToApi(candidate));
+};
+
+const handleUnstarTastingNote: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const candidate = await env.DB.prepare(`
+    SELECT c.* FROM tasting_note_candidates c
+    JOIN customer_tasting_journal j ON j.id = c.journal_entry_id
+    WHERE c.account_id = ? AND c.author_user_id = ? AND c.journal_entry_id = ?
+      AND c.note_key = ? AND j.account_id = c.account_id AND j.user_id = ?
+  `).bind(ctx.accountId, ctx.userId, params.id, params.noteKey, ctx.email).first<Record<string, any>>();
+  if (!candidate) return json({ error: 'Candidate not found' }, 404);
+  if (candidate.status !== 'starred') return json({ error: 'Promoted or dismissed candidates cannot be removed' }, 409);
+  await env.DB.prepare(`DELETE FROM tasting_note_candidates WHERE id = ? AND account_id = ? AND author_user_id = ? AND status = 'starred'`)
+    .bind(candidate.id, ctx.accountId, ctx.userId).run();
+  return json({ success: true });
+};
+
+const handleListTastingNoteCandidates: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const requested = new URL(request.url).searchParams.get('status') || 'starred';
+  if (!['starred', 'promoted', 'dismissed'].includes(requested)) return json({ error: 'Invalid status' }, 400);
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM tasting_note_candidates WHERE account_id = ? AND status = ? ORDER BY created_at DESC`
+  ).bind(ctx.accountId, requested).all<Record<string, any>>();
+  return json(results.map(candidateToApi));
+};
+
+const handleUpdateTastingNoteCandidate: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const existing = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Candidate not found' }, 404);
+  if (existing.status !== 'starred') return json({ error: 'Candidate is no longer editable' }, 409);
+  let body: Record<string, unknown>;
+  try {
+    const parsed = await request.json();
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+  const editedText = typeof body.edited_text === 'string' ? body.edited_text.trim() : existing.edited_text;
+  const attributionName = typeof body.attribution_name === 'string' ? body.attribution_name.trim() : existing.attribution_name;
+  const attributionDetail = body.attribution_detail === null || typeof body.attribution_detail === 'string' ? body.attribution_detail : existing.attribution_detail;
+  const result = await env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+    .bind(editedText || null, attributionName || null, attributionDetail, new Date().toISOString(), params.id, ctx.accountId).run();
+  if (!result.meta.changes) {
+    const current = await env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+      .bind(params.id, ctx.accountId).first<Record<string, any>>();
+    return json({ error: current ? 'Candidate is no longer editable' : 'Candidate not found' }, current ? 409 : 404);
+  }
+  const updated = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  return json(candidateToApi(updated!));
+};
+
+const handleDismissTastingNoteCandidate: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const result = await env.DB.prepare(`UPDATE tasting_note_candidates SET status = 'dismissed', dismissed_at = ?, dismissed_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+    .bind(new Date().toISOString(), ctx.userId, new Date().toISOString(), params.id, ctx.accountId).run();
+  if (!result.meta.changes) {
+    const exists = await env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first();
+    return json({ error: exists ? 'Candidate already resolved' : 'Candidate not found' }, exists ? 409 : 404);
+  }
+  return json({ success: true });
+};
+
+const handlePromoteTastingNoteCandidate: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const candidate = await env.DB.prepare(`SELECT * FROM tasting_note_candidates WHERE id = ? AND account_id = ?`)
+    .bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!candidate) return json({ error: 'Candidate not found' }, 404);
+  if (candidate.status !== 'starred') return json({ error: 'Candidate already resolved' }, 409);
+  let body: Record<string, unknown> = {};
+  try {
+    const raw = await request.text();
+    if (raw.trim()) {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid');
+      body = parsed as Record<string, unknown>;
+    }
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+  const owns = (key: string) => Object.prototype.hasOwnProperty.call(body, key);
+  if ((owns('edited_text') && typeof body.edited_text !== 'string')
+      || (owns('attribution_name') && typeof body.attribution_name !== 'string')
+      || (owns('attribution_detail') && body.attribution_detail !== null && typeof body.attribution_detail !== 'string')) {
+    return json({ error: 'Invalid promotion fields' }, 400);
+  }
+  const text = String(owns('edited_text') ? body.edited_text : (candidate.edited_text || candidate.source_text || '')).trim();
+  const attributionName = String(owns('attribution_name') ? body.attribution_name : (candidate.attribution_name || '')).trim();
+  const attributionDetail = owns('attribution_detail')
+    ? (typeof body.attribution_detail === 'string' ? body.attribution_detail.trim() || null : null)
+    : (candidate.attribution_detail || null);
+  if (!text || !attributionName) return json({ error: 'Final text and attribution name are required' }, 400);
+  const now = new Date().toISOString();
+  const impressionId = crypto.randomUUID();
+  try {
+    const results = await env.DB.batch([
+      env.DB.prepare(`UPDATE tasting_note_candidates SET edited_text = ?, attribution_name = ?, attribution_detail = ?, status = 'promoted', promoted_at = ?, promoted_by = ?, updated_at = ? WHERE id = ? AND account_id = ? AND status = 'starred'`)
+        .bind(text, attributionName, attributionDetail, now, ctx.userId, now, params.id, ctx.accountId),
+      env.DB.prepare(`
+        INSERT INTO product_impressions
+          (id, account_id, product_id, candidate_id, text, attribution_name, attribution_detail, published_at, published_by, created_at)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        FROM tasting_note_candidates
+        WHERE id = ? AND account_id = ? AND status = 'promoted' AND promoted_at = ? AND promoted_by = ?
+      `).bind(impressionId, ctx.accountId, candidate.product_id, candidate.id, text, attributionName, attributionDetail, now, ctx.userId, now, candidate.id, ctx.accountId, now, ctx.userId),
+    ]);
+    if (!results[0]?.meta.changes && !results[1]?.meta.changes) return json({ error: 'Candidate already resolved' }, 409);
+    if (!results[0]?.meta.changes || !results[1]?.meta.changes) {
+      return json({ error: 'Promotion could not be completed', retryable: true }, 500);
+    }
+  } catch {
+    try {
+      const [current, impression] = await Promise.all([
+        env.DB.prepare(`SELECT status FROM tasting_note_candidates WHERE id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first<Record<string, any>>(),
+        env.DB.prepare(`SELECT id FROM product_impressions WHERE candidate_id = ? AND account_id = ?`).bind(params.id, ctx.accountId).first(),
+      ]);
+      if (impression || (current && current.status !== 'starred')) return json({ error: 'Candidate already resolved' }, 409);
+    } catch { /* Preserve the original failure as retryable. */ }
+    return json({ error: 'Promotion could not be completed', retryable: true }, 500);
+  }
+  return json({ id: impressionId, productId: candidate.product_id, text, attributionName, attributionDetail, publishedAt: now }, 201);
+};
+
+const handleGetProductImpressions: Handler = async (_request, env, params) => {
+  const { results } = await env.DB.prepare(`
+    SELECT i.* FROM product_impressions i
+    JOIN products p ON p.id = i.product_id AND p.account_id = i.account_id
+    WHERE i.product_id = ? AND p.is_public = 1 AND p.status = 'Active'
+    ORDER BY i.published_at DESC
+  `).bind(params.id).all<Record<string, any>>();
+  return json(results.map(impressionToApi));
+};
+
 // Customer: POST /api/tasting-journal. Accepts the new shape (one entry per
 // productId, with `note` and `tastings` JSON). Upserts on (user_id, product_id).
 // Quick-note sentinel rows are rejected.
@@ -12083,6 +12540,9 @@ const handleUpdateAccount: Handler = async (request, env, params) => {
   delete body.openai_api_key_last4;
   delete body.has_openai_key;
   delete body.openai_key_last4;
+  // This mirror is owned exclusively by /api/admin/contributors so both sides
+  // are changed in one D1 batch. Generic account edits must never mutate it.
+  delete body.host_contributor_id;
 
   const cols = Object.keys(body);
   if (cols.length === 0) return json({ error: 'No fields to update' }, 400);
@@ -13481,7 +13941,7 @@ const handleGetNetworkStores: Handler = async (_request, env) => {
 const handleGetPublicAccount: Handler = async (_request, env, params) => {
   const acc = await env.DB.prepare(
     `SELECT id, slug, name, tagline, description, logo_url, cover_image_url,
-            location_city, location_country, whatsapp_number, currency_default
+            location_city, location_country, whatsapp_number, contact_email, currency_default
      FROM accounts
      WHERE slug = ? AND public_enabled = 1 AND status = 'active'`
   ).bind(params.slug).first();
@@ -13703,16 +14163,33 @@ const handleGetMyWishlist: Handler = async (request, env) => {
 //      created before a customer record was linked to the user account).
 // Scoped to the active account. Returns a stable shape the UI can render without
 // further lookups (invoice number, status, total, currency, created_at, line count).
+const MY_ORDER_OWNERSHIP_SQL = `(
+  i.customer_id IN (SELECT id FROM customers WHERE user_id = ? AND account_id = ?)
+  OR (? != '' AND i.customer_id IN (
+    SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
+  ))
+  OR (? != '' AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(i.customer_whatsapp, ''), ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') = ?)
+)`;
+
+function normalizeOrderPhone(value: string | null | undefined): string {
+  return (value || '').replace(/[ \-()+]/g, '');
+}
+
+async function loadMyOrderOwnership(env: Env, userId: string, accountId: string) {
+  const userRow = await env.DB.prepare(
+    'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
+  ).bind(userId).first() as { email: string | null; phone: string | null } | null;
+  const email = (userRow?.email || '').trim().toLowerCase();
+  const phone = normalizeOrderPhone(userRow?.phone);
+  return { predicate: MY_ORDER_OWNERSHIP_SQL, bindings: [userId, accountId, email, email, accountId, phone, phone] };
+}
+
 const handleGetMyOrders: Handler = async (request, env) => {
   const ctx = await requireAccount(request, env);
   if ('error' in ctx) return ctx.error;
   const { accountId, userId } = ctx;
 
-  const userRow = await env.DB.prepare(
-    'SELECT email, phone FROM users WHERE id = ? LIMIT 1'
-  ).bind(userId).first() as { email: string | null; phone: string | null } | null;
-  const userEmail = (userRow?.email || '').trim().toLowerCase();
-  const userPhone = (userRow?.phone || '').trim();
+  const ownership = await loadMyOrderOwnership(env, userId, accountId);
 
   // Build the WHERE clause: include rows linked via customers.user_id, plus any
   // fallback match on customer_whatsapp == users.phone. customers.email is the
@@ -13726,31 +14203,20 @@ const handleGetMyOrders: Handler = async (request, env) => {
             i.shipping_cost_usd
      FROM invoices i
      LEFT JOIN (
-       SELECT invoice_id,
+       SELECT invoice_id, account_id,
               SUM(quantity * price_at_sale) as line_total,
               COUNT(*) as line_count
        FROM invoice_line_items
-       GROUP BY invoice_id
-     ) t ON t.invoice_id = i.id
+       GROUP BY invoice_id, account_id
+     ) t ON t.invoice_id = i.id AND t.account_id = i.account_id
      WHERE i.account_id = ?
        AND i.deleted_at IS NULL
        AND i.status NOT IN ('Draft', 'Void')
-       AND (
-         i.customer_id IN (
-           SELECT id FROM customers WHERE user_id = ? AND account_id = ?
-         )
-         OR (? != '' AND i.customer_id IN (
-           SELECT id FROM customers WHERE LOWER(email) = ? AND account_id = ?
-         ))
-         OR (? != '' AND i.customer_whatsapp = ?)
-       )
+       AND ${ownership.predicate}
      ORDER BY i.created_at DESC
      LIMIT 200`
   ).bind(
-    accountId,
-    userId, accountId,
-    userEmail, userEmail, accountId,
-    userPhone, userPhone
+    accountId, ...ownership.bindings
   ).all();
 
   const orders = (result.results as Record<string, any>[]).map(r => ({
@@ -13764,6 +14230,62 @@ const handleGetMyOrders: Handler = async (request, env) => {
   }));
 
   return json({ orders });
+};
+
+const handleGetMyOrderDetail: Handler = async (request, env, params) => {
+  const ctx = await requireAccount(request, env);
+  if ('error' in ctx) return ctx.error;
+  const { accountId, userId } = ctx;
+  const ownership = await loadMyOrderOwnership(env, userId, accountId);
+  const invoice = await env.DB.prepare(
+    `SELECT i.id, i.invoice_number, i.status, i.created_at, i.payment_date,
+            i.fulfilled_at, i.display_currency, i.shipping_cost_usd
+     FROM invoices i
+     WHERE i.id = ? AND i.account_id = ? AND i.deleted_at IS NULL
+       AND i.status NOT IN ('Draft', 'Void') AND ${ownership.predicate}
+     LIMIT 1`
+  ).bind(params.id, accountId, ...ownership.bindings).first() as Record<string, any> | null;
+  if (!invoice) return json({ error: 'Order not found' }, 404);
+
+  const lineResult = await env.DB.prepare(
+    `SELECT ili.id, ili.product_id, ili.custom_name, ili.quantity, ili.price_at_sale,
+            p.product_name
+     FROM invoice_line_items ili
+     LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
+     WHERE ili.invoice_id = ? AND ili.account_id = ?
+     ORDER BY ili.id`
+  ).bind(params.id, accountId).all();
+  const items = (lineResult.results as Record<string, any>[]).map(line => ({
+    id: line.id as string,
+    product_id: (line.product_id as string | null) ?? null,
+    name: (line.custom_name || line.product_name || 'Tea') as string,
+    quantity: Number(line.quantity),
+    unit_price_usd: Number(line.price_at_sale),
+    line_total_usd: Number(line.quantity) * Number(line.price_at_sale),
+  }));
+  const subtotal = items.reduce((sum, item) => sum + item.line_total_usd, 0);
+  const shipping = Number(invoice.shipping_cost_usd || 0);
+  const account = await env.DB.prepare(
+    'SELECT whatsapp_number, contact_email FROM accounts WHERE id = ?'
+  ).bind(accountId).first() as { whatsapp_number?: string | null; contact_email?: string | null } | null;
+
+  return json({
+    id: invoice.id,
+    invoice_number: invoice.invoice_number,
+    status: invoice.status,
+    created_at: invoice.created_at,
+    payment_date: invoice.payment_date ?? null,
+    fulfilled_at: invoice.fulfilled_at ?? null,
+    currency: invoice.display_currency || 'USD',
+    items,
+    subtotal_amount_usd: subtotal,
+    shipping_amount_usd: shipping,
+    total_amount_usd: subtotal + shipping,
+    contact: {
+      whatsapp: account?.whatsapp_number || null,
+      email: account?.contact_email || null,
+    },
+  });
 };
 
 // GET /api/me/samples — tea samples whose tasting trail belongs to the authed user.
@@ -15026,6 +15548,33 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+function articleToApi(row: Record<string, any>) {
+  const parseArray = (value: unknown) => {
+    if (Array.isArray(value)) return value;
+    try { return value ? JSON.parse(String(value)) : []; } catch { return []; }
+  };
+  return { ...row, tags: parseArray(row.tags), blocks: parseArray(row.blocks), subject_ids: parseArray(row.subject_ids) };
+}
+
+function parseArticleSubjectIds(value: unknown): string[] | null {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) return null;
+  return [...new Set(value.map(item => item.trim()))];
+}
+
+async function validateArticleContributors(env: Env, accountId: string, input: { author_id?: unknown; subject_ids?: unknown; pull_quote_subject?: unknown }, legacyAuthor?: string | null) {
+  const authorId = typeof input.author_id === 'string' && input.author_id.trim() ? input.author_id.trim() : null;
+  const subjectIds = parseArticleSubjectIds(input.subject_ids);
+  if (subjectIds === null) return { error: json({ error: 'subject_ids must be an array of contributor IDs' }, 400) };
+  const pullQuoteSubject = typeof input.pull_quote_subject === 'string' && input.pull_quote_subject.trim() ? input.pull_quote_subject.trim() : null;
+  const ids = [...new Set([...(subjectIds ?? []), ...(pullQuoteSubject ? [pullQuoteSubject] : []), ...(authorId && authorId !== legacyAuthor ? [authorId] : [])])];
+  for (const id of ids) {
+    const contributor = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(id, accountId).first();
+    if (!contributor) return { error: json({ error: 'Contributor not found in this account' }, 400) };
+  }
+  return { authorId, subjectIds, pullQuoteSubject };
+}
+
 const handleListArticles: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
@@ -15042,18 +15591,19 @@ const handleListArticles: Handler = async (request, env) => {
   const binds = statusFilter !== 'all' ? [accountId, statusFilter] : [accountId];
 
   const rows = await env.DB.prepare(
-    `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
-            cover_image_url, layout_template, reading_time_mins, published_at, created_at, updated_at,
+    `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
+            a.cover_image_url, a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
+            a.subject_ids, a.pull_quote, a.pull_quote_subject,
+            COALESCE(c.display_name, u.name) AS author_name,
             substr(json_extract(blocks, '$[0].text'), 1, 120) AS blocks_preview
-     FROM articles
-     WHERE account_id = ? ${statusClause}
-     ORDER BY updated_at DESC`
+     FROM articles a
+     LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+     LEFT JOIN users u ON u.id = a.author_id
+     WHERE a.account_id = ? ${statusClause.replace(/status/g, 'a.status')}
+     ORDER BY a.updated_at DESC`
   ).bind(...binds).all();
 
-  const results = rows.results.map((r: any) => ({
-    ...r,
-    tags: r.tags ? JSON.parse(r.tags) : [],
-  }));
+  const results = rows.results.map((r: any) => articleToApi(r));
   return json(results);
 };
 
@@ -15067,11 +15617,7 @@ const handleGetArticle: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Article not found' }, 404);
 
-  return json({
-    ...row,
-    tags: row.tags ? JSON.parse(row.tags as string) : [],
-    blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
-  });
+  return json(articleToApi(row));
 };
 
 const handleCreateArticle: Handler = async (request, env) => {
@@ -15086,16 +15632,19 @@ const handleCreateArticle: Handler = async (request, env) => {
   const slug = body.slug ? body.slug : slugify(body.title);
   const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags || '[]');
   const blocks = Array.isArray(body.blocks) ? JSON.stringify(body.blocks) : (body.blocks || '[]');
+  const linkage = await validateArticleContributors(env, accountId, body);
+  if ('error' in linkage) return linkage.error;
+  const subjectIds = JSON.stringify(linkage.subjectIds ?? []);
 
   await env.DB.prepare(
-    `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, reading_time_mins)
-     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, reading_time_mins, subject_ids, pull_quote, pull_quote_subject)
+     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
     body.title,
     body.subtitle || null,
-    body.author_id || null,
+    linkage.authorId,
     slug,
     body.category || null,
     tags,
@@ -15103,17 +15652,16 @@ const handleCreateArticle: Handler = async (request, env) => {
     blocks,
     body.layout_template || null,
     body.reading_time_mins || null,
+    subjectIds,
+    typeof body.pull_quote === 'string' && body.pull_quote.trim() ? body.pull_quote.trim() : null,
+    linkage.pullQuoteSubject,
   ).run();
 
   const created = await env.DB.prepare(
     'SELECT * FROM articles WHERE id = ?'
   ).bind(id).first() as Record<string, any>;
 
-  return json({
-    ...created,
-    tags: created.tags ? JSON.parse(created.tags as string) : [],
-    blocks: created.blocks ? JSON.parse(created.blocks as string) : [],
-  }, 201);
+  return json(articleToApi(created), 201);
 };
 
 const handleUpdateArticle: Handler = async (request, env, params) => {
@@ -15128,10 +15676,19 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
+  const existing = await env.DB.prepare('SELECT * FROM articles WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Article not found' }, 404);
+  const linkage = await validateArticleContributors(env, accountId, body, existing.author_id ?? null);
+  if ('error' in linkage) return linkage.error;
+  if ('author_id' in body) body.author_id = linkage.authorId;
+  if ('subject_ids' in body) body.subject_ids = JSON.stringify(linkage.subjectIds ?? []);
+  if ('pull_quote_subject' in body) body.pull_quote_subject = linkage.pullQuoteSubject;
+  if ('pull_quote' in body) body.pull_quote = typeof body.pull_quote === 'string' && body.pull_quote.trim() ? body.pull_quote.trim() : null;
 
   const ARTICLE_ALLOWED_COLS = new Set([
     'title', 'subtitle', 'author_id', 'slug', 'status', 'category', 'tags',
     'cover_image_url', 'blocks', 'layout_template', 'reading_time_mins', 'published_at',
+    'subject_ids', 'pull_quote', 'pull_quote_subject',
   ]);
   const cols = Object.keys(body).filter(k => ARTICLE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
@@ -15146,11 +15703,7 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as Record<string, any> | null;
   if (!updated) return json({ error: 'Article not found' }, 404);
 
-  return json({
-    ...updated,
-    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
-    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
-  });
+  return json(articleToApi(updated));
 };
 
 const handlePublishArticle: Handler = async (request, env, params) => {
@@ -15232,8 +15785,9 @@ const handleGetPublicArticles: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
     `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
             a.cover_image_url, a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
-            u.name AS author_name
+            COALESCE(c.display_name, u.name) AS author_name
      FROM articles a
+     LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
      LEFT JOIN users u ON u.id = a.author_id
      WHERE a.status = 'published'
      ORDER BY a.published_at DESC
@@ -15249,16 +15803,15 @@ const handleGetPublicArticles: Handler = async (request, env) => {
 
 const handleGetPublicArticle: Handler = async (request, env, params) => {
   const row = await env.DB.prepare(
-    `SELECT * FROM articles WHERE slug = ? AND status = 'published'`
+    `SELECT a.*, COALESCE(c.display_name, u.name) AS author_name
+       FROM articles a
+       LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+       LEFT JOIN users u ON u.id = a.author_id
+      WHERE a.slug = ? AND a.status = 'published'`
   ).bind(params.slug).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Article not found' }, 404);
 
-  return json({
-    ...row,
-    tags: row.tags ? JSON.parse(row.tags as string) : [],
-    blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
-    subject_ids: row.subject_ids ? JSON.parse(row.subject_ids as string) : [],
-  });
+  return json(articleToApi(row));
 };
 
 // ── Contributors — Public ─────────────────────────────────────────────────────
@@ -16932,38 +17485,19 @@ const handleConfirmCollectionPicks: Handler = async (request, env, params) => {
     const rawQty = pick.quantity ?? row.recommended_quantity ?? (isTeaware ? 1 : 50);
     const quantity = Math.max(1, Math.round(Number(rawQty) || 1));
 
-    // Price (line total), scaled to the picked amount.
-    const recPrice = row.recommended_price_usd !== null && row.recommended_price_usd !== undefined
-      ? Number(row.recommended_price_usd) : null;
-    const recQty = Number(row.recommended_quantity);
-    const hasRecQty = row.recommended_quantity != null && Number.isFinite(recQty) && recQty > 0;
-
-    let lineTotal: number;
-    if (recPrice !== null && hasRecQty) {
-      // Curator quoted recPrice for recQty → per-unit rate × the amount actually picked.
-      lineTotal = Math.round((recPrice / recQty) * quantity * 100) / 100;
-    } else if (recPrice !== null) {
-      // Quote with no recommended quantity to scale against: treat as a flat total.
-      lineTotal = recPrice;
-    } else if (row.fixed_retail_price_usd) {
-      // No curator price: catalog per-unit rate × amount.
-      lineTotal = Math.round(Number(row.fixed_retail_price_usd) * quantity * 100) / 100;
-    } else {
-      lineTotal = 0;
-    }
-
-    // price_at_sale is a PER-UNIT rate: every invoice reader computes
-    // quantity × price_at_sale. Storing the line total here inflates the
-    // invoice by a factor of quantity (the K1 bug). Store the per-unit rate;
-    // lineTotal / quantity reproduces exactly the total the recipient confirmed.
-    const unitPrice = quantity > 0 ? lineTotal / quantity : 0;
+    const derived = deriveConfirmedInvoiceLine({
+      quantity,
+      recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
+      recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
+      catalogUnitPriceUsd: row.fixed_retail_price_usd == null ? null : Number(row.fixed_retail_price_usd),
+    });
 
     lineItems.push({
       product_id: row.product_id,
       custom_name: null,
-      quantity,
-      price_at_sale: unitPrice,
-      label: `${row.product_name} × ${quantity}${isTeaware ? '' : 'g'}`,
+      quantity: derived.quantity,
+      price_at_sale: derived.unitPriceUsd,
+      label: `${row.product_name} × ${derived.quantity}${isTeaware ? '' : 'g'}`,
     });
   }
 
@@ -18953,6 +19487,100 @@ const handleAdoptProfile: Handler = async (request, env, params) => {
   return json({ ok: true, decision });
 };
 
+type InvoiceRepairRow = {
+  account_id: string;
+  invoice_id: string;
+  line_item_id: string;
+  quantity: number;
+  price_at_sale: number;
+  source_collection_id: string;
+  recommended_quantity: number | null;
+  recommended_price_usd: number | null;
+  catalog_price: number | null;
+};
+
+type InvoiceRepairPreview = {
+  invoice_id: string;
+  line_item_id: string;
+  old_price_at_sale: number;
+  new_price_at_sale: number;
+  current_total_usd: number;
+  corrected_total_usd: number;
+};
+
+async function invoiceRepairPreview(env: Env, accountId: string): Promise<{ candidates: InvoiceRepairPreview[]; preview_key: string }> {
+  const result = await env.DB.prepare(`
+    SELECT ili.account_id, ili.invoice_id, ili.id AS line_item_id, ili.quantity,
+           ili.price_at_sale, i.source_collection_id,
+           ci.recommended_quantity, ci.recommended_price_usd,
+           p.fixed_retail_price_usd AS catalog_price
+    FROM invoice_line_items ili
+    JOIN invoices i ON i.id = ili.invoice_id AND i.account_id = ili.account_id
+    JOIN collection_items ci
+      ON ci.collection_id = i.source_collection_id AND ci.product_id = ili.product_id
+    LEFT JOIN products p ON p.id = ili.product_id AND p.account_id = ili.account_id
+    LEFT JOIN invoice_line_repairs ilr ON ilr.line_item_id = ili.id
+    WHERE i.account_id = ? AND i.source_collection_id IS NOT NULL AND ilr.id IS NULL
+  `).bind(accountId).all<InvoiceRepairRow>();
+  const candidates = (result.results || []).flatMap(row => {
+    const repair = repairCandidate({
+      sourceCollectionId: row.source_collection_id,
+      quantity: Number(row.quantity),
+      storedPriceAtSale: Number(row.price_at_sale),
+      recommendedQuantity: row.recommended_quantity == null ? null : Number(row.recommended_quantity),
+      recommendedPriceUsd: row.recommended_price_usd == null ? null : Number(row.recommended_price_usd),
+      catalogUnitPriceUsd: row.catalog_price == null ? null : Number(row.catalog_price),
+    });
+    return repair ? [{
+      invoice_id: row.invoice_id,
+      line_item_id: row.line_item_id,
+      old_price_at_sale: Number(row.price_at_sale),
+      new_price_at_sale: repair.correctedUnitPriceUsd,
+      current_total_usd: repair.currentLineTotalUsd,
+      corrected_total_usd: repair.correctedLineTotalUsd,
+    }] : [];
+  }).sort((a, b) => a.line_item_id.localeCompare(b.line_item_id));
+  const tuples = candidates.map(row => `${row.line_item_id}:${row.old_price_at_sale}:${row.new_price_at_sale}`).join('\n');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(tuples));
+  const preview_key = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return { candidates, preview_key };
+}
+
+async function handlePreviewInvoiceLineRepair(request: Request, env: Env): Promise<Response> {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  return json(await invoiceRepairPreview(env, ctx.accountId));
+}
+
+async function handleApplyInvoiceLineRepair(request: Request, env: Env): Promise<Response> {
+  const ctx = await requireOwnerTier(request, env);
+  if ('error' in ctx) return ctx.error;
+  const body = await request.json().catch(() => null) as { confirm?: boolean; preview_key?: string } | null;
+  if (body?.confirm !== true || typeof body.preview_key !== 'string') return json({ error: 'confirm and preview_key are required' }, 400);
+  const preview = await invoiceRepairPreview(env, ctx.accountId);
+  // Once all matching rows have an audit record, retrying a confirmed operation is a no-op.
+  if (preview.candidates.length === 0) return json({ changed_lines: 0, preview_key: body.preview_key });
+  if (body.preview_key !== preview.preview_key) return json({ error: 'Repair preview is stale', preview_key: preview.preview_key }, 409);
+  const statements = preview.candidates.flatMap(candidate => {
+    const repairKey = `${candidate.line_item_id}:${candidate.old_price_at_sale}:${candidate.new_price_at_sale}`;
+    return [
+      env.DB.prepare(`INSERT OR IGNORE INTO invoice_line_repairs
+        (id, account_id, invoice_id, line_item_id, repair_key, old_price_at_sale, new_price_at_sale, old_line_total, new_line_total, repaired_by)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        FROM invoice_line_items
+        WHERE id = ? AND invoice_id = ? AND account_id = ? AND price_at_sale = ?`)
+        .bind(crypto.randomUUID(), ctx.accountId, candidate.invoice_id, candidate.line_item_id, repairKey, candidate.old_price_at_sale, candidate.new_price_at_sale, candidate.current_total_usd, candidate.corrected_total_usd, ctx.userId,
+          candidate.line_item_id, candidate.invoice_id, ctx.accountId, candidate.old_price_at_sale),
+      env.DB.prepare(`UPDATE invoice_line_items SET price_at_sale = ? WHERE id = ? AND invoice_id = ? AND account_id = ? AND price_at_sale = ?`)
+        .bind(candidate.new_price_at_sale, candidate.line_item_id, candidate.invoice_id, ctx.accountId, candidate.old_price_at_sale),
+    ];
+  });
+  const results = await env.DB.batch(statements);
+  const changed_lines = results.filter((_result, index) => index % 2 === 1).reduce((sum, result) => sum + Number(result.meta?.changes || 0), 0);
+  if (changed_lines !== preview.candidates.length) return json({ error: 'Repair targets changed during apply', changed_lines }, 409);
+  return json({ changed_lines, preview_key: preview.preview_key });
+}
+
 // ── Routes ──
 const routes: [string, string, Handler][] = [
   // Auth
@@ -19051,6 +19679,8 @@ const routes: [string, string, Handler][] = [
   ['PUT', '/api/admin/users/:id/role', handleUpdateUserRole],
   ['DELETE', '/api/admin/users/:id', handleDeleteUser],
   ['POST', '/api/admin/reset-token', handleCreateResetToken],
+  ['GET', '/api/admin/repairs/invoice-lines', handlePreviewInvoiceLineRepair],
+  ['POST', '/api/admin/repairs/invoice-lines', handleApplyInvoiceLineRepair],
 
   // Public — venues/spaces
   ['GET', '/api/venues/public', handleGetPublicVenues],
@@ -19098,6 +19728,12 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/admin/people/relationship-audit', handleGetPeopleRelationshipAudit],
   ['POST', '/api/admin/people/relationship-audit/apply', handleApplyPeopleRelationshipAudit],
   ['GET', '/api/admin/contributors', handleListAdminContributors],
+  ['GET', '/api/admin/contributor-options', handleListContributorOptions],
+  ['POST', '/api/admin/contributors', handleCreateAdminContributor],
+  ['GET', '/api/admin/contributors/:id', handleGetAdminContributor],
+  ['PUT', '/api/admin/contributors/:id', handleUpdateAdminContributor],
+  ['POST', '/api/admin/contributors/:id/publish', setAdminContributorPublication(true)],
+  ['POST', '/api/admin/contributors/:id/unpublish', setAdminContributorPublication(false)],
   ['PUT', '/api/admin/contributors/:id/contact', handlePutAdminContributorContact],
   ['GET', '/api/customers', handleGetCustomers],
   ['GET', '/api/customers/:id', handleGetCustomer],
@@ -19268,6 +19904,8 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/admin/events/:id/attendees', handleGetAttendees],
   ['GET', '/api/admin/events/:id/notifications', handleGetNotifications],
   ['POST', '/api/admin/events/:id/notifications', handleCreateNotifications],
+  ['POST', '/api/admin/events/:id/article-draft', handleCreateEventArticleDraft],
+  ['GET', '/api/admin/events/:id/post-session', handleGetAdminPostSession],
   ['POST', '/api/admin/events/:id/post-session', handleUpsertPostSession],
   ['POST', '/api/admin/events/:id/duplicate', handleDuplicateEvent],
   ['POST', '/api/admin/events/:id/attendance', handleBatchAttendance],
@@ -19411,7 +20049,14 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/tasting-journal', handleGetTastingJournal],
   ['POST', '/api/tasting-journal/sync', handleSyncTastingJournal],
   ['POST', '/api/tasting-journal', handleAddTastingEntry],
+  ['PUT', '/api/tasting-journal/:id/candidates/:noteKey', handleStarTastingNote],
+  ['DELETE', '/api/tasting-journal/:id/candidates/:noteKey', handleUnstarTastingNote],
   ['DELETE', '/api/tasting-journal/:id', handleDeleteTastingEntry],
+  ['GET', '/api/admin/tasting-note-candidates', handleListTastingNoteCandidates],
+  ['PUT', '/api/admin/tasting-note-candidates/:id', handleUpdateTastingNoteCandidate],
+  ['POST', '/api/admin/tasting-note-candidates/:id/dismiss', handleDismissTastingNoteCandidate],
+  ['POST', '/api/admin/tasting-note-candidates/:id/promote', handlePromoteTastingNoteCandidate],
+  ['GET', '/api/products/:id/impressions', handleGetProductImpressions],
   ['GET', '/api/tea-discovery', handleGetTeaDiscovery],
   ['PUT', '/api/tea-discovery', handlePutTeaDiscovery],
 
@@ -19451,6 +20096,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/me/wishlist', handleGetMyWishlist],
   ['GET', '/api/me/journey', handleGetMyJourney],
   ['GET', '/api/me/orders', handleGetMyOrders],
+  ['GET', '/api/me/orders/:id', handleGetMyOrderDetail],
   ['GET', '/api/me/samples', handleGetMySamples],
   ['GET', '/api/members/search', handleMemberSearch],
 

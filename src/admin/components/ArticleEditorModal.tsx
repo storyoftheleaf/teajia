@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronUp, Eye, EyeOff,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import {
   EDITABLE_ARTICLE_BLOCK_TYPES,
@@ -14,7 +15,7 @@ import {
 } from '../../lib/articleBlockRegistry';
 import { useToast } from './Toast';
 import { ImmersivePreview } from './ImmersivePreview';
-import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant } from '../../types';
+import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, ContributorOption } from '../../types';
 
 const IMMERSIVE_TEMPLATE = 'immersive_scroll';
 
@@ -23,6 +24,23 @@ interface ArticleEditorModalProps {
   onClose: () => void;
   initialData?: DbArticle;
   onSaved?: () => void;
+}
+
+function ContributorSelect({ label, value, contributors, loading, error, onChange }: { label: string; value: string; contributors: ContributorOption[]; loading: boolean; error: boolean; onChange: (value: string) => void }) {
+  const [search, setSearch] = useState('');
+  const filtered = contributors.filter(item => `${item.display_name} ${item.id}`.toLowerCase().includes(search.toLowerCase()));
+  const legacy = value && !contributors.some(item => item.id === value);
+  return <div className="space-y-2">
+    <input aria-label={`Search ${label.toLowerCase()} contributors`} value={search} onChange={event => setSearch(event.target.value)} placeholder="Search contributors…" className="w-full border-b border-tea-border bg-transparent py-2 text-ui-12 text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none" />
+    <select aria-label={label} value={value} onChange={event => onChange(event.target.value)} disabled={loading || error} className="w-full border-b border-tea-border bg-transparent py-2 text-ui-13 text-tea-text focus:border-tea-gold focus:outline-none disabled:opacity-50">
+      <option value="">No contributor selected</option>
+      {legacy && <option value={value}>Legacy author: {value}</option>}
+      {filtered.map(item => <option key={item.id} value={item.id}>{item.display_name}</option>)}
+    </select>
+    {loading && <p className="text-ui-11 text-tea-text-dim">Loading contributors…</p>}
+    {error && <p className="text-ui-11 text-tea-text-sec">Contributors could not be loaded.</p>}
+    {!loading && !error && filtered.length === 0 && <p className="text-ui-11 text-tea-text-dim">No matching contributors.</p>}
+  </div>;
 }
 
 // ─── Paste parser ────────────────────────────────────────────────────────────
@@ -456,11 +474,16 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   // Metadata
   const [subtitle, setSubtitle] = useState(initialData?.subtitle ?? '');
   const [author, setAuthor] = useState(initialData?.author_id ?? '');
+  const [subjectIds, setSubjectIds] = useState<string[]>(initialData?.subject_ids ?? []);
+  const [pullQuote, setPullQuote] = useState(initialData?.pull_quote ?? '');
+  const [pullQuoteSubject, setPullQuoteSubject] = useState(initialData?.pull_quote_subject ?? '');
   const [category, setCategory] = useState(initialData?.category ?? '');
   const [tagsInput, setTagsInput] = useState((initialData?.tags ?? []).join(', '));
   const [coverImageUrl, setCoverImageUrl] = useState(initialData?.cover_image_url ?? '');
   const [layoutTemplate, setLayoutTemplate] = useState(initialData?.layout_template ?? 'default');
   const isImmersive = layoutTemplate === IMMERSIVE_TEMPLATE;
+  const contributorsQuery = useQuery({ queryKey: ['contributor-options'], queryFn: () => api.people.listContributorOptions(), select: result => result.contributors, enabled: isOpen });
+  const contributors = contributorsQuery.data ?? [];
 
   // Paste panel
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -481,6 +504,33 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [publishing, setPublishing] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    }
+    setArticleId(initialData?.id ?? null);
+    setTitle(initialData?.title ?? '');
+    setStatus(initialData?.status ?? 'draft');
+    setBlocks(initialData?.blocks ?? []);
+    setSubtitle(initialData?.subtitle ?? '');
+    setAuthor(initialData?.author_id ?? '');
+    setSubjectIds(initialData?.subject_ids ?? []);
+    setPullQuote(initialData?.pull_quote ?? '');
+    setPullQuoteSubject(initialData?.pull_quote_subject ?? '');
+    setCategory(initialData?.category ?? '');
+    setTagsInput((initialData?.tags ?? []).join(', '));
+    setCoverImageUrl(initialData?.cover_image_url ?? '');
+    setLayoutTemplate(initialData?.layout_template ?? 'default');
+    setSaveState('idle');
+    setPublishing(false);
+    setPasteOpen(false);
+    setPasteText('');
+    setPasteWarnings([]);
+    setRightTab('metadata');
+    setAddBlockOpen(false);
+  }, [initialData?.id]);
+
   // Close add-block dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -497,6 +547,9 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     title: title.trim(),
     subtitle: subtitle.trim() || undefined,
     author_id: author.trim() || undefined,
+    subject_ids: subjectIds,
+    pull_quote: pullQuote.trim() || undefined,
+    pull_quote_subject: pullQuoteSubject || undefined,
     slug: title.trim().toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-') || `article-${Date.now()}`,
     status,
     category: category || undefined,
@@ -508,7 +561,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       if ('text' in b) return acc + b.text.split(/\s+/).length;
       return acc;
     }, 0) / 200)),
-  }), [title, subtitle, author, status, category, tagsInput, coverImageUrl, blocks, layoutTemplate]);
+  }), [title, subtitle, author, subjectIds, pullQuote, pullQuoteSubject, status, category, tagsInput, coverImageUrl, blocks, layoutTemplate]);
 
   // Save (create or update)
   const save = useCallback(async () => {
@@ -621,7 +674,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setBlocks(newBlocks);
     if (t) setTitle(t);
     if (s) setSubtitle(s);
-    if (a) setAuthor(a);
+    if (a && contributors.some(contributor => contributor.id === a)) setAuthor(a);
     setPasteText('');
     if (warnings.length === 0) setPasteOpen(false);
     showToast(`${newBlocks.length} block${newBlocks.length !== 1 ? 's' : ''} created from paste.`, 'success');
@@ -725,6 +778,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
         {/* Manual save */}
         <button
           onClick={() => { void save(); }}
+          aria-label="Save"
           disabled={saveState === 'saving' || !title.trim()}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40 shrink-0"
         >
@@ -859,13 +913,19 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                   </Field>
 
                   <Field label="Author">
-                    <input
-                      type="text"
-                      value={author}
-                      onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }}
-                      placeholder="Author name or ID…"
-                      className={inputClass}
-                    />
+                    <ContributorSelect label="Author" value={author} contributors={contributors} loading={contributorsQuery.isLoading} error={contributorsQuery.isError} onChange={value => { setAuthor(value); scheduleAutoSave(); }} />
+                  </Field>
+
+                  <Field label="Subject contributors">
+                    <div className="space-y-1">{contributors.map(contributor => <label key={contributor.id} className="flex min-h-10 items-center gap-2 text-ui-12 text-tea-text-sec"><input type="checkbox" checked={subjectIds.includes(contributor.id)} onChange={event => { setSubjectIds(current => event.target.checked ? [...current, contributor.id] : current.filter(id => id !== contributor.id)); scheduleAutoSave(); }} />{contributor.display_name}</label>)}</div>
+                  </Field>
+
+                  <Field label="Pull quote subject">
+                    <ContributorSelect label="Pull quote subject" value={pullQuoteSubject} contributors={contributors} loading={contributorsQuery.isLoading} error={contributorsQuery.isError} onChange={value => { setPullQuoteSubject(value); scheduleAutoSave(); }} />
+                  </Field>
+
+                  <Field label="Pull quote">
+                    <textarea aria-label="Pull quote" value={pullQuote} onChange={event => { setPullQuote(event.target.value); scheduleAutoSave(); }} className={textareaClass} rows={3} />
                   </Field>
 
                   <Field label="Category">
@@ -1067,8 +1127,11 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
               <input type="text" value={subtitle} onChange={e => { setSubtitle(e.target.value); scheduleAutoSave(); }} placeholder="Short subtitle…" className={inputClass} />
             </Field>
             <Field label="Author">
-              <input type="text" value={author} onChange={e => { setAuthor(e.target.value); scheduleAutoSave(); }} placeholder="Author name or ID…" className={inputClass} />
+              <ContributorSelect label="Author" value={author} contributors={contributors} loading={contributorsQuery.isLoading} error={contributorsQuery.isError} onChange={value => { setAuthor(value); scheduleAutoSave(); }} />
             </Field>
+            <Field label="Subject contributors"><div className="space-y-1">{contributors.map(contributor => <label key={contributor.id} className="flex min-h-10 items-center gap-2 text-ui-12 text-tea-text-sec"><input type="checkbox" checked={subjectIds.includes(contributor.id)} onChange={event => { setSubjectIds(current => event.target.checked ? [...current, contributor.id] : current.filter(id => id !== contributor.id)); scheduleAutoSave(); }} />{contributor.display_name}</label>)}</div></Field>
+            <Field label="Pull quote subject"><ContributorSelect label="Pull quote subject" value={pullQuoteSubject} contributors={contributors} loading={contributorsQuery.isLoading} error={contributorsQuery.isError} onChange={value => { setPullQuoteSubject(value); scheduleAutoSave(); }} /></Field>
+            <Field label="Pull quote"><textarea aria-label="Pull quote" value={pullQuote} onChange={event => { setPullQuote(event.target.value); scheduleAutoSave(); }} className={textareaClass} rows={3} /></Field>
             <Field label="Category">
               <div className="relative">
                 <select value={category} onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }} className={selectClass}>

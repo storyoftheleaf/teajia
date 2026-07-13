@@ -94,15 +94,22 @@ const STATIC_META: Record<string, Meta> = {
   },
 };
 
-const WORKER_API = 'https://teajia-api.lightcodes.workers.dev';
+interface Env { WORKER_ORIGIN?: string }
+
+function configuredWorkerOrigin(value?: string): URL | null {
+  try {
+    const origin = new URL(value || '');
+    return origin.protocol === 'https:' ? origin : null;
+  } catch { return null; }
+}
 
 // User-agents we always inject for (link-preview scrapers + search crawlers).
 const CRAWLER_RE =
   /(facebookexternalhit|twitterbot|slackbot|discordbot|whatsapp|telegrambot|linkedinbot|pinterest|googlebot|bingbot|applebot|google-inspectiontool|redditbot|skypeuripreview|ia_archiver|embedly|quora link preview|vkshare|w3c_validator)/i;
 
-async function articleMeta(slug: string): Promise<Meta | null> {
+async function articleMeta(slug: string, workerOrigin: URL): Promise<Meta | null> {
   try {
-    const res = await fetch(`${WORKER_API}/api/articles/${encodeURIComponent(slug)}`, {
+    const res = await fetch(new URL(`/api/articles/${encodeURIComponent(slug)}`, workerOrigin), {
       headers: { 'X-Teajia-Account': 'acc_teajia_bali' },
       // short timeout via AbortSignal so a slow API never blocks the page
       signal: AbortSignal.timeout(2500),
@@ -146,7 +153,7 @@ class HeadRewriter {
   }
 }
 
-export const onRequest: PagesFunction = async (context) => {
+export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
   // Normalize trailing slashes but keep "/" as the homepage (not "/read").
@@ -161,8 +168,10 @@ export const onRequest: PagesFunction = async (context) => {
   if (!meta && path.startsWith('/article/')) {
     const ua = request.headers.get('user-agent') || '';
     if (CRAWLER_RE.test(ua)) {
+      const workerOrigin = configuredWorkerOrigin(context.env.WORKER_ORIGIN);
+      if (!workerOrigin) return Response.json({ error: 'API upstream is not configured.' }, { status: 503 });
       const slug = path.slice('/article/'.length);
-      meta = await articleMeta(slug);
+      meta = await articleMeta(slug, workerOrigin);
     }
   }
 

@@ -17,11 +17,22 @@
 // accounts.google.com, and we must hand that 302 back to the browser rather
 // than follow it edge-side (which would return Google's HTML under /api/...).
 
-const WORKER_ORIGIN = 'https://teajia-api.lightcodes.workers.dev';
+interface Env { WORKER_ORIGIN?: string }
 
-export const onRequest: PagesFunction = async ({ request }) => {
+function configuredWorkerOrigin(value?: string): URL | null {
+  try {
+    const origin = new URL(value || '');
+    return origin.protocol === 'https:' ? origin : null;
+  } catch { return null; }
+}
+
+export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
+  const workerOrigin = configuredWorkerOrigin(env.WORKER_ORIGIN);
+  if (!workerOrigin) {
+    return Response.json({ error: 'API upstream is not configured.' }, { status: 503 });
+  }
   const incoming = new URL(request.url);
-  const target = new URL(incoming.pathname + incoming.search, WORKER_ORIGIN);
+  const target = new URL(incoming.pathname + incoming.search, workerOrigin);
   try {
     // Passing the original Request as init copies method, headers, and body
     // (including streamed upload bodies) faithfully; only the destination host

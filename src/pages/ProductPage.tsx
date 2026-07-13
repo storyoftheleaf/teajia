@@ -21,6 +21,7 @@ import { useProductTasting } from '../hooks/useProductTasting';
 import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import type { Product } from '../admin/types';
+import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
 
 // ── Feature 4: Public tea reviews section ────────────────────────────────────
 
@@ -51,10 +52,15 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
   });
 
   const networkReviews = reviews.filter(r => r.visibility === 'network');
+  const { data: impressions = [] } = useQuery<ProductImpression[]>({
+    queryKey: ['product-impressions', productId],
+    queryFn: () => api.productImpressions.list(productId),
+    staleTime: 60_000,
+  });
 
   if (isLoading) return null;
 
-  if (networkReviews.length === 0) {
+  if (networkReviews.length === 0 && impressions.length === 0) {
     return (
       <div className="mt-10 pt-6 border-t border-tea-border">
         <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-3">Reviews</h3>
@@ -65,10 +71,12 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
 
   return (
     <div className="mt-10 pt-6 border-t border-tea-border">
-      <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
-        Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
-      </h3>
-      <div className="space-y-4">
+      <ProductImpressions impressions={impressions} />
+      {networkReviews.length > 0 && <>
+        <h3 className="text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-4">
+          Reviews <span className="text-tea-text-dim font-sans normal-case tracking-normal">({networkReviews.length})</span>
+        </h3>
+        <div className="space-y-4">
         {networkReviews.map(r => {
           const flavorTerms = r.tasting ? flattenTastingNotes(r.tasting) : [];
           return (
@@ -126,7 +134,8 @@ const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = (
             </div>
           );
         })}
-      </div>
+        </div>
+      </>}
     </div>
   );
 };
