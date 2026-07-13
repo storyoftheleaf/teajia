@@ -92,6 +92,10 @@ npm run preview      # preview production build
 # deploy via Cloudflare Pages CI on push to main
 ```
 
+### “Ship” command — mandatory
+
+When Adrian says **“ship”**, immediately publish the completed task-scoped changes to `origin/main` and verify that the pushed commit is present on the remote. For Teajia, “ship” does not mean create a PR, stop after local verification, or merely prepare a commit. If the shared checkout contains unrelated work, isolate the task in a clean worktree and push its commit directly to `main`; never include unrelated changes. Do not report that work is shipped until the push succeeds.
+
 ## Testing
 ```bash
 npm run test:mobile  # Playwright mobile audit — 26 tests at 390×844 (Mobile Chrome)
