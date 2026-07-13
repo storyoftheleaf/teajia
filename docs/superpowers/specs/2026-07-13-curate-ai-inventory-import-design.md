@@ -1,6 +1,6 @@
 # Curate AI Inventory Import Design
 
-**Status:** Approved interaction design and hardening scope  
+**Status:** Approved interaction design and hardening scope
 **Date:** 2026-07-13  
 **Surface:** Curate Import on mobile first, responsive on desktop  
 **Destination:** Inventory, with linked Curate Library identity and provenance
