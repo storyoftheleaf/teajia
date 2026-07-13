@@ -5,7 +5,7 @@ import { compressImage } from '../../lib/imageCompressor';
 import { useTastingNotes } from '../hooks/useEventData';
 import { useToast } from './Toast';
 import { TastingNote } from '../../types/events';
-import { createPostSessionLoadCoordinator, savePostSession } from './PostSessionEditorContract';
+import { createPostSessionLoadCoordinator, createPostSessionUploadGuard, postSessionUploadErrorMessage, runPostSessionUpload, savePostSession } from './PostSessionEditorContract';
 
 interface PostSessionEditorProps {
   eventId: string;
@@ -30,6 +30,19 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loaderRef = useRef<ReturnType<typeof createPostSessionLoadCoordinator> | null>(null);
+  const uploadGuardRef = useRef<ReturnType<typeof createPostSessionUploadGuard> | null>(null);
+
+  if (!uploadGuardRef.current) {
+    uploadGuardRef.current = createPostSessionUploadGuard(url => setGallery(prev => [...prev, url]));
+  }
+
+  // Commit event ownership before the browser can accept input. Cleanup runs
+  // before the next event's layout effect and on unmount, invalidating any
+  // upload completion still queued for the previous editor lifecycle.
+  React.useLayoutEffect(() => {
+    uploadGuardRef.current!.activate(eventId);
+    return () => uploadGuardRef.current?.cancel();
+  }, [eventId]);
 
   if (!loaderRef.current) {
     loaderRef.current = createPostSessionLoadCoordinator(
@@ -93,20 +106,16 @@ export const PostSessionEditor: React.FC<PostSessionEditorProps> = ({ eventId })
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    const upload = uploadGuardRef.current!.begin(eventId);
     setUploading(true);
-    try {
-      for (const file of files) {
-        const compressed = await compressImage(file);
-        const url = await api.uploadImage(compressed);
-        setGallery(prev => [...prev, url]);
-      }
-      showToast(`${files.length} image${files.length > 1 ? 's' : ''} uploaded`, 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Upload failed', 'error');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    await runPostSessionUpload(files, upload, compressImage, api.uploadImage, {
+      onSuccess: count => showToast(`${count} image${count > 1 ? 's' : ''} uploaded`, 'success'),
+      onError: error => showToast(postSessionUploadErrorMessage(error), 'error'),
+      onComplete: () => {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      },
+    });
   };
 
   const removeGalleryImage = (idx: number) => {
