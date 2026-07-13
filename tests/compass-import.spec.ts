@@ -344,11 +344,25 @@ test.describe('Curate Import panel', () => {
     await expect(progress.locator('[aria-current="step"]')).toHaveText('Evidence');
     await expect(page.getByText('Add vendor evidence', { exact: true })).toBeVisible();
     await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
+    const sourceDocument = page.getByRole('textbox', { name: 'Vendor list or invoice' });
+    await expect(sourceDocument).toBeVisible();
+    await expect(sourceDocument).toHaveClass(/min-h-64/);
+    await expect(sourceDocument).toHaveClass(/bg-transparent/);
+    await expect(sourceDocument).toHaveClass(/font-body/);
+    await expect(sourceDocument).toHaveClass(/text-ui-16/);
+    await expect(sourceDocument).toHaveClass(/border-b/);
+    await expect(sourceDocument).not.toHaveClass(/rounded|bg-tea-surface/);
+    await expect(page.getByText('DOC and DOCX are saved as reference-only and are not analyzed.')).toBeVisible();
+    const photoAction = page.getByRole('button', { name: 'Add photos' });
+    const fileAction = page.getByRole('button', { name: 'Add files' });
+    await expect(photoAction).not.toHaveClass(/rounded|border-tea-border/);
+    await expect(fileAction).not.toHaveClass(/rounded|border-tea-border/);
     await page.keyboard.press('Shift+Tab');
-    await expect(page.locator('button').filter({ hasText: 'Add files or invoices' })).toBeFocused();
+    await expect(fileAction).toBeFocused();
     await expect(page.getByRole('button', { name: 'Add photos' })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Add files or invoices' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Add files' })).toHaveCount(1);
     await expect(page.locator('input[type="file"][aria-hidden="true"]')).toHaveCount(2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     const compassSurface = dialog.locator('xpath=../..');
     expect(await compassSurface.locator(':scope > *').filter({ hasNot: dialog }).evaluateAll(elements => elements.every(element => element.getAttribute('aria-hidden') === 'true' && element.hasAttribute('inert')))).toBe(true);
     await page.getByRole('button', { name: 'Close Import' }).click();
@@ -360,7 +374,7 @@ test.describe('Curate Import panel', () => {
   test('analyzes pasted tea and teaware fragments into one editable vendor group', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Paste a list or invoice text').fill('Ali Shan — 600 TWD\n? Red Jade\nClay pot — 2 units');
+    await page.getByLabel('Vendor list or invoice').fill('Ali Shan — 600 TWD\n? Red Jade\nClay pot — 2 units');
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Analyzing your evidence…')).toBeVisible();
     await expect(page.getByTestId('import-vendor-group')).toHaveCount(1);
@@ -371,13 +385,13 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('button', { name: /Imported list: 3 items/ })).toBeVisible();
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByRole('button', { name: 'New import' }).click();
-    await expect(page.getByLabel('Paste a list or invoice text')).toBeVisible();
+    await expect(page.getByLabel('Vendor list or invoice')).toBeVisible();
   });
 
   test('uses a category-aware final action for a teaware-only import', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Paste a list or invoice text').fill('Clay pot — 2 units');
+    await page.getByLabel('Vendor list or invoice').fill('Clay pot — 2 units');
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(1);
     await page.getByRole('button', { name: 'Add 1 teaware item to Inventory' }).click();
@@ -409,25 +423,31 @@ test.describe('Curate Import panel', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await expect(page.getByLabel('Add photos')).toHaveAttribute('accept', /image/);
-    await expect(page.getByLabel('Add files or invoices')).toHaveAttribute('accept', /pdf/);
+    await expect(page.getByLabel('Add files')).toHaveAttribute('accept', /pdf/);
     await page.getByLabel('Add photos').setInputFiles({ name: 'vendor-board.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('photo') });
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await expect(page.getByText('vendor-board.jpg')).toBeVisible();
     await expect(page.getByText('invoice.pdf')).toBeVisible();
-    await page.getByLabel('Paste a list or invoice text').fill('RETRY tea');
+    const readyEvidence = page.getByTestId('import-evidence-item').filter({ hasText: 'invoice.pdf' });
+    await expect(readyEvidence).toHaveClass(/border-b/);
+    await expect(readyEvidence).not.toHaveClass(/rounded|bg-tea-surface/);
+    await page.getByLabel('Vendor list or invoice').fill('RETRY tea');
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Parser unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
     await expect(page.getByText('Analyzed').first()).toBeVisible();
+    const analyzedEvidence = page.getByTestId('import-evidence-source').filter({ hasText: 'invoice.pdf' });
+    await expect(analyzedEvidence).toHaveClass(/border-b/);
+    await expect(analyzedEvidence).not.toHaveClass(/rounded|bg-tea-surface/);
     await expect(page.getByAltText('Evidence preview: vendor-board.jpg')).toBeVisible();
   });
 
   test('keeps pasted text and an uploaded text file as exactly one source each', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Paste a list or invoice text').fill('Pasted vendor line');
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'vendor-list.txt', mimeType: 'text/plain', buffer: Buffer.from('Attached vendor line') });
+    await page.getByLabel('Vendor list or invoice').fill('Pasted vendor line');
+    await page.getByLabel('Add files').setInputFiles({ name: 'vendor-list.txt', mimeType: 'text/plain', buffer: Buffer.from('Attached vendor line') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Analyzed').first()).toBeVisible();
 
@@ -442,7 +462,7 @@ test.describe('Curate Import panel', () => {
   test('removes, replaces, and clears attachments before upload', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Add files or invoices').setInputFiles([
+    await page.getByLabel('Add files').setInputFiles([
       { name: 'first.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-first') },
       { name: 'second.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-second') },
     ]);
@@ -458,10 +478,10 @@ test.describe('Curate Import panel', () => {
     await openCompass(page);
     const trigger = page.getByRole('tab', { name: 'Import' }).first();
     await trigger.click();
-    await page.getByLabel('Paste a list or invoice text').fill('Saved vendor conversation');
+    await page.getByLabel('Vendor list or invoice').fill('Saved vendor conversation');
     await page.getByRole('button', { name: 'Add sourcing run' }).click();
     await page.getByLabel('Sourcing run', { exact: true }).selectOption('journey-taiwan');
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'saved.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-saved') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'saved.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-saved') });
     await page.getByRole('button', { name: 'Close Import' }).click();
     const draftChoice = page.getByRole('group', { name: 'Keep import draft' });
     await expect(draftChoice).toBeVisible();
@@ -475,7 +495,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Keep draft' }).click();
 
     await trigger.click();
-    await expect(page.getByLabel('Paste a list or invoice text')).toHaveValue('Saved vendor conversation');
+    await expect(page.getByLabel('Vendor list or invoice')).toHaveValue('Saved vendor conversation');
     await expect(page.getByText('Taiwan · Spring · 2026')).toBeVisible();
     await expect(page.getByText('Reselect to upload')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start import' })).toBeEnabled();
@@ -483,7 +503,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Discard draft' }).click();
 
     await trigger.click();
-    await expect(page.getByLabel('Paste a list or invoice text')).toHaveValue('');
+    await expect(page.getByLabel('Vendor list or invoice')).toHaveValue('');
     await expect(page.getByText('saved.pdf')).toHaveCount(0);
   });
 
@@ -491,9 +511,9 @@ test.describe('Curate Import panel', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await expect(page.getByText('DOC and DOCX are saved as reference-only and are not analyzed.')).toBeVisible();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'too-large.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(6 * 1024 * 1024) });
+    await page.getByLabel('Add files').setInputFiles({ name: 'too-large.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(6 * 1024 * 1024) });
     await expect(page.getByText('Files must be 5 MB or smaller')).toBeVisible();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'vendor-notes.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('PK-docx') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'vendor-notes.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('PK-docx') });
     await expect(page.getByText('Reference only · not analyzed')).toBeVisible();
   });
 
@@ -501,7 +521,7 @@ test.describe('Curate Import panel', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     const original = '[{"name":"Ali Shan","price":600},{"name":"Red Jade","price":450}]';
-    await page.getByLabel('Add files or invoices').setInputFiles({
+    await page.getByLabel('Add files').setInputFiles({
       name: 'vendor-list.json', mimeType: 'application/json', buffer: Buffer.from(original),
     });
     await page.getByRole('button', { name: 'Start import' }).click();
@@ -521,7 +541,7 @@ test.describe('Curate Import panel', () => {
     await page.route('**/api/curate/imports/batch-1/evidence', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Evidence storage is not configured. Your file was not saved.' }) }));
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'not-a-tea.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'not-a-tea.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByRole('alert').getByText('Evidence storage is not configured. Your file was not saved.')).toBeVisible();
     await expect(page.getByTestId('import-item-row')).toHaveCount(0);
@@ -531,7 +551,7 @@ test.describe('Curate Import panel', () => {
   test('reloads persisted source outcomes after initial analysis failure and retries only failed evidence', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'retry-source.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'retry-source.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry') });
     await page.getByRole('button', { name: 'Start import' }).click();
 
     await expect(page.getByText('Analysis failed · analysis_evidence_unavailable')).toBeVisible();
@@ -543,7 +563,7 @@ test.describe('Curate Import panel', () => {
   test('recovers saved evidence and its grouped incomplete batch after reload', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'invoice.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Analyzed', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Review later' }).click();
@@ -559,7 +579,7 @@ test.describe('Curate Import panel', () => {
   test('keeps an evidence-only batch recoverable through explicit abandon', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-evidence') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-evidence') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved evidence.')).toBeVisible();
     const abandon = page.getByRole('button', { name: 'Abandon import' });
@@ -605,7 +625,7 @@ test.describe('Curate Import panel', () => {
     await expect(replacePicker).toBeVisible();
     await replacePicker.focus();
     await expect(replacePicker).toBeFocused();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'two.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'two.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect.poll(() => attempts.size, { message: `Expected both evidence requests; attempts=${JSON.stringify([...attempts])}` }).toBe(2);
     expect(ordinal.ordinal).toBe(2);
@@ -614,6 +634,9 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Analyzed', { exact: true })).toBeVisible();
     await expect(page.getByText('two.pdf')).toBeVisible();
     await expect(page.getByRole('alert').getByText('Temporary evidence failure')).toBeVisible();
+    const failedEvidence = page.getByTestId('import-evidence-item').filter({ hasText: 'two.pdf' });
+    await expect(failedEvidence).toHaveClass(/rounded-md/);
+    await expect(failedEvidence).toHaveClass(/border-tea-border/);
     await page.getByRole('button', { name: 'Retry import' }).click();
     await expect(page.getByText('one.jpg')).toBeVisible();
     await expect(page.getByText('two.pdf')).toBeVisible();
@@ -642,11 +665,11 @@ test.describe('Curate Import panel', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
-    await page.getByLabel('Paste a list or invoice text').fill('Locked tea');
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'locked.txt', mimeType: 'text/plain', buffer: Buffer.from('file tea') });
+    await page.getByLabel('Vendor list or invoice').fill('Locked tea');
+    await page.getByLabel('Add files').setInputFiles({ name: 'locked.txt', mimeType: 'text/plain', buffer: Buffer.from('file tea') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeDisabled();
-    await expect(dialog.getByLabel('Paste a list or invoice text')).toHaveCount(0);
+    await expect(dialog.getByLabel('Vendor list or invoice')).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeVisible();
     releaseCreate();
@@ -663,7 +686,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add photos').setInputFiles({ name: 'same.evidence', mimeType: 'image/jpeg', buffer: Buffer.from('one') });
     await expect(page.getByText('same.evidence')).toBeVisible();
-    await page.getByLabel('Add files or invoices').setInputFiles({ name: 'same.evidence', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
+    await page.getByLabel('Add files').setInputFiles({ name: 'same.evidence', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-two') });
     await expect(page.getByText('same.evidence')).toHaveCount(2);
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Analyzed').first()).toBeVisible();
@@ -672,7 +695,7 @@ test.describe('Curate Import panel', () => {
   test('keeps every row in a 30-item batch vertically reachable', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await page.getByLabel('Paste a list or invoice text').fill(Array.from({ length: 30 }, (_, index) => `Tea ${index + 1}`).join('\n'));
+    await page.getByLabel('Vendor list or invoice').fill(Array.from({ length: 30 }, (_, index) => `Tea ${index + 1}`).join('\n'));
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('30 teas · 1 vendor')).toBeVisible();
     await expect(page.getByTestId('import-item-row')).toHaveCount(30);
@@ -806,7 +829,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(page).toHaveURL(/\/admin\/compass/);
     await completion.getByRole('button', { name: 'Close summary' }).click();
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
-    await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByLabel('Paste a list or invoice text')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByLabel('Vendor list or invoice')).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row')).toHaveCount(0);
   });
 
@@ -1015,18 +1038,18 @@ test.describe('analyzed inventory import review', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
-    await dialog.getByLabel('Paste a list or invoice text').fill('Tea one');
+    await dialog.getByLabel('Vendor list or invoice').fill('Tea one');
     await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
     await dialog.getByRole('button', { name: 'Create new sourcing run' }).click();
     await dialog.getByLabel('New sourcing run name').fill('Yunnan run');
     await dialog.getByRole('button', { name: 'Create run' }).click();
-    await expect(dialog.getByLabel('Paste a list or invoice text')).toBeDisabled();
+    await expect(dialog.getByLabel('Vendor list or invoice')).toBeDisabled();
     await expect(dialog.locator('button').filter({ hasText: 'Add photos' })).toBeDisabled();
-    await expect(dialog.locator('button').filter({ hasText: 'Add files or invoices' })).toBeDisabled();
+    await expect(dialog.locator('button').filter({ hasText: 'Add files' })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: 'Start import' })).toBeDisabled();
     expect(importCreates).toBe(0);
     releaseCreate();
-    await expect(dialog.getByLabel('Paste a list or invoice text')).toBeEnabled();
+    await expect(dialog.getByLabel('Vendor list or invoice')).toBeEnabled();
     await expect(dialog.getByRole('button', { name: 'Start import' })).toBeEnabled();
   });
 

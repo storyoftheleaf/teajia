@@ -36,11 +36,11 @@ export const ImportEvidenceCard: React.FC<{ source: CurateImportSource; analysis
   }, [source.id]);
 
   return (
-    <div className="rounded-md border border-tea-border bg-tea-surface p-3">
+    <div data-testid="import-evidence-source" className={source.analysis_status === 'failed' ? 'rounded-md border border-tea-border bg-tea-surface p-3' : 'border-b border-tea-border py-3'}>
       {isImage && objectUrl && <img src={objectUrl} alt={`Evidence preview: ${filename}`} className="mb-2 max-h-48 w-full rounded-md object-contain" />}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <div className="min-w-0"><p className="truncate text-ui-13 text-tea-text">{filename}</p><p className="text-ui-11 text-tea-text-dim">{status}</p></div>
-        <button type="button" onClick={load} disabled={busy || analysisBusy || disabled} aria-label={`${isImage ? 'View' : 'Open'} ${filename}`} className="tap-target inline-flex min-h-11 items-center gap-2 px-2 text-ui-12 text-tea-gold disabled:opacity-50">
+        <button type="button" onClick={load} disabled={busy || analysisBusy || disabled} aria-label={`${isImage ? 'View' : 'Open'} ${filename}`} className="tap-target inline-flex min-h-11 items-center gap-2 px-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">
           {busy ? <Loader2 size={15} className="animate-spin" /> : <ExternalLink size={15} />}{isImage ? 'View' : 'Open'}
         </button>
         {source.analysis_status === 'failed' && onRetry && <button type="button" onClick={() => onRetry(source.id)} disabled={analysisBusy || disabled} aria-label={`Retry analysis for ${filename}`} className="tap-target min-h-11 px-2 text-ui-12 text-tea-gold disabled:opacity-50">{analysisBusy ? 'Retrying…' : 'Retry analysis'}</button>}

@@ -33,28 +33,27 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
   const replaceFile = (id: string, file: File) => onChange(current => ({ ...current, evidence: current.evidence.map(item => item.id === id ? evidenceFromFile(file, item.kind, id) : item) }));
   const canSubmit = draft.text.trim().length > 0 || draft.evidence.some(item => item.file && item.status !== 'failed');
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <label htmlFor="curate-import-text" className="mb-2 block text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec">Paste a list or invoice text</label>
+        <label htmlFor="curate-import-text" className="block text-ui-12 uppercase tracking-[0.12em] text-tea-text-sec">Vendor list or invoice</label>
         <textarea
           id="curate-import-text"
           disabled={busy}
           value={draft.text}
           onChange={event => { const text = event.target.value; onChange(current => ({ ...current, text })); }}
-          rows={8}
           placeholder="Paste WeChat fragments, a vendor list, or invoice lines. One item per line works well."
-          className="w-full resize-y rounded-md border border-tea-border bg-tea-surface px-3 py-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/20 lg:text-ui-14"
+          className="min-h-64 w-full resize-y border-0 border-b border-tea-border bg-transparent px-0 py-4 font-body text-ui-16 leading-relaxed text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold focus:ring-0 lg:min-h-56 lg:text-ui-14"
         />
       </div>
       <ImportJourneyPicker lookup={journeyLookup} journeyId={draft.journeyId} busy={busy} onRetry={onRetryJourneys} onSelect={async journeyId => { if (busy) return false; onChange(current => ({ ...current, journeyId })); return true; }} onCreate={onCreateJourney} />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <input ref={photoRef} disabled={busy} tabIndex={-1} aria-hidden="true" aria-label="Add photos" className="sr-only" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple onChange={event => { addFiles(event.target.files, 'photo'); event.target.value = ''; }} />
-        <button type="button" disabled={busy} onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text disabled:opacity-50">
+        <button type="button" disabled={busy} onClick={() => photoRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">
           <Camera size={16} /> Add photos
         </button>
-        <input ref={fileRef} disabled={busy} tabIndex={-1} aria-hidden="true" aria-label="Add files or invoices" className="sr-only" type="file" accept=".pdf,.csv,.json,.txt,.doc,.docx,application/pdf,application/json,text/csv,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onChange={event => { addFiles(event.target.files, 'file'); event.target.value = ''; }} />
-        <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 rounded-md border border-tea-border px-3 text-ui-12 text-tea-text-sec hover:border-tea-gold hover:text-tea-text disabled:opacity-50">
-          <FileUp size={16} /> Add files or invoices
+        <input ref={fileRef} disabled={busy} tabIndex={-1} aria-hidden="true" aria-label="Add files" className="sr-only" type="file" accept=".pdf,.csv,.json,.txt,.doc,.docx,application/pdf,application/json,text/csv,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onChange={event => { addFiles(event.target.files, 'file'); event.target.value = ''; }} />
+        <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="tap-target inline-flex min-h-11 items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">
+          <FileUp size={16} /> Add files
         </button>
         <p className="basis-full text-ui-11 text-tea-text-sec">DOC and DOCX are saved as reference-only and are not analyzed.</p>
       </div>
