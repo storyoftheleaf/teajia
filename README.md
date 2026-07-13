@@ -39,6 +39,21 @@ Secrets live in Infisical (project: Teajia) — see the Secrets section in
 `CLAUDE.md`. `npm run dev` (root and worker) generates `.env.local` /
 `worker/.dev.vars` from Infisical on boot; neither file is tracked.
 
+## Browser Tests
+
+Playwright is pinned in the project dependencies. After a clean install, install
+the supported Chromium browser once, then run the mobile regression suite:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:mobile
+```
+
+The Playwright runner starts Vite through `npm run dev:test`; browser tests do
+not require Infisical or a generated `.env.local`. CI installs Chromium with its
+Linux system dependencies before running the same `test:mobile` command.
+
 ## Build & Deploy
 
 Deploys run from GitHub Actions on push to `main`:

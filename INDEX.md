@@ -12,7 +12,7 @@ functions/  (3 files, 293 lines)
 │   ├── media/  (1 files, 53 lines)
 │   │   └── [[path]].ts  → onRequest
 │   └── _middleware.ts  → onRequest
-src/  (690 files, 187,095 lines)
+src/  (671 files, 177,672 lines)
 │   ├── admin/  (143 files, 54,740 lines)
 │   │   ├── components/  (99 files, 35,810 lines)
 │   │   │   ├── collections/  (5 files, 2,199 lines)
@@ -186,13 +186,7 @@ src/  (690 files, 187,095 lines)
 │   │   ├── InventoryContext.tsx  → InventoryProvider, useInventory
 │   │   ├── StoryContext.tsx  → StoryProvider, useStories
 │   │   └── ThemeContext.tsx  → ThemeProvider, useTheme
-│   ├── data/  (49 files, 14,342 lines)
-│   │   ├── tea-database/  (18 files, 9,122 lines)
-│   │   │   ├── africa.ts  → africaTeas, africaRegions, africaCultivars
-│   │   │   ├── americas-emerging.ts  → americasEmergingTeas, americasEmergingRegions, americasEmergingCultivars
-│   │   │   ├── china-dark-puer.ts  → puerTeas, chinaDarkTeas, chinaDarkPuerRegions, chinaDarkPuerCultivars
-│   │   │   ├── china-green-yellow.ts  → chinaGreenTeas, chinaYellowTeas, chinaGreenYellowRegions
-│   │   │   └── … 14 more files
+│   ├── data/  (31 files, 5,238 lines)
 │   │   ├── adviseProjects.ts  → adviseProjects
 │   │   ├── adviseTestimonials.ts  → AdviseTestimonial, adviseTestimonials
 │   │   ├── archiveResources.ts  → ARCHIVED_RESOURCES
@@ -490,7 +484,6 @@ src/components/advise/ProjectDetail.tsx → ProjectDetail
 src/components/advise/ProjectPlaceholder.tsx → ProjectPlaceholder
 src/components/advise/Projects.tsx → Projects
 src/components/advise/ServiceBadge.tsx → ServiceBadge
-src/components/advise/ServiceContent.tsx → ServiceSectionProps, DesignSection, SessionsSection, AlsoSection, JourneysSection, SourcingSection, EventsSection, WarmBand, Threshold
 src/components/AdvisePage.tsx → AdvisePage
 src/components/article/SharePanel.tsx → SharePage, SharePanelProps, SharePanel
 src/components/BottomTabBar.tsx → BottomTabBar

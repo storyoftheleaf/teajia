@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "lsof -ti:7777 >/dev/null 2>&1 || (infisical export --env=dev --format=dotenv --path=/ > .env.local && vite)",
+    "dev:test": "vite",
     "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build",
     "check:deploy-config": "node scripts/check-required-deployment-config.mjs",
     "lint:colors": "bash scripts/lint-colors.sh",
@@ -17,7 +18,8 @@
     "test:china-scan": "node --test scripts/check-china-dependencies.test.mjs",
     "audit:china": "node scripts/check-china-dependencies.mjs .",
     "test:recovery": "playwright test --config=playwright.recovery.config.ts",
-    "test:mobile": "npx playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list"
+    "test:mobile": "playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list",
+    "test:platform-hardening": "node --test scripts/platform-hardening.test.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -43,6 +45,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/node": "^22.14.0",
     "@types/papaparse": "^5.3.14",
     "@types/react": "^19.0.0",
