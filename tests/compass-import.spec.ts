@@ -392,6 +392,7 @@ test.describe('Curate Import panel', () => {
     const trigger = page.getByRole('tab', { name: 'Import' }).first();
     await trigger.click();
     await page.getByLabel('Paste a list or invoice text').fill('Saved vendor conversation');
+    await page.getByRole('button', { name: 'Add sourcing run' }).click();
     await page.getByLabel('Sourcing run', { exact: true }).selectOption('journey-taiwan');
     await page.getByLabel('Add files or invoices').setInputFiles({ name: 'saved.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-saved') });
     await page.getByRole('button', { name: 'Close Import' }).click();
@@ -400,7 +401,7 @@ test.describe('Curate Import panel', () => {
 
     await trigger.click();
     await expect(page.getByLabel('Paste a list or invoice text')).toHaveValue('Saved vendor conversation');
-    await expect(page.getByLabel('Sourcing run', { exact: true })).toHaveValue('journey-taiwan');
+    await expect(page.getByText('Taiwan · Spring · 2026')).toBeVisible();
     await expect(page.getByText('Reselect to upload')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Start import' })).toBeEnabled();
     await page.getByRole('button', { name: 'Close Import' }).click();
@@ -581,13 +582,17 @@ test.describe('analyzed inventory import review', () => {
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await expect(dialog).toBeVisible();
+    await expect(dialog.locator('select[aria-label="Sourcing run"]')).toHaveCount(0);
+    await expect(dialog.getByText('No sourcing run')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
     await expect(dialog.locator('select[aria-label="Sourcing run"]')).toHaveCount(1);
-    await expect(dialog.locator('label').filter({ hasText: 'Sourcing run · optional' })).toHaveCount(1);
     const detailGetsBeforeJourneyChange = api.detailGetCalls();
     await dialog.getByLabel('Sourcing run', { exact: true }).selectOption('journey-taiwan');
     await expect.poll(api.journeyPutCalls).toBe(1);
     await expect.poll(api.detailGetCalls).toBeGreaterThan(detailGetsBeforeJourneyChange);
-    await expect(dialog.getByLabel('Sourcing run', { exact: true })).toHaveValue('journey-taiwan');
+    await expect(dialog.locator('select[aria-label="Sourcing run"]')).toHaveCount(0);
+    await expect(dialog.getByText('Taiwan · Spring · 2026')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Change sourcing run' })).toBeVisible();
     await expect(dialog.getByTestId('import-vendor-group')).toHaveCount(2);
     await expect(dialog.getByRole('button', { name: /^Change vendor for / })).toHaveCount(2);
     await expect(dialog.getByText('Chen Family Ancient Tree Tea Cooperative of Xishuangbanna', { exact: true })).toBeVisible();
@@ -669,6 +674,7 @@ test.describe('analyzed inventory import review', () => {
     ] }));
     await page.route('**/api/compass/entries', route => route.fulfill({ json: { entries: [
       { id: 'identity-jingmai', name: 'Jingmai Mountain Raw Pu’er', chinese_name: '景迈山生普', category: 'tea', year: 2026 },
+      { id: 'identity-yiwu', name: 'Yiwu Old Arbor Raw Pu’er', chinese_name: '易武古树生茶', category: 'tea', year: 2025 },
       { id: 'identity-pot', name: 'Jingmai clay pot', category: 'teaware' },
     ] } }));
     await page.route('**/api/products', route => route.fulfill({ json: [
@@ -688,12 +694,21 @@ test.describe('analyzed inventory import review', () => {
     const row = dialog.getByTestId('import-item-row').nth(9);
     await row.getByRole('button', { name: 'Edit tea' }).click();
     await expect(row.getByText('Suggested: Jingmai Mountain Raw Pu’er')).toBeVisible();
-    await row.getByLabel('Library tea identity').click();
+    const identityPicker = row.getByRole('combobox', { name: 'Library tea identity' });
+    await identityPicker.click();
+    await expect(identityPicker).toHaveAttribute('aria-expanded', 'true');
+    await identityPicker.press('Tab');
+    await expect(identityPicker).toHaveAttribute('aria-expanded', 'false');
+    await identityPicker.click();
     await row.getByRole('option').filter({ hasText: 'Jingmai Mountain Raw Pu’er' }).click();
     await row.getByLabel('Inventory purpose').selectOption('working');
     await row.getByLabel('Inventory holding').click();
     await expect(row.getByRole('option').filter({ hasText: 'Jingmai service holding' })).toBeVisible();
     await expect(row.getByRole('option').filter({ hasText: 'Jingmai personal holding' })).toHaveCount(0);
+    await row.getByRole('option').filter({ hasText: 'Jingmai service holding' }).click();
+    await expect(row.getByText('Selected: Jingmai service holding')).toBeVisible();
+    await row.getByLabel('Inventory purpose').selectOption('personal');
+    await expect(row.getByText('Selected: Jingmai service holding')).toHaveCount(0);
   });
 
   test('shows failed lookup retries and blocks vendor creation until reuse lookup succeeds', async ({ page }) => {
@@ -726,6 +741,7 @@ test.describe('analyzed inventory import review', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
     const lookupAlert = dialog.getByRole('alert').filter({ hasText: 'Sourcing run lookup unavailable' });
     await expect(lookupAlert).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Create new sourcing run' })).toBeDisabled();
@@ -757,6 +773,9 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.getByTestId('import-item-row').nth(1).getByRole('button', { name: 'Edit tea' })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: /^Change vendor for / }).first()).toBeDisabled();
     await expect(dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeVisible();
     releaseSave();
     await expect(first.getByRole('button', { name: 'Edit tea' })).toBeEnabled();
   });
@@ -768,8 +787,8 @@ test.describe('analyzed inventory import review', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
     await expect(dialog.locator('select[aria-label="Sourcing run"]')).toHaveCount(1);
-    await expect(dialog.locator('label').filter({ hasText: 'Sourcing run · optional' })).toHaveCount(1);
     const controls = dialog.locator('input:visible, textarea:visible, select:visible');
     await expect(controls.first()).toBeVisible();
     const controlFontSizes = await controls.evaluateAll(elements =>

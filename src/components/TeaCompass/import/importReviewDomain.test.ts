@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
 import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
-import { compatibleImportHoldings, filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, withoutImportDerivedFields } from './importReviewDomain';
+import { compatibleImportHoldings, filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, validateImportHoldingSelection, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   id: 'item-1', batch_id: 'batch-1', source_id: null, vendor_group_id: 'group-1', position: 0,
@@ -95,6 +95,18 @@ describe('review navigation and journey helpers', () => {
       { id: 'pot', name: 'Jingmai pot', category: 'teaware', compassEntryId: 'identity-1', purpose: 'working' },
       { id: 'unknown-purpose', name: 'Unclassified Jingmai', category: 'tea', compassEntryId: 'identity-1', purpose: null },
     ], { category: 'tea', compassEntryId: 'identity-1', purpose: 'working' }).map(option => option.id)).toEqual(['working']);
+  });
+
+  it('clears a selected holding when its Library identity changes', () => {
+    expect(validateImportHoldingSelection('holding-1', [
+      { id: 'holding-1', name: 'Service tea', category: 'tea', compassEntryId: 'identity-1', purpose: 'working' },
+    ], { category: 'tea', compassEntryId: 'identity-2', purpose: 'working' })).toBe('');
+  });
+
+  it('clears a selected holding when its Inventory purpose changes but preserves new holding intent', () => {
+    const holdings = [{ id: 'holding-1', name: 'Service tea', category: 'tea' as const, compassEntryId: 'identity-1', purpose: 'working' }];
+    expect(validateImportHoldingSelection('holding-1', holdings, { category: 'tea', compassEntryId: 'identity-1', purpose: 'personal' })).toBe('');
+    expect(validateImportHoldingSelection('new', holdings, { category: 'tea', compassEntryId: 'identity-1', purpose: 'personal' })).toBe('new');
   });
 
   it('searches sourcing runs by name, season, or year', () => {

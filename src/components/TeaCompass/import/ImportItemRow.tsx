@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
-import { buildImportCorrectionParsedData, compatibleImportHoldings, importBlockingMessage, reviewedFieldsForImportSave, type ImportMatchOption } from './importReviewDomain';
+import { buildImportCorrectionParsedData, compatibleImportHoldings, importBlockingMessage, reviewedFieldsForImportSave, validateImportHoldingSelection, type ImportMatchOption } from './importReviewDomain';
 import { ImportMatchPicker } from './ImportMatchPicker';
 
 export interface ImportIdentityOption extends ImportMatchOption { category: 'tea' | 'teaware' }
@@ -53,6 +53,14 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
   const holdingState = useMemo<LookupState<ImportHoldingOption>>(() => ({ ...holdingLookup, options: holdingOptions, status: holdingLookup.status === 'ready' && holdingOptions.length === 0 ? 'empty' : holdingLookup.status }), [holdingLookup, holdingOptions]);
   const proposedIdentityName = identityLookup.options.find(option => option.id === item.proposed_compass_entry_id)?.name || (item.proposed_compass_entry_id ? `Library identity ${item.proposed_compass_entry_id}` : 'New Library identity');
   const proposedHoldingName = holdingLookup.options.find(option => option.id === item.proposed_product_id)?.name || (item.proposed_product_id ? `Inventory holding ${item.proposed_product_id}` : 'New Inventory holding');
+  useEffect(() => {
+    if (holdingLookup.status !== 'ready' && holdingLookup.status !== 'empty') return;
+    setDraft(current => {
+      const compassEntryId = current.compass_entry_id && current.compass_entry_id !== 'new' ? current.compass_entry_id : null;
+      const productId = validateImportHoldingSelection(current.product_id, holdingLookup.options, { category: item.category, compassEntryId, purpose: current.purpose || null });
+      return productId === current.product_id ? current : { ...current, product_id: productId };
+    });
+  }, [draft.compass_entry_id, draft.purpose, holdingLookup.options, holdingLookup.status, item.category]);
   const blocking = importBlockingMessage(item);
   const editLabel = item.category === 'tea' ? 'tea' : 'item';
   const set = (key: keyof typeof draft, next: string) => setDraft(current => ({ ...current, [key]: next }));

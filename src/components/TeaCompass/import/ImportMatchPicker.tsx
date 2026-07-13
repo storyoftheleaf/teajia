@@ -38,7 +38,7 @@ export const ImportMatchPicker = <T extends ImportMatchOption>({ label, lookup, 
     else if (event.key === 'Escape') setOpen(false);
   };
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false); }}>
       <label htmlFor={id} className="block text-ui-11 text-tea-text-sec">{label}</label>
       {selected && <p className="break-words text-ui-12 text-tea-text"><span className="text-tea-text-sec">Selected:</span> {selected.name}</p>}
       {proposedName && <p className="break-words text-ui-11 text-tea-text-sec">Suggested: {proposedName}</p>}

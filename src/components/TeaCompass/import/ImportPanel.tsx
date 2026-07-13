@@ -86,6 +86,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     attachments: draft.evidence.map(({ id, name, size, type, kind }) => ({ id, name, size, type, kind })),
   });
   const requestClose = () => {
+    if (busyId) return;
     if (!draftDirty) return onClose();
     preserveDraft();
     setConfirmClose(true);
@@ -145,7 +146,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [confirmClose, draftDirty, onClose]);
+  }, [busyId, confirmClose, draftDirty, onClose]);
 
   const runImport = async () => {
     setState(current => ({ ...current, phase: 'parsing', error: null }));
@@ -300,7 +301,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     <div className="fixed inset-0 z-modal flex bg-tea-bg/80" role="presentation">
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="curate-import-title" className="ml-auto flex h-full w-full max-w-2xl flex-col overflow-hidden border-l border-tea-border bg-tea-elevated text-tea-text">
         <header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-tea-border px-4">
-          <button ref={closeRef} type="button" onClick={requestClose} aria-label="Close Import" className="tap-target flex h-8 w-8 items-center justify-center text-tea-text-sec hover:text-tea-text"><X size={18} /></button>
+          <button ref={closeRef} type="button" disabled={Boolean(busyId)} onClick={requestClose} aria-label="Close Import" className="tap-target flex h-8 w-8 items-center justify-center text-tea-text-sec hover:text-tea-text disabled:opacity-50"><X size={18} /></button>
           <div><h2 id="curate-import-title" className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Import into Curate</h2><p className="text-ui-11 text-tea-text-dim">Capture now. Decide later.</p></div>
         </header>
         <div className="pb-nav flex-1 overflow-y-auto px-4 py-5 sm:px-6" aria-live="polite">

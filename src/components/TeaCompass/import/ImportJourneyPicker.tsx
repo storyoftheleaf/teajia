@@ -15,6 +15,7 @@ interface Props {
 const controlClass = 'min-h-11 w-full rounded-md border border-tea-border bg-tea-surface px-3 text-ui-16 text-tea-text outline-none placeholder:text-tea-text-dim focus:border-tea-gold lg:text-ui-13';
 
 export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, onRetry, onSelect, onCreate }) => {
+  const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
@@ -22,16 +23,23 @@ export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, 
   const [year, setYear] = useState('');
   const visible = useMemo(() => filterImportJourneys(lookup.options, query), [lookup.options, query]);
   const lookupReady = lookup.status === 'ready' || lookup.status === 'empty';
+  const selected = lookup.options.find(journey => journey.id === journeyId);
+  const selectedLabel = selected ? [selected.name, selected.season, selected.year].filter(Boolean).join(' · ') : journeyId ? 'Selected sourcing run' : 'No sourcing run';
   const create = async () => {
     const ok = await onCreate({ name: name.trim(), season: season.trim() || undefined, year: year ? Number(year) : undefined });
-    if (ok) { setName(''); setSeason(''); setYear(''); setQuery(''); setCreating(false); }
+    if (ok) { setName(''); setSeason(''); setYear(''); setQuery(''); setCreating(false); setExpanded(false); }
   };
   return (
     <div className="space-y-2">
-      <label className="block text-ui-11 text-tea-text-sec"><span className="mb-1 block uppercase tracking-[1.2px] text-tea-text-dim">Sourcing run · optional</span>
+      <div className="flex min-h-11 items-center justify-between gap-3 border-t border-tea-border pt-2">
+        <div className="min-w-0"><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Sourcing run · optional</p><p className="truncate text-ui-12 text-tea-text">{selectedLabel}</p></div>
+        <button type="button" disabled={busy || lookup.status === 'loading'} aria-expanded={expanded} aria-label={`${journeyId ? 'Change' : 'Add'} sourcing run`} onClick={() => setExpanded(open => !open)} className="tap-target shrink-0 text-ui-10 text-tea-text-sec hover:text-tea-text disabled:opacity-50">{journeyId ? 'Change' : 'Add'}</button>
+      </div>
+      {expanded && <div className="space-y-2 border-l-2 border-tea-border pl-3">
+      <label className="block text-ui-11 text-tea-text-sec"><span className="mb-1 block">Find a sourcing run</span>
         <input aria-label="Search sourcing runs" disabled={busy || !lookupReady} value={query} onChange={event => setQuery(event.target.value)} placeholder={lookup.status === 'loading' ? 'Loading sourcing runs…' : lookup.status === 'error' ? 'Retry sourcing runs' : 'Search sourcing runs'} className={`${controlClass} disabled:opacity-50`} />
       </label>
-      <select aria-label="Sourcing run" value={journeyId || ''} disabled={busy || !lookupReady} onChange={event => void onSelect(event.target.value || null)} className={`${controlClass} disabled:opacity-50`}>
+      <select aria-label="Sourcing run" value={journeyId || ''} disabled={busy || !lookupReady} onChange={event => { void onSelect(event.target.value || null).then(ok => { if (ok) setExpanded(false); }); }} className={`${controlClass} disabled:opacity-50`}>
         <option value="">No sourcing run</option>
         {visible.map(journey => <option key={journey.id} value={journey.id}>{[journey.name, journey.season, journey.year].filter(Boolean).join(' · ')}</option>)}
       </select>
@@ -45,6 +53,8 @@ export const ImportJourneyPicker: React.FC<Props> = ({ lookup, journeyId, busy, 
           <div className="flex justify-between gap-3"><button type="button" onClick={() => setCreating(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button><button type="button" disabled={busy || !name.trim()} onClick={() => void create()} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg disabled:opacity-50">Create run</button></div>
         </div>
       )}
+      <button type="button" disabled={busy} onClick={() => { setCreating(false); setExpanded(false); }} className="tap-target min-h-11 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel sourcing run change</button>
+      </div>}
     </div>
   );
 };

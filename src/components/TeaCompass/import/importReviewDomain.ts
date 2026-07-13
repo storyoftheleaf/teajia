@@ -55,6 +55,11 @@ export const compatibleImportHoldings = <T extends ImportMatchOption>(options: T
   && (!selection.purpose || option.purpose === selection.purpose),
 );
 
+export const validateImportHoldingSelection = <T extends ImportMatchOption>(selectedId: string, options: T[], criteria: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }): string => {
+  if (!selectedId || selectedId === 'new') return selectedId;
+  return compatibleImportHoldings(options, criteria).some(option => option.id === selectedId) ? selectedId : '';
+};
+
 const BLOCKING_LABELS: Record<string, string> = {
   vendor: 'vendor', vendor_group_id: 'vendor', duplicate_identity: 'tea identity', compass_entry_id: 'tea identity',
   product_id: 'Inventory holding', proposed_product_id: 'Inventory holding', pack_count: 'pack count',
