@@ -15353,20 +15353,30 @@ const handleRedeemJoinCode: Handler = async (request, env) => {
   // A join code proves possession of a session invitation, not ownership of
   // an email address. Never inherit an existing account's privileges here.
   let user = await env.DB.prepare(
-    'SELECT id FROM users WHERE lower(email) = ?'
+    'SELECT id, email, name, username, role, platform_role, session_version FROM users WHERE lower(email) = ?'
   ).bind(email).first() as Record<string, any> | null;
+  let isNewUser = false;
   if (user) {
-    return restError(409, 'This email already has an account. Sign in before joining the session.', 'existing_account_requires_sign_in');
+    const authToken = isAuthed(request);
+    if (!authToken) {
+      return restError(409, 'This email already has an account. Sign in before joining the session.', 'existing_account_requires_sign_in');
+    }
+    const authError = await validateSessionToken(authToken, env);
+    if (authError) return authError;
+    const claims = parseToken(authToken);
+    if (!claims || claims.sub !== user.id || claims.email.toLowerCase() !== email) {
+      return restError(403, 'Signed-in identity does not match the requested email.', 'join_identity_mismatch');
+    }
+  } else {
+    // password_hash is NOT NULL in the schema; sentinel until the guest sets a
+    // real password via forgot-password later.
+    const newUserId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
+    await env.DB.prepare(
+      `INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'JOIN_ONLY', 'user')`
+    ).bind(newUserId, email, firstName).run();
+    user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null, session_version: 0 };
+    isNewUser = true;
   }
-
-  // password_hash is NOT NULL in the schema; sentinel until the guest sets a
-  // real password via forgot-password later.
-  const newUserId = crypto.randomUUID().replace(/-/g, '').slice(0, 32);
-  await env.DB.prepare(
-    `INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, 'JOIN_ONLY', 'user')`
-  ).bind(newUserId, email, firstName).run();
-  user = { id: newUserId, email, name: firstName, username: null, role: 'user', platform_role: null, session_version: 0 };
-  const isNewUser = true;
 
   // Check membership: existing members can re-redeem freely; new members
   // count toward capacity.

@@ -933,7 +933,7 @@ export const api = {
     redeemJoinCode: async (data: { code: string; first_name: string; email: string }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/join-code/redeem`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       return handleResponse(res);
