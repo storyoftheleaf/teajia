@@ -76,7 +76,15 @@ export async function finalizeCurateImport(ctx: CurateImportFinalizeContext, bat
   if (!data || data.batch.accountId !== ctx.accountId) throw new CurateImportFinalizeError('not_found', 'Import not found');
   const issues = validateImportForFinalization(data);
   if (issues.length) throw new CurateImportFinalizeError('validation_failed', 'Review blocking import fields', issues);
-  await ctx.reserveFinalization(batchId, idempotencyKey);
+  try {
+    await ctx.reserveFinalization(batchId, idempotencyKey);
+  } catch (error) {
+    const raced = await ctx.loadFinalization(batchId);
+    if (!raced) throw error;
+    if (raced.idempotencyKey !== idempotencyKey) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was already finalized with a different idempotency key');
+    if (raced.result) return raced.result;
+    // Same-key work is deliberately resumable: every downstream primitive is idempotent.
+  }
 
   const resolved = new Map<string, { item: CurateFinalizeItem; compassEntryId: string; productId: string }>();
   for (const item of data.items) {

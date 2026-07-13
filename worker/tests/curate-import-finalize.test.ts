@@ -107,6 +107,42 @@ describe('Curate import finalization', () => {
     expect(receipts[0].journeyId).toBeNull();
   });
 
+  it('returns a same-key result that completes while this request loses reservation', async () => {
+    const { ctx, receipts, movements } = harness();
+    const stored = { batchId: 'batch-a', idempotencyKey: 'finish-key', receipts: [], items: [] };
+    let loads = 0;
+    ctx.loadFinalization = async () => ++loads === 1 ? null : { idempotencyKey: 'finish-key', result: stored };
+    ctx.reserveFinalization = async () => { throw new Error('reservation lost'); };
+
+    await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).resolves.toEqual(stored);
+    expect(receipts).toHaveLength(0);
+    expect(movements).toHaveLength(0);
+  });
+
+  it('safely resumes when the same key is still in progress after reservation loss', async () => {
+    const { ctx, receipts, movements } = harness();
+    let loads = 0;
+    ctx.loadFinalization = async () => ++loads === 1 ? null : { idempotencyKey: 'finish-key', result: null };
+    ctx.reserveFinalization = async () => { throw new Error('reservation lost'); };
+
+    const result = await finalizeCurateImport(ctx, 'batch-a', 'finish-key');
+
+    expect(result.idempotencyKey).toBe('finish-key');
+    expect(receipts).toHaveLength(2);
+    expect(movements).toHaveLength(4);
+  });
+
+  it('conflicts when reservation loss reveals a different winning key', async () => {
+    const { ctx, receipts, movements } = harness();
+    let loads = 0;
+    ctx.loadFinalization = async () => ++loads === 1 ? null : { idempotencyKey: 'other-key', result: null };
+    ctx.reserveFinalization = async () => { throw new Error('reservation lost'); };
+
+    await expect(finalizeCurateImport(ctx, 'batch-a', 'finish-key')).rejects.toMatchObject({ code: 'idempotency_conflict' });
+    expect(receipts).toHaveLength(0);
+    expect(movements).toHaveLength(0);
+  });
+
   it('rejects a different finalization key before creating any additional records', async () => {
     const { ctx, receipts, movements } = harness();
     await finalizeCurateImport(ctx, 'batch-a', 'finish-key');

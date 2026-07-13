@@ -57,6 +57,20 @@ class ImportStatement {
     }
     const table = this.db.tableFor(sql);
     if (table && sql.startsWith('insert')) {
+      if (table === this.db.customers && this.db.vendorWinnerBeforeInsert) {
+        const winner = this.db.vendorWinnerBeforeInsert;
+        this.db.vendorWinnerBeforeInsert = null;
+        table.set(winner.id, { ...winner });
+      }
+      if (table === this.db.sources && this.db.evidenceWinnerBeforeGuard) {
+        this.db.evidenceWinnerBeforeGuard = false;
+        table.set('source-winner', {
+          id: 'source-winner', batch_id: this.values[1], account_id: this.values[2], created_by_user_id: 'user-race', kind: this.values[4],
+          pasted_text: null, r2_object_key: this.values[6], client_evidence_id: this.values[7], metadata_json: this.values[8],
+        });
+        const batch = this.db.batches.get(String(this.values.at(-2)));
+        if (batch) batch.finalize_idempotency_key = 'finish-key';
+      }
       const columns = this.sql.match(/\(([^)]+)\)\s*(?:values|select)/i)?.[1].split(',').map(value => value.trim()) ?? [];
       if (sql.includes("review_state not in ('completed', 'abandoned')")) {
         const guardedBatch = this.db.batches.get(String(this.values.at(-2)));
@@ -118,6 +132,7 @@ class ImportStatement {
       if (sql.includes("review_state = 'completed'")) row.review_state = 'completed';
       if (sql.includes("set review_state = 'abandoned'")) row.review_state = 'abandoned';
       if (sql.includes('analysis_attempt_token = null')) row.analysis_attempt_token = null;
+      if (sql.includes("analysis_state = case when analysis_state = 'analyzing' then 'complete'")) row.analysis_state = row.analysis_state === 'analyzing' ? 'complete' : row.analysis_state;
       return { success: true, meta: { changes: 1 } };
     }
     return { success: true, meta: { changes: 0 } };
@@ -128,6 +143,8 @@ class ImportDb {
   role: 'owner' | 'staff' | 'viewer' = 'owner';
   terminalizeNextGuardedWrite = false;
   reserveNextGuardedWrite = false;
+  vendorWinnerBeforeInsert: Row | null = null;
+  evidenceWinnerBeforeGuard = false;
   batches = new Map<string, Row>();
   sources = new Map<string, Row>();
   items = new Map<string, Row>();
@@ -165,12 +182,12 @@ class ImportDb {
 }
 
 async function reserveImportFinalization(db: ImportDb, batchId: string, key = 'finish-key') {
-  return db.prepare("UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
+  return db.prepare("UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL, analysis_state = CASE WHEN analysis_state = 'analyzing' THEN 'complete' ELSE analysis_state END WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
     .bind(key, batchId, 'account-a', key).run();
 }
 
 async function completeImportFinalization(db: ImportDb, batchId: string, key = 'finish-key') {
-  return db.prepare("UPDATE curate_import_batches SET review_state = 'completed', finalize_idempotency_key = ?, finalize_result_json = ?, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
+  return db.prepare("UPDATE curate_import_batches SET review_state = 'completed', finalize_idempotency_key = ?, finalize_result_json = ?, analysis_state = CASE WHEN analysis_state = 'analyzing' THEN 'complete' ELSE analysis_state END, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
     .bind(key, '{"receipts":[]}', batchId, 'account-a', key).run();
 }
 
@@ -401,6 +418,20 @@ describe('Curate import provenance API', () => {
     expect(response.status).toBe(409);
     expect(db.groups.get('group-race')?.resolved_vendor_customer_id).toBeNull();
   });
+
+  it('reloads the deterministic vendor winner after insert contention before assigning the group', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Vendor insert race' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-race', { id: 'group-race', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'race', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.vendorWinnerBeforeInsert = { id: 'curate-vendor-group-race', account_id: 'account-a', name: 'First Farm', tags: '["vendor"]' };
+
+    const loser = await request(db, `/api/curate/imports/${batch.id}/groups/group-race/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Second Farm' }) });
+
+    expect(loser.status).toBe(409);
+    expect(db.customers.get('curate-vendor-group-race')?.name).toBe('First Farm');
+    expect(db.groups.get('group-race')?.resolved_vendor_customer_id).toBeNull();
+  });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();
     const seeded = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Seed', idempotency_key: 'owner-seed', items: [{ name: 'Tea' }] }) });
@@ -511,6 +542,7 @@ describe('Curate import provenance API', () => {
     expect((await reserveImportFinalization(db, batch.id)).meta.changes).toBe(1);
     expect((await completeImportFinalization(db, batch.id)).meta.changes).toBe(1);
     const completedBatch = { ...db.batches.get(batch.id)! };
+    expect(completedBatch.analysis_state).toBe('complete');
     const originalGroups = [...db.groups.values()].map(row => ({ ...row }));
     const originalItems = [...db.items.values()].map(row => ({ ...row }));
     releaseProvider(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
@@ -541,7 +573,7 @@ describe('Curate import provenance API', () => {
 
     expect(result.status).toBe(409);
     expect(await result.json()).toMatchObject({ code: 'analysis_superseded' });
-    expect(db.batches.get(batch.id)).toMatchObject({ review_state: 'completed', analysis_state: 'analyzing', finalize_idempotency_key: 'finish-key' });
+    expect(db.batches.get(batch.id)).toMatchObject({ review_state: 'completed', analysis_state: 'complete', finalize_idempotency_key: 'finish-key' });
   });
 
   it.each([
@@ -677,6 +709,29 @@ describe('Curate import provenance API', () => {
     expect(opened.headers.get('Cache-Control')).toBe('private, no-store');
     expect(await opened.text()).toBe('%PDF-test');
     expect((await request(db, `/api/curate/imports/${batch.id}/sources/${source.id}/content`, {}, 'account-b', 'user-b', bucket)).status).toBe(404);
+  });
+
+  it('keeps an overlapping upload winner object when finalization makes the guarded insert lose', async () => {
+    const db = new ImportDb();
+    const objects = new Map<string, ArrayBuffer>();
+    const bucket = {
+      put: async (key: string, value: ArrayBuffer) => { objects.set(key, value); },
+      delete: async (key: string) => { objects.delete(key); },
+      get: async () => null,
+    } as unknown as R2Bucket;
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Upload overlap' }) });
+    const { batch } = await created.json() as any;
+    db.evidenceWinnerBeforeGuard = true;
+
+    const result = await request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST', headers: { 'X-Filename': 'same.txt', 'X-Client-Evidence-Id': 'same-file', 'Content-Type': 'text/plain' }, body: 'same evidence',
+    }, 'account-a', 'user-a', bucket);
+
+    expect(result.status).toBe(200);
+    expect(await result.json()).toMatchObject({ id: 'source-winner', already_uploaded: true });
+    expect(db.batches.get(batch.id)?.finalize_idempotency_key).toBe('finish-key');
+    expect(db.sources.get('source-winner')?.r2_object_key).toBe([...objects.keys()][0]);
+    expect(objects.size).toBe(1);
   });
 
   it('stores and retrieves JSON evidence with bounded metadata and a content-addressed json key', async () => {

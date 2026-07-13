@@ -391,7 +391,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
         return { idempotencyKey: batch.finalize_idempotency_key, result: typeof batch.finalize_result_json === 'string' ? parseJson(batch.finalize_result_json, null) : null };
       },
       reserveFinalization: async (batchId, key) => {
-        const changed = await env.DB.prepare('UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL WHERE id = ? AND account_id = ? AND review_state NOT IN (\'completed\', \'abandoned\') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)')
+        const changed = await env.DB.prepare("UPDATE curate_import_batches SET finalize_idempotency_key = ?, analysis_attempt_token = NULL, analysis_state = CASE WHEN analysis_state = 'analyzing' THEN 'complete' ELSE analysis_state END WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)")
           .bind(key, batchId, ctx.accountId, key).run();
         if (!(changed.meta.changes ?? 0)) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was already finalized with a different idempotency key');
       },
@@ -485,7 +485,7 @@ export async function finalizeCurateImportRequest(request: Request, env: ImportE
       },
       receiveLine,
       complete: async (batchId, key, finalizeResult) => {
-        const changed = await env.DB.prepare(`UPDATE curate_import_batches SET review_state = 'completed', finalize_idempotency_key = ?, finalize_result_json = ?, completed_at = datetime('now'), updated_at = datetime('now')
+        const changed = await env.DB.prepare(`UPDATE curate_import_batches SET review_state = 'completed', finalize_idempotency_key = ?, finalize_result_json = ?, analysis_state = CASE WHEN analysis_state = 'analyzing' THEN 'complete' ELSE analysis_state END, completed_at = datetime('now'), updated_at = datetime('now')
           WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)`)
           .bind(key, JSON.stringify(finalizeResult), batchId, ctx.accountId, key).run();
         if (!(changed.meta.changes ?? 0)) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was finalized by another request');
@@ -626,14 +626,14 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
   const vendorId = `curate-vendor-${params.groupId}`;
   const deterministicWinner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
   if (deterministicWinner && normalizedName(String(deterministicWinner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
-  const results = await env.DB.batch([
-    env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
+  await env.DB.prepare(`INSERT OR IGNORE INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source)
       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, '["vendor"]', ?, 'curate_import' WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
-      .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId),
-    env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-      .bind(vendorId, params.groupId, ctx.accountId, params.id, ctx.accountId),
-  ]);
-  if (!(results[1]?.meta.changes ?? 0)) return terminalResponse();
+    .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000), params.id, ctx.accountId).run();
+  const winner = await env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
+  if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
+  const assigned = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
+    .bind(vendorId, params.groupId, ctx.accountId, params.id, ctx.accountId).run();
+  if (!(assigned.meta.changes ?? 0)) return terminalResponse();
   const [vendor, updated] = await Promise.all([
     env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>(),
     env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>(),
@@ -766,7 +766,13 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
       `INSERT INTO curate_import_sources (id, batch_id, account_id, created_by_user_id, kind, pasted_text, r2_object_key, client_evidence_id, metadata_json)
        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`
     ).bind(sourceId, params.id, ctx.accountId, ctx.userId, kind, null, key, clientEvidenceId, JSON.stringify(metadata), params.id, ctx.accountId).run();
-    if (!(inserted.meta.changes ?? 0)) { await env.MEDIA_BUCKET.delete(key); return terminalResponse(); }
+    if (!(inserted.meta.changes ?? 0)) {
+      const winner = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND client_evidence_id = ?')
+        .bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();
+      if (winner?.r2_object_key === key) return response({ ...sourceRow(winner), already_uploaded: true });
+      await env.MEDIA_BUCKET.delete(key);
+      return terminalResponse();
+    }
   } catch (error) {
     const winner = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND client_evidence_id = ?')
       .bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();
