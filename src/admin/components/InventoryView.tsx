@@ -585,7 +585,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Canonical row sizing — tightened to match People/TeaTable (36px) so the
   // two surfaces feel like one design language. Split view stays slightly
   // more compressed.
-  const ROW_HEIGHT = 36;
+  const ROW_HEIGHT = 38;
   const SPLIT_ROW_HEIGHT = 32;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
@@ -1678,7 +1678,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <div
               data-testid="inventory-primary-row"
               data-inventory-header-row
-              className="static flex h-11 w-full max-w-full items-center gap-0 px-0 md:px-4 text-ui-8 md:text-ui-10 uppercase tracking-normal md:tracking-[0.06em] whitespace-nowrap overflow-visible"
+              className="static flex h-9 w-full max-w-full items-center gap-0 px-0 md:px-4 font-display text-ui-13 font-medium normal-case tracking-normal whitespace-nowrap overflow-visible"
             >
               <button type="button" aria-pressed={inventoryCategory === 'tea'} onClick={() => onCategoryChange?.('tea')} className={`tap-target px-0.5 ${inventoryCategory === 'tea' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Tea</button>
               <button type="button" aria-pressed={inventoryCategory === 'teaware'} onClick={() => onCategoryChange?.('teaware')} className={`tap-target px-0.5 ${inventoryCategory === 'teaware' ? 'text-tea-gold font-medium' : 'text-tea-text-sec'}`}>Wares</button>
@@ -2108,7 +2108,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               to the viewport bottom behind the floating bottom navigation. */}
           <div
             data-testid={mobileHScroll ? 'inventory-horizontal-scroll' : undefined}
-            className={mobileHScroll ? 'overflow-x-auto overscroll-x-contain hide-scrollbar-always' : ''}
+            className={mobileHScroll ? 'overflow-x-auto overscroll-x-none hide-scrollbar-always' : ''}
           >
           {filterType !== 'Pending' && !glossaryMode && <>
           {/* Top strip — the orienting line: which view + how many (left), with
@@ -2151,7 +2151,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className={`w-full table-fixed border-collapse ${unifiedLayout && !isMobile ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
@@ -2184,7 +2184,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className={`w-full table-fixed border-collapse ${unifiedLayout && !isMobile ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2208,7 +2208,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   splitView={splitView}
                                   stickyFirstCol={mobileHScroll}
                                   alignLeft={unifiedLayout}
-                                  legacyMobileLayout={isMobile}
+                                  legacyMobileLayout={false}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
                                   isDropdownOpen={rowDropdownId === product.id}
@@ -2252,7 +2252,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className={`w-full table-fixed border-collapse ${unifiedLayout && !isMobile ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2292,7 +2292,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               splitView={splitView}
                               stickyFirstCol={mobileHScroll}
                               alignLeft={unifiedLayout}
-                              legacyMobileLayout={isMobile}
+                              legacyMobileLayout={false}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
                               isDropdownOpen={rowDropdownId === product.id}
