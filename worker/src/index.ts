@@ -15532,6 +15532,33 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+function articleToApi(row: Record<string, any>) {
+  const parseArray = (value: unknown) => {
+    if (Array.isArray(value)) return value;
+    try { return value ? JSON.parse(String(value)) : []; } catch { return []; }
+  };
+  return { ...row, tags: parseArray(row.tags), blocks: parseArray(row.blocks), subject_ids: parseArray(row.subject_ids) };
+}
+
+function parseArticleSubjectIds(value: unknown): string[] | null {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) return null;
+  return [...new Set(value.map(item => item.trim()))];
+}
+
+async function validateArticleContributors(env: Env, accountId: string, input: { author_id?: unknown; subject_ids?: unknown; pull_quote_subject?: unknown }, legacyAuthor?: string | null) {
+  const authorId = typeof input.author_id === 'string' && input.author_id.trim() ? input.author_id.trim() : null;
+  const subjectIds = parseArticleSubjectIds(input.subject_ids);
+  if (subjectIds === null) return { error: json({ error: 'subject_ids must be an array of contributor IDs' }, 400) };
+  const pullQuoteSubject = typeof input.pull_quote_subject === 'string' && input.pull_quote_subject.trim() ? input.pull_quote_subject.trim() : null;
+  const ids = [...new Set([...(subjectIds ?? []), ...(pullQuoteSubject ? [pullQuoteSubject] : []), ...(authorId && authorId !== legacyAuthor ? [authorId] : [])])];
+  for (const id of ids) {
+    const contributor = await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(id, accountId).first();
+    if (!contributor) return { error: json({ error: 'Contributor not found in this account' }, 400) };
+  }
+  return { authorId, subjectIds, pullQuoteSubject };
+}
+
 const handleListArticles: Handler = async (request, env) => {
   const ctx = await requireBundle(request, env, 'publish');
   if ('error' in ctx) return ctx.error;
@@ -15548,18 +15575,19 @@ const handleListArticles: Handler = async (request, env) => {
   const binds = statusFilter !== 'all' ? [accountId, statusFilter] : [accountId];
 
   const rows = await env.DB.prepare(
-    `SELECT id, account_id, title, subtitle, author_id, slug, status, category, tags,
-            cover_image_url, layout_template, reading_time_mins, published_at, created_at, updated_at,
+    `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
+            a.cover_image_url, a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
+            a.subject_ids, a.pull_quote, a.pull_quote_subject,
+            COALESCE(c.display_name, u.name) AS author_name,
             substr(json_extract(blocks, '$[0].text'), 1, 120) AS blocks_preview
-     FROM articles
-     WHERE account_id = ? ${statusClause}
-     ORDER BY updated_at DESC`
+     FROM articles a
+     LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+     LEFT JOIN users u ON u.id = a.author_id
+     WHERE a.account_id = ? ${statusClause.replace(/status/g, 'a.status')}
+     ORDER BY a.updated_at DESC`
   ).bind(...binds).all();
 
-  const results = rows.results.map((r: any) => ({
-    ...r,
-    tags: r.tags ? JSON.parse(r.tags) : [],
-  }));
+  const results = rows.results.map((r: any) => articleToApi(r));
   return json(results);
 };
 
@@ -15573,11 +15601,7 @@ const handleGetArticle: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Article not found' }, 404);
 
-  return json({
-    ...row,
-    tags: row.tags ? JSON.parse(row.tags as string) : [],
-    blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
-  });
+  return json(articleToApi(row));
 };
 
 const handleCreateArticle: Handler = async (request, env) => {
@@ -15592,16 +15616,19 @@ const handleCreateArticle: Handler = async (request, env) => {
   const slug = body.slug ? body.slug : slugify(body.title);
   const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : (body.tags || '[]');
   const blocks = Array.isArray(body.blocks) ? JSON.stringify(body.blocks) : (body.blocks || '[]');
+  const linkage = await validateArticleContributors(env, accountId, body);
+  if ('error' in linkage) return linkage.error;
+  const subjectIds = JSON.stringify(linkage.subjectIds ?? []);
 
   await env.DB.prepare(
-    `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, reading_time_mins)
-     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO articles (id, account_id, title, subtitle, author_id, slug, status, category, tags, cover_image_url, blocks, layout_template, reading_time_mins, subject_ids, pull_quote, pull_quote_subject)
+     VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     accountId,
     body.title,
     body.subtitle || null,
-    body.author_id || null,
+    linkage.authorId,
     slug,
     body.category || null,
     tags,
@@ -15609,17 +15636,16 @@ const handleCreateArticle: Handler = async (request, env) => {
     blocks,
     body.layout_template || null,
     body.reading_time_mins || null,
+    subjectIds,
+    typeof body.pull_quote === 'string' && body.pull_quote.trim() ? body.pull_quote.trim() : null,
+    linkage.pullQuoteSubject,
   ).run();
 
   const created = await env.DB.prepare(
     'SELECT * FROM articles WHERE id = ?'
   ).bind(id).first() as Record<string, any>;
 
-  return json({
-    ...created,
-    tags: created.tags ? JSON.parse(created.tags as string) : [],
-    blocks: created.blocks ? JSON.parse(created.blocks as string) : [],
-  }, 201);
+  return json(articleToApi(created), 201);
 };
 
 const handleUpdateArticle: Handler = async (request, env, params) => {
@@ -15634,10 +15660,19 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
 
   if (Array.isArray(body.tags)) body.tags = JSON.stringify(body.tags);
   if (Array.isArray(body.blocks)) body.blocks = JSON.stringify(body.blocks);
+  const existing = await env.DB.prepare('SELECT * FROM articles WHERE id = ? AND account_id = ?').bind(params.id, accountId).first<Record<string, any>>();
+  if (!existing) return json({ error: 'Article not found' }, 404);
+  const linkage = await validateArticleContributors(env, accountId, body, existing.author_id ?? null);
+  if ('error' in linkage) return linkage.error;
+  if ('author_id' in body) body.author_id = linkage.authorId;
+  if ('subject_ids' in body) body.subject_ids = JSON.stringify(linkage.subjectIds ?? []);
+  if ('pull_quote_subject' in body) body.pull_quote_subject = linkage.pullQuoteSubject;
+  if ('pull_quote' in body) body.pull_quote = typeof body.pull_quote === 'string' && body.pull_quote.trim() ? body.pull_quote.trim() : null;
 
   const ARTICLE_ALLOWED_COLS = new Set([
     'title', 'subtitle', 'author_id', 'slug', 'status', 'category', 'tags',
     'cover_image_url', 'blocks', 'layout_template', 'reading_time_mins', 'published_at',
+    'subject_ids', 'pull_quote', 'pull_quote_subject',
   ]);
   const cols = Object.keys(body).filter(k => ARTICLE_ALLOWED_COLS.has(k));
   if (cols.length === 0) return json({ success: true });
@@ -15652,11 +15687,7 @@ const handleUpdateArticle: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).first() as Record<string, any> | null;
   if (!updated) return json({ error: 'Article not found' }, 404);
 
-  return json({
-    ...updated,
-    tags: updated.tags ? JSON.parse(updated.tags as string) : [],
-    blocks: updated.blocks ? JSON.parse(updated.blocks as string) : [],
-  });
+  return json(articleToApi(updated));
 };
 
 const handlePublishArticle: Handler = async (request, env, params) => {
@@ -15738,8 +15769,9 @@ const handleGetPublicArticles: Handler = async (request, env) => {
   const rows = await env.DB.prepare(
     `SELECT a.id, a.account_id, a.title, a.subtitle, a.author_id, a.slug, a.status, a.category, a.tags,
             a.cover_image_url, a.layout_template, a.reading_time_mins, a.published_at, a.created_at, a.updated_at,
-            u.name AS author_name
+            COALESCE(c.display_name, u.name) AS author_name
      FROM articles a
+     LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
      LEFT JOIN users u ON u.id = a.author_id
      WHERE a.status = 'published'
      ORDER BY a.published_at DESC
@@ -15755,16 +15787,15 @@ const handleGetPublicArticles: Handler = async (request, env) => {
 
 const handleGetPublicArticle: Handler = async (request, env, params) => {
   const row = await env.DB.prepare(
-    `SELECT * FROM articles WHERE slug = ? AND status = 'published'`
+    `SELECT a.*, COALESCE(c.display_name, u.name) AS author_name
+       FROM articles a
+       LEFT JOIN contributors c ON c.id = a.author_id AND c.account_id = a.account_id
+       LEFT JOIN users u ON u.id = a.author_id
+      WHERE a.slug = ? AND a.status = 'published'`
   ).bind(params.slug).first() as Record<string, any> | null;
   if (!row) return json({ error: 'Article not found' }, 404);
 
-  return json({
-    ...row,
-    tags: row.tags ? JSON.parse(row.tags as string) : [],
-    blocks: row.blocks ? JSON.parse(row.blocks as string) : [],
-    subject_ids: row.subject_ids ? JSON.parse(row.subject_ids as string) : [],
-  });
+  return json(articleToApi(row));
 };
 
 // ── Contributors — Public ─────────────────────────────────────────────────────

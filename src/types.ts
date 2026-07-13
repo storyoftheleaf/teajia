@@ -1087,6 +1087,9 @@ export interface DbArticle {
   subtitle?: string;
   author_id?: string;
   author_name?: string;
+  subject_ids?: string[];
+  pull_quote?: string;
+  pull_quote_subject?: string;
   slug: string;
   status: 'draft' | 'published' | 'archived';
   category?: string;
