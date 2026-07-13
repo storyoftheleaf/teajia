@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, Bundle, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
@@ -3457,8 +3457,29 @@ export const api = {
         method: 'POST',
       });
     },
-    listAdminContributors: async () => {
+    listAdminContributors: async (): Promise<{ contributors: AdminContributor[] }> => {
       return authedFetch(`${API_URL}/api/admin/contributors`)
+    },
+    createContributor: async (data: ContributorWrite): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    getAdminContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}`);
+    },
+    updateContributor: async (contributorId: string, data: ContributorWrite): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    publishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/publish`, { method: 'POST' });
+    },
+    unpublishContributor: async (contributorId: string): Promise<{ contributor: AdminContributor }> => {
+      return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/unpublish`, { method: 'POST' });
     },
     updateContributorContact: async (contributorId: string, customerId: string | null) => {
       return authedFetch(`${API_URL}/api/admin/contributors/${encodeURIComponent(contributorId)}/contact`, {

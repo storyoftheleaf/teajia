@@ -366,6 +366,42 @@ export interface ContributorProfile {
   updated_at: string;
 }
 
+export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 'pull_quotes' | 'featured_in' | 'products' | 'host_account' | 'seasonal_line'> {
+  contact_customer_id?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  contact_whatsapp?: string | null;
+}
+
+export interface ContributorWrite {
+  id?: string;
+  slug?: string;
+  display_name?: string;
+  chinese_name?: string | null;
+  role?: string | null;
+  pronouns?: string | null;
+  location_line?: string | null;
+  active_since?: string | null;
+  beginnings?: string | null;
+  now_text?: string | null;
+  now_stamp?: string | null;
+  now_updated_at?: string | null;
+  inspirations?: string | null;
+  closing?: string | null;
+  avatar_url?: string | null;
+  portrait_url?: string | null;
+  portrait_caption?: string | null;
+  voice_clip_url?: string | null;
+  voice_clip_caption?: string | null;
+  pouring_today_product_id?: string | null;
+  pouring_today_note?: string | null;
+  where_to_find_text?: string | null;
+  user_id?: string | null;
+  face_of_account_id?: string | null;
+  links?: ContributorLink[];
+}
+
 export interface Chapter {
   id: string;
   title: string;
