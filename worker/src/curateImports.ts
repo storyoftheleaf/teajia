@@ -1,6 +1,7 @@
 import { compassValuesFromImport } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
 import { buildImportAnalysisPrompt, decodeImportAnalysisProposal, normalizeImportProposal, type ImportMatchCandidates } from './curateImportAnalysis';
+import { CurateImportFinalizeError, finalizeCurateImport, type CurateFinalizeData, type FinalizeReceiptLine } from './curateImportFinalize';
 
 export interface CurateImportContext {
   accountId: string;
@@ -268,6 +269,151 @@ export async function analyzeCurateImport(_request: Request, env: ImportEnv, ctx
   }
 }
 
+export type CurateFinalizeMovement = (line: FinalizeReceiptLine, idempotencyKey: string) => Promise<{ movementId: string }>;
+
+function parsedFinalizeItem(row: Record<string, unknown>) {
+  const parsed = parseJson(row.parsed_data_json, {}) as Record<string, unknown>;
+  const category = row.category === 'teaware' ? 'teaware' : 'tea';
+  const quantity = category === 'teaware' ? parsed.totalUnits : parsed.totalQuantityGrams;
+  const unit = category === 'teaware' ? 'unit' : 'g';
+  const purpose = parsed.inventoryPurpose ?? parsed.inventory_purpose ?? parsed.purpose ?? null;
+  const productId = parsed.productId ?? parsed.product_id ?? null;
+  return {
+    id: String(row.id), groupId: String(row.vendor_group_id ?? ''), category,
+    name: String(row.name ?? parsed.englishName ?? parsed.originalName ?? ''),
+    compassEntryId: typeof row.compass_entry_id === 'string' ? row.compass_entry_id : null,
+    productId: typeof productId === 'string' ? productId : null,
+    quantity: typeof quantity === 'number' ? quantity : null, unit,
+    packCount: typeof parsed.packCount === 'number' ? parsed.packCount : null,
+    lineCost: typeof parsed.lineCost === 'number' ? parsed.lineCost : null,
+    currency: typeof parsed.currency === 'string' ? parsed.currency : null,
+    unitCost: typeof parsed.unitCost === 'number' ? parsed.unitCost : null,
+    purpose: purpose === 'working' || purpose === 'sample' || purpose === 'personal' ? purpose : null,
+    blockingFields: Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(value => typeof value === 'string') as string[] : [],
+  } as const;
+}
+
+export async function finalizeCurateImportRequest(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>, receiveLine: CurateFinalizeMovement) {
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const idempotencyKey = typeof body.idempotency_key === 'string' ? body.idempotency_key.trim() : '';
+  try {
+    const result = await finalizeCurateImport({
+      accountId: ctx.accountId, userId: ctx.userId,
+      loadImport: async batchId => {
+        const batch = await scopedBatch(env, batchId, ctx.accountId);
+        if (!batch) return null;
+        const [groupRows, itemRows] = await Promise.all([
+          env.DB.prepare(`SELECT g.*, c.name vendor_name, c.tags vendor_tags FROM curate_import_vendor_groups g
+            LEFT JOIN customers c ON c.id = g.resolved_vendor_customer_id AND c.account_id = g.account_id
+            WHERE g.batch_id = ? AND g.account_id = ? ORDER BY g.position`).bind(batchId, ctx.accountId).all<Record<string, unknown>>(),
+          env.DB.prepare('SELECT * FROM curate_import_items WHERE batch_id = ? AND account_id = ? AND review_state != ? ORDER BY position').bind(batchId, ctx.accountId, 'abandoned').all<Record<string, unknown>>(),
+        ]);
+        const groups = groupRows.results.map(row => {
+          const tags = parseJson(row.vendor_tags, []);
+          const validVendor = typeof row.resolved_vendor_customer_id === 'string' && Array.isArray(tags) && tags.includes('vendor');
+          return { id: String(row.id), vendorId: validVendor ? String(row.resolved_vendor_customer_id) : null, vendorName: typeof row.vendor_name === 'string' ? row.vendor_name : null, position: Number(row.position) };
+        });
+        return {
+          batch: { id: batchId, accountId: ctx.accountId, journeyId: typeof batch.journey_id === 'string' ? batch.journey_id : null, reviewState: String(batch.review_state) },
+          groups, items: itemRows.results.map(parsedFinalizeItem),
+        } as CurateFinalizeData;
+      },
+      loadCompleted: async (batchId, key) => {
+        const batch = await scopedBatch(env, batchId, ctx.accountId);
+        if (!batch || batch.finalize_idempotency_key !== key || typeof batch.finalize_result_json !== 'string') return null;
+        return parseJson(batch.finalize_result_json, null);
+      },
+      ensureIdentity: async (item, batch) => {
+        if (item.compassEntryId) {
+          const owned = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(item.compassEntryId, ctx.accountId, ctx.userId).first();
+          if (owned) return item.compassEntryId;
+        }
+        const row = await scopedItem(env, batch.id, item.id, ctx.accountId);
+        if (!row) throw new CurateImportFinalizeError('not_found', 'Import item not found');
+        const compassId = String(row.reserved_compass_entry_id);
+        const parsed = parseJson(row.parsed_data_json, {}) as Record<string, unknown>;
+        const structured = compassValuesFromImport(parsed);
+        const values = { ...structured, name: item.name, category: item.category, notes: row.raw_text ?? null, status: 'logged', journey_id: batch.journeyId };
+        const columns = Object.keys(values);
+        await env.DB.batch([
+          env.DB.prepare(`INSERT OR IGNORE INTO tea_compass_entries (id, user_id, account_id, import_item_id, ${columns.join(', ')}) VALUES (?, ?, ?, ?, ${columns.map(() => '?').join(', ')})`)
+            .bind(compassId, ctx.userId, ctx.accountId, item.id, ...columns.map(column => values[column as keyof typeof values])),
+          env.DB.prepare("UPDATE curate_import_items SET compass_entry_id = ?, review_state = 'accepted', reviewed_by_user_id = ?, reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ? AND batch_id = ? AND account_id = ?")
+            .bind(compassId, ctx.userId, item.id, batch.id, ctx.accountId),
+        ]);
+        const owned = await env.DB.prepare('SELECT id FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ? AND import_item_id = ?').bind(compassId, ctx.accountId, ctx.userId, item.id).first();
+        if (!owned) throw new Error('Compass identity could not be resolved');
+        return compassId;
+      },
+      ensureProduct: async (item, compassEntryId) => {
+        if (item.productId) {
+          const owned = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(item.productId, ctx.accountId).first();
+          if (owned) return item.productId;
+        }
+        const entry = await env.DB.prepare('SELECT draft_product_id, type, chinese_name, origin_region, year FROM tea_compass_entries WHERE id = ? AND account_id = ? AND user_id = ?').bind(compassEntryId, ctx.accountId, ctx.userId).first<Record<string, unknown>>();
+        if (typeof entry?.draft_product_id === 'string') {
+          const owned = await env.DB.prepare('SELECT id FROM products WHERE id = ? AND account_id = ?').bind(entry.draft_product_id, ctx.accountId).first();
+          if (owned) return entry.draft_product_id;
+        }
+        const identity = await env.DB.prepare('SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
+        if (identity) return String(identity.id);
+        const productId = crypto.randomUUID();
+        await env.DB.batch([
+          env.DB.prepare(`INSERT OR IGNORE INTO products (id, account_id, type, product_name, given_name, chinese_name, year, origin_region, status, stock_grams, quantity_units, inventory_purpose, is_sample, is_personal, stock_known_at, is_public, shown_in_shop, source_compass_entry_id, owner_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Draft', ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)`)
+            .bind(productId, ctx.accountId, item.category === 'teaware' ? 'Teaware' : (entry?.type ?? 'Misc'), item.name, item.name, entry?.chinese_name ?? null, entry?.year ?? null, entry?.origin_region ?? null,
+              item.unit === 'g' ? 0 : null, item.unit === 'unit' ? 0 : null, item.purpose, item.purpose === 'sample' ? 1 : 0, item.purpose === 'personal' ? 1 : 0, new Date().toISOString(), compassEntryId, ctx.userId),
+          env.DB.prepare("UPDATE tea_compass_entries SET draft_product_id = (SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?), updated_at = datetime('now') WHERE id = ? AND account_id = ? AND user_id = ?")
+            .bind(ctx.accountId, compassEntryId, compassEntryId, ctx.accountId, ctx.userId),
+        ]);
+        const canonical = await env.DB.prepare('SELECT id FROM products WHERE account_id = ? AND source_compass_entry_id = ?').bind(ctx.accountId, compassEntryId).first<Record<string, unknown>>();
+        if (!canonical) throw new Error('Inventory holding could not be resolved');
+        return String(canonical.id);
+      },
+      createReceipt: async (group, lines, key, journeyId) => {
+        const linked = await env.DB.prepare(`SELECT r.inventory_receipt_id FROM curate_import_receipts r WHERE r.account_id = ? AND r.vendor_group_id = ?`).bind(ctx.accountId, group.id).first<Record<string, unknown>>();
+        let receiptId = linked ? String(linked.inventory_receipt_id) : '';
+        if (!receiptId) {
+          receiptId = crypto.randomUUID();
+          const fingerprint = JSON.stringify({ batch_id: params.id, vendor_group_id: group.id, journey_id: journeyId, lines });
+          const statements: D1PreparedStatement[] = [env.DB.prepare(`INSERT INTO inventory_receipts (id, account_id, state, vendor_name, source_kind, source_ref, created_by_user_id, idempotency_key, request_fingerprint) VALUES (?, ?, 'in_transit', ?, 'curate_import', ?, ?, ?, ?)`)
+            .bind(receiptId, ctx.accountId, group.vendorName, journeyId ?? params.id, ctx.userId, key, fingerprint)];
+          for (const line of lines) statements.push(env.DB.prepare(`INSERT INTO inventory_receipt_lines (id, receipt_id, account_id, product_id, expected_quantity, unit, intended_purpose, source_kind, source_ref, original_cost_amount, original_cost_currency, original_unit_cost, pack_count) VALUES (?, ?, ?, ?, ?, ?, ?, 'curate_import', ?, ?, ?, ?, ?)`)
+            .bind(crypto.randomUUID(), receiptId, ctx.accountId, line.productId, line.quantity, line.unit, line.purpose, line.itemId, line.originalCostAmount, line.originalCostCurrency, line.originalUnitCost, line.packCount));
+          statements.push(env.DB.prepare('INSERT INTO curate_import_receipts (id, account_id, batch_id, vendor_group_id, inventory_receipt_id) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), ctx.accountId, params.id, group.id, receiptId));
+          try { await env.DB.batch(statements); } catch (error) {
+            const raced = await env.DB.prepare('SELECT inventory_receipt_id FROM curate_import_receipts WHERE account_id = ? AND vendor_group_id = ?').bind(ctx.accountId, group.id).first<Record<string, unknown>>();
+            if (!raced) throw error; receiptId = String(raced.inventory_receipt_id);
+          }
+        }
+        const rows = await env.DB.prepare('SELECT * FROM inventory_receipt_lines WHERE receipt_id = ? AND account_id = ? ORDER BY created_at, id').bind(receiptId, ctx.accountId).all<Record<string, unknown>>();
+        return { id: receiptId, groupId: group.id, lines: rows.results.map(row => ({
+          id: String(row.id), receiptId, itemId: String(row.source_ref), productId: String(row.product_id),
+          compassEntryId: lines.find(line => line.itemId === row.source_ref)?.compassEntryId ?? '', quantity: Number(row.expected_quantity), unit: row.unit as 'g' | 'unit',
+          purpose: row.intended_purpose as 'working' | 'sample' | 'personal', originalCostAmount: Number(row.original_cost_amount), originalCostCurrency: String(row.original_cost_currency),
+          originalUnitCost: Number(row.original_unit_cost), packCount: Number(row.pack_count),
+        })) };
+      },
+      receiveLine,
+      complete: async (batchId, key, finalizeResult) => {
+        const changed = await env.DB.prepare(`UPDATE curate_import_batches SET review_state = 'completed', finalize_idempotency_key = ?, finalize_result_json = ?, completed_at = datetime('now'), updated_at = datetime('now')
+          WHERE id = ? AND account_id = ? AND (finalize_idempotency_key IS NULL OR finalize_idempotency_key = ?)`)
+          .bind(key, JSON.stringify(finalizeResult), batchId, ctx.accountId, key).run();
+        if (!(changed.meta.changes ?? 0)) throw new CurateImportFinalizeError('idempotency_conflict', 'Import was finalized by another request');
+      },
+    }, params.id, idempotencyKey);
+    return response({ batch: await scopedBatch(env, params.id, ctx.accountId), receipts: result.receipts, items: result.items });
+  } catch (error) {
+    if (error instanceof CurateImportFinalizeError) {
+      const status = error.code === 'not_found' ? 404 : 409;
+      return response({ error: error.message, code: error.code, issues: error.issues }, status);
+    }
+    console.error('Curate import finalization failed', error);
+    return response({ error: 'Import finalization failed' }, 500);
+  }
+}
+
 export async function createCurateImport(request: Request, env: ImportEnv, ctx: CurateImportContext) {
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
@@ -346,6 +492,70 @@ export async function createCurateImport(request: Request, env: ImportEnv, ctx: 
 export async function getCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const result = await fullBatch(env, params.id, ctx.accountId);
   return result ? response(result) : response({ error: 'Import not found' }, 404);
+}
+
+export async function updateCurateImportGroup(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
+  const group = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>();
+  if (!group) return response({ error: 'Vendor group not found' }, 404);
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  if (Object.keys(body).some(key => key !== 'resolved_vendor_customer_id')) return response({ error: 'Unknown update field' }, 400);
+  const vendorId = body.resolved_vendor_customer_id;
+  if (vendorId !== null && typeof vendorId !== 'string') return response({ error: 'Invalid vendor' }, 400);
+  if (typeof vendorId === 'string') {
+    const vendor = await env.DB.prepare('SELECT id, tags FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>();
+    const tags = parseJson(vendor?.tags, []);
+    if (!vendor || !Array.isArray(tags) || !tags.includes('vendor')) return response({ error: 'Selected customer is not tagged as a vendor' }, 400);
+  }
+  const changed = await env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+    .bind(vendorId, params.groupId, ctx.accountId).run();
+  if (!(changed.meta.changes ?? 0)) return response({ error: 'Vendor group not found' }, 404);
+  const updated = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>();
+  return response(groupRow(updated!));
+}
+
+export async function createVendorForCurateImportGroup(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
+  const group = await env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>();
+  if (!group) return response({ error: 'Vendor group not found' }, 404);
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  let name: string;
+  try { name = text(body.name, 240, true)!; } catch { return response({ error: 'Vendor name is required' }, 400); }
+  const vendorId = crypto.randomUUID();
+  const results = await env.DB.batch([
+    env.DB.prepare("INSERT INTO customers (id, account_id, name, company, email, phone, whatsapp, country, preferred_currency, tags, notes, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '[\"vendor\"]', ?, 'curate_import')")
+      .bind(vendorId, ctx.accountId, name, text(body.company, 240), text(body.email, 320), text(body.phone, 100), text(body.whatsapp, 100), text(body.country, 120), text(body.preferred_currency, 20), text(body.notes, 2000)),
+    env.DB.prepare("UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ?")
+      .bind(vendorId, params.groupId, ctx.accountId),
+  ]);
+  if (!(results[1]?.meta.changes ?? 0)) return response({ error: 'Vendor group not found' }, 404);
+  const [vendor, updated] = await Promise.all([
+    env.DB.prepare('SELECT * FROM customers WHERE id = ? AND account_id = ?').bind(vendorId, ctx.accountId).first<Record<string, unknown>>(),
+    env.DB.prepare('SELECT * FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ?').bind(params.groupId, params.id, ctx.accountId).first<Record<string, unknown>>(),
+  ]);
+  return response({ vendor, group: groupRow(updated!) }, 201);
+}
+
+export async function setCurateImportJourney(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
+  const batch = await scopedBatch(env, params.id, ctx.accountId);
+  if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batchIsTerminal(batch)) return terminalResponse();
+  let body: Record<string, unknown>;
+  try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  if (Object.keys(body).some(key => key !== 'journey_id')) return response({ error: 'Unknown update field' }, 400);
+  const journeyId = body.journey_id == null ? null : typeof body.journey_id === 'string' ? body.journey_id : undefined;
+  if (journeyId === undefined) return response({ error: 'Invalid journey_id' }, 400);
+  const contextError = await validateCurateContextPair(env, ctx.accountId, { journey_id: journeyId, visit_id: batch.visit_id as string | null });
+  if (contextError) return response({ error: contextError }, 400);
+  await env.DB.prepare("UPDATE curate_import_batches SET journey_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned')")
+    .bind(journeyId, params.id, ctx.accountId).run();
+  return response(await scopedBatch(env, params.id, ctx.accountId));
 }
 
 export async function addCurateImportItem(request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {

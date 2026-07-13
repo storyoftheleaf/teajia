@@ -124,7 +124,7 @@ class ImportDb {
     if (sql.includes('curate_import_sources')) return this.sources;
     if (sql.includes('curate_import_items')) return this.items;
     if (sql.includes('curate_import_vendor_groups')) return this.groups;
-    if (sql.includes('from customers')) return this.customers;
+    if (sql.includes('customers')) return this.customers;
     if (sql.includes('tea_compass_entries')) return this.compass;
     if (sql.includes('curate_import_batches')) return this.batches;
     if (sql.includes('curate_journeys')) return this.journeys;
@@ -239,6 +239,34 @@ describe('Curate import provenance API', () => {
     expect(rerun.items).toHaveLength(1);
     expect(rerun.items[0].parsed_data.englishName).toBe('My corrected inventory name');
     expect(rerun.items[0].manually_corrected_fields).toContain('parsed_data.englishName');
+  });
+
+  it('updates group vendors and the optional journey only within the active account', async () => {
+    const db = new ImportDb();
+    db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Chen', tags: '["vendor"]' });
+    db.customers.set('customer-a', { id: 'customer-a', account_id: 'account-a', name: 'Buyer', tags: '[]' });
+    db.journeys.set('journey-a', { id: 'journey-a', account_id: 'account-a', name: 'Yunnan' });
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Review' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', proposed_vendor_name: 'Chen', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'customer-a' }) })).status).toBe(400);
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) })).status).toBe(200);
+    expect(db.groups.get('group-a')?.resolved_vendor_customer_id).toBe('vendor-a');
+    expect((await request(db, `/api/curate/imports/${batch.id}/journey`, { method: 'PUT', body: JSON.stringify({ journey_id: 'journey-a' }) })).status).toBe(200);
+    expect(db.batches.get(batch.id)?.journey_id).toBe('journey-a');
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a`, { method: 'PUT', body: JSON.stringify({ resolved_vendor_customer_id: 'vendor-a' }) }, 'account-b', 'user-b')).status).toBe(404);
+  });
+
+  it('creates a vendor through the existing customer model and assigns the complete group', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'New vendor' }) });
+    const { batch } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', proposed_vendor_name: null, resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    const response = await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'New Tea Farm' }) });
+    expect(response.status).toBe(201);
+    const body = await response.json() as any;
+    expect(db.customers.get(body.vendor.id)).toMatchObject({ account_id: 'account-a', name: 'New Tea Farm', tags: '["vendor"]' });
+    expect(db.groups.get('group-a')?.resolved_vendor_customer_id).toBe(body.vendor.id);
   });
   it('allows viewers to read imports but denies every import mutation', async () => {
     const db = new ImportDb();

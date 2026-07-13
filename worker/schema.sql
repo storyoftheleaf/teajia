@@ -715,6 +715,7 @@ CREATE TABLE IF NOT EXISTS curate_import_batches (
   analysis_model TEXT,
   analysis_error TEXT,
   finalize_idempotency_key TEXT,
+  finalize_result_json TEXT,
   completed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))

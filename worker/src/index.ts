@@ -5,7 +5,8 @@ import {
 } from './mcp';
 import {
   abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
-  getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem, updateCurateImportItem, uploadCurateImportEvidence,
+  createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
+  setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence,
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
@@ -9880,6 +9881,41 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
     const remainingQuantity = persistedLine ? remainingReceiptQuantity(Number(persistedLine.expected_quantity), receivedQuantity, Number(persistedLine.cancelled_quantity)) : (alreadyReceived ? remaining : remaining - quantity);
     return json({ received_quantity:receivedQuantity, remaining_quantity:remainingQuantity,state:persistedReceipt?.state || state,ledger_id:(result.value as any).id,batch_id:persistedLine?.intake_batch_id || batchId,already_received:alreadyReceived });
   } catch (error) { console.error('Receipt stock movement failed',error); return json({ error:'Receipt failed' },500); }
+};
+
+const handleFinalizeCurateImport: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
+  return finalizeCurateImportRequest(request, env, { accountId: ctx.accountId, userId: ctx.userId }, params, async (line, idempotencyKey) => {
+    const persisted = await loadReceiptLine(env, line.id, ctx.accountId);
+    if (!persisted || persisted.receipt_id !== line.receiptId) throw new Error('Receipt line not found');
+    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(line.productId, ctx.accountId).first() as Record<string, any> | null;
+    if (!product) throw new Error('Product not found');
+    const amountColumn = line.unit === 'g' ? 'stock_grams' : 'quantity_units';
+    const current = Number(product[amountColumn] ?? 0);
+    const batchId = persisted.intake_batch_id || `receipt-${persisted.receipt_id}`;
+    const createsBatch = !persisted.intake_batch_id;
+    const movement = decodeStockMovement({
+      movement_type: 'receipt', quantity: line.quantity, unit: line.unit, expected_balance: current,
+      idempotency_key: idempotencyKey, note: 'Received Curate import', batch_id: batchId,
+      source_compass_entry_id: line.compassEntryId,
+    });
+    const result = await applyStockMovement(env, ctx, line.productId, movement, {
+      inventoryReceiptLineId: line.id, allowNewBatchId: createsBatch,
+      statementFactory: guard => [
+        ...(createsBatch ? [env.DB.prepare(`INSERT OR IGNORE INTO batches (id, account_id, label, intake_date, vendor, note)
+          SELECT ?, ?, ?, date('now'), ?, 'Curate inventory import' WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+          .bind(batchId, ctx.accountId, `Receipt · ${persisted.vendor_name || 'Curate import'}`, persisted.vendor_name || null, line.productId, ctx.accountId, guard)] : []),
+        env.DB.prepare(`UPDATE products SET inventory_purpose = ?, is_sample = ?, is_personal = ? WHERE id = ? AND account_id = ? AND stock_movement_guard = ?`)
+          .bind(line.purpose, line.purpose === 'sample' ? 1 : 0, line.purpose === 'personal' ? 1 : 0, line.productId, ctx.accountId, guard),
+        env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity = expected_quantity, intake_batch_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+          .bind(batchId, line.id, ctx.accountId, line.productId, ctx.accountId, guard),
+        env.DB.prepare(`UPDATE inventory_receipts SET state = CASE WHEN NOT EXISTS (SELECT 1 FROM inventory_receipt_lines WHERE receipt_id = ? AND account_id = ? AND received_quantity < expected_quantity) THEN 'received' ELSE 'partially_received' END, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+          .bind(persisted.receipt_id, ctx.accountId, persisted.receipt_id, ctx.accountId, line.productId, ctx.accountId, guard),
+      ],
+    });
+    if (result.status >= 400) throw new Error(String((result.value as Record<string, unknown>).error ?? 'Stock receipt failed'));
+    return { movementId: String((result.value as Record<string, unknown>).id) };
+  });
 };
 
 const handleCancelInventoryLine: Handler = async (request, env, params) => {
@@ -20087,6 +20123,10 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
   ['POST', '/api/curate/imports/:id/abandon', withCurateImportAccount(abandonCurateImport, true)],
   ['POST', '/api/curate/imports/:id/analyze', withCurateImportAccount(analyzeCurateImport, true)],
+  ['POST', '/api/curate/imports/:id/finalize', handleFinalizeCurateImport],
+  ['PUT', '/api/curate/imports/:id/groups/:groupId', withCurateImportAccount(updateCurateImportGroup, true)],
+  ['POST', '/api/curate/imports/:id/groups/:groupId/vendor', withCurateImportAccount(createVendorForCurateImportGroup, true)],
+  ['PUT', '/api/curate/imports/:id/journey', withCurateImportAccount(setCurateImportJourney, true)],
   ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem, true)],
   ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence, true)],
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],
