@@ -16,6 +16,9 @@ export interface SampleCartItem {
 
 interface SampleCartState {
   items: SampleCartItem[];
+  accountScopeId: string | null;
+  itemsByAccount: Record<string, SampleCartItem[]>;
+  switchAccount: (accountId: string | null) => void;
   addItem: (item: Omit<SampleCartItem, 'grams'> & { grams?: number }) => void;
   removeItem: (id: string) => void;
   updateGrams: (id: string, grams: number) => void;
@@ -27,6 +30,23 @@ export const useSampleCartStore = create<SampleCartState>()(
   persist(
     (set, get) => ({
       items: [],
+      accountScopeId: null,
+      itemsByAccount: {},
+
+      switchAccount: (accountId) => set((state) => {
+        if (state.accountScopeId === accountId) return state;
+        const itemsByAccount = { ...state.itemsByAccount };
+        if (state.accountScopeId) {
+          itemsByAccount[state.accountScopeId] = state.items;
+        } else if (accountId && state.items.length > 0 && !itemsByAccount[accountId]) {
+          itemsByAccount[accountId] = state.items;
+        }
+        return {
+          items: accountId ? itemsByAccount[accountId] ?? [] : [],
+          accountScopeId: accountId,
+          itemsByAccount,
+        };
+      }),
 
       addItem: (item) => {
         const { grams = 10, ...rest } = item;
@@ -48,7 +68,17 @@ export const useSampleCartStore = create<SampleCartState>()(
     }),
     {
       name: 'teajia-sample-cart',
-      partialize: (state) => ({ items: state.items }),
+      version: 1,
+      migrate: (persisted) => persisted,
+      partialize: (state) => {
+        const itemsByAccount = { ...state.itemsByAccount };
+        if (state.accountScopeId) itemsByAccount[state.accountScopeId] = state.items;
+        return {
+          items: state.items,
+          accountScopeId: state.accountScopeId,
+          itemsByAccount,
+        };
+      },
     }
   )
 );

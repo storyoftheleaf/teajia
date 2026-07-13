@@ -10,6 +10,11 @@ import { useAppStore } from './store';
 interface TeaCompassState {
   // Committed entries (persisted to localStorage + server)
   entries: TeaCompassEntry[];
+  accountScopeId: string | null;
+  entriesByAccount: Record<string, TeaCompassEntry[]>;
+  deletedIdsByAccount: Record<string, string[]>;
+  pendingPromotionsByAccount: Record<string, string[]>;
+  switchAccount: (accountId: string | null) => void;
   // Pending entries — created but not yet committed (NOT persisted, lost on refresh)
   pendingEntries: TeaCompassEntry[];
 
@@ -224,6 +229,10 @@ export const useTeaCompassStore = create<TeaCompassState>()(
   persist(
     (set, get) => ({
       entries: [],
+      accountScopeId: activeAccountScope(),
+      entriesByAccount: {},
+      deletedIdsByAccount: {},
+      pendingPromotionsByAccount: {},
       pendingEntries: [],
       activeEntryId: null,
       sessionEntryIds: [],
@@ -248,8 +257,27 @@ export const useTeaCompassStore = create<TeaCompassState>()(
 
       setSyncError: (failed) => set({ syncError: failed }),
 
-      switchDraftAccount: (accountId) => set((state) => {
-        if (state.draftAccountScopeId === accountId) return state;
+      switchAccount: (accountId) => set((state) => {
+        if (state.accountScopeId === accountId && state.draftAccountScopeId === accountId) return state;
+        const entriesByAccount = { ...state.entriesByAccount };
+        const deletedIdsByAccount = { ...state.deletedIdsByAccount };
+        const pendingPromotionsByAccount = { ...state.pendingPromotionsByAccount };
+        if (state.accountScopeId) {
+          entriesByAccount[state.accountScopeId] = state.entries;
+          deletedIdsByAccount[state.accountScopeId] = state.deletedIds;
+          pendingPromotionsByAccount[state.accountScopeId] = state.pendingPromotions;
+        } else if (
+          accountId &&
+          (state.entries.length > 0 || state.deletedIds.length > 0 || state.pendingPromotions.length > 0) &&
+          !entriesByAccount[accountId]
+        ) {
+          // Conservative legacy migration: unscoped data belongs to the first
+          // known account only. Never copy it to every account.
+          entriesByAccount[accountId] = state.entries;
+          deletedIdsByAccount[accountId] = state.deletedIds;
+          pendingPromotionsByAccount[accountId] = state.pendingPromotions;
+        }
+
         const draftsByAccount = { ...state.draftsByAccount };
         if (state.draftAccountScopeId) {
           draftsByAccount[state.draftAccountScopeId] = snapshotCompassDrafts(state);
@@ -257,8 +285,21 @@ export const useTeaCompassStore = create<TeaCompassState>()(
         const target = accountId
           ? restoreCompassDraftsForAccount(draftsByAccount[accountId] ?? {}, accountId)
           : { pendingEntries: [], activeEntryId: null, sessionEntryIds: [] };
-        return { ...target, draftsByAccount, draftAccountScopeId: accountId };
+        return {
+          ...target,
+          entries: accountId ? entriesByAccount[accountId] ?? [] : [],
+          deletedIds: accountId ? deletedIdsByAccount[accountId] ?? [] : [],
+          pendingPromotions: accountId ? pendingPromotionsByAccount[accountId] ?? [] : [],
+          entriesByAccount,
+          deletedIdsByAccount,
+          pendingPromotionsByAccount,
+          accountScopeId: accountId,
+          draftsByAccount,
+          draftAccountScopeId: accountId,
+        };
       }),
+
+      switchDraftAccount: (accountId) => get().switchAccount(accountId),
 
       addPendingPromotion: (id) =>
         set((s) => (s.pendingPromotions.includes(id)
@@ -314,6 +355,7 @@ export const useTeaCompassStore = create<TeaCompassState>()(
 
       removeEntry: (id) => {
         // Drop it from local state immediately so the UI responds at once...
+        const accountId = get().accountScopeId;
         const existed = get().entries.some((e) => e.id === id);
         set((state) => ({
           entries: state.entries.filter((e) => e.id !== id),
@@ -338,8 +380,21 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           // server, so flag it: otherwise the row silently reappears on next
           // hydrate and the delete looks like it "didn't take".
           void api.compass.remove(id)
-            .then(() => set((s) => ({ syncError: false, deletedIds: s.deletedIds.filter((d) => d !== id) })))
-            .catch(() => set({ syncError: true })); // keep the tombstone — hydrate retries
+            .then(() => set((s) => {
+              if (s.accountScopeId === accountId) {
+                return { syncError: false, deletedIds: s.deletedIds.filter((d) => d !== id) };
+              }
+              if (!accountId) return s;
+              return {
+                deletedIdsByAccount: {
+                  ...s.deletedIdsByAccount,
+                  [accountId]: (s.deletedIdsByAccount[accountId] ?? []).filter((d) => d !== id),
+                },
+              };
+            }))
+            .catch(() => {
+              if (get().accountScopeId === accountId) set({ syncError: true });
+            }); // keep the tombstone — hydrate retries
         }
       },
 
@@ -482,12 +537,24 @@ export const useTeaCompassStore = create<TeaCompassState>()(
     {
       name: 'teajia-compass',
       partialize: (state) => {
+        const entriesByAccount = { ...state.entriesByAccount };
+        const deletedIdsByAccount = { ...state.deletedIdsByAccount };
+        const pendingPromotionsByAccount = { ...state.pendingPromotionsByAccount };
+        if (state.accountScopeId) {
+          entriesByAccount[state.accountScopeId] = state.entries;
+          deletedIdsByAccount[state.accountScopeId] = state.deletedIds;
+          pendingPromotionsByAccount[state.accountScopeId] = state.pendingPromotions;
+        }
         const draftsByAccount = { ...state.draftsByAccount };
         if (state.draftAccountScopeId) {
           draftsByAccount[state.draftAccountScopeId] = snapshotCompassDrafts(state);
         }
         return {
           entries: state.entries,
+          accountScopeId: state.accountScopeId,
+          entriesByAccount,
+          deletedIdsByAccount,
+          pendingPromotionsByAccount,
           lastVendorId: state.lastVendorId,
           lastVendorName: state.lastVendorName,
           lastCurrency: state.lastCurrency,
@@ -510,16 +577,26 @@ export const useTeaCompassStore = create<TeaCompassState>()(
           draftsByAccount,
         };
       },
-      version: 7,
+      version: 8,
       migrate: migrateCompassPersistedState,
       merge: (persistedState, currentState) => {
         const persisted = (persistedState ?? {}) as Partial<TeaCompassState>;
         const scope = activeAccountScope();
         const buckets = persisted.draftsByAccount ?? {};
         const drafts = restoreCompassDraftsForAccount(buckets[scope ?? ''] ?? persisted, scope);
+        const entryBuckets = persisted.entriesByAccount ?? {};
+        const deletedBuckets = persisted.deletedIdsByAccount ?? {};
+        const promotionBuckets = persisted.pendingPromotionsByAccount ?? {};
+        const legacyEntries = (persisted.entries ?? currentState.entries).map(normalizeCompassEntry);
         return {
           ...currentState, ...persisted, ...drafts,
-          entries: (persisted.entries ?? currentState.entries).map(normalizeCompassEntry),
+          entries: scope ? (entryBuckets[scope] ?? legacyEntries).map(normalizeCompassEntry) : [],
+          deletedIds: scope ? deletedBuckets[scope] ?? persisted.deletedIds ?? [] : [],
+          pendingPromotions: scope ? promotionBuckets[scope] ?? persisted.pendingPromotions ?? [] : [],
+          entriesByAccount: entryBuckets,
+          deletedIdsByAccount: deletedBuckets,
+          pendingPromotionsByAccount: promotionBuckets,
+          accountScopeId: scope,
           draftsByAccount: buckets,
           draftAccountScopeId: scope,
         } as TeaCompassState;
@@ -531,7 +608,8 @@ export const useTeaCompassStore = create<TeaCompassState>()(
 export function migrateCompassPersistedState(persistedState: unknown, version: number): unknown {
         if (!persistedState || typeof persistedState !== 'object') return persistedState;
         const previous = persistedState as Partial<TeaCompassState> & { browseFilter?: string };
-        const scope = previous.draftAccountScopeId ?? activeAccountScope();
+        const activeScope = activeAccountScope();
+        const scope = previous.draftAccountScopeId ?? activeScope;
         if (version < 1) {
           previous.pendingEntries = (previous.pendingEntries ?? []).map((entry) => ({
             ...entry,
@@ -565,6 +643,22 @@ export function migrateCompassPersistedState(persistedState: unknown, version: n
         }
         if (version < 7 && (previous.libraryFilters?.possession as string | undefined) === 'stock') {
           previous.libraryFilters = { ...previous.libraryFilters, possession: 'working' };
+        }
+        const entryScope = activeScope ?? previous.accountScopeId ?? previous.draftAccountScopeId;
+        if (version < 8 && entryScope) {
+          previous.entriesByAccount = {
+            ...(previous.entriesByAccount ?? {}),
+            [entryScope]: (previous.entries ?? []).map(normalizeCompassEntry),
+          };
+          previous.deletedIdsByAccount = {
+            ...(previous.deletedIdsByAccount ?? {}),
+            [entryScope]: previous.deletedIds ?? [],
+          };
+          previous.pendingPromotionsByAccount = {
+            ...(previous.pendingPromotionsByAccount ?? {}),
+            [entryScope]: previous.pendingPromotions ?? [],
+          };
+          previous.accountScopeId = entryScope;
         }
         return previous;
 }

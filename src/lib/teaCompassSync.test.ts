@@ -28,6 +28,8 @@ describe('Compass sync acknowledgements', () => {
     listMock.mockReset();
     useTeaCompassStore.setState({
       entries: [],
+      entriesByAccount: {},
+      accountScopeId: 'acct-a',
       deletedIds: [],
       pendingPromotions: [],
       syncError: false,
@@ -45,7 +47,7 @@ describe('Compass sync acknowledgements', () => {
       }],
     });
 
-    await hydrateCompassEntries();
+    await hydrateCompassEntries('acct-a');
 
     expect(useTeaCompassStore.getState().entries[0]?.name).toBe('');
   });
@@ -58,7 +60,7 @@ describe('Compass sync acknowledgements', () => {
     });
     useTeaCompassStore.setState({ entries: [entry('accepted'), entry('collision')] });
 
-    expect(await syncCompassEntries()).toBe(1);
+    expect(await syncCompassEntries('acct-a')).toBe(1);
     expect(useTeaCompassStore.getState().entries.map(({ id, synced }) => ({ id, synced }))).toEqual([
       { id: 'accepted', synced: true },
       { id: 'collision', synced: false },
@@ -70,8 +72,51 @@ describe('Compass sync acknowledgements', () => {
     syncMock.mockResolvedValue({ synced: 2 });
     useTeaCompassStore.setState({ entries: [entry('one'), entry('two')] });
 
-    expect(await syncCompassEntries()).toBe(0);
+    expect(await syncCompassEntries('acct-a')).toBe(0);
     expect(useTeaCompassStore.getState().entries.every(item => !item.synced)).toBe(true);
     expect(useTeaCompassStore.getState().syncError).toBe(true);
+  });
+
+  it('never sends an unsynced entry from a different account', async () => {
+    syncMock.mockResolvedValue({ synced: 1, syncedIds: ['b-only'] });
+    useTeaCompassStore.setState({
+      accountScopeId: 'acct-a',
+      entries: [entry('a-unsynced')],
+      entriesByAccount: { 'acct-b': [entry('b-only')] },
+    });
+
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    await syncCompassEntries('acct-b');
+
+    const payload = syncMock.mock.calls[0]?.[0] as Array<{ id: string }>;
+    expect(payload.map((item) => item.id)).toEqual(['b-only']);
+    expect(payload.some((item) => item.id === 'a-unsynced')).toBe(false);
+  });
+
+  it('refuses sync and hydration requested for a non-active account', async () => {
+    useTeaCompassStore.setState({ accountScopeId: 'acct-a', entries: [entry('a-only')] });
+
+    expect(await syncCompassEntries('acct-b')).toBe(0);
+    await hydrateCompassEntries('acct-b');
+
+    expect(syncMock).not.toHaveBeenCalled();
+    expect(listMock).not.toHaveBeenCalled();
+    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['a-only']);
+  });
+
+  it('ignores a stale hydrate response after the active account changes', async () => {
+    let resolveList!: (value: { entries: unknown[] }) => void;
+    listMock.mockReturnValue(new Promise((resolve) => { resolveList = resolve; }));
+    useTeaCompassStore.setState({ accountScopeId: 'acct-a', entries: [] });
+
+    const pending = hydrateCompassEntries('acct-a');
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    const b = entry('b-local');
+    useTeaCompassStore.getState().addEntry(b);
+    resolveList({ entries: [{ ...entry('a-server'), photos: '[]', audio_clips: '[]' }] });
+    await pending;
+
+    expect(useTeaCompassStore.getState().accountScopeId).toBe('acct-b');
+    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['b-local']);
   });
 });

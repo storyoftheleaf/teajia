@@ -198,3 +198,61 @@ describe('account-scoped Curate draft restoration', () => {
     expect(useTeaCompassStore.getState().sessionEntryIds).toEqual([b]);
   });
 });
+
+describe('account-scoped committed Curate entries', () => {
+  beforeEach(() => {
+    useTeaCompassStore.setState({
+      entries: [],
+      entriesByAccount: {},
+      accountScopeId: null,
+      pendingEntries: [],
+      activeEntryId: null,
+      sessionEntryIds: [],
+      draftAccountScopeId: null,
+      draftsByAccount: {},
+      deletedIds: [],
+      pendingPromotions: [],
+    });
+  });
+
+  it('exposes only committed entries for the selected account across A to B to A', () => {
+    const a = { ...createEmptyEntry('tea'), id: 'entry-a', name: 'Account A tea' };
+    const b = { ...createEmptyEntry('tea'), id: 'entry-b', name: 'Account B tea' };
+
+    useTeaCompassStore.getState().switchAccount('acct-a');
+    useTeaCompassStore.getState().addEntry(a);
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    expect(useTeaCompassStore.getState().entries).toEqual([]);
+
+    useTeaCompassStore.getState().addEntry(b);
+    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['entry-b']);
+
+    useTeaCompassStore.getState().switchAccount('acct-a');
+    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['entry-a']);
+    useTeaCompassStore.getState().switchAccount('acct-b');
+    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['entry-b']);
+  });
+
+  it('exposes no committed entries for a missing or signed-out account', () => {
+    useTeaCompassStore.getState().switchAccount('acct-a');
+    useTeaCompassStore.getState().addEntry({ ...createEmptyEntry('tea'), id: 'private-a', name: 'Private' });
+
+    useTeaCompassStore.getState().switchAccount(null);
+
+    expect(useTeaCompassStore.getState().entries).toEqual([]);
+    expect(useTeaCompassStore.getState().pendingEntries).toEqual([]);
+  });
+
+  it('moves legacy unbucketed entries into the first known account without duplicating them', () => {
+    const legacy = { ...createEmptyEntry('tea'), id: 'legacy', name: 'Legacy tea' };
+    useTeaCompassStore.setState({ entries: [legacy], entriesByAccount: {}, accountScopeId: null });
+
+    useTeaCompassStore.getState().switchAccount('acct-first');
+    expect(useTeaCompassStore.getState().entries.map((item) => item.id)).toEqual(['legacy']);
+
+    useTeaCompassStore.getState().switchAccount('acct-second');
+    expect(useTeaCompassStore.getState().entries).toEqual([]);
+    expect(useTeaCompassStore.getState().entriesByAccount['acct-first']?.map((item) => item.id)).toEqual(['legacy']);
+    expect(useTeaCompassStore.getState().entriesByAccount['acct-second']).toBeUndefined();
+  });
+});

@@ -6,6 +6,14 @@ interface SampleStoreState {
   // Data
   samples: TeaSample[];
   sampleSets: SampleSet[];
+  accountScopeId: string | null;
+  dataByAccount: Record<string, {
+    samples: TeaSample[];
+    sampleSets: SampleSet[];
+    activeSampleId: string | null;
+    activeSetId: string | null;
+  }>;
+  switchAccount: (accountId: string | null) => void;
 
   // Active selections
   activeSampleId: string | null;
@@ -53,8 +61,43 @@ export const useSampleStore = create<SampleStoreState>()(
     (set, get) => ({
       samples: [],
       sampleSets: [],
+      accountScopeId: null,
+      dataByAccount: {},
       activeSampleId: null,
       activeSetId: null,
+
+      switchAccount: (accountId) => set((state) => {
+        if (state.accountScopeId === accountId) return state;
+        const dataByAccount = { ...state.dataByAccount };
+        if (state.accountScopeId) {
+          dataByAccount[state.accountScopeId] = {
+            samples: state.samples,
+            sampleSets: state.sampleSets,
+            activeSampleId: state.activeSampleId,
+            activeSetId: state.activeSetId,
+          };
+        } else if (
+          accountId &&
+          (state.samples.length > 0 || state.sampleSets.length > 0) &&
+          !dataByAccount[accountId]
+        ) {
+          dataByAccount[accountId] = {
+            samples: state.samples,
+            sampleSets: state.sampleSets,
+            activeSampleId: state.activeSampleId,
+            activeSetId: state.activeSetId,
+          };
+        }
+        const target = accountId ? dataByAccount[accountId] : undefined;
+        return {
+          samples: target?.samples ?? [],
+          sampleSets: target?.sampleSets ?? [],
+          activeSampleId: target?.activeSampleId ?? null,
+          activeSetId: target?.activeSetId ?? null,
+          accountScopeId: accountId,
+          dataByAccount,
+        };
+      }),
 
       addSample: (sample) =>
         set((state) => ({
@@ -197,10 +240,25 @@ export const useSampleStore = create<SampleStoreState>()(
     }),
     {
       name: 'teajia-samples',
-      partialize: (state) => ({
-        samples: state.samples,
-        sampleSets: state.sampleSets,
-      }),
+      version: 1,
+      migrate: (persisted) => persisted,
+      partialize: (state) => {
+        const dataByAccount = { ...state.dataByAccount };
+        if (state.accountScopeId) {
+          dataByAccount[state.accountScopeId] = {
+            samples: state.samples,
+            sampleSets: state.sampleSets,
+            activeSampleId: state.activeSampleId,
+            activeSetId: state.activeSetId,
+          };
+        }
+        return {
+          samples: state.samples,
+          sampleSets: state.sampleSets,
+          accountScopeId: state.accountScopeId,
+          dataByAccount,
+        };
+      },
     }
   )
 );

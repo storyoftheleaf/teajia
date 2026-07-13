@@ -97,8 +97,9 @@ function toCamelCase(row: Record<string, any>): TeaCompassEntry {
 /** True while anything still needs to reach the server — unsynced entries,
  *  unconfirmed deletes, or unretried draft promotions. Drives the retry
  *  heartbeat in useCompassSync. */
-export function compassHasPendingWork(): boolean {
+export function compassHasPendingWork(accountId?: string | null): boolean {
   const s = useTeaCompassStore.getState();
+  if (!accountId || s.accountScopeId !== accountId) return false;
   return s.deletedIds.length > 0
     || s.pendingPromotions.length > 0
     || s.entries.some(e => !e.synced);
@@ -107,10 +108,12 @@ export function compassHasPendingWork(): boolean {
 /** Retry explicit Inventory creation requests that failed after the user chose it.
  *  Runs after entry sync so the worker can see the entry. Promotion is
  *  idempotent server-side (returns the existing draft), so retries are safe. */
-async function retryPendingPromotions(): Promise<void> {
+async function retryPendingPromotions(accountId: string): Promise<void> {
   if (!hasToken()) return;
   const store = useTeaCompassStore.getState();
+  if (store.accountScopeId !== accountId) return;
   for (const id of store.pendingPromotions) {
+    if (useTeaCompassStore.getState().accountScopeId !== accountId) return;
     // Entry deleted since — nothing left to promote.
     if (!store.entries.some(e => e.id === id)) {
       useTeaCompassStore.getState().removePendingPromotion(id);
@@ -118,12 +121,16 @@ async function retryPendingPromotions(): Promise<void> {
     }
     try {
       const { id: productId } = await api.compass.promote(id);
+      if (useTeaCompassStore.getState().accountScopeId !== accountId) return;
       useTeaCompassStore.getState().updateEntry(id, { draftProductId: productId, synced: false });
       useTeaCompassStore.getState().removePendingPromotion(id);
     } catch (error) {
       // A permanent authorization/validation/not-found response cannot heal
       // on a heartbeat. Drop it instead of retrying forever.
-      if (!isTransientApiError(error)) useTeaCompassStore.getState().removePendingPromotion(id);
+      if (
+        useTeaCompassStore.getState().accountScopeId === accountId &&
+        !isTransientApiError(error)
+      ) useTeaCompassStore.getState().removePendingPromotion(id);
     }
   }
 }
@@ -133,43 +140,53 @@ async function retryPendingPromotions(): Promise<void> {
  *  cleared only once its delete confirms; failures keep the tombstone for the
  *  next cycle. Previously this only ran on app-start hydrate, so a delete that
  *  timed out stayed pending until the next full reload. */
-export async function retryPendingDeletes(): Promise<void> {
+export async function retryPendingDeletes(accountId?: string): Promise<void> {
   if (!hasToken()) return;
-  const { deletedIds } = useTeaCompassStore.getState();
+  const initial = useTeaCompassStore.getState();
+  const requestedAccountId = accountId ?? initial.accountScopeId;
+  if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return;
+  const { deletedIds } = initial;
   for (const id of deletedIds) {
+    if (useTeaCompassStore.getState().accountScopeId !== requestedAccountId) return;
     try {
       await api.compass.remove(id);
-      useTeaCompassStore.setState(s => ({
-        deletedIds: s.deletedIds.filter(d => d !== id),
-        syncError: false,
-      }));
+      useTeaCompassStore.setState(s => s.accountScopeId === requestedAccountId
+        ? { deletedIds: s.deletedIds.filter(d => d !== id), syncError: false }
+        : s);
     } catch {
-      useTeaCompassStore.setState({ syncError: true });
+      if (useTeaCompassStore.getState().accountScopeId === requestedAccountId) {
+        useTeaCompassStore.setState({ syncError: true });
+      }
     }
   }
 }
 
 // ── Sync unsynced entries to D1 ──
 
-export async function syncCompassEntries(): Promise<number> {
+export async function syncCompassEntries(accountId?: string): Promise<number> {
   if (!hasToken()) return 0;
+  const initial = useTeaCompassStore.getState();
+  const requestedAccountId = accountId ?? initial.accountScopeId;
+  if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return 0;
 
   // Deletes ride every sync cycle, not just hydrate — a failed delete must
   // not wait for the next app reload to retry.
-  await retryPendingDeletes();
+  await retryPendingDeletes(requestedAccountId);
 
   const store = useTeaCompassStore.getState();
+  if (store.accountScopeId !== requestedAccountId) return 0;
   const unsynced = store.entries.filter(e => !e.synced);
 
   if (unsynced.length === 0) {
     // Nothing to push, but an explicit Inventory creation may still be queued.
-    await retryPendingPromotions();
+    await retryPendingPromotions(requestedAccountId);
     return 0;
   }
 
   try {
     const payload = unsynced.map(toSnakeCase);
     const result = await api.compass.sync(payload);
+    if (useTeaCompassStore.getState().accountScopeId !== requestedAccountId) return 0;
     const attemptedIds = new Set(unsynced.map(entry => entry.id));
     const acknowledgedIds = new Set(
       Array.isArray(result.syncedIds)
@@ -181,14 +198,14 @@ export async function syncCompassEntries(): Promise<number> {
     // Only explicit per-id acknowledgements are allowed to clear local dirty
     // state. A protected id collision remains unsynced and retries visibly.
     useTeaCompassStore.setState((state) => ({
-      entries: state.entries.map(e =>
-        acknowledgedIds.has(e.id) ? { ...e, synced: true } : e
-      ),
-      syncError: hasUnacknowledged,
+      entries: state.accountScopeId === requestedAccountId
+        ? state.entries.map(e => acknowledgedIds.has(e.id) ? { ...e, synced: true } : e)
+        : state.entries,
+      syncError: state.accountScopeId === requestedAccountId ? hasUnacknowledged : state.syncError,
     }));
 
     // Entries are on the server now — safe to retry any queued promotions.
-    await retryPendingPromotions();
+    await retryPendingPromotions(requestedAccountId);
 
     return acknowledgedIds.size;
   } catch (err) {
@@ -196,18 +213,24 @@ export async function syncCompassEntries(): Promise<number> {
     // Flag it so the UI can say "couldn't save" rather than leaving the user to
     // assume a local-only change persisted.
     console.warn('[TeaCompass] Sync failed:', err);
-    useTeaCompassStore.setState({ syncError: true });
+    if (useTeaCompassStore.getState().accountScopeId === requestedAccountId) {
+      useTeaCompassStore.setState({ syncError: true });
+    }
     return 0;
   }
 }
 
 // ── Hydrate from D1 on app start ──
 
-export async function hydrateCompassEntries(): Promise<void> {
+export async function hydrateCompassEntries(accountId?: string): Promise<void> {
   if (!hasToken()) return;
+  const initial = useTeaCompassStore.getState();
+  const requestedAccountId = accountId ?? initial.accountScopeId;
+  if (!requestedAccountId || initial.accountScopeId !== requestedAccountId) return;
 
   try {
     const data = await api.compass.list();
+    if (useTeaCompassStore.getState().accountScopeId !== requestedAccountId) return;
     const rawServerIds = new Set<string>((data.entries || []).map((r: any) => r.id));
 
     const store = useTeaCompassStore.getState();
@@ -272,7 +295,9 @@ export async function hydrateCompassEntries(): Promise<void> {
     merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     // Reaching the server clears any stale "couldn't save" flag.
-    useTeaCompassStore.setState({ entries: merged, syncError: false });
+    useTeaCompassStore.setState((state) => state.accountScopeId === requestedAccountId
+      ? { entries: merged, syncError: false }
+      : state);
 
     // Reconcile tombstones: a tombstoned id the server no longer has is confirmed
     // gone — forget it. One it still has means an earlier delete didn't land —
@@ -285,8 +310,11 @@ export async function hydrateCompassEntries(): Promise<void> {
         }));
       }
       for (const id of store.deletedIds.filter(id => rawServerIds.has(id))) {
+        if (useTeaCompassStore.getState().accountScopeId !== requestedAccountId) return;
         api.compass.remove(id)
-          .then(() => useTeaCompassStore.setState(s => ({ deletedIds: s.deletedIds.filter(d => d !== id) })))
+          .then(() => useTeaCompassStore.setState(s => ({
+            deletedIds: s.accountScopeId === requestedAccountId ? s.deletedIds.filter(d => d !== id) : s.deletedIds,
+          })))
           .catch(() => { /* still unreachable — keep tombstone, retry next hydrate */ });
       }
     }
