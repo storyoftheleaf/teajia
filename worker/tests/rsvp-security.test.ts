@@ -29,7 +29,8 @@ describe('public RSVP security', () => {
   it('never discloses the existing RSVP bearer token to a matching public contact', async () => {
     const result = await duplicate();
     expect(result.status).toBe(200);
-    expect(result.body).toMatchObject({ ok: true, existing: true });
+    expect(result.body).toMatchObject({ ok: true, message: expect.any(String) });
+    expect(result.body).not.toHaveProperty('existing');
     expect(JSON.stringify(result.body)).not.toContain('bearer-secret');
     expect(result.body).not.toHaveProperty('magic_token');
     expect(result.body).not.toHaveProperty('redirect_url');

@@ -6856,8 +6856,7 @@ const handleRSVP: Handler = async (request, env, params) => {
   if (existing) {
     return json({
       ok: true,
-      existing: true,
-      message: 'An RSVP already exists. Use RSVP recovery to receive its private link.',
+      message: 'Your RSVP request was received. If an RSVP already exists, use RSVP recovery to receive its private link.',
     });
   }
 
