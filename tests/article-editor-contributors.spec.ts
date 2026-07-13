@@ -12,9 +12,9 @@ test('article editor selects account contributors while preserving the current l
     if (path === '/api/admin/articles' && request.method() === 'GET') return route.fulfill({ json: [article] });
     if (path === '/api/admin/articles/legacy' && request.method() === 'GET') return route.fulfill({ json: article });
     if (path === '/api/admin/articles/legacy' && request.method() === 'PUT') { update = JSON.parse(request.postData() || '{}'); return route.fulfill({ json: { ...article, ...update } }); }
-    if (path === '/api/admin/contributors') return route.fulfill({ json: { contributors: [
-      { id: 'writer-one', display_name: 'Writer One', account_id: 'acct', links: [], is_published: 1 },
-      { id: 'subject-one', display_name: 'Subject One', account_id: 'acct', links: [], is_published: 1 },
+    if (path === '/api/admin/contributor-options') return route.fulfill({ json: { contributors: [
+      { id: 'writer-one', slug: 'writer-one', display_name: 'Writer One', status: 'published' },
+      { id: 'subject-one', slug: 'subject-one', display_name: 'Subject One', status: 'published' },
     ] } });
     return route.fulfill({ json: {} });
   });

@@ -194,7 +194,7 @@ describe('account-safe contributor administration', () => {
     expect(db.contributors.get('writer')?.is_published).toBe(0);
   });
 
-  it('sets, reassigns, and clears both host mirrors without stale links', async () => {
+  it('preserves, unlinks, and reassigns host mirrors without stale links', async () => {
     const db = new FakeDb();
     await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'first-host', display_name: 'First' }) });
     await request(db, '/api/admin/contributors', { method: 'POST', body: JSON.stringify({ id: 'second-host', display_name: 'Second' }) });
@@ -202,14 +202,22 @@ describe('account-safe contributor administration', () => {
     expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBe('first-host');
     expect(db.contributors.get('first-host')?.face_of_account_id).toBe(ACCOUNT_ID);
 
+    // Saving an ordinary non-host with an explicit null must not clear A.
+    expect((await request(db, '/api/admin/contributors/second-host', { method: 'PUT', body: JSON.stringify({ display_name: 'Second saved', face_of_account_id: null }) })).status).toBe(200);
+    expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBe('first-host');
+    expect(db.contributors.get('first-host')?.face_of_account_id).toBe(ACCOUNT_ID);
+    expect(db.contributors.get('second-host')?.face_of_account_id).toBeNull();
+
+    // Unlinking A clears both sides.
+    expect((await request(db, '/api/admin/contributors/first-host', { method: 'PUT', body: JSON.stringify({ face_of_account_id: null }) })).status).toBe(200);
+    expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBeNull();
+    expect(db.contributors.get('first-host')?.face_of_account_id).toBeNull();
+
+    // Reassigning B sets both sides without restoring A.
     expect((await request(db, '/api/admin/contributors/second-host', { method: 'PUT', body: JSON.stringify({ face_of_account_id: ACCOUNT_ID }) })).status).toBe(200);
     expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBe('second-host');
     expect(db.contributors.get('first-host')?.face_of_account_id).toBeNull();
     expect(db.contributors.get('second-host')?.face_of_account_id).toBe(ACCOUNT_ID);
-
-    expect((await request(db, '/api/admin/contributors/second-host', { method: 'PUT', body: JSON.stringify({ face_of_account_id: null }) })).status).toBe(200);
-    expect(db.accounts.get(ACCOUNT_ID)?.host_contributor_id).toBeNull();
-    expect(db.contributors.get('second-host')?.face_of_account_id).toBeNull();
   });
 
   it('rejects a host account outside the authenticated boundary', async () => {

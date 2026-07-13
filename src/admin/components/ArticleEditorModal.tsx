@@ -15,7 +15,7 @@ import {
 } from '../../lib/articleBlockRegistry';
 import { useToast } from './Toast';
 import { ImmersivePreview } from './ImmersivePreview';
-import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, AdminContributor } from '../../types';
+import type { DbArticle, ArticleBlock, ArticleTextEffect, ImageVariant, ContributorOption } from '../../types';
 
 const IMMERSIVE_TEMPLATE = 'immersive_scroll';
 
@@ -26,7 +26,7 @@ interface ArticleEditorModalProps {
   onSaved?: () => void;
 }
 
-function ContributorSelect({ label, value, contributors, loading, error, onChange }: { label: string; value: string; contributors: AdminContributor[]; loading: boolean; error: boolean; onChange: (value: string) => void }) {
+function ContributorSelect({ label, value, contributors, loading, error, onChange }: { label: string; value: string; contributors: ContributorOption[]; loading: boolean; error: boolean; onChange: (value: string) => void }) {
   const [search, setSearch] = useState('');
   const filtered = contributors.filter(item => `${item.display_name} ${item.id}`.toLowerCase().includes(search.toLowerCase()));
   const legacy = value && !contributors.some(item => item.id === value);
@@ -482,7 +482,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const [coverImageUrl, setCoverImageUrl] = useState(initialData?.cover_image_url ?? '');
   const [layoutTemplate, setLayoutTemplate] = useState(initialData?.layout_template ?? 'default');
   const isImmersive = layoutTemplate === IMMERSIVE_TEMPLATE;
-  const contributorsQuery = useQuery({ queryKey: ['admin-contributors'], queryFn: () => api.people.listAdminContributors(), select: result => result.contributors, enabled: isOpen });
+  const contributorsQuery = useQuery({ queryKey: ['contributor-options'], queryFn: () => api.people.listContributorOptions(), select: result => result.contributors, enabled: isOpen });
   const contributors = contributorsQuery.data ?? [];
 
   // Paste panel

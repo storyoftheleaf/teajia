@@ -374,6 +374,13 @@ export interface AdminContributor extends Omit<ContributorProfile, 'articles' | 
   contact_whatsapp?: string | null;
 }
 
+export interface ContributorOption {
+  id: string;
+  slug: string;
+  display_name: string;
+  status: 'draft' | 'published';
+}
+
 export interface ContributorWrite {
   id?: string;
   slug?: string;

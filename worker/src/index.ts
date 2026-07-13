@@ -4489,6 +4489,21 @@ const handleListAdminContributors: Handler = async (request, env) => {
   return json({ contributors: (rows.results ?? []).map(row => adminContributor(row as Record<string, any>)) });
 };
 
+// Publish-bundle-safe identity choices for article author/subject fields. This
+// intentionally excludes private contact links and the full contributor body.
+const handleListContributorOptions: Handler = async (request, env) => {
+  const ctx = await requireBundle(request, env, 'publish');
+  if ('error' in ctx) return ctx.error;
+  const rows = await env.DB.prepare(
+    `SELECT id, id AS slug, display_name,
+            CASE WHEN is_published = 1 THEN 'published' ELSE 'draft' END AS status
+       FROM contributors
+      WHERE account_id = ?
+      ORDER BY display_name ASC`
+  ).bind(ctx.accountId).all();
+  return json({ contributors: rows.results ?? [] });
+};
+
 const CONTRIBUTOR_WRITE_FIELDS = [
   'display_name', 'chinese_name', 'role', 'pronouns', 'location_line', 'active_since',
   'beginnings', 'now_text', 'now_stamp', 'now_updated_at', 'inspirations', 'closing', 'avatar_url',
@@ -4534,12 +4549,15 @@ function adminContributor(row: Record<string, any>) {
   return { ...row, links };
 }
 
-function contributorHostStatements(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null) {
-  const statements: D1PreparedStatement[] = [
-    env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ? AND host_contributor_id = ?').bind(accountId, contributorId),
-    env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE face_of_account_id = ? AND account_id = ? AND id != ?').bind(accountId, accountId, contributorId),
-    env.DB.prepare('UPDATE contributors SET face_of_account_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(requestedAccountId, contributorId, accountId),
-  ];
+function contributorHostStatements(env: Env, accountId: string, contributorId: string, requestedAccountId: string | null, currentAccountId: string | null) {
+  const statements: D1PreparedStatement[] = [];
+  if (currentAccountId === accountId) {
+    statements.push(env.DB.prepare('UPDATE accounts SET host_contributor_id = NULL WHERE id = ? AND host_contributor_id = ?').bind(currentAccountId, contributorId));
+  }
+  if (requestedAccountId) {
+    statements.push(env.DB.prepare('UPDATE contributors SET face_of_account_id = NULL, updated_at = datetime(\'now\') WHERE face_of_account_id = ? AND account_id = ? AND id != ?').bind(requestedAccountId, accountId, contributorId));
+  }
+  statements.push(env.DB.prepare('UPDATE contributors SET face_of_account_id = ?, updated_at = datetime(\'now\') WHERE id = ? AND account_id = ?').bind(requestedAccountId, contributorId, accountId));
   if (requestedAccountId) {
     statements.push(env.DB.prepare('UPDATE accounts SET host_contributor_id = ? WHERE id = ?').bind(contributorId, requestedAccountId));
   }
@@ -4609,7 +4627,7 @@ const handleCreateAdminContributor: Handler = async (request, env) => {
   const statements: D1PreparedStatement[] = [insert];
   if ('face_of_account_id' in body) {
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
-    statements.push(...contributorHostStatements(env, ctx.accountId, id, requested));
+    statements.push(...contributorHostStatements(env, ctx.accountId, id, requested, null));
   }
   try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
   const row = await env.DB.prepare('SELECT * FROM contributors WHERE id = ? AND account_id = ?').bind(id, ctx.accountId).first<Record<string, any>>();
@@ -4626,7 +4644,8 @@ const handleGetAdminContributor: Handler = async (request, env, params) => {
 const handleUpdateAdminContributor: Handler = async (request, env, params) => {
   const ctx = await requireOwnerTier(request, env);
   if ('error' in ctx) return ctx.error;
-  if (!await env.DB.prepare('SELECT id FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first()) {
+  const existing = await env.DB.prepare('SELECT id, face_of_account_id FROM contributors WHERE id = ? AND account_id = ?').bind(params.id, ctx.accountId).first<Record<string, any>>();
+  if (!existing) {
     return json({ error: 'Contributor not found' }, 404);
   }
   const bodyResult = await contributorJson(request);
@@ -4648,7 +4667,7 @@ const handleUpdateAdminContributor: Handler = async (request, env, params) => {
     .bind(...fields.map(field => parsed.values[field]), params.id, ctx.accountId));
   if ('face_of_account_id' in body) {
     const requested = typeof body.face_of_account_id === 'string' && body.face_of_account_id.trim() ? body.face_of_account_id.trim() : null;
-    statements.push(...contributorHostStatements(env, ctx.accountId, params.id, requested));
+    statements.push(...contributorHostStatements(env, ctx.accountId, params.id, requested, (existing.face_of_account_id as string | null) || null));
   }
   if (statements.length) {
     try { await env.DB.batch(statements); } catch (error) { return contributorDatabaseError(error); }
@@ -19712,6 +19731,7 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/admin/people/relationship-audit', handleGetPeopleRelationshipAudit],
   ['POST', '/api/admin/people/relationship-audit/apply', handleApplyPeopleRelationshipAudit],
   ['GET', '/api/admin/contributors', handleListAdminContributors],
+  ['GET', '/api/admin/contributor-options', handleListContributorOptions],
   ['POST', '/api/admin/contributors', handleCreateAdminContributor],
   ['GET', '/api/admin/contributors/:id', handleGetAdminContributor],
   ['PUT', '/api/admin/contributors/:id', handleUpdateAdminContributor],

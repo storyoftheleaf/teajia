@@ -1,4 +1,4 @@
-import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
+import type { Account, AccountApplication, AccountKind, AccountMember, AccountMembership, AccountRole, AdminContributor, Bundle, ContributorOption, ContributorWrite, CurateReceiptProposal, CustomerOrderDetail, DbArticle, PlatformRole } from '../types';
 import type { CompassDecision, CurateJourney, CurateVisit } from '../components/TeaCompass/types';
 
 type CompassWrite = Record<string, unknown> & { decision?: CompassDecision | null };
@@ -3464,6 +3464,9 @@ export const api = {
     },
     listAdminContributors: async (): Promise<{ contributors: AdminContributor[] }> => {
       return authedFetch(`${API_URL}/api/admin/contributors`)
+    },
+    listContributorOptions: async (): Promise<{ contributors: ContributorOption[] }> => {
+      return authedFetch(`${API_URL}/api/admin/contributor-options`)
     },
     createContributor: async (data: ContributorWrite): Promise<{ contributor: AdminContributor }> => {
       return authedFetch(`${API_URL}/api/admin/contributors`, {
