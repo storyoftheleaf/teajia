@@ -145,9 +145,30 @@ describe('review navigation and journey helpers', () => {
 
   it('affirms a blocked identity only when Save has an explicit identity or holding selection', () => {
     const blocked = item({ blocking_fields: ['identity'], proposed_compass_entry_id: 'compass-1', proposed_product_id: 'product-1' });
-    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1')).toEqual(['identity']);
-    expect(reviewedFieldsForImportSave(blocked, '', '')).toEqual([]);
-    expect(reviewedFieldsForImportSave(item(), 'new', 'new')).toEqual([]);
+    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1', false)).toEqual([]);
+    expect(reviewedFieldsForImportSave(blocked, 'compass-1', 'product-1', true)).toEqual(['identity']);
+    expect(reviewedFieldsForImportSave(blocked, '', '', true)).toEqual([]);
+    expect(reviewedFieldsForImportSave(item(), 'new', 'new', true)).toEqual([]);
+  });
+
+  it('preserves proposed identity resolution on an unrelated untouched Save', () => {
+    const parsed = { sourceItemId: 'source-1', duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' };
+    const payload = buildImportCorrectionParsedData(parsed, {
+      englishName: 'Edited tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
+      description: 'Only this changed', inventoryPurpose: 'working', compassSelection: null, productSelection: null, identityTouched: false,
+      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' });
+  });
+
+  it('confirms one explicitly touched picker without clearing its proposed companion', () => {
+    const parsed = { sourceItemId: 'source-1', duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' };
+    const payload = buildImportCorrectionParsedData(parsed, {
+      englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
+      description: null, inventoryPurpose: 'working', compassSelection: 'compass-1', productSelection: null, identityTouched: true,
+      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' });
   });
 
   it('uses category-aware Inventory action nouns', () => {

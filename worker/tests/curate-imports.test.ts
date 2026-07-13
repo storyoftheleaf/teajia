@@ -113,6 +113,33 @@ class ImportStatement {
       return { success: true, meta: { changes: 1 } };
     }
     if (table && sql.startsWith('update')) {
+      if (table === this.db.items && sql.includes('json_remove') && sql.includes('where vendor_group_id = ?')) {
+        if (this.db.moveVendorItemBeforePatch) {
+          const moved = this.db.items.get(this.db.moveVendorItemBeforePatch.itemId);
+          if (moved) moved.vendor_group_id = this.db.moveVendorItemBeforePatch.groupId;
+          this.db.moveVendorItemBeforePatch = null;
+        }
+        if (this.db.rewriteVendorItemBeforePatch) {
+          const rewritten = this.db.items.get(this.db.rewriteVendorItemBeforePatch.itemId);
+          if (rewritten) rewritten.parsed_data_json = JSON.stringify(this.db.rewriteVendorItemBeforePatch.parsedData);
+          this.db.rewriteVendorItemBeforePatch = null;
+        }
+        const [groupId, accountId, guardedGroupId, guardedAccountId, vendorId, batchId, batchAccountId] = this.values;
+        const group = this.db.groups.get(String(guardedGroupId));
+        const batch = this.db.batches.get(String(batchId));
+        if (!group || group.account_id !== guardedAccountId || group.resolved_vendor_customer_id !== vendorId
+          || !batch || batch.account_id !== batchAccountId || ['completed', 'abandoned'].includes(String(batch.review_state)) || batch.finalize_idempotency_key != null) return { success: true, meta: { changes: 0 } };
+        let changes = 0;
+        for (const row of table.values()) if (row.vendor_group_id === groupId && row.account_id === accountId) {
+          const parsed = JSON.parse(String(row.parsed_data_json || '{}'));
+          if (parsed.confidence && typeof parsed.confidence === 'object') delete parsed.confidence.vendor;
+          if (parsed.uncertainty && typeof parsed.uncertainty === 'object') delete parsed.uncertainty.vendor;
+          parsed.blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter((field: unknown) => field !== 'vendor') : [];
+          row.parsed_data_json = JSON.stringify(parsed);
+          changes += 1;
+        }
+        return { success: true, meta: { changes } };
+      }
       if (table === this.db.items && sql.includes('where batch_id = ?') && sql.includes("review_state in ('pending', 'reviewing')")) {
         const guardedBatch = this.db.batches.get(String(this.values.at(-2)));
         if (!guardedBatch || ['completed', 'abandoned'].includes(String(guardedBatch.review_state)) || (sql.includes('finalize_idempotency_key is null') && guardedBatch.finalize_idempotency_key != null)) return { success: true, meta: { changes: 0 } };
@@ -175,6 +202,8 @@ class ImportDb {
   vendorWinnerBeforeInsert: Row | null = null;
   evidenceWinnerBeforeGuard = false;
   terminalizeAfterVendorInsert = false;
+  moveVendorItemBeforePatch: { itemId: string; groupId: string } | null = null;
+  rewriteVendorItemBeforePatch: { itemId: string; parsedData: Record<string, unknown> } | null = null;
   inBatch = false;
   pendingVendorTerminalization: string | null = null;
   batches = new Map<string, Row>();
@@ -582,6 +611,19 @@ describe('Curate import provenance API', () => {
     expect((await equivalent.json() as any).parsed_data.blockingFields).toContain('priceAmount');
   });
 
+  it('accepts reviewed-fields-only identity confirmation for exact-only stored money', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Exact identity review', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    const parsed = { ...itemProposal('exact-identity'), inventoryPurpose: 'working', priceAmount: null, priceAmountExact: '999999999999999.99', duplicateResolution: 'matched', proposedCompassEntryId: 'entry-a', confidence: { identity: 0.4 }, uncertainty: { identity: 'confirm' }, blockingFields: ['identity'] };
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify(parsed);
+    const response = await request(db, `/api/curate/imports/${batch.id}/items/${items[0].id}`, { method: 'PUT', body: JSON.stringify({ reviewed_fields: ['identity'] }) });
+    expect(response.status).toBe(200);
+    const reviewed = await response.json() as any;
+    expect(reviewed.parsed_data).toMatchObject({ priceAmount: null, priceAmountExact: '999999999999999.99' });
+    expect(reviewed.parsed_data.blockingFields).not.toContain('identity');
+  });
+
   it('treats explicit vendor selection as authoritative and clears vendor blockers for the group', async () => {
     const db = new ImportDb();
     db.customers.set('vendor-a', { id: 'vendor-a', account_id: 'account-a', name: 'Confirmed Vendor', tags: '["vendor"]' });
@@ -703,6 +745,32 @@ describe('Curate import provenance API', () => {
     const result = await request(db, `/api/curate/imports/${batch.id}/groups/group-normalized/vendor`, { method: 'POST', body: JSON.stringify({ name: requestedName }) });
     expect(result.status).toBe(201);
     expect(db.groups.get('group-normalized')?.resolved_vendor_customer_id).toBe('curate-vendor-group-normalized');
+  });
+
+  it('does not clear vendor review on an item concurrently moved to another group', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Moved vendor item', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.groups.set('group-b', { id: 'group-b', batch_id: batch.id, account_id: 'account-a', position: 1, group_key: 'b', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.items.get(items[0].id)!.vendor_group_id = 'group-a';
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify({ ...itemProposal('moved'), confidence: { vendor: 0.4 }, uncertainty: { vendor: 'confirm' }, blockingFields: ['vendor'] });
+    db.moveVendorItemBeforePatch = { itemId: items[0].id, groupId: 'group-b' };
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Farm A' }) })).status).toBe(201);
+    expect(db.items.get(items[0].id)?.vendor_group_id).toBe('group-b');
+    expect(JSON.parse(String(db.items.get(items[0].id)?.parsed_data_json)).blockingFields).toContain('vendor');
+  });
+
+  it('patches only vendor review fields in concurrently newer item JSON', async () => {
+    const db = new ImportDb();
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Newer vendor item', items: [{ name: 'Tea' }] }) });
+    const { batch, items } = await created.json() as any;
+    db.groups.set('group-a', { id: 'group-a', batch_id: batch.id, account_id: 'account-a', position: 0, group_key: 'a', resolved_vendor_customer_id: null, uncertainty_json: '{}' });
+    db.items.get(items[0].id)!.vendor_group_id = 'group-a';
+    db.items.get(items[0].id)!.parsed_data_json = JSON.stringify({ ...itemProposal('older'), blockingFields: ['vendor'] });
+    db.rewriteVendorItemBeforePatch = { itemId: items[0].id, parsedData: { ...itemProposal('newer'), description: 'newer analysis', confidence: { vendor: 0.4, year: 0.5 }, uncertainty: { vendor: 'confirm', year: 'confirm year' }, blockingFields: ['vendor', 'year'] } };
+    expect((await request(db, `/api/curate/imports/${batch.id}/groups/group-a/vendor`, { method: 'POST', body: JSON.stringify({ name: 'Farm A' }) })).status).toBe(201);
+    expect(JSON.parse(String(db.items.get(items[0].id)?.parsed_data_json))).toMatchObject({ description: 'newer analysis', confidence: { year: 0.5 }, uncertainty: { year: 'confirm year' }, blockingFields: ['year'] });
   });
 
   it('bounds vendor candidates after vendor-tag filtering', async () => {

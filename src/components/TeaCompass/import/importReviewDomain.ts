@@ -80,12 +80,16 @@ export interface ImportCorrectionDraft {
   inventoryPurpose: string | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
   packWeight: number | null; weightUnit: string | null; packCount: number | null; priceAmount: string | null;
   currency: string | null; priceBasis: string;
+  identityTouched?: boolean;
 }
 
 export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>, draft: ImportCorrectionDraft) => {
-  const createsIdentity = draft.compassSelection === 'new';
-  const proposedCompassEntryId = createsIdentity ? null : draft.compassSelection;
-  const proposedProductId = createsIdentity || draft.productSelection === 'new' ? null : draft.productSelection;
+  const identityTouched = draft.identityTouched !== false;
+  const compassSelection = draft.compassSelection ?? (typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : parsed.duplicateResolution === 'new' ? 'new' : null);
+  const productSelection = draft.productSelection ?? (typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null);
+  const createsIdentity = identityTouched ? compassSelection === 'new' : parsed.duplicateResolution === 'new';
+  const proposedCompassEntryId = identityTouched ? (createsIdentity ? null : compassSelection) : parsed.proposedCompassEntryId ?? null;
+  const proposedProductId = identityTouched ? (createsIdentity || productSelection === 'new' ? null : productSelection) : parsed.proposedProductId ?? null;
   const priceAmount = (() => {
     const source = draft.priceAmount?.trim();
     if (!source || !/^\d+(?:\.\d+)?$/.test(source)) return null;
@@ -100,7 +104,7 @@ export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>,
     classification: draft.classification, year: draft.year, form: draft.form, originRegion: draft.originRegion,
     description: draft.description, inventoryPurpose: draft.inventoryPurpose,
     proposedCompassEntryId, proposedProductId, acquired: draft.acquired,
-    duplicateResolution: createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved',
+    duplicateResolution: identityTouched ? (createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved') : parsed.duplicateResolution ?? 'unresolved',
     packWeight: draft.packWeight, weightUnit: draft.weightUnit, packCount: draft.packCount,
     priceAmount, priceAmountExact: priceAmount, currency: draft.currency, priceBasis: draft.priceBasis,
   };
@@ -135,10 +139,10 @@ export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportD
   }),
 });
 
-export const reviewedFieldsForImportSave = (item: CurateImportItem, compassSelection: string, productSelection: string): CurateImportReviewedField[] => {
+export const reviewedFieldsForImportSave = (item: CurateImportItem, compassSelection: string, productSelection: string, identityTouched: boolean): CurateImportReviewedField[] => {
   const blockers = (item.blocking_fields ?? []).map(field => field.replace(/_/g, '').toLocaleLowerCase());
   const identityBlocked = blockers.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
-  return identityBlocked && Boolean(compassSelection || productSelection) ? ['identity'] : [];
+  return identityTouched && identityBlocked && Boolean(compassSelection || productSelection) ? ['identity'] : [];
 };
 
 export const importItemNoun = (items: Array<Pick<CurateImportItem, 'category'>>, count = items.length) => {

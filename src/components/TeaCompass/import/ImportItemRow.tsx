@@ -21,17 +21,18 @@ const packEquation = (item: CurateImportItem) => {
 
 export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpdate }) => {
   const [expanded, setExpanded] = useState(false);
+  const [identityTouched, setIdentityTouched] = useState(false);
   const blockerKeys = (item.blocking_fields || []).map(field => field.replace(/_/g, '').toLocaleLowerCase());
-  const identityBlocked = blockerKeys.some(field => ['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
-  const productBlocked = blockerKeys.some(field => ['productid', 'proposedproductid', 'inventoryholding'].includes(field));
+  const identityBlocked = blockerKeys.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
+  const productBlocked = blockerKeys.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
   const [draft, setDraft] = useState({
     english_name: value(item.english_name || item.name), original_name: value(item.original_name),
     pack_weight: value(item.pack_weight), weight_unit: value(item.weight_unit), pack_count: value(item.pack_count),
     price_amount: value(item.price_amount_exact ?? item.parsed_data?.priceAmountExact ?? item.price_amount), currency: value(item.currency), price_basis: value(item.price_basis || 'unknown'),
     tea_type: value(item.parsed_data?.type), classification: value(item.parsed_data?.classification), year: value(item.parsed_data?.year),
     form: value(item.parsed_data?.form), origin: value(item.parsed_data?.originRegion), description: value(item.parsed_data?.description),
-    purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || (!identityBlocked && 'new')),
-    product_id: value(item.proposed_product_id || (!productBlocked && 'new')),
+    purpose: value(item.parsed_data?.inventoryPurpose), compass_entry_id: value(identityBlocked ? '' : item.proposed_compass_entry_id || (item.duplicate_resolution === 'new' && 'new') || 'new'),
+    product_id: value(productBlocked ? '' : item.proposed_product_id || 'new'),
     acquired: item.acquired === true ? 'yes' : '',
   });
   const label = item.english_name || item.name || item.raw_text || `Item ${item.position + 1}`;
@@ -44,12 +45,12 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
       type: draft.tea_type.trim() || null, classification: draft.classification.trim() || null,
       year: draft.year ? Number(draft.year) : null, form: draft.form.trim() || null, originRegion: draft.origin.trim() || null,
       description: draft.description.trim() || null, inventoryPurpose: draft.purpose || null,
-      compassSelection: draft.compass_entry_id || null, productSelection: draft.product_id || null, acquired: draft.acquired === 'yes',
+      compassSelection: draft.compass_entry_id || null, productSelection: draft.product_id || null, identityTouched, acquired: draft.acquired === 'yes',
       packWeight: draft.pack_weight ? Number(draft.pack_weight) : null, weightUnit: draft.weight_unit || null,
       packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount.trim() || null,
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis,
     });
-    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id);
+    const reviewedFields = reviewedFieldsForImportSave(item, draft.compass_entry_id, draft.product_id, identityTouched);
     const updates: CurateImportItemUpdate = {
       name: draft.english_name.trim() || null, english_name: draft.english_name.trim() || null, original_name: draft.original_name.trim() || null,
       pack_weight: draft.pack_weight ? Number(draft.pack_weight) : null, weight_unit: (draft.weight_unit || null) as CurateImportItem['weight_unit'],
@@ -90,8 +91,8 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, onUpda
           <label className="block text-ui-11 text-tea-text-sec">Currency<input value={draft.currency} onChange={event => set('currency', event.target.value)} placeholder="CNY" className={fieldClass} /></label>
           <label className="block text-ui-11 text-tea-text-sec">Price interpretation<select value={draft.price_basis} onChange={event => set('price_basis', event.target.value)} className={fieldClass}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></label>
           <label className="block text-ui-11 text-tea-text-sec">Inventory purpose<select value={draft.purpose} onChange={event => set('purpose', event.target.value)} className={fieldClass}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></label>
-          <label className="block text-ui-11 text-tea-text-sec">Compass tea identity<select value={draft.compass_entry_id} onChange={event => set('compass_entry_id', event.target.value)} className={fieldClass}><option value="">Choose identity resolution</option>{item.proposed_compass_entry_id && <option value={item.proposed_compass_entry_id}>Use proposed Compass match</option>}<option value="new">Create a new Compass identity</option></select></label>
-          <label className="block text-ui-11 text-tea-text-sec">Inventory holding<select value={draft.product_id} onChange={event => set('product_id', event.target.value)} className={fieldClass}><option value="">Choose holding resolution</option>{item.proposed_product_id && <option value={item.proposed_product_id}>Use proposed Inventory holding</option>}<option value="new">Create a new Inventory holding</option></select></label>
+          <label className="block text-ui-11 text-tea-text-sec">Compass tea identity<select value={draft.compass_entry_id} onChange={event => { setIdentityTouched(true); set('compass_entry_id', event.target.value); }} className={fieldClass}><option value="">Choose identity resolution</option>{item.proposed_compass_entry_id && <option value={item.proposed_compass_entry_id}>Use proposed Compass match</option>}<option value="new">Create a new Compass identity</option></select></label>
+          <label className="block text-ui-11 text-tea-text-sec">Inventory holding<select value={draft.product_id} onChange={event => { setIdentityTouched(true); set('product_id', event.target.value); }} className={fieldClass}><option value="">Choose holding resolution</option>{item.proposed_product_id && <option value={item.proposed_product_id}>Use proposed Inventory holding</option>}<option value="new">Create a new Inventory holding</option></select></label>
           <label className="block text-ui-11 text-tea-text-sec">Acquired into physical stock<select value={draft.acquired} onChange={event => set('acquired', event.target.value)} className={fieldClass}><option value="">Needs confirmation</option><option value="yes">Yes, add to physical stock</option></select></label>
           <div className="flex justify-between gap-3"><button type="button" onClick={() => setExpanded(false)} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Cancel</button><button type="button" disabled={busy || !draft.english_name.trim()} onClick={() => void submit()} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg disabled:opacity-50">{busy ? 'Saving…' : `Save ${editLabel}`}</button></div>
         </div>

@@ -712,20 +712,21 @@ export async function createVendorForCurateImportGroup(request: Request, env: Im
   if (!winner || normalizedName(String(winner.name)) !== normalizedName(name)) return response({ error: 'Vendor group was concurrently created with a different name' }, 409);
   const groupUncertainty = parseJson(group.uncertainty_json, {}) as Record<string, unknown>;
   delete groupUncertainty.vendor;
-  const groupItems = await env.DB.prepare('SELECT * FROM curate_import_items WHERE vendor_group_id = ? AND account_id = ?').bind(params.groupId, ctx.accountId).all<Record<string, unknown>>();
   const statements: D1PreparedStatement[] = [env.DB.prepare(`UPDATE curate_import_vendor_groups SET resolved_vendor_customer_id = ?, updated_at = datetime('now')
       WHERE id = ? AND account_id = ?
         AND EXISTS (SELECT 1 FROM customers WHERE id = ? AND account_id = ?)
         AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
       .bind(vendorId, params.groupId, ctx.accountId, vendorId, ctx.accountId, params.id, ctx.accountId),
     env.DB.prepare("UPDATE curate_import_vendor_groups SET vendor_confidence = ?, uncertainty_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-      .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId)];
-  for (const item of groupItems.results) {
-    const parsed = parseJson(item.parsed_data_json, {}) as Record<string, unknown>;
-    const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(field => field !== 'vendor') : [];
-    statements.push(env.DB.prepare("UPDATE curate_import_items SET parsed_data_json = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_vendor_groups WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ?) AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)")
-      .bind(JSON.stringify({ ...clearReviewedMaterialFields(parsed, new Set(['vendor'])), blockingFields }), item.id, ctx.accountId, params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId));
-  }
+      .bind(1, JSON.stringify(groupUncertainty), params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId),
+    env.DB.prepare(`UPDATE curate_import_items SET parsed_data_json = json_set(
+        json_remove(CASE WHEN json_valid(parsed_data_json) THEN parsed_data_json ELSE '{}' END, '$.confidence.vendor', '$.uncertainty.vendor'),
+        '$.blockingFields', json(COALESCE((SELECT json_group_array(value) FROM json_each(json_extract(CASE WHEN json_valid(parsed_data_json) THEN parsed_data_json ELSE '{}' END, '$.blockingFields')) WHERE value != 'vendor'), '[]'))
+      ), updated_at = datetime('now')
+      WHERE vendor_group_id = ? AND account_id = ?
+        AND EXISTS (SELECT 1 FROM curate_import_vendor_groups WHERE id = ? AND account_id = ? AND resolved_vendor_customer_id = ?)
+        AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)`)
+      .bind(params.groupId, ctx.accountId, params.groupId, ctx.accountId, vendorId, params.id, ctx.accountId)];
   const results = await env.DB.batch(statements);
   if (!(results[0]?.meta.changes ?? 0)) {
     if (inserted.meta.changes) await env.DB.prepare("DELETE FROM customers WHERE id = ? AND account_id = ? AND source = 'curate_import'").bind(vendorId, ctx.accountId).run();
@@ -960,6 +961,7 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
   if (!current) return response({ error: 'Import item not found' }, 404);
   let body: Record<string, unknown>;
   try { body = object(await request.json()) ?? {}; } catch { return response({ error: 'Invalid JSON' }, 400); }
+  const parsedDataExplicitlySupplied = 'parsed_data' in body;
   const allowed = new Set(['source_id', 'position', 'category', 'name', 'raw_text', 'parsed_data', 'reviewed_fields', 'confidence', 'uncertainty', 'review_state']);
   if (Object.keys(body).some(key => !allowed.has(key))) return response({ error: 'Unknown update field' }, 400);
   const updates: string[] = [];
@@ -969,7 +971,13 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
     if (!Array.isArray(body.reviewed_fields) || body.reviewed_fields.some(field => typeof field !== 'string' || !Object.values(MATERIAL_REVIEW_BLOCKERS).includes(field))) return response({ error: 'Invalid reviewed_fields' }, 400);
     for (const field of body.reviewed_fields) explicitReviewedFields.add(field as string);
   }
-  if (explicitReviewedFields.size && !('parsed_data' in body)) body.parsed_data = parseJson(current.parsed_data_json, {});
+  const reviewedFieldsOnly = explicitReviewedFields.size > 0 && !parsedDataExplicitlySupplied;
+  if (reviewedFieldsOnly) {
+    const parsed = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
+    const sourceFields = new Set(Object.entries(MATERIAL_REVIEW_BLOCKERS).filter(([, blocker]) => explicitReviewedFields.has(blocker)).map(([field]) => field));
+    const blockingFields = Array.isArray(parsed.blockingFields) ? parsed.blockingFields.filter(field => !sourceFields.has(String(field)) && !explicitReviewedFields.has(String(field))) : [];
+    body.parsed_data = { ...clearReviewedMaterialFields(parsed, explicitReviewedFields), blockingFields };
+  }
   const manualFields = new Set((() => {
     const parsed = parseJson(current.manually_corrected_fields_json, []);
     return Array.isArray(parsed) ? parsed.filter(value => typeof value === 'string') as string[] : [];
@@ -1004,16 +1012,16 @@ export async function updateCurateImportItem(request: Request, env: ImportEnv, c
         if (key === 'parsed_data') {
           const submitted = object(value);
           if (!submitted) return response({ error: 'Invalid update' }, 400);
-          if ('priceAmount' in submitted && 'priceAmountExact' in submitted
+          if (parsedDataExplicitlySupplied && 'priceAmount' in submitted && 'priceAmountExact' in submitted
             && canonicalReviewMoney(submitted.priceAmount) !== canonicalReviewMoney(submitted.priceAmountExact)) return response({ error: 'priceAmountExact must match priceAmount' }, 400);
           const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
           const reviewed = new Set(explicitReviewedFields);
           for (const blocker of new Set(Object.values(MATERIAL_REVIEW_BLOCKERS))) if (materialReviewChanged(blocker, before, submitted)) reviewed.add(blocker);
           normalizedInput = clearReviewedMaterialFields(submitted, reviewed);
         }
-        const storedValue = key === 'parsed_data' ? renormalizeImportItemData(normalizedInput) : value;
+        const storedValue = key === 'parsed_data' ? (reviewedFieldsOnly ? normalizedInput : renormalizeImportItemData(normalizedInput)) : value;
         updates.push(`${key}_json = ?`); values.push(jsonField(storedValue, {}));
-        if (key === 'parsed_data') {
+        if (key === 'parsed_data' && !reviewedFieldsOnly) {
           const before = parseJson(current.parsed_data_json, {}) as Record<string, unknown>;
           const after = storedValue as Record<string, unknown>;
           const derived = new Set(['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields']);
