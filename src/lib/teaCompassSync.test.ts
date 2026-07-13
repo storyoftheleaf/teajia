@@ -109,6 +109,23 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().syncError).toBe(true);
   });
 
+  it('sends durable sample unlink fields without the client-only isSample mirror', async () => {
+    syncMock.mockResolvedValue({ synced: 1, syncedIds: ['unlinked'] });
+    useTeaCompassStore.setState({
+      entries: [{
+        ...entry('unlinked'), sampleSetId: undefined, sampleState: null, isSample: false,
+        decision: 'selected', verdict: 'love', status: 'noted',
+      }],
+    });
+
+    expect(await syncCompassEntries('acct-a')).toBe(1);
+    expect(syncMock).toHaveBeenCalledWith([expect.objectContaining({
+      id: 'unlinked', sample_set_id: null, sample_state: null,
+      decision: 'selected', verdict: 'love', status: 'noted',
+    })]);
+    expect(syncMock.mock.calls[0][0][0]).not.toHaveProperty('isSample');
+  });
+
   it('does not trust a numeric count without explicit id acknowledgements', async () => {
     syncMock.mockResolvedValue({ synced: 2 });
     useTeaCompassStore.setState({ entries: [entry('one'), entry('two')] });

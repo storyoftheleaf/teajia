@@ -39,7 +39,7 @@ function toSnakeCase(entry: TeaCompassEntry): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(entry)) {
     // Skip client-only fields
-    if (key === 'synced' || key === 'vendorDetails' || key === 'touchedFields' || key === 'draftAccountId') continue;
+    if (key === 'synced' || key === 'vendorDetails' || key === 'touchedFields' || key === 'draftAccountId' || key === 'isSample') continue;
 
     const snakeKey = CAMEL_TO_SNAKE[key] || key;
 

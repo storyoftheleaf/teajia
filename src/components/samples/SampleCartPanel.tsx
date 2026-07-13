@@ -198,6 +198,50 @@ export const SampleCartPanel: React.FC<SampleCartPanelProps> = ({ onClose, onCap
     setDiscarding(true);
     setDiscardError(null);
     try {
+      const compassBefore = useTeaCompassStore.getState();
+      if (compassBefore.accountScopeId !== accountId) {
+        throw new Error('The pending batch Library is no longer active. Return to that account and retry.');
+      }
+      const operationEntryIds = new Set(operation.samples
+        .map((sample) => sample.compassEntryId)
+        .filter((id): id is string => Boolean(id)));
+      const linkedEntries = compassBefore.entries
+        .filter((entry) => entry.sampleSetId === operation.sampleSet.id)
+        .map((entry) => ({
+          id: entry.id,
+          sampleSetId: entry.sampleSetId,
+          sampleState: entry.sampleState,
+          isSample: entry.isSample,
+        }));
+      for (const entry of linkedEntries) {
+        useTeaCompassStore.getState().updateEntry(entry.id, {
+          sampleSetId: undefined,
+          sampleState: null,
+          isSample: false,
+        });
+      }
+      const retryingUnlinkIds = useTeaCompassStore.getState().entries
+        .filter((entry) => (
+          operationEntryIds.has(entry.id)
+          && entry.sampleSetId == null
+          && entry.sampleState == null
+          && !entry.synced
+        ))
+        .map((entry) => entry.id);
+      const unlinkIds = Array.from(new Set([...linkedEntries.map((entry) => entry.id), ...retryingUnlinkIds]));
+      await syncCompassEntries(accountId);
+      const compassAfter = useTeaCompassStore.getState();
+      if (
+        useAppStore.getState().activeAccountId !== accountId
+        || compassAfter.accountScopeId !== accountId
+        || unlinkIds.some((id) => {
+          const entry = compassAfter.entries.find((candidate) => candidate.id === id);
+          return !entry || !entry.synced || entry.sampleSetId != null || entry.sampleState != null || entry.isSample === true;
+        })
+      ) {
+        throw new Error('The saved draft is still linked in Library. It remains locked; retry discard when the connection is available.');
+      }
+
       discardSampleSet(operation.sampleSet.id);
       const result = await sampleRepository.sync(accountId);
       const sampleState = useSampleStore.getState();

@@ -6,7 +6,7 @@ const unhandledByPage = new WeakMap<Page, string[]>();
 const requestCounts = new WeakMap<Page, Map<string, number>>();
 export const COMPASS_TOKEN = `${enc(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))}.${enc(JSON.stringify({ sub: 'test-admin-uid', email: 'admin@teajia.com', name: 'Test Admin', role: 'owner', platform_role: 'platform_owner', exp: Math.floor(Date.now() / 1000) + 86400, active_account_id: 'acct-bali', memberships }))}.test`;
 
-export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
+export async function installCompassHarness(page: Page, options?: { sampleCart?: unknown[]; preserveSamplesOnNavigation?: boolean; preserveSampleCartOnNavigation?: boolean; compassSyncLoseResponses?: number; contextEmpty?: boolean; contextFailOnce?: boolean; contextJourneyFailOnce?: boolean; contextVisitFailOnce?: boolean; products?: unknown[]; compassEntries?: unknown[]; contextByAccount?: Record<string, { journeys: unknown[]; visits: unknown[] }>; contextAfterInitial?: { journeys: unknown[]; visits: unknown[] }; contextDelayByAccount?: Record<string, number> }) {
   unhandledByPage.set(page, []);
   requestCounts.set(page, new Map());
   const sampleSets: Array<Record<string, any>> = [];
@@ -57,6 +57,9 @@ export async function installCompassHarness(page: Page, options?: { sampleCart?:
         const index = compassEntries.findIndex(candidate => candidate.id === entry.id);
         if (index >= 0) compassEntries[index] = { ...compassEntries[index], ...entry };
         else compassEntries.push({ ...entry });
+      }
+      if (counts.get(requestKey)! <= (options?.compassSyncLoseResponses ?? 0)) {
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Compass sync response was lost' }) });
       }
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ syncedIds: (body.entries ?? []).map(entry => entry.id) }) });
     }

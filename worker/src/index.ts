@@ -12979,17 +12979,26 @@ const handleDeleteSampleSet: Handler = async (request, env, params) => {
   ).bind(params.id, accountId).all();
   const sampleIds = (samples.results as Record<string, any>[]).map(s => s.id);
 
+  const deletes: D1PreparedStatement[] = [
+    env.DB.prepare(
+      `UPDATE tea_compass_entries
+       SET sample_set_id = NULL, sample_state = NULL, updated_at = datetime('now')
+       WHERE sample_set_id = ? AND account_id = ?`
+    ).bind(params.id, accountId),
+  ];
   if (sampleIds.length > 0) {
     const placeholders = sampleIds.map(() => '?').join(', ');
-    await env.DB.prepare(
+    deletes.push(env.DB.prepare(
       `DELETE FROM tea_sample_tastings WHERE sample_id IN (${placeholders})`
-    ).bind(...sampleIds).run();
+    ).bind(...sampleIds));
   }
-
-  await env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ? AND account_id = ?')
-    .bind(params.id, accountId).run();
-  await env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ? AND account_id = ?')
-    .bind(params.id, accountId).run();
+  deletes.push(
+    env.DB.prepare('DELETE FROM tea_samples WHERE set_id = ? AND account_id = ?')
+      .bind(params.id, accountId),
+    env.DB.prepare('DELETE FROM tea_sample_sets WHERE id = ? AND account_id = ?')
+      .bind(params.id, accountId),
+  );
+  await env.DB.batch(deletes);
 
   const userEmail = getUserEmail(request);
   await buildActivityLog(env, 'sample_set_deleted', `Sample set ${params.id} deleted (${sampleIds.length} samples)`, userEmail, 'sample_set', params.id, accountId).run();

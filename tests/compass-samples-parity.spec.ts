@@ -389,6 +389,66 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByRole('button', { name: 'Clear all' })).toBeEnabled();
   });
 
+  test('retries a lost Library unlink before deleting its remotely linked sample draft', async ({ page }) => {
+    await installCompassHarness(page, {
+      sampleCart: [CART_ITEM],
+      preserveSamplesOnNavigation: true,
+      preserveSampleCartOnNavigation: true,
+      compassSyncLoseResponses: 2,
+      compassEntries: [{
+        id: 'compass-tea-1', name: CART_ITEM.name, category: 'tea', status: 'noted', decision: 'selected', verdict: 'love',
+        sample_state: null, sample_set_id: null, notes: '', photos: '[]', audio_clips: '[]',
+        created_at: '2026-07-13T00:00:00.000Z', updated_at: '2026-07-13T00:00:00.000Z',
+      }],
+    });
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Save as sample batch' }).click();
+    await expect(page.getByRole('alert')).toContainText('Library linkage is still pending');
+    const setId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state.pendingOperation.sampleSet.id);
+    const remotelyLinked = await page.evaluate(async () => {
+      const response = await fetch('/api/compass/entries');
+      return (await response.json()).entries.find((entry: { id: string }) => entry.id === 'compass-tea-1');
+    });
+    expect(remotelyLinked).toMatchObject({
+      sample_set_id: setId, sample_state: 'requested', decision: 'selected', verdict: 'love', status: 'noted',
+    });
+
+    await page.getByRole('button', { name: 'Discard saved draft' }).click();
+    await expect(page.getByText(/still linked in Library/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear all' })).toBeDisabled();
+    expect(compassRequestCount(page, `DELETE /api/admin/sample-sets/${setId}`)).toBe(0);
+    const remotelyUnlinkedAfterLostResponse = await page.evaluate(async () => {
+      const response = await fetch('/api/compass/entries');
+      return (await response.json()).entries.find((entry: { id: string }) => entry.id === 'compass-tea-1');
+    });
+    expect(remotelyUnlinkedAfterLostResponse).toMatchObject({
+      sample_set_id: null, sample_state: null, decision: 'selected', verdict: 'love', status: 'noted',
+    });
+
+    await page.getByRole('button', { name: 'Discard saved draft' }).click();
+    await expect(page.getByRole('button', { name: 'Save as sample batch' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear all' })).toBeEnabled();
+    expect(compassRequestCount(page, 'POST /api/compass/sync')).toBe(3);
+    expect(compassRequestCount(page, `DELETE /api/admin/sample-sets/${setId}`)).toBe(1);
+    expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(1);
+    expect(compassRequestCount(page, 'POST /api/admin/samples')).toBe(1);
+    const finalState = await page.evaluate(async () => {
+      // @ts-expect-error Vite source modules are available in Playwright.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      return {
+        entry: useTeaCompassStore.getState().entries.find((candidate: { id: string }) => candidate.id === 'compass-tea-1'),
+        samples: JSON.parse(localStorage.getItem('teajia-samples') || '{}').state,
+      };
+    });
+    expect(finalState.entry).toMatchObject({
+      sampleSetId: undefined, sampleState: null, isSample: false, synced: true,
+      decision: 'selected', verdict: 'love', status: 'noted',
+    });
+    expect(finalState.samples.sampleSets).toEqual([]);
+    expect(finalState.samples.samples).toEqual([]);
+  });
+
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);

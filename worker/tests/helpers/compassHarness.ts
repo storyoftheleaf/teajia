@@ -74,6 +74,9 @@ class FakeStatement {
     if (sql.includes('from curate_visits where account_id = ?')) {
       return { results: [...this.db.visits.values()].filter(row => row.account_id === this.values[0] && (!sql.includes('journey_id = ?') || row.journey_id === this.values[1])).map(row => ({ ...row })) };
     }
+    if (sql.includes('from tea_samples where set_id = ? and account_id = ?')) {
+      return { results: [...this.db.samples.values()].filter(row => row.set_id === this.values[0] && row.account_id === this.values[1]).map(row => ({ ...row })) };
+    }
     return { results: [] };
   }
 
@@ -131,6 +134,16 @@ class FakeStatement {
       return { success: true, meta: { changes: 1 } };
     }
     if (sql.startsWith('update tea_compass_entries set')) {
+      if (sql.includes('where sample_set_id = ? and account_id = ?')) {
+        const [sampleSetId, accountId] = this.values;
+        let changes = 0;
+        for (const [id, row] of this.db.rows) {
+          if (row.sample_set_id !== sampleSetId || row.account_id !== accountId) continue;
+          this.db.rows.set(id, { ...row, sample_set_id: null, sample_state: null });
+          changes += 1;
+        }
+        return { success: true, meta: { changes } };
+      }
       const hasUserScope = sql.includes('user_id = ?');
       const idIndex = hasUserScope ? -3 : -2;
       const id = String(this.values.at(idIndex));
@@ -146,6 +159,29 @@ class FakeStatement {
       this.db.rows.set(id, scoped);
       return { success: true, meta: { changes: 1 } };
     }
+    if (sql.startsWith('delete from tea_sample_tastings where sample_id in')) {
+      let changes = 0;
+      for (const sampleId of this.values.map(String)) {
+        if (this.db.sampleTastings.delete(sampleId)) changes += 1;
+      }
+      return { success: true, meta: { changes } };
+    }
+    if (sql.startsWith('delete from tea_samples where set_id = ? and account_id = ?')) {
+      const [sampleSetId, accountId] = this.values;
+      let changes = 0;
+      for (const [id, row] of this.db.samples) {
+        if (row.set_id !== sampleSetId || row.account_id !== accountId) continue;
+        this.db.samples.delete(id);
+        changes += 1;
+      }
+      return { success: true, meta: { changes } };
+    }
+    if (sql.startsWith('delete from tea_sample_sets where id = ? and account_id = ?')) {
+      const row = this.db.sampleSets.get(String(this.values[0]));
+      const changed = Boolean(row && row.account_id === this.values[1]);
+      if (changed) this.db.sampleSets.delete(String(this.values[0]));
+      return { success: true, meta: { changes: changed ? 1 : 0 } };
+    }
     return { success: true, meta: { changes: 1 } };
   }
 }
@@ -156,15 +192,20 @@ export class FakeDb {
   visits = new Map<string, Record<string, unknown>>();
   customers = new Map<string, Record<string, unknown>>();
   sampleSets = new Map<string, Record<string, unknown>>();
+  samples = new Map<string, Record<string, unknown>>();
+  sampleTastings = new Map<string, Record<string, unknown>>();
 
   prepare(sql: string) {
     return new FakeStatement(sql, this);
   }
 
   async batch(statements: FakeStatement[]) {
-    const snapshot = new Map(
-      [...this.rows].map(([id, row]) => [id, { ...row }]),
-    );
+    const snapshots = {
+      rows: new Map([...this.rows].map(([id, row]) => [id, { ...row }])),
+      sampleSets: new Map([...this.sampleSets].map(([id, row]) => [id, { ...row }])),
+      samples: new Map([...this.samples].map(([id, row]) => [id, { ...row }])),
+      sampleTastings: new Map([...this.sampleTastings].map(([id, row]) => [id, { ...row }])),
+    };
     try {
       // D1 batch results are positional and the batch is transactional. Keep
       // both properties in the harness because sync acknowledgements depend on
@@ -173,7 +214,10 @@ export class FakeDb {
       for (const statement of statements) results.push(await statement.run());
       return results;
     } catch (error) {
-      this.rows = snapshot;
+      this.rows = snapshots.rows;
+      this.sampleSets = snapshots.sampleSets;
+      this.samples = snapshots.samples;
+      this.sampleTastings = snapshots.sampleTastings;
       throw error;
     }
   }
