@@ -122,6 +122,9 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
 
   const [pendingPreviews, setPendingPreviews] = useState<PendingPreview[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxRef = useRef<HTMLDivElement>(null);
+  const lightboxCloseRef = useRef<HTMLButtonElement>(null);
+  const lightboxTriggerRef = useRef<HTMLButtonElement>(null);
   // Index of the photo whose action menu (Enlarge / Edit / Delete) is open.
   // Mutually exclusive across photos so only one menu shows at a time.
   const [menuPhotoIndex, setMenuPhotoIndex] = useState<number | null>(null);
@@ -143,6 +146,40 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const [scanError, setScanError] = useState<ScanErrorCode | null>(null);
   const [lastScanFile, setLastScanFile] = useState<File | null>(null);
   const [retryingScan, setRetryingScan] = useState(false);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+    window.requestAnimationFrame(() => lightboxTriggerRef.current?.focus());
+  }, []);
+
+  const lightboxOpen = lightboxIndex !== null;
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    window.requestAnimationFrame(() => lightboxCloseRef.current?.focus());
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeLightbox();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(lightboxRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      ) ?? []).filter((element) => element.offsetParent !== null);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [closeLightbox, lightboxOpen]);
 
   const runExtract = useCallback(
     async (file: File): Promise<{ data: ExtractedTeaData | null; error: ScanErrorCode | null }> => {
@@ -395,7 +432,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         <button
           type="button"
           onClick={closeScanner}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+          className="tap-target flex h-11 w-11 items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+          aria-label="Close label scanner"
         >
           <X size={16} />
         </button>
@@ -457,7 +495,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                   }}
                 />
               ))}
-              <p className="absolute -bottom-6 left-0 right-0 text-center text-ui-11 text-tea-text/50">
+              <p className="absolute -bottom-6 left-0 right-0 text-center text-ui-12 text-tea-text/50">
                 Align the tea label within the frame
               </p>
             </div>
@@ -467,14 +505,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         {/* Denied state */}
         {scanStep === 'denied' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
-            <p className="text-tea-text/80 text-ui-14 font-medium">Camera access denied</p>
+            <p className="text-tea-text/80 text-ui-16 font-medium">Camera access denied</p>
             <p className="text-tea-text/50 text-ui-12 leading-relaxed">
               Allow camera access in your browser's address bar or site settings, then try again.
             </p>
             <button
               type="button"
               onClick={closeScanner}
-              className="mt-2 px-4 py-2 rounded-xl border border-tea-border text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
+              className="tap-target mt-2 min-h-11 px-4 py-2 rounded-xl border border-tea-border text-tea-text/70 text-ui-12 hover:bg-tea-text/10 transition-colors"
             >
               Close
             </button>
@@ -498,7 +536,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <p className="text-ui-16 text-tea-text font-serif leading-snug">{extractedPreview.name}</p>
               )}
               {extractedPreview.chineseName && (
-                <p className="text-ui-13 text-tea-text-sec font-chinese">{extractedPreview.chineseName}</p>
+                <p className="text-ui-16 text-tea-text-sec font-chinese">{extractedPreview.chineseName}</p>
               )}
               {(extractedPreview.type || extractedPreview.year || extractedPreview.season || extractedPreview.region) && (
                 <p className="text-ui-12 text-tea-text-dim">
@@ -514,14 +552,14 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 </p>
               )}
               {extractedPreview.extraNotes && (
-                <p className="text-ui-11 text-tea-text-dim leading-relaxed line-clamp-2 pt-0.5">{extractedPreview.extraNotes}</p>
+                <p className="text-ui-12 text-tea-text-dim leading-relaxed line-clamp-2 pt-0.5">{extractedPreview.extraNotes}</p>
               )}
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleRetake}
-                className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-13 font-medium hover:bg-tea-elevated transition-colors"
+                className="tap-target flex min-h-11 items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:bg-tea-elevated transition-colors"
               >
                 <RefreshCw size={13} />
                 Retake
@@ -529,7 +567,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleApply}
-                className="flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-13 font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="tap-target min-h-11 flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors"
               >
                 Apply to form
               </button>
@@ -540,7 +578,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleUsePhotoOnly}
-                className="mt-2 w-full text-center text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+                className="tap-target mt-2 min-h-11 w-full text-center text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
               >
                 Keep photo only
               </button>
@@ -557,7 +595,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             className="shrink-0 bg-tea-surface rounded-t-xl px-4 pt-4 pb-6 text-center space-y-3"
           >
             <div className="w-8 h-1 rounded-full bg-tea-border mx-auto mb-2" />
-            <p className="text-ui-13 text-tea-text-sec">
+            <p className="text-ui-16 text-tea-text-sec">
               {scanError && scanError !== 'extract_failed'
                 ? SCAN_ERROR_COPY[scanError]
                 : "Couldn't read the label."}
@@ -573,7 +611,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleRetake}
-                className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-13 font-medium hover:bg-tea-elevated transition-colors"
+                className="tap-target flex min-h-11 items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-tea-border text-tea-text-sec text-ui-12 font-medium hover:bg-tea-elevated transition-colors"
               >
                 <RefreshCw size={13} />
                 {capturedImageUrl ? 'Retake' : 'Try again'}
@@ -584,7 +622,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <button
                   type="button"
                   onClick={handleUsePhotoOnly}
-                  className="flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-13 font-semibold hover:bg-tea-gold/90 transition-colors"
+                  className="tap-target min-h-11 flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors"
                 >
                   Use this photo
                 </button>
@@ -615,19 +653,25 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   const lightbox = lightboxIndex !== null && allPhotos[lightboxIndex]
     ? createPortal(
         <motion.div
+          ref={lightboxRef}
           key="lightbox"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-toast flex items-center justify-center"
+          className="fixed inset-0 z-modal flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.88)' }}
-          onClick={() => setLightboxIndex(null)}
+          onClick={closeLightbox}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo viewer"
         >
           <button
+            ref={lightboxCloseRef}
             type="button"
-            onClick={() => setLightboxIndex(null)}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+            onClick={closeLightbox}
+            className="tap-target absolute top-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+            aria-label="Close photo viewer"
           >
             <X size={18} />
           </button>
@@ -635,7 +679,8 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              className="tap-target absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Previous photo"
             >
               <ChevronLeft size={20} />
             </button>
@@ -654,20 +699,25 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              className="tap-target absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-tea-text/10 text-tea-text hover:bg-tea-text/20 transition-colors"
+              aria-label="Next photo"
             >
               <ChevronRight size={20} />
             </button>
           )}
           {allPhotos.length > 1 && (
-            <div className="absolute bottom-6 flex gap-1.5">
+            <div className="absolute bottom-4 flex max-w-[90vw] flex-wrap justify-center">
               {allPhotos.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-tea-text' : 'bg-tea-text/30'}`}
-                />
+                  className="tap-target flex h-11 w-11 items-center justify-center rounded-full"
+                  aria-label={`View photo ${i + 1}`}
+                  aria-current={i === lightboxIndex ? 'true' : undefined}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full transition-colors ${i === lightboxIndex ? 'bg-tea-text' : 'bg-tea-text/30'}`} />
+                </button>
               ))}
             </div>
           )}
@@ -682,13 +732,13 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // and unreadable label (with Retry). An empty read stays silent.
   const scanErrorLine = scanError ? (
     <div className="flex items-center gap-2 pt-1.5" role="status">
-      <span className="text-ui-11 text-tea-text-dim italic">{SCAN_ERROR_COPY[scanError]}</span>
+      <span className="text-ui-12 text-tea-text-dim italic">{SCAN_ERROR_COPY[scanError]}</span>
       {scanError === 'extract_failed' && lastScanFile && (
         <button
           type="button"
           onClick={handleRetryScan}
           disabled={retryingScan}
-          className="tap-target text-ui-11 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
+          className="tap-target min-h-11 text-ui-12 text-tea-text-sec underline decoration-dashed underline-offset-2 transition-colors hover:text-tea-text disabled:opacity-50"
         >
           {retryingScan ? 'Retrying' : 'Retry'}
         </button>
@@ -735,7 +785,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
         ) : heroValidUrl ? (
           <button
             type="button"
-            onClick={() => setMenuPhotoIndex(validPhotos.length - 1)}
+            onClick={(event) => {
+              lightboxTriggerRef.current = event.currentTarget;
+              setMenuPhotoIndex(validPhotos.length - 1);
+            }}
             className="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60"
             aria-haspopup="menu"
             aria-label="Photo actions"
@@ -800,7 +853,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 key={url}
                 type="button"
-                onClick={() => setMenuPhotoIndex(i)}
+                onClick={(event) => {
+                  lightboxTriggerRef.current = event.currentTarget;
+                  setMenuPhotoIndex(i);
+                }}
                 className={`w-[60px] h-[60px] relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
                   menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
                 }`}
@@ -860,7 +916,10 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             key={url}
             type="button"
-            onClick={() => setMenuPhotoIndex(i)}
+            onClick={(event) => {
+              lightboxTriggerRef.current = event.currentTarget;
+              setMenuPhotoIndex(i);
+            }}
             className={`${thumbCls} relative shrink-0 block rounded-md overflow-hidden border border-tea-border focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/60 transition-shadow ${
               menuPhotoIndex === i ? 'ring-2 ring-tea-gold/60' : ''
             }`}

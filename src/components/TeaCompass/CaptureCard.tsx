@@ -101,7 +101,7 @@ function RetailPricePreview({
   const fmtGram = (v: number) => v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : Math.round(v).toString();
 
   return (
-    <div className="curate-support flex items-center gap-2 px-1 text-tea-text-dim">
+    <div className="curate-support flex flex-wrap items-center gap-2 px-1 text-tea-text-dim">
       <span className="tabular-nums">{sym}{fmtGram(costPerGram)}/g cost</span>
       <span className="text-tea-border">→</span>
       <span className="tabular-nums text-tea-text-sec font-medium">≈ {sym}{fmtGram(retailPerGram)}/g retail</span>
@@ -113,6 +113,7 @@ function RetailPricePreview({
             autoFocus
             type="number"
             inputMode="decimal"
+            aria-label="Shipping cost per kilogram"
             value={shippingInput}
             onChange={(e) => setShippingInput(e.target.value)}
             onBlur={() => {
@@ -127,7 +128,7 @@ function RetailPricePreview({
                 setEditingShipping(false);
               }
             }}
-            className="curate-primary w-16 bg-transparent text-tea-text px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="curate-primary min-h-11 w-16 bg-transparent text-tea-text px-1 py-0.5 border-0 border-b border-tea-border rounded-none outline-none focus:border-tea-gold tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-tea-text-dim">/kg</span>
         </span>
@@ -135,7 +136,7 @@ function RetailPricePreview({
         <button
           type="button"
           onClick={() => { setShippingInput(shippingRatePerKg > 0 ? String(shippingRatePerKg) : ''); setEditingShipping(true); }}
-          className="text-tea-text-dim hover:text-tea-text-sec transition-colors underline underline-offset-2 decoration-dashed"
+          className="tap-target min-h-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors underline underline-offset-2 decoration-dashed"
         >
           {shippingRatePerKg > 0 ? `+${sym}${shippingRatePerKg}/kg ship` : 'add ship cost'}
         </button>
@@ -1125,30 +1126,31 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                 AND a subtype is set. Tap re-opens the clay picker. */}
             {(isYixing || entry.material === 'Clay') && effectiveClayType && (
               <div className="shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setClaySheetOpen(true)}
-                  className="tap-target inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-base font-medium bg-tea-accent-sub text-tea-text border border-tea-gold/30 hover:bg-tea-accent-sub transition-colors"
-                  aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
-                >
-                  <span
-                    className="shrink-0 w-3 h-3 rounded-full border border-tea-border"
-                    style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
-                    aria-hidden
-                  />
-                  <span>{effectiveClayType}</span>
+                <div className="inline-flex min-h-11 overflow-hidden rounded-md border border-tea-gold/30 bg-tea-accent-sub text-tea-text">
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined });
-                    }}
-                    className="shrink-0 -mr-0.5 ml-0.5 text-tea-gold/70 hover:text-tea-gold transition-colors"
+                    onClick={() => setClaySheetOpen(true)}
+                    className="curate-primary tap-target inline-flex min-h-11 items-center gap-1.5 px-2.5 font-medium hover:bg-tea-accent-sub transition-colors"
+                    aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
+                    data-curate-action
+                  >
+                    <span
+                      className="shrink-0 w-3 h-3 rounded-full border border-tea-border"
+                      style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
+                      aria-hidden
+                    />
+                    <span>{effectiveClayType}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined })}
+                    className="curate-support tap-target inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center border-l border-tea-gold/30 text-tea-gold/70 hover:text-tea-gold transition-colors"
                     aria-label="Clear clay subtype"
+                    data-curate-action
                   >
                     <X size={11} />
                   </button>
-                </button>
+                </div>
               </div>
             )}
           </div>
@@ -1244,7 +1246,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                       if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
                     }}
                     placeholder="e.g. Song Dynasty"
-                    className="flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+                    className="min-h-11 flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
                   />
                   <button
                     type="button"
@@ -1916,9 +1918,10 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     <div className="flex items-baseline gap-0.5">
                       <input
                         type="number"
+                        aria-label="Purchase quantity"
                         value={buyingQty}
                         onChange={(e) => setBuyingQty(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="curate-primary w-11 text-center text-tea-text font-normal bg-transparent border-none outline-none"
+                        className="curate-primary min-h-11 w-11 text-center text-tea-text font-normal bg-transparent border-none outline-none"
                       />
                       <span className="curate-support text-tea-text-dim">
                         {unitBased ? (buyingQty === 1 ? 'unit' : 'units') : 'g'}

@@ -715,7 +715,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             <button
               type="button"
               onClick={() => handleNewCapture()}
-              className="pill pill-active flex items-center gap-1 text-ui-10 self-center shrink-0"
+              className="hidden min-h-11 items-center gap-1 self-center shrink-0 rounded-md border border-tea-gold/40 bg-tea-gold/10 px-3 text-ui-12 text-tea-text sm:flex"
             >
               <Plus size={11} />
               New
@@ -723,6 +723,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           )}
 
         </div>
+
+        {mode !== 'sourcing' && (
+          <div className="flex min-h-11 items-center justify-end border-b border-tea-border px-2 sm:hidden">
+            <button
+              type="button"
+              onClick={() => handleNewCapture()}
+              className="tap-target flex min-h-11 items-center gap-1 rounded-md border border-tea-gold/40 bg-tea-gold/10 px-3 text-ui-12 text-tea-text"
+            >
+              <Plus size={12} />
+              New entry
+            </button>
+          </div>
+        )}
 
         {/* Row 2 — capture method. Only relevant
             inside Source, so it appears only there; Library and Ledger

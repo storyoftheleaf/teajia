@@ -840,6 +840,10 @@ input[type="number"]::-webkit-outer-spin-button {
   background: rgb(var(--tea-gold-rgb) / 0.14);
 }
 
+.pill.curate-duplicate-action {
+  font-size: 12px;
+}
+
 /* Amber variant (warnings, stock alerts) */
 .pill-active-amber {
   background: transparent;
@@ -878,10 +882,10 @@ input[type="number"]::-webkit-outer-spin-button {
   padding: 4px 9px;
   border-radius: 6px;
   border: none;
-  /* Matches the TYPOGRAPHY_CLASSES.label micro-caps recipe (text-ui-11
-     uppercase tracking-[1.2px]) so Run/Vendor/Suggest read at the same
+  /* Matches the Curate support tier (text-ui-12 uppercase tracking-[1.2px])
+     so Run/Vendor/Suggest read at the same
      size as the Notes/Profile eyebrows elsewhere on the capture card. */
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1.2px;
   cursor: pointer;
@@ -967,6 +971,13 @@ input[type="number"]::-webkit-outer-spin-button {
   font-size: 11px;
   background: rgb(var(--tea-gold-rgb) / 0.12);
   color: var(--tea-gold);
+}
+
+/* Curate's editable tasting cloud follows the compact 16/12 interface scale
+   while preserving a full mobile touch target. */
+.tag.curate-tasting-tag {
+  min-height: 44px;
+  font-size: 12px;
 }
 
 /* Selectable tag in a grid (tasting picker) */
@@ -2455,7 +2466,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: var(--tea-elevated);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.35), inset 0 0 0 1px rgb(var(--tea-gold-rgb) / 0.18);
   color: var(--tea-text);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   opacity: 0;

@@ -304,7 +304,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   const noteFont = sans ? 'var(--font-sans)' : 'var(--font-body)';
   const textareaRows = larger ? 3 : compact ? 1 : 2;
   const inputPad = larger ? 'px-4 py-3.5' : 'px-3 py-2.5';
-  const inputText = larger ? 'text-ui-14' : 'text-ui-13';
+  const inputText = 'text-ui-16';
   const micIconSize = larger ? 20 : 14;
   const micBtnExtra = larger ? 'tasting-voice-btn-large' : '';
   const { addNote, notes: allNotes } = useNotesStore();
@@ -471,7 +471,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions, vendor story, anything worth keeping…'}
             rows={textareaRows}
-            className={`flex-1 ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
+            className={`min-h-11 flex-1 ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
             style={{ fontFamily: noteFont }}
           />
         ) : (

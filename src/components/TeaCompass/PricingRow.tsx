@@ -93,11 +93,11 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             — counter stays a compact pill on the right since there's
             no form picker to balance it. */}
       <div className="flex items-stretch gap-4">
-        <div className={`flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
+        <div className={`min-h-11 flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
           <select
             value={priceCurrency}
             onChange={(e) => onCurrencyChange(e.target.value as Currency)}
-            className="curate-primary self-center shrink-0 cursor-pointer appearance-none border-none bg-transparent py-2.5 pl-1 pr-1 text-tea-text-dim outline-none tabular-nums"
+            className="curate-primary min-h-11 self-center shrink-0 cursor-pointer appearance-none border-none bg-transparent py-2.5 pl-1 pr-1 text-tea-text-dim outline-none tabular-nums"
             style={{ backgroundImage: 'none' }}
             aria-label="Currency"
           >
@@ -112,7 +112,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             value={priceAmount ?? ''}
             onChange={handlePriceInput}
             style={noSpinnerStyle}
-            className="curate-primary flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            className="curate-primary min-h-11 flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             aria-label="Price"
           />
         </div>
@@ -121,7 +121,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
             sizes); +/- counter pill in count mode. */}
         {unit.mode === 'grams' ? (
           <>
-            <div className={`flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
+            <div className={`min-h-11 flex-1 min-w-0 flex items-center ${underlineShellClass}`}>
               <input
                 type="number"
                 inputMode="numeric"
@@ -132,7 +132,7 @@ export const PricingRow: React.FC<PricingRowProps> = ({
                   unit.onGramsChange(val === '' ? undefined : Number(val));
                 }}
                 style={noSpinnerStyle}
-                className="curate-primary flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="curate-primary min-h-11 flex-1 min-w-0 bg-transparent text-tea-text px-1 py-2.5 outline-none tabular-nums text-right placeholder:text-tea-text-dim [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 aria-label="Grams"
               />
               <span

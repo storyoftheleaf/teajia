@@ -40,6 +40,232 @@ test.describe('Curate field capture preservation', () => {
       const box = await action.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
+
+    const visibleTextStyles = await page.locator('[data-curate-source]').evaluateAll((sources) => {
+      const styles = new Map<string, { text: string; size: number; className: string }>();
+      for (const source of sources) {
+        if (source.getClientRects().length === 0) continue;
+        const walker = document.createTreeWalker(source, NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node) {
+          if (node.textContent?.trim()) {
+            const element = node.parentElement;
+            if (element && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden') {
+              const size = parseFloat(getComputedStyle(element).fontSize);
+              const text = node.textContent.trim();
+              styles.set(`${size}:${text}:${element.className}`, { text, size, className: String(element.className) });
+            }
+          }
+          node = walker.nextNode();
+        }
+      }
+      return [...styles.values()];
+    });
+    expect([...new Set(visibleTextStyles.map(({ size }) => size))].sort((a, b) => a - b), JSON.stringify(visibleTextStyles.filter(({ size }) => size !== 12 && size !== 16), null, 2)).toEqual([12, 16]);
+
+    for (const control of await page.locator('[data-curate-source] button, [data-curate-source] input:not([type="file"]):not([type="range"]), [data-curate-source] select, [data-curate-source] textarea').filter({ visible: true }).all()) {
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('keeps conditional vendor contact actions on the same type and touch scale', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('button', { name: 'Vendor', exact: true }).click();
+    const vendorPicker = page.getByPlaceholder('Select vendor...');
+    await vendorPicker.click();
+    await expect.poll(async () => (await vendorPicker.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(await vendorPicker.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+    for (const option of [
+      page.getByRole('button', { name: 'New vendor…' }),
+      page.getByRole('button', { name: /Chen Family/ }),
+    ]) {
+      await expect.poll(async () => (await option.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(parseFloat(await option.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    }
+    await page.keyboard.press('Escape');
+
+    const contactOptions = page.getByRole('button', { name: 'Vendor contact options' });
+    const addContactLink = page.getByRole('button', { name: 'Add contact link' });
+    await contactOptions.click();
+
+    for (const control of [
+      contactOptions,
+      page.getByRole('button', { name: 'Storefront photo' }),
+      page.getByRole('button', { name: 'Drop pin' }),
+      addContactLink,
+    ]) {
+      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(parseFloat(await control.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    }
+
+    await addContactLink.click();
+    for (const placeholder of ["Paste map link or 'lat, lng'", 'Phone', 'WhatsApp', 'WeChat', 'LINE']) {
+      const field = page.getByPlaceholder(placeholder);
+      await expect.poll(async () => (await field.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(parseFloat(await field.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+    }
+    const location = page.getByPlaceholder("Paste map link or 'lat, lng'");
+    await location.fill('not coordinates');
+    await location.blur();
+    const locationError = page.getByText(/Couldn't read coordinates/);
+    await expect(locationError).toBeVisible();
+    expect(parseFloat(await locationError.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+  });
+
+  test('keeps detected Intent actions readable, reachable, and named', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      state.updateEntry(state.activeEntryId!, { notes: 'Price NT 500 for 100g from 2019' });
+    });
+    const detected = page.getByText('Detected:', { exact: true }).filter({ visible: true }).first();
+    await expect(detected).toBeVisible();
+    expect(parseFloat(await detected.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+
+    for (const label of ['NT500', '100g', '2019']) {
+      for (const control of [
+        page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).first(),
+        page.getByRole('button', { name: `Dismiss detected ${label}`, exact: true }).filter({ visible: true }).first(),
+      ]) {
+        await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+        expect(parseFloat(await control.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+      }
+    }
+  });
+
+  test('keeps a populated tasting profile on the support and touch scale', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      state.updateEntry(state.activeEntryId!, {
+        tasting: { quality: 8, flavor: ['floral'], body: ['thick'], finish: ['long'] },
+      });
+    });
+
+    for (const legend of ['BODY', 'FINISH', 'FLAVOR']) {
+      const label = page.getByText(legend, { exact: true }).filter({ visible: true }).first();
+      await expect(label).toBeVisible();
+      expect(parseFloat(await label.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    }
+    for (const term of ['Thick', 'Long', 'Floral']) {
+      const chip = page.getByRole('button', { name: `Remove ${term}` }).filter({ visible: true }).first();
+      await expect.poll(async () => (await chip.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(parseFloat(await chip.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    }
+  });
+
+  test('keeps Retail shipping and Buy quantity controls on the working scale', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      state.updateEntry(state.activeEntryId!, { priceAmount: 500, pricePerUnitGrams: 100 });
+    });
+
+    const shipping = page.getByRole('button', { name: 'add ship cost', exact: true }).filter({ visible: true }).first();
+    await expect.poll(async () => (await shipping.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(await shipping.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    await shipping.click();
+    const shippingInput = page.getByRole('spinbutton', { name: 'Shipping cost per kilogram' }).filter({ visible: true }).first();
+    await expect.poll(async () => (await shippingInput.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(await shippingInput.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+
+    await page.getByTestId('capture-action-footer').filter({ visible: true }).getByRole('button', { name: 'Buy', exact: true }).click();
+    const quantity = page.getByRole('spinbutton', { name: 'Purchase quantity' }).filter({ visible: true }).first();
+    await expect.poll(async () => (await quantity.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(await quantity.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+  });
+
+  test('keeps the duplicate warning readable and fully actionable', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
+      const activeId = useTeaCompassStore.getState().activeEntryId!;
+      const existing = { ...createEmptyEntry('tea'), id: 'duplicate-existing', name: 'Duplicate Dong Ding', synced: true };
+      const unrelated = { ...createEmptyEntry('tea'), id: 'duplicate-unrelated', name: 'Unrelated Tea', synced: true };
+      useTeaCompassStore.setState((state) => ({ entries: [...state.entries, existing, unrelated] }));
+      useTeaCompassStore.getState().updateEntry(activeId, { name: 'Duplicate Dong Ding' });
+    });
+
+    for (const name of ['Same', 'Different', 'Dismiss duplicate warning']) {
+      const control = page.getByRole('button', { name, exact: true }).filter({ visible: true }).first();
+      await expect(control).toBeVisible({ timeout: 5_000 });
+      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+      expect(parseFloat(await control.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    }
+  });
+
+  test('keeps the label scanner readable, closable, and touch-safe', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: { getUserMedia: () => new Promise(() => undefined) },
+      });
+    });
+    await page.getByRole('button', { name: 'Scan label', exact: true }).filter({ visible: true }).first().click();
+    const closeScanner = page.getByRole('button', { name: 'Close label scanner' });
+    await expect.poll(async () => (await closeScanner.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    const instruction = page.getByText('Align the tea label within the frame');
+    await expect(instruction).toBeVisible();
+    expect(parseFloat(await instruction.evaluate((element) => getComputedStyle(element).fontSize))).toBe(12);
+    await closeScanner.click();
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'mediaDevices', {
+        configurable: true,
+        value: { getUserMedia: () => Promise.reject(new Error('denied')) },
+      });
+    });
+    await page.getByRole('button', { name: 'Scan label', exact: true }).filter({ visible: true }).first().click();
+    const denied = page.getByText('Camera access denied', { exact: true });
+    await expect(denied).toBeVisible();
+    expect(parseFloat(await denied.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+    const deniedClose = page.getByRole('button', { name: 'Close', exact: true });
+    await expect.poll(async () => (await deniedClose.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  });
+
+  test('keeps existing-photo lightbox navigation named and touch-safe', async ({ page }) => {
+    await openCompass(page);
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      state.updateEntry(state.activeEntryId!, {
+        photos: [
+          'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23866"/%3E%3C/svg%3E',
+          'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23686"/%3E%3C/svg%3E',
+        ],
+      });
+    });
+
+    const photoTrigger = page.getByRole('button', { name: 'Photo actions' }).filter({ visible: true }).first();
+    await photoTrigger.click();
+    await page.getByRole('button', { name: 'View full size', exact: true }).click();
+    const viewer = page.getByRole('dialog', { name: 'Photo viewer' });
+    await expect(viewer).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close photo viewer' })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    expect(await viewer.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+    for (const name of ['Close photo viewer', 'Next photo', 'View photo 1', 'View photo 2']) {
+      const control = page.getByRole('button', { name, exact: true });
+      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+    await page.getByRole('button', { name: 'Next photo' }).click();
+    const previous = page.getByRole('button', { name: 'Previous photo' });
+    await expect.poll(async () => (await previous.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await page.keyboard.press('Escape');
+    await expect(viewer).toBeHidden();
+    await expect(photoTrigger).toBeFocused();
   });
 
   test('creates exactly one blank shell on signed-in mount and an empty account switch', async ({ page }) => {

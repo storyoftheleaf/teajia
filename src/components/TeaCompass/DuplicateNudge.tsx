@@ -44,29 +44,30 @@ export const DuplicateNudge: React.FC<DuplicateNudgeProps> = ({
       transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
       className="overflow-hidden"
     >
-      <div className="bg-tea-surface border border-tea-border rounded px-2.5 py-1.5 flex items-center gap-2 min-w-0">
-        <p className="text-ui-11 text-tea-text-sec flex-1 min-w-0 truncate whitespace-nowrap" title={`Logged "${matchedEntry.name}"${vendor} ${date}`}>
+      <div className="bg-tea-surface border border-tea-border rounded px-2.5 py-1.5 flex flex-wrap items-center gap-2 min-w-0">
+        <p className="text-ui-12 text-tea-text-sec flex-1 min-w-0 truncate whitespace-nowrap" title={`Logged "${matchedEntry.name}"${vendor} ${date}`}>
           Logged <span className="text-tea-text">"{matchedEntry.name}"</span>{vendor} &middot; {date}
         </p>
         <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={onSameTea}
-            className="pill text-ui-11 text-tea-gold px-2 py-0.5"
+            className="pill curate-duplicate-action tap-target min-h-11 text-tea-gold px-2"
           >
             Same
           </button>
           <button
             type="button"
             onClick={onDifferentTea}
-            className="pill text-ui-11 text-tea-gold px-2 py-0.5"
+            className="pill curate-duplicate-action tap-target min-h-11 text-tea-gold px-2"
           >
             Different
           </button>
           <button
             type="button"
             onClick={onDismiss}
-            className="ml-0.5 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            className="tap-target ml-0.5 min-h-11 min-w-11 text-ui-12 text-tea-text-dim hover:text-tea-text-sec transition-colors"
+            aria-label="Dismiss duplicate warning"
           >
             <X size={12} />
           </button>

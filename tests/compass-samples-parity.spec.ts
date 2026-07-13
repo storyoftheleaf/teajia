@@ -5,64 +5,64 @@ const CART_ITEM = { id: 'compass-tea-1', name: '1998 Dong Ding', chineseName: '�
 
 test.describe('Sample workflows remain reachable outside the capture method row', () => {
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
-  test('opens the contextual empty Sample order from Source and restores focus', async ({ page }) => {
+  test('opens the contextual empty Sample list from Source and restores focus', async ({ page }) => {
     await installCompassHarness(page);
     await openCompass(page);
-    const trigger = page.getByRole('button', { name: 'Sample order (0)' }).first();
+    const trigger = page.getByRole('button', { name: 'Sample list (0)' }).first();
     await trigger.click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
-    await expect(page.getByText('Sample List', { exact: true }).filter({ visible: true })).toBeVisible();
-    await expect(page.getByText('Your sample list is empty', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample list', exact: true })).toBeVisible();
+    await expect(page.getByText('Your Sample list is empty', { exact: true }).filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Capture tea' }).click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
-    await expect(page.getByPlaceholder('Tea name…').filter({ visible: true })).toBeFocused();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeHidden();
+    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toBeFocused();
     await trigger.click();
     await page.getByRole('button', { name: 'Browse Library' }).click();
     await expect(page.getByRole('tab', { name: 'Library', exact: true })).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('tab', { name: 'Source', exact: true }).click();
     await trigger.click();
-    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await page.getByRole('button', { name: 'Close Samples workspace' }).click();
     await expect(trigger).toBeFocused();
   });
 
   test('/admin/samples and linked set query open visible sample management UI', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     const setId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-samples') || '{}').state.sampleSets[0].id);
     await page.goto(`/admin/samples?set=${encodeURIComponent(setId)}`);
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample batches' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
-    await page.getByRole('button', { name: 'Close Sample order' }).click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await page.getByRole('button', { name: 'Close Samples workspace' }).click();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeHidden();
     await expect(page).not.toHaveURL(/sampleOrder|set=/);
   });
 
-  test('nested label and edit overlays own Escape before the Sample order', async ({ page }) => {
+  test('nested label and edit overlays own Escape before the Sample list', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
-    await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample list/).first().click();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await page.getByRole('dialog', { name: 'Samples workspace' }).getByRole('button', { name: /Sample list —/ }).click();
     const labels = page.getByRole('button', { name: 'Print labels' });
     await labels.click();
-    await expect(page.getByText('Print Labels', { exact: true })).toBeVisible();
+    await expect(page.getByText('Print labels', { exact: true }).filter({ visible: true })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByText('Print Labels', { exact: true })).toBeHidden();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByText('Print labels', { exact: true }).filter({ visible: true })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
     await expect(labels).toBeFocused();
     const edit = page.getByRole('button', { name: 'Edit 1998 Dong Ding' });
     await edit.click();
-    await expect(page.getByText('Edit Sample', { exact: true })).toBeVisible();
+    await expect(page.getByText('Edit sample', { exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByText('Edit Sample', { exact: true })).toBeHidden();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByText('Edit sample', { exact: true })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
     await expect(edit).toBeFocused();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeHidden();
   });
 
   test('opens the exact sample set from a Library batch link without remounting Compass', async ({ page }) => {
@@ -99,26 +99,26 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /To taste/ }).click();
     await page.getByRole('button', { name: 'Library Click Batch' }).click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample batches' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
-    await page.getByRole('button', { name: 'Close Sample order' }).click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await page.getByRole('button', { name: 'Close Samples workspace' }).click();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeHidden();
     await expect(page).not.toHaveURL(/sampleOrder|set=/);
     await page.getByRole('button', { name: /To taste/ }).click();
     await page.getByRole('button', { name: 'Library Click Batch' }).click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
     await page.goBack();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeHidden();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeHidden();
     await page.goForward();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
   });
 
   test('shows count and saves a nonempty cart as a historical set', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await expect(page.getByRole('button', { name: 'Sample order (1)' }).first()).toBeVisible();
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await expect(page.getByRole('button', { name: 'Sample list (1)' }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect.poll(async () => page.evaluate(() => {
@@ -127,8 +127,8 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     }), { message: 'Save as sample batch must persist a historical set' }).toBe(1);
 
     await page.goto('/admin/samples', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Sample sets' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sample batches' })).toBeVisible();
   });
 
   test('saving a sample list links the same requested batch into the Library tasting queue', async ({ page }) => {
@@ -137,10 +137,10 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       notes: '', photos: '[]', audio_clips: '[]', created_at: '2026-07-13T00:00:00.000Z', updated_at: '2026-07-13T00:00:00.000Z',
     }] });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
-    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await page.getByRole('button', { name: 'Close Samples workspace' }).click();
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /To taste/ }).click();
     await expect(page.getByText('Requested', { exact: true }).first()).toBeVisible();
@@ -152,7 +152,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     });
     expect(setName).toMatchObject({ decision: 'selected', verdict: 'love', status: 'noted' });
     await page.getByRole('button', { name: /Sample list —/ }).click();
-    await expect(page.getByRole('dialog', { name: 'Sample order' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Batch details' })).toBeVisible();
     const status = page.locator('button[title="Click to change status"]').filter({ visible: true });
     await expect(status).toHaveText('Requested');
@@ -184,7 +184,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       const { syncCompassEntries } = await import('/src/lib/teaCompassSync.ts');
       await syncCompassEntries('acct-bali');
     });
-    await page.getByRole('button', { name: 'Close Sample order' }).click();
+    await page.getByRole('button', { name: 'Close Samples workspace' }).click();
     await page.evaluate(() => localStorage.removeItem('teajia-compass'));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
@@ -204,7 +204,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       return route.fallback();
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByRole('alert')).toContainText('Temporary sample write failure');
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
@@ -228,7 +228,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       return route.fallback();
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByRole('alert')).toContainText('Library linkage is still pending');
     await expect(page.getByText(/saved batch is locked until Library linkage finishes/)).toBeVisible();
@@ -253,7 +253,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     });
     await expect(page.getByText('1 tea · 10g').filter({ visible: true })).toBeVisible();
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Retry saved batch' }).click();
     await expect(page.getByText('Saved as sample batch — list cleared')).toBeVisible();
     expect(compassRequestCount(page, 'POST /api/admin/sample-sets')).toBe(1);
@@ -286,7 +286,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       }],
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (2)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (2)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByRole('alert')).toContainText('discard the saved draft to unlock and edit this list');
 
@@ -374,7 +374,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       return route.fallback();
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await page.getByRole('button', { name: 'Discard saved draft' }).click();
     await expect(page.getByText('Draft cleanup is temporarily unavailable', { exact: false })).toBeVisible();
@@ -402,7 +402,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
       }],
     });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     await expect(page.getByRole('alert')).toContainText('Library linkage is still pending');
     const setId = await page.evaluate(() => JSON.parse(localStorage.getItem('teajia-sample-cart') || '{}').state.pendingOperation.sampleSet.id);
@@ -452,7 +452,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
   test('historical sample preserves label identity and tasting linkage', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
     const historical = await page.evaluate(() => {
       const saved = JSON.parse(localStorage.getItem('teajia-samples') || '{}');
@@ -461,8 +461,8 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     expect(historical, 'Saved sample must remain available to the historical sample tools').toMatchObject({
       name: '1998 Dong Ding', chineseName: '凍頂', type: 'Oolong', compassEntryId: 'compass-tea-1', tastings: [],
     });
-    await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await page.getByText(/Sample list/).first().click();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await page.getByRole('dialog', { name: 'Samples workspace' }).getByRole('button', { name: /Sample list —/ }).click();
     await page.getByRole('button', { name: 'Open in Curate to taste' }).click();
     await expect(page).toHaveURL(/\/admin\/compass\?entry=compass-tea-1/);
   });
@@ -470,11 +470,11 @@ test.describe('Sample workflows remain reachable outside the capture method row'
   test('makes historical sets, labels, tasting management, and purpose semantics reachable', async ({ page }) => {
     await installCompassHarness(page, { sampleCart: [CART_ITEM] });
     await openCompass(page);
-    await page.getByRole('button', { name: 'Sample order (1)' }).first().click();
+    await page.getByRole('button', { name: 'Sample list (1)' }).first().click();
     await page.getByRole('button', { name: 'Save as sample batch' }).click();
-    await page.getByRole('button', { name: 'Manage sample sets' }).click();
-    await expect(page.getByRole('heading', { name: /Sample Sets|Samples/ }).first()).toBeVisible();
-    await page.getByText(/Sample list/).first().click();
+    await page.getByRole('button', { name: 'View Sample batches' }).click();
+    await expect(page.getByRole('heading', { name: 'Sample batches', exact: true })).toBeVisible();
+    await page.getByRole('dialog', { name: 'Samples workspace' }).getByRole('button', { name: /Sample list —/ }).click();
     await page.getByRole('button', { name: 'Batch details' }).click();
     await expect(page.getByRole('button', { name: 'Sourcing', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Gifted', exact: true })).toBeVisible();

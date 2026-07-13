@@ -11,6 +11,35 @@ test.describe('Curate responsive preservation', () => {
     expect(dimensions.scrollWidth, `Curate document overflows viewport by ${dimensions.scrollWidth - dimensions.width}px`).toBeLessThanOrEqual(dimensions.width);
   });
 
+  test('keeps the mobile Library header actions visible without crowding the screen tabs', async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.includes('Mobile'), 'Mobile header composition contract');
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const screenTabs = page.getByRole('tablist', { name: 'Screen' });
+    const newEntry = page.getByRole('button', { name: 'New entry', exact: true }).filter({ visible: true }).first();
+    await expect(newEntry).toBeVisible();
+    const viewportWidth = page.viewportSize()!.width;
+    const actions = [
+      screenTabs.getByRole('button', { name: 'Back', exact: true }),
+      screenTabs.getByRole('tab', { name: 'Source', exact: true }),
+      screenTabs.getByRole('tab', { name: 'Library', exact: true }),
+      screenTabs.getByRole('tab', { name: 'Ledger', exact: true }),
+      screenTabs.getByRole('button', { name: 'Sample list (0)' }),
+      newEntry,
+    ];
+    for (const action of actions) {
+      const box = await action.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth);
+    }
+    const [tabsBox, newBox] = await Promise.all([
+      screenTabs.getByRole('tab', { name: 'Library', exact: true }).boundingBox(),
+      newEntry.boundingBox(),
+    ]);
+    expect(newBox!.y).toBeGreaterThan(tabsBox!.y + tabsBox!.height - 1);
+  });
+
   test('uses Tea, Teaware, and Import as capture methods with persistent sample access', async ({ page }) => {
     await openCompass(page);
     const captureMethodControls = page.getByRole('tablist', { name: 'Capture method' });
@@ -62,6 +91,33 @@ test.describe('Curate responsive preservation', () => {
       const box = await action.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
+  });
+
+  test('keeps a populated clay subtype valid, readable, and independently clearable', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    await page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      state.updateEntry(state.activeEntryId!, { material: 'Yixing', clayType: 'Zhuni' });
+    });
+
+    const change = page.getByRole('button', { name: 'Clay subtype: Zhuni — tap to change' }).filter({ visible: true }).first();
+    const clear = page.getByRole('button', { name: 'Clear clay subtype' }).filter({ visible: true }).first();
+    for (const control of [change, clear]) {
+      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+    expect(parseFloat(await change.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+    await expect(page.locator('[data-curate-source] button button')).toHaveCount(0);
+    await clear.click();
+    await expect(clear).toBeHidden();
+
+    await page.getByRole('button', { name: 'Era', exact: true }).filter({ visible: true }).first().click();
+    await page.getByRole('button', { name: 'Add new era', exact: true }).click();
+    const customEra = page.getByPlaceholder('e.g. Song Dynasty');
+    await expect.poll(async () => (await customEra.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(await customEra.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
   });
 
   test('capture content clears the mobile bottom navigation', async ({ page }, testInfo) => {

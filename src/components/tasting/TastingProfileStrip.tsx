@@ -112,7 +112,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
         {activeCats.length > 1 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1">
             {activeCats.map(group => (
-              <span key={group.categoryId} className="inline-flex items-center gap-1 text-ui-9 text-tea-text-dim tracking-wide uppercase">
+              <span key={group.categoryId} className="inline-flex items-center gap-1 text-ui-12 text-tea-text-dim tracking-wide uppercase">
                 <span className="shrink-0 rounded-full" style={{ width: 5, height: 5, background: CATEGORY_DOT_COLORS[group.categoryId] ?? '#8a8a80', display: 'inline-block', opacity: 0.9 }} />
                 {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
               </span>
@@ -131,7 +131,8 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                   key={`${group.categoryId}-${termId}`}
                   type="button"
                   onClick={() => onRemove?.(group.categoryId as TastingCategoryId, termId)}
-                  className="tag group"
+                  className="tag curate-tasting-tag tap-target group"
+                  aria-label={onRemove ? `Remove ${label}` : label}
                   style={{ gap: '6px' }}
                 >
                   <span className="shrink-0 rounded-full" style={{ width: 6, height: 6, background: dotColor, display: 'inline-block', opacity: 0.7 }} />
@@ -152,7 +153,8 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                 type="button"
                 title={label}
                 onClick={() => onRemove?.('liquor-color', termId)}
-                className="group inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-ui-10 text-tea-text-dim hover:text-tea-text transition-colors"
+                className="tap-target group inline-flex min-h-11 items-center gap-1.5 px-2 py-1 rounded-full text-ui-12 text-tea-text-dim hover:text-tea-text transition-colors"
+                aria-label={onRemove ? `Remove ${label}` : label}
                 style={{ background: `${hex}22`, border: `1px solid ${hex}55` }}
               >
                 <span className="shrink-0 rounded-full" style={{ width: 10, height: 10, background: hex, display: 'inline-block', boxShadow: `0 0 0 1px ${hex}80` }} />

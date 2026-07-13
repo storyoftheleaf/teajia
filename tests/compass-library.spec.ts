@@ -33,7 +33,7 @@ test.describe('Curate context retrieval', () => {
 
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: /Committed context tea/ }).click();
-    await page.getByTitle('Edit in Capture').filter({ visible: true }).click();
+    await page.getByRole('button', { name: 'Edit entry' }).filter({ visible: true }).first().click();
     await page.getByRole('button', { name: /Edit context: Taiwan, Spring 2026 · Chen Family/ }).click();
     await page.getByRole('button', { name: 'Clear context' }).click();
 
@@ -64,8 +64,9 @@ test.describe('Curate Library account-scoped context resilience', () => {
       const { createEmptyEntry } = await import('/src/components/TeaCompass/types.ts');
       // @ts-expect-error Vite source imports.
       const { useAppStore } = await import('/src/lib/store.ts');
-      useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'context-entry', name: 'Context entry', synced: true }] });
       useAppStore.getState().setActiveAccountId('acct-empty');
+      useTeaCompassStore.getState().switchAccount('acct-empty');
+      useTeaCompassStore.setState({ entries: [{ ...createEmptyEntry('tea'), id: 'context-entry', name: 'Context entry', synced: true }] });
     });
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     await page.getByRole('button', { name: 'Filters' }).click();
