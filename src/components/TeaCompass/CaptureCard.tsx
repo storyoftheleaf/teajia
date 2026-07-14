@@ -1728,15 +1728,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             />
           )}
         </div>
-        <CaptureActionFooter
-          className="curate-buy-actions border-t border-tea-border pt-1.5 lg:hidden"
-          onBuy={toggleBuyPicker}
-          onDone={handleCommit}
-          onSample={openTastingOverlay}
-          doneEnabled={entryHasContent(entry)}
-          buyExpanded={showBuyPicker}
-          purchasePickerId={purchasePickerId}
-        />
       </section>
 
       {/* Duplicate nudge */}
@@ -1781,22 +1772,19 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
       <section className="curate-cluster space-y-1.5" data-testid="curate-cluster-tasting">
-          <QuietEyebrow label="Taste" />
           {!hasTasting && (
             <button
               type="button"
               onClick={openTastingOverlay}
-              className="curate-compact-target w-full border-b border-tea-border text-left"
+              className="curate-compact-target w-full border-b border-tea-border text-left text-tea-text transition-colors hover:text-tea-gold"
               data-curate-action
             >
-              <span className="flex w-full items-center justify-between">
-                <span className="curate-support text-tea-text-sec">Tasting profile</span>
-                <span className="curate-compact-chrome curate-support border border-tea-border px-2 text-tea-text" data-curate-compact-chrome>Add</span>
-              </span>
+              <span className="curate-support">Add tasting profile</span>
             </button>
           )}
           {hasTasting && entry.tasting && (
             <>
+          <QuietEyebrow label="Taste" />
           {/* Quality 1–10 — same segment toggle as TastingSession */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
@@ -1847,6 +1835,15 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
             </>
           )}
+      <CaptureActionFooter
+        className="curate-buy-actions border-t border-tea-border pt-1.5 lg:hidden"
+        onBuy={toggleBuyPicker}
+        onDone={handleCommit}
+        onSample={openTastingOverlay}
+        doneEnabled={entryHasContent(entry)}
+        buyExpanded={showBuyPicker}
+        purchasePickerId={purchasePickerId}
+      />
       {/* Notes and intent remain continuously available inside the same
           visually memorable Taste cluster rather than becoming two more
           full-weight sections. */}

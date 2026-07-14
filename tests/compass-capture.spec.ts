@@ -17,11 +17,12 @@ test.describe('Curate field capture preservation', () => {
   test('keeps the complete sourcing spine visible with labelled evidence actions', async ({ page }) => {
     await openCompass(page);
 
-    for (const section of ['Tea', 'Buy', 'Taste']) {
+    for (const section of ['Tea', 'Buy']) {
       await expect(page.getByRole('heading', { name: section, exact: true }).filter({ visible: true })).toHaveCount(1);
     }
+    await expect(page.getByRole('button', { name: 'Add tasting profile', exact: true })).toBeVisible();
     await expect(page.getByTestId('curate-notes-band').filter({ visible: true })).toContainText('Notes');
-    await expect(page.getByText('Intent · None detected', { exact: true }).filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Intent · None detected', { exact: true })).toHaveCount(0);
     await expect(page.getByPlaceholder('e.g. Yiwu').filter({ visible: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Storage', exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Tea type', exact: true }).click();
@@ -477,6 +478,41 @@ test.describe('Curate field capture preservation', () => {
       const entry = state.getEntry(state.activeEntryId!);
       return { decision: entry?.decision, sampleState: entry?.sampleState ?? null };
     })).toEqual({ decision: 'considering', sampleState: null });
+  });
+
+  test('tasting overlay exposes Save, clears the global nav, and protects unsaved work', async ({ page }) => {
+    await openCompass(page);
+    await page.getByPlaceholder('Tea name').filter({ visible: true }).fill('Protected tasting');
+    await page.getByRole('button', { name: /tasting profile/i }).click();
+
+    const close = page.getByRole('button', { name: 'Close', exact: true }).filter({ visible: true });
+    const save = page.getByRole('button', { name: 'Save', exact: true });
+    await expect(close).toBeVisible();
+    await expect(page.getByTestId('bottom-tab-bar')).toBeHidden();
+    expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    await page.getByRole('radiogroup', { name: 'Body weight' }).getByRole('radio', { name: 'Medium' }).click();
+    await expect(save).toBeVisible();
+    const saveBox = await save.boundingBox();
+    expect(saveBox).not.toBeNull();
+    expect(saveBox!.y + saveBox!.height).toBeLessThanOrEqual(844);
+
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toContain('Discard unsaved tasting');
+      await dialog.dismiss();
+    });
+    await close.click();
+    await expect(save).toBeVisible();
+
+    await save.click();
+    await expect(page.getByText('Tasting Saved', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect.poll(() => page.evaluate(async () => {
+      // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
+      const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
+      const state = useTeaCompassStore.getState();
+      return state.getEntry(state.activeEntryId!)?.tasting?.body ?? [];
+    })).toContain('medium');
   });
 
   test('authenticated capture keeps Share reachable outside the action footer', async ({ page }) => {

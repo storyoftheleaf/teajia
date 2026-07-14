@@ -76,9 +76,7 @@ test.describe('Curate compact sourcing canvas', () => {
     await expect(workflow.getByRole('textbox', { name: /notes/i })).toBeVisible();
     await expect(workflow.getByTestId('capture-action-footer')).toBeVisible();
 
-    const intent = workflow.getByText('Intent · None detected', { exact: true });
-    await expect(intent).toBeVisible();
-    await expect(workflow.getByTestId('curate-notes-band')).toContainText('Intent · None detected');
+    await expect(workflow.getByText('Intent · None detected', { exact: true })).toHaveCount(0);
   });
 
   test('communicates decision, measurement, and commit states without relying on color', async ({ page }) => {
@@ -94,7 +92,7 @@ test.describe('Curate compact sourcing canvas', () => {
     const selectedDecision = canvas.getByRole('radio', { name: 'Considering' });
     await selectedDecision.click();
     await expect(selectedDecision.locator('[data-selected-marker]')).toBeVisible();
-    await expect(canvas.getByTestId('gram-current-value')).toContainText(/\d+\s*g/);
+    await expect(canvas.getByTestId('gram-current-value')).toHaveCount(0);
   });
 
   test('fills the complete selected decision segment without inset gaps', async ({ page }) => {
@@ -143,6 +141,7 @@ test.describe('Curate compact sourcing canvas', () => {
     const type = canvas.getByTestId('curate-type-control');
     const decision = canvas.getByTestId('curate-decision-control');
     const buying = canvas.getByTestId('curate-cluster-buying');
+    const tasting = canvas.getByTestId('curate-cluster-tasting');
 
     const yearBox = await year.boundingBox();
     const typeBox = await type.boundingBox();
@@ -155,8 +154,8 @@ test.describe('Curate compact sourcing canvas', () => {
 
     await expect(decision).toHaveAttribute('data-visual-control', 'segmented');
     await expect(decision.locator('[aria-checked="false"]')).toHaveCount(3);
-    await expect(buying.getByTestId('capture-action-footer')).toBeVisible();
-    await expect(canvas.getByText('Intent · None detected', { exact: true })).toBeVisible();
+    await expect(buying.getByTestId('capture-action-footer')).toHaveCount(0);
+    await expect(tasting.getByTestId('capture-action-footer')).toBeVisible();
   });
 
   test('reserves a stable photo position before and after capture', async ({ page }) => {

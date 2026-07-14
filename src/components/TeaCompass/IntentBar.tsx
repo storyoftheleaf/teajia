@@ -85,7 +85,7 @@ export const IntentBar: React.FC<IntentBarProps> = ({ entry, onApply }) => {
   });
 
   if (actionable.length === 0) {
-    return <p className="curate-support text-tea-text-dim">Intent · None detected</p>;
+    return null;
   }
 
   const handleApply = (intent: DetectedIntent) => {

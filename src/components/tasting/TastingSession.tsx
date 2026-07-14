@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Check, Leaf, Sparkles, Mic, Loader2,
   Heart, ThumbsUp, Minus, ThumbsDown, ShoppingCart,
-  Thermometer, Timer,
+  Thermometer, Timer, X,
 } from 'lucide-react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import type { TastingData, CustomerTasting } from '../../types';
@@ -134,11 +134,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   useScrollLock(true);
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
@@ -278,7 +273,21 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
 
   // In sourcing mode (showVerdict + !adminMode), verdict is required before saving
   const verdictRequired = showVerdict && !adminMode;
-  const canSave = hasNotes && saveState === 'idle' && (!verdictRequired || verdict !== null);
+  const canSave = hasNotes && (saveState === 'idle' || saveState === 'error') && (!verdictRequired || verdict !== null);
+
+  const handleCloseRequest = useCallback(() => {
+    const hasUnsavedWork = phase === 'tasting' && hasNotes && saveState !== 'saved';
+    if (hasUnsavedWork && !window.confirm('Discard unsaved tasting changes?')) return;
+    onClose();
+  }, [hasNotes, onClose, phase, saveState]);
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') handleCloseRequest();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [handleCloseRequest]);
 
   const handleSave = useCallback(async () => {
     if (!canSave) return;
@@ -405,7 +414,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
   }, [wouldBuy, updateNoteFields, onSave, adminMode, tastingData, verdict]);
 
   return createPortal(
-    <div className="fixed inset-0 z-priority lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
+    <div data-tasting-session-overlay className="fixed inset-0 z-priority lg:bg-black/75 lg:backdrop-blur-sm lg:flex lg:items-center lg:justify-center">
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
@@ -419,15 +428,14 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
     >
       {/* Header */}
       <div
-        className="relative flex items-center justify-center px-12 py-3 border-b border-tea-border shrink-0"
+        className="flex min-h-12 shrink-0 items-center gap-2 border-b border-tea-border py-1 pl-4 pr-2"
         style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}
       >
-        {/* Centered title */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           {item.image && (
             <img src={item.image} alt="" className="w-7 h-7 rounded object-cover shrink-0 opacity-80" loading="lazy" />
           )}
-          <div className="min-w-0 text-center">
+          <div className="min-w-0">
             <div
               className="text-sm font-medium text-tea-text truncate"
               style={{ fontFamily: 'var(--font-display)' }}
@@ -440,17 +448,25 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
           </div>
         </div>
 
-        {/* X close — top right */}
+        {phase === 'tasting' && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave}
+            aria-label={saveState === 'error' ? 'Retry save' : 'Save'}
+            className="tap-target min-h-11 shrink-0 px-2 text-ui-12 font-medium text-tea-gold transition-colors hover:text-tea-gold-lt disabled:text-tea-text-sec disabled:cursor-not-allowed"
+          >
+            {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Retry' : 'Save'}
+          </button>
+        )}
+
         <button
-          onClick={onClose}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded text-tea-text-sec hover:text-tea-text transition-colors"
+          type="button"
+          onClick={handleCloseRequest}
+          className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec transition-colors hover:text-tea-text"
           aria-label="Close"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
+          <X size={18} strokeWidth={1.75} aria-hidden />
         </button>
       </div>
 
@@ -852,49 +868,6 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
                 </motion.div>
               )}
 
-              {/* Save / Cancel */}
-              <div className="px-3 pb-3 pt-1.5">
-                {saveState === 'error' && (
-                  <p className="text-ui-11 text-tea-error text-center mb-1.5" style={{ fontFamily: 'var(--font-body)' }}>
-                    Save failed — check your connection and try again
-                  </p>
-                )}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="shrink-0 px-4 py-2.5 text-sm font-medium text-tea-text-sec hover:text-tea-text transition-colors"
-                    style={{ fontFamily: 'var(--font-body)' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={!canSave}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                      saveState === 'saving' || saveState === 'saved'
-                        ? 'bg-tea-gold text-tea-bg scale-[0.98]'
-                        : canSave
-                          ? 'border border-tea-gold/40 text-tea-gold hover:bg-tea-gold/8 active:scale-[0.98]'
-                          : 'border border-tea-border text-tea-text-sec cursor-not-allowed'
-                    }`}
-                  >
-                    <motion.span
-                      key={saveState}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Check size={15} />
-                      {saveState === 'idle' && (verdictRequired && !verdict ? 'Select a verdict to save' : 'Save')}
-                      {saveState === 'saving' && 'Saving…'}
-                      {saveState === 'saved' && 'Saved'}
-                      {saveState === 'error' && 'Retry'}
-                    </motion.span>
-                  </button>
-                </div>
-              </div>
             </div>
           </motion.div>
 
