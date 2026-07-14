@@ -118,8 +118,13 @@ function RetailPricePreview({
             onChange={(e) => setShippingInput(e.target.value)}
             onBlur={() => {
               const v = parseFloat(shippingInput);
-              onShippingRateChange(isNaN(v) ? 0 : v);
-              setEditingShipping(false);
+              // Blur fires on pointer-down, before the intended next button's
+              // click. Defer this parent update so the target is not replaced
+              // between pointer-down and click (notably the adjacent Buy action).
+              window.requestAnimationFrame(() => {
+                onShippingRateChange(isNaN(v) ? 0 : v);
+                setEditingShipping(false);
+              });
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === 'Escape') {
@@ -1605,6 +1610,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <div className="relative w-20 shrink-0">
             <span className="curate-floating-label">Year</span>
             <input
+              data-testid="curate-year-control"
               type="number"
               inputMode="numeric"
               placeholder="2019"
@@ -1647,15 +1653,14 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="curate-compact-target w-24 shrink-0"
+            className="curate-field curate-field-with-label relative flex w-20 shrink-0 items-center justify-between px-2 text-left"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
             aria-label="Tea type"
-            data-curate-compact-target
+            data-testid="curate-type-control"
           >
-            <span className="curate-compact-chrome w-full justify-between border border-tea-border text-ui-12 font-medium" data-curate-compact-chrome>
-              <span className="truncate">{entry.type || 'Type'}</span>
-              <ChevronDown size={12} className="shrink-0" />
-            </span>
+            <span className="curate-floating-label">Type</span>
+            <span className="curate-support min-w-0 truncate pt-1 font-medium text-current">{entry.type || 'Choose'}</span>
+            <ChevronDown size={12} className="mt-1 shrink-0" />
           </button>
         </div>
 
@@ -1723,17 +1728,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             />
           )}
         </div>
+        <CaptureActionFooter
+          className="curate-buy-actions border-t border-tea-border pt-1.5 lg:hidden"
+          onBuy={toggleBuyPicker}
+          onDone={handleCommit}
+          onSample={openTastingOverlay}
+          doneEnabled={entryHasContent(entry)}
+          buyExpanded={showBuyPicker}
+          purchasePickerId={purchasePickerId}
+        />
       </section>
-
-      <CaptureActionFooter
-        className="sticky bottom-nav z-sticky bg-tea-bg/95 py-1 lg:hidden"
-        onBuy={toggleBuyPicker}
-        onDone={handleCommit}
-        onSample={openTastingOverlay}
-        doneEnabled={entryHasContent(entry)}
-        buyExpanded={showBuyPicker}
-        purchasePickerId={purchasePickerId}
-      />
 
       {/* Duplicate nudge */}
       <AnimatePresence>
@@ -1782,11 +1786,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             <button
               type="button"
               onClick={openTastingOverlay}
-              className="curate-compact-target w-full justify-between border-b border-tea-border text-left"
+              className="curate-compact-target w-full border-b border-tea-border text-left"
               data-curate-action
             >
-              <span className="curate-support text-tea-text-sec">Tasting profile</span>
-              <span className="curate-compact-chrome curate-support px-1 text-tea-text">Add</span>
+              <span className="flex w-full items-center justify-between">
+                <span className="curate-support text-tea-text-sec">Tasting profile</span>
+                <span className="curate-compact-chrome curate-support border border-tea-border px-2 text-tea-text" data-curate-compact-chrome>Add</span>
+              </span>
             </button>
           )}
           {hasTasting && entry.tasting && (
@@ -1856,9 +1862,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       </div>
 
       <div className="space-y-1.5 border-t border-tea-border pt-2">
-        <FieldLabel>Intent</FieldLabel>
         <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
-        <p className="curate-support text-tea-text-dim">Details detected in notes appear here for review.</p>
       </div>
       </section>
 
