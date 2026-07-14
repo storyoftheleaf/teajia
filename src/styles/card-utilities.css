@@ -2680,7 +2680,7 @@ input[type="number"]::-webkit-outer-spin-button {
   border: 1px solid var(--tea-border);
   border-radius: 6px;
   background: var(--tea-surface);
-  padding: 2px;
+  padding: 0;
 }
 
 .curate-decision-option + .curate-decision-option {

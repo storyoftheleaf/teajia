@@ -97,6 +97,30 @@ test.describe('Curate compact sourcing canvas', () => {
     await expect(canvas.getByTestId('gram-current-value')).toContainText(/\d+\s*g/);
   });
 
+  test('fills the complete selected decision segment without inset gaps', async ({ page }) => {
+    const canvas = page.locator('[data-curate-source]:visible');
+    const decision = canvas.getByTestId('curate-decision-control');
+    const considering = decision.getByRole('radio', { name: 'Considering' });
+    await considering.click();
+
+    const selectedSurface = considering.locator('[data-selected-surface]');
+    await expect(selectedSurface).toBeVisible();
+    const [controlBox, targetBox, surfaceBox] = await Promise.all([
+      decision.boundingBox(),
+      considering.boundingBox(),
+      selectedSurface.boundingBox(),
+    ]);
+    expect(controlBox).not.toBeNull();
+    expect(targetBox).not.toBeNull();
+    expect(surfaceBox).not.toBeNull();
+    expect(Math.abs(surfaceBox!.x - targetBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(surfaceBox!.y - targetBox!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(surfaceBox!.width - targetBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(surfaceBox!.height - targetBox!.height)).toBeLessThanOrEqual(1);
+    expect(targetBox!.y - controlBox!.y).toBeLessThanOrEqual(1);
+    expect(controlBox!.y + controlBox!.height - (targetBox!.y + targetBox!.height)).toBeLessThanOrEqual(1);
+  });
+
   test('uses compact painted controls without shrinking touch targets', async ({ page }) => {
     const paintedControls = page.locator('[data-curate-compact-chrome]:visible');
     expect(await paintedControls.count()).toBeGreaterThan(5);

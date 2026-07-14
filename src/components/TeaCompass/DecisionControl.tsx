@@ -27,14 +27,17 @@ export const DecisionControl: React.FC<{
           aria-checked={value === option.value}
           key={option.value}
           onClick={() => onChange(value === option.value ? null : option.value)}
-          className={`curate-decision-option curate-compact-target min-w-0 flex-1 ${compact ? 'justify-center' : ''}`}
+          className={`curate-decision-option curate-compact-target relative min-w-0 flex-1 overflow-hidden ${compact ? 'justify-center' : ''}`}
           data-curate-action
           data-curate-compact-target
         >
+          {value === option.value && (
+            <span data-selected-surface className="absolute inset-0 bg-tea-accent-sub" aria-hidden />
+          )}
           <span
-            className={`curate-compact-chrome curate-support w-full whitespace-nowrap transition-colors ${
+            className={`curate-compact-chrome curate-support relative z-[1] w-full whitespace-nowrap transition-colors ${
               value === option.value
-                ? 'bg-tea-accent-sub text-tea-text'
+                ? 'text-tea-text'
                 : 'text-tea-text-sec hover:text-tea-text'
             }`}
             data-curate-compact-chrome
