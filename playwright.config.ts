@@ -26,7 +26,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    // Browser tests must start from a clean checkout without Infisical. The
+    // regular dev command still hydrates local secrets for real development.
+    command: 'npm run dev:test',
     url: 'http://localhost:7777',
     reuseExistingServer: !process.env.CI,
   },

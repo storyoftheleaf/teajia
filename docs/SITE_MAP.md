@@ -1,6 +1,6 @@
 # Site Map — Routes & Actions by Tier
 
-> Every route, organized by tier visibility. For end-to-end flows see FLOWS.md. For per-action audit data (status, file:line) see docs/_audit/01–03.
+> Every route, organized by tier visibility. For end-to-end flows see FLOWS.md; for current priorities see CONSOLIDATED_DIRECTION.md.
 
 **Last updated:** 2026-04-27
 

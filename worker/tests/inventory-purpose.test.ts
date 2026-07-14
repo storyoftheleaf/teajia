@@ -32,8 +32,23 @@ describe('inventory purpose compatibility', () => {
     const { id } = await created.json() as any;
     expect(db.products.get(id)).toMatchObject({ inventory_purpose: 'sample', is_sample: 1, is_personal: 0 });
     expect(db.listings.get(`list_${id}`)).toMatchObject({ inventory_purpose: 'sample', stock_known_at: db.products.get(id)?.stock_known_at });
-    expect((await receiptRequest(db, `/api/products/${id}`, { method: 'PUT', body: JSON.stringify({ inventory_purpose: 'personal', stock_grams: 5 }) })).status).toBe(200);
+    expect((await receiptRequest(db, `/api/products/${id}/stock`, { method: 'PUT', body: JSON.stringify({ inventory_purpose: 'personal', stock_grams: 5 }) })).status).toBe(200);
     expect(db.listings.get(`list_${id}`)).toMatchObject({ inventory_purpose: 'personal', is_personal: 1, is_sample: 0, stock_grams: 5 });
+  });
+
+  it('defaults Catalog-only single creation to draft and private across every mirror', async () => {
+    const db = ReceiptDb.seeded();
+    db.role = 'staff';
+    db.bundles = ['catalog'];
+    const created = await receiptRequest(db, '/api/products', {
+      method: 'POST',
+      body: JSON.stringify({ product_name: 'Unpublished Tea', type: 'Oolong' }),
+    });
+    expect(created.status).toBe(201);
+    const { id } = await created.json() as { id: string };
+    expect(db.products.get(id)).toMatchObject({ status: 'Draft', is_public: 0, shown_in_shop: 0 });
+    expect(db.profiles.get(`prof_${id}`)).toMatchObject({ status: 'draft', network_visible: 0 });
+    expect(db.listings.get(`list_${id}`)).toMatchObject({ status: 'draft', is_public: 0, shown_in_shop: 0 });
   });
 
   it('mirrors canonical purpose and known-stock state for bulk/CSV create', async () => {

@@ -57,7 +57,7 @@ Instead, split access by relationship context:
 1. Split richer profile sections behind bundle-aware loaders so partial-access staff see only their relationship surface.
 2. Move remaining legacy `customers.type` and `vendor`/`friend` tag assumptions to relationship reads.
 3. Add a dedicated relationship editor for nuanced manual corrections beyond the audit's safe suggestions.
-4. Build the contributor editor described in `docs/CONTRIBUTOR_PROFILES_PLAN.md` so the contact bridge is part of the editorial workflow, not only the audit tab.
+4. Contributor editing and contact linkage now ship through `/admin/contributors`; keep the contact bridge in that editorial workflow rather than creating a parallel audit-only surface.
 5. Add route tests after each split so buyers, vendors, guests, and recipients do not accidentally inherit the wrong permission model.
 
 ## Product Principle

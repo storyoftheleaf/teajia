@@ -1,5 +1,5 @@
--- Migration 017 (patched): Multi-account scoping
--- Identical to 017_multi_account.sql but removes references to tables
+-- Migration 017 (canonical): Multi-account scoping
+-- Omits references to tables that did not yet exist in production:
 -- that don't yet exist in production:
 --   guest_invites, interest_signups, tea_samples, tea_sample_sets,
 --   tea_sample_tastings, customer_tasting_journal, stock_holds,

@@ -2,8 +2,7 @@ import { Section } from '../types';
 
 export const SECTION_TO_PATH: Record<Section, string> = {
   HOME: '/',
-  // The MAGAZINE section now resolves to the Read experience; the legacy
-  // /magazine listing is archived at /magazine-archive (unlinked).
+  // The historical MAGAZINE section now resolves to the unified Read experience.
   MAGAZINE: '/read',
   LEARN: '/craft',
   SHOP: '/shop',

@@ -107,10 +107,10 @@ function InventoryRowBase(props: InventoryRowProps) {
         // same. The old larger 17px desktop name only applies to legacy non-
         // unified layouts (none currently, but kept as the fallback).
         const nameWeightCls = legacyMobileLayout
-          ? 'font-display text-ui-17 leading-snug truncate font-medium'
+          ? 'font-display text-ui-17 leading-tight truncate font-medium'
           : (stickyFirstCol || alignLeft)
-          ? 'font-display text-ui-15 leading-snug truncate font-normal'
-          : 'font-display text-ui-17 leading-snug truncate font-medium';
+          ? 'font-display text-ui-15 leading-tight truncate font-normal'
+          : 'font-display text-ui-17 leading-tight truncate font-medium';
         // The pinned column sits ON TOP of the card surface as the rest of the
         // row swipes beneath it, so its opaque background must MATCH the card
         // (tea-surface) — using tea-bg here made the Product column read as a
@@ -139,7 +139,7 @@ function InventoryRowBase(props: InventoryRowProps) {
           <td
             key={colKey}
             id={cellId(colIndex)}
-            className={`px-3 py-1 align-middle overflow-hidden ${stickyNameCls} ${fr}`}
+            className={`px-3 pt-[3px] pb-[5px] align-middle overflow-hidden ${stickyNameCls} ${fr}`}
             style={stickyFirstCol ? { backgroundColor: stickyNameBg } : undefined}
           >
             <div className="flex flex-col justify-center">
@@ -166,7 +166,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               ) : (
                 <span className={`${nameWeightCls} ${nameTone}`}>{displayName}</span>
               )}
-              <span className="font-sans text-ui-11 text-tea-text-dim mt-px truncate block" style={{ letterSpacing: '0.02em' }}>
+              <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-none truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}
               </span>
             </div>
@@ -220,7 +220,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               type="button"
               aria-label={`Change stock for ${product.productName || product.givenName}`}
               onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }}
-              className={`tap-target w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
+              className={`w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
             >
               {isOut ? 0 : Math.round(product.stockGrams)}
             </button>
@@ -275,7 +275,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'quantityUnits': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`tap-target w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
+          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
             {product.quantityUnits ?? 0}
           </button>
         </td>
@@ -300,7 +300,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               }}
               title={isVerified ? `Verified ${new Date(product.stockVerifiedAt!).toLocaleDateString()}` : 'Mark as verified'}
               aria-label={isVerified ? `Clear verification for ${product.productName}` : `Mark ${product.productName} as verified`}
-              className="tap-target group/verified"
+              className="group/verified"
             >
               <span className={`inline-flex items-center justify-center w-5 h-5 rounded transition-colors ${isVerified ? 'bg-tea-surface text-tea-text group-hover/verified:bg-tea-elevated group-hover/verified:text-tea-text-sec' : 'bg-tea-surface text-tea-border group-hover/verified:text-tea-text-sec group-hover/verified:bg-tea-bg'}`}>
                 {isVerified ? <Check size={12} strokeWidth={3} /> : <span className="w-3 h-3 rounded-md border border-current" />}

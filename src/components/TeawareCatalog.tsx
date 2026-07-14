@@ -214,7 +214,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                           }
                           priceDisplay={
                             <span className="card-grid-price">
-                              <span className="num">{fmtShopPrice(parseFloat(item.price_50g))}</span>
+                              <span className="num">{fmtShopPrice(parseFloat(item.price_50g ?? '0'))}</span>
                               <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                             </span>
                           }
@@ -249,7 +249,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
                     }
                     priceDisplay={
                       <span className="card-grid-price">
-                        <span className="num">{fmtShopPrice(parseFloat(item.price_50g))}</span>
+                        <span className="num">{fmtShopPrice(parseFloat(item.price_50g ?? '0'))}</span>
                         <span className="text-tea-text-sec text-ui-10 ml-1">each</span>
                       </span>
                     }
@@ -274,7 +274,7 @@ export const TeawareCatalog: React.FC<TeawareCatalogProps> = ({ onAddToCart, ext
 
                   {group.items.map((item) => {
                     const isFavorite = userFavorites.has(item.id);
-                    const unitPrice = parseFloat(item.price_50g);
+                    const unitPrice = parseFloat(item.price_50g ?? '0');
 
                     return (
                       <div

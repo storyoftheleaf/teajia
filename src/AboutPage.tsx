@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Icons } from './components/Icons';
+import { LogoEmblem } from './components/Logos/LogoEmblem';
 
 
 export default function AboutPage() {
@@ -69,13 +70,28 @@ export default function AboutPage() {
         <p className="subtitle mb-8">Twenty years in tea culture. Taiwan, China, Bali, and beyond.</p>
 
         <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-          {/* Photo */}
-          <img
-            src="https://images.unsplash.com/photo-1545239351-ef35f43d514b?w=600&q=80&auto=format"
-            alt="Adrian Rasmussen"
-            className="w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] object-cover bg-tea-elevated rounded-xl border border-tea-border shrink-0"
-            loading="lazy"
-          />
+          {/* Founder identity plate */}
+          <div
+            className="relative isolate w-full md:w-[280px] aspect-[3/2] md:aspect-[4/5] overflow-hidden bg-tea-elevated rounded-xl border border-tea-border shrink-0 flex flex-col justify-between p-6 md:p-7"
+            role="img"
+            aria-label="Founder identity plate for Adrian Rasmussen"
+          >
+            <div className="absolute inset-0 opacity-[0.035] grain-texture pointer-events-none" aria-hidden="true" />
+            <div className="flex items-center justify-between border-b border-tea-border pb-3">
+              <span className="label-caps text-tea-text-sec">Founder</span>
+              <span className="text-ui-9 font-mono uppercase tracking-caps text-tea-text-dim">Twenty years in tea</span>
+            </div>
+            <LogoEmblem
+              size={88}
+              color="var(--tea-gold)"
+              className="self-center opacity-70"
+              ariaLabel="Teajia emblem"
+            />
+            <div className="border-t border-tea-border pt-4">
+              <p className="font-display text-ui-28 leading-tight text-tea-text">Adrian</p>
+              <p className="font-display text-ui-20 leading-tight text-tea-text-sec">Rasmussen</p>
+            </div>
+          </div>
 
           {/* Bio */}
           <div className="flex flex-col justify-center space-y-4">

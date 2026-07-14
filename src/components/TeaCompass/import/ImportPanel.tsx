@@ -264,12 +264,13 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     setBusyId('__create-journey');
     let journey: CurateJourney | null = null;
     const action = async () => {
-      journey = journey || await api.curateContext.createJourney(input);
-      setJourneyLookup(current => completedLookup(current.options.some(candidate => candidate.id === journey!.id) ? current.options : [...current.options, journey!]));
-      setDraft(current => ({ ...current, journeyId: journey.id }));
+      const createdJourney = journey ?? await api.curateContext.createJourney(input);
+      journey = createdJourney;
+      setJourneyLookup(current => completedLookup(current.options.some(candidate => candidate.id === createdJourney.id) ? current.options : [...current.options, createdJourney]));
+      setDraft(current => ({ ...current, journeyId: createdJourney.id }));
       if (state.detail) {
         const batchId = state.detail.batch.id;
-        await api.curateImports.setJourney(batchId, journey.id);
+        await api.curateImports.setJourney(batchId, createdJourney.id);
         await refreshDetail(batchId);
       }
     };

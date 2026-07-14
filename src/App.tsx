@@ -34,8 +34,7 @@ const AdminApp = lazyWithRetry(() => import('./admin/AdminApp'));
 const MediaViewer = lazy(() => import('./components/MediaViewer').then(m => ({ default: m.MediaViewer })));
 const Reader = lazy(() => import('./components/Reader').then(m => ({ default: m.Reader })));
 // Legacy MagazinePageReader removed; articles render through the unified
-// 4:5 reader at /article/:slug. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
-const VisualFeatureViewer = lazy(() => import('./components/PhotoEssay/VisualFeatureViewer').then(m => ({ default: m.VisualFeatureViewer })));
+// 4:5 reader at /article/:slug. See docs/ARCHITECTURE.md.
 const Shop = lazyWithRetry(() => import('./components/Shop').then(m => ({ default: m.Shop })));
 
 // Reads :id from the URL and passes it to Shop so the AlcoveModal opens for
@@ -101,7 +100,15 @@ const CenterPage = lazy(() => import('./pages/CenterPage'));
 const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 const SampleHistoryPage = lazy(() => import('./pages/SampleHistoryPage'));
-const DeveloperDocsPage = lazy(() => import('./pages/DeveloperDocsPage'));
+// Repository docs can contain historical external URLs and are a development
+// tool, so do not ship their raw contents in the public production bundle.
+const DeveloperDocsPage = import.meta.env.DEV
+  ? lazy(() => import('./pages/DeveloperDocsPage'))
+  : () => (
+      <div className="min-h-dvh flex items-center justify-center px-6 pb-nav text-center">
+        <p className="font-serif text-ui-15 text-tea-text-sec">The development library is available in local development only.</p>
+      </div>
+    );
 const BriefingPage = lazy(() => import('./pages/BriefingPage'));
 const SessionPage = lazy(() => import('./pages/SessionPage'));
 const JoinPage = lazy(() => import('./pages/JoinPage'));
@@ -140,7 +147,7 @@ const McpPage = lazy(() => import('./pages/McpPage'));
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchStore } from './lib/storefrontApi';
-import { STORIES, LEARN_STORIES } from './constants';
+import { LEARN_STORIES } from './constants';
 import { Story, ContentType, ViewState, Person, InventoryItem, Section } from './types';
 import type { Account, DbArticle } from './types';
 import { useAppStore } from './lib/store';
@@ -171,7 +178,6 @@ import type { PanelView } from './components/AccountPanel/types';
 import { GlobalSearch } from './components/shared/GlobalSearch';
 import { LeftSidebar } from './components/LeftSidebar';
 import { BottomTabBar } from './components/BottomTabBar';
-import { MagazineTabbed } from './components/MagazineTabbed';
 import { AdvisePage } from './components/AdvisePage';
 import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
@@ -188,8 +194,6 @@ import { WalkthroughDock } from './components/shared/WalkthroughDock';
 import { ScrollProgressBar, shouldShowGlobalScrollProgress } from './components/shared/ScrollProgressBar';
 import { AnimatedRoutes } from './components/shared/AnimatedRoutes';
 import { usePullToRefresh } from './hooks/usePullToRefresh';
-import { COMMUNITY_MEMBERS } from './data/communityMembers';
-import { TEA_INSPIRE_IMAGES } from './data/teaInspire';
 
 // View Transitions API feature detection (#46)
 const supportsViewTransitions = typeof document !== 'undefined' && 'startViewTransition' in document;
@@ -351,7 +355,6 @@ const AppContent = () => {
 
   // Track where user came from for back navigation
   const [returnToSection, setReturnToSection] = useState<Section>('MAGAZINE');
-  const [returnToTab, setReturnToTab] = useState<'articles' | 'visual' | 'tea-inspire'>('articles');
 
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [sharingStory, setSharingStory] = useState<Story | null>(null);
@@ -404,15 +407,12 @@ const AppContent = () => {
       const story = (e as CustomEvent).detail?.story as Story | undefined;
       if (!story) return;
       setReturnToSection(activeSection);
-      setReturnToTab(magazineDefaultTab);
       setSelectedStory(story);
       setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
       if (story.type === ContentType.Article) {
         const slug = story.slug || story.id;
         navigate(`/article/${encodeURIComponent(slug)}`);
         return;
-      } else if (story.type === ContentType.PhotoEssay) {
-        setViewState('PHOTO_ESSAY');
       } else {
         setViewState('STORY_VIEW');
       }
@@ -420,7 +420,7 @@ const AppContent = () => {
     window.addEventListener('openArticle', handler);
     return () => window.removeEventListener('openArticle', handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, magazineDefaultTab, navigate]);
+  }, [activeSection, navigate]);
 
   // Cart persistence handled by Zustand persist middleware
 
@@ -466,11 +466,6 @@ const AppContent = () => {
   // Separate Inventory into Tea and Ware
   const teaInventory = useMemo(() => inventory.filter(i => i.category === 'tea'), [inventory]);
   const teawareInventory = useMemo(() => inventory.filter(i => i.category === 'ware'), [inventory]);
-
-  // Filter out any story that isn't PUBLISHED (e.g. Vault content)
-  const publishedStories = useMemo(() => {
-      return stories.filter(s => s.status === 'published');
-  }, [stories]);
 
   const handleAddToCart = (item: InventoryItem, qty: number, total: number) => {
     if (item.stock_g !== undefined && item.stock_g <= 0) {
@@ -531,8 +526,6 @@ const AppContent = () => {
   const handleCardClick = (story: Story) => {
     // Save current location before navigating
     setReturnToSection(activeSection);
-    setReturnToTab(magazineDefaultTab);
-
     setSelectedStory(story);
     if (!watchedStoryIds[story.id]) {
        setWatchedStoryIds(prev => ({ ...prev, [story.id]: true }));
@@ -544,7 +537,7 @@ const AppContent = () => {
       return;
     }
 
-    setViewState(story.type === ContentType.PhotoEssay ? 'PHOTO_ESSAY' : 'STORY_VIEW');
+    setViewState('STORY_VIEW');
   };
 
   const handleBackToBrowse = () => {
@@ -837,26 +830,6 @@ const AppContent = () => {
                   </ErrorBoundary>
                   )
                 } />
-                {/* Magazine + the old Stories are archived off the live experience
-                    (the Read section replaced them). Kept fully working at this
-                    tucked-away URL — nothing links here — so it can be revisited
-                    or restored later. Do not re-link without intent. */}
-                <Route path="/magazine-archive" element={
-                  <ErrorBoundary>
-                    <MagazineTabbed
-                      stories={publishedStories}
-                      savedStoryIds={savedStoryIds}
-                      watchedStoryIds={watchedStoryIds}
-                      onCardClick={handleCardClick}
-                      onToggleSave={toggleSave}
-                      onShare={handleShare}
-                      defaultTab={magazineDefaultTab}
-                      onCartClick={handleOpenCart}
-                      onAccountClick={handleOpenAccount}
-                      cartItemCount={cart.length}
-                    />
-                  </ErrorBoundary>
-                } />
                 <Route path="/article/:slug" element={
                   <ErrorBoundary>
                     <Suspense fallback={<EmblemLoader />}>
@@ -1119,19 +1092,6 @@ const AppContent = () => {
            <MediaViewer
               story={selectedStory}
               onBack={handleBackToBrowse}
-              isSaved={savedStoryIds[selectedStory.id]}
-              onToggleSave={() => toggleSave(selectedStory.id)}
-              onShare={handleShare}
-           />
-         </Suspense>
-      )}
-
-      {viewState === 'PHOTO_ESSAY' && selectedStory && (
-         <Suspense fallback={<EmblemLoader />}>
-           <VisualFeatureViewer
-              story={selectedStory}
-              onBack={handleBackToBrowse}
-              onPersonClick={setSelectedPerson}
               isSaved={savedStoryIds[selectedStory.id]}
               onToggleSave={() => toggleSave(selectedStory.id)}
               onShare={handleShare}

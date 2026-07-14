@@ -24,7 +24,7 @@ export const TeawareAlcoveCard: React.FC<TeawareAlcoveCardProps> = ({ item, onAd
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const showFade = useScrollFade(scrollRef);
+  const showFade = useScrollFade(scrollRef as React.RefObject<HTMLElement>);
   const galleryTouchStart = useRef<number | null>(null);
 
   // Share handler — builds ?product=<id> URL, uses Web Share API with clipboard fallback

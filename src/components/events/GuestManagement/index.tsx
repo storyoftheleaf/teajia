@@ -29,7 +29,7 @@ const GuestManagement: React.FC = () => {
   const { magicToken } = useParams<{ magicToken: string }>();
   const navigate = useNavigate();
 
-  const { data, isLoading, isError, error } = useGuestManagement(magicToken);
+  const { data, isLoading, isError, error } = useGuestManagement(magicToken || '');
   const cancelRSVP = useCancelRSVP(magicToken || '');
   const claimSeat = useClaimSeat(magicToken || '');
   const markBriefed = useMarkBriefed(magicToken || '');
@@ -43,8 +43,9 @@ const GuestManagement: React.FC = () => {
   const { data: postSession } = useQuery({
     queryKey: ['guest-post-session', magicToken],
     queryFn: async () => {
+      if (!magicToken) throw new Error('Missing reservation token');
       try {
-        return await api.rsvp.getPostSession(magicToken!);
+        return await api.rsvp.getPostSession(magicToken);
       } catch {
         return null;
       }

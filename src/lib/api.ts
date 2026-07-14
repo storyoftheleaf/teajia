@@ -285,6 +285,49 @@ export function clearToken() {
   _invalidateClaimsCache();
 }
 
+export type PendingSignup = {
+  email: string;
+  signupToken: string;
+  expiresAt: number;
+  recoverableUntil: number;
+};
+
+const PENDING_SIGNUP_STORAGE_KEY = 'teajia_pending_signup';
+const PENDING_SIGNUP_TTL_MS = 10 * 60 * 1000;
+const PENDING_SIGNUP_RECOVERY_MS = 24 * 60 * 60 * 1000;
+
+function persistPendingSignup(pending: PendingSignup): PendingSignup {
+  try { sessionStorage.setItem(PENDING_SIGNUP_STORAGE_KEY, JSON.stringify(pending)); } catch { /* recovery remains in-memory */ }
+  return pending;
+}
+
+export function clearPendingSignup() {
+  try { sessionStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY); } catch { /* ignore blocked storage */ }
+}
+
+export function restorePendingSignup(): PendingSignup | null {
+  let raw: string | null = null;
+  try { raw = sessionStorage.getItem(PENDING_SIGNUP_STORAGE_KEY); } catch { return null; }
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<PendingSignup>;
+    if (typeof parsed.email !== 'string' || typeof parsed.signupToken !== 'string'
+      || typeof parsed.expiresAt !== 'number' || typeof parsed.recoverableUntil !== 'number') {
+      clearPendingSignup();
+      return null;
+    }
+    const pending = parsed as PendingSignup;
+    if (pending.recoverableUntil <= Date.now()) {
+      clearPendingSignup();
+      return null;
+    }
+    return pending;
+  } catch {
+    clearPendingSignup();
+    return null;
+  }
+}
+
 export function hasToken(): boolean {
   return !!getToken();
 }
@@ -383,7 +426,7 @@ const PRODUCT_CATALOG_UPDATE_FIELDS = new Set([
 const PRODUCT_STOCK_UPDATE_FIELDS = new Set([
   'stock', 'stock_unit', 'stock_grams', 'low_stock_threshold', 'recheck_stock',
   'stock_verified_at', 'in_transit', 'in_transit_grams', 'in_transit_eta',
-  'session_reserve_grams', 'inventory_purpose', 'stock_known_at', 'storage_location',
+  'session_reserve_grams', 'inventory_purpose', 'stock_known_at',
 ]);
 
 const PRODUCT_COMMERCIAL_UPDATE_FIELDS = new Set([
@@ -403,22 +446,28 @@ function splitProductUpdateByDomain(data: Record<string, any>): {
   stock: Record<string, any>;
   commercial: Record<string, any>;
   publication: Record<string, any>;
-  legacy: Record<string, any>;
 } {
   const groups = {
     catalog: {} as Record<string, any>,
     stock: {} as Record<string, any>,
     commercial: {} as Record<string, any>,
     publication: {} as Record<string, any>,
-    legacy: {} as Record<string, any>,
   };
+
+  const unknown: string[] = [];
 
   for (const [key, value] of Object.entries(data)) {
     if (PRODUCT_CATALOG_UPDATE_FIELDS.has(key)) groups.catalog[key] = value;
     else if (PRODUCT_STOCK_UPDATE_FIELDS.has(key)) groups.stock[key] = value;
     else if (PRODUCT_COMMERCIAL_UPDATE_FIELDS.has(key)) groups.commercial[key] = value;
     else if (PRODUCT_PUBLICATION_UPDATE_FIELDS.has(key)) groups.publication[key] = value;
-    else groups.legacy[key] = value;
+    else unknown.push(key);
+  }
+
+  if (unknown.length > 0) {
+    throw new ApiError('Unsupported fields for this product update', 400, {
+      code: 'validation_failed', details: { fields: unknown },
+    });
   }
 
   return groups;
@@ -438,9 +487,6 @@ async function updateProductByDomain(id: string, data: Record<string, any>) {
   if (Object.keys(groups.stock).length > 0) result = await putProductUpdate(id, '/stock', groups.stock);
   if (Object.keys(groups.commercial).length > 0) result = await putProductUpdate(id, '/commercial', groups.commercial);
   if (Object.keys(groups.publication).length > 0) result = await putProductUpdate(id, '/publication', groups.publication);
-  // Preserve compatibility for fields that the broad legacy endpoint already
-  // accepts or safely ignores while callers are migrated field by field.
-  if (Object.keys(groups.legacy).length > 0) result = await putProductUpdate(id, '', groups.legacy);
   return result;
 }
 
@@ -667,7 +713,7 @@ async function handleResponse(res: Response) {
   if (!res.ok) {
     // Detect account access denial — clear active account and prompt UI reload.
     // (401 refresh + retry is handled in authedFetch before this is called.)
-    if (res.status === 403 && data?.error === 'Account access denied') {
+    if (res.status === 403 && data?.code === 'account_access_denied') {
       try {
         useAppStore.getState().setActiveAccountId(null);
         useAppStore.getState().setActiveAccount(null);
@@ -734,12 +780,12 @@ async function authenticatedResponse(url: string, init: ApiRequestInit = {}): Pr
     // once, so we capture it before branching on the refresh result.
     let bodyData: any;
     try { bodyData = JSON.parse(await res.text()); } catch { /* ignore */ }
-    const reason = bodyData?.reason as string | undefined;
+    const reason = bodyData?.code as string | undefined;
 
     // 'no_token' means the server got no Authorization header — a client-side
     // bug, not an expired session. Refreshing would be pointless and could
     // falsely fire SESSION_EXPIRED.
-    if (reason !== 'no_token') {
+    if (reason !== 'auth_no_token') {
       const refreshResult = await ensureTokenRefreshed();
       if (refreshResult === 'refreshed') {
         // New token stored — retry ONCE with fresh auth headers.
@@ -853,18 +899,11 @@ export function hydrateAccountStateFromToken(): TokenClaims | null {
 
 export const api = {
   incidents: {
-    report: async (incident: Record<string, unknown>) => {
-      const init: ApiRequestInit = { method: 'POST', body: JSON.stringify(incident), retryTimeouts: true };
-      try {
-        return await authedFetch(`${API_URL}/api/incidents`, init);
-      } catch (error) {
-        // A broken Pages proxy cannot report its own configuration failure.
-        // Make one best-effort direct Worker attempt; this remains a fallback
-        // because the workers.dev host is not reliably reachable in China.
-        if (incident.category !== 'configuration') throw error;
-        return authedFetch('https://teajia-api.lightcodes.workers.dev/api/incidents', init);
-      }
-    },
+    // Keep browser traffic on the public same-origin proxy. A direct Worker
+    // fallback would bypass the China-reachable boundary and the CSP.
+    report: (incident: Record<string, unknown>) => authedFetch(`${API_URL}/api/incidents`, {
+      method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
+    }),
     list: () => authedFetch(`${API_URL}/api/platform/incidents`),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
       method: 'PATCH', body: JSON.stringify(patch), retryTimeouts: true,
@@ -908,13 +947,53 @@ export const api = {
       });
       return handleResponse(res);
     },
-    signup: async (email: string, password: string, name: string, username?: string | null) => {
+    signup: async (email: string, password: string, name: string, username?: string | null): Promise<PendingSignup> => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, username: username || undefined }),
       });
+      const result = await handleResponse(res) as { verification_required?: boolean; signup_token?: string };
+      if (!result.verification_required || !result.signup_token) {
+        throw new Error('Signup verification could not be started. Please try again.');
+      }
+      return persistPendingSignup({
+        email,
+        signupToken: result.signup_token,
+        expiresAt: Date.now() + PENDING_SIGNUP_TTL_MS,
+        recoverableUntil: Date.now() + PENDING_SIGNUP_RECOVERY_MS,
+      });
+    },
+    verifySignup: async (pending: PendingSignup, code: string): Promise<{ token: string }> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/signup/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pending.email,
+          code,
+          signup_token: pending.signupToken,
+        }),
+      });
       return handleResponse(res);
+    },
+    resendSignup: async (pending: PendingSignup): Promise<PendingSignup> => {
+      const res = await fetchWithTimeout(`${API_URL}/api/auth/signup/resend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pending.email, signup_token: pending.signupToken }),
+      });
+      const result = await handleResponse(res) as { verification_required?: boolean; signup_token?: string };
+      if (!result.verification_required || !result.signup_token) {
+        throw new Error('A new verification code could not be sent. Please try again.');
+      }
+      return persistPendingSignup({
+        email: pending.email,
+        signupToken: result.signup_token,
+        expiresAt: Date.now() + PENDING_SIGNUP_TTL_MS,
+        // Resending rotates the proof and code, but the Worker recovery window
+        // remains anchored to the original signup identity creation time.
+        recoverableUntil: pending.recoverableUntil,
+      });
     },
     /** Explicit refresh — rarely needed directly; prefer `ensureTokenRefreshed`. */
     refresh: async (): Promise<boolean> => ensureTokenRefreshed().then(r => r === 'refreshed'),
@@ -969,7 +1048,7 @@ export const api = {
     redeemJoinCode: async (data: { code: string; first_name: string; email: string }) => {
       const res = await fetchWithTimeout(`${API_URL}/api/auth/join-code/redeem`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
       return handleResponse(res);
@@ -1017,12 +1096,6 @@ export const api = {
       return authedFetch(`${API_URL}/api/products/bulk`, {
         method: 'POST',
         body: JSON.stringify({ products, batch_id: batchId, receipt_label: receiptLabel }),
-      });
-    },
-    update: async (id: string, data: Record<string, any>) => {
-      return authedFetch(`${API_URL}/api/products/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
       });
     },
     updateByDomain: updateProductByDomain,
@@ -1398,7 +1471,7 @@ export const api = {
     });
   },
 
-  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string }> => {
+  transcribeAudio: async (audioBlob: Blob): Promise<{ text: string; recording_id: string }> => {
     const formData = new FormData();
     const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
     formData.append('file', audioBlob, `recording.${ext}`);
@@ -1407,6 +1480,12 @@ export const api = {
       body: formData,
     });
   },
+
+  retryTranscription: async (recordingId: string): Promise<{ text: string; recording_id: string }> =>
+    authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}/retry`, { method: 'POST' }),
+
+  discardTranscription: async (recordingId: string): Promise<{ ok: true }> =>
+    authedFetch(`${API_URL}/api/transcriptions/${encodeURIComponent(recordingId)}`, { method: 'DELETE' }),
 
   uploadImage: async (
     file: File | Blob,

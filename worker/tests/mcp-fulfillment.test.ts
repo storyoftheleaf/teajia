@@ -64,6 +64,15 @@ class FakeStatement {
         scopes: JSON.stringify(['sales:write']),
       };
     }
+    if (sql === 'select id, email, platform_role from users where id = ?') {
+      return { id: 'user_test', email: 'staff@example.com', platform_role: null };
+    }
+    if (sql === 'select status from accounts where id = ?') {
+      return { status: 'active' };
+    }
+    if (sql.includes('from account_members am') && sql.includes("am.status = 'active'")) {
+      return { role: 'staff', permissions: JSON.stringify({ bundles: ['sell'] }) };
+    }
     if (sql.includes('from invoices where id = ? and account_id = ?')) {
       return this.state.invoice;
     }

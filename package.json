@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "lsof -ti:7777 >/dev/null 2>&1 || (infisical export --env=dev --format=dotenv --path=/ > .env.local && vite)",
+    "dev:test": "VITE_API_URL=http://localhost:7777 vite",
     "build": "node scripts/check-required-deployment-config.mjs --if-cloudflare-pages && vite build",
     "check:deploy-config": "node scripts/check-required-deployment-config.mjs",
     "lint:colors": "bash scripts/lint-colors.sh",
@@ -17,7 +18,8 @@
     "test:china-scan": "node --test scripts/check-china-dependencies.test.mjs",
     "audit:china": "node scripts/check-china-dependencies.mjs .",
     "test:recovery": "playwright test --config=playwright.recovery.config.ts",
-    "test:mobile": "npx playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list"
+    "test:mobile": "playwright test tests/account-panel-mobile.spec.ts --project='Mobile Chrome' --reporter=list",
+    "test:platform-hardening": "node --test scripts/platform-hardening.test.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -26,6 +28,8 @@
     "@tanstack/react-query": "^5.17.0",
     "@tanstack/react-query-persist-client": "^5.100.5",
     "cmdk": "^1.1.1",
+    "exceljs": "^4.4.0",
+    "fflate": "^0.8.3",
     "framer-motion": "^12.34.3",
     "fuse.js": "^7.0.0",
     "html-to-image": "^1.11.13",
@@ -36,13 +40,13 @@
     "react-dom": "^19.2.0",
     "react-easy-crop": "^5.5.7",
     "react-helmet-async": "^3.0.0",
-    "react-router-dom": "^7.13.1",
+    "react-router-dom": "^7.18.1",
     "recharts": "^2.12.0",
     "vaul": "^1.1.2",
-    "xlsx": "^0.18.5",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/node": "^22.14.0",
     "@types/papaparse": "^5.3.14",
     "@types/react": "^19.0.0",
@@ -53,7 +57,7 @@
     "tailwindcss": "^3.4.19",
     "terser": "^5.44.1",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0",
+    "vite": "^6.4.3",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.1.5"
   }

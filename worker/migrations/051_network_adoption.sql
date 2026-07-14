@@ -1,6 +1,6 @@
 -- 051_network_adoption.sql
 -- Step 6 of the Network Rollout — cross-pollination adoption queue.
--- Per docs/NETWORK_ROLLOUT_PLAN.md Step 6.
+-- Per docs/NETWORK_UI_BRIEF.md.
 --
 -- A partner who originates a tea profile (one Adrian doesn't yet curate)
 -- can flag it as a candidate for network-wide adoption. Adrian sees these

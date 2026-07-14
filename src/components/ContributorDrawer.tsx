@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Person, Story } from '../types';
 import { Icons } from './Icons';
+import { ContributorIdentityMark } from './shared/ContributorIdentityMark';
 
 interface ContributorDrawerProps {
   person: Person;
@@ -50,7 +51,7 @@ export const ContributorDrawer: React.FC<ContributorDrawerProps> = ({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <Icons.Seal className="w-7 h-7 text-tea-text-dim" />
+              <ContributorIdentityMark name={person.name} />
             )}
           </div>
           <div className="flex-1 min-w-0 pt-0.5">

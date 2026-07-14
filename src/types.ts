@@ -262,7 +262,7 @@ export interface Person {
 }
 
 // Contributor - the canonical editorial identity that backs /people/:slug.
-// See docs/CONTRIBUTOR_PROFILES_PLAN.md.
+// See docs/ARCHITECTURE.md.
 export interface ContributorLink {
   label: string;
   url: string;
@@ -472,7 +472,7 @@ export interface LearnPath {
   modules: string[]; // Module IDs
 }
 
-export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER' | 'PHOTO_ESSAY';
+export type ViewState = 'BROWSE' | 'STORY_VIEW' | 'READER';
 
 export interface CartItem {
   id: string;
@@ -589,7 +589,7 @@ export interface StarterSet {
   shortDescription: string; // Brief one-liner for collapsed state
   description: string; // Full description for expanded state
   idealFor?: string; // "Perfect for: ..." one-liner
-  image: string;
+  image?: string;
   price: string;
   discount?: string; // e.g., "15% off" or "$5 off individual items"
   items: {
@@ -716,7 +716,7 @@ export const BUNDLE_DESCRIPTIONS: Record<Bundle, string> = {
 
 // ── Network catalog — Step 2 (Carry from network) ─────────────────────────
 // Shape returned by GET /api/network/catalog. Agent A is building that endpoint;
-// this type mirrors the agreed response shape from docs/NETWORK_ROLLOUT_PLAN.md §Step 2.
+// this type mirrors the network response contract; see docs/ARCHITECTURE.md.
 // Profile shape returned by GET /api/network/catalog. Mirrors the response
 // constructed in worker/src/index.ts handleNetworkCatalog.
 export interface NetworkCatalogProfile {
@@ -1017,7 +1017,7 @@ export interface AccountApplication {
 // ArticleBlock — paginated 4:5 article system.
 // Every block renders as one page in the paginated reader at /article/:slug.
 // New variants are absorbed by `variant` discriminators rather than new types
-// to keep the union small. See docs/_archive/ARTICLE_UNIFICATION_PLAN.md.
+// to keep the union small. See docs/ARCHITECTURE.md.
 export type ParagraphVariant =
   | 'single' | 'double' | 'justified' | 'center' | 'drop_cap';
 

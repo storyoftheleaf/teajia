@@ -102,7 +102,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     return entry?.category || 'tea';
   });
 
-  const { activeAccountId, activeAccount } = useAppStore();
+  const { activeUserId, activeAccountId, activeAccount } = useAppStore();
   const switchDraftAccount = useTeaCompassStore((s) => s.switchDraftAccount);
   const { addNote } = useNotesStore();
 
@@ -548,12 +548,15 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   // mounted, so compass + notes data stays fresh across navigation.
 
   const handleVoiceTranscript = useCallback(
-    (text: string) => {
-      if (!activeEntryId) return;
-      const entry = getEntry(activeEntryId);
+    (text: string, recordingContextKey: string) => {
+      const contextPrefix = `curate:${activeUserId ?? 'guest'}:${activeAccountId ?? 'guest'}:`;
+      if (!recordingContextKey.startsWith(contextPrefix)) return false;
+      const recordedEntryId = recordingContextKey.slice(contextPrefix.length);
+      if (!recordedEntryId || recordedEntryId === 'unassigned') return false;
+      const entry = getEntry(recordedEntryId);
       addNote({
         accountId: activeAccountId ?? 'guest',
-        compassEntryId: activeEntryId,
+        compassEntryId: recordedEntryId,
         teaKey: entry?.teaKey,
         text,
         sourceType: 'voice',
@@ -562,11 +565,21 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         visibility: 'private',
       });
       syncNotes().catch(() => {});
+      return true;
     },
-    [activeEntryId, getEntry, addNote, activeAccountId, activeAccount]
+    [getEntry, addNote, activeUserId, activeAccountId, activeAccount]
   );
 
-  const { state: voiceState, errorMessage: voiceError, handlePress: handleVoicePress } = useVoiceRecorder(handleVoiceTranscript);
+  const voiceUserId = activeUserId ?? 'guest';
+  const voiceContextKey = `curate:${voiceUserId}:${activeAccountId ?? 'guest'}:${activeEntryId ?? 'unassigned'}`;
+  const {
+    state: voiceState,
+    errorMessage: voiceError,
+    pendingRecording: pendingVoiceRecording,
+    handlePress: handleVoicePress,
+    retryPending: retryPendingVoice,
+    discardPending: discardPendingVoice,
+  } = useVoiceRecorder(handleVoiceTranscript, voiceContextKey, voiceUserId);
   const isPlatformPrivileged = usePlatformPrivilege();
 
   const pendingIncomingCount = visibleShares.length;
@@ -905,7 +918,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                         )}
                       </AnimatePresence>}
 
-                      {(!initialDevelopmentProduct || developmentStarted) && <CaptureCard
+                      {activeEntryId && (!initialDevelopmentProduct || developmentStarted) && <CaptureCard
                         entryId={activeEntryId}
                         onSwitchToLedger={() => handleSwitchMode('buying')}
                         onCommit={handleCommitEntry}
@@ -1138,15 +1151,24 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               with the Done button), so we no longer stack two fixed bars. */}
           <AnimatePresence>
             {mode === 'sourcing' && voiceError && (
-              <motion.p
+              <motion.div
                 key="voice-error"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
-                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav text-ui-11 text-tea-error text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
+                className="lg:hidden fixed left-0 right-0 z-20 bottom-nav flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-t border-tea-border bg-tea-bg"
               >
-                {voiceError}
-              </motion.p>
+                <span>{voiceError}</span>
+                {pendingVoiceRecording && (
+                  <span className="inline-flex items-center gap-2">
+                    <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
+                    <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
+                  </span>
+                )}
+              </motion.div>
             )}
           </AnimatePresence>
 
@@ -1620,14 +1642,23 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               <div className="shrink-0 border-t border-tea-border">
                 <AnimatePresence>
                   {voiceError && (
-                    <motion.p
+                    <motion.div
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
-                      className="text-ui-11 text-tea-error text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
+                      className="flex flex-wrap items-center justify-center gap-2 text-ui-11 text-tea-error text-center px-4 py-1.5 border-b border-tea-border bg-tea-bg"
                     >
-                      {voiceError}
-                    </motion.p>
+                      <span>{voiceError}</span>
+                      {pendingVoiceRecording && (
+                        <span className="inline-flex items-center gap-2">
+                          <button type="button" onClick={() => void retryPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Retry</button>
+                          <button type="button" onClick={() => void discardPendingVoice()} className="tap-target text-tea-text-sec hover:text-tea-text">Discard</button>
+                        </span>
+                      )}
+                    </motion.div>
                   )}
                 </AnimatePresence>
 

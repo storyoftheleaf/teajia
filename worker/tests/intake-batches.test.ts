@@ -52,6 +52,15 @@ class FakeStatement {
         scopes: JSON.stringify(['stock:write']),
       };
     }
+    if (sql === 'select id, email, platform_role from users where id = ?') {
+      return { id: 'user_test', email: 'staff@example.com', platform_role: null };
+    }
+    if (sql === 'select status from accounts where id = ?') {
+      return { status: 'active' };
+    }
+    if (sql.includes('from account_members am') && sql.includes("am.status = 'active'")) {
+      return { role: 'staff', permissions: JSON.stringify({ bundles: ['stock'] }) };
+    }
     if (sql.includes("from batches where account_id = ? and label = 'unsorted'")) {
       return this.state.unsortedExists ? { id: UNSORTED_ID } : null;
     }

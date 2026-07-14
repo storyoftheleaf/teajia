@@ -1,6 +1,6 @@
 -- 050_wholesale_orders.sql
 -- Step 4 of the Network Rollout — wholesale order workflow.
--- Per docs/NETWORK_ROLLOUT_PLAN.md Step 4 + docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
+-- Per docs/NETWORK_UI_BRIEF.md Surfaces 8 + 9.
 --
 -- The cross-account transactional layer. A buyer (e.g. Jesse on Teajia
 -- Australia) places a wholesale order against a supplier (e.g. Adrian on
