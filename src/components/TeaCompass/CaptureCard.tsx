@@ -165,7 +165,7 @@ const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
  *  placeholder disappears. */
 const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <span
-    className="curate-support mb-1.5 block font-medium"
+    className="curate-support mb-0.5 block font-medium"
     style={{ letterSpacing: '0.02em' }}
   >
     {children}
@@ -705,13 +705,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   if (!entry) return null;
 
-  const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-4 px-4 md:px-6';
+  const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-2 px-3 md:px-5';
   // Mobile shell flows the warm surface PAST the inline Done and BEHIND the
   // floating bottom-nav pill. pb-nav-gap-lg gives 2rem + nav + safe-area so the
   // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
   // no bottom nav.
-  const mobileShellClass = `${shellClass} pt-3 pb-nav-gap-lg`;
-  const sourceShellClass = 'border-y border-tea-border px-1 py-2';
+  const mobileShellClass = `${shellClass} pt-2 pb-nav-gap-lg`;
+  const sourceShellClass = 'border-y border-tea-border px-1 py-1';
   const fieldClass = 'curate-field field-recessed px-3 py-2.5';
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
   const selectClass = (selected: boolean) =>
@@ -731,7 +731,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
     const defaultQty = unitBased ? 1 : (entry.form ? (DEFAULT_GRAMS[entry.form] ?? 100) : 100);
     if (!showBuyPicker) setBuyingQty(defaultQty);
-    setShowBuyPicker((value) => !value);
+    const opening = !showBuyPicker;
+    setShowBuyPicker(opening);
+    if (opening) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(purchasePickerId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
   };
 
   // ── Populate actionRef for parent-rendered action bar ───────────────────
@@ -1555,13 +1561,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         )}
 
-        <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
-
-        {/* Photo strip: a compact row of thumbnails plus scan + camera, not a
-            dominant tile. The details are the focus; the photo is supporting
-            evidence you can add a few of. Scanning a label still fills the
-            fields (including the Chinese name when it's printed). */}
-        <div className="mt-3">
+        <div className="flex min-w-0 items-center gap-1 border-t border-tea-border">
+          <div className="min-w-0 flex-1">
+            <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
+          </div>
+          <div className="shrink-0">
           <PhotoCapture
             onExtracted={handleExtracted}
             onPhotoTaken={handlePhotoTaken}
@@ -1570,41 +1574,91 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
             variant="strip"
           />
+          </div>
         </div>
       </div>
 
-      {/* ─── Identity zone — the hero. Tea name is the one dominant element on
-          the screen; Type demotes to a small colored text tag beneath it (color
-          carries meaning, no swatch/box) so the picker vs. typed contrast
-          starts right here. The zone header does the labelling job for the
-          name field so the hero keeps its large placeholder. ─── */}
-      <section className="curate-section space-y-2.5">
-        <QuietEyebrow label="Identity" />
-        <div>
-          <AutocompleteInput
-            value={entry.name}
-            onChange={(val) => update({ name: val })}
-            suggestions={allNameSuggestions}
-            placeholder={entry.type ? `${entry.type} name…` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
-            className={`w-full ${nameHeadlineClass}`}
-            onSelect={handleNameAutocompleteSelect}
-            itemData={{ ...varietyNameMap, ...productNameMap }}
-            hintSuggestions={hintSuggestions}
-          />
+      <section className="curate-cluster space-y-2" data-testid="curate-cluster-identity">
+        <QuietEyebrow label="Tea" />
+        <AutocompleteInput
+          value={entry.name}
+          onChange={(val) => update({ name: val })}
+          suggestions={allNameSuggestions}
+          placeholder={entry.type ? `${entry.type} name…` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
+          className={`w-full ${nameHeadlineClass}`}
+          onSelect={handleNameAutocompleteSelect}
+          itemData={{ ...varietyNameMap, ...productNameMap }}
+          hintSuggestions={hintSuggestions}
+        />
+
+        <div className="flex items-end gap-2">
+          <div className="relative min-w-0 flex-1">
+            <span className="curate-floating-label">Origin</span>
+            <AutocompleteInput
+              value={entry.originRegion || ''}
+              onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+              suggestions={availableRegions}
+              placeholder="e.g. Yiwu"
+              className={`curate-field-with-label w-full ${fieldClass}`}
+            />
+          </div>
+          <div className="relative w-20 shrink-0">
+            <span className="curate-floating-label">Year</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="2019"
+              value={entry.year ?? ''}
+              onChange={(e) => {
+                userTapped.current.add('year');
+                const val = e.target.value;
+                update({ year: val === '' ? undefined : Number(val) });
+              }}
+              className={`curate-field-with-label w-full tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-end gap-2" data-testid="curate-chinese-type-row">
+          <div className="relative min-w-0 flex-1">
+            <span className="curate-floating-label">Chinese name</span>
+            <div>
+              <input
+                type="text"
+                value={entry.chineseName || ''}
+                onChange={(e) => update({ chineseName: e.target.value || undefined })}
+                placeholder="中文名"
+                className={`curate-field-with-label w-full pr-11 ${fieldClass}`}
+              />
+              <button
+                type="button"
+                onClick={handleGenerateChineseName}
+                disabled={!entry.name?.trim() || generatingChinese}
+                className="tap-target absolute inset-y-0 right-0 w-11 text-tea-text-sec transition-colors hover:text-tea-text disabled:opacity-40"
+                aria-label="Suggest Chinese name"
+                title="Suggest Chinese name"
+                data-testid="curate-chinese-suggest"
+              >
+                {generatingChinese ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} strokeWidth={1.5} />}
+              </button>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => setTypePopoverOpen(true)}
-            className="curate-support tap-target mt-1 flex min-h-11 items-center gap-1 px-1 font-medium uppercase tracking-[1.2px] transition-opacity hover:opacity-80"
+            className="curate-compact-target w-24 shrink-0"
             style={entry.type ? { color: getTypeChipStyle(entry.type).text } : undefined}
+            aria-label="Tea type"
+            data-curate-compact-target
           >
-            {entry.type || <span className="curate-support font-medium uppercase tracking-[1.2px] text-tea-text-sec">+ Type</span>}
-            <ChevronDown size={12} className={entry.type ? 'shrink-0' : 'shrink-0 text-tea-text-sec'} />
+            <span className="curate-compact-chrome w-full justify-between border border-tea-border text-ui-12 font-medium" data-curate-compact-chrome>
+              <span className="truncate">{entry.type || 'Type'}</span>
+              <ChevronDown size={12} className="shrink-0" />
+            </span>
           </button>
         </div>
 
-        {/* Type — bottom sheet. Each tea type carries a one-line description
-            and a colour dot taken from the type chip palette so the picker
-            doubles as a quick reference. */}
         <BottomSheet
           open={typePopoverOpen}
           onOpenChange={setTypePopoverOpen}
@@ -1640,71 +1694,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </BottomSheet>
       </section>
 
-      {/* ─── Provenance zone — origin, year, Chinese name. Boxed, labelled
-          fields: the persistent label survives once the placeholder (now just
-          an example) disappears. ─── */}
-      <section className="curate-section space-y-3">
-        <QuietEyebrow label="Provenance" />
-        <div className="flex items-end gap-4">
-          <div className="flex-1 min-w-0">
-            <FieldLabel>Origin</FieldLabel>
-            <AutocompleteInput
-              value={entry.originRegion || ''}
-              onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
-              suggestions={availableRegions}
-              placeholder="e.g. Yiwu"
-              className={`w-full ${fieldClass}`}
-            />
-          </div>
-          <div className="w-24 shrink-0">
-            <FieldLabel>Year</FieldLabel>
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder="e.g. 2019"
-              value={entry.year ?? ''}
-              onChange={(e) => {
-                userTapped.current.add('year');
-                const val = e.target.value;
-                update({ year: val === '' ? undefined : Number(val) });
-              }}
-              className={`w-full tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-            />
-          </div>
-        </div>
-
-        {/* Chinese name. Fills automatically from known teas and from label
-            scans; the Suggest button asks the AI to write it from the name +
-            origin, since the operator won't type hanzi. */}
-        <div>
-          <FieldLabel>Chinese name</FieldLabel>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={entry.chineseName || ''}
-              onChange={(e) => update({ chineseName: e.target.value || undefined })}
-              placeholder="中文名"
-              className={`flex-1 min-w-0 ${fieldClass}`}
-            />
-            <button
-              type="button"
-              onClick={handleGenerateChineseName}
-              disabled={!entry.name?.trim() || generatingChinese}
-              className="pill-quiet pill-quiet-on tap-target font-sans shrink-0 disabled:opacity-40"
-              aria-label="Suggest Chinese name"
-              title="Suggest Chinese name"
-            >
-              {generatingChinese ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} strokeWidth={1.5} />}
-              <span>Suggest</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* ─── Pricing zone — cost, unit, retail preview tucked close beneath. ─── */}
-      <section className="curate-section space-y-2.5">
-        <QuietEyebrow label="Pricing" />
+      <section className="curate-cluster curate-cluster-soft space-y-1.5" data-testid="curate-cluster-buying">
+        <QuietEyebrow label="Buy" />
         <div className="space-y-2">
           <PricingRow
             priceAmount={entry.priceAmount}
@@ -1732,6 +1724,16 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
         </div>
       </section>
+
+      <CaptureActionFooter
+        className="sticky bottom-nav z-sticky bg-tea-bg/95 py-1 lg:hidden"
+        onBuy={toggleBuyPicker}
+        onDone={handleCommit}
+        onSample={openTastingOverlay}
+        doneEnabled={entryHasContent(entry)}
+        buyExpanded={showBuyPicker}
+        purchasePickerId={purchasePickerId}
+      />
 
       {/* Duplicate nudge */}
       <AnimatePresence>
@@ -1774,16 +1776,17 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           asked that they never sit behind a second tap. ─── */}
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
-      <section className="curate-section space-y-2.5">
-          <QuietEyebrow label="Profile" />
+      <section className="curate-cluster space-y-1.5" data-testid="curate-cluster-tasting">
+          <QuietEyebrow label="Taste" />
           {!hasTasting && (
             <button
               type="button"
               onClick={openTastingOverlay}
-              className="curate-action w-full justify-start border-b border-tea-border px-1 text-left"
+              className="curate-compact-target w-full justify-between border-b border-tea-border text-left"
               data-curate-action
             >
-              Add tasting profile
+              <span className="curate-support text-tea-text-sec">Tasting profile</span>
+              <span className="curate-compact-chrome curate-support px-1 text-tea-text">Add</span>
             </button>
           )}
           {hasTasting && entry.tasting && (
@@ -1838,11 +1841,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           />
             </>
           )}
-      </section>
-
-      {/* ─── Notes zone ─── */}
-      <section className="curate-section space-y-2">
-        <QuietEyebrow label="Notes" />
+      {/* Notes and intent remain continuously available inside the same
+          visually memorable Taste cluster rather than becoming two more
+          full-weight sections. */}
+      <div className="space-y-1.5 border-t border-tea-border pt-2">
+        <FieldLabel>Notes</FieldLabel>
         <NoteThread
           compassEntryId={entry.id}
           teaKey={entry.teaKey ?? undefined}
@@ -1850,12 +1853,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           hideTastingArtifacts
           sans
         />
-      </section>
+      </div>
 
-      <section className="curate-section space-y-2">
-        <QuietEyebrow label="Intent" />
+      <div className="space-y-1.5 border-t border-tea-border pt-2">
+        <FieldLabel>Intent</FieldLabel>
         <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
         <p className="curate-support text-tea-text-dim">Details detected in notes appear here for review.</p>
+      </div>
       </section>
 
       {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && <section className="curate-section space-y-2">
@@ -1877,7 +1881,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
 
       {/* ─── Buy picker / ledger — shown below content when Buy is tapped ─── */}
-      <section id={purchasePickerId} className="curate-section space-y-2">
+      <section id={purchasePickerId} className={`${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}>
         <QuietEyebrow label="Buy" />
         <div className="flex flex-wrap items-center justify-end gap-2">
         {/* Ledger link */}
@@ -2042,16 +2046,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
         </AnimatePresence>
       </section>
-
-      <CaptureActionFooter
-        className="lg:hidden pt-1"
-        onBuy={toggleBuyPicker}
-        onDone={handleCommit}
-        onSample={openTastingOverlay}
-        doneEnabled={entryHasContent(entry)}
-        buyExpanded={showBuyPicker}
-        purchasePickerId={purchasePickerId}
-      />
 
       {/* ─── Tasting overlay ─── */}
       <AnimatePresence>

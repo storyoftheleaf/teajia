@@ -71,11 +71,14 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         type="button"
         onClick={() => onOpenChange(true)}
         aria-label={`Sample list (${count})`}
-        className="tap-target inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1 text-ui-12 text-tea-text-sec transition-colors hover:bg-tea-accent-sub hover:text-tea-text lg:gap-1.5 lg:px-2"
+        className="curate-compact-target shrink-0 text-tea-text-sec transition-colors hover:text-tea-text"
+        data-curate-compact-target
       >
-        <FlaskConical size={15} />
-        <span>Sample list</span>
-        <span className="tabular-nums text-tea-text-dim">({count})</span>
+        <span className="curate-compact-chrome whitespace-nowrap border-l border-tea-border px-2 text-ui-12" data-curate-compact-chrome>
+          <FlaskConical size={14} />
+          <span>Samples</span>
+          <span className="tabular-nums text-tea-text-dim">({count})</span>
+        </span>
       </button>
 
       {open && createPortal((

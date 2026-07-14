@@ -12,11 +12,11 @@ export const DecisionControl: React.FC<{
   onChange: (value: CompassDecision | null) => void;
   compact?: boolean;
 }> = ({ value, onChange, compact = false }) => (
-  <fieldset>
-    <legend className="curate-support mb-2 text-tea-text-dim">
-      Sourcing decision
-    </legend>
-    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Sourcing decision">
+  <div className="flex min-w-0 items-center gap-1.5" role="group" aria-label="Decision">
+    <span className="curate-inline-label shrink-0">
+      Decision
+    </span>
+    <div className="flex min-w-0 flex-1 items-center" role="radiogroup" aria-label="Sourcing decision">
       {OPTIONS.map((option) => (
         <button
           type="button"
@@ -24,16 +24,22 @@ export const DecisionControl: React.FC<{
           aria-checked={value === option.value}
           key={option.value}
           onClick={() => onChange(value === option.value ? null : option.value)}
-          className={`curate-support tap-target inline-flex min-h-11 items-center rounded-md border px-3 transition-colors ${
-            value === option.value
-              ? 'border-tea-gold bg-tea-accent-sub text-tea-text'
-              : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub'
-          } ${compact ? 'flex-1 justify-center' : ''}`}
+          className={`curate-compact-target min-w-0 flex-1 ${compact ? 'justify-center' : ''}`}
           data-curate-action
+          data-curate-compact-target
         >
-          {option.label}
+          <span
+            className={`curate-compact-chrome curate-support w-full whitespace-nowrap border-b transition-colors ${
+              value === option.value
+                ? 'border-tea-gold bg-tea-accent-sub text-tea-text'
+                : 'border-transparent text-tea-text-sec hover:text-tea-text'
+            }`}
+            data-curate-compact-chrome
+          >
+            {option.label}
+          </span>
         </button>
       ))}
     </div>
-  </fieldset>
+  </div>
 );

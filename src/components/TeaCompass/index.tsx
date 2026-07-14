@@ -653,11 +653,11 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             Always visible, one tap between screens. The capture-type
             sub-tabs (Tea / Teaware / Samples) moved to Row 2 so this row
             stays single-purpose: which screen am I on. */}
-        <div className="flex h-14 items-center gap-1 border-b border-tea-border px-2 sm:px-4" role="tablist" aria-label="Screen">
+        <div className="flex h-11 items-center gap-1 border-b border-tea-border px-2 sm:px-4" role="tablist" aria-label="Screen">
           <button
             type="button"
             onClick={handleHeaderBack}
-            className="tap-target flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub transition-colors"
+            className="tap-target flex h-11 w-11 shrink-0 items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Back"
           >
             <ArrowLeft size={18} strokeWidth={1.75} />
@@ -666,7 +666,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
           {/* Segmented control — the three Curate screens as peers. The
               active segment carries a gold-tinted fill + gold hairline so
               it reads at a glance; inactive segments stay quiet. */}
-          <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-md bg-tea-elevated/40 p-0.5 lg:flex-none">
+          <div className="flex min-w-0 flex-1 items-center lg:flex-none">
             {tabs.map((tab) => {
               const active = mode === tab.id;
               return (
@@ -676,16 +676,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   role="tab"
                   aria-selected={active}
                   onClick={() => handleSwitchMode(tab.id)}
-                  className={`tap-target inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1 text-ui-12 uppercase tracking-[0.05em] transition-colors sm:tracking-[0.1em] lg:flex-none lg:px-3 ${
-                    active
-                      ? 'bg-tea-gold/10 text-tea-text border border-tea-gold/40'
-                      : 'text-tea-text-sec hover:text-tea-text border border-transparent'
-                  }`}
+                  className="curate-compact-target min-w-0 flex-1 lg:flex-none"
+                  data-curate-compact-target
                 >
-                  <span>{tab.label}</span>
-                  {tab.badge != null && (
-                    <span className="text-tea-text-dim tabular-nums">({tab.badge})</span>
-                  )}
+                  <span
+                    className={`curate-compact-chrome w-full border-b text-ui-12 font-medium transition-colors lg:px-3 ${
+                      active ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
+                    }`}
+                    data-curate-compact-chrome
+                  >
+                    <span>{tab.label}</span>
+                    {tab.badge != null && <span className="text-tea-text-dim tabular-nums">({tab.badge})</span>}
+                  </span>
                 </button>
               );
             })}
@@ -743,7 +745,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
             session draft strip is NOT here — it scrolls with the page
             content below, so the header holds at two sticky rows. */}
         {mode === 'sourcing' && (
-          <div className="flex min-h-11 items-center gap-1 border-b border-tea-border px-2 sm:px-4">
+          <div className="flex h-10 items-center gap-1 border-b border-tea-border px-2 sm:px-4">
             <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4" role="tablist" aria-label="Capture method">
               {/* The samples panel still renders for deep links
                   (?tab=samples) until its migration lands. */}
@@ -760,13 +762,17 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     role="tab"
                     aria-selected={active}
                     onClick={(event) => opt.id === 'import' ? openImportFrom(event.currentTarget) : handleCaptureOption(opt.id)}
-                    className={`tap-target min-h-11 shrink-0 whitespace-nowrap px-1 py-2 text-ui-12 uppercase tracking-[0.13em] border-b transition-colors ${
-                      active
-                        ? 'text-tea-text border-b border-tea-gold'
-                        : 'text-tea-text-sec hover:text-tea-text border-transparent'
-                    }`}
+                    className="curate-compact-target shrink-0"
+                    data-curate-compact-target
                   >
-                    {opt.label}
+                    <span
+                      className={`curate-compact-chrome border-b px-2 text-ui-12 font-medium transition-colors ${
+                        active ? 'border-tea-gold text-tea-text' : 'border-transparent text-tea-text-sec hover:text-tea-text'
+                      }`}
+                      data-curate-compact-chrome
+                    >
+                      {opt.label}
+                    </span>
                   </button>
                 );
               })}

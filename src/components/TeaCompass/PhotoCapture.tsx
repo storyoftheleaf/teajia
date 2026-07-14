@@ -112,7 +112,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
   // Uniform tiles so thumbnails and the scan / camera actions read as one tidy
   // horizontal row (44×44 meets the WCAG 2.5.5 tap floor without extra padding).
   const thumbCls = isLg ? 'w-[60px] h-[60px]' : 'w-11 h-11';
-  const btnCls = 'min-h-11 rounded-md px-3';
+  const btnCls = 'curate-compact-target px-0.5';
   const btnIcon = isLg ? 18 : 16;
   const btnGap = 'gap-1.5';
   const stripGap = 'gap-2';
@@ -968,17 +968,23 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={openScanner}
-            className={`${btnCls} curate-action shrink-0 border transition-all ${
-              justExtracted
-                ? 'border-tea-gold/50 text-tea-gold bg-tea-gold/15'
-                : 'bg-tea-surface border-tea-border text-tea-text-sec hover:text-tea-text hover:border-tea-gold/30'
-            }`}
+            className={`${btnCls} curate-action shrink-0`}
             aria-label="Scan label"
             title="Scan label"
             data-curate-action
+            data-curate-compact-target
           >
-            {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
-            <span>{justExtracted ? 'Label read' : 'Scan label'}</span>
+            <span
+              className={`curate-compact-chrome border transition-colors ${
+                justExtracted
+                  ? 'border-tea-gold bg-tea-accent-sub text-tea-gold'
+                  : 'border-tea-border text-tea-text-sec hover:text-tea-text'
+              }`}
+              data-curate-compact-chrome
+            >
+              {justExtracted ? <Check size={btnIcon} /> : <Sparkles size={btnIcon} strokeWidth={1.5} />}
+              <span>{justExtracted ? 'Label read' : 'Scan'}</span>
+            </span>
           </button>
 
           {/* Camera icon = plain gallery picker. Quieter visual weight so
@@ -986,13 +992,16 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${btnCls} curate-action shrink-0 border border-tea-border bg-tea-surface text-tea-text-sec hover:border-tea-gold/30 hover:text-tea-text`}
+            className={`${btnCls} curate-action shrink-0`}
             aria-label="Add photo"
             title="Add photo"
             data-curate-action
+            data-curate-compact-target
           >
-            <Camera size={btnIcon} strokeWidth={1.5} />
-            <span>Add photo</span>
+            <span className="curate-compact-chrome border border-tea-border text-tea-text-sec hover:text-tea-text" data-curate-compact-chrome>
+              <Camera size={btnIcon} strokeWidth={1.5} />
+              <span>Photo</span>
+            </span>
           </button>
         </div>
       </div>
