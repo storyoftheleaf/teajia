@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Droplets, Loader2, Minus, Plus, Sparkles } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useTeaCompassStore, entryHasContent } from '../../lib/teaCompassStore';
 import { useNotesStore } from '../../lib/notesStore';
@@ -25,7 +25,6 @@ import { TastingProfileStrip } from '../tasting/TastingProfileStrip';
 import { parseTeaInput } from './InputParser';
 import { PhotoCapture } from './PhotoCapture';
 import type { ExtractedTeaData } from './PhotoCapture';
-import { TeawarePhotos } from './TeawarePhotos';
 import { DuplicateNudge } from './DuplicateNudge';
 import { IntentBar } from './IntentBar';
 import { EncounterContext } from './EncounterContext';
@@ -235,7 +234,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     setReceiptAcquisition(entryIsSample(entry) ? 'free_sample' : 'purchase');
     setReceiptProposal(null);
     setReceiptError('');
-  }, [entry?.id]);
+  }, [entry?.id, entry?.category, entry?.sampleState]);
   useEffect(() => {
     if (!entry || !openPurchasePicker) {
       consumedPurchaseHandoffRef.current = null;
@@ -296,15 +295,9 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const [claySheetOpen, setClaySheetOpen] = useState(false);
   // Era picker — opens as a Vaul bottom sheet next to the Origin field.
   const [eraSheetOpen, setEraSheetOpen] = useState(false);
-  // Vestigial — still used by some legacy code paths to track which panel
-  // a popover is in. Bottom sheets don't need this; left for safety.
-  const [materialPanel, setMaterialPanel] = useState<'main' | 'yixing'>('main');
   // Inside the era sheet: shows the "+ Add era" input row
   const [eraInputOpen, setEraInputOpen] = useState(false);
   const [eraInputValue, setEraInputValue] = useState('');
-  const categoryPopoverRef = useRef<HTMLDivElement>(null);
-  const eraPopoverRef = useRef<HTMLDivElement>(null);
-  const materialPopoverRef = useRef<HTMLDivElement>(null);
   const eraInputRef = useRef<HTMLInputElement>(null);
 
   // Products from database — for autocomplete suggestions
@@ -623,14 +616,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     [entry, entryId, updateEntry]
   );
 
-  // Handle teaware photos change
-  const handleTeawarePhotosChange = useCallback(
-    (photos: string[]) => {
-      updateEntry(entryId, { photos });
-    },
-    [entryId, updateEntry]
-  );
-
   // Cleanup timers
   useEffect(() => {
     return () => {
@@ -718,12 +703,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   const sourceShellClass = 'curate-context-band px-1';
   const fieldClass = 'curate-field field-recessed px-3 py-2.5';
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
-  const selectClass = (selected: boolean) =>
-    `curate-action tap-target min-h-11 shrink-0 rounded-md border border-tea-border px-3 ${
-      selected
-        ? 'text-tea-text font-medium bg-tea-accent-sub'
-        : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
-    }`;
+  const nameHeadlineClass = 'curate-primary min-h-11 rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
 
   // ── Tasting overlay opener — hoisted so actionRef can reference it ──────
   const openTastingOverlay = () => {
@@ -945,500 +925,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     }
   };
 
-  // ── Teaware card layout ──────────────────────────────────────────────
-  if (isTeaware) {
-    const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
-    const hasTeawareName = (entry.name || '').trim().length > 0;
-    const isYixing = entry.material === 'Yixing'
-      || (['Zhuni', 'Zisha', 'Duanni', 'Hongni'] as string[]).includes(entry.material || '');
-    // Surface the legacy-stored clay name (from before Yixing rollup) as a subtype label.
-    const legacyClay = (['Zhuni', 'Zisha', 'Duanni', 'Hongni'] as const).includes(entry.material as never)
-      ? (entry.material as YixingClayType)
-      : undefined;
-    const effectiveClayType: YixingClayType | undefined = entry.clayType || legacyClay;
-
-    const handleMaterialPick = (mat: TeawareMaterial) => {
-      // Both Yixing and generic Clay drill into the clay-subtype sheet so
-      // the user can pick from the canonical clay names (Zhuni, Hongni, …)
-      // regardless of vessel category. The material itself is committed
-      // here so handleClayPick can read entry.material to know which one.
-      if (mat === 'Yixing' || mat === 'Clay') {
-        const updates: Record<string, unknown> = {
-          material: mat,
-          clayType: undefined,
-        };
-        const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
-        if (originDefault && !entry.originRegion) {
-          updates.originRegion = originDefault;
-        }
-        update(updates);
-        // Hand off from the Material sheet → Clay sheet. Close-then-open
-        // keeps Vaul's focus management from fighting two open sheets.
-        setMaterialPopoverOpen(false);
-        setTimeout(() => setClaySheetOpen(true), 220);
-        return;
-      }
-      const same = entry.material === mat;
-      const updates: Record<string, unknown> = {
-        material: same ? undefined : mat,
-        clayType: undefined,
-      };
-      const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
-      if (!same && originDefault && !entry.originRegion) {
-        updates.originRegion = originDefault;
-      }
-      update(updates);
-      setMaterialPopoverOpen(false);
-      setMaterialPanel('main');
-    };
-
-    const handleClayPick = (clay: YixingClayType) => {
-      const sameClay = effectiveClayType === clay;
-      // Preserve the parent material the user chose (Yixing vs generic Clay)
-      // — if entry.material is anything else, default to Yixing for the
-      // legacy rollup behaviour.
-      const parentMaterial: TeawareMaterial = entry.material === 'Clay' ? 'Clay' : 'Yixing';
-      const updates: Record<string, unknown> = {
-        material: parentMaterial,
-        clayType: sameClay ? undefined : clay,
-      };
-      if (parentMaterial === 'Yixing' && !entry.originRegion && MATERIAL_ORIGIN_DEFAULT.Yixing) {
-        updates.originRegion = MATERIAL_ORIGIN_DEFAULT.Yixing;
-      }
-      update(updates);
-      setClaySheetOpen(false);
-      setMaterialPopoverOpen(false);
-      setMaterialPanel('main');
-    };
-
-    const handleEraPick = (eraName: string) => {
-      update({ era: entry.era === eraName ? undefined : eraName });
-      setEraSheetOpen(false);
-      setEraInputOpen(false);
-      setEraInputValue('');
-    };
-
-    const commitCustomEra = () => {
-      const trimmed = eraInputValue.trim();
-      if (!trimmed) return;
-      addCustomEra(trimmed);
-      update({ era: trimmed });
-      setEraInputValue('');
-      setEraInputOpen(false);
-      setEraSheetOpen(false);
-    };
-
-    const allEras: string[] = [...TEAWARE_ERAS, ...customEras.filter((e) => !TEAWARE_ERAS.includes(e))];
-    const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
-
-    return (
-      <div className={mobileShellClass} data-curate-source>
-
-        {/* Context chips row + photo hero: same header treatment as the tea
-            variant so both forms open with one rhythm. The vendor picker
-            collapses behind the Vendor chip. */}
-        <div className={sourceShellClass}>
-          <CaptureContextChips
-            category={entry.category}
-            vendorName={entry.vendorName}
-            vendorOpen={vendorOpen}
-            onToggleVendor={() => setVendorOpen((v) => !v)}
-            batchMode={batchMode}
-            onToggleBatchMode={onToggleBatchMode}
-            onShare={onShare}
-          />
-
-          {vendorOpen && (
-            <div className="mt-2.5">
-              <VendorStrip
-                vendorName={entry.vendorName}
-                vendorId={entry.vendorId}
-                vendorDetails={entry.vendorDetails}
-                onVendorSelect={handleVendorSelect}
-                onClear={handleVendorClear}
-                onDetailsChange={handleVendorDetailsChange}
-                linkedCustomerId={entry.linkedCustomerId}
-                onLinkedCustomerChange={handleLinkedCustomerChange}
-              />
-            </div>
-          )}
-
-          <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
-
-          <div className="border-t border-tea-border -mx-3 mt-2.5 mb-2.5" aria-hidden />
-
-          <div className="mt-3">
-            <PhotoCapture
-              onExtracted={handleExtracted}
-              onPhotoTaken={handlePhotoTaken}
-              onPhotoReplaced={handlePhotoReplaced}
-              photos={entry.photos}
-              onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
-              variant="strip"
-            />
-          </div>
-        </div>
-
-        {/* Row 3 — Name + Category chip on one line. Mirrors the tea
-            variant's "Name + Type chip" pattern so both forms have the
-            same primary-classifier rhythm: free-text identity on the
-            left, single decisive picker on the right. */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={entry.name}
-            onChange={(e) => update({ name: e.target.value })}
-            placeholder={
-              entry.teawareCategory
-                ? `${entry.teawareCategory} name (e.g., Shipiao, Shuiping…)`
-                : 'Teaware name (e.g., Shipiao, Bing Lang…)'
-            }
-            className={`flex-1 min-w-0 ${fieldClass}`}
-          />
-          <button
-            type="button"
-            onClick={() => setCategoryPopoverOpen(true)}
-            className={selectClass(!!entry.teawareCategory)}
-          >
-            <span>{entry.teawareCategory || 'Category'}</span>
-            <ChevronDown size={14} />
-          </button>
-        </div>
-
-        {/* Row 4 — Material + Clay subtype. Category lifted up to the
-            name row so this row holds only "what it's made of". The clay
-            subtype, when set, replaces the orphan dot subtitle that used
-            to live below Origin — it now sits next to its parent Material
-            chip where it logically belongs. */}
-        <div className="relative">
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Material chip — drills into a Vaul bottom sheet. */}
-            <div className="shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setMaterialPopoverOpen(true);
-                  setMaterialPanel(isYixing && !materialPopoverOpen ? 'yixing' : 'main');
-                }}
-                className={`curate-action tap-target min-h-11 rounded-md border border-tea-border px-3 ${
-                  entry.material
-                    ? 'text-tea-text font-medium bg-tea-accent-sub'
-                    : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
-                }`}
-                data-curate-action
-              >
-                <span>{materialChipLabel}</span>
-                <ChevronDown size={13} />
-              </button>
-            </div>
-
-            {/* Clay subtype chip — only when Material is Yixing or Clay
-                AND a subtype is set. Tap re-opens the clay picker. */}
-            {(isYixing || entry.material === 'Clay') && effectiveClayType && (
-              <div className="shrink-0">
-                <div className="inline-flex min-h-11 overflow-hidden rounded-md border border-tea-gold/30 bg-tea-accent-sub text-tea-text">
-                  <button
-                    type="button"
-                    onClick={() => setClaySheetOpen(true)}
-                    className="curate-primary tap-target inline-flex min-h-11 items-center gap-1.5 px-2.5 font-medium hover:bg-tea-accent-sub transition-colors"
-                    aria-label={`Clay subtype: ${effectiveClayType} — tap to change`}
-                    data-curate-action
-                  >
-                    <span
-                      className="shrink-0 w-3 h-3 rounded-full border border-tea-border"
-                      style={{ backgroundColor: YIXING_CLAY_TYPES.find((c) => c.name === effectiveClayType)?.swatch }}
-                      aria-hidden
-                    />
-                    <span>{effectiveClayType}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined })}
-                    className="curate-support tap-target inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center border-l border-tea-gold/30 text-tea-gold/70 hover:text-tea-gold transition-colors"
-                    aria-label="Clear clay subtype"
-                    data-curate-action
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Row 5 — Provenance: Origin (where) + Era chip (when) on one
-              line. Tapping the Era chip opens a Vaul sheet — same picker
-              pattern as the clay subtype sheet, just without photos. */}
-          <div className="mt-3 flex items-center gap-2">
-            <div className="flex-1 min-w-0">
-              <AutocompleteInput
-                value={entry.originRegion || ''}
-                onChange={(val) => update({ originRegion: val || undefined })}
-                suggestions={availableRegions}
-                placeholder="Origin"
-                className={`w-full ${tallFieldClass}`}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setEraSheetOpen(true)}
-              className={`curate-action tap-target min-h-11 shrink-0 rounded-md border border-tea-border px-3 tabular-nums ${
-                entry.era
-                  ? 'text-tea-text font-medium bg-tea-accent-sub'
-                  : 'text-tea-text-sec font-medium bg-tea-bg hover:bg-tea-accent-sub hover:text-tea-text'
-              }`}
-              data-curate-action
-            >
-              <span>{entry.era || 'Era'}</span>
-              <ChevronDown size={13} />
-            </button>
-          </div>
-
-          {/* Category — opens as a bottom sheet (Vaul) so the picker has
-              full thumb access at the bottom of the screen and never clips
-              against narrow viewports the way the old anchored popover did. */}
-          <BottomSheet
-            open={categoryPopoverOpen}
-            onOpenChange={setCategoryPopoverOpen}
-            title="Category"
-            description="What kind of teaware is this?"
-          >
-            <div className="flex flex-col gap-0.5 px-1">
-              {TEAWARE_CATEGORIES.map((cat) => (
-                <SheetOption
-                  key={cat}
-                  label={cat}
-                  selected={entry.teawareCategory === cat}
-                  onSelect={() => {
-                    const updates: Record<string, unknown> = { teawareCategory: cat };
-                    if (entry.teawareCategory !== cat) {
-                      updates.material = undefined;
-                      updates.clayType = undefined;
-                    }
-                    update(updates);
-                    setCategoryPopoverOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          </BottomSheet>
-
-          {/* Era — bottom sheet. Includes "+ Add new era" affordance at the
-              bottom for user-defined entries (Song Dynasty, etc.). */}
-          <BottomSheet
-            open={eraSheetOpen}
-            onOpenChange={(open) => {
-              setEraSheetOpen(open);
-              if (!open) { setEraInputOpen(false); setEraInputValue(''); }
-            }}
-            title="Era"
-            description="When was this piece made?"
-          >
-            <div className="flex flex-col gap-0.5 px-1">
-              {allEras.map((eraName) => (
-                <SheetOption
-                  key={eraName}
-                  label={eraName}
-                  selected={entry.era === eraName}
-                  onSelect={() => handleEraPick(eraName)}
-                />
-              ))}
-              <div className="border-t border-tea-border my-2" />
-              {eraInputOpen ? (
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <input
-                    ref={eraInputRef}
-                    type="text"
-                    value={eraInputValue}
-                    autoFocus
-                    onChange={(e) => setEraInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
-                      if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
-                    }}
-                    placeholder="e.g. Song Dynasty"
-                    className="min-h-11 flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
-                  />
-                  <button
-                    type="button"
-                    onClick={commitCustomEra}
-                    disabled={!eraInputValue.trim()}
-                    className="curate-action shrink-0 rounded-md bg-tea-gold px-3 font-medium text-tea-bg disabled:opacity-40"
-                  >
-                    Add
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setEraInputOpen(true)}
-                  className="flex items-center gap-2 px-3 py-3 rounded-xl text-base font-medium text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
-                >
-                  <Plus size={16} />
-                  Add new era
-                </button>
-              )}
-            </div>
-          </BottomSheet>
-
-          {/* Material — bottom sheet. Yixing and Clay both display a chevron
-              and drill into the full-screen Clay sheet rendered below. */}
-          <BottomSheet
-            open={materialPopoverOpen}
-            onOpenChange={setMaterialPopoverOpen}
-            title="Material"
-            description={entry.teawareCategory ? `For ${entry.teawareCategory}` : undefined}
-          >
-            <div className="flex flex-col gap-0.5 px-1">
-              {materials.map((mat) => {
-                const isSelected = entry.material === mat || (mat === 'Yixing' && isYixing);
-                const hasSubtypes = mat === 'Yixing' || mat === 'Clay';
-                return (
-                  <SheetOption
-                    key={mat}
-                    label={mat}
-                    selected={isSelected}
-                    hasSubflow={hasSubtypes}
-                    onSelect={() => handleMaterialPick(mat)}
-                  />
-                );
-              })}
-            </div>
-          </BottomSheet>
-
-          {/* Clay subtype — full-height sheet with photographic swatches.
-              Falls back to a colour disk when no imageUrl is set yet. */}
-          <BottomSheet
-            open={claySheetOpen}
-            onOpenChange={(open) => {
-              setClaySheetOpen(open);
-              if (!open) setMaterialPanel('main');
-            }}
-            title={entry.material === 'Clay' ? 'Clay subtype' : 'Yixing clay'}
-            description="Pick the clay this piece is made from"
-            large
-          >
-            <div className="grid grid-cols-2 gap-2.5 p-2">
-              {YIXING_CLAY_TYPES.map((clay) => {
-                const sel = effectiveClayType === clay.name;
-                return (
-                  <button
-                    key={clay.name}
-                    type="button"
-                    onClick={() => handleClayPick(clay.name)}
-                    aria-pressed={sel}
-                    className={`group relative flex flex-col items-start gap-2 p-3 rounded-xl border transition-all duration-200 text-left ${
-                      sel
-                        ? 'border-tea-gold/60 bg-tea-gold/[0.10]'
-                        : 'border-tea-border bg-tea-elevated/40 hover:border-tea-gold/40 hover:bg-tea-gold/[0.05]'
-                    }`}
-                    style={
-                      sel
-                        ? {
-                            boxShadow:
-                              'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.2), 0 0 18px -4px rgb(var(--tea-gold-rgb) / 0.25)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {/* Swatch — image when provided, else a richly-shaded
-                        circular disk with a soft inner highlight so the colour
-                        reads as a fired clay surface, not a flat dot. */}
-                    <div
-                      className="relative w-full aspect-square rounded-xl overflow-hidden border border-tea-border shrink-0"
-                      style={
-                        clay.imageUrl
-                          ? undefined
-                          : {
-                              background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, ${clay.swatch} 78%, white 22%), ${clay.swatch} 62%, color-mix(in srgb, ${clay.swatch} 70%, black 30%) 100%)`,
-                            }
-                      }
-                    >
-                      {clay.imageUrl && (
-                        <img
-                          src={clay.imageUrl}
-                          alt={clay.label}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      )}
-                      {sel && (
-                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-tea-gold flex items-center justify-center">
-                          <Check size={12} strokeWidth={3} className="text-tea-bg" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="w-full min-w-0">
-                      <div
-                        className={`font-sans text-base truncate ${sel ? 'text-tea-gold font-medium' : 'text-tea-text font-medium'}`}
-                      >
-                        {clay.label}
-                      </div>
-                      {clay.hint && (
-                        <div className="curate-support mt-0.5 truncate text-tea-text-sec">{clay.hint}</div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </BottomSheet>
-        </div>
-
-        <div className="border-t border-tea-border" />
-
-        {/* Pricing — shared with the tea variant via PricingRow. count
-            mode here just means "1 ct, 2 ct…" instead of grams; no preset
-            row beneath. Volume (ml) lives elsewhere when teaware
-            dimensions earn their place. */}
-        <PricingRow
-          priceAmount={entry.priceAmount}
-          priceCurrency={entry.priceCurrency || 'NT'}
-          onPriceChange={(priceAmount) => update({ priceAmount })}
-          onCurrencyChange={handleCurrencyChange}
-          unit={{
-            mode: 'count',
-            quantity: entry.quantity || 1,
-            onQuantityChange: (quantity) => update({ quantity }),
-          }}
-        />
-
-        <div className="border-t border-tea-border" />
-
-        {/* Notes — the in-field mic dictates directly into the note. */}
-        <NoteThread
-          compassEntryId={entry.id}
-          teaKey={entry.teaKey ?? undefined}
-          larger
-          sans
-        />
-
-        {/* Teaware keeps its single Done action; tea-only actions live below the tea form. */}
-        {(() => {
-          // Done is enabled whenever the entry holds anything worth keeping —
-          // a name, a photo, notes, or tasting data — matching exactly what
-          // commitEntry() will persist. Requiring a name blocked saving an
-          // entry that already has notes/flavor/tags, which read as broken.
-          const ready = entryHasContent(entry);
-          return (
-            <div className="flex items-center gap-2 mt-1">
-              <button
-                type="button"
-                onClick={handleCommit}
-                disabled={!ready}
-                className="curate-action tap-target min-h-11 flex-1 rounded-md bg-tea-gold font-medium tracking-[0.04em] text-tea-bg hover:bg-tea-gold/90 active:bg-tea-gold/80 disabled:opacity-40 disabled:cursor-not-allowed"
-                aria-label="Done, commit this entry"
-                data-curate-action
-              >
-                Done
-              </button>
-            </div>
-          );
-        })()}
-      </div>
-    );
-  }
-
-  // ── Status helpers ────────────────────────
+  // Shared acquisition behavior must be available to both category branches.
+  // Teaware is unit-based; compressed tea forms are unit-based as well.
   const unitBased = entry.category === 'teaware' || (['Cake', 'Brick', 'Tuo'] as string[]).includes(entry.form || '');
   const isInLedger = transactions.some(
     (tx) => tx.status === 'draft' && tx.items.some((item) => item.compassEntryId === entry.id)
@@ -1508,6 +996,603 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     }
   };
 
+  const renderTeawarePurchaseSection = () => (
+    <section
+      id={purchasePickerId}
+      className={`${showBuyPicker || justAddedToLedger || isInLedger ? 'curate-section' : 'hidden'} space-y-2`}
+    >
+      <QuietEyebrow label="Buy" />
+      {isInLedger && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onSwitchToLedger}
+            className="curate-support tap-target flex min-h-11 items-center gap-1.5 text-tea-text-sec transition-colors hover:text-tea-text"
+          >
+            <BookOpen size={11} />
+            View purchases in ledger
+          </button>
+        </div>
+      )}
+
+      {showBuyPicker && !justAddedToLedger && (
+        <div className="space-y-2 rounded-md bg-tea-accent-sub px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setBuyingQty(Math.max(1, buyingQty - 1))}
+                className="curate-action tap-target h-11 w-11 rounded-md bg-tea-surface text-tea-text-sec active:bg-tea-elevated"
+                aria-label="Decrease buying quantity"
+              >
+                <Minus size={12} />
+              </button>
+              <div className="flex items-baseline gap-1">
+                <input
+                  type="number"
+                  aria-label="Purchase quantity"
+                  value={buyingQty}
+                  onChange={(event) => setBuyingQty(Math.max(1, Number.parseInt(event.target.value) || 1))}
+                  className="curate-primary min-h-11 w-11 border-none bg-transparent text-center font-normal text-tea-text outline-none"
+                />
+                <span className="curate-support text-tea-text-dim">{buyingQty === 1 ? 'unit' : 'units'}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBuyingQty(buyingQty + 1)}
+                className="curate-action tap-target h-11 w-11 rounded-md bg-tea-surface text-tea-text-sec active:bg-tea-elevated"
+                aria-label="Increase buying quantity"
+              >
+                <Plus size={12} />
+              </button>
+            </div>
+            {entry.priceAmount ? (
+              <span className="curate-support text-tea-text-dim">
+                = <span className="font-medium text-tea-text-sec">{(buyingQty * entry.priceAmount).toFixed(0)}</span> {entry.priceCurrency || 'NT'}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="curate-support text-tea-text-sec">
+              <span className="mb-1 block">Inventory purpose</span>
+              <select
+                aria-label="Inventory purpose"
+                value={receiptPurpose}
+                onChange={(event) => setReceiptPurpose(event.target.value as InventoryPurposeValue)}
+                className="curate-field w-full px-2"
+              >
+                <option value="working">Working</option>
+                <option value="sample">Sample</option>
+                <option value="personal">Personal</option>
+              </select>
+            </label>
+            <label className="curate-support text-tea-text-sec">
+              <span className="mb-1 block">Acquisition</span>
+              <select
+                aria-label="Acquisition"
+                value={receiptAcquisition}
+                onChange={(event) => setReceiptAcquisition(event.target.value as ReceiptAcquisitionKind)}
+                className="curate-field w-full px-2"
+              >
+                <option value="purchase">Purchase</option>
+                <option value="free_sample">Free sample</option>
+                <option value="gift">Gift</option>
+                <option value="transfer">Transfer</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddToLedger}
+            disabled={receiptBusy}
+            className="curate-action w-full rounded-md bg-tea-gold px-3 font-semibold text-tea-bg active:opacity-80"
+          >
+            {receiptBusy ? 'Adding…' : 'Add to Ledger'}
+          </button>
+        </div>
+      )}
+
+      {justAddedToLedger && (
+        <div className="curate-support rounded-md bg-tea-accent-sub p-3">
+          <div className="flex items-center gap-2 font-medium text-tea-gold">
+            <Check size={16} />
+            Added to Ledger
+          </div>
+          {receiptProposal && (
+            <div className="mt-2 space-y-2 text-ui-12 text-tea-text-sec">
+              <p>Review receipt: {receiptProposal.quantity} {receiptProposal.quantity === 1 ? 'unit' : 'units'} · {receiptProposal.purpose} · {receiptProposal.acquisition_kind.replace('_', ' ')}</p>
+              <p>Inventory changes only after you accept this receipt.</p>
+              <div className="flex justify-between gap-3 border-t border-tea-border pt-2">
+                <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
+                <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 font-semibold text-tea-bg">Accept into Inventory</button>
+              </div>
+            </div>
+          )}
+          {receiptError && (
+            <div role="alert" className="mt-2 flex items-center justify-between gap-3 text-ui-12 text-tea-text-sec">
+              <span>{receiptError}</span>
+              {!receiptProposal && <button type="button" disabled={receiptBusy} onClick={handleAddToLedger} className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt">Retry receipt</button>}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+
+  // ── Teaware card layout ──────────────────────────────────────────────
+  if (isTeaware) {
+    const materials = TEAWARE_MATERIALS[entry.teawareCategory || ''] || TEAWARE_MATERIALS.default;
+    const hasTeawareName = (entry.name || '').trim().length > 0;
+    const isYixing = entry.material === 'Yixing'
+      || (['Zhuni', 'Zisha', 'Duanni', 'Hongni'] as string[]).includes(entry.material || '');
+    // Surface the legacy-stored clay name (from before Yixing rollup) as a subtype label.
+    const legacyClay = (['Zhuni', 'Zisha', 'Duanni', 'Hongni'] as const).includes(entry.material as never)
+      ? (entry.material as YixingClayType)
+      : undefined;
+    const effectiveClayType: YixingClayType | undefined = entry.clayType || legacyClay;
+
+    const handleMaterialPick = (mat: TeawareMaterial) => {
+      // Both Yixing and generic Clay drill into the clay-subtype sheet so
+      // the user can pick from the canonical clay names (Zhuni, Hongni, …)
+      // regardless of vessel category. The material itself is committed
+      // here so handleClayPick can read entry.material to know which one.
+      if (mat === 'Yixing' || mat === 'Clay') {
+        const updates: Record<string, unknown> = {
+          material: mat,
+          clayType: undefined,
+        };
+        const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
+        if (originDefault && !entry.originRegion) {
+          updates.originRegion = originDefault;
+        }
+        update(updates);
+        // Hand off from the Material sheet → Clay sheet. Close-then-open
+        // keeps Vaul's focus management from fighting two open sheets.
+        setMaterialPopoverOpen(false);
+        setTimeout(() => setClaySheetOpen(true), 220);
+        return;
+      }
+      const same = entry.material === mat;
+      const updates: Record<string, unknown> = {
+        material: same ? undefined : mat,
+        clayType: undefined,
+      };
+      const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
+      if (!same && originDefault && !entry.originRegion) {
+        updates.originRegion = originDefault;
+      }
+      update(updates);
+      setMaterialPopoverOpen(false);
+    };
+
+    const handleClayPick = (clay: YixingClayType) => {
+      const sameClay = effectiveClayType === clay;
+      // Preserve the parent material the user chose (Yixing vs generic Clay)
+      // — if entry.material is anything else, default to Yixing for the
+      // legacy rollup behaviour.
+      const parentMaterial: TeawareMaterial = entry.material === 'Clay' ? 'Clay' : 'Yixing';
+      const updates: Record<string, unknown> = {
+        material: parentMaterial,
+        clayType: sameClay ? undefined : clay,
+      };
+      if (parentMaterial === 'Yixing' && !entry.originRegion && MATERIAL_ORIGIN_DEFAULT.Yixing) {
+        updates.originRegion = MATERIAL_ORIGIN_DEFAULT.Yixing;
+      }
+      update(updates);
+      setClaySheetOpen(false);
+      setMaterialPopoverOpen(false);
+    };
+
+    const handleEraPick = (eraName: string) => {
+      update({ era: entry.era === eraName ? undefined : eraName });
+      setEraSheetOpen(false);
+      setEraInputOpen(false);
+      setEraInputValue('');
+    };
+
+    const commitCustomEra = () => {
+      const trimmed = eraInputValue.trim();
+      if (!trimmed) return;
+      addCustomEra(trimmed);
+      update({ era: trimmed });
+      setEraInputValue('');
+      setEraInputOpen(false);
+      setEraSheetOpen(false);
+    };
+
+    const allEras: string[] = [...TEAWARE_ERAS, ...customEras.filter((e) => !TEAWARE_ERAS.includes(e))];
+    const materialChipLabel = isYixing ? 'Yixing' : (entry.material || 'Material');
+    const materialDisplayLabel = effectiveClayType ? `${materialChipLabel} · ${effectiveClayType}` : materialChipLabel;
+    const supportsCapacity = (['Pot', 'Cup', 'Gaiwan', 'Fair Cup'] as TeawareCategory[]).includes(entry.teawareCategory as TeawareCategory);
+    const categorySheetId = `teaware-category-${entry.id}`;
+    const materialSheetId = `teaware-material-${entry.id}`;
+    const eraSheetId = `teaware-era-${entry.id}`;
+
+    return (
+      <div className={mobileShellClass} data-curate-source data-visual-layout="continuous-sheet">
+        <div data-testid="curate-primary-workflow" className="space-y-0">
+        <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
+
+        <div className={sourceShellClass} data-testid="curate-teaware-context-band">
+          <CaptureContextChips
+            category={entry.category}
+            vendorName={entry.vendorName}
+            vendorOpen={vendorOpen}
+            onToggleVendor={() => setVendorOpen((v) => !v)}
+            batchMode={batchMode}
+            onToggleBatchMode={onToggleBatchMode}
+            onShare={onShare}
+          />
+
+          {vendorOpen && (
+            <div className="mt-2.5">
+              <VendorStrip
+                vendorName={entry.vendorName}
+                vendorId={entry.vendorId}
+                vendorDetails={entry.vendorDetails}
+                onVendorSelect={handleVendorSelect}
+                onClear={handleVendorClear}
+                onDetailsChange={handleVendorDetailsChange}
+                linkedCustomerId={entry.linkedCustomerId}
+                onLinkedCustomerChange={handleLinkedCustomerChange}
+              />
+            </div>
+          )}
+
+          <div className="flex min-w-0 items-center gap-1 border-t border-tea-border">
+            <div className="min-w-0 flex-1">
+              <EncounterContext journeyId={entry.journeyId} visitId={entry.visitId} onChange={(journeyId, visitId) => useTeaCompassStore.getState().setEncounterContext(entryId, journeyId, visitId)} />
+            </div>
+            <div className="shrink-0">
+            <PhotoCapture
+              onExtracted={handleExtracted}
+              onPhotoTaken={handlePhotoTaken}
+              onPhotoReplaced={handlePhotoReplaced}
+              photos={entry.photos}
+              onRemovePhoto={(i) => updateEntry(entryId, { photos: entry.photos.filter((_, idx) => idx !== i) })}
+              variant="strip"
+            />
+            </div>
+          </div>
+        </div>
+
+        <section className="curate-cluster space-y-2" data-testid="curate-cluster-identity">
+          <QuietEyebrow label="Teaware" />
+          <input
+            type="text"
+            value={entry.name}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder="Teaware name"
+            className={`w-full ${nameHeadlineClass}`}
+          />
+
+          <div className="grid grid-cols-2 gap-2" data-testid="curate-teaware-classification-row">
+            <button
+              type="button"
+              onClick={() => setCategoryPopoverOpen(true)}
+              className="curate-field curate-field-with-label relative flex min-w-0 items-center justify-between px-2 text-left"
+              aria-label={`Category: ${entry.teawareCategory || 'Choose'}`}
+              aria-haspopup="dialog"
+              aria-expanded={categoryPopoverOpen}
+              aria-controls={categorySheetId}
+            >
+              <span className="curate-floating-label">Category</span>
+              <span className="curate-support min-w-0 truncate pt-1 font-medium text-tea-text">{entry.teawareCategory || 'Choose'}</span>
+              <ChevronDown size={12} className="mt-1 shrink-0" />
+            </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMaterialPopoverOpen(true);
+                }}
+                className="curate-field curate-field-with-label relative flex min-w-0 items-center justify-between px-2 text-left"
+                aria-label={`Material: ${materialDisplayLabel}`}
+                aria-haspopup="dialog"
+                aria-expanded={materialPopoverOpen || claySheetOpen}
+                aria-controls={materialSheetId}
+                data-curate-action
+              >
+                <span className="curate-floating-label">Material</span>
+                <span className="curate-support min-w-0 truncate pt-1 font-medium text-tea-text">{materialDisplayLabel}</span>
+                <ChevronDown size={12} className="mt-1 shrink-0" />
+              </button>
+          </div>
+
+          <div className="flex items-end gap-2" data-testid="curate-teaware-provenance-row">
+            <div className="relative min-w-0 flex-1">
+              <span className="curate-floating-label">Origin</span>
+              <AutocompleteInput
+                value={entry.originRegion || ''}
+                onChange={(val) => update({ originRegion: val || undefined })}
+                suggestions={availableRegions}
+                placeholder="Origin"
+                className={`curate-field-with-label w-full ${tallFieldClass}`}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setEraSheetOpen(true)}
+              className="curate-field curate-field-with-label relative flex w-20 shrink-0 items-center justify-between px-2 text-left tabular-nums"
+              aria-label={`Era: ${entry.era || 'Choose'}`}
+              aria-haspopup="dialog"
+              aria-expanded={eraSheetOpen}
+              aria-controls={eraSheetId}
+              data-curate-action
+            >
+              <span className="curate-floating-label">Era</span>
+              <span className="curate-support min-w-0 truncate pt-1 font-medium text-tea-text">{entry.era || 'Choose'}</span>
+              <ChevronDown size={12} className="mt-1 shrink-0" />
+            </button>
+            {supportsCapacity && (
+              <div className="relative w-20 shrink-0">
+                <span className="curate-floating-label">Capacity</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  aria-label="Capacity (ml)"
+                  value={entry.capacityMl ?? ''}
+                  onChange={(event) => update({ capacityMl: event.target.value === '' ? undefined : Number(event.target.value) })}
+                  placeholder="ml"
+                  className={`curate-field-with-label w-full pl-2 pr-6 text-center tabular-nums ${fieldClass}`}
+                />
+                {entry.capacityMl != null && (
+                  <span className="curate-support pointer-events-none absolute bottom-1.5 right-2 text-tea-text-dim">ml</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Category, material, clay and era sheets remain specialist
+              subflows; the working canvas only carries their selected values. */}
+
+          {/* Category — opens as a bottom sheet (Vaul) so the picker has
+              full thumb access at the bottom of the screen and never clips
+              against narrow viewports the way the old anchored popover did. */}
+          <BottomSheet
+            open={categoryPopoverOpen}
+            onOpenChange={setCategoryPopoverOpen}
+            title="Category"
+            description="What kind of teaware is this?"
+          >
+            <div id={categorySheetId} className="flex flex-col gap-0.5 px-1">
+              {TEAWARE_CATEGORIES.map((cat) => (
+                <SheetOption
+                  key={cat}
+                  label={cat}
+                  selected={entry.teawareCategory === cat}
+                  onSelect={() => {
+                    const updates: Record<string, unknown> = { teawareCategory: cat };
+                    if (entry.teawareCategory !== cat) {
+                      updates.material = undefined;
+                      updates.clayType = undefined;
+                    }
+                    update(updates);
+                    setCategoryPopoverOpen(false);
+                  }}
+                />
+              ))}
+            </div>
+          </BottomSheet>
+
+          {/* Era — bottom sheet. Includes "+ Add new era" affordance at the
+              bottom for user-defined entries (Song Dynasty, etc.). */}
+          <BottomSheet
+            open={eraSheetOpen}
+            onOpenChange={(open) => {
+              setEraSheetOpen(open);
+              if (!open) { setEraInputOpen(false); setEraInputValue(''); }
+            }}
+            title="Era"
+            description="When was this piece made?"
+          >
+            <div id={eraSheetId} className="flex flex-col gap-0.5 px-1">
+              {allEras.map((eraName) => (
+                <SheetOption
+                  key={eraName}
+                  label={eraName}
+                  selected={entry.era === eraName}
+                  onSelect={() => handleEraPick(eraName)}
+                />
+              ))}
+              <div className="border-t border-tea-border my-2" />
+              {eraInputOpen ? (
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <input
+                    ref={eraInputRef}
+                    type="text"
+                    value={eraInputValue}
+                    autoFocus
+                    onChange={(e) => setEraInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitCustomEra(); }
+                      if (e.key === 'Escape') { setEraInputOpen(false); setEraInputValue(''); }
+                    }}
+                    placeholder="e.g. Song Dynasty"
+                    className="min-h-11 flex-1 min-w-0 bg-tea-surface text-tea-text text-base rounded-md px-3 py-2 border border-tea-border focus:border-tea-gold/40 outline-none placeholder:text-tea-text-dim"
+                  />
+                  <button
+                    type="button"
+                    onClick={commitCustomEra}
+                    disabled={!eraInputValue.trim()}
+                    className="curate-action shrink-0 rounded-md bg-tea-gold px-3 font-medium text-tea-bg disabled:opacity-40"
+                  >
+                    Add
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEraInputOpen(true)}
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl text-base font-medium text-tea-gold hover:bg-tea-gold/[0.08] transition-colors"
+                >
+                  <Plus size={16} />
+                  Add new era
+                </button>
+              )}
+            </div>
+          </BottomSheet>
+
+          {/* Material — bottom sheet. Yixing and Clay both display a chevron
+              and drill into the full-screen Clay sheet rendered below. */}
+          <BottomSheet
+            open={materialPopoverOpen}
+            onOpenChange={setMaterialPopoverOpen}
+            title="Material"
+            description={entry.teawareCategory ? `For ${entry.teawareCategory}` : undefined}
+          >
+            <div id={materialSheetId} className="flex flex-col gap-0.5 px-1">
+              {materials.map((mat) => {
+                const isSelected = entry.material === mat || (mat === 'Yixing' && isYixing);
+                const hasSubtypes = mat === 'Yixing' || mat === 'Clay';
+                return (
+                  <SheetOption
+                    key={mat}
+                    label={mat}
+                    selected={isSelected}
+                    hasSubflow={hasSubtypes}
+                    onSelect={() => handleMaterialPick(mat)}
+                  />
+                );
+              })}
+            </div>
+          </BottomSheet>
+
+          {/* Clay subtype — full-height sheet with photographic swatches.
+              Falls back to a colour disk when no imageUrl is set yet. */}
+          <BottomSheet
+            open={claySheetOpen}
+            onOpenChange={setClaySheetOpen}
+            title={entry.material === 'Clay' ? 'Clay subtype' : 'Yixing clay'}
+            description="Pick the clay this piece is made from"
+            large
+          >
+            <div className="space-y-2 p-2">
+              <div className="grid grid-cols-2 gap-2.5">
+              {YIXING_CLAY_TYPES.map((clay) => {
+                const sel = effectiveClayType === clay.name;
+                return (
+                  <button
+                    key={clay.name}
+                    type="button"
+                    onClick={() => handleClayPick(clay.name)}
+                    aria-pressed={sel}
+                    className={`group relative flex flex-col items-start gap-2 p-3 rounded-xl border transition-all duration-200 text-left ${
+                      sel
+                        ? 'border-tea-gold/60 bg-tea-gold/[0.10]'
+                        : 'border-tea-border bg-tea-elevated/40 hover:border-tea-gold/40 hover:bg-tea-gold/[0.05]'
+                    }`}
+                    style={
+                      sel
+                        ? {
+                            boxShadow:
+                              'inset 0 1px 0 rgb(var(--tea-gold-rgb) / 0.2), 0 0 18px -4px rgb(var(--tea-gold-rgb) / 0.25)',
+                          }
+                        : undefined
+                    }
+                  >
+                    {/* Swatch — image when provided, else a richly-shaded
+                        circular disk with a soft inner highlight so the colour
+                        reads as a fired clay surface, not a flat dot. */}
+                    <div
+                      className="relative w-full aspect-square rounded-xl overflow-hidden border border-tea-border shrink-0"
+                      style={
+                        clay.imageUrl
+                          ? undefined
+                          : {
+                              background: `radial-gradient(circle at 32% 28%, color-mix(in srgb, ${clay.swatch} 78%, white 22%), ${clay.swatch} 62%, color-mix(in srgb, ${clay.swatch} 70%, black 30%) 100%)`,
+                            }
+                      }
+                    >
+                      {clay.imageUrl && (
+                        <img
+                          src={clay.imageUrl}
+                          alt={clay.label}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                      {sel && (
+                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-tea-gold flex items-center justify-center">
+                          <Check size={12} strokeWidth={3} className="text-tea-bg" />
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-full min-w-0">
+                      <div
+                        className={`font-sans text-base truncate ${sel ? 'text-tea-gold font-medium' : 'text-tea-text font-medium'}`}
+                      >
+                        {clay.label}
+                      </div>
+                      {clay.hint && (
+                        <div className="curate-support mt-0.5 truncate text-tea-text-sec">{clay.hint}</div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+              </div>
+              {effectiveClayType && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    update({ material: entry.material === 'Clay' ? 'Clay' : 'Yixing', clayType: undefined });
+                    setClaySheetOpen(false);
+                  }}
+                  className="tap-target min-h-11 w-full text-ui-12 text-tea-text-sec hover:text-tea-text"
+                >
+                  Clear clay subtype
+                </button>
+              )}
+            </div>
+          </BottomSheet>
+        </section>
+
+        <section className="curate-cluster curate-cluster-soft space-y-1.5" data-testid="curate-cluster-buying">
+        <QuietEyebrow label="Buy" />
+        <PricingRow
+          priceAmount={entry.priceAmount}
+          priceCurrency={entry.priceCurrency || 'NT'}
+          onPriceChange={(priceAmount) => update({ priceAmount })}
+          onCurrencyChange={handleCurrencyChange}
+          unit={{
+            mode: 'count',
+            quantity: entry.quantity || 1,
+            onQuantityChange: (quantity) => update({ quantity }),
+          }}
+        />
+        </section>
+
+        <section className="curate-cluster space-y-1.5" data-testid="curate-cluster-notes">
+        <FieldLabel>Notes</FieldLabel>
+        <NoteThread
+          compassEntryId={entry.id}
+          teaKey={entry.teaKey ?? undefined}
+          compact
+          hideTastingArtifacts
+          sans
+        />
+        <div className="curate-intent-inline">
+          <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
+        </div>
+        <CaptureActionFooter
+          className="curate-buy-actions border-t border-tea-border pt-1.5"
+          onBuy={toggleBuyPicker}
+          onDone={handleCommit}
+          doneEnabled={entryHasContent(entry)}
+          buyExpanded={showBuyPicker}
+          purchasePickerId={purchasePickerId}
+        />
+        </section>
+        {renderTeawarePurchaseSection()}
+      </div>
+      </div>
+    );
+  }
+
   // Typed fields in the TEA layout share the ONE boxed, recessed field style
   // (`fieldClass`) with the teaware variant: a real surface + border so a
   // filled field never looks like a heading. Pickers (Type, Form, Storage)
@@ -1516,8 +1601,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // Tea name — the hero. Large display serif, still just a bottom hairline.
   // This is the ONE serif element in the capture form — everything else
   // below is font-sans so the form reads as one typographic system.
-  const nameHeadlineClass = 'curate-primary min-h-11 rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
-
   // ── Tea card layout ────────────────────────
   return (
     <div className={mobileShellClass} data-curate-source data-visual-layout="continuous-sheet">

@@ -326,7 +326,7 @@ test.describe('Curate field capture preservation', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true })).toBeVisible();
   });
 
   test('teaware capture has no legacy Want control', async ({ page }) => {
@@ -340,18 +340,18 @@ test.describe('Curate field capture preservation', () => {
   test('keeps Teaware selected when a teaware draft is restored after refresh', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
-    await page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true }).fill('Field gaiwan');
+    await page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true }).fill('Field gaiwan');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toHaveValue('Field gaiwan');
+    await expect(page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true })).toHaveValue('Field gaiwan');
   });
 
   test('keeps Teaware selected when returning to an account with a teaware draft', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
-    await page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true }).fill('Account gaiwan');
+    await page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true }).fill('Account gaiwan');
     await page.evaluate(async () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useAppStore } = await import('/src/lib/store.ts');
@@ -365,7 +365,7 @@ test.describe('Curate field capture preservation', () => {
       useAppStore.getState().setActiveAccountId('acct-bali');
     });
     await expect(page.getByRole('tab', { name: 'Teaware', exact: true })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByPlaceholder('Teaware name (e.g., Shipiao, Bing Lang…)').filter({ visible: true })).toHaveValue('Account gaiwan');
+    await expect(page.getByPlaceholder('Teaware name', { exact: true }).filter({ visible: true })).toHaveValue('Account gaiwan');
   });
 
   test('switches between named entries in the current session', async ({ page }) => {
@@ -537,6 +537,21 @@ test.describe('Curate field capture preservation', () => {
     await expect(page.locator(`#${pickerId}`)).toHaveCount(1);
     await buy.click();
     await expect(buy).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  test('Teaware Buy opens the existing unit-based acquisition flow', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Teaware', exact: true }).click();
+    const buy = page.getByTestId('capture-action-footer').filter({ visible: true })
+      .getByRole('button', { name: 'Buy', exact: true });
+
+    await expect(buy).toHaveAttribute('aria-expanded', 'false');
+    const pickerId = await buy.getAttribute('aria-controls');
+    expect(pickerId).toBeTruthy();
+    await buy.click();
+    await expect(buy).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator(`#${pickerId}`).getByLabel('Purchase quantity')).toHaveValue('1');
+    await expect(page.locator(`#${pickerId}`).getByLabel('Inventory purpose')).toHaveValue('personal');
   });
 
   test('desktop Done also creates exactly one active replacement draft', async ({ page }, testInfo) => {
