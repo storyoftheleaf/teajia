@@ -203,6 +203,7 @@ const NoteCard: React.FC<{
           <TastingArtifact snapshot={note.tastingSnapshot as TastingData} />
         ) : editing ? (
           <textarea
+            aria-label="Notes"
             ref={textareaRef}
             value={draft}
             onChange={e => setDraft(e.target.value)}
@@ -466,6 +467,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       <div className="tasting-voice-field">
         {recState === 'idle' || recState === 'transcribing' ? (
           <textarea
+            aria-label="Notes"
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}

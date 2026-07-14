@@ -711,12 +711,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   if (!entry) return null;
 
   const shellClass = 'surface-warm relative mx-auto w-full max-w-3xl space-y-2 px-3 md:px-5';
-  // Mobile shell flows the warm surface PAST the inline Done and BEHIND the
-  // floating bottom-nav pill. pb-nav-gap-lg gives 2rem + nav + safe-area so the
-  // card's own Done clears the nav; resets to a flat 2rem on lg+ where there is
-  // no bottom nav.
-  const mobileShellClass = `${shellClass} pt-2 pb-nav-gap-lg`;
-  const sourceShellClass = 'border-y border-tea-border px-1 py-1';
+  // The capture itself stays tightly bounded; the owning mobile scroll region
+  // supplies bottom-nav clearance so that space is not painted as part of the
+  // sourcing sheet.
+  const mobileShellClass = `${shellClass} curate-source-sheet py-1.5 lg:py-3`;
+  const sourceShellClass = 'curate-context-band px-1';
   const fieldClass = 'curate-field field-recessed px-3 py-2.5';
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
   const selectClass = (selected: boolean) =>
@@ -1521,7 +1520,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
 
   // ── Tea card layout ────────────────────────
   return (
-    <div className={mobileShellClass} data-curate-source>
+    <div className={mobileShellClass} data-curate-source data-visual-layout="continuous-sheet">
       {/* ← Library back link — shown when navigated from Library */}
       {onReturnToLibrary && (
         <button
@@ -1534,6 +1533,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </button>
       )}
 
+      <div data-testid="curate-primary-workflow" className="space-y-0">
       <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
 
       {/* Context chips row: Run + Vendor. Both stay sticky across a burst of
@@ -1589,7 +1589,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           value={entry.name}
           onChange={(val) => update({ name: val })}
           suggestions={allNameSuggestions}
-          placeholder={entry.type ? `${entry.type} name…` : 'Tea name (e.g., Tieguanyin, Bingdao…)'}
+          placeholder="Tea name"
           className={`w-full ${nameHeadlineClass}`}
           onSelect={handleNameAutocompleteSelect}
           itemData={{ ...varietyNameMap, ...productNameMap }}
@@ -1850,7 +1850,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       {/* Notes and intent remain continuously available inside the same
           visually memorable Taste cluster rather than becoming two more
           full-weight sections. */}
-      <div className="space-y-1.5 border-t border-tea-border pt-2">
+      <div className="space-y-1.5 border-t border-tea-border pt-2" data-testid="curate-notes-band">
         <FieldLabel>Notes</FieldLabel>
         <NoteThread
           compassEntryId={entry.id}
@@ -1859,12 +1859,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           hideTastingArtifacts
           sans
         />
-      </div>
-
-      <div className="space-y-1.5 border-t border-tea-border pt-2">
-        <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
+        <div className="curate-intent-inline">
+          <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
+        </div>
       </div>
       </section>
+      </div>
 
       {(entry.type === 'Sheng' || entry.type === 'Shou' || entry.type === 'Dark') && <section className="curate-section space-y-2">
           <QuietEyebrow label="Storage" />

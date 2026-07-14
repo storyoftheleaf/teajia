@@ -169,6 +169,6 @@ test.describe('Curate legacy data resilience', () => {
 
     await page.goto('/admin/compass?entry=nameless-import', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('tab', { name: 'Source', exact: true })).toHaveAttribute('aria-selected', 'true', { timeout: 30_000 });
-    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toHaveValue('', { timeout: 30_000 });
+    await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toHaveValue('', { timeout: 30_000 });
   });
 });

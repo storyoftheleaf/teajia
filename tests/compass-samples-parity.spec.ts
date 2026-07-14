@@ -15,7 +15,7 @@ test.describe('Sample workflows remain reachable outside the capture method row'
     await expect(page.getByText('Your Sample list is empty', { exact: true }).filter({ visible: true })).toBeVisible();
     await page.getByRole('button', { name: 'Capture tea' }).click();
     await expect(page.getByRole('dialog', { name: 'Samples workspace' })).toBeHidden();
-    await expect(page.getByPlaceholder('Tea name (e.g., Tieguanyin, Bingdao…)').filter({ visible: true })).toBeFocused();
+    await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toBeFocused();
     await trigger.click();
     await page.getByRole('button', { name: 'Browse Library' }).click();
     await expect(page.getByRole('tab', { name: 'Library', exact: true })).toHaveAttribute('aria-selected', 'true');

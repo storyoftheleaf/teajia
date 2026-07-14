@@ -71,7 +71,7 @@ export const SampleOrderAction: React.FC<SampleOrderActionProps> = ({
         type="button"
         onClick={() => onOpenChange(true)}
         aria-label={`Sample list (${count})`}
-        className="curate-compact-target shrink-0 text-tea-text-sec transition-colors hover:text-tea-text"
+        className="curate-compact-target shrink-0 whitespace-nowrap text-tea-text-sec transition-colors hover:text-tea-text"
         data-curate-compact-target
       >
         <span className="curate-compact-chrome whitespace-nowrap border-l border-tea-border px-2 text-ui-12" data-curate-compact-chrome>

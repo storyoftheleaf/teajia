@@ -46,7 +46,7 @@ export const SessionStack: React.FC<SessionStackProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectEntry(entry.id)}
-                className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-tea-surface transition-colors"
+                className="flex min-h-11 min-w-0 flex-1 items-center gap-2 px-2.5 py-1.5 text-left transition-colors hover:bg-tea-surface"
               >
                 {/* Tea / teaware icon */}
                 {isTeaware ? (
@@ -84,7 +84,8 @@ export const SessionStack: React.FC<SessionStackProps> = ({
               <button
                 type="button"
                 onClick={() => onDiscardEntry(entry.id)}
-                className="p-2 text-tea-text-dim hover:text-tea-error transition-colors shrink-0"
+                className="tap-target flex min-h-11 min-w-11 shrink-0 items-center justify-center text-tea-text-sec transition-colors hover:text-tea-error"
+                aria-label={`Discard ${entry.name || 'untitled draft'}`}
                 title="Discard"
               >
                 <X size={11} />

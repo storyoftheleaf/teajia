@@ -866,7 +866,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               region only needs to clear the BottomTabBar. */}
           <div
             ref={scrollContainerRef}
-            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 ${mode === 'sourcing' ? '' : 'pb-3'}`}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 ${mode === 'sourcing' ? 'pb-nav-gap-lg' : 'pb-3'}`}
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -1223,8 +1223,28 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
                     className="flex flex-col gap-3"
+                    data-testid="curate-run-rail"
                   >
-                    {/* SessionStack */}
+                    <div className="flex items-center justify-between border-b border-tea-border pb-2">
+                      <span className="text-ui-12 font-medium text-tea-text">Current run</span>
+                      <span className="text-ui-11 tabular-nums text-tea-text-sec">{sessionEntries.length}</span>
+                    </div>
+
+                    {activeEntry && (
+                      <div
+                        data-testid="curate-active-draft"
+                        className="flex min-h-11 items-center gap-2 rounded-md border border-tea-border bg-tea-accent-sub px-3 text-left"
+                        aria-current="true"
+                      >
+                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-tea-gold" aria-hidden />
+                        <span className="min-w-0 flex-1 truncate text-ui-13 font-medium text-tea-text">
+                          {activeEntry.name || 'Untitled draft'}
+                        </span>
+                        <span className="text-ui-10 uppercase tracking-[0.08em] text-tea-text-sec">Active</span>
+                      </div>
+                    )}
+
+                    {/* Other drafts in this run. */}
                     <SessionStack
                         sessionEntries={sessionEntries}
                         activeEntryId={activeEntryId}
@@ -1507,6 +1527,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
+                    data-testid="curate-desktop-canvas"
                   >
                     {initialDevelopmentProduct && !developmentStarted ? (
                       <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-tea-border bg-tea-surface px-3 py-3" role="status">
@@ -1534,6 +1555,18 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                           batchMode={batchMode}
                           onToggleBatchMode={() => setBatchMode((v) => !v)}
                         />
+                        {showCaptureActionBar && (
+                          <CaptureActionFooter
+                            className="mx-auto mt-2 w-full max-w-3xl border-t border-tea-border bg-tea-surface px-3 py-2"
+                            onBuy={() => captureCardActionsRef.current?.toggleBuy()}
+                            onDone={handleDoneClick}
+                            onSample={() => captureCardActionsRef.current?.openTasting()}
+                            doneEnabled={!!activeEntryId && captureDoneReady}
+                            doneTestId="compass-done-desktop"
+                            buyExpanded={captureBuyExpanded}
+                            purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
+                          />
+                        )}
                       </>
                     ) : (
                       <CompassRightEmptyState mode="sourcing" onNewCapture={() => handleNewCapture()} />
@@ -1607,18 +1640,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                   )}
                 </AnimatePresence>
 
-                {showCaptureActionBar && (
-                  <CaptureActionFooter
-                    className="mx-auto w-full max-w-3xl bg-tea-surface p-2"
-                    onBuy={() => captureCardActionsRef.current?.toggleBuy()}
-                    onDone={handleDoneClick}
-                    onSample={() => captureCardActionsRef.current?.openTasting()}
-                    doneEnabled={!!activeEntryId && captureDoneReady}
-                    doneTestId="compass-done-desktop"
-                    buyExpanded={captureBuyExpanded}
-                    purchasePickerId={`capture-purchase-picker-desktop-${activeEntryId}`}
-                  />
-                )}
               </div>
             )}
             {/* END right action bar */}

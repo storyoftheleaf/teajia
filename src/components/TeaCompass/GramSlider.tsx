@@ -115,7 +115,14 @@ export const GramSlider: React.FC<GramSliderProps> = ({ presets, value, onChange
     : 'left 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms ease, box-shadow 160ms ease';
 
   return (
-    <div className={className}>
+    <div className={`relative ${className}`}>
+      <span
+        data-testid="gram-current-value"
+        className="curate-support absolute right-0 top-0 -translate-y-1/2 tabular-nums text-tea-text-sec"
+        aria-hidden
+      >
+        {current}g
+      </span>
       <div
         role="slider"
         tabIndex={0}

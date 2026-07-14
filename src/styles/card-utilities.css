@@ -2647,16 +2647,32 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .curate-cluster {
   border-top: 1px solid var(--tea-border);
-  background: var(--tea-surface);
-  margin-inline: -0.5rem;
-  padding-inline: 0.5rem;
-  padding-block: 0.625rem;
+  background: transparent;
+  margin-inline: 0;
+  padding-inline: 0.25rem;
+  padding-block: 0.5rem;
 }
 
 .curate-cluster:first-of-type { border-top: 0; }
 
 .curate-cluster-soft {
-  box-shadow: inset 0 -1px 0 var(--tea-border);
+  box-shadow: none;
+}
+
+.curate-source-sheet {
+  border-inline: 1px solid var(--tea-border);
+  background: var(--tea-surface);
+}
+
+.curate-context-band {
+  border-bottom: 1px solid var(--tea-border);
+}
+
+.curate-intent-inline {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  padding-top: 0.25rem;
 }
 
 .curate-decision-control {

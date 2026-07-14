@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check } from 'lucide-react';
 import type { CompassDecision } from './types';
 
 const OPTIONS: Array<{ value: CompassDecision; label: string }> = [
@@ -37,7 +38,13 @@ export const DecisionControl: React.FC<{
                 : 'text-tea-text-sec hover:text-tea-text'
             }`}
             data-curate-compact-chrome
+            data-decision-rail
           >
+            {value === option.value && (
+              <span data-selected-marker className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-tea-gold" aria-hidden>
+                <Check size={9} strokeWidth={2.5} />
+              </span>
+            )}
             {option.label}
           </span>
         </button>

@@ -117,7 +117,7 @@ test.describe('Curate Import panel', () => {
 
   test('opens as a temporary modal, traps focus, and restores the unchanged tea draft', async ({ page }) => {
     await openCompass(page);
-    const name = page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true });
+    const name = page.getByPlaceholder('Tea name').filter({ visible: true });
     await name.fill('Field tea');
     const trigger = page.getByRole('tab', { name: 'Import' }).first();
     await trigger.click();
@@ -155,7 +155,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Merge Ali Shan' }).click();
     await page.getByLabel('Reviewed uncertain fields').click();
     await page.getByRole('button', { name: 'Accept Red Jade corrected' }).click();
-    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toHaveValue('Red Jade corrected');
+    await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toHaveValue('Red Jade corrected');
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByRole('button', { name: 'Accept all remaining' }).click();
     await page.getByRole('button', { name: 'Review later' }).click();
@@ -324,7 +324,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(2);
     await page.getByRole('button', { name: '23 more imports' }).click();
     await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(25);
-    await expect(page.getByPlaceholder(/Tea name \(e\.g\., Tieguanyin/).filter({ visible: true })).toBeVisible();
+    await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 

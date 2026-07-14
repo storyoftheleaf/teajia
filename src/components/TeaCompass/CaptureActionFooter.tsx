@@ -42,12 +42,13 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
       onClick={onDone}
       disabled={!doneEnabled}
       data-testid={doneTestId}
-      className={`${targetClass} disabled:cursor-not-allowed disabled:opacity-40`}
-      aria-label="Done"
+      className={`${targetClass} disabled:cursor-not-allowed`}
+      aria-label="Done, commit this entry"
+      data-visual-state={doneEnabled ? 'primary' : 'disabled-neutral'}
       data-curate-action
       data-curate-compact-target
     >
-      <span className="curate-compact-chrome w-full bg-tea-gold text-tea-bg hover:bg-tea-gold-lt" data-curate-compact-chrome>Done</span>
+      <span className={`curate-compact-chrome w-full border ${doneEnabled ? 'border-tea-gold bg-tea-gold text-tea-bg hover:bg-tea-gold-lt' : 'border-tea-border bg-tea-surface text-tea-text-sec'}`} data-curate-compact-chrome>Done</span>
     </button>
     <button type="button" onClick={onSample} className={targetClass} aria-label="Sample" data-curate-action data-curate-compact-target>
       <span className={quietChromeClass} data-curate-compact-chrome>Sample</span>
