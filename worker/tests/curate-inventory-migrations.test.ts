@@ -13,7 +13,7 @@ const migrationNames = [
   '104_inventory_receipts.sql',
   '105_stock_movements.sql',
   '107_curate_import_idempotency.sql',
-  '116_curate_import_analysis.sql',
+  '119_curate_import_analysis.sql',
 ] as const;
 
 const migrations = migrationNames.map(name =>

@@ -22,7 +22,7 @@
 ### Task 1: Fence analysis and all review mutations from finalization
 
 **Files:**
-- Modify: `worker/migrations/116_curate_import_analysis.sql`
+- Modify: `worker/migrations/119_curate_import_analysis.sql`
 - Modify: `worker/schema.sql`
 - Modify: `worker/src/curateImports.ts`
 - Test: `worker/tests/curate-imports.test.ts`
@@ -50,7 +50,7 @@ Run the Task 1 test command plus `npm run lint`. Commit as `fix(curate): fence i
 - Modify: `worker/src/curateImportAnalysis.ts`
 - Modify: `worker/src/curateImports.ts`
 - Modify: `worker/src/curateImportFinalize.ts`
-- Modify: `worker/migrations/116_curate_import_analysis.sql`
+- Modify: `worker/migrations/119_curate_import_analysis.sql`
 - Modify: `worker/schema.sql`
 - Test: `worker/tests/curate-import-analysis.test.ts`
 - Test: `worker/tests/curate-imports.test.ts`
@@ -80,7 +80,7 @@ Run the Task 2 tests plus the complete Worker test directory. Commit as `fix(cur
 
 **Files:**
 - Modify: `worker/src/curateImports.ts`
-- Modify: `worker/migrations/116_curate_import_analysis.sql`
+- Modify: `worker/migrations/119_curate_import_analysis.sql`
 - Modify: `worker/schema.sql`
 - Modify: `src/lib/api.ts`
 - Modify: `src/components/TeaCompass/import/ImportInput.tsx`
