@@ -40,6 +40,10 @@ state, and account-scoped provider job locks. It backfills verification only for
 identities already vouched for by Google, a platform role, or an active account
 membership. Apply it before deploying the corresponding Worker.
 
+Migration `119_curate_import_analysis.sql` adds AI-analysis state, per-source
+outcomes, vendor-group review, exact receipt-cost provenance, and durable
+Curate-to-Inventory receipt links for the full-screen import workflow.
+
 Caveats baked into this repo's history:
 - SQLite `ALTER TABLE ... ADD COLUMN` has **no `IF NOT EXISTS`** — column-adding
   migrations (e.g. 087, 088) error if run twice. Apply each exactly once.

@@ -62,7 +62,7 @@ function applyTrackedMigrations(database: string): string[] {
 }
 
 describe('migration 017 rehearsals', () => {
-  it('boots the clean canonical schema through migration 118', () => withDatabase((database) => {
+  it('boots the clean canonical schema through migration 119', () => withDatabase((database) => {
     sqlite(database, sql('schema.sql'));
 
     const output = sqlite(database, `
@@ -71,10 +71,10 @@ describe('migration 017 rehearsals', () => {
       ORDER BY name;
     `);
     expect(output.split('\n')).toEqual(['account_members', 'accounts', 'identity_email_verifications', 'private_recordings', 'provider_jobs']);
-    expect(migrationNames.at(-1)).toBe('118_email_verification_and_provider_jobs.sql');
+    expect(migrationNames.at(-1)).toBe('119_curate_import_analysis.sql');
   }));
 
-  it('upgrades the production-shaped pre-017 schema through migration 118', () => withDatabase((database) => {
+  it('upgrades the production-shaped pre-017 schema through migration 119', () => withDatabase((database) => {
     sqlite(database, sql('tests/fixtures/pre-017-production.sql'));
     sqlite(database, `INSERT INTO products(id, type, product_name) VALUES ('legacy', 'Oolong', 'Legacy tea');`);
     initializeLedger(database, ['017_multi_account.sql']);
@@ -82,7 +82,7 @@ describe('migration 017 rehearsals', () => {
     const applied = applyTrackedMigrations(database);
 
     expect(applied.at(0)).toBe('017_multi_account_patched.sql');
-    expect(applied.at(-1)).toBe('118_email_verification_and_provider_jobs.sql');
+    expect(applied.at(-1)).toBe('119_curate_import_analysis.sql');
     expect(sqlite(database, `SELECT account_id FROM products WHERE id='legacy';`)).toBe('acc_teajia_bali');
     expect(sqlite(database, `SELECT name FROM sqlite_master WHERE type='table' AND name='private_recordings';`))
       .toBe('private_recordings');
