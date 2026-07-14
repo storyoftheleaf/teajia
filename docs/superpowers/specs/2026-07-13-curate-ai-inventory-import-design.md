@@ -1,6 +1,6 @@
 # Curate AI Inventory Import Design
 
-**Status:** Approved interaction design, awaiting written-spec review  
+**Status:** Approved interaction design and hardening scope
 **Date:** 2026-07-13  
 **Surface:** Curate Import on mobile first, responsive on desktop  
 **Destination:** Inventory, with linked Curate Library identity and provenance
@@ -326,3 +326,70 @@ Run focused import unit/worker tests, Curate Playwright tests on Desktop and Mob
 - Cross-import merging without explicit identity review
 - Multiple sourcing runs inside one import
 
+## 14. Pre-release hardening addendum
+
+Independent UX and integrity review exposed twenty gaps. All are in scope before merge; the approved interaction direction remains unchanged.
+
+### 14.1 Concurrency and terminal-state safety
+
+- Analysis receives a unique attempt token. Its final write succeeds only while the batch remains nonterminal, has no finalization reservation, and still owns that token.
+- Completed, abandoned, or finalization-reserved batches can never return to `reviewing` through analysis or error handling.
+- Every mutation, including evidence upload, Journey assignment, vendor resolution/creation, item correction, reanalysis, and abandonment, atomically requires `finalize_idempotency_key IS NULL` and a nonterminal review state.
+- Superseded analysis returns a conflict result without marking the batch failed.
+
+### 14.2 Deterministic proposal and money validation
+
+- AI group keys are unique within a proposal; `sourceItemId` values are unique across the complete proposal.
+- A Han-script original name requires a separate non-Han English inventory name before finalization.
+- Low confidence or material uncertainty in vendor, identity, translation, quantity, price basis, price, currency, or acquisition state creates a blocking field.
+- Currency is a canonical uppercase ISO 4217 code. Ambiguous symbols such as `¥` remain blocked until resolved.
+- Authoritative monetary provenance uses exact decimal representation or integer minor units rather than binary floating point.
+
+### 14.3 Reuse-first matching
+
+- Exact name alone cannot auto-match an identity.
+- Matching combines category, original and translated names, Chinese name, year, origin, form/classification, and vendor when present.
+- Auto-match requires one high-confidence candidate with a clear margin over the next candidate. Generic names, ties, and weak matches remain unresolved.
+- Existing products are joined deterministically to their Curate identities even when `draft_product_id` is absent.
+- Review names every proposed identity and holding and allows searching other compatible account-scoped records.
+
+### 14.4 Evidence and privacy
+
+- The chooser advertises only formats the analysis pipeline can interpret. DOC/DOCX may be attached only when explicitly labelled reference-only.
+- One unsupported or oversized source cannot prevent other usable evidence from being analyzed. Each source receives `analyzed`, `reference_only`, or `failed` status.
+- Upload and analysis limits are aligned before selection. Originals may remain in R2 while an analysis-safe derivative is sent to the provider.
+- Attachments can be removed, replaced, or cleared before upload.
+- Evidence references identify a real source and, when available, a valid page, text range, or image region.
+- AI candidates are bounded locally. Email, phone, and WhatsApp are not sent as matching aliases.
+
+### 14.5 Durable input and recovery
+
+- Unsubmitted text, selected Journey, and attachment metadata form an account-scoped local draft. Closing dirty input warns unless it is already preserved.
+- Vendor, Journey, identity, and holding lookups distinguish loading, empty, and failed states. Creation is not the only visible route while reuse lookup has failed.
+- Upload and analysis report per-file progress and retry only failed work without duplicating evidence.
+- Conflicting controls are disabled consistently while a mutation is active; no action silently refuses to run.
+
+### 14.6 Review hierarchy
+
+- The optional sourcing run rests as `No sourcing run · Add` or the selected run with `Change`; search and creation appear only after expansion.
+- Vendor resolution is a searchable combobox ranked by deterministic similarity. Creation follows existing matches.
+- Expanded items show blocking fields first with relevant evidence; nonblocking metadata lives under `All details`.
+- Tea type and production/classification receive distinct domain labels and examples.
+- Editor drafts refresh from the latest item revision whenever editing opens.
+- Saved evidence copy reflects actual processing state.
+
+### 14.7 Destination, accessibility, and completion
+
+- Copy states the actual contract: review reuses or creates a Library identity and adds acquired quantity to Inventory.
+- The open dialog makes the underlying Curate surface inert and hidden from assistive technology; proxy file inputs do not create duplicate controls.
+- Destructive confirmation is either a normal disclosed group or a correctly isolated, described alert dialog.
+- Finalization opens a durable batch receipt summary listing every created/reused Library identity, Inventory holding, vendor receipt, quantity, and cost, with links to all results.
+
+### 14.8 Additional merge gates
+
+- Race tests cover analysis versus finalization and every finalization-reserved mutation.
+- Proposal tests cover duplicate IDs, translation/confidence blockers, match ties, canonical currency, and exact money.
+- Evidence tests cover mixed supported/reference-only batches, size limits, removal, local drafts, per-file retry, and candidate privacy.
+- Browser tests cover searchable matching, blocking-first editing, quiet Journey controls, modal isolation, global busy states, and batch completion on mobile and desktop.
+- The full Worker suite, import matrix, Inventory scroll tests, mobile audit, lint, color lint, and production build pass.
+- The seven existing Curate draft-lifecycle failures are repaired to the intended contract or deliberately re-specified with regression coverage; they cannot remain an unexplained red baseline.

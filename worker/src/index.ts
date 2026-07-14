@@ -4,13 +4,14 @@ import {
   oauthRegister, oauthAuthorize, oauthAuthorizeRequestInfo, oauthAuthorizeDecision, oauthToken,
 } from './mcp';
 import {
-  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, createCurateImport, getCurateImport,
-  getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem, updateCurateImportItem, uploadCurateImportEvidence,
+  abandonCurateImport, acceptCurateImportItem, addCurateImportItem, addCurateImportSource, analyzeCurateImport, createCurateImport, getCurateImport,
+  createVendorForCurateImportGroup, finalizeCurateImportRequest, getCurateImportEvidence, listIncompleteCurateImports, mergeCurateImportItem,
+  setCurateImportJourney, updateCurateImportGroup, updateCurateImportItem, uploadCurateImportEvidence,
   type CurateImportContext,
 } from './curateImports';
 import { COMPASS_COLUMNS, decodeCompassWrite as decodeCompassWriteCodec, type CompassColumn } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
+import { decodeInventoryPurposeWrite, effectiveInventoryPurpose, inventoryPurposeConflict, decodeReceiptProposal, receiptInventoryValues, decodeInventoryReceipt, deriveReceiptState, remainingReceiptQuantity, decodeStockMovement, movementDelta, stockMovementFingerprint, decodeInventoryImportRow, inventoryImportIdempotencyKey, inventoryImportProductId, type InventoryReceiptState, type StockMovementInput } from './inventoryDomain';
 import { deriveConfirmedInvoiceLine, repairCandidate } from './invoiceDomain';
 import { buildEventArticleDraft } from './eventArticleDraft';
 import { candidateToApi, impressionToApi, parseCandidateInput } from './tastingNoteCuration';
@@ -24,6 +25,7 @@ interface Env {
   JWT_SECRET: string;
   VERIFICATION_CODE_SECRET?: string;
   ANTHROPIC_API_KEY: string;
+  CURATE_IMPORT_ANALYSIS_MODEL?: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
   // Optional — set SENDER_EMAIL + RESEND_API_KEY to enable transactional emails via Resend
@@ -10021,12 +10023,8 @@ const RECEIPT_MUTABLE_FIELDS = new Set([
 ]);
 
 function purposeConflict(product: Record<string, any> | null, intendedPurpose: string): Response | null {
-  if (!product) return null;
-  // Rows predating both the canonical purpose and legacy flags were genuinely
-  // unclassified; preserve the existing one-time assignment policy for them.
-  if (product.inventory_purpose == null && product.is_sample == null && product.is_personal == null) return null;
-  const currentPurpose = effectiveInventoryPurpose(product).purpose;
-  if (currentPurpose === intendedPurpose) return null;
+  const currentPurpose = inventoryPurposeConflict(product, intendedPurpose as 'working' | 'sample' | 'personal');
+  if (!currentPurpose) return null;
   return json({
     error: `This holding is ${currentPurpose}; receiving it as ${intendedPurpose} requires a separate holding or deliberate purpose conversion.`,
     code: 'purpose_conflict',
@@ -10419,6 +10417,49 @@ const handleReceiveInventoryLine: Handler = async (request, env, params) => {
     const remainingQuantity = persistedLine ? remainingReceiptQuantity(Number(persistedLine.expected_quantity), receivedQuantity, Number(persistedLine.cancelled_quantity)) : (alreadyReceived ? remaining : remaining - quantity);
     return json({ received_quantity:receivedQuantity, remaining_quantity:remainingQuantity,state:persistedReceipt?.state || state,ledger_id:(result.value as any).id,batch_id:persistedLine?.intake_batch_id || batchId,already_received:alreadyReceived });
   } catch (error) { console.error('Receipt stock movement failed',error); return json({ error:'Receipt failed' },500); }
+};
+
+const handleFinalizeCurateImport: Handler = async (request, env, params) => {
+  const ctx = await requireBundle(request, env, 'stock'); if ('error' in ctx) return ctx.error;
+  return finalizeCurateImportRequest(request, env, { accountId: ctx.accountId, userId: ctx.userId }, params, async (line, idempotencyKey) => {
+    const persisted = await loadReceiptLine(env, line.id, ctx.accountId);
+    if (!persisted || persisted.receipt_id !== line.receiptId) throw new Error('Receipt line not found');
+    const prior = await env.DB.prepare('SELECT * FROM stock_ledger WHERE account_id = ? AND idempotency_key = ?').bind(ctx.accountId, idempotencyKey).first() as Record<string, unknown> | null;
+    if (prior) {
+      let fingerprint: Record<string, unknown> | null = null;
+      try { fingerprint = JSON.parse(String(prior.movement_fingerprint)) as Record<string, unknown>; } catch { /* malformed legacy row cannot replay */ }
+      if (prior.product_id !== line.productId || prior.inventory_receipt_line_id !== line.id || prior.movement_type !== 'receipt'
+        || Number(fingerprint?.quantity) !== line.quantity || fingerprint?.unit !== line.unit || fingerprint?.source_compass_entry_id !== line.compassEntryId) {
+        throw new Error('idempotency_key already used for a different stock movement');
+      }
+      return { movementId: String(prior.id) };
+    }
+    const product = await env.DB.prepare('SELECT * FROM products WHERE id = ? AND account_id = ?').bind(line.productId, ctx.accountId).first() as Record<string, any> | null;
+    if (!product) throw new Error('Product not found');
+    const amountColumn = line.unit === 'g' ? 'stock_grams' : 'quantity_units';
+    const current = Number(product[amountColumn] ?? 0);
+    const batchId = persisted.intake_batch_id || `receipt-${persisted.receipt_id}`;
+    const createsBatch = !persisted.intake_batch_id;
+    const movement = decodeStockMovement({
+      movement_type: 'receipt', quantity: line.quantity, unit: line.unit, expected_balance: current,
+      idempotency_key: idempotencyKey, note: 'Received Curate import', batch_id: batchId,
+      source_compass_entry_id: line.compassEntryId,
+    });
+    const result = await applyStockMovement(env, ctx, line.productId, movement, {
+      inventoryReceiptLineId: line.id, allowNewBatchId: createsBatch,
+      statementFactory: guard => [
+        ...(createsBatch ? [env.DB.prepare(`INSERT OR IGNORE INTO batches (id, account_id, label, intake_date, vendor, note)
+          SELECT ?, ?, ?, date('now'), ?, 'Curate inventory import' WHERE EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+          .bind(batchId, ctx.accountId, `Receipt · ${persisted.vendor_name || 'Curate import'}`, persisted.vendor_name || null, line.productId, ctx.accountId, guard)] : []),
+        env.DB.prepare(`UPDATE inventory_receipt_lines SET received_quantity = expected_quantity, intake_batch_id = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+          .bind(batchId, line.id, ctx.accountId, line.productId, ctx.accountId, guard),
+        env.DB.prepare(`UPDATE inventory_receipts SET state = CASE WHEN NOT EXISTS (SELECT 1 FROM inventory_receipt_lines WHERE receipt_id = ? AND account_id = ? AND received_quantity < expected_quantity) THEN 'received' ELSE 'partially_received' END, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM products WHERE id = ? AND account_id = ? AND stock_movement_guard = ?)`)
+          .bind(persisted.receipt_id, ctx.accountId, persisted.receipt_id, ctx.accountId, line.productId, ctx.accountId, guard),
+      ],
+    });
+    if (result.status >= 400) throw new Error(String((result.value as Record<string, unknown>).error ?? 'Stock receipt failed'));
+    return { movementId: String((result.value as Record<string, unknown>).id) };
+  });
 };
 
 const handleCancelInventoryLine: Handler = async (request, env, params) => {
@@ -20831,6 +20872,11 @@ const routes: [string, string, Handler][] = [
   ['GET', '/api/curate/imports', withCurateImportAccount(listIncompleteCurateImports)],
   ['GET', '/api/curate/imports/:id', withCurateImportAccount(getCurateImport)],
   ['POST', '/api/curate/imports/:id/abandon', withCurateImportAccount(abandonCurateImport, true)],
+  ['POST', '/api/curate/imports/:id/analyze', withCurateImportAccount(analyzeCurateImport, true)],
+  ['POST', '/api/curate/imports/:id/finalize', handleFinalizeCurateImport],
+  ['PUT', '/api/curate/imports/:id/groups/:groupId', withCurateImportAccount(updateCurateImportGroup, true)],
+  ['POST', '/api/curate/imports/:id/groups/:groupId/vendor', withCurateImportAccount(createVendorForCurateImportGroup, true)],
+  ['PUT', '/api/curate/imports/:id/journey', withCurateImportAccount(setCurateImportJourney, true)],
   ['POST', '/api/curate/imports/:id/items', withCurateImportAccount(addCurateImportItem, true)],
   ['POST', '/api/curate/imports/:id/evidence', withCurateImportAccount(uploadCurateImportEvidence, true)],
   ['GET', '/api/curate/imports/:id/sources/:sourceId/content', withCurateImportAccount(getCurateImportEvidence)],

@@ -489,7 +489,8 @@ test.describe('Curate field capture preservation', () => {
     const save = page.getByRole('button', { name: 'Save', exact: true });
     await expect(close).toBeVisible();
     await expect(page.getByTestId('bottom-tab-bar')).toBeHidden();
-    expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Device-scale rounding can report a CSS 44px target as 43.999999px.
+    expect((await close.boundingBox())!.height).toBeGreaterThanOrEqual(43.9);
 
     await page.getByRole('radiogroup', { name: 'Body weight' }).getByRole('radio', { name: 'Medium' }).click();
     await expect(save).toBeVisible();

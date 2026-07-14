@@ -83,7 +83,7 @@ test.describe('Curate responsive preservation', () => {
       expect(parseFloat(await input.evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
     }
     for (const action of [
-      source.getByRole('button', { name: 'Category', exact: true }),
+      source.getByRole('button', { name: /^Category:/ }),
       source.getByRole('button', { name: 'Decrease quantity', exact: true }),
       source.getByRole('button', { name: 'Increase quantity', exact: true }),
       source.getByRole('button', { name: /Done, commit this entry/ }),
@@ -100,20 +100,24 @@ test.describe('Curate responsive preservation', () => {
       // @ts-expect-error Vite exposes source modules to the browser during Playwright runs.
       const { useTeaCompassStore } = await import('/src/lib/teaCompassStore.ts');
       const state = useTeaCompassStore.getState();
-      state.updateEntry(state.activeEntryId!, { material: 'Yixing', clayType: 'Zhuni' });
+      state.updateEntry(state.activeEntryId!, { teawareCategory: 'Pot', material: 'Yixing', clayType: 'Zhuni' });
     });
 
-    const change = page.getByRole('button', { name: 'Clay subtype: Zhuni — tap to change' }).filter({ visible: true }).first();
-    const clear = page.getByRole('button', { name: 'Clear clay subtype' }).filter({ visible: true }).first();
-    for (const control of [change, clear]) {
-      await expect.poll(async () => (await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-    }
-    expect(parseFloat(await change.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
+    const material = page.getByTestId('curate-teaware-classification-row').getByRole('button').nth(1);
+    await expect(material).toHaveAccessibleName('Material: Yixing · Zhuni');
+    await expect.poll(async () => (await material.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(await material.evaluate((element) => getComputedStyle(element).fontSize))).toBe(16);
     await expect(page.locator('[data-curate-source] button button')).toHaveCount(0);
+    await material.click();
+    await page.getByRole('button', { name: 'Yixing', exact: true }).filter({ visible: true }).click();
+    const clear = page.getByRole('button', { name: 'Clear clay subtype' }).first();
+    await clear.scrollIntoViewIfNeeded();
+    await expect.poll(async () => (await clear.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     await clear.click();
     await expect(clear).toBeHidden();
+    await expect(material).toHaveAccessibleName('Material: Yixing');
 
-    await page.getByRole('button', { name: 'Era', exact: true }).filter({ visible: true }).first().click();
+    await page.getByRole('button', { name: /^Era:/ }).filter({ visible: true }).first().click();
     await page.getByRole('button', { name: 'Add new era', exact: true }).click();
     const customEra = page.getByPlaceholder('e.g. Song Dynasty');
     await expect.poll(async () => (await customEra.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);

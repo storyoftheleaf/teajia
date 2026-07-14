@@ -1140,9 +1140,12 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       // regardless of vessel category. The material itself is committed
       // here so handleClayPick can read entry.material to know which one.
       if (mat === 'Yixing' || mat === 'Clay') {
+        const sameParent = entry.material === mat || (mat === 'Yixing' && isYixing);
         const updates: Record<string, unknown> = {
           material: mat,
-          clayType: undefined,
+          // Reopening the active material is navigation, not a destructive
+          // change. Keep its selected clay until the user clears or replaces it.
+          clayType: sameParent ? effectiveClayType : undefined,
         };
         const originDefault = MATERIAL_ORIGIN_DEFAULT[mat];
         if (originDefault && !entry.originRegion) {

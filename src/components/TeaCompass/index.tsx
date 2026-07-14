@@ -11,7 +11,7 @@ import { useNotesStore } from '../../lib/notesStore';
 import { useAppStore } from '../../lib/store';
 import { useSampleStore } from '../../samples/sampleStore';
 import type { SampleTasting } from '../../samples/types';
-import { api, hasToken, type CurateImportDetail, type CurateImportItem } from '../../lib/api';
+import { api, hasToken, type CurateImportDetail, type CurateImportFinalizeResult } from '../../lib/api';
 import type { CompassCategory, TeaType } from './types';
 import { entryIsSample } from './types';
 import { CompassIcon } from './CompassIcon';
@@ -234,9 +234,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     if (importAccountId !== activeAccountId) return;
     if (importDetail?.batch.review_state === 'completed' || importDetail?.batch.review_state === 'abandoned') {
       setImportDetails(current => current.filter(detail => detail.batch.id !== importDetail.batch.id));
+      if (importPointerId === importDetail.batch.id) setImportPointerId(null);
+      setImportDetail(null);
+      if (activeAccountId) localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
       return;
     }
-    const imports = incompleteImports?.imports ?? [];
+    const imports = (incompleteImports?.imports ?? []).filter(detail => detail.batch.review_state !== 'completed' && detail.batch.review_state !== 'abandoned');
     const selected = importPointerId && pointedImport && pointedImport.batch.review_state !== 'completed' && pointedImport.batch.review_state !== 'abandoned' ? pointedImport : imports[0] ?? null;
     setImportDetails(selected && !imports.some(detail => detail.batch.id === selected.batch.id) ? [selected, ...imports] : imports);
     if (!importDetail) setImportDetail(selected);
@@ -380,16 +383,19 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     window.requestAnimationFrame(() => importTriggerRef.current?.focus());
   }, []);
 
-  const openAcceptedImportItem = useCallback(async (item: CurateImportItem) => {
-    if (!item.compass_entry_id) throw new Error('Accepted import did not return its Compass identity');
-    await hydrateCompassEntries();
-    const accepted = useTeaCompassStore.getState().getEntry(item.compass_entry_id);
-    if (!accepted) throw new Error('Accepted Compass entry could not be loaded');
-    setActiveEntry(item.compass_entry_id);
-    setCaptureOption(accepted.category);
-    setMode('sourcing');
-    closeImport();
-  }, [closeImport, setActiveEntry]);
+  const handleFinalizedImport = useCallback(async (result: CurateImportFinalizeResult) => {
+    const finalizedId = result.batch?.id ?? result.batchId ?? importDetail?.batch.id ?? null;
+    localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
+    if (finalizedId) {
+      queryClient.setQueryData<{ imports: CurateImportDetail[] }>(['curate-imports', 'incomplete', activeAccountId], current => current
+        ? { ...current, imports: current.imports.filter(detail => detail.batch.id !== finalizedId) }
+        : current);
+    }
+    setImportDetails(current => finalizedId ? current.filter(detail => detail.batch.id !== finalizedId) : current);
+    setImportDetail(null);
+    setImportPointerId(null);
+    await queryClient.invalidateQueries({ queryKey: ['curate-imports'] });
+  }, [activeAccountId, importDetail, queryClient]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -866,7 +872,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               region only needs to clear the BottomTabBar. */}
           <div
             ref={scrollContainerRef}
-            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 ${mode === 'sourcing' ? 'pb-nav-gap-lg' : 'pb-3'}`}
+            className={`flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pt-3 ${mode === 'sourcing' ? 'pb-nav-gap-lg scroll-pb-nav-gap-lg' : 'pb-3'}`}
             role="tabpanel"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -1670,10 +1676,10 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       {importOpen && (
         <ImportPanel
           key={importPanelVersion}
+          accountId={activeAccountId || 'guest'}
           initialDetail={importDetail}
-          activeCompassEntryId={activeEntryId}
           onDetailChange={rememberImportDetail}
-          onAccepted={openAcceptedImportItem}
+          onFinalized={handleFinalizedImport}
           onClose={closeImport}
           onNew={beginNewImport}
         />

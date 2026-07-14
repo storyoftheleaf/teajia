@@ -2516,6 +2516,11 @@ input[type="number"]::-webkit-outer-spin-button {
 .pb-nav-gap-lg { padding-bottom: calc(2rem + 80px + env(safe-area-inset-bottom, 0px)); }
 @media (min-width: 1024px) { .pb-nav-gap-lg { padding-bottom: 2rem; } }
 
+/* Keep programmatically focused or scrolled controls above the fixed mobile
+   navigation, not merely the end of the scrollable content. */
+.scroll-pb-nav-gap-lg { scroll-padding-bottom: calc(2rem + 80px + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 1024px) { .scroll-pb-nav-gap-lg { scroll-padding-bottom: 2rem; } }
+
 /* Padding clearance — for pages that ALSO show the fixed capture verdict
    row (30px of row height on top of the bar's 80px). Same lg reset. */
 .pb-nav-verdict { padding-bottom: calc(2rem + 80px + 30px + env(safe-area-inset-bottom, 0px)); }

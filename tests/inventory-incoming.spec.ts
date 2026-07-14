@@ -36,3 +36,37 @@ test('Incoming shows expected separately and supports partial receiving', async 
   await page.reload();
   await expect(page.getByText('Expected: 100 g · Current on hand: 85 g · Received here: 50 g · Remaining: 0 g')).toBeVisible();
 });
+
+test('receipt deep link loads closed receipts and shows the exact finalized receipt', async ({ page }) => {
+  const enc = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const token = `${enc({ alg: 'HS256', typ: 'JWT' })}.${enc({ sub: 'admin', email: 'admin@test', role: 'owner', exp: Math.floor(Date.now()/1000)+86400, active_account_id: 'acct', memberships: [{ account_id: 'acct', role: 'owner' }] })}.sig`;
+  await page.addInitScript(value => localStorage.setItem('teajia_token', value), token);
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'admin', email: 'admin@test', role: 'owner' } }));
+  await page.route('**/api/auth/refresh', route => route.fulfill({ json: { token } }));
+  await page.route('**/api/products', route => route.fulfill({ json: [] }));
+  await page.route('**/api/rates', route => route.fulfill({ json: [] }));
+  await page.route('**/api/admin/events', route => route.fulfill({ json: [] }));
+  await page.route('**/api/compass/incoming', route => route.fulfill({ json: [] }));
+  await page.route('**/api/accounts/acct', route => route.fulfill({ json: { id: 'acct', name: 'Test tea house', slug: 'test' } }));
+  await page.route('**/api/batches**', route => route.fulfill({ json: [] }));
+  for (const endpoint of ['user/favorites', 'tea-discovery', 'compass/entries', 'tasting-journal', 'notes', 'customers']) {
+    await page.route(`**/api/${endpoint}**`, route => route.fulfill({ json: [] }));
+  }
+  let requestedUrl = '';
+  await page.route('**/api/inventory/receipts**', route => {
+    requestedUrl = route.request().url();
+    return route.fulfill({ json: [
+      { id: 'receipt-finalized', state: 'received', vendor_name: 'Chen Family', source_kind: 'curate_import', source_ref: 'Taiwan Spring', lines: [{ id: 'line-finalized', product_name: 'Spring Oolong', expected_quantity: 500, received_quantity: 500, cancelled_quantity: 0, current_on_hand: 500, unit: 'g', intended_purpose: 'working' }] },
+      { id: 'receipt-other', state: 'in_transit', vendor_name: 'Other vendor', source_kind: 'invoice', source_ref: 'INV-2', lines: [] },
+    ] });
+  });
+
+  await page.goto('/admin/stock?receipt=receipt-finalized');
+
+  await expect(page.getByRole('heading', { name: 'Receipt details' })).toBeVisible();
+  await expect(page.getByText('Chen Family')).toBeVisible();
+  await expect(page.getByText('received', { exact: true })).toBeVisible();
+  await expect(page.getByText('Spring Oolong')).toBeVisible();
+  await expect(page.getByText('Other vendor')).toHaveCount(0);
+  expect(new URL(requestedUrl).searchParams.get('include_closed')).toBe('1');
+});

@@ -1607,8 +1607,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     navigate(`/admin/compass?sampleOrder=manage&set=${encodeURIComponent(newSet.id)}`);
   };
 
-  if (searchParams.get('incoming') === '1') {
-    return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); setSearchParams(next); }} /></div>;
+  const receiptId = searchParams.get('receipt');
+  if (searchParams.get('incoming') === '1' || receiptId) {
+    return <div className="h-full flex flex-col overflow-hidden bg-tea-bg"><IncomingReceiptsPanel receiptId={receiptId} onClose={() => { const next = new URLSearchParams(searchParams); next.delete('incoming'); next.delete('receipt'); setSearchParams(next); }} /></div>;
   }
 
   if (isLoading) {

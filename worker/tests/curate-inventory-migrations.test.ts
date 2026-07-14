@@ -13,6 +13,7 @@ const migrationNames = [
   '104_inventory_receipts.sql',
   '105_stock_movements.sql',
   '107_curate_import_idempotency.sql',
+  '119_curate_import_analysis.sql',
 ] as const;
 
 const migrations = migrationNames.map(name =>
@@ -108,6 +109,8 @@ const affectedTables = [
   'curate_import_batches',
   'curate_import_sources',
   'curate_import_items',
+  'curate_import_vendor_groups',
+  'curate_import_receipts',
   'products',
   'product_listings',
   'stock_ledger',
