@@ -86,6 +86,74 @@ test.describe('Curate compact sourcing canvas', () => {
     await expect(workflow.getByText('Intent · None detected', { exact: true })).toHaveCount(0);
   });
 
+  test('uses restrained tonal zones instead of redundant object headings', async ({ page }) => {
+    const canvas = page.locator('[data-curate-source]:visible');
+    await expect(canvas.getByRole('heading', { name: 'Tea', exact: true })).toHaveCount(0);
+
+    const context = canvas.getByTestId('curate-context-band');
+    const identity = canvas.getByTestId('curate-cluster-identity');
+    const purchase = canvas.getByTestId('curate-cluster-buying');
+    const taste = canvas.getByTestId('curate-cluster-tasting');
+    const notes = canvas.getByTestId('curate-notes-band');
+
+    await expect(context).toHaveAttribute('data-zone', 'context');
+    await expect(identity).toHaveAttribute('data-zone', 'identity');
+    await expect(purchase).toHaveAttribute('data-zone', 'purchase');
+    await expect(taste).toHaveAttribute('data-zone', 'taste');
+    await expect(notes).toHaveAttribute('data-zone', 'notes');
+    await expect(purchase.getByText('Purchase', { exact: true })).toBeVisible();
+    await expect(taste.getByText('Taste', { exact: true })).toBeVisible();
+    await expect(notes.getByText('Notes', { exact: true })).toBeVisible();
+
+    const surfaces = await Promise.all([context, identity, purchase, taste, notes].map((region) =>
+      region.evaluate((element) => getComputedStyle(element).backgroundColor),
+    ));
+    expect(new Set(surfaces).size).toBeGreaterThanOrEqual(3);
+  });
+
+  test('lets Notes grow with writing and never creates a nested scrollbar', async ({ page }) => {
+    const canvas = page.locator('[data-curate-source]:visible');
+    const notes = canvas.getByRole('textbox', { name: 'Notes' });
+    await expect(notes).toHaveAttribute('placeholder', 'Impressions or vendor story…');
+
+    const initial = await notes.evaluate((element: HTMLTextAreaElement) => ({
+      height: element.getBoundingClientRect().height,
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+      overflowY: getComputedStyle(element).overflowY,
+    }));
+    expect(initial.height).toBeGreaterThanOrEqual(44);
+    expect(initial.scrollHeight).toBeLessThanOrEqual(initial.clientHeight + 1);
+    expect(initial.overflowY).toBe('hidden');
+
+    await notes.fill('First impression\nVendor story and provenance\nA longer final observation that wraps naturally on a phone.');
+    const expanded = await notes.evaluate((element: HTMLTextAreaElement) => ({
+      height: element.getBoundingClientRect().height,
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+      overflowY: getComputedStyle(element).overflowY,
+    }));
+    expect(expanded.height).toBeGreaterThan(initial.height);
+    expect(expanded.scrollHeight).toBeLessThanOrEqual(expanded.clientHeight + 1);
+    expect(expanded.overflowY).toBe('hidden');
+  });
+
+  test('anchors the capture actions to Taste and keeps the profile row touch-safe', async ({ page }) => {
+    const canvas = page.locator('[data-curate-source]:visible');
+    const taste = canvas.getByTestId('curate-cluster-tasting');
+    const profile = taste.getByRole('button', { name: 'Add tasting profile' });
+    const footer = taste.getByTestId('capture-action-footer');
+    const notes = taste.getByTestId('curate-notes-band');
+
+    expect((await profile.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expect(footer).toBeVisible();
+    await expect(notes).toBeVisible();
+    const [footerBox, notesBox] = await Promise.all([footer.boundingBox(), notes.boundingBox()]);
+    expect(footerBox).not.toBeNull();
+    expect(notesBox).not.toBeNull();
+    expect(footerBox!.y).toBeLessThan(notesBox!.y);
+  });
+
   test('communicates decision, measurement, and commit states without relying on color', async ({ page }) => {
     const canvas = page.locator('[data-curate-source]:visible');
     const done = canvas.getByRole('button', { name: /Done, commit this entry/ });

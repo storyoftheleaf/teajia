@@ -2654,14 +2654,36 @@ input[type="number"]::-webkit-outer-spin-button {
   border-top: 1px solid var(--tea-border);
   background: transparent;
   margin-inline: 0;
-  padding-inline: 0.25rem;
-  padding-block: 0.5rem;
+  padding-inline: 0.5rem;
+  padding-block: 0.625rem;
 }
 
 .curate-cluster:first-of-type { border-top: 0; }
 
 .curate-cluster-soft {
   box-shadow: none;
+}
+
+/* The capture remains one continuous sheet. Tonal zones create memorable
+   geography without adding nested cards or stronger bronze decoration. */
+.curate-zone-context {
+  background: color-mix(in srgb, var(--tea-surface) 72%, var(--tea-accent-sub));
+}
+
+.curate-zone-identity {
+  background: transparent;
+}
+
+.curate-zone-purchase {
+  background: color-mix(in srgb, var(--tea-surface) 84%, var(--tea-bg));
+}
+
+.curate-zone-taste {
+  background: color-mix(in srgb, var(--tea-surface) 90%, var(--tea-bg));
+}
+
+.curate-zone-notes {
+  background: color-mix(in srgb, var(--tea-surface) 96%, var(--tea-bg));
 }
 
 .curate-source-sheet {
@@ -2671,6 +2693,7 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .curate-context-band {
   border-bottom: 1px solid var(--tea-border);
+  padding-block: 0.125rem;
 }
 
 .curate-intent-inline {
@@ -2700,6 +2723,15 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 
 .curate-buy-actions {
   margin-top: 0.5rem;
+}
+
+.curate-action-band {
+  background: color-mix(in srgb, var(--tea-bg) 28%, transparent);
+  padding-inline: 0.25rem;
+}
+
+.curate-profile-entry {
+  min-height: 44px;
 }
 
 /* Source is a working canvas, not an atmospheric display panel. Keep a trace
