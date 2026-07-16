@@ -14,20 +14,27 @@ import type { TastingData } from '../types';
 
 export type SyncedTeaSample = TeaSample & { accountId: string };
 export type SyncedSampleSet = SampleSet & { accountId: string; synced: true };
+type BackgroundOptions = { background?: boolean };
+
+const BACKGROUND_REQUEST = { background: true } as const;
 
 export interface SampleRemoteApi {
   sampleSets: {
-    list: () => Promise<{ sets: SampleSetApiRow[] }>;
-    create: (set: SampleSetApiWrite) => Promise<SampleSetApiRow>;
-    update: (id: string, updates: Partial<SampleSetApiWrite>) => Promise<SampleSetApiRow>;
-    remove: (id: string) => Promise<{ success: true }>;
+    list: (options?: BackgroundOptions) => Promise<{ sets: SampleSetApiRow[] }>;
+    create: (set: SampleSetApiWrite, options?: BackgroundOptions) => Promise<SampleSetApiRow>;
+    update: (id: string, updates: Partial<SampleSetApiWrite>, options?: BackgroundOptions) => Promise<SampleSetApiRow>;
+    remove: (id: string, options?: BackgroundOptions) => Promise<{ success: true }>;
   };
   samples: {
-    list: (params?: { setId?: string; status?: string }) => Promise<{ samples: SampleApiRow[] }>;
-    create: (sample: SampleApiWrite) => Promise<SampleApiRow>;
-    update: (id: string, updates: Partial<SampleApiWrite>) => Promise<SampleApiRow>;
-    remove: (id: string) => Promise<{ success: true }>;
-    addTasting?: (id: string, tasting: import('../lib/api').SampleTastingApiWrite) => Promise<SampleTastingApiRow>;
+    list: (params?: { setId?: string; status?: string }, options?: BackgroundOptions) => Promise<{ samples: SampleApiRow[] }>;
+    create: (sample: SampleApiWrite, options?: BackgroundOptions) => Promise<SampleApiRow>;
+    update: (id: string, updates: Partial<SampleApiWrite>, options?: BackgroundOptions) => Promise<SampleApiRow>;
+    remove: (id: string, options?: BackgroundOptions) => Promise<{ success: true }>;
+    addTasting?: (
+      id: string,
+      tasting: import('../lib/api').SampleTastingApiWrite,
+      options?: BackgroundOptions,
+    ) => Promise<SampleTastingApiRow>;
   };
 }
 
@@ -181,8 +188,8 @@ export function createSampleRepository(options: {
       const requestGeneration = ++operationGeneration;
       if (!isReady(accountId)) return { status: 'not-ready' };
       const [setsResponse, samplesResponse] = await Promise.all([
-        remote.sampleSets.list(),
-        remote.samples.list(),
+        remote.sampleSets.list(BACKGROUND_REQUEST),
+        remote.samples.list(undefined, BACKGROUND_REQUEST),
       ]);
       if (
         !canApply(requestGeneration, accountId)
@@ -196,8 +203,8 @@ export function createSampleRepository(options: {
       const requestGeneration = ++operationGeneration;
       if (!isReady(accountId)) return { status: 'not-ready' };
       const [initialSets, initialSamples] = await Promise.all([
-        remote.sampleSets.list(),
-        remote.samples.list(),
+        remote.sampleSets.list(BACKGROUND_REQUEST),
+        remote.samples.list(undefined, BACKGROUND_REQUEST),
       ]);
       if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
 
@@ -207,12 +214,12 @@ export function createSampleRepository(options: {
 
       for (const id of snapshot.sampleTombstones) {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (remoteSamplesById.has(id)) await remote.samples.remove(id);
+        if (remoteSamplesById.has(id)) await remote.samples.remove(id, BACKGROUND_REQUEST);
         remoteSamplesById.delete(id);
       }
       for (const id of snapshot.sampleSetTombstones) {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
-        if (remoteSetsById.has(id)) await remote.sampleSets.remove(id);
+        if (remoteSetsById.has(id)) await remote.sampleSets.remove(id, BACKGROUND_REQUEST);
         remoteSetsById.delete(id);
         for (const [sampleId, sample] of remoteSamplesById) {
           if (sample.set_id === id) remoteSamplesById.delete(sampleId);
@@ -225,8 +232,8 @@ export function createSampleRepository(options: {
         if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
         const persisted = sampleSet.accountId === accountId || remoteSetsById.has(sampleSet.id);
         const row = persisted && remoteSetsById.has(sampleSet.id)
-          ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet))
-          : await remote.sampleSets.create(sampleSetToApi(sampleSet));
+          ? await remote.sampleSets.update(sampleSet.id, sampleSetUpdatesToApi(sampleSet), BACKGROUND_REQUEST)
+          : await remote.sampleSets.create(sampleSetToApi(sampleSet), BACKGROUND_REQUEST);
         remoteSetsById.set(row.id, row);
       }
       for (const sample of snapshot.samples.filter((item) => !item.synced)) {
@@ -237,8 +244,8 @@ export function createSampleRepository(options: {
         const persisted = sample.accountId === accountId || remoteSamplesById.has(sample.id);
         const previous = remoteSamplesById.get(sample.id);
         const row = persisted && remoteSamplesById.has(sample.id)
-          ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample))
-          : await remote.samples.create(sampleToApi(sample));
+          ? await remote.samples.update(sample.id, sampleUpdatesToApi(sample), BACKGROUND_REQUEST)
+          : await remote.samples.create(sampleToApi(sample), BACKGROUND_REQUEST);
         remoteSamplesById.set(row.id, {
           ...row,
           tastings: row.tastings ?? previous?.tastings ?? [],
@@ -259,15 +266,15 @@ export function createSampleRepository(options: {
             wouldBuy: tasting.wouldBuy,
             personalNote: tasting.personalNote,
             tasterName: tasting.tasterName,
-          });
+          }, BACKGROUND_REQUEST);
           remoteTastingIds.add(created.id);
           remoteSample.tastings = [...(remoteSample.tastings ?? []), created];
         }
       }
 
       const [finalSets, finalSamples] = await Promise.all([
-        remote.sampleSets.list(),
-        remote.samples.list(),
+        remote.sampleSets.list(BACKGROUND_REQUEST),
+        remote.samples.list(undefined, BACKGROUND_REQUEST),
       ]);
       if (!canApply(requestGeneration, accountId)) return { status: 'stale' };
       const samples = finalSamples.samples.map(sampleFromApi);

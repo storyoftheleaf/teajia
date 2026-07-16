@@ -109,6 +109,25 @@ describe('Compass sync acknowledgements', () => {
     expect(useTeaCompassStore.getState().syncError).toBe(true);
   });
 
+  it('marks automatic hydration and sync requests as background work', async () => {
+    listMock.mockResolvedValue({ entries: [] });
+
+    await hydrateCompassEntries('acct-a');
+
+    expect(listMock).toHaveBeenCalledWith(undefined, { background: true });
+    expect(samplesListMock).toHaveBeenCalledWith(undefined, { background: true });
+
+    syncMock.mockResolvedValue({ synced: 1, syncedIds: ['pending'] });
+    useTeaCompassStore.setState({ entries: [entry('pending')] });
+
+    await syncCompassEntries('acct-a');
+
+    expect(syncMock).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'pending' })],
+      { background: true },
+    );
+  });
+
   it('sends durable sample unlink fields without the client-only isSample mirror', async () => {
     syncMock.mockResolvedValue({ synced: 1, syncedIds: ['unlinked'] });
     useTeaCompassStore.setState({
@@ -119,10 +138,13 @@ describe('Compass sync acknowledgements', () => {
     });
 
     expect(await syncCompassEntries('acct-a')).toBe(1);
-    expect(syncMock).toHaveBeenCalledWith([expect.objectContaining({
-      id: 'unlinked', sample_set_id: null, sample_state: null,
-      decision: 'selected', verdict: 'love', status: 'noted',
-    })]);
+    expect(syncMock).toHaveBeenCalledWith(
+      [expect.objectContaining({
+        id: 'unlinked', sample_set_id: null, sample_state: null,
+        decision: 'selected', verdict: 'love', status: 'noted',
+      })],
+      { background: true },
+    );
     expect(syncMock.mock.calls[0][0][0]).not.toHaveProperty('isSample');
   });
 

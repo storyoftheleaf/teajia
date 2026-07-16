@@ -2,6 +2,8 @@ import { useTeaCompassStore } from './teaCompassStore';
 import { api, hasToken, isTokenScopedToAccount, isTransientApiError } from './api';
 import { normalizeCompassEntry, type TeaCompassEntry } from '../components/TeaCompass/types';
 
+const BACKGROUND_REQUEST = { background: true } as const;
+
 // ── Case conversion helpers ──
 
 const CAMEL_TO_SNAKE: Record<string, string> = {
@@ -124,7 +126,7 @@ async function retryPendingPromotions(accountId: string): Promise<void> {
       continue;
     }
     try {
-      const { id: productId } = await api.compass.promote(id);
+      const { id: productId } = await api.compass.promote(id, BACKGROUND_REQUEST);
       const current = useTeaCompassStore.getState();
       if (current.accountScopeId !== accountId || current.accountScopeRevision !== accountRevision) return;
       useTeaCompassStore.getState().updateEntry(id, { draftProductId: productId, synced: false });
@@ -158,7 +160,7 @@ export async function retryPendingDeletes(accountId?: string): Promise<void> {
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
     try {
-      await api.compass.remove(id);
+      await api.compass.remove(id, BACKGROUND_REQUEST);
       useTeaCompassStore.setState(s => s.accountScopeId === requestedAccountId && s.accountScopeRevision === requestedRevision
         ? { deletedIds: s.deletedIds.filter(d => d !== id), syncError: false }
         : s);
@@ -197,7 +199,7 @@ export async function syncCompassEntries(accountId?: string): Promise<number> {
 
   try {
     const payload = unsynced.map(toSnakeCase);
-    const result = await api.compass.sync(payload);
+    const result = await api.compass.sync(payload, BACKGROUND_REQUEST);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return 0;
     const attemptedIds = new Set(unsynced.map(entry => entry.id));
@@ -248,8 +250,8 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
 
   try {
     const [data, sampleData] = await Promise.all([
-      api.compass.list(),
-      api.samples.list().catch(() => ({ samples: [] })),
+      api.compass.list(undefined, BACKGROUND_REQUEST),
+      api.samples.list(undefined, BACKGROUND_REQUEST).catch(() => ({ samples: [] })),
     ]);
     const current = useTeaCompassStore.getState();
     if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
@@ -366,7 +368,7 @@ export async function hydrateCompassEntries(accountId?: string): Promise<void> {
       for (const id of store.deletedIds.filter(id => rawServerIds.has(id))) {
         const current = useTeaCompassStore.getState();
         if (current.accountScopeId !== requestedAccountId || current.accountScopeRevision !== requestedRevision) return;
-        api.compass.remove(id)
+        api.compass.remove(id, BACKGROUND_REQUEST)
           .then(() => useTeaCompassStore.setState(s => ({
             deletedIds: s.accountScopeId === requestedAccountId && s.accountScopeRevision === requestedRevision
               ? s.deletedIds.filter(d => d !== id)

@@ -7,6 +7,8 @@ import { useNotesStore } from './notesStore';
 import { api, hasToken } from './api';
 import type { Note, NoteSession } from './notesStore';
 
+const BACKGROUND_REQUEST = { background: true } as const;
+
 function noteToPayload(n: Note) {
   return {
     id: n.id,
@@ -46,7 +48,7 @@ export async function syncNotes(): Promise<void> {
   const unsyncedSessions = store.sessions.filter(s => !s.synced);
   if (unsyncedSessions.length > 0) {
     try {
-      await api.notes.syncSessions(unsyncedSessions.map(sessionToPayload));
+      await api.notes.syncSessions(unsyncedSessions.map(sessionToPayload), BACKGROUND_REQUEST);
       store.markSessionSynced(unsyncedSessions.map(s => s.id));
     } catch {
       // Silent — retry next time
@@ -58,7 +60,7 @@ export async function syncNotes(): Promise<void> {
   if (unsyncedNotes.length === 0) return;
 
   try {
-    await api.notes.sync(unsyncedNotes.map(noteToPayload));
+    await api.notes.sync(unsyncedNotes.map(noteToPayload), BACKGROUND_REQUEST);
     store.markSynced(unsyncedNotes.map(n => n.id));
   } catch {
     // Silent — stays unsynced for retry
@@ -70,7 +72,7 @@ export async function hydrateNotes(): Promise<void> {
   if (!hasToken()) return;
 
   try {
-    const remote = await api.notes.getAll();
+    const remote = await api.notes.getAll(BACKGROUND_REQUEST);
     const store = useNotesStore.getState();
     const localUnsynced = new Set(store.notes.filter(n => !n.synced).map(n => n.id));
 

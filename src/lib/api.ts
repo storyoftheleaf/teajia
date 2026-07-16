@@ -603,8 +603,13 @@ const NETWORK_RETRY_BACKOFF_MS = [600, 1800, 4000, 7000];
 const TIMEOUT_RETRY_MAX = 2;
 const TIMEOUT_RETRY_ATTEMPT_MS = 15_000;
 
-/** RequestInit + our retry opt-in. The extra key is ignored by fetch(). */
-export interface ApiRequestInit extends RequestInit { retryTimeouts?: boolean }
+/** RequestInit plus transport behavior that must not leak into fetch(). */
+export interface ApiRequestInit extends RequestInit {
+  retryTimeouts?: boolean;
+  background?: boolean;
+}
+
+type ApiBackgroundOptions = Pick<ApiRequestInit, 'background'>;
 
 /** Resolve once the browser reports it's back online, or after `maxMs` elapses. */
 function waitForReconnect(maxMs: number): Promise<void> {
@@ -624,8 +629,9 @@ function waitForReconnect(maxMs: number): Promise<void> {
 }
 
 async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Promise<Response> {
-  const method = (options.method || 'GET').toUpperCase();
-  const retryTimeouts = options.retryTimeouts ?? (method === 'GET' || method === 'HEAD');
+  const { background = false, retryTimeouts: retryTimeoutOption, ...requestInit } = options;
+  const method = (requestInit.method || 'GET').toUpperCase();
+  const retryTimeouts = retryTimeoutOption ?? (method === 'GET' || method === 'HEAD');
   // When timeouts are retryable, fail each attempt fast and try a fresh
   // connection; a blackholed socket never recovers by waiting longer.
   const attemptTimeoutMs = retryTimeouts ? TIMEOUT_RETRY_ATTEMPT_MS : REQUEST_TIMEOUT_MS;
@@ -635,13 +641,13 @@ async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Prom
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
     try {
-      return await fetch(url, { ...options, signal: controller.signal });
+      return await fetch(url, { ...requestInit, signal: controller.signal });
     } catch (err: any) {
       lastErr = err;
       // Our own timeout aborts share the AbortError name.
       const isTimeout = err?.name === 'AbortError';
       if (isTimeout && (!retryTimeouts || timeoutRetries >= TIMEOUT_RETRY_MAX)) {
-        dispatchNetworkError();
+        if (!background) dispatchNetworkError();
         throw new Error('Request timed out. Please try again.');
       }
       const isNetworkError = err?.name === 'TypeError';
@@ -665,7 +671,7 @@ async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Prom
         }
         continue;
       }
-      dispatchNetworkError();
+      if (!background) dispatchNetworkError();
       if (isTimeout) {
         throw new Error('Request timed out. Please try again.');
       }
@@ -2130,12 +2136,12 @@ export const api = {
   },
 
   compass: {
-    list: async (params?: { status?: string; vendor_id?: string }) => {
+    list: async (params?: { status?: string; vendor_id?: string }, options: ApiBackgroundOptions = {}) => {
       const qp = new URLSearchParams();
       if (params?.status) qp.set('status', params.status);
       if (params?.vendor_id) qp.set('vendor_id', params.vendor_id);
       const qs = qp.toString();
-      return authedFetch(`${API_URL}/api/compass/entries${qs ? `?${qs}` : ''}`)
+      return authedFetch(`${API_URL}/api/compass/entries${qs ? `?${qs}` : ''}`, options)
     },
     create: async (entry: CompassWrite) => {
       return authedFetch(`${API_URL}/api/compass/entries`, {
@@ -2151,17 +2157,19 @@ export const api = {
         retryTimeouts: true,
       });
     },
-    remove: async (id: string) => {
+    remove: async (id: string, options: ApiBackgroundOptions = {}) => {
       // DELETE by id — idempotent, safe to retry through a GFW timeout.
       return authedFetch(`${API_URL}/api/compass/entries/${id}`, {
+        ...options,
         method: 'DELETE',
         retryTimeouts: true,
       });
     },
-    sync: async (entries: CompassWrite[]): Promise<CompassSyncResult> => {
+    sync: async (entries: CompassWrite[], options: ApiBackgroundOptions = {}): Promise<CompassSyncResult> => {
       // Worker uses an ownership-scoped upsert keyed by entry id — idempotent
       // without replacing server-owned or omitted fields.
       return authedFetch(`${API_URL}/api/compass/sync`, {
+        ...options,
         method: 'POST',
         body: JSON.stringify({ entries }),
         retryTimeouts: true,
@@ -2169,8 +2177,9 @@ export const api = {
     },
     /** Promote a compass entry to a Draft product in the active account.
      *  Idempotent — returns the existing product if already promoted. */
-    promote: async (entryId: string): Promise<{ id: string; product: Record<string, any>; alreadyPromoted: boolean }> => {
+    promote: async (entryId: string, options: ApiBackgroundOptions = {}): Promise<{ id: string; product: Record<string, any>; alreadyPromoted: boolean }> => {
       return authedFetch(`${API_URL}/api/compass/entries/${entryId}/promote`, {
+        ...options,
         method: 'POST',
         retryTimeouts: true,
       });
@@ -2376,11 +2385,16 @@ export const api = {
       return handleResponse(res);
     },
     // Public/guest: add a tasting to a sample
-    addTasting: async (sampleId: string, data: SampleTastingApiWrite): Promise<SampleTastingApiRow> => {
+    addTasting: async (
+      sampleId: string,
+      data: SampleTastingApiWrite,
+      options: ApiBackgroundOptions = {},
+    ): Promise<SampleTastingApiRow> => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const token = typeof localStorage !== 'undefined' && localStorage.getItem('teajia_token');
       if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetchWithTimeout(`${API_URL}/api/samples/${sampleId}/tastings`, {
+        ...options,
         method: 'POST',
         headers,
         body: JSON.stringify(data),
@@ -2395,35 +2409,41 @@ export const api = {
       });
     },
     // Admin: list all samples
-    list: async (params?: { setId?: string; status?: string }): Promise<{ samples: SampleApiRow[] }> => {
+    list: async (
+      params?: { setId?: string; status?: string },
+      options: ApiBackgroundOptions = {},
+    ): Promise<{ samples: SampleApiRow[] }> => {
       const qp = new URLSearchParams();
       if (params?.setId) qp.set('setId', params.setId);
       if (params?.status) qp.set('status', params.status);
       const qs = qp.toString();
-      return authedFetch(`${API_URL}/api/admin/samples${qs ? `?${qs}` : ''}`)
+      return authedFetch(`${API_URL}/api/admin/samples${qs ? `?${qs}` : ''}`, options)
     },
-    create: async (sample: SampleApiWrite): Promise<SampleApiRow> => {
+    create: async (sample: SampleApiWrite, options: ApiBackgroundOptions = {}): Promise<SampleApiRow> => {
       return authedFetch(`${API_URL}/api/admin/samples`, {
+        ...options,
         method: 'POST',
         body: JSON.stringify(sample),
       });
     },
-    update: async (id: string, updates: Partial<SampleApiWrite>): Promise<SampleApiRow> => {
+    update: async (id: string, updates: Partial<SampleApiWrite>, options: ApiBackgroundOptions = {}): Promise<SampleApiRow> => {
       return authedFetch(`${API_URL}/api/admin/samples/${id}`, {
+        ...options,
         method: 'PUT',
         body: JSON.stringify(updates),
       });
     },
-    remove: async (id: string): Promise<{ success: true }> => {
+    remove: async (id: string, options: ApiBackgroundOptions = {}): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/admin/samples/${id}`, {
+        ...options,
         method: 'DELETE',
       });
     },
   },
 
   tastingJournal: {
-    list: async () => {
-      return authedFetch(`${API_URL}/api/tasting-journal`)
+    list: async (options: ApiBackgroundOptions = {}) => {
+      return authedFetch(`${API_URL}/api/tasting-journal`, options)
     },
     add: async (entry: any) => {
       return authedFetch(`${API_URL}/api/tasting-journal`, {
@@ -2436,8 +2456,9 @@ export const api = {
         method: 'DELETE',
       });
     },
-    sync: async (entries: any[]) => {
+    sync: async (entries: any[], options: ApiBackgroundOptions = {}) => {
       return authedFetch(`${API_URL}/api/tasting-journal/sync`, {
+        ...options,
         method: 'POST',
         body: JSON.stringify({ entries }),
       });
@@ -3240,23 +3261,26 @@ export const api = {
   },
 
   sampleSets: {
-    list: async (): Promise<{ sets: SampleSetApiRow[] }> => {
-      return authedFetch(`${API_URL}/api/admin/sample-sets`)
+    list: async (options: ApiBackgroundOptions = {}): Promise<{ sets: SampleSetApiRow[] }> => {
+      return authedFetch(`${API_URL}/api/admin/sample-sets`, options)
     },
-    create: async (set: SampleSetApiWrite): Promise<SampleSetApiRow> => {
+    create: async (set: SampleSetApiWrite, options: ApiBackgroundOptions = {}): Promise<SampleSetApiRow> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets`, {
+        ...options,
         method: 'POST',
         body: JSON.stringify(set),
       });
     },
-    update: async (id: string, updates: Partial<SampleSetApiWrite>): Promise<SampleSetApiRow> => {
+    update: async (id: string, updates: Partial<SampleSetApiWrite>, options: ApiBackgroundOptions = {}): Promise<SampleSetApiRow> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets/${id}`, {
+        ...options,
         method: 'PUT',
         body: JSON.stringify(updates),
       });
     },
-    remove: async (id: string): Promise<{ success: true }> => {
+    remove: async (id: string, options: ApiBackgroundOptions = {}): Promise<{ success: true }> => {
       return authedFetch(`${API_URL}/api/admin/sample-sets/${id}`, {
+        ...options,
         method: 'DELETE',
       });
     },
@@ -3264,9 +3288,10 @@ export const api = {
 
   notes: {
     /** Push unsynced notes (upsert + soft-deletes) */
-    sync: async (notes: Record<string, unknown>[]): Promise<void> => {
+    sync: async (notes: Record<string, unknown>[], options: ApiBackgroundOptions = {}): Promise<void> => {
       const token = getToken();
       const res = await fetchWithTimeout(`${API_URL}/api/notes/sync`, {
+        ...options,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3278,9 +3303,10 @@ export const api = {
     },
 
     /** Push unsynced sessions */
-    syncSessions: async (sessions: Record<string, unknown>[]): Promise<void> => {
+    syncSessions: async (sessions: Record<string, unknown>[], options: ApiBackgroundOptions = {}): Promise<void> => {
       const token = getToken();
       const res = await fetchWithTimeout(`${API_URL}/api/note-sessions/sync`, {
+        ...options,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3292,9 +3318,10 @@ export const api = {
     },
 
     /** Fetch all notes for the current account */
-    getAll: async (): Promise<{ notes: Record<string, unknown>[] }> => {
+    getAll: async (options: ApiBackgroundOptions = {}): Promise<{ notes: Record<string, unknown>[] }> => {
       const token = getToken();
       const res = await fetchWithTimeout(`${API_URL}/api/notes`, {
+        ...options,
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       return handleResponse(res);

@@ -2,6 +2,8 @@ import { useAppStore } from './store';
 import { api, hasToken } from './api';
 import type { CustomerTasting, TastingRecord, TastingData } from '../types';
 
+const BACKGROUND_REQUEST = { background: true } as const;
+
 // Convert CustomerTasting → API payload shape (snake_case).
 // `note` and `tastings` are sent as JSON strings; the worker stores them as TEXT.
 function toApiPayload(entry: CustomerTasting): Record<string, any> {
@@ -141,7 +143,7 @@ export async function syncTastingJournal(): Promise<number> {
 
   try {
     const payload = unsynced.map(toApiPayload);
-    await api.tastingJournal.sync(payload);
+    await api.tastingJournal.sync(payload, BACKGROUND_REQUEST);
 
     useAppStore.setState(state => ({
       tastingJournal: state.tastingJournal.map(e =>
@@ -165,7 +167,7 @@ export async function hydrateTastingJournal(): Promise<void> {
   if (!hasToken()) return;
 
   try {
-    const data = await api.tastingJournal.list();
+    const data = await api.tastingJournal.list(BACKGROUND_REQUEST);
     const rows = Array.isArray(data?.entries) ? data.entries
       : Array.isArray(data) ? data
       : [];
