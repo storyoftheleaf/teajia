@@ -164,7 +164,17 @@ function InventoryRowBase(props: InventoryRowProps) {
                   </label>
                 </div>
               ) : (
-                <span className={`${nameWeightCls} ${nameTone}`}>{displayName}</span>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenPanel(product);
+                  }}
+                  aria-label={`Open ${displayName} editor`}
+                  className={`${nameWeightCls} ${nameTone} max-w-full text-left hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors`}
+                >
+                  {displayName}
+                </button>
               )}
               <span className="font-sans text-ui-11 text-tea-text-dim mt-0 leading-none truncate block" style={{ letterSpacing: '0.02em' }}>
                 {subtitle}

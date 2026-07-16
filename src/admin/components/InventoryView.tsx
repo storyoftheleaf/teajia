@@ -1930,7 +1930,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* The navigation plane is a sibling of every scroll container. It can
           never inherit the ledger's horizontal movement. */}
-      <div className="shrink-0 z-priority bg-tea-bg">
+      <div className="shrink-0 z-sticky bg-tea-bg">
         {unifiedHeaderRows}
       </div>
 

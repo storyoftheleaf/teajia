@@ -108,6 +108,16 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText('Cloud Oolong')).toBeVisible({ timeout: 15_000 });
 });
 
+test('the tea name and selection-rail Edit both open the full product editor', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open Cloud Oolong editor' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Close product panel' }).click();
+  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+});
+
 test('normal stock interaction opens explicit movement actions and previews before/after', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
@@ -245,15 +255,14 @@ test('quick edit opens Recount and full product edit opens movements without abs
   expect(absoluteStockWrites).toHaveLength(0);
   await page.getByRole('button', { name: 'Close stock movement' }).click();
 
-  await page.getByText('Cloud Oolong').click();
-  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Open Cloud Oolong editor' }).click();
   await page.locator('[role="dialog"][aria-hidden="false"]').getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
   expect(absoluteStockWrites).toHaveLength(0);
 });
 
 test('invoice-driven sale remains available and Sale is not an ad-hoc movement action', async ({ page }) => {
-  await page.getByText('Cloud Oolong').click();
+  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Invoice' }).click();
   await expect(page.getByRole('heading', { name: 'New Invoice' })).toBeVisible();
   await expect(page.locator('input[value="Cloud"]')).toBeVisible();
