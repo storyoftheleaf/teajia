@@ -14,6 +14,12 @@
 // the edge and in the browser.
 
 const MEDIA_ORIGIN = 'https://media.teajia.co';
+const UPSTREAM_TIMEOUT_MS = 12_000;
+
+function isTimeoutError(error: unknown): boolean {
+  const name = error instanceof Error ? error.name : '';
+  return name === 'TimeoutError' || name === 'AbortError';
+}
 
 export const onRequest: PagesFunction = async ({ request, waitUntil }) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -34,6 +40,7 @@ export const onRequest: PagesFunction = async ({ request, waitUntil }) => {
     const upstream = await fetch(target, {
       method: request.method,
       headers: { Accept: request.headers.get('Accept') ?? '*/*' },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       cf: { cacheTtl: 31536000, cacheEverything: true },
     } as RequestInit);
     if (!upstream.ok) {
@@ -46,7 +53,13 @@ export const onRequest: PagesFunction = async ({ request, waitUntil }) => {
       waitUntil(cache.put(cacheKey, response.clone()));
     }
     return response;
-  } catch {
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return Response.json(
+        { error: 'The server took too long to respond. Please try again.' },
+        { status: 504 },
+      );
+    }
     return new Response('Upstream media unreachable', { status: 502 });
   }
 };

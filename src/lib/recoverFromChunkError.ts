@@ -6,6 +6,29 @@
 //
 // Best-effort throughout: any failure falls through to a plain reload, which is
 // still better than leaving the user stuck on the error screen.
+import { api, hasToken } from './api';
+import { classifyIncident } from './incidents';
+
+async function reportChunkRecovery(): Promise<void> {
+  if (!hasToken()) return;
+  const route = typeof window === 'undefined' ? '/unknown' : window.location.pathname;
+  const incident = classifyIncident(new Error('Chunk load recovery requested'), {
+    route,
+    method: 'GET',
+  });
+  const report = api.incidents.report({
+    ...incident,
+    signature: 'client:get:app-shell:none:chunk_load_recovered',
+    category: 'client',
+    severity: 'medium',
+    error_code: 'chunk_load_recovered',
+  }).catch(() => {});
+  await Promise.race([
+    report,
+    new Promise<void>(resolve => setTimeout(resolve, 500)),
+  ]);
+}
+
 export async function clearStaleAppCaches(): Promise<void> {
   try {
     if ('serviceWorker' in navigator) {
@@ -31,6 +54,7 @@ export async function clearStaleAppCaches(): Promise<void> {
 // affordance so pressing it genuinely recovers instead of re-serving the
 // broken chunk.
 export async function recoverAndReload(): Promise<void> {
+  await reportChunkRecovery();
   await clearStaleAppCaches();
   window.location.reload();
 }

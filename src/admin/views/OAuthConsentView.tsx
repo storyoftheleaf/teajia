@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../lib/store';
-import { getApiOrigin, getTokenClaims, hasToken } from '../../lib/api';
+import { fetchWithTimeout, getApiOrigin, getTokenClaims, hasToken } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // OAuth 2.1 consent screen. Reached when an MCP client (Claude desktop/mobile,
@@ -92,7 +92,7 @@ export const OAuthConsentView: React.FC = () => {
   const loadByRequestId = useCallback(async (id: string) => {
     setLoadingParams(true);
     try {
-      const res = await fetch(`${API_URL}/oauth/authorize/request/${encodeURIComponent(id)}`);
+      const res = await fetchWithTimeout(`${API_URL}/oauth/authorize/request/${encodeURIComponent(id)}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body?.error_description || 'This authorization link has expired. Restart the connection from your app.');
@@ -206,7 +206,7 @@ export const OAuthConsentView: React.FC = () => {
     try {
       if (!jwt) throw new Error('Login required before approval');
       if (scopes.length === 0) throw new Error('Select at least one permission to grant.');
-      const res = await fetch(`${API_URL}/oauth/authorize/decision`, {
+      const res = await fetchWithTimeout(`${API_URL}/oauth/authorize/decision`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` },
         body: JSON.stringify({

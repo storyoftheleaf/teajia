@@ -19,6 +19,14 @@
 
 interface Env { WORKER_ORIGIN?: string }
 
+const READ_UPSTREAM_TIMEOUT_MS = 12_000;
+const WRITE_UPSTREAM_TIMEOUT_MS = 25_000;
+
+function isTimeoutError(error: unknown): boolean {
+  const name = error instanceof Error ? error.name : '';
+  return name === 'TimeoutError' || name === 'AbortError';
+}
+
 function configuredWorkerOrigin(value?: string): URL | null {
   try {
     const origin = new URL(value || '');
@@ -33,12 +41,25 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   }
   const incoming = new URL(request.url);
   const target = new URL(incoming.pathname + incoming.search, workerOrigin);
+  const method = request.method.toUpperCase();
+  const timeoutMs = method === 'GET' || method === 'HEAD'
+    ? READ_UPSTREAM_TIMEOUT_MS
+    : WRITE_UPSTREAM_TIMEOUT_MS;
   try {
     // Passing the original Request as init copies method, headers, and body
     // (including streamed upload bodies) faithfully; only the destination host
     // changes. The fetch init then forces manual redirect handling.
-    return await fetch(new Request(target.toString(), request), { redirect: 'manual' });
-  } catch {
+    return await fetch(new Request(target.toString(), request), {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return Response.json(
+        { error: 'The server took too long to respond. Please try again.' },
+        { status: 504 },
+      );
+    }
     return new Response(
       JSON.stringify({ error: 'Upstream API unreachable. Please try again.' }),
       { status: 502, headers: { 'Content-Type': 'application/json' } },

@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const externalBaseURL = process.env.PLAYWRIGHT_BASE_URL;
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -8,7 +10,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:7777',
+    baseURL: externalBaseURL ?? 'http://localhost:7777',
     trace: 'on-first-retry',
   },
   projects: [
@@ -25,7 +27,7 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
     },
   ],
-  webServer: {
+  webServer: externalBaseURL ? undefined : {
     // Browser tests must start from a clean checkout without Infisical. The
     // regular dev command still hydrates local secrets for real development.
     command: 'npm run dev:test',

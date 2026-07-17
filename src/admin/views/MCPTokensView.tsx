@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Loader2, Plus } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
-import { getApiOrigin } from '../../lib/api';
+import { fetchWithTimeout, getApiOrigin } from '../../lib/api';
 import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 
 // MCP tokens — voice/agent control of this account's inventory through the
@@ -74,7 +74,7 @@ export const MCPTokensView: React.FC = () => {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/mcp-tokens`, { headers: authHeaders() });
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/mcp-tokens`, { headers: authHeaders() });
       if (!res.ok) throw new Error(await res.text());
       setTokens(await res.json());
     } catch (err: any) {
@@ -222,7 +222,7 @@ const TokenRowView: React.FC<TokenRowViewProps> = ({ row, onChange }) => {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/mcp-tokens/${row.id}`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/mcp-tokens/${row.id}`, {
         method: 'DELETE', headers: authHeaders(),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -335,7 +335,7 @@ const MintForm: React.FC<MintFormProps> = ({ onCancel, onMinted }) => {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/mcp-tokens`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/admin/mcp-tokens`, {
         method: 'POST', headers: authHeaders(), body: JSON.stringify({ label: trimmed, scopes }),
       });
       if (!res.ok) throw new Error(await res.text());

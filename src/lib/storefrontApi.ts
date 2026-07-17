@@ -10,18 +10,13 @@ import { publicProductToInventoryItem } from './adapters';
 // In production, call the API on the app's own origin (relative paths) so it
 // rides the China-reachable hostname via the Pages Function proxy — see the
 // note in src/lib/api.ts. Dev still targets VITE_API_URL.
-import { getApiOrigin } from './api';
+import { fetchWithTimeout, getApiOrigin } from './api';
 
 const API_URL = getApiOrigin();
 
-const REQUEST_TIMEOUT_MS = 30_000;
-
 async function fetchJson<T>(path: string): Promise<T> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const res = await fetch(`${API_URL}${path}`, {
-      signal: controller.signal,
+    const res = await fetchWithTimeout(`${API_URL}${path}`, {
       headers: { 'Content-Type': 'application/json' },
     });
     let data: any = null;
@@ -42,8 +37,6 @@ async function fetchJson<T>(path: string): Promise<T> {
       throw new Error('Request timed out. Please try again.');
     }
     throw err;
-  } finally {
-    clearTimeout(timeoutId);
   }
 }
 

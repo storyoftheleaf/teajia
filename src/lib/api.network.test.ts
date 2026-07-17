@@ -15,9 +15,13 @@ function memoryStorage(): Storage {
 
 describe('background API transport failures', () => {
   const dispatchEvent = vi.fn();
+  let reportIncident: ReturnType<typeof vi.spyOn>;
+  let testClock = Date.now();
 
   beforeEach(() => {
     vi.useFakeTimers();
+    testClock += 60_000;
+    vi.setSystemTime(testClock);
     dispatchEvent.mockReset();
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
     vi.stubGlobal('localStorage', memoryStorage());
@@ -29,10 +33,12 @@ describe('background API transport failures', () => {
       location: { origin: 'https://teajia.test' },
       removeEventListener: vi.fn(),
     });
+    reportIncident = vi.spyOn(api.incidents, 'report').mockResolvedValue({} as never);
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -66,7 +72,104 @@ describe('background API transport failures', () => {
       options?: Pick<ApiRequestInit, 'background'>,
     ) => Promise<void>;
 
-    await expect(syncNotes([], { background: true })).rejects.toThrow('Request timed out');
+    const request = syncNotes([], { background: true });
+    const rejection = expect(request).rejects.toThrow('Request timed out');
+
+    await vi.runAllTimersAsync();
+    await rejection;
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(dispatchEvent).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: NETWORK_ERROR_EVENT }),
+    );
+  });
+
+  it('uses a successful site probe to classify an API failure and dispatches recovery after success', async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      if (String(input).includes('/version.json?probe=1')) {
+        return Promise.resolve(new Response('{}', { status: 200 }));
+      }
+      return Promise.reject(new TypeError('Failed to fetch'));
+    });
+    const request = api.notes.sync([]);
+    const rejection = expect(request).rejects.toThrow("Couldn't reach the server");
+
+    await vi.runAllTimersAsync();
+    await rejection;
+
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: NETWORK_ERROR_EVENT,
+        detail: { kind: 'slow' },
+      }),
+    );
+
+    dispatchEvent.mockClear();
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ notes: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await api.notes.getAll();
+
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'teajia:network-recovered' }),
+    );
+  });
+
+  it('classifies a foreground transport failure as offline without probing when the browser is offline', async () => {
+    vi.stubGlobal('navigator', { onLine: false });
+    const request = api.notes.sync([]);
+    const rejection = expect(request).rejects.toThrow("Couldn't reach the server");
+
+    await vi.runAllTimersAsync();
+    await rejection;
+
+    expect(fetch).toHaveBeenCalledTimes(5);
+    expect(dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: NETWORK_ERROR_EVENT,
+        detail: { kind: 'offline' },
+      }),
+    );
+    expect(reportIncident).toHaveBeenCalledTimes(1);
+    expect(reportIncident).toHaveBeenCalledWith(expect.objectContaining({
+      category: 'network',
+      error_code: 'transport_failure',
+      method: 'POST',
+      route: '/api/notes/sync',
+    }));
+  });
+
+  it('reports a server response once with request context', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(
+      new Response(JSON.stringify({ error: 'Unavailable' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ));
+
+    await expect(api.notes.getAll()).rejects.toMatchObject({ status: 503 });
+    await expect(api.notes.getAll()).rejects.toMatchObject({ status: 503 });
+
+    expect(reportIncident).toHaveBeenCalledTimes(1);
+    expect(reportIncident).toHaveBeenCalledWith(expect.objectContaining({
+      category: 'server',
+      error_code: 'http_503',
+      http_status: 503,
+      method: 'GET',
+      route: '/api/notes',
+    }));
+  });
+
+  it('does not recurse when the incident endpoint itself fails', async () => {
+    reportIncident.mockRestore();
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ error: 'Unavailable' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await expect(api.incidents.report({ signature: 'test' })).rejects.toMatchObject({ status: 503 });
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(dispatchEvent).not.toHaveBeenCalledWith(

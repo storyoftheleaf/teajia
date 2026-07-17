@@ -1,30 +1,13 @@
 import { CostCurrency } from '../types';
 
 /**
- * Fetch live exchange rates from exchangerate.host API
- * @returns Record of exchange rates relative to USD, or null on error
+ * Preserve the stored account rates when a live refresh is unavailable.
+ *
+ * The old browser-side exchangerate.host call is unreliable in mainland
+ * China. Returning null is intentionally silent: fetchAndSaveExchangeRates
+ * leaves the last known rates in localStorage, which is preferable to showing
+ * a network error for optional reference data.
  */
 export async function fetchLiveExchangeRates(): Promise<Record<CostCurrency, number> | null> {
-  try {
-    const response = await fetch('https://api.exchangerate.host/latest?base=USD');
-    const data = await response.json();
-
-    if (!data.success && data.rates === undefined) {
-      console.error('Exchange rate API returned unsuccessful response');
-      return null;
-    }
-
-    return {
-      USD: 1,
-      IDR: data.rates.IDR,
-      CNY: data.rates.CNY,
-      TWD: data.rates.TWD,
-      MYR: data.rates.MYR,
-      HKD: data.rates.HKD,
-      JPY: data.rates.JPY
-    };
-  } catch (error) {
-    console.error('Failed to fetch exchange rates:', error);
-    return null;
-  }
+  return null;
 }

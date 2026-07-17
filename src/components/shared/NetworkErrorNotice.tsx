@@ -1,22 +1,34 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { NETWORK_ERROR_EVENT } from '../../lib/api';
+import {
+  NETWORK_ERROR_EVENT,
+  NETWORK_RECOVERED_EVENT,
+  type NetworkErrorKind,
+} from '../../lib/api';
+
+const NETWORK_MESSAGES: Record<NetworkErrorKind, string> = {
+  offline: "You're offline. Reconnect to keep going.",
+  unstable: 'Connection is unstable. Retrying.',
+  slow: 'The server is taking too long. Retrying.',
+};
 
 export const NetworkErrorNotice = () => {
   const [visible, setVisible] = useState(false);
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [kind, setKind] = useState<NetworkErrorKind>('unstable');
 
   useEffect(() => {
-    const handleNetworkError = () => {
-      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    const handleNetworkError = (event: Event) => {
+      const detail = (event as CustomEvent<{ kind?: NetworkErrorKind }>).detail;
+      setKind(detail?.kind ?? 'unstable');
       setVisible(true);
-      dismissTimer.current = setTimeout(() => setVisible(false), 5000);
     };
+    const handleNetworkRecovered = () => setVisible(false);
 
     window.addEventListener(NETWORK_ERROR_EVENT, handleNetworkError);
+    window.addEventListener(NETWORK_RECOVERED_EVENT, handleNetworkRecovered);
     return () => {
       window.removeEventListener(NETWORK_ERROR_EVENT, handleNetworkError);
-      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+      window.removeEventListener(NETWORK_RECOVERED_EVENT, handleNetworkRecovered);
     };
   }, []);
 
@@ -41,10 +53,10 @@ export const NetworkErrorNotice = () => {
             <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
             <line x1="12" y1="20" x2="12.01" y2="20" />
           </svg>
-          <span>No connection — check your network and try again.</span>
+          <span>{NETWORK_MESSAGES[kind]}</span>
           <button
             onClick={() => setVisible(false)}
-            className="ml-2 text-tea-text-sec hover:text-tea-text transition-colors"
+            className="tap-target ml-2 text-tea-text-sec hover:text-tea-text transition-colors"
             aria-label="Dismiss"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">

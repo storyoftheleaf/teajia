@@ -216,6 +216,7 @@ export interface PurchaseOrderItem {
 }
 
 import { useAppStore } from './store';
+import { classifyIncident } from './incidents';
 
 // Production talks to the API on the app's OWN origin (teajia.com /
 // www.teajia.com), NOT a dedicated api.* host. The custom domain api.teajia.com
@@ -485,6 +486,7 @@ async function putProductUpdate(id: string, suffix: string, data: Record<string,
   return authedFetch(`${API_URL}/api/products/${id}${suffix}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+    retryTimeouts: true,
   });
 }
 
@@ -607,9 +609,11 @@ const TIMEOUT_RETRY_ATTEMPT_MS = 15_000;
 export interface ApiRequestInit extends RequestInit {
   retryTimeouts?: boolean;
   background?: boolean;
+  reportIncident?: boolean;
 }
 
 type ApiBackgroundOptions = Pick<ApiRequestInit, 'background'>;
+export type NetworkErrorKind = 'offline' | 'unstable' | 'slow';
 
 /** Resolve once the browser reports it's back online, or after `maxMs` elapses. */
 function waitForReconnect(maxMs: number): Promise<void> {
@@ -628,8 +632,30 @@ function waitForReconnect(maxMs: number): Promise<void> {
   });
 }
 
-async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Promise<Response> {
-  const { background = false, retryTimeouts: retryTimeoutOption, ...requestInit } = options;
+interface RequestIncidentContext {
+  route: string;
+  method: string;
+  reportIncident: boolean;
+}
+
+const responseIncidentContext = new WeakMap<Response, RequestIncidentContext>();
+
+function routeFromUrl(url: string): string {
+  try {
+    const base = typeof window === 'undefined' ? 'https://teajia.com' : window.location.origin;
+    return new URL(url, base).pathname;
+  } catch {
+    return url.split('?')[0] || '/unknown';
+  }
+}
+
+export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Promise<Response> {
+  const {
+    background = false,
+    reportIncident = true,
+    retryTimeouts: retryTimeoutOption,
+    ...requestInit
+  } = options;
   const method = (requestInit.method || 'GET').toUpperCase();
   const retryTimeouts = retryTimeoutOption ?? (method === 'GET' || method === 'HEAD');
   // When timeouts are retryable, fail each attempt fast and try a fresh
@@ -641,14 +667,23 @@ async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Prom
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
     try {
-      return await fetch(url, { ...requestInit, signal: controller.signal });
+      const response = await fetch(url, { ...requestInit, signal: controller.signal });
+      responseIncidentContext.set(response, {
+        route: routeFromUrl(url),
+        method,
+        reportIncident,
+      });
+      return response;
     } catch (err: any) {
       lastErr = err;
       // Our own timeout aborts share the AbortError name.
       const isTimeout = err?.name === 'AbortError';
       if (isTimeout && (!retryTimeouts || timeoutRetries >= TIMEOUT_RETRY_MAX)) {
-        if (!background) dispatchNetworkError();
-        throw new Error('Request timed out. Please try again.');
+        const timeoutError = new Error('Request timed out. Please try again.');
+        if (!background) await dispatchNetworkError(
+          'slow', timeoutError, { route: routeFromUrl(url), method }, reportIncident,
+        );
+        throw timeoutError;
       }
       const isNetworkError = err?.name === 'TypeError';
       if ((isNetworkError || isTimeout) && attempt < NETWORK_RETRY_BACKOFF_MS.length) {
@@ -671,7 +706,16 @@ async function fetchWithTimeout(url: string, options: ApiRequestInit = {}): Prom
         }
         continue;
       }
-      if (!background) dispatchNetworkError();
+      if (!background) {
+        const kind: NetworkErrorKind = isTimeout
+          ? 'slow'
+          : typeof navigator !== 'undefined' && navigator.onLine === false
+            ? 'offline'
+            : 'unstable';
+        await dispatchNetworkError(
+          kind, err, { route: routeFromUrl(url), method }, reportIncident,
+        );
+      }
       if (isTimeout) {
         throw new Error('Request timed out. Please try again.');
       }
@@ -693,14 +737,66 @@ export const SESSION_EXPIRED_EVENT = 'teajia:session-expired';
 /** Dispatched when the server rejects the active account (e.g., membership revoked). */
 export const ACCOUNT_MISMATCH_EVENT = 'teajia:account-mismatch';
 
-/** Dispatched on true network failure (offline / DNS / CORS) — not HTTP errors. Debounced to 5s. */
+/** Dispatched on a foreground transport failure. Debounced to 5s. */
 export const NETWORK_ERROR_EVENT = 'teajia:network-error';
+export const NETWORK_RECOVERED_EVENT = 'teajia:network-recovered';
 let _lastNetworkErrorAt = 0;
-function dispatchNetworkError() {
+let _networkErrorActive = false;
+let _probeCache: { checkedAt: number; reachable: boolean } | null = null;
+let _probeInFlight: Promise<boolean> | null = null;
+const _incidentReportedAt = new Map<string, number>();
+const INCIDENT_THROTTLE_MS = 60_000;
+
+async function probeSiteReachability(): Promise<boolean> {
+  const now = Date.now();
+  if (_probeCache && now - _probeCache.checkedAt < 10_000) return _probeCache.reachable;
+  if (_probeInFlight) return _probeInFlight;
+  _probeInFlight = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3_000);
+    try {
+      await fetch('/version.json?probe=1', { cache: 'no-store', signal: controller.signal });
+      _probeCache = { checkedAt: Date.now(), reachable: true };
+      return true;
+    } catch {
+      _probeCache = { checkedAt: Date.now(), reachable: false };
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+      _probeInFlight = null;
+    }
+  })();
+  return _probeInFlight;
+}
+
+function reportClientIncident(error: unknown, context: { route: string; method: string }): void {
+  const incident = classifyIncident(error, context);
+  const now = Date.now();
+  const lastReportedAt = _incidentReportedAt.get(incident.signature) ?? 0;
+  if (now - lastReportedAt < INCIDENT_THROTTLE_MS) return;
+  _incidentReportedAt.set(incident.signature, now);
+  void api.incidents.report({ ...incident }).catch(() => {});
+}
+
+async function dispatchNetworkError(
+  kind: NetworkErrorKind,
+  error: unknown,
+  context: { route: string; method: string },
+  shouldReport: boolean,
+): Promise<void> {
   const now = Date.now();
   if (now - _lastNetworkErrorAt < 5000) return;
   _lastNetworkErrorAt = now;
-  window.dispatchEvent(new CustomEvent(NETWORK_ERROR_EVENT));
+  const resolvedKind = kind !== 'offline' && await probeSiteReachability() ? 'slow' : kind;
+  _networkErrorActive = true;
+  window.dispatchEvent(new CustomEvent(NETWORK_ERROR_EVENT, { detail: { kind: resolvedKind } }));
+  if (shouldReport) reportClientIncident(error, context);
+}
+
+function dispatchNetworkRecovered(): void {
+  if (!_networkErrorActive) return;
+  _networkErrorActive = false;
+  window.dispatchEvent(new CustomEvent(NETWORK_RECOVERED_EVENT));
 }
 
 export class ApiError extends Error {
@@ -718,11 +814,20 @@ export function isTransientApiError(error: unknown): boolean {
 }
 
 async function handleResponse(res: Response) {
+  const incidentContext = responseIncidentContext.get(res) ?? {
+    route: routeFromUrl(res.url || '/unknown'),
+    method: 'GET',
+    reportIncident: true,
+  };
   let data: any;
   try {
     data = await res.json();
   } catch {
-    throw new ApiError(`Request failed (${res.status})`, res.status);
+    const error = new ApiError(`Request failed (${res.status})`, res.status);
+    if (res.status >= 500 && incidentContext.reportIncident) {
+      reportClientIncident(error, incidentContext);
+    }
+    throw error;
   }
   if (!res.ok) {
     // Detect account access denial — clear active account and prompt UI reload.
@@ -737,8 +842,13 @@ async function handleResponse(res: Response) {
     const message = typeof data?.error === 'string' && data.error.length < 200
       ? data.error
       : `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, data);
+    const error = new ApiError(message, res.status, data);
+    if (res.status >= 500 && incidentContext.reportIncident) {
+      reportClientIncident(error, incidentContext);
+    }
+    throw error;
   }
+  dispatchNetworkRecovered();
   // Adopt any sliding-refresh token the server stapled onto the response
   // (currently /api/auth/me does this). Keeps the client JWT fresh without
   // an extra round-trip.
@@ -1004,6 +1114,7 @@ export const api = {
     // fallback would bypass the China-reachable boundary and the CSP.
     report: (incident: Record<string, unknown>) => authedFetch(`${API_URL}/api/incidents`, {
       method: 'POST', body: JSON.stringify(incident), retryTimeouts: true,
+      background: true, reportIncident: false,
     }),
     list: () => authedFetch(`${API_URL}/api/platform/incidents`),
     update: (id: string, patch: { status: string; resolution_ref?: string }) => authedFetch(`${API_URL}/api/platform/incidents/${encodeURIComponent(id)}`, {
@@ -2396,6 +2507,7 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/samples/${sampleId}/tastings`, {
         ...options,
         method: 'POST',
+        retryTimeouts: true,
         headers,
         body: JSON.stringify(data),
       });
@@ -2423,6 +2535,7 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/samples`, {
         ...options,
         method: 'POST',
+        retryTimeouts: true,
         body: JSON.stringify(sample),
       });
     },
@@ -2430,6 +2543,7 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/samples/${id}`, {
         ...options,
         method: 'PUT',
+        retryTimeouts: true,
         body: JSON.stringify(updates),
       });
     },
@@ -2437,6 +2551,7 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/samples/${id}`, {
         ...options,
         method: 'DELETE',
+        retryTimeouts: true,
       });
     },
   },
@@ -3268,6 +3383,7 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/sample-sets`, {
         ...options,
         method: 'POST',
+        retryTimeouts: true,
         body: JSON.stringify(set),
       });
     },
@@ -3275,6 +3391,7 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/sample-sets/${id}`, {
         ...options,
         method: 'PUT',
+        retryTimeouts: true,
         body: JSON.stringify(updates),
       });
     },
@@ -3282,6 +3399,7 @@ export const api = {
       return authedFetch(`${API_URL}/api/admin/sample-sets/${id}`, {
         ...options,
         method: 'DELETE',
+        retryTimeouts: true,
       });
     },
   },
@@ -3293,6 +3411,7 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/notes/sync`, {
         ...options,
         method: 'POST',
+        retryTimeouts: true,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -3308,6 +3427,7 @@ export const api = {
       const res = await fetchWithTimeout(`${API_URL}/api/note-sessions/sync`, {
         ...options,
         method: 'POST',
+        retryTimeouts: true,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -6,7 +6,7 @@ import { INQUIRY_OPTIONS, InquiryFormData } from '../../types/advise';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { getApiOrigin } from '../../lib/api';
+import { fetchWithTimeout, getApiOrigin } from '../../lib/api';
 
 interface InquiryFormProps {
   isOpen: boolean;
@@ -199,7 +199,7 @@ export const InquiryForm: React.FC<InquiryFormProps> = ({ isOpen, onClose, prese
     const apiUrl = getApiOrigin();
     try {
       if (!apiUrl) throw new Error('API origin is not configured');
-      const res = await fetch(`${apiUrl}/api/inquiries`, {
+      const res = await fetchWithTimeout(`${apiUrl}/api/inquiries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

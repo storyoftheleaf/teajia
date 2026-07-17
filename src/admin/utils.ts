@@ -1,6 +1,7 @@
 import { Currency, ExchangeRate, Product } from './types';
 import type { InventoryItem } from '../types';
 import { INITIAL_RATES } from './constants';
+import { fetchWithTimeout } from '../lib/api';
 
 const FALLBACK_RATES = INITIAL_RATES;
 
@@ -39,7 +40,7 @@ const fetchFromUrl = async (url: string): Promise<ExchangeRate[]> => {
         ? `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD` 
         : url;
         
-    const res = await fetch(fetchUrl);
+    const res = await fetchWithTimeout(fetchUrl, { background: true });
     if (!res.ok) throw new Error(`Failed to fetch from ${fetchUrl}`);
     
     const data = await res.json();
