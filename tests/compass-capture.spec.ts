@@ -17,7 +17,8 @@ test.describe('Curate field capture preservation', () => {
   test('keeps the complete sourcing spine visible with labelled evidence actions', async ({ page }) => {
     await openCompass(page);
 
-    for (const section of ['Tea', 'Buy']) {
+    await expect(page.getByRole('heading', { name: 'Tea', exact: true }).filter({ visible: true })).toHaveCount(0);
+    for (const section of ['Purchase', 'Taste']) {
       await expect(page.getByRole('heading', { name: section, exact: true }).filter({ visible: true })).toHaveCount(1);
     }
     await expect(page.getByRole('button', { name: 'Add tasting profile', exact: true })).toBeVisible();

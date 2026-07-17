@@ -13,6 +13,7 @@ const product = {
   cost_currency: 'USD', quantity_purchased: 100, is_public: 0, shown_in_shop: 0, can_reorder: 0,
   is_sample: 0, is_personal: 0, inventory_purpose: 'working', tasting_source: 'common',
   source_compass_entry_id: 'compass-cloud',
+  vendor: 'Cloud Mountain', vendor_id: 'vendor-1',
 };
 const destinationProduct = { ...product, id: 'tea-2', given_name: 'Reserve', product_name: 'Reserve Oolong', stock_grams: 25 };
 const unrelatedProduct = { ...product, id: 'tea-3', given_name: 'Other lot', product_name: 'Other lot', source_compass_entry_id: 'compass-other', stock_grams: 8 };
@@ -96,10 +97,24 @@ async function install(page: Page) {
   await page.route('**/api/accounts/acct', r => r.fulfill({ json: { id: 'acct', name: 'Test' } }));
   await page.route('**/api/batches**', r => r.fulfill({ json: [] }));
   await page.route('**/api/inventory/receipts**', r => r.fulfill({ json: [] }));
-  for (const endpoint of ['admin/events', 'compass/incoming', 'user/favorites', 'tea-discovery', 'tasting-journal', 'notes', 'customers']) {
+  await page.route('**/api/customers', r => r.fulfill({ json: [{
+    id: 'vendor-1', name: 'Cloud Mountain', company: 'Cloud Mountain Tea', country: 'Taiwan',
+    email: 'tea@cloud.test', tags: ['vendor'], contacts: [], type: 'supplier',
+    preferred_currency: 'USD', notes: 'High mountain oolong source.', created_at: '2026-01-01', updated_at: '2026-07-01',
+  }] }));
+  await page.route('**/api/customers/vendor-1', r => r.fulfill({ json: {
+    id: 'vendor-1', name: 'Cloud Mountain', company: 'Cloud Mountain Tea', country: 'Taiwan',
+    email: 'tea@cloud.test', tags: ['vendor'], contacts: [], type: 'supplier',
+    preferred_currency: 'USD', notes: 'High mountain oolong source.', created_at: '2026-01-01', updated_at: '2026-07-01',
+  } }));
+  for (const endpoint of ['admin/events', 'compass/incoming', 'user/favorites', 'tea-discovery', 'tasting-journal', 'notes']) {
     await page.route(`**/api/${endpoint}**`, r => r.fulfill({ json: [] }));
   }
   await page.route('**/api/compass/entries**', r => r.fulfill({ json: { entries: [] } }));
+}
+
+async function chooseMovement(page: Page, label: string) {
+  await page.getByRole('group', { name: 'Movement type' }).getByRole('button', { name: label, exact: true }).click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -108,22 +123,143 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText('Cloud Oolong')).toBeVisible({ timeout: 15_000 });
 });
 
+test('only the rendered product-name words open the editor', async ({ page }) => {
+  const row = page.locator('tr[data-product-id="tea-1"]');
+  const nameLink = page.getByRole('button', { name: 'Open Cloud Oolong editor' });
+  const nameCell = row.locator('td').first();
+  const [linkBox, cellBox] = await Promise.all([nameLink.boundingBox(), nameCell.boundingBox()]);
+
+  expect(linkBox).not.toBeNull();
+  expect(cellBox).not.toBeNull();
+  expect(linkBox!.width).toBeLessThan(cellBox!.width - 12);
+
+  await nameCell.click({ position: { x: cellBox!.width - 4, y: 8 } });
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toHaveCount(0);
+  await expect(row).toHaveAttribute('aria-selected', 'true');
+
+  await nameLink.click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+});
+
+test('opening the product editor keeps the stock row typography and density unchanged', async ({ page }) => {
+  const row = page.locator('tr[data-product-id="tea-1"]');
+  const nameLink = row.getByRole('button', { name: 'Open Cloud Oolong editor' });
+  const readMetrics = () => row.evaluate((element) => {
+    const name = element.querySelector<HTMLButtonElement>('button[aria-label="Open Cloud Oolong editor"]');
+    const firstCell = element.querySelector<HTMLTableCellElement>('td');
+    if (!name || !firstCell) throw new Error('Inventory row controls were not rendered');
+    return {
+      rowHeight: element.getBoundingClientRect().height,
+      fontSize: getComputedStyle(name).fontSize,
+      lineHeight: getComputedStyle(name).lineHeight,
+      paddingLeft: getComputedStyle(firstCell).paddingLeft,
+      paddingRight: getComputedStyle(firstCell).paddingRight,
+    };
+  });
+
+  const before = await readMetrics();
+  await nameLink.click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+  await expect.poll(readMetrics).toEqual(before);
+});
+
+test('only the rendered stock number opens the compact stock adjustment', async ({ page }) => {
+  const row = page.locator('tr[data-product-id="tea-1"]');
+  const stockLink = row.getByRole('button', { name: 'Change stock for Cloud Oolong' });
+  const stockCell = stockLink.locator('xpath=..');
+  const [linkBox, cellBox] = await Promise.all([stockLink.boundingBox(), stockCell.boundingBox()]);
+  const renderedTextWidth = await stockLink.evaluate((button) => {
+    const range = document.createRange();
+    range.selectNodeContents(button);
+    return range.getBoundingClientRect().width;
+  });
+
+  expect(linkBox).not.toBeNull();
+  expect(cellBox).not.toBeNull();
+  expect(linkBox!.width).toBeLessThanOrEqual(renderedTextWidth + 2);
+
+  await stockCell.click({ position: { x: 4, y: cellBox!.height / 2 } });
+  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toHaveCount(0);
+  await expect(row).toHaveAttribute('aria-selected', 'true');
+
+  await stockLink.click();
+  await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+});
+
+test('only the rendered source words open a closeable source panel without leaving Stock', async ({ page }) => {
+  const row = page.locator('tr[data-product-id="tea-1"]');
+  const sourceLink = row.getByRole('button', { name: 'Open source Cloud Mountain' });
+  const sourceCell = sourceLink.locator('xpath=..');
+  const [linkBox, cellBox] = await Promise.all([sourceLink.boundingBox(), sourceCell.boundingBox()]);
+
+  expect(linkBox).not.toBeNull();
+  expect(cellBox).not.toBeNull();
+  expect(linkBox!.width).toBeLessThan(cellBox!.width - 8);
+
+  await sourceCell.click({ position: { x: cellBox!.width - 4, y: cellBox!.height / 2 } });
+  await expect(page.getByRole('dialog', { name: 'Source — Cloud Mountain' })).toHaveCount(0);
+  await expect(row).toHaveAttribute('aria-selected', 'true');
+
+  await sourceLink.click();
+  await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
+  await expect(page.getByRole('dialog', { name: 'Source — Cloud Mountain' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close source panel' }).click();
+  await expect(page.getByRole('dialog', { name: 'Source — Cloud Mountain' })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/admin\/stock(?:\?|$)/);
+});
+
+test('the tea name and selection-rail Edit both open the full product editor', async ({ page }) => {
+  await page.getByRole('button', { name: 'Open Cloud Oolong editor' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Close product panel' }).click();
+  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
+  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+});
+
 test('normal stock interaction opens explicit movement actions and previews before/after', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+  const movementButtons = page.getByRole('group', { name: 'Movement type' });
+  await expect(page.getByRole('combobox', { name: 'Movement type' })).toHaveCount(0);
   for (const label of ['Receive', 'Sample use', 'Gift', 'Waste', 'Return', 'Recount', 'Transfer']) {
-    await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible();
+    await expect(movementButtons.getByRole('button', { name: label, exact: true })).toBeVisible();
   }
-  await page.getByRole('button', { name: 'Waste', exact: true }).click();
+  await movementButtons.getByRole('button', { name: 'Waste', exact: true }).click();
+  await expect(movementButtons.getByRole('button', { name: 'Waste', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Quantity').fill('15');
   await expect(page.getByText('100g → 85g')).toBeVisible();
+  await page.getByRole('button', { name: 'Add note or reference' }).click();
   await page.getByLabel('Movement note').fill('Broken storage bag');
   await page.getByLabel('Movement reference').fill('INV-204');
   await page.getByRole('button', { name: 'Record movement' }).click();
   await expect(page.getByText('Cloud · 85g')).toBeVisible();
+  await page.getByRole('button', { name: 'Show stock history' }).click();
   await expect(page.getByText('Broken storage bag')).toBeVisible();
   await expect(page.getByText('operator@test')).toBeVisible();
   await expect(page.getByRole('button', { name: 'INV-204' })).toBeVisible();
+});
+
+test('stock adjustment opens as a compact task with optional details and history collapsed', async ({ page }) => {
+  await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' });
+  const box = await dialog.boundingBox();
+  const viewport = page.viewportSize();
+
+  expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(box!.height).toBeLessThan(viewport!.height - 80);
+  expect(box!.width).toBeLessThanOrEqual(viewport!.width - 24);
+  await expect(dialog.getByRole('group', { name: 'Movement type' })).toBeVisible();
+  await expect(dialog.getByLabel('Movement note')).toHaveCount(0);
+  await expect(dialog.getByLabel('Movement reference')).toHaveCount(0);
+  await expect(dialog.getByRole('heading', { name: 'Stock History' })).toHaveCount(0);
+  await dialog.getByRole('button', { name: 'Add note or reference' }).click();
+  await expect(dialog.getByLabel('Movement note')).toBeVisible();
+  await expect(dialog.getByLabel('Movement reference')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Show stock history' }).click();
+  await expect(dialog.getByRole('heading', { name: 'Stock History' })).toBeVisible();
 });
 
 test('stock ledger pagination controls have accessible names', async ({ page }) => {
@@ -131,6 +267,7 @@ test('stock ledger pagination controls have accessible names', async ({ page }) 
     movements.push({ id: `history-${index}`, movement_type: 'receipt', reason: 'RECEIPT', delta: 1, balance_after: index + 1, user_email: 'operator@test', created_at: new Date().toISOString() });
   }
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
+  await page.getByRole('button', { name: 'Show stock history' }).click();
   await expect(page.getByRole('button', { name: 'Previous stock history page' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Next stock history page' })).toBeEnabled();
   await page.getByRole('button', { name: 'Next stock history page' }).click();
@@ -147,7 +284,7 @@ test('receive, sample use, and return record the correct movement direction', as
     ['Sample use', 'sample_use', '2', '103'],
     ['Return', 'return', '4', '107'],
   ] as const) {
-    await page.getByRole('button', { name: label, exact: true }).click();
+    await chooseMovement(page, label);
     await page.getByLabel('Quantity').fill(quantity);
     await page.getByRole('button', { name: 'Record movement' }).click();
     await expect(page.getByText(`Cloud · ${expected}g`)).toBeVisible();
@@ -161,12 +298,14 @@ test('gift and waste submit exact outward movements and refresh their ledger bal
     ['Gift', 'gift', '6', '94'],
     ['Waste', 'waste', '4', '90'],
   ] as const) {
-    await page.getByRole('button', { name: label, exact: true }).click();
+    await chooseMovement(page, label);
     await page.getByLabel('Quantity').fill(quantity);
+    await page.getByRole('button', { name: 'Add note or reference' }).click();
     await page.getByLabel('Movement note').fill(`${label} detail`);
     await page.getByRole('button', { name: 'Record movement' }).click();
     expect(movementBodies.at(-1)).toMatchObject({ movement_type: type, quantity: Number(quantity), expected_balance: Number(expected) + Number(quantity) });
     await expect(page.getByText(`Cloud · ${expected}g`)).toBeVisible();
+    if (label === 'Gift') await page.getByRole('button', { name: 'Show stock history' }).click();
     await expect(page.getByText(`${label} detail`)).toBeVisible();
     await expect(page.getByText(`${Number(expected) + Number(quantity)}g → ${expected}g`)).toBeVisible();
   }
@@ -174,11 +313,12 @@ test('gift and waste submit exact outward movements and refresh their ledger bal
 
 test('prevents insufficient stock inline and preserves form after an API error', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  await page.getByRole('button', { name: 'Gift', exact: true }).click();
+  await chooseMovement(page, 'Gift');
   await page.getByLabel('Quantity').fill('101');
   await expect(page.getByText('Only 100g available')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Record movement' })).toBeDisabled();
   await page.getByLabel('Quantity').fill('10');
+  await page.getByRole('button', { name: 'Add note or reference' }).click();
   await page.getByLabel('Movement note').fill('Vendor gift');
   failNext = true;
   await page.getByRole('button', { name: 'Record movement' }).click();
@@ -195,7 +335,7 @@ test('prevents insufficient stock inline and preserves form after an API error',
 
 test('transfer selects a related holding, sends its identity, and refreshes both balances', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  await page.getByRole('button', { name: 'Transfer', exact: true }).click();
+  await chooseMovement(page, 'Transfer');
   await page.getByLabel('Quantity').fill('5');
   await expect(page.getByLabel('Transfer destination')).toHaveValue('tea-2');
   await expect(page.getByRole('option', { name: /Other lot/ })).toHaveCount(0);
@@ -206,7 +346,7 @@ test('transfer selects a related holding, sends its identity, and refreshes both
   await expect(page.getByText('Reserve Oolong').first()).toBeVisible();
   await expect(page.getByText('30').first()).toBeVisible();
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
-  await page.getByRole('button', { name: 'Recount', exact: true }).click();
+  await chooseMovement(page, 'Recount');
   await page.getByLabel('New balance').fill('72');
   await expect(page.getByText('95g → 72g')).toBeVisible();
   await page.getByRole('button', { name: 'Record movement' }).click();
@@ -222,8 +362,9 @@ test('teaware movements use units, update quantityUnits, and render a unit-aware
   await page.getByRole('button', { name: 'Record movement' }).click();
   expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'receipt', unit: 'unit', expected_balance: 3, quantity: 2 });
   await expect(page.getByText('Field Gaiwan · 5 units')).toBeVisible();
+  await page.getByRole('button', { name: 'Show stock history' }).click();
   await expect(page.getByText('3 units → 5 units')).toBeVisible();
-  await page.getByRole('button', { name: 'Recount', exact: true }).click();
+  await chooseMovement(page, 'Recount');
   await page.getByLabel('New balance').fill('4');
   await page.getByRole('button', { name: 'Record movement' }).click();
   expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'recount', unit: 'unit', expected_balance: 5, balance: 4 });
@@ -236,24 +377,24 @@ test('quick edit opens Recount and full product edit opens movements without abs
   await page.waitForTimeout(600);
   await row.dispatchEvent('pointerup');
   await page.getByRole('button', { name: 'Recount stock for Cloud Oolong' }).click();
-  await expect(page.getByRole('button', { name: 'Recount', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('group', { name: 'Movement type' }).getByRole('button', { name: 'Recount' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('New balance').fill('88');
   await page.getByRole('button', { name: 'Record movement' }).click();
   expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'recount', balance: 88, expected_balance: 100 });
   await expect(page.getByText('Cloud · 88g')).toBeVisible();
+  await page.getByRole('button', { name: 'Show stock history' }).click();
   await expect(page.getByText('100g → 88g')).toBeVisible();
   expect(absoluteStockWrites).toHaveLength(0);
   await page.getByRole('button', { name: 'Close stock movement' }).click();
 
-  await page.getByText('Cloud Oolong').click();
-  await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
+  await page.getByRole('button', { name: 'Open Cloud Oolong editor' }).click();
   await page.locator('[role="dialog"][aria-hidden="false"]').getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
   expect(absoluteStockWrites).toHaveLength(0);
 });
 
 test('invoice-driven sale remains available and Sale is not an ad-hoc movement action', async ({ page }) => {
-  await page.getByText('Cloud Oolong').click();
+  await page.locator('tr[data-product-id="tea-1"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Invoice' }).click();
   await expect(page.getByRole('heading', { name: 'New Invoice' })).toBeVisible();
   await expect(page.locator('input[value="Cloud"]')).toBeVisible();
@@ -268,17 +409,14 @@ test('invoice-driven sale remains available and Sale is not an ad-hoc movement a
   expect(movementBodies.filter(body => body.movement_type === 'sale')).toHaveLength(0);
 });
 
-test('mobile panel is full width, closes without breaking scroll, and returns focus', async ({ page }) => {
+test('stock panel stays compact, closes without breaking scroll, and returns focus', async ({ page }) => {
   const trigger = page.getByRole('button', { name: 'Change stock for Cloud Oolong' });
   await trigger.focus();
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' });
   const box = await dialog.boundingBox();
-  if ((page.viewportSize()?.width || 0) < 768) {
-    expect(box?.width).toBeGreaterThan((page.viewportSize()?.width || 390) - 4);
-  } else {
-    expect(box?.width).toBeLessThanOrEqual(522);
-  }
+  expect(box?.width).toBeLessThan((page.viewportSize()?.width || 390) - 20);
+  expect(box?.height).toBeLessThan((page.viewportSize()?.height || 720) - 40);
   await page.getByRole('button', { name: 'Close stock movement' }).click();
   await expect(trigger).toBeFocused();
   const scroll = page.getByTestId('inventory-scroll');

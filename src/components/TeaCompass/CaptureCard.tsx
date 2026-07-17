@@ -700,7 +700,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
   // supplies bottom-nav clearance so that space is not painted as part of the
   // sourcing sheet.
   const mobileShellClass = `${shellClass} curate-source-sheet py-1.5 lg:py-3`;
-  const sourceShellClass = 'curate-context-band px-1';
+  const sourceShellClass = 'curate-context-band curate-zone-context px-1';
   const fieldClass = 'curate-field field-recessed px-3 py-2.5';
   const tallFieldClass = 'curate-field field-recessed px-3 py-2.5';
   const nameHeadlineClass = 'curate-primary min-h-11 rounded-none border-0 border-b border-tea-border bg-transparent px-1 py-2 font-medium placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none';
@@ -1219,7 +1219,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         <div data-testid="curate-primary-workflow" className="space-y-0">
         <DecisionControl value={entry.decision} onChange={(decision) => update({ decision })} />
 
-        <div className={sourceShellClass} data-testid="curate-teaware-context-band">
+        <div className={sourceShellClass} data-testid="curate-teaware-context-band" data-zone="context">
           <CaptureContextChips
             category={entry.category}
             vendorName={entry.vendorName}
@@ -1262,7 +1262,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </div>
         </div>
 
-        <section className="curate-cluster space-y-2" data-testid="curate-cluster-identity">
+        <section className="curate-cluster curate-zone-identity space-y-2" data-testid="curate-cluster-identity" data-zone="identity">
           <QuietEyebrow label="Teaware" />
           <input
             type="text"
@@ -1554,8 +1554,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           </BottomSheet>
         </section>
 
-        <section className="curate-cluster curate-cluster-soft space-y-1.5" data-testid="curate-cluster-buying">
-        <QuietEyebrow label="Buy" />
+        <section className="curate-cluster curate-zone-purchase space-y-1.5" data-testid="curate-cluster-buying" data-zone="purchase">
+        <QuietEyebrow label="Purchase" />
         <PricingRow
           priceAmount={entry.priceAmount}
           priceCurrency={entry.priceCurrency || 'NT'}
@@ -1569,7 +1569,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         />
         </section>
 
-        <section className="curate-cluster space-y-1.5" data-testid="curate-cluster-notes">
+        <section className="curate-cluster curate-zone-notes space-y-1.5" data-testid="curate-cluster-notes" data-zone="notes">
         <FieldLabel>Notes</FieldLabel>
         <NoteThread
           compassEntryId={entry.id}
@@ -1582,7 +1582,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           <IntentBar entry={entry} onApply={(updates) => update(updates as Record<string, unknown>)} />
         </div>
         <CaptureActionFooter
-          className="curate-buy-actions border-t border-tea-border pt-1.5"
+          className="curate-buy-actions curate-action-band border-t border-tea-border pt-1.5"
           onBuy={toggleBuyPicker}
           onDone={handleCommit}
           doneEnabled={entryHasContent(entry)}
@@ -1626,7 +1626,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           captures (run via the session id, vendor via lastVendor seeding), so
           reopening the card mid-visit costs nothing. The old always-open
           "Select vendor" box collapses behind the Vendor chip. */}
-      <div className={sourceShellClass}>
+      <div className={sourceShellClass} data-testid="curate-context-band" data-zone="context">
         <CaptureContextChips
           category={entry.category}
           vendorName={entry.vendorName}
@@ -1669,8 +1669,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </div>
       </div>
 
-      <section className="curate-cluster space-y-2" data-testid="curate-cluster-identity">
-        <QuietEyebrow label="Tea" />
+      <section className="curate-cluster curate-zone-identity space-y-2" data-testid="curate-cluster-identity" data-zone="identity">
         <AutocompleteInput
           value={entry.name}
           onChange={(val) => update({ name: val })}
@@ -1786,8 +1785,8 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       </section>
 
       {/* ─── Pricing zone — cost, unit, retail preview tucked close beneath. ─── */}
-      <section className="curate-cluster curate-cluster-soft space-y-1.5" data-testid="curate-cluster-buying">
-        <QuietEyebrow label="Buy" />
+      <section className="curate-cluster curate-zone-purchase space-y-1.5" data-testid="curate-cluster-buying" data-zone="purchase">
+        <QuietEyebrow label="Purchase" />
         <div className="space-y-2">
           <PricingRow
             priceAmount={entry.priceAmount}
@@ -1857,12 +1856,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           asked that they never sit behind a second tap. ─── */}
 
       {/* ─── Profile zone: quality bar + brewing + tag cloud ─── */}
-      <section className="curate-cluster space-y-1.5" data-testid="curate-cluster-tasting">
+      <section className="curate-cluster curate-zone-taste space-y-1.5" data-testid="curate-cluster-tasting" data-zone="taste">
+          <QuietEyebrow label="Taste" />
           {!hasTasting && (
             <button
               type="button"
               onClick={openTastingOverlay}
-              className="curate-compact-target w-full border-b border-tea-border text-left text-tea-text transition-colors hover:text-tea-gold"
+              className="curate-profile-entry curate-compact-target w-full justify-center border-b border-tea-border text-center text-tea-text transition-colors hover:text-tea-gold"
               data-curate-action
             >
               <span className="curate-support">Add tasting profile</span>
@@ -1870,7 +1870,6 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
           )}
           {hasTasting && entry.tasting && (
             <>
-          <QuietEyebrow label="Taste" />
           {/* Quality 1–10 — same segment toggle as TastingSession */}
           <div>
             <div className="flex items-center gap-2 mb-1.5">
@@ -1922,7 +1921,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             </>
           )}
       <CaptureActionFooter
-        className="curate-buy-actions border-t border-tea-border pt-1.5 lg:hidden"
+        className="curate-buy-actions curate-action-band border-t border-tea-border pt-1.5 lg:hidden"
         onBuy={toggleBuyPicker}
         onDone={handleCommit}
         onSample={openTastingOverlay}
@@ -1933,7 +1932,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
       {/* Notes and intent remain continuously available inside the same
           visually memorable Taste cluster rather than becoming two more
           full-weight sections. */}
-      <div className="space-y-1.5 border-t border-tea-border pt-2" data-testid="curate-notes-band">
+      <div className="curate-zone-notes space-y-1.5 border-t border-tea-border pt-2" data-testid="curate-notes-band" data-zone="notes">
         <FieldLabel>Notes</FieldLabel>
         <NoteThread
           compassEntryId={entry.id}

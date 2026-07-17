@@ -132,7 +132,7 @@ test('purpose and action views remain separate and preserve legacy mappings', as
 
 test('readiness names omissions and publication remains an independent dual gate', async ({ page }) => {
   await selectView(page, 'Needs development');
-  await page.getByText('Needs Four Things').click();
+  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await expect(page.getByText('Missing description, retail price, classification, and stock amount')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Develop in Curate' })).toHaveAttribute('data-compass-entry-id', 'entry-needs');
@@ -141,7 +141,7 @@ test('readiness names omissions and publication remains an independent dual gate
 });
 
 test('purpose control replaces holding classification while sample-size offering stays separate', async ({ page }) => {
-  await page.getByText('Ready Hidden Tea').click();
+  await page.locator('tr[data-product-id="ready-hidden"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await expect(page.getByRole('group', { name: 'Inventory purpose' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Working purpose' })).toHaveAttribute('aria-pressed', 'true');
@@ -162,7 +162,7 @@ test('action views include tasting, reorder, and missing location', async ({ pag
 
 test('development handoff opens the exact linked Curate entry', async ({ page }) => {
   await selectView(page, 'Needs development');
-  await page.getByText('Needs Four Things').click();
+  await page.locator('tr[data-product-id="needs"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Develop in Curate' }).click();
   await expect(page).toHaveURL(/\/admin\/compass\?tab=sourcing&entry=entry-needs/);
@@ -171,7 +171,7 @@ test('development handoff opens the exact linked Curate entry', async ({ page })
 
 test('unlinked development waits for consent then creates exactly one linked draft', async ({ page }) => {
   await selectView(page, 'Needs development');
-  await page.getByText('Unlinked Development Tea').click();
+  await page.locator('tr[data-product-id="unlinked-needs"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Develop in Curate' }).click();
   await expect(page).toHaveURL(/developProduct=unlinked-needs/);
@@ -192,7 +192,7 @@ test('unlinked development waits for consent then creates exactly one linked dra
 
 test('purpose and sample-size offering persist independently without changing publication gates', async ({ page }) => {
   await selectView(page, 'Samples');
-  await page.getByText('Field Sample').click();
+  await page.locator('tr[data-product-id="sample"]').dispatchEvent('click');
   await page.getByRole('toolbar', { name: 'Selection actions' }).getByRole('button', { name: 'Edit' }).click();
   await page.getByRole('button', { name: 'Working purpose' }).click();
   await expect.poll(() => updateRequests.find(r => r.url.endsWith('/sample/stock'))?.body).toEqual({ inventory_purpose: 'working' });

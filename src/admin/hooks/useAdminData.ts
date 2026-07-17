@@ -46,6 +46,7 @@ export const useProducts = (options?: { enabled?: boolean }) => {
         bagPhotoUrl: p.bag_photo_url || undefined,
         status: p.status,
         vendor: p.vendor,
+        vendorId: p.vendor_id || undefined,
         costCurrency: p.cost_currency || 'USD',
         quantityPurchased: Number(p.quantity_purchased) || 0,
         shippingRatePerKg: Number(p.shipping_rate_per_kg) || 0,

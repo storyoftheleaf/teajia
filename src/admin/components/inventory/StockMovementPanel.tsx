@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, History, Loader2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiError, api } from '../../../lib/api';
+import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import type { Product } from '../../types';
 import { StockLedgerPanel } from '../StockLedgerPanel';
 
@@ -52,6 +53,8 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const current = currentBalance;
   const amount = Number(quantity);
   const next = movementType === 'recount'
@@ -119,6 +122,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
       setReference('');
       setBalance(String(result.after_balance));
       setIdempotencyKey(crypto.randomUUID());
+      setShowDetails(false);
     } catch (caught: any) {
       if (caught instanceof ApiError && caught.status === 409 && Number.isFinite(Number(caught.data?.current_balance))) {
         const latest = Number(caught.data?.current_balance);
@@ -136,38 +140,46 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
   const unit = product.type === 'Teaware' ? ' units' : 'g';
 
   return (
-    <div className="fixed inset-0 z-modal flex items-stretch justify-end bg-tea-bg/70" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-tea-bg/70 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Change stock — ${product.productName || product.givenName}`}
-        className="h-full w-full sm:max-w-[520px] bg-tea-elevated border-l border-tea-border flex flex-col overflow-hidden"
+        className="relative w-full max-w-[420px] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] bg-tea-elevated border border-tea-border rounded-xl flex flex-col overflow-hidden"
       >
-        <header className="shrink-0 flex items-start gap-3 px-4 py-3 border-b border-tea-border">
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close stock movement" className="tap-target text-tea-text-sec hover:text-tea-text transition-colors">
+        <header className="relative shrink-0 px-4 py-3 pr-12 border-b border-tea-border">
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close stock movement" className="tap-target absolute right-4 top-3 p-1 text-tea-text-sec hover:text-tea-text transition-colors">
             <X size={18} />
           </button>
           <div className="min-w-0">
-            <h2 className="font-display text-ui-17 text-tea-text">Change stock</h2>
+            <h2 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Change stock</h2>
             <p className="text-ui-12 text-tea-text-sec truncate">{product.givenName || product.productName} · {current}{unit}</p>
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 pb-nav-gap">
-          <form onSubmit={submit} className="space-y-4">
-            <div role="group" aria-label="Movement type" className="flex flex-wrap gap-2">
-              {ACTIONS.map(action => (
-                <button
-                  key={action.value}
-                  type="button"
-                  aria-pressed={movementType === action.value}
-                  onClick={() => selectAction(action.value)}
-                  className={`tap-target rounded-md border px-3 py-2 text-ui-12 transition-colors ${movementType === action.value ? 'border-tea-gold bg-tea-accent-sub text-tea-text' : 'border-tea-border text-tea-text-sec hover:text-tea-text'}`}
-                >
-                  {action.label}
-                </button>
-              ))}
+        <div className="min-h-0 overflow-y-auto px-4 py-4 pb-nav-gap">
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <span className="block text-ui-12 text-tea-text-sec mb-1.5">Movement</span>
+              <div role="group" aria-label="Movement type" className="grid grid-cols-4 gap-1.5">
+                {ACTIONS.map(action => {
+                  const selected = movementType === action.value;
+                  return (
+                    <button
+                      key={action.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => selectAction(action.value)}
+                      className={`tap-target rounded-md border px-2 text-ui-11 transition-colors ${selected
+                        ? 'border-tea-gold bg-tea-accent-sub text-tea-text'
+                        : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'}`}
+                    >
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <label className="block text-ui-12 text-tea-text-sec">
@@ -191,19 +203,51 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
             </label>}
             {transferUnavailable && <p className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-text-sec">Transfer is unavailable because there is no separate holding linked to this Curate item.</p>}
 
-            <div aria-live="polite" className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-14 text-tea-text tabular-nums">
-              {Number.isFinite(next) ? `${current}${unit} → ${next}${unit}` : `${current}${unit} → —`}
+            <div aria-live="polite" className="flex items-baseline justify-between gap-3 border-y border-tea-border py-2 text-ui-13">
+              <span className="text-tea-text-sec">Resulting balance</span>
+              <span className="text-tea-text tabular-nums">
+                {movementType !== 'recount' && !quantity
+                  ? `${current}${unit} → —`
+                  : Number.isFinite(next) ? `${current}${unit} → ${next}${unit}` : `${current}${unit} → —`}
+              </span>
             </div>
             {insufficient && <p className="text-ui-12 text-tea-error">Only {current}{unit} available</p>}
 
-            <label className="block text-ui-12 text-tea-text-sec">
-              Note
-              <textarea aria-label="Movement note" value={note} onChange={event => setNote(event.target.value)} rows={2} className="admin-input mt-1 w-full resize-none" />
-            </label>
-            <label className="block text-ui-12 text-tea-text-sec">
-              Reference
-              <input aria-label="Movement reference" value={reference} onChange={event => setReference(event.target.value)} placeholder="Invoice, message, or receipt" className="admin-input mt-1 w-full" />
-            </label>
+            <div>
+              <button
+                type="button"
+                aria-expanded={showDetails}
+                onClick={() => setShowDetails(value => !value)}
+                className="tap-target inline-flex items-center gap-1.5 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                {showDetails ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+                Add note or reference
+              </button>
+              {showDetails && (
+                <div className="mt-2 space-y-3">
+                  <label className="block text-ui-12 text-tea-text-sec">
+                    Note
+                    <textarea aria-label="Movement note" value={note} onChange={event => setNote(event.target.value)} rows={2} className="admin-input mt-1 w-full resize-none" />
+                  </label>
+                  <label className="block text-ui-12 text-tea-text-sec">
+                    Reference
+                    <input aria-label="Movement reference" value={reference} onChange={event => setReference(event.target.value)} placeholder="Invoice, message, or receipt" className="admin-input mt-1 w-full" />
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-tea-border pt-3">
+              <button
+                type="button"
+                aria-expanded={showHistory}
+                onClick={() => setShowHistory(value => !value)}
+                className="tap-target inline-flex items-center gap-2 text-ui-12 text-tea-text-sec hover:text-tea-text transition-colors"
+              >
+                <History size={14} aria-hidden="true" />
+                {showHistory ? 'Hide stock history' : 'Show stock history'}
+              </button>
+            </div>
 
             {error && <div role="alert" className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-error">{error}</div>}
             <div className="flex justify-between items-center border-t border-tea-border pt-3">
@@ -214,9 +258,11 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
             </div>
           </form>
 
-          <div className="mt-6">
-            <StockLedgerPanel productId={product.id} productName={product.givenName || product.productName} />
-          </div>
+          {showHistory && (
+            <div className="mt-3">
+              <StockLedgerPanel productId={product.id} productName={product.givenName || product.productName} />
+            </div>
+          )}
         </div>
       </section>
     </div>

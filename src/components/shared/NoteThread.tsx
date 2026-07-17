@@ -315,6 +315,7 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
   const [recState, setRecState] = useState<RecState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showTyping, setShowTyping] = useState(false);
+  const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -328,6 +329,15 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       streamRef.current?.getTracks().forEach(t => t.stop());
     };
   }, []);
+
+  // Notes belong to the page's single scroll flow. Grow the writing surface
+  // with its contents so wrapped text never creates a nested scrollbar.
+  React.useLayoutEffect(() => {
+    const textarea = draftTextareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [draft, compact, larger]);
 
   // Current author info from store
   const authorId = activeAccountId ?? 'guest';
@@ -467,13 +477,14 @@ export const NoteThread: React.FC<NoteThreadProps> = ({
       <div className="tasting-voice-field">
         {recState === 'idle' || recState === 'transcribing' ? (
           <textarea
+            ref={draftTextareaRef}
             aria-label="Notes"
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions, vendor story, anything worth keeping…'}
+            placeholder={notes.length > 0 ? 'Add another note…' : 'Impressions or vendor story…'}
             rows={textareaRows}
-            className={`min-h-11 flex-1 ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
+            className={`min-h-11 flex-1 overflow-y-hidden ${inputPad} bg-transparent ${inputText} text-tea-text placeholder:text-tea-text-dim/40 focus:outline-none resize-none`}
             style={{ fontFamily: noteFont }}
           />
         ) : (

@@ -13,7 +13,7 @@ import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
-import { useRates, useCustomers } from '../hooks/useAdminData';
+import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
 import { useShallow } from 'zustand/react/shallow';
@@ -62,6 +62,7 @@ import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
 import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
 import { StockMovementPanel } from './inventory/StockMovementPanel';
+import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 
 interface InventoryViewProps {
   products: Product[];
@@ -342,6 +343,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+  const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
   // Inline quick-edit — opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -584,14 +586,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   }, [filterType, localProducts]);
 
   // --- VIRTUALIZATION LOGIC (TABLE BASED) ---
-  // Canonical row sizing — tightened to match People/TeaTable (36px) so the
-  // two surfaces feel like one design language. Split view stays slightly
-  // more compressed.
+  // Keep row density stable when a side panel opens. Split view may reduce the
+  // visible columns, but it must not change typography, padding, or row height.
   const ROW_HEIGHT = 38;
-  const SPLIT_ROW_HEIGHT = 32;
   const BUFFER_ROWS = 5;
   const splitView = !!panelProduct;
-  const effectiveRowHeight = splitView ? SPLIT_ROW_HEIGHT : ROW_HEIGHT;
+  const effectiveRowHeight = ROW_HEIGHT;
   const mobileHScroll = isMobile && !splitView;
 
   const splitViewCols = useMemo(() => {
@@ -801,8 +801,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Stable open-panel — row passes the product object directly.
   // stableRowClick and stableLongPressSelect are declared after toggleSelectId below.
   const stableOpenPanel = useCallback((product: Product) => {
+    setSourcePanelProduct(null);
     setPanelProduct(product);
   }, [setPanelProduct]);
+
+  const stableOpenSource = useCallback((product: Product) => {
+    setPanelProduct(null);
+    setSourcePanelProduct(product);
+  }, []);
 
   // Stable dropdown toggle.
   const stableToggleDropdown = useCallback((productId: string | null) => {
@@ -1930,7 +1936,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
       {/* The navigation plane is a sibling of every scroll container. It can
           never inherit the ledger's horizontal movement. */}
-      <div className="shrink-0 z-priority bg-tea-bg">
+      <div className="shrink-0 z-sticky bg-tea-bg">
         {unifiedHeaderRows}
       </div>
 
@@ -2259,7 +2265,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {groupedProducts ? (
             <div>
               {/* Table header (sticky) — canonical font-serif uppercase tracking-display */}
-              <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+              <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                 <colgroup>
                   {renderCols.map(renderColEl)}
                 </colgroup>
@@ -2292,7 +2298,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       <span className="font-serif text-ui-13 text-tea-text-sec tabular-nums">${fmtNum(totalRetail)}</span>
                     </button>
                     {!isCollapsed && (
-                      <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+                      <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                         <colgroup>
                           {splitView ? (
                             renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2315,7 +2321,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   splitViewCols={renderSplitCols}
                                   splitView={splitView}
                                   stickyFirstCol={mobileHScroll}
-                                  alignLeft={unifiedLayout}
+                                  alignLeft
                                   legacyMobileLayout={false}
                                   rowHeight={effectiveRowHeight}
                                   isPanelOpen={panelProduct?.id === product.id}
@@ -2332,7 +2338,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onRestock={handleRestock}
                                   onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showInventoryToast}
-                                  navigate={navigate}
+                                  onOpenSource={stableOpenSource}
                                 />
                                 {expandedRowId === product.id && (
                                   <QuickEditInlineRow
@@ -2360,7 +2366,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             /* --- FLAT TABLE (with virtualization) --- */
-            <table className={`w-full table-fixed border-collapse ${unifiedLayout ? 'inv-tight' : ''}`} style={mobileTableStyle}>
+            <table className="w-full table-fixed border-collapse inv-tight" style={mobileTableStyle}>
                 <colgroup>
                     {splitView ? (
                       renderSplitCols.map(col => <col key={col.key} className={splitColWidth(col.key)} />)
@@ -2399,7 +2405,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               splitViewCols={renderSplitCols}
                               splitView={splitView}
                               stickyFirstCol={mobileHScroll}
-                              alignLeft={unifiedLayout}
+                              alignLeft
                               legacyMobileLayout={false}
                               rowHeight={effectiveRowHeight}
                               isPanelOpen={panelProduct?.id === product.id}
@@ -2416,7 +2422,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onRestock={handleRestock}
                               onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showInventoryToast}
-                              navigate={navigate}
+                              onOpenSource={stableOpenSource}
                             />
                             {expandedRowId === product.id && (
                               <QuickEditInlineRow
@@ -2572,6 +2578,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onOpenStockMovement={stableStockMovement}
         rightOffset={panelRightOffset}
       />
+
+      <AnimatePresence>
+        {sourcePanelProduct && (
+          <InventorySourcePanel
+            product={sourcePanelProduct}
+            products={localProducts}
+            onClose={() => setSourcePanelProduct(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {stockMovement && (
         <StockMovementPanel
