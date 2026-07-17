@@ -13,7 +13,7 @@ import { api } from '../../lib/api';
 import { calculatePricing } from '../utils';
 import { Product } from '../types';
 import { QrCodeModal } from './QrCodeModal';
-import { useRates, useCustomers } from '../hooks/useAdminData';
+import { useRates } from '../hooks/useAdminData';
 import { useToast } from './Toast';
 import { useAppStore } from '../store';
 import { useShallow } from 'zustand/react/shallow';
@@ -62,6 +62,7 @@ import { InventoryConfirmations } from './inventory/InventoryConfirmations';
 import { InventoryBulkToolbar } from './inventory/InventoryBulkToolbar';
 import { IncomingReceiptsPanel } from './inventory/IncomingReceiptsPanel';
 import { StockMovementPanel } from './inventory/StockMovementPanel';
+import { InventorySourcePanel } from './inventory/InventorySourcePanel';
 
 interface InventoryViewProps {
   products: Product[];
@@ -342,6 +343,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   // Feature 5: Record Panel
   const [panelProduct, setPanelProduct] = useState<Product | null>(null);
+  const [sourcePanelProduct, setSourcePanelProduct] = useState<Product | null>(null);
   // Inline quick-edit — opened by a long-press on a row. Holds the id of the one
   // row that is currently expanded; the panel slides down directly under it.
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -801,8 +803,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // Stable open-panel — row passes the product object directly.
   // stableRowClick and stableLongPressSelect are declared after toggleSelectId below.
   const stableOpenPanel = useCallback((product: Product) => {
+    setSourcePanelProduct(null);
     setPanelProduct(product);
   }, [setPanelProduct]);
+
+  const stableOpenSource = useCallback((product: Product) => {
+    setPanelProduct(null);
+    setSourcePanelProduct(product);
+  }, []);
 
   // Stable dropdown toggle.
   const stableToggleDropdown = useCallback((productId: string | null) => {
@@ -2332,7 +2340,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                                   onRestock={handleRestock}
                                   onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                                   showToast={showInventoryToast}
-                                  navigate={navigate}
+                                  onOpenSource={stableOpenSource}
                                 />
                                 {expandedRowId === product.id && (
                                   <QuickEditInlineRow
@@ -2416,7 +2424,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                               onRestock={handleRestock}
                               onDeleteRequest={(p) => { setDeleteTarget({ id: p.id, name: p.givenName || p.productName }); setDeleteInput(''); }}
                               showToast={showInventoryToast}
-                              navigate={navigate}
+                              onOpenSource={stableOpenSource}
                             />
                             {expandedRowId === product.id && (
                               <QuickEditInlineRow
@@ -2572,6 +2580,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         onOpenStockMovement={stableStockMovement}
         rightOffset={panelRightOffset}
       />
+
+      <AnimatePresence>
+        {sourcePanelProduct && (
+          <InventorySourcePanel
+            product={sourcePanelProduct}
+            products={localProducts}
+            onClose={() => setSourcePanelProduct(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {stockMovement && (
         <StockMovementPanel

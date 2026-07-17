@@ -39,7 +39,7 @@ export interface InventoryRowProps {
   onRestock: (product: Product) => void;
   onDeleteRequest: (product: Product) => void;
   showToast: (msg: string, type: string, opts?: any) => void;
-  navigate: (path: string) => void;
+  onOpenSource: (product: Product) => void;
 }
 
 // Canonical inventory row — see DesignSystemShowcase § Inventory list (INV_ROWS).
@@ -51,7 +51,7 @@ function InventoryRowBase(props: InventoryRowProps) {
     product, globalIdx, isSelected, focusedCol, isEditMode, visibleCols, splitViewCols,
     splitView, stickyFirstCol, alignLeft, legacyMobileLayout, rowHeight, isPanelOpen, isDropdownOpen,
     onRowClick, onLongPressSelect, onLongPressQuickEdit, onProductUpdate, onSelectionAwareUpdate,
-    onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, navigate,
+    onOpenPanel, onToggleDropdown, onStockHistory, onStockMovement, onRestock, onDeleteRequest, showToast, onOpenSource,
   } = props;
   void onLongPressSelect; // retained in the prop type; long-press now routes to quick-edit
 
@@ -171,7 +171,7 @@ function InventoryRowBase(props: InventoryRowProps) {
                     onOpenPanel(product);
                   }}
                   aria-label={`Open ${displayName} editor`}
-                  className={`${nameWeightCls} ${nameTone} max-w-full text-left hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors`}
+                  className={`${nameWeightCls} ${nameTone} self-start w-fit max-w-full text-left hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors`}
                 >
                   {displayName}
                 </button>
@@ -230,7 +230,7 @@ function InventoryRowBase(props: InventoryRowProps) {
               type="button"
               aria-label={`Change stock for ${product.productName || product.givenName}`}
               onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }}
-              className={`w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
+              className={`inline-block w-fit max-w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${stockTone}`}
             >
               {isOut ? 0 : Math.round(product.stockGrams)}
             </button>
@@ -285,7 +285,7 @@ function InventoryRowBase(props: InventoryRowProps) {
       );
       case 'quantityUnits': return (
         <td key={colKey} id={cellId(colIndex)} className={`px-3 py-1 text-ui-13 ${numCellAlign} num align-middle overflow-hidden ${fr} ${numTone}`}>
-          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
+          <button type="button" aria-label={`Change stock for ${product.productName || product.givenName}`} onClick={(event) => { event.stopPropagation(); onStockMovement(product, event.currentTarget); }} className={`inline-block w-fit max-w-full ${numCellAlign} num text-ui-13 hover:text-tea-gold transition-colors ${numTone}`}>
             {product.quantityUnits ?? 0}
           </button>
         </td>
@@ -322,7 +322,14 @@ function InventoryRowBase(props: InventoryRowProps) {
       case 'vendor': return (
         <td key={colKey} className="px-3 py-1 text-ui-13 align-middle overflow-hidden">
           {product.vendor
-            ? <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/people?tab=sources&search=${encodeURIComponent(product.vendor!)}`); }} className="text-tea-text-sec hover:text-tea-gold transition-colors truncate block text-left">{product.vendor}</button>
+            ? <button
+                type="button"
+                onClick={(event) => { event.stopPropagation(); onOpenSource(product); }}
+                aria-label={`Open source ${product.vendor}`}
+                className="inline-block w-fit max-w-full text-left text-tea-text-sec hover:text-tea-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold/50 rounded transition-colors truncate"
+              >
+                {product.vendor}
+              </button>
             : <span className="text-tea-text-dim">—</span>}
         </td>
       );
