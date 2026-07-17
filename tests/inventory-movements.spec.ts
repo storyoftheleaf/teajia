@@ -114,7 +114,7 @@ async function install(page: Page) {
 }
 
 async function chooseMovement(page: Page, label: string) {
-  await page.getByRole('combobox', { name: 'Movement type' }).selectOption({ label });
+  await page.getByRole('group', { name: 'Movement type' }).getByRole('button', { name: label, exact: true }).click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -139,6 +139,28 @@ test('only the rendered product-name words open the editor', async ({ page }) =>
 
   await nameLink.click();
   await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+});
+
+test('opening the product editor keeps the stock row typography and density unchanged', async ({ page }) => {
+  const row = page.locator('tr[data-product-id="tea-1"]');
+  const nameLink = row.getByRole('button', { name: 'Open Cloud Oolong editor' });
+  const readMetrics = () => row.evaluate((element) => {
+    const name = element.querySelector<HTMLButtonElement>('button[aria-label="Open Cloud Oolong editor"]');
+    const firstCell = element.querySelector<HTMLTableCellElement>('td');
+    if (!name || !firstCell) throw new Error('Inventory row controls were not rendered');
+    return {
+      rowHeight: element.getBoundingClientRect().height,
+      fontSize: getComputedStyle(name).fontSize,
+      lineHeight: getComputedStyle(name).lineHeight,
+      paddingLeft: getComputedStyle(firstCell).paddingLeft,
+      paddingRight: getComputedStyle(firstCell).paddingRight,
+    };
+  });
+
+  const before = await readMetrics();
+  await nameLink.click();
+  await expect(page.getByRole('dialog', { name: 'Cloud Oolong' })).toBeVisible();
+  await expect.poll(readMetrics).toEqual(before);
 });
 
 test('only the rendered stock number opens the compact stock adjustment', async ({ page }) => {
@@ -199,10 +221,13 @@ test('the tea name and selection-rail Edit both open the full product editor', a
 test('normal stock interaction opens explicit movement actions and previews before/after', async ({ page }) => {
   await page.getByRole('button', { name: 'Change stock for Cloud Oolong' }).click();
   await expect(page.getByRole('dialog', { name: 'Change stock — Cloud Oolong' })).toBeVisible();
+  const movementButtons = page.getByRole('group', { name: 'Movement type' });
+  await expect(page.getByRole('combobox', { name: 'Movement type' })).toHaveCount(0);
   for (const label of ['Receive', 'Sample use', 'Gift', 'Waste', 'Return', 'Recount', 'Transfer']) {
-    await expect(page.getByRole('option', { name: label, exact: true })).toHaveCount(1);
+    await expect(movementButtons.getByRole('button', { name: label, exact: true })).toBeVisible();
   }
-  await chooseMovement(page, 'Waste');
+  await movementButtons.getByRole('button', { name: 'Waste', exact: true }).click();
+  await expect(movementButtons.getByRole('button', { name: 'Waste', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('Quantity').fill('15');
   await expect(page.getByText('100g → 85g')).toBeVisible();
   await page.getByRole('button', { name: 'Add note or reference' }).click();
@@ -226,7 +251,7 @@ test('stock adjustment opens as a compact task with optional details and history
   expect(viewport).not.toBeNull();
   expect(box!.height).toBeLessThan(viewport!.height - 80);
   expect(box!.width).toBeLessThanOrEqual(viewport!.width - 24);
-  await expect(dialog.getByRole('combobox', { name: 'Movement type' })).toBeVisible();
+  await expect(dialog.getByRole('group', { name: 'Movement type' })).toBeVisible();
   await expect(dialog.getByLabel('Movement note')).toHaveCount(0);
   await expect(dialog.getByLabel('Movement reference')).toHaveCount(0);
   await expect(dialog.getByRole('heading', { name: 'Stock History' })).toHaveCount(0);
@@ -352,7 +377,7 @@ test('quick edit opens Recount and full product edit opens movements without abs
   await page.waitForTimeout(600);
   await row.dispatchEvent('pointerup');
   await page.getByRole('button', { name: 'Recount stock for Cloud Oolong' }).click();
-  await expect(page.getByRole('combobox', { name: 'Movement type' })).toHaveValue('recount');
+  await expect(page.getByRole('group', { name: 'Movement type' }).getByRole('button', { name: 'Recount' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByLabel('New balance').fill('88');
   await page.getByRole('button', { name: 'Record movement' }).click();
   expect(movementBodies.at(-1)).toMatchObject({ movement_type: 'recount', balance: 88, expected_balance: 100 });

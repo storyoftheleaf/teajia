@@ -160,32 +160,40 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
 
         <div className="min-h-0 overflow-y-auto px-4 py-4 pb-nav-gap">
           <form onSubmit={submit} className="space-y-3">
-            <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.72fr)] gap-3 items-end">
-              <label className="block text-ui-12 text-tea-text-sec">
-                Movement
-                <select
-                  aria-label="Movement type"
-                  value={movementType}
-                  onChange={(event) => selectAction(event.target.value as MovementType)}
-                  className="admin-input mt-1 w-full"
-                >
-                  {ACTIONS.map(action => <option key={action.value} value={action.value}>{action.label}</option>)}
-                </select>
-              </label>
-
-              <label className="block text-ui-12 text-tea-text-sec">
-                {movementType === 'recount' ? 'New balance' : 'Quantity'}
-                <input
-                  aria-label={movementType === 'recount' ? 'New balance' : 'Quantity'}
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={movementType === 'recount' ? balance : quantity}
-                  onChange={event => movementType === 'recount' ? setBalance(event.target.value) : setQuantity(event.target.value)}
-                  className="admin-input mt-1 w-full"
-                />
-              </label>
+            <div>
+              <span className="block text-ui-12 text-tea-text-sec mb-1.5">Movement</span>
+              <div role="group" aria-label="Movement type" className="grid grid-cols-4 gap-1.5">
+                {ACTIONS.map(action => {
+                  const selected = movementType === action.value;
+                  return (
+                    <button
+                      key={action.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => selectAction(action.value)}
+                      className={`tap-target rounded-md border px-2 text-ui-11 transition-colors ${selected
+                        ? 'border-tea-gold bg-tea-accent-sub text-tea-text'
+                        : 'border-tea-border text-tea-text-sec hover:border-tea-gold hover:text-tea-text'}`}
+                    >
+                      {action.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            <label className="block text-ui-12 text-tea-text-sec">
+              {movementType === 'recount' ? 'New balance' : 'Quantity'}
+              <input
+                aria-label={movementType === 'recount' ? 'New balance' : 'Quantity'}
+                type="number"
+                min="0"
+                step="any"
+                value={movementType === 'recount' ? balance : quantity}
+                onChange={event => movementType === 'recount' ? setBalance(event.target.value) : setQuantity(event.target.value)}
+                className="admin-input mt-1 w-full"
+              />
+            </label>
 
             {movementType === 'transfer' && transferDestinations.length > 0 && <label className="block text-ui-12 text-tea-text-sec">
               Destination holding
