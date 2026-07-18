@@ -155,6 +155,20 @@ const QuietEyebrow: React.FC<{ label: string }> = ({ label }) => (
   <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-dim`}>{label}</p>
 );
 
+/** Field label — sits directly above a typed input in the capture form.
+ *  Sentence case (not micro-caps) and text-tea-text-sec so it reads distinct
+ *  from the QuietEyebrow zone headers above it: dim uppercase groups the zone,
+ *  sec sentence-case names the field. Keeps a filled form legible after the
+ *  placeholder disappears. */
+const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span
+    className="block font-sans text-ui-11 font-medium text-tea-text-sec mb-1.5"
+    style={{ letterSpacing: '0.02em' }}
+  >
+    {children}
+  </span>
+);
+
 export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLedger, onCommit, onReturnToLibrary, initialCollapsed = false, actionRef, onShare, purchasePickerId = `capture-purchase-picker-${entryId}`, onBuyExpandedChange, batchMode, onToggleBatchMode }) => {
   const entry = useTeaCompassStore((s) => s.getEntry(entryId));
   const updateEntry = useTeaCompassStore((s) => s.updateEntry);
@@ -1465,10 +1479,11 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
     }
   };
 
-  // Underline fields — TEA layout only. Typed identity/pricing fields lose
-  // their boxes; only pickers (Type, Form) stay chips, so "picked" reads
-  // differently from "typed" (the wayfinding contrast the redesign relies on).
-  const underlineFieldClass = 'bg-transparent border-0 border-b border-tea-border rounded-none px-1 py-2.5 font-sans text-base text-tea-text placeholder:text-tea-text-dim focus:border-tea-gold focus:outline-none transition-colors';
+  // Typed fields in the TEA layout share the ONE boxed, recessed field style
+  // (`fieldClass`) with the teaware variant: a real surface + border so a
+  // filled field never looks like a heading. Pickers (Type, Form, Storage)
+  // stay chips, so "picked" reads differently from "typed" (the wayfinding
+  // contrast the redesign relies on).
   // Tea name — the hero. Large display serif, still just a bottom hairline.
   // This is the ONE serif element in the capture form — everything else
   // below is font-sans so the form reads as one typographic system.
@@ -1539,11 +1554,13 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
         </div>
       </div>
 
-      {/* ─── IDENTITY — the hero. Tea name is the one dominant element on the
-          screen; Type demotes to a small colored text tag beneath it (color
+      {/* ─── Identity zone — the hero. Tea name is the one dominant element on
+          the screen; Type demotes to a small colored text tag beneath it (color
           carries meaning, no swatch/box) so the picker vs. typed contrast
-          starts right here. ─── */}
-      <div className="space-y-5 pt-1">
+          starts right here. The zone header does the labelling job for the
+          name field so the hero keeps its large placeholder. ─── */}
+      <div className="pt-1 space-y-2.5">
+        <QuietEyebrow label="Identity" />
         <div>
           <AutocompleteInput
             value={entry.name}
@@ -1602,58 +1619,73 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             })}
           </div>
         </BottomSheet>
+      </div>
 
-
-        {/* Region + Year (year sits to the right of origin) — underline fields */}
-        <div className="flex items-baseline gap-4">
-          <AutocompleteInput
-            value={entry.originRegion || ''}
-            onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
-            suggestions={availableRegions}
-            placeholder="Origin"
-            className={`w-full ${underlineFieldClass}`}
-          />
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder="Year"
-            value={entry.year ?? ''}
-            onChange={(e) => {
-              userTapped.current.add('year');
-              const val = e.target.value;
-              update({ year: val === '' ? undefined : Number(val) });
-            }}
-            className={`w-24 shrink-0 tabular-nums text-center ${underlineFieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-            style={{ MozAppearance: 'textfield' } as React.CSSProperties}
-          />
+      {/* ─── Provenance zone — origin, year, Chinese name. Boxed, labelled
+          fields: the persistent label survives once the placeholder (now just
+          an example) disappears. ─── */}
+      <div className="pt-5 space-y-3">
+        <QuietEyebrow label="Provenance" />
+        <div className="flex items-end gap-4">
+          <div className="flex-1 min-w-0">
+            <FieldLabel>Origin</FieldLabel>
+            <AutocompleteInput
+              value={entry.originRegion || ''}
+              onChange={(val) => { userTapped.current.add('region'); update({ originRegion: val || undefined }); }}
+              suggestions={availableRegions}
+              placeholder="e.g. Yiwu"
+              className={`w-full ${fieldClass}`}
+            />
+          </div>
+          <div className="w-24 shrink-0">
+            <FieldLabel>Year</FieldLabel>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="e.g. 2019"
+              value={entry.year ?? ''}
+              onChange={(e) => {
+                userTapped.current.add('year');
+                const val = e.target.value;
+                update({ year: val === '' ? undefined : Number(val) });
+              }}
+              className={`w-full tabular-nums text-center ${fieldClass} [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+              style={{ MozAppearance: 'textfield' } as React.CSSProperties}
+            />
+          </div>
         </div>
 
-        {/* Chinese name — under Origin. Fills automatically from known teas and
-            from label scans; the Suggest button asks the AI to write it from
-            the name + origin, since the operator won't type hanzi. */}
-        <div className="flex items-baseline gap-4">
-          <input
-            type="text"
-            value={entry.chineseName || ''}
-            onChange={(e) => update({ chineseName: e.target.value || undefined })}
-            placeholder="中文名 · Chinese name"
-            className={`flex-1 min-w-0 ${underlineFieldClass}`}
-          />
-          <button
-            type="button"
-            onClick={handleGenerateChineseName}
-            disabled={!entry.name?.trim() || generatingChinese}
-            className="pill-quiet pill-quiet-on tap-target font-sans shrink-0 disabled:opacity-40"
-            aria-label="Suggest Chinese name"
-            title="Suggest Chinese name"
-          >
-            {generatingChinese ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} strokeWidth={1.5} />}
-            <span>Suggest</span>
-          </button>
+        {/* Chinese name. Fills automatically from known teas and from label
+            scans; the Suggest button asks the AI to write it from the name +
+            origin, since the operator won't type hanzi. */}
+        <div>
+          <FieldLabel>Chinese name</FieldLabel>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={entry.chineseName || ''}
+              onChange={(e) => update({ chineseName: e.target.value || undefined })}
+              placeholder="中文名"
+              className={`flex-1 min-w-0 ${fieldClass}`}
+            />
+            <button
+              type="button"
+              onClick={handleGenerateChineseName}
+              disabled={!entry.name?.trim() || generatingChinese}
+              className="pill-quiet pill-quiet-on tap-target font-sans shrink-0 disabled:opacity-40"
+              aria-label="Suggest Chinese name"
+              title="Suggest Chinese name"
+            >
+              {generatingChinese ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} strokeWidth={1.5} />}
+              <span>Suggest</span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Pricing — same space-y-5 rhythm as the rows above; the retail
-            preview line stays tucked close under the pricing row itself. */}
+      {/* ─── Pricing zone — cost, unit, retail preview tucked close beneath. ─── */}
+      <div className="pt-5 space-y-2.5">
+        <QuietEyebrow label="Pricing" />
         <div className="space-y-2">
           <PricingRow
             priceAmount={entry.priceAmount}
