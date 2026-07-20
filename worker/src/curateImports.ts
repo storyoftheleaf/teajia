@@ -436,14 +436,22 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     }
     if (!decoded && env.GROQ_API_KEY && evidence.sources.some(source => Boolean(source.text?.trim()))) try {
       const fallbackModel = env.CURATE_IMPORT_FALLBACK_MODEL || 'openai/gpt-oss-20b';
+      const fallbackPrompt = recordHints.complete
+        ? [
+            'Translate each non-English originalName in BASE_PROPOSAL into a concise, natural English tea name.',
+            'Return only the complete valid JSON object. Do not add or remove items. Keep every value except englishName and uncertainty exactly as supplied.',
+            'When a translation is supplied, remove uncertainty.englishName. Do not guess identity matches or candidate ids.',
+            `BASE_PROPOSAL=${JSON.stringify(buildImportRecordFallbackProposal(recordHints))}`,
+          ].join('\n')
+        : `${prompt}\nReturn only one valid JSON object matching the requested import shape.`;
       const ai = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST', headers: { 'content-type': 'application/json', Authorization: `Bearer ${env.GROQ_API_KEY}` },
         body: JSON.stringify({
           model: fallbackModel,
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: 'user', content: fallbackPrompt }],
           temperature: 0,
-          max_completion_tokens: 4096,
-          response_format: { type: 'json_schema', json_schema: { name: 'curate_import_analysis', strict: false, schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA } },
+          max_completion_tokens: 2048,
+          response_format: { type: 'json_object' },
         }),
       });
       if (!ai.ok) {

@@ -456,9 +456,10 @@ describe('Curate import provenance API', () => {
     expect(vi.mocked(fetch).mock.calls[1][0]).toBe('https://api.groq.com/openai/v1/chat/completions');
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body))).toMatchObject({
       model: 'openai/gpt-oss-20b',
-      max_completion_tokens: 4096,
-      response_format: { type: 'json_schema', json_schema: { name: 'curate_import_analysis', strict: false } },
+      max_completion_tokens: 2048,
+      response_format: { type: 'json_object' },
     });
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body)).messages[0].content).toContain('BASE_PROPOSAL=');
   });
 
   it('ingests an unrepresentable provider decimal as exact string provenance', async () => {
