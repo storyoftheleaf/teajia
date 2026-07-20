@@ -448,14 +448,15 @@ describe('Curate import provenance API', () => {
     const body = await analyzed.json() as any;
 
     expect(analyzed.status).toBe(200);
-    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: 'openai/gpt-oss-120b' });
+    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: 'openai/gpt-oss-20b' });
     expect(body.items).toEqual([expect.objectContaining({
       name: 'Aged Liubao Tea',
       parsed_data: expect.objectContaining({ originalName: '陈年六堡茶', totalQuantityGrams: 500, lineCost: 380 }),
     })]);
     expect(vi.mocked(fetch).mock.calls[1][0]).toBe('https://api.groq.com/openai/v1/chat/completions');
     expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body))).toMatchObject({
-      model: 'openai/gpt-oss-120b',
+      model: 'openai/gpt-oss-20b',
+      max_completion_tokens: 4096,
       response_format: { type: 'json_schema', json_schema: { name: 'curate_import_analysis', strict: false } },
     });
   });
