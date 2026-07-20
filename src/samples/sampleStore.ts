@@ -69,6 +69,19 @@ interface SampleStoreState {
   getSetForSample: (sampleId: string) => SampleSet | undefined;
 }
 
+/** True only when the local samples outbox contains work for D1. */
+export function selectSampleSyncPending(state: {
+  samples: Array<Pick<TeaSample, 'synced'>>;
+  sampleSets: Array<Pick<SampleSet, 'synced'>>;
+  sampleTombstones: string[];
+  sampleSetTombstones: string[];
+}): boolean {
+  return state.samples.some((sample) => !sample.synced)
+    || state.sampleSets.some((sampleSet) => sampleSet.synced !== true)
+    || state.sampleTombstones.length > 0
+    || state.sampleSetTombstones.length > 0;
+}
+
 export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
   return create<SampleStoreState>()(
   persist(

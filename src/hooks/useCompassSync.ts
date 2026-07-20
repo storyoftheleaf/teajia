@@ -3,7 +3,7 @@ import { useTeaCompassStore } from '../lib/teaCompassStore';
 import { hydrateCompassEntries, syncCompassEntries, compassHasPendingWork } from '../lib/teaCompassSync';
 import { AUTH_TOKEN_CHANGED_EVENT, hasToken, isTokenScopedToAccount } from '../lib/api';
 import { useAppStore } from '../lib/store';
-import { useSampleStore } from '../samples/sampleStore';
+import { selectSampleSyncPending, useSampleStore } from '../samples/sampleStore';
 import { useSampleCartStore } from '../samples/sampleCartStore';
 import { sampleRepository } from '../samples/sampleRepository';
 
@@ -25,10 +25,9 @@ import { sampleRepository } from '../samples/sampleRepository';
 export function useCompassSync(isAuthenticated: boolean) {
   const activeAccountId = useAppStore((s) => s.activeAccountId);
   const entries = useTeaCompassStore((s) => s.entries);
-  const samples = useSampleStore((s) => s.samples);
-  const sampleSets = useSampleStore((s) => s.sampleSets);
-  const sampleTombstones = useSampleStore((s) => s.sampleTombstones);
-  const sampleSetTombstones = useSampleStore((s) => s.sampleSetTombstones);
+  const samplesPending = useSampleStore((state) => (
+    state.accountScopeId === activeAccountId && selectSampleSyncPending(state)
+  ));
   const hasFetchedRef = useRef(false);
   const prevAuthRef = useRef(isAuthenticated);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,6 +93,7 @@ export function useCompassSync(isAuthenticated: boolean) {
   useEffect(() => {
     if (!isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
     if (!hasFetchedRef.current) return;
+    if (!samplesPending) return;
     if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
     sampleDebounceRef.current = setTimeout(() => {
       sampleRepository.sync(activeAccountId).catch(() => {});
@@ -101,7 +101,7 @@ export function useCompassSync(isAuthenticated: boolean) {
     return () => {
       if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
     };
-  }, [activeAccountId, isAuthenticated, samples, sampleSets, sampleTombstones, sampleSetTombstones]);
+  }, [activeAccountId, isAuthenticated, samplesPending]);
 
   // Retry sync when the browser transitions back online
   useEffect(() => {
@@ -131,13 +131,9 @@ export function useCompassSync(isAuthenticated: boolean) {
         syncCompassEntries(activeAccountId).catch(() => {});
       }
       const sampleState = useSampleStore.getState();
-      const samplesPending = sampleState.accountScopeId === activeAccountId && (
-        sampleState.samples.some((sample) => !sample.synced)
-        || sampleState.sampleSets.some((sampleSet) => sampleSet.synced !== true)
-        || sampleState.sampleTombstones.length > 0
-        || sampleState.sampleSetTombstones.length > 0
-      );
-      if (hasToken() && samplesPending) sampleRepository.sync(activeAccountId).catch(() => {});
+      const hasPendingSamples = sampleState.accountScopeId === activeAccountId
+        && selectSampleSyncPending(sampleState);
+      if (hasToken() && hasPendingSamples) sampleRepository.sync(activeAccountId).catch(() => {});
     };
     const interval = setInterval(retryIfPending, 30_000);
     const handleVisible = () => {
