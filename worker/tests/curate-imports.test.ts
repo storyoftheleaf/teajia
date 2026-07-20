@@ -429,8 +429,11 @@ describe('Curate import provenance API', () => {
     const record = 'Huang Wei\n陈年六堡茶380元/500克 x1=380元';
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
       title: 'Provider fallback', source_kind: 'paste', pasted_text: record,
+      items: record.split('\n').map((line, position) => ({ position, category: 'tea', name: line, raw_text: line, parsed_data: { name: line } })),
     }) });
     const { batch, sources } = await created.json() as any;
+    db.sources.get(sources[0].id)!.analysis_status = 'failed';
+    Object.assign(db.batches.get(batch.id)!, { analysis_state: 'failed', analysis_error: 'analysis_provider_400' });
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: 'credit balance is too low' } }), { status: 400 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
@@ -439,7 +442,9 @@ describe('Curate import provenance API', () => {
         }] }],
       }) } }] }), { status: 200 }));
 
-    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', undefined, { GROQ_API_KEY: 'test-groq-key' });
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, {
+      method: 'POST', body: JSON.stringify({ source_ids: [sources[0].id] }),
+    }, 'account-a', 'user-a', undefined, { GROQ_API_KEY: 'test-groq-key' });
     const body = await analyzed.json() as any;
 
     expect(analyzed.status).toBe(200);

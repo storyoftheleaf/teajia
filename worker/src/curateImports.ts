@@ -553,13 +553,17 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
         ).bind(itemId, params.id, proposedSourceId, ctx.accountId, ctx.userId, position++, category, name, null, JSON.stringify(normalizedParsed), Object.values(proposed.confidence).length ? Math.min(...Object.values(proposed.confidence)) : null, JSON.stringify(proposed.uncertainty), crypto.randomUUID(), groupId, attemptToken, params.id, ctx.accountId));
       }
     }
-    for (const row of itemsResult.results) if (!requestedSourceIds && !keptItemIds.has(String(row.id)) && !(parseJson(row.manually_corrected_fields_json, []) as unknown[]).length) {
+    for (const row of itemsResult.results) {
+      if (keptItemIds.has(String(row.id))) continue;
+      const belongsToRetry = !requestedSourceIds || (typeof row.source_id === 'string' && requestedSourceIds.includes(row.source_id));
+      const manuallyCorrected = (parseJson(row.manually_corrected_fields_json, []) as unknown[]).length > 0;
+      if (!belongsToRetry || manuallyCorrected) {
+        if (typeof row.vendor_group_id === 'string') keptGroupIds.add(row.vendor_group_id);
+        continue;
+      }
       statements.push(env.DB.prepare("DELETE FROM curate_import_items WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
     }
-    for (const row of itemsResult.results) if (!requestedSourceIds && !keptItemIds.has(String(row.id)) && (parseJson(row.manually_corrected_fields_json, []) as unknown[]).length && typeof row.vendor_group_id === 'string') {
-      keptGroupIds.add(row.vendor_group_id);
-    }
-    for (const row of groupsResult.results) if (!requestedSourceIds && !keptGroupIds.has(String(row.id))) {
+    for (const row of groupsResult.results) if (!keptGroupIds.has(String(row.id))) {
       statements.push(env.DB.prepare("DELETE FROM curate_import_vendor_groups WHERE id = ? AND batch_id = ? AND account_id = ? AND EXISTS (SELECT 1 FROM curate_import_batches WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(row.id, params.id, ctx.accountId, attemptToken, params.id, ctx.accountId));
     }
     statements.push(env.DB.prepare(
