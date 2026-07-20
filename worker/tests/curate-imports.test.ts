@@ -288,7 +288,7 @@ async function token(userId: string, accountId: string) {
   return `${payload}.${b64(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload))))}`;
 }
 let legacyIdempotencySequence = 0;
-async function request(db: ImportDb, path: string, init: RequestInit = {}, accountId = 'account-a', userId = 'user-a', bucket?: R2Bucket) {
+async function request(db: ImportDb, path: string, init: RequestInit = {}, accountId = 'account-a', userId = 'user-a', bucket?: R2Bucket, envOverrides: Record<string, unknown> = {}) {
   if (init.body && typeof init.body === 'string' && init.method === 'POST' && (path === '/api/curate/imports' || /\/sources$/.test(path))) {
     const body = JSON.parse(init.body);
     if (!body.idempotency_key) init = { ...init, body: JSON.stringify({ ...body, idempotency_key: `legacy-test-${++legacyIdempotencySequence}` }) };
@@ -297,7 +297,7 @@ async function request(db: ImportDb, path: string, init: RequestInit = {}, accou
   headers.set('Authorization', `Bearer ${await token(userId, accountId)}`);
   headers.set('X-Teajia-Account', accountId);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET, MEDIA_BUCKET: bucket, ANTHROPIC_API_KEY: 'test-anthropic-key' } as any);
+  return worker.fetch(new Request(`https://test.dev${path}`, { ...init, headers }), { DB: db, JWT_SECRET, MEDIA_BUCKET: bucket, ANTHROPIC_API_KEY: 'test-anthropic-key', ...envOverrides } as any);
 }
 
 function itemProposal(sourceItemId: string, evidenceRef = 'source') {
@@ -422,6 +422,37 @@ describe('Curate import provenance API', () => {
       { name: 'Aged Ripe Pu’er', originalName: '陈年旧熟普', packWeight: 500, packCount: 2, totalQuantityGrams: 1000, lineCost: 800, currency: 'CNY' },
       { name: 'Northern Vietnam Aged Ripe Pu’er', originalName: '北越旧熟普', packWeight: 500, packCount: 4, totalQuantityGrams: 2000, lineCost: 1120, currency: 'CNY' },
     ]);
+  });
+
+  it('falls back to Groq for translation when Anthropic is unavailable', async () => {
+    const db = new ImportDb();
+    const record = 'Huang Wei\n陈年六堡茶380元/500克 x1=380元';
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Provider fallback', source_kind: 'paste', pasted_text: record,
+    }) });
+    const { batch, sources } = await created.json() as any;
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: 'credit balance is too low' } }), { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+        overview: 'One purchased tea', language: 'zh', groups: [{ key: 'record', proposedVendorName: 'Huang Wei', items: [{
+          ...itemProposal(`record:${sources[0].id}:1`, sources[0].id), originalName: '陈年六堡茶', englishName: 'Aged Liubao Tea',
+        }] }],
+      }) } }] }), { status: 200 }));
+
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' }, 'account-a', 'user-a', undefined, { GROQ_API_KEY: 'test-groq-key' });
+    const body = await analyzed.json() as any;
+
+    expect(analyzed.status).toBe(200);
+    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: 'openai/gpt-oss-120b' });
+    expect(body.items).toEqual([expect.objectContaining({
+      name: 'Aged Liubao Tea',
+      parsed_data: expect.objectContaining({ originalName: '陈年六堡茶', totalQuantityGrams: 500, lineCost: 380 }),
+    })]);
+    expect(vi.mocked(fetch).mock.calls[1][0]).toBe('https://api.groq.com/openai/v1/chat/completions');
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[1][1]?.body))).toMatchObject({
+      model: 'openai/gpt-oss-120b',
+      response_format: { type: 'json_schema', json_schema: { name: 'curate_import_analysis', strict: false } },
+    });
   });
 
   it('ingests an unrepresentable provider decimal as exact string provenance', async () => {

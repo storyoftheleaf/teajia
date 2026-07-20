@@ -509,6 +509,45 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
   };
 }
 
+export function buildImportRecordFallbackProposal(hints: ImportRecordHints): ImportAnalysisProposal {
+  if (!hints.complete || !hints.items.length) throw new Error('analysis_record_hints_incomplete');
+  const supplier = hints.suppliers[0]?.name ?? null;
+  return {
+    overview: `Recovered ${hints.items.length} purchased ${hints.items.length === 1 ? 'item' : 'items'} from the record; translation and identity need review.`,
+    language: hints.items.some(item => /\p{Script=Han}/u.test(item.originalName)) ? 'zh' : 'unknown',
+    groups: [{
+      key: `record:${hints.items[0].sourceId}`,
+      proposedVendorName: supplier,
+      proposedVendorCustomerId: null,
+      vendorConfidence: supplier ? 1 : null,
+      uncertainty: {},
+      items: hints.items.map(hint => ({
+        sourceItemId: hint.sourceItemId,
+        category: 'tea',
+        originalName: hint.originalName,
+        englishName: null,
+        packWeight: hint.packWeight,
+        weightUnit: hint.weightUnit,
+        packCount: hint.packCount,
+        priceAmount: hint.priceAmount,
+        currency: hint.currency,
+        priceBasis: hint.priceBasis,
+        confidence: {
+          originalName: 1, packWeight: 1, weightUnit: 1, packCount: 1,
+          priceAmount: 1, currency: 1, priceBasis: 1, acquired: 1,
+        },
+        uncertainty: {
+          englishName: 'Translation provider unavailable; review the original name.',
+          duplicateResolution: 'Choose whether this is a new or existing Curate identity.',
+        },
+        evidenceRefs: [hint.evidenceRef],
+        acquired: true,
+        duplicateResolution: 'unresolved',
+      })),
+    }],
+  };
+}
+
 export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, candidates: ImportMatchCandidates): string {
   const evidenceText = evidence.sources.map(source => source.text ?? '').join(' ').normalize('NFKD').toLowerCase();
   const bounded = <T extends { name: string | null }>(values: T[]) => values.map((value, index) => ({ value, index, relevant: Boolean(value.name && evidenceText.includes(value.name.normalize('NFKD').toLowerCase())) }))

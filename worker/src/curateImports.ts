@@ -1,6 +1,6 @@
 import { compassValuesFromImport } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, normalizeImportProposal, renormalizeImportItemData, type ImportMatchCandidates } from './curateImportAnalysis';
+import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordFallbackProposal, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, normalizeImportProposal, renormalizeImportItemData, type ImportAnalysisProposal, type ImportMatchCandidates } from './curateImportAnalysis';
 import { CurateImportFinalizeError, finalizeCurateImport, type CurateFinalizeData, type FinalizeReceiptLine } from './curateImportFinalize';
 import { decodeInventoryReceipt, inventoryPurposeConflict } from './inventoryDomain';
 
@@ -13,7 +13,9 @@ interface ImportEnv {
   DB: D1Database;
   MEDIA_BUCKET?: R2Bucket;
   ANTHROPIC_API_KEY?: string;
+  GROQ_API_KEY?: string;
   CURATE_IMPORT_ANALYSIS_MODEL?: string;
+  CURATE_IMPORT_FALLBACK_MODEL?: string;
 }
 
 const SOURCE_KINDS = new Set(['wechat', 'invoice', 'vendor_list', 'photo', 'file', 'paste']);
@@ -351,7 +353,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);
   if (batchIsTerminal(batch)) return terminalResponse();
-  if (!env.ANTHROPIC_API_KEY) return response({ error: 'Import analysis is not configured' }, 503);
+  if (!env.ANTHROPIC_API_KEY && !env.GROQ_API_KEY) return response({ error: 'Import analysis is not configured' }, 503);
   let requestedSourceIds: string[] | null = null;
   try {
     const raw = await request.text();
@@ -406,23 +408,64 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     const { evidence, media } = await analysisEvidence(env, selectedSources);
     analyzedSources = evidence.sources;
     if (!evidence.sources.some(source => source.analysisStatus === 'analyzed' && Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
-    const ai = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model,
-        max_tokens: 8192,
-        temperature: 0,
-        output_config: { format: { type: 'json_schema', schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA } },
-        messages: [{ role: 'user', content: [...media, { type: 'text', text: buildImportAnalysisPrompt(evidence, candidates) }] }],
-      }),
-    });
-    if (!ai.ok) {
-      const providerError = await ai.text();
-      console.error(`Curate import analysis upstream error: ${ai.status}: ${providerError.slice(0, 1000)}`);
-      throw new Error(`analysis_provider_${ai.status}`);
+    const prompt = buildImportAnalysisPrompt(evidence, candidates);
+    const recordHints = buildImportRecordHints(evidence);
+    let decoded: ImportAnalysisProposal | null = null;
+    let analysisModel = model;
+    let providerFailure = 'analysis_provider_unavailable';
+    if (env.ANTHROPIC_API_KEY) try {
+      const ai = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model,
+          max_tokens: 8192,
+          temperature: 0,
+          output_config: { format: { type: 'json_schema', schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA } },
+          messages: [{ role: 'user', content: [...media, { type: 'text', text: prompt }] }],
+        }),
+      });
+      if (!ai.ok) {
+        const providerError = await ai.text();
+        console.error(`Curate import analysis upstream error: ${ai.status}: ${providerError.slice(0, 1000)}`);
+        throw new Error(`analysis_provider_${ai.status}`);
+      }
+      decoded = decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json())));
+    } catch (error) {
+      providerFailure = error instanceof Error ? error.message : providerFailure;
+      console.error(`Curate import primary analysis failed: ${providerFailure.slice(0, 500)}`);
     }
-    const decoded = decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json())));
-    const normalized = normalizeImportProposal(applyImportRecordHints(decoded, buildImportRecordHints(evidence)));
+    if (!decoded && env.GROQ_API_KEY && evidence.sources.some(source => Boolean(source.text?.trim()))) try {
+      const fallbackModel = env.CURATE_IMPORT_FALLBACK_MODEL || 'openai/gpt-oss-120b';
+      const ai = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST', headers: { 'content-type': 'application/json', Authorization: `Bearer ${env.GROQ_API_KEY}` },
+        body: JSON.stringify({
+          model: fallbackModel,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0,
+          max_completion_tokens: 8192,
+          response_format: { type: 'json_schema', json_schema: { name: 'curate_import_analysis', strict: false, schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA } },
+        }),
+      });
+      if (!ai.ok) {
+        const providerError = await ai.text();
+        console.error(`Curate import fallback analysis upstream error: ${ai.status}: ${providerError.slice(0, 1000)}`);
+        throw new Error(`analysis_fallback_provider_${ai.status}`);
+      }
+      const payload = await ai.json() as { choices?: Array<{ message?: { content?: unknown } }> };
+      const content = payload.choices?.[0]?.message?.content;
+      if (typeof content !== 'string' || !content.trim()) throw new Error('analysis_fallback_empty_response');
+      decoded = decodeImportAnalysisProposal(JSON.parse(content));
+      analysisModel = fallbackModel;
+    } catch (error) {
+      providerFailure = error instanceof Error ? error.message : providerFailure;
+      console.error(`Curate import fallback analysis failed: ${providerFailure.slice(0, 500)}`);
+    }
+    if (!decoded) {
+      if (!recordHints.complete) throw new Error(providerFailure);
+      decoded = buildImportRecordFallbackProposal(recordHints);
+      analysisModel = 'record-parser-v1';
+    }
+    const normalized = normalizeImportProposal(applyImportRecordHints(decoded, recordHints));
     validateEvidenceReferences(normalized, evidence);
     const evidenceReferences = evidenceReferencesBySource(normalized);
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));
@@ -521,7 +564,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     }
     statements.push(env.DB.prepare(
       "UPDATE curate_import_batches SET review_state = 'reviewing', analysis_state = 'complete', analysis_overview = ?, analysis_language = ?, analysis_version = analysis_version + 1, analysis_model = ?, analysis_error = NULL, analysis_attempt_token = NULL, updated_at = datetime('now') WHERE analysis_attempt_token = ? AND id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL"
-    ).bind(normalized.overview, normalized.language, model, attemptToken, params.id, ctx.accountId));
+    ).bind(normalized.overview, normalized.language, analysisModel, attemptToken, params.id, ctx.accountId));
     const persisted = await env.DB.batch(statements);
     if (!(persisted.at(-1)?.meta.changes ?? 0)) throw new AnalysisSupersededError();
     return response(await fullBatch(env, params.id, ctx.accountId));

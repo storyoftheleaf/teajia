@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyImportRecordHints,
   buildImportAnalysisPrompt,
+  buildImportRecordFallbackProposal,
   buildImportRecordHints,
   decodeImportAnalysisProposal,
   normalizeImportProposal,
@@ -197,6 +198,28 @@ describe('Curate import analysis domain', () => {
       { originalName: '陈年旧熟普', englishName: 'Aged Ripe Pu’er', totalQuantityGrams: 1000, lineCost: 800 },
       { originalName: '北越旧熟普', englishName: 'Northern Vietnam Aged Ripe Pu’er', totalQuantityGrams: 2000, lineCost: 1120 },
     ]);
+  });
+
+  it('keeps complete record facts reviewable when every model provider is unavailable', () => {
+    const evidence = { sources: [{
+      id: 'source-huang', kind: 'paste',
+      text: 'Huang Wei\n陈年六堡茶380元/500克 x1=380元\n陈年旧熟普400元/500克 x2=800元\n北越旧熟普280元/500克 x4=1120元\n共计：2300元X2=4600元',
+    }] };
+
+    const normalized = normalizeImportProposal(buildImportRecordFallbackProposal(buildImportRecordHints(evidence)));
+
+    expect(normalized).toMatchObject({
+      overview: 'Recovered 3 purchased items from the record; translation and identity need review.',
+      groups: [{
+        proposedVendorName: 'Huang Wei',
+        items: [
+          { originalName: '陈年六堡茶', englishName: null, totalQuantityGrams: 500, lineCost: 380 },
+          { originalName: '陈年旧熟普', englishName: null, totalQuantityGrams: 1000, lineCost: 800 },
+          { originalName: '北越旧熟普', englishName: null, totalQuantityGrams: 2000, lineCost: 1120 },
+        ],
+      }],
+    });
+    expect(normalized.groups[0].items[0].blockingFields).toEqual(expect.arrayContaining(['englishName', 'duplicateResolution']));
   });
 
   it('bounds provider candidates and strips contact aliases', () => {
