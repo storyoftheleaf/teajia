@@ -30,6 +30,9 @@ custom_domain = true
 [vars]
 OAUTH_REDIRECT_ORIGIN = "https://teajia-api.lightcodes.workers.dev"
 
+[ai]
+binding = "AI"
+
 # Secrets (set via `wrangler secret put`, never committed):
 #   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET  — Google OAuth (local dev reads them from worker/.dev.vars)
 #   JWT_SECRET, ADMIN_PASSWORD_HASH         — auth

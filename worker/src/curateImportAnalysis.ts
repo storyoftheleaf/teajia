@@ -1,6 +1,16 @@
 export type ImportPriceBasis = 'per_pack' | 'line_total' | 'unknown';
 export type ImportWeightUnit = 'g' | 'kg' | 'count';
 export type ImportCategory = 'tea' | 'teaware';
+export type ImportConfidenceField =
+  | 'vendor' | 'identity' | 'translation' | 'englishName' | 'nameTranslation'
+  | 'originalName' | 'category' | 'packWeight' | 'weightUnit' | 'quantity'
+  | 'packCount' | 'priceBasis' | 'price' | 'priceAmount' | 'currency'
+  | 'acquisitionState' | 'acquired' | 'duplicateResolution' | 'chineseName'
+  | 'type' | 'form' | 'year' | 'originCountry' | 'originRegion'
+  | 'classification' | 'description' | 'inventoryPurpose';
+export type ImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
+export type ImportAnalysisConfidence = Partial<Record<ImportConfidenceField, number>>;
+export type ImportAnalysisValidation = Partial<Record<ImportConfidenceField, ImportValidationState>>;
 
 export interface ImportAnalysisItem {
   sourceItemId: string;
@@ -13,7 +23,8 @@ export interface ImportAnalysisItem {
   priceAmount: string | number | null;
   currency: string | null;
   priceBasis: ImportPriceBasis;
-  confidence: Record<string, number>;
+  confidence: ImportAnalysisConfidence;
+  validation?: ImportAnalysisValidation;
   uncertainty: Record<string, string>;
   evidenceRefs: string[];
   acquired: boolean | null;
@@ -69,7 +80,7 @@ export interface ImportMatchCandidates {
 
 export interface ImportRecordHints {
   complete: boolean;
-  suppliers: Array<{ sourceId: string; name: string; evidenceRef: string }>;
+  suppliers: Array<{ sourceId: string; name: string; evidenceRef: string; explicit: boolean }>;
   items: Array<{
     sourceId: string;
     sourceItemId: string;
@@ -81,15 +92,55 @@ export interface ImportRecordHints {
     priceAmount: string;
     currency: string;
     priceBasis: ImportPriceBasis;
-    lineTotal: string;
+    lineTotal: string | null;
     totalQuantityGrams: number | null;
     arithmeticMatches: boolean;
+    supplierName?: string | null;
+    supplierExplicit?: boolean;
   }>;
   ignoredSummaries: Array<{ sourceId: string; text: string; evidenceRef: string }>;
+  annotations: Array<{
+    sourceId: string;
+    kind: 'heading' | 'note' | 'fee' | 'subtotal' | 'total';
+    text: string;
+    evidenceRef: string;
+    amountExact?: string | null;
+    currency?: string | null;
+    arithmeticMatches?: boolean | null;
+  }>;
 }
 
 const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' }] });
-const emptyRecordSchema = { type: 'object', properties: {}, required: [], additionalProperties: false };
+const CONFIDENCE_FIELDS = [
+  'vendor', 'identity', 'translation', 'englishName', 'nameTranslation', 'originalName', 'category',
+  'packWeight', 'weightUnit', 'quantity', 'packCount', 'priceBasis', 'price', 'priceAmount', 'currency',
+  'acquisitionState', 'acquired', 'duplicateResolution', 'chineseName', 'type', 'form', 'year',
+  'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
+] as const satisfies readonly ImportConfidenceField[];
+const confidenceSchema = {
+  type: 'object',
+  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, { type: 'number' }])),
+  required: [],
+  additionalProperties: false,
+};
+const validationSchema = {
+  type: 'object',
+  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, { type: 'string', enum: ['source_fact', 'ai_interpretation', 'canonical_match', 'validated', 'not_present', 'uncertain'] }])),
+  required: [],
+  additionalProperties: false,
+};
+const itemUncertaintySchema = {
+  type: 'object',
+  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, { type: 'string' }])),
+  required: [],
+  additionalProperties: false,
+};
+const groupUncertaintySchema = {
+  type: 'object',
+  properties: { vendor: { type: 'string' } },
+  required: [],
+  additionalProperties: false,
+};
 
 export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
   type: 'object',
@@ -105,7 +156,7 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
           proposedVendorName: nullable({ type: 'string' }),
           proposedVendorCustomerId: { type: 'string' },
           vendorConfidence: { type: 'number' },
-          uncertainty: emptyRecordSchema,
+          uncertainty: groupUncertaintySchema,
           items: {
             type: 'array',
             items: {
@@ -121,8 +172,9 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
                 priceAmount: nullable({ type: 'string' }),
                 currency: nullable({ type: 'string' }),
                 priceBasis: { type: 'string', enum: ['per_pack', 'line_total', 'unknown'] },
-                confidence: emptyRecordSchema,
-                uncertainty: emptyRecordSchema,
+                confidence: confidenceSchema,
+                validation: validationSchema,
+                uncertainty: itemUncertaintySchema,
                 evidenceRefs: { type: 'array', items: { type: 'string' } },
                 acquired: nullable({ type: 'boolean' }),
                 duplicateResolution: { type: 'string', enum: ['new', 'matched', 'unresolved'] },
@@ -152,7 +204,7 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose'] as const;
+const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose'] as const;
 const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields'] as const;
 
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -201,22 +253,39 @@ function optionalYear(value: unknown): number | null {
   return Number(value);
 }
 
-function stringRecord(value: unknown, field: string): Record<string, string> {
+function stringRecord(value: unknown, field: string, allowed?: readonly string[]): Record<string, string> {
   const source = record(value, field);
   const result: Record<string, string> = {};
   for (const [key, entry] of Object.entries(source)) {
+    if (allowed && !allowed.includes(key)) throw new Error(`Invalid ${field}.${key}`);
     if (typeof entry !== 'string' || entry.length > 2000) throw new Error(`Invalid ${field}.${key}`);
     result[key] = entry;
   }
   return result;
 }
 
-function confidenceRecord(value: unknown): Record<string, number> {
+function confidenceRecord(value: unknown): ImportAnalysisConfidence {
   const source = record(value, 'confidence');
-  const result: Record<string, number> = {};
+  const result: ImportAnalysisConfidence = {};
   for (const [key, entry] of Object.entries(source)) {
+    if (!CONFIDENCE_FIELDS.includes(key as ImportConfidenceField)) throw new Error(`Invalid confidence.${key}`);
     if (typeof entry !== 'number' || !Number.isFinite(entry) || entry < 0 || entry > 1) throw new Error(`Invalid confidence.${key}`);
-    result[key] = entry;
+    result[key as ImportConfidenceField] = entry;
+  }
+  return result;
+}
+
+const VALIDATION_STATES = new Set<ImportValidationState>(['source_fact', 'ai_interpretation', 'canonical_match', 'validated', 'not_present', 'uncertain']);
+
+function validationRecord(value: unknown): ImportAnalysisValidation {
+  if (value == null) return {};
+  const source = record(value, 'validation');
+  const result: ImportAnalysisValidation = {};
+  for (const [key, entry] of Object.entries(source)) {
+    if (!CONFIDENCE_FIELDS.includes(key as ImportConfidenceField) || typeof entry !== 'string' || !VALIDATION_STATES.has(entry as ImportValidationState)) {
+      throw new Error(`Invalid validation.${key}`);
+    }
+    result[key as ImportConfidenceField] = entry as ImportValidationState;
   }
   return result;
 }
@@ -245,7 +314,7 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
     packWeight: finiteNonNegative(input.packWeight, 'packWeight'), weightUnit,
     packCount: finiteNonNegative(input.packCount, 'packCount'), priceAmount: authoritativeDecimal(input.priceAmount, 'priceAmount'),
     currency: string(input.currency, 'currency', true), priceBasis,
-    confidence: confidenceRecord(input.confidence), uncertainty: stringRecord(input.uncertainty, 'uncertainty'),
+    confidence: confidenceRecord(input.confidence), validation: validationRecord(input.validation), uncertainty: stringRecord(input.uncertainty, 'uncertainty', CONFIDENCE_FIELDS),
     evidenceRefs: [...input.evidenceRefs] as string[],
     acquired: input.acquired == null ? null : input.acquired,
     duplicateResolution,
@@ -269,7 +338,7 @@ export function decodeImportAnalysisProposal(value: unknown): ImportAnalysisProp
       return {
         key: string(group.key, 'group.key')!, proposedVendorName: string(group.proposedVendorName, 'proposedVendorName', true),
         proposedVendorCustomerId: string(group.proposedVendorCustomerId, 'proposedVendorCustomerId', true), vendorConfidence,
-        uncertainty: group.uncertainty == null ? {} : stringRecord(group.uncertainty, 'group.uncertainty'),
+        uncertainty: group.uncertainty == null ? {} : stringRecord(group.uncertainty, 'group.uncertainty', ['vendor']),
         items: group.items.map((item, itemIndex) => decodeItem(item, groupIndex, itemIndex)),
       };
     }),
@@ -292,10 +361,57 @@ function rounded(value: number) { return Number(value.toFixed(8)); }
 const ISO_4217_CODES = new Set((Intl as typeof Intl & { supportedValuesOf(key: 'currency'): string[] }).supportedValuesOf('currency'));
 const MATERIAL_CONFIDENCE_BLOCKERS: Record<string, string> = {
   vendor: 'vendor', identity: 'identity', translation: 'englishName', englishName: 'englishName', nameTranslation: 'englishName',
+  originalName: 'identity', category: 'identity', duplicateResolution: 'duplicateResolution',
   packWeight: 'packWeight', weightUnit: 'weightUnit', quantity: 'packCount', packCount: 'packCount', priceBasis: 'priceBasis',
   price: 'priceAmount', priceAmount: 'priceAmount', currency: 'currency', acquisitionState: 'acquired', acquired: 'acquired',
 };
+const MATERIAL_VALIDATION_BLOCKERS: Partial<Record<ImportConfidenceField, string>> = {
+  vendor: 'vendor', identity: 'identity', translation: 'englishName', englishName: 'englishName', nameTranslation: 'englishName',
+  originalName: 'identity', category: 'identity', packWeight: 'packWeight', weightUnit: 'weightUnit',
+  quantity: 'packCount', packCount: 'packCount', priceBasis: 'priceBasis', price: 'priceAmount',
+  priceAmount: 'priceAmount', currency: 'currency', acquisitionState: 'acquired', acquired: 'acquired',
+  duplicateResolution: 'duplicateResolution',
+};
+const OPTIONAL_METADATA_FIELDS = ['chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description'] as const;
 const HAN = /\p{Script=Han}/u;
+const DETERMINISTIC_TRANSLATIONS: Record<string, string> = {
+  陈年六堡茶: 'Aged Liu Bao Tea',
+  陈年旧熟普: 'Aged Ripe Pu-erh Tea',
+  北越旧熟普: 'Aged Northern Vietnam Ripe Pu-erh Tea',
+};
+const TEA_TERMS: Array<{ source: RegExp; english: RegExp }> = [
+  { source: /陈年|旧/u, english: /\baged\b|\bold\b/iu },
+  { source: /生普|生茶/u, english: /\braw\b/iu },
+  { source: /熟普|熟茶/u, english: /\bripe\b/iu },
+  { source: /六堡/u, english: /\bliu\s*bao\b/iu },
+  { source: /北越/u, english: /\b(?:northern?|north)\s+vietnam\b/iu },
+  { source: /白茶/u, english: /\bwhite\s+tea\b/iu },
+  { source: /乌龙|烏龍/u, english: /\boolong\b/iu },
+  { source: /砖|磚/u, english: /\bbrick\b/iu },
+  { source: /饼|餅/u, english: /\bcake\b/iu },
+  { source: /散/u, english: /\bloose\b/iu },
+];
+
+function deterministicTranslation(originalName: string | null): string | null {
+  return originalName ? DETERMINISTIC_TRANSLATIONS[comparable(originalName)] ?? null : null;
+}
+
+function teaTermTranslationMatches(originalName: string, englishName: string): boolean | null {
+  const applicable = TEA_TERMS.filter(term => term.source.test(originalName));
+  if (!applicable.length) return null;
+  const missingRequiredTerm = applicable.some(term => !term.english.test(englishName));
+  const contradictoryExtraTerm = TEA_TERMS.some(term => term.english.test(englishName) && !term.source.test(originalName));
+  return !missingRequiredTerm && !contradictoryExtraTerm;
+}
+
+function requiresSeparateEnglishName(originalName: string, englishName: string | null, language: string): boolean {
+  if (HAN.test(originalName)) return true;
+  if (/[^\p{Script=Latin}\p{Number}\p{Punctuation}\p{Separator}]/u.test(originalName)) return true;
+  if (/^en(?:glish)?(?:[-_]|$)/iu.test(language)) return false;
+  if (!/^(?:mixed|unknown)$/iu.test(language)) return true;
+  return /[^\x00-\x7f]/u.test(originalName)
+    || Boolean(englishName && comparable(originalName) !== comparable(englishName));
+}
 
 function canonicalCurrency(value: string | null): string | null {
   if (!value || value === '¥' || value === '￥') return null;
@@ -340,6 +456,14 @@ function multiplyExact(left: string, right: number): string {
   return decimalString(a.coefficient * b.coefficient, a.scale + b.scale);
 }
 
+function addExact(left: string, right: string): string {
+  const a = decimalParts(left); const b = decimalParts(right);
+  const scale = Math.max(a.scale, b.scale);
+  const leftCoefficient = a.coefficient * 10n ** BigInt(scale - a.scale);
+  const rightCoefficient = b.coefficient * 10n ** BigInt(scale - b.scale);
+  return decimalString(leftCoefficient + rightCoefficient, scale);
+}
+
 function divideExact(left: string, right: number, precision = 18): string {
   const a = decimalParts(left); const b = decimalParts(right);
   const numerator = a.coefficient * 10n ** BigInt(b.scale + precision);
@@ -355,6 +479,10 @@ export function normalizeImportProposal(value: ImportAnalysisProposal): Normaliz
       ...group,
       items: group.items.map(item => {
         const blockingFields: string[] = [];
+        const validation: ImportAnalysisValidation = { ...item.validation };
+        for (const field of OPTIONAL_METADATA_FIELDS) {
+          if (item[field] == null && validation[field] == null) validation[field] = 'not_present';
+        }
         const currency = canonicalCurrency(item.currency);
         const block = (field: string) => { if (!blockingFields.includes(field)) blockingFields.push(field); };
         if (item.packWeight == null || item.packWeight <= 0) blockingFields.push('packWeight');
@@ -365,9 +493,54 @@ export function normalizeImportProposal(value: ImportAnalysisProposal): Normaliz
         if (item.priceBasis === 'unknown') blockingFields.push('priceBasis');
         if (item.acquired !== true) blockingFields.push('acquired');
         if (item.duplicateResolution === 'unresolved') blockingFields.push('duplicateResolution');
-        if (item.originalName && HAN.test(item.originalName) && (!item.englishName || HAN.test(item.englishName))) block('englishName');
-        for (const [field, confidence] of Object.entries(item.confidence)) if (MATERIAL_CONFIDENCE_BLOCKERS[field] && confidence < 0.8) block(MATERIAL_CONFIDENCE_BLOCKERS[field]);
-        for (const field of Object.keys(item.uncertainty)) if (MATERIAL_CONFIDENCE_BLOCKERS[field]) block(MATERIAL_CONFIDENCE_BLOCKERS[field]);
+        const needsTranslation = Boolean(item.originalName && requiresSeparateEnglishName(item.originalName, item.englishName, proposal.language));
+        if (item.englishName && HAN.test(item.englishName)) {
+          validation.translation = 'uncertain';
+          block('englishName');
+        }
+        if (item.originalName && needsTranslation) {
+          const canonical = validation.translation === 'canonical_match'
+            && item.duplicateResolution === 'matched'
+            && Boolean(item.proposedCompassEntryId);
+          const explicitlyUncertain = item.validation?.translation === 'uncertain'
+            || item.validation?.englishName === 'uncertain'
+            || item.validation?.nameTranslation === 'uncertain';
+          const hasDistinctEnglishName = Boolean(item.englishName
+            && !HAN.test(item.englishName)
+            && /[A-Za-z]/u.test(item.englishName)
+            && comparable(item.originalName) !== comparable(item.englishName));
+          const termMatch = hasDistinctEnglishName && item.englishName ? teaTermTranslationMatches(item.originalName, item.englishName) : false;
+          const translationConfidence = item.confidence.translation ?? item.confidence.englishName ?? item.confidence.nameTranslation;
+          if (canonical) {
+            validation.translation = 'canonical_match';
+          } else if (explicitlyUncertain) {
+            validation.translation = 'uncertain';
+            block('englishName');
+          } else if (!hasDistinctEnglishName || termMatch === false) {
+            validation.translation = 'uncertain';
+            block('englishName');
+          } else if (termMatch === true) {
+            validation.translation = 'validated';
+          } else if (translationConfidence == null || translationConfidence < 0.8) {
+            validation.translation = 'uncertain';
+            block('englishName');
+          } else if (validation.translation == null) {
+            validation.translation = 'ai_interpretation';
+          }
+        }
+        const trustedTranslation = validation.translation === 'validated' || validation.translation === 'canonical_match';
+        for (const [field, confidence] of Object.entries(item.confidence)) {
+          const blocker = MATERIAL_CONFIDENCE_BLOCKERS[field];
+          if (blocker && confidence < 0.8 && !(blocker === 'englishName' && trustedTranslation)) block(blocker);
+        }
+        for (const field of Object.keys(item.uncertainty)) {
+          const blocker = MATERIAL_CONFIDENCE_BLOCKERS[field];
+          if (blocker && !(blocker === 'englishName' && trustedTranslation)) block(blocker);
+        }
+        for (const [field, state] of Object.entries(validation)) {
+          const blocker = MATERIAL_VALIDATION_BLOCKERS[field as ImportConfidenceField];
+          if (state === 'uncertain' && blocker) block(blocker);
+        }
         if ((group.vendorConfidence != null && group.vendorConfidence < 0.8) || Object.keys(group.uncertainty ?? {}).some(field => field === 'vendor')) block('vendor');
         const quantity = item.packWeight != null && item.packWeight > 0 && item.packCount != null && item.packCount > 0
           ? item.packWeight * item.packCount : null;
@@ -381,7 +554,7 @@ export function normalizeImportProposal(value: ImportAnalysisProposal): Normaliz
         const physicalQuantity = totalQuantityGrams ?? totalUnits;
         const unitCostExact = lineCostExact != null && physicalQuantity != null && physicalQuantity > 0 ? divideExact(lineCostExact, physicalQuantity) : null;
         return {
-          ...item, priceAmount: compatibleMoneyNumber(priceAmountExact), currency, totalQuantityGrams, totalUnits, priceAmountExact, lineCostExact, unitCostExact, lineCost,
+          ...item, validation, priceAmount: compatibleMoneyNumber(priceAmountExact), currency, totalQuantityGrams, totalUnits, priceAmountExact, lineCostExact, unitCostExact, lineCost,
           unitCost: unitCostExact == null ? null : compatibleMoneyNumber(unitCostExact) == null ? null : rounded(Number(unitCostExact)),
           blockingFields,
         };
@@ -398,14 +571,136 @@ export function renormalizeImportItemData(value: unknown): NormalizedImportItem 
   return normalizeImportProposal(decodeImportAnalysisProposal({ overview: 'item', language: 'unknown', groups: [{ key: 'item', proposedVendorName: null, items: [raw] }] })).groups[0].items[0];
 }
 
-const SUMMARY_LINE = /^(?:共计|合计|总计|小计|grand\s+total|sub\s*total|total)\s*[:：]?/iu;
-const GENERIC_HEADER = /^(?:order|invoice|price\s*list|tea\s*list|record|supplier|vendor)\b/iu;
-const PURCHASE_LINE = /^(.+?)(\d+(?:\.\d+)?)\s*元\s*[\/／]\s*(\d+(?:\.\d+)?)\s*(克|公斤|千克|kg|g)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)\s*元$/iu;
+const TOTAL_LINE = /^(?:共计|合计|总计|grand\s+total|total)\s*[:：]?/iu;
+const SUBTOTAL_LINE = /^(?:小计|sub\s*total)\s*[:：]?/iu;
+const FEE_LINE = /^(?:(?:shipping|freight|delivery|postage|fee)\b|(?:运费|運費|邮费|郵費))\s*[:：]?/iu;
+const NOTE_LINE = /^(?:(?:note|notes|remark|remarks)\b|(?:备注|備註|说明|說明))\s*[:：]?/iu;
+const GENERIC_HEADER = /^(?:order|invoice|price\s*list|tea\s*list|record|spring\s+order|autumn\s+order)\b/iu;
+const EXPLICIT_SUPPLIER = /^(?:supplier|vendor|供应商|供應商)\s*[:：-]\s*(.+)$/iu;
+const NUMBER_SOURCE = String.raw`\d+(?:\.\d+)?`;
+const MASS_SOURCE = String.raw`(kg|kilograms?|g|grams?|克|公斤|千克)`;
+const CURRENCY_SOURCE = String.raw`(CNY|RMB|USD|EUR|GBP|AUD|IDR|TWD|NT\$|¥|￥|元|\$)`;
+const MULTIPLIER_SOURCE = String.raw`[x×*]`;
+
+interface ParsedPurchaseLine {
+  originalName: string;
+  packWeight: number;
+  weightUnit: 'g' | 'kg';
+  packCount: number;
+  priceAmount: string;
+  currency: string;
+  priceBasis: ImportPriceBasis;
+  lineTotal: string | null;
+  totalQuantityGrams: number;
+  arithmeticMatches: boolean;
+}
+
+const cleanItemName = (value: string) => value.replace(/[\s|,;:：—–-]+$/gu, '').trim();
+const massUnit = (value: string): 'g' | 'kg' => /^(?:kg|kilograms?|公斤|千克)$/iu.test(value) ? 'kg' : 'g';
+const parsedCurrency = (value: string): string => {
+  const normalized = value.toUpperCase();
+  if (normalized === '元' || normalized === 'RMB') return 'CNY';
+  if (normalized === 'NT$') return 'TWD';
+  return normalized;
+};
+type ArithmeticCurrency = string | null | 'mixed';
+const mergeArithmeticCurrency = (current: ArithmeticCurrency, next: string): ArithmeticCurrency => (
+  current == null ? next : current === next ? current : 'mixed'
+);
+
+function annotationMoney(value: string): { amountExact: string; currency: string } | null {
+  const currencyFirst = value.match(new RegExp(`${CURRENCY_SOURCE}\\s*(${NUMBER_SOURCE})`, 'iu'));
+  if (currencyFirst) return { amountExact: exact(currencyFirst[2])!, currency: parsedCurrency(currencyFirst[1]) };
+  const amountFirst = value.match(new RegExp(`(${NUMBER_SOURCE})\\s*${CURRENCY_SOURCE}`, 'iu'));
+  if (amountFirst) return { amountExact: exact(amountFirst[1])!, currency: parsedCurrency(amountFirst[2]) };
+  return null;
+}
+
+function purchaseFacts(
+  originalName: string,
+  packWeightText: string,
+  weightUnitText: string,
+  packCountText: string,
+  priceAmountText: string,
+  currencyText: string,
+  priceBasis: ImportPriceBasis,
+  explicitLineTotal?: string,
+): ParsedPurchaseLine | null {
+  const name = cleanItemName(originalName);
+  const packWeightExact = exact(packWeightText);
+  const packCountExact = exact(packCountText);
+  const priceAmount = exact(priceAmountText);
+  if (!name || packWeightExact == null || packCountExact == null || priceAmount == null) return null;
+  const packWeight = Number(packWeightExact);
+  const packCount = Number(packCountExact);
+  if (!Number.isFinite(packWeight) || !Number.isFinite(packCount) || packWeight <= 0 || packCount <= 0) return null;
+  const unit = massUnit(weightUnitText);
+  const computedLineTotal = priceBasis === 'per_pack' ? multiplyExact(priceAmount, packCount) : priceBasis === 'line_total' ? priceAmount : null;
+  const lineTotal = explicitLineTotal == null ? computedLineTotal : exact(explicitLineTotal);
+  const quantityInSourceUnit = multiplyExact(packWeightExact, packCount);
+  const gramsExact = unit === 'kg' ? multiplyExact(quantityInSourceUnit, 1000) : quantityInSourceUnit;
+  const totalQuantityGrams = Number(gramsExact);
+  if (!Number.isFinite(totalQuantityGrams)) return null;
+  return {
+    originalName: name,
+    packWeight,
+    weightUnit: unit,
+    packCount,
+    priceAmount,
+    currency: parsedCurrency(currencyText),
+    priceBasis,
+    lineTotal,
+    totalQuantityGrams,
+    arithmeticMatches: lineTotal != null && computedLineTotal != null && lineTotal === computedLineTotal,
+  };
+}
+
+function parsePurchaseLine(value: string): ParsedPurchaseLine | null {
+  const chineseSlash = value.match(new RegExp(
+    `^(.+?)\\s*(${NUMBER_SOURCE})\\s*${CURRENCY_SOURCE}\\s*[/／]\\s*(${NUMBER_SOURCE})\\s*${MASS_SOURCE}\\s*${MULTIPLIER_SOURCE}\\s*(${NUMBER_SOURCE})(?:\\s*=\\s*(${NUMBER_SOURCE})\\s*(?:CNY|RMB|元|¥|￥)?)?\\s*$`, 'iu',
+  ));
+  if (chineseSlash) return purchaseFacts(chineseSlash[1], chineseSlash[4], chineseSlash[5], chineseSlash[6], chineseSlash[2], chineseSlash[3], 'per_pack', chineseSlash[7]);
+
+  const columns = value.match(new RegExp(
+    `^(.+?)(?:\\t|\\s*[|,]\\s*|\\s{2,})(${NUMBER_SOURCE})\\s*${MASS_SOURCE}(?:\\t|\\s*[|,]\\s*|\\s{2,})(${NUMBER_SOURCE})(?:\\t|\\s*[|,]\\s*|\\s{2,})${CURRENCY_SOURCE}\\s*(${NUMBER_SOURCE})\\s*(?:line\\s*total|total)\\s*$`, 'iu',
+  ));
+  if (columns) return purchaseFacts(columns[1], columns[2], columns[3], columns[4], columns[6], columns[5], 'line_total');
+
+  const weightFirst = value.match(new RegExp(
+    `^(.+?)(?:\\s*[|,]\\s*|\\s+)(${NUMBER_SOURCE})\\s*${MASS_SOURCE}\\s*${MULTIPLIER_SOURCE}\\s*(${NUMBER_SOURCE})\\s*(@|[,|])\\s*${CURRENCY_SOURCE}\\s*(${NUMBER_SOURCE})(?:\\s*(each|per\\s+pack|line\\s*total|total))?(?:\\s*=\\s*(${NUMBER_SOURCE}))?\\s*$`, 'iu',
+  ));
+  if (weightFirst) {
+    const label = weightFirst[8] ?? '';
+    const basis: ImportPriceBasis = /^(?:line\s*total|total)$/iu.test(label)
+      ? 'line_total'
+      : /^(?:each|per\s+pack)$/iu.test(label) || weightFirst[5] === '@'
+        ? 'per_pack'
+        : 'unknown';
+    return purchaseFacts(weightFirst[1], weightFirst[2], weightFirst[3], weightFirst[4], weightFirst[7], weightFirst[6], basis, weightFirst[9]);
+  }
+
+  const countFirst = value.match(new RegExp(
+    `^(.+?)(?:\\s*[|,]\\s*|\\s+)(${NUMBER_SOURCE})\\s*${MULTIPLIER_SOURCE}\\s*(${NUMBER_SOURCE})\\s*${MASS_SOURCE}(?:\\s*[|,]\\s*|\\s+)(${NUMBER_SOURCE})\\s*${CURRENCY_SOURCE}\\s*(each|per\\s+pack|line\\s*total|total)?\\s*$`, 'iu',
+  ));
+  if (countFirst) {
+    const basis: ImportPriceBasis = /^(?:line\s*total|total)$/iu.test(countFirst[7] ?? '')
+      ? 'line_total'
+      : /^(?:each|per\s+pack)$/iu.test(countFirst[7] ?? '') ? 'per_pack' : 'unknown';
+    return purchaseFacts(countFirst[1], countFirst[3], countFirst[4], countFirst[2], countFirst[5], countFirst[6], basis);
+  }
+
+  const totalWeight = value.match(new RegExp(
+    `^(.+?)(?:\\s*[|,]\\s*|\\s{2,})(${NUMBER_SOURCE})\\s*${MASS_SOURCE}\\s+total(?:\\s*[|,]\\s*|\\s{2,})${CURRENCY_SOURCE}\\s*(${NUMBER_SOURCE})\\s*(?:line\\s*total|total)?\\s*$`, 'iu',
+  ));
+  if (totalWeight) return purchaseFacts(totalWeight[1], totalWeight[2], totalWeight[3], '1', totalWeight[5], totalWeight[4], 'line_total');
+
+  return null;
+}
 
 const comparable = (value: string | null | undefined) => (value ?? '').normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase();
 
 export function buildImportRecordHints(evidence: ImportEvidenceForAnalysis): ImportRecordHints {
-  const hints: ImportRecordHints = { complete: false, suppliers: [], items: [], ignoredSummaries: [] };
+  const hints: ImportRecordHints = { complete: false, suppliers: [], items: [], ignoredSummaries: [], annotations: [] };
   let unexplainedLines = 0;
   for (const source of evidence.sources) {
     if (!source.text) continue;
@@ -416,55 +711,104 @@ export function buildImportRecordHints(evidence: ImportEvidenceForAnalysis): Imp
       const start = (match.index ?? 0) + leading;
       return { lineIndex, text, normalized: text.normalize('NFKC'), evidenceRef: `${source.id}:${start}-${start + text.length}` };
     }).filter(line => line.text);
-    const parsed = lines.map(line => ({ line, match: line.normalized.match(PURCHASE_LINE) }));
-    const firstItemIndex = parsed.findIndex(entry => Boolean(entry.match));
-    for (let index = 0; index < parsed.length; index++) {
-      const { line, match } = parsed[index];
-      if (SUMMARY_LINE.test(line.normalized)) {
-        hints.ignoredSummaries.push({ sourceId: source.id, text: line.text, evidenceRef: line.evidenceRef });
+    let activeSupplier: string | null = null;
+    let activeSupplierExplicit = false;
+    let sourceItemCount = 0;
+    let sourceLineCost = '0';
+    let sectionLineCost = '0';
+    let sourceFees = '0';
+    let sourceCurrency: ArithmeticCurrency = null;
+    let sectionCurrency: ArithmeticCurrency = null;
+    let feeCurrency: ArithmeticCurrency = null;
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      const explicitSupplier = line.normalized.match(EXPLICIT_SUPPLIER);
+      if (explicitSupplier) {
+        activeSupplier = explicitSupplier[1].trim();
+        activeSupplierExplicit = true;
+        sectionLineCost = '0';
+        sectionCurrency = null;
+        hints.suppliers.push({ sourceId: source.id, name: activeSupplier, evidenceRef: line.evidenceRef, explicit: true });
         continue;
       }
-      if (match) {
-        const packWeight = Number(match[3]);
-        const weightUnit = /^(?:公斤|千克|kg)$/iu.test(match[4]) ? 'kg' : 'g';
-        const packCount = Number(match[5]);
-        const priceAmount = match[2];
-        const lineTotal = match[6];
-        const expectedTotal = Number(priceAmount) * packCount;
-        const totalQuantityGrams = packWeight * packCount * (weightUnit === 'kg' ? 1000 : 1);
+      const summaryKind = SUBTOTAL_LINE.test(line.normalized) ? 'subtotal' : TOTAL_LINE.test(line.normalized) ? 'total' : null;
+      if (summaryKind) {
+        const money = annotationMoney(line.normalized);
+        const expected = summaryKind === 'subtotal' ? sectionLineCost : addExact(sourceLineCost, sourceFees);
+        const expectedCurrency = summaryKind === 'subtotal'
+          ? sectionCurrency
+          : feeCurrency == null ? sourceCurrency : sourceCurrency == null ? feeCurrency : sourceCurrency === feeCurrency ? sourceCurrency : 'mixed';
+        const arithmeticMatches = money == null ? null : money.amountExact === expected
+          && expectedCurrency !== null
+          && expectedCurrency !== 'mixed'
+          && money.currency === expectedCurrency;
+        hints.ignoredSummaries.push({ sourceId: source.id, text: line.text, evidenceRef: line.evidenceRef });
+        hints.annotations.push({
+          sourceId: source.id, kind: summaryKind, text: line.text, evidenceRef: line.evidenceRef,
+          amountExact: money?.amountExact ?? null, currency: money?.currency ?? null, arithmeticMatches,
+        });
+        continue;
+      }
+      const purchase = parsePurchaseLine(line.normalized);
+      if (purchase) {
         hints.items.push({
           sourceId: source.id,
           sourceItemId: `record:${source.id}:${line.lineIndex}`,
           evidenceRef: line.evidenceRef,
-          originalName: match[1].trim(),
-          packWeight,
-          weightUnit,
-          packCount,
-          priceAmount,
-          currency: 'CNY',
-          priceBasis: 'per_pack',
-          lineTotal,
-          totalQuantityGrams,
-          arithmeticMatches: Number.isFinite(expectedTotal) && Math.abs(expectedTotal - Number(lineTotal)) < 0.000001,
+          ...purchase,
+          supplierName: activeSupplier,
+          supplierExplicit: activeSupplierExplicit,
         });
+        sourceItemCount += 1;
+        if (purchase.lineTotal != null) {
+          sourceLineCost = addExact(sourceLineCost, purchase.lineTotal);
+          sectionLineCost = addExact(sectionLineCost, purchase.lineTotal);
+        }
+        sourceCurrency = mergeArithmeticCurrency(sourceCurrency, purchase.currency);
+        sectionCurrency = mergeArithmeticCurrency(sectionCurrency, purchase.currency);
         continue;
       }
-      const supplierCandidate = index < firstItemIndex
-        && !GENERIC_HEADER.test(line.normalized)
+      const plainSupplierName = !GENERIC_HEADER.test(line.normalized)
         && /^[\p{L}\p{M}.'’ -]{2,100}$/u.test(line.text)
         && line.text.trim().split(/\s+/).length <= 6;
-      if (supplierCandidate) hints.suppliers.push({ sourceId: source.id, name: line.text, evidenceRef: line.evidenceRef });
-      else unexplainedLines += 1;
+      const beginsUnlabelledSection = sourceItemCount > 0
+        && Boolean(lines[index + 1] && parsePurchaseLine(lines[index + 1].normalized));
+      const supplierCandidate = plainSupplierName
+        && ((sourceItemCount === 0 && activeSupplier == null) || beginsUnlabelledSection);
+      if (supplierCandidate) {
+        activeSupplier = line.text;
+        activeSupplierExplicit = false;
+        sectionLineCost = '0';
+        sectionCurrency = null;
+        hints.suppliers.push({ sourceId: source.id, name: line.text, evidenceRef: line.evidenceRef, explicit: false });
+      } else if (FEE_LINE.test(line.normalized)) {
+        const money = annotationMoney(line.normalized);
+        if (money) {
+          sourceFees = addExact(sourceFees, money.amountExact);
+          feeCurrency = mergeArithmeticCurrency(feeCurrency, money.currency);
+        }
+        hints.annotations.push({
+          sourceId: source.id, kind: 'fee', text: line.text, evidenceRef: line.evidenceRef,
+          amountExact: money?.amountExact ?? null, currency: money?.currency ?? null,
+        });
+      } else if (NOTE_LINE.test(line.normalized)) {
+        hints.annotations.push({ sourceId: source.id, kind: 'note', text: line.text, evidenceRef: line.evidenceRef });
+      } else if (!/[\d¥￥$]|\b(?:CNY|RMB|USD|EUR|GBP|AUD|IDR|TWD|kg|grams?|total)\b/iu.test(line.normalized)) {
+        hints.annotations.push({ sourceId: source.id, kind: sourceItemCount === 0 || GENERIC_HEADER.test(line.normalized) ? 'heading' : 'note', text: line.text, evidenceRef: line.evidenceRef });
+      } else {
+        unexplainedLines += 1;
+      }
     }
   }
   hints.complete = hints.items.length > 0
-    && hints.suppliers.length <= 1
     && unexplainedLines === 0
-    && hints.items.every(item => item.arithmeticMatches);
+    && hints.items.every(item => item.arithmeticMatches)
+    && hints.items.every(item => canonicalCurrency(item.currency) != null)
+    && hints.annotations.every(annotation => annotation.arithmeticMatches !== false);
   return hints;
 }
 
-export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: ImportRecordHints): ImportAnalysisProposal {
+export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: ImportRecordHints, candidates?: ImportMatchCandidates): ImportAnalysisProposal {
   if (!hints.complete || !hints.items.length) return proposal;
   const providerItems = proposal.groups.flatMap(group => group.items);
   const used = new Set<ImportAnalysisItem>();
@@ -478,10 +822,30 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
     used.add(translated);
     const uncertainty = { ...translated.uncertainty };
     for (const field of ['packWeight', 'weightUnit', 'quantity', 'packCount', 'priceBasis', 'price', 'priceAmount', 'currency', 'acquisitionState', 'acquired']) delete uncertainty[field];
+    const sourceIdentityNames = [hint.originalName, translated.chineseName].filter((name): name is string => Boolean(name));
+    const canonicalIdentity = candidates?.identities?.find(identity => identity.category === translated.category
+      && sourceIdentityNames.some(sourceName => (
+        comparable(identity.chineseName) === comparable(sourceName)
+        || comparable(identity.name) === comparable(sourceName)
+      )));
+    const confidence = { ...translated.confidence };
+    const validation = { ...translated.validation };
+    if (canonicalIdentity?.name) {
+      confidence.translation = 1;
+      confidence.identity = 1;
+      validation.translation = 'canonical_match';
+      delete uncertainty.translation;
+      delete uncertainty.englishName;
+      delete uncertainty.nameTranslation;
+      delete uncertainty.identity;
+      delete uncertainty.duplicateResolution;
+    }
     return {
       ...translated,
       sourceItemId: hint.sourceItemId,
       originalName: hint.originalName,
+      chineseName: translated.chineseName ?? (HAN.test(hint.originalName) ? hint.originalName : null),
+      englishName: canonicalIdentity?.name ?? translated.englishName,
       packWeight: hint.packWeight,
       weightUnit: hint.weightUnit,
       packCount: hint.packCount,
@@ -490,61 +854,102 @@ export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: 
       priceBasis: hint.priceBasis,
       acquired: true,
       evidenceRefs: [hint.evidenceRef],
+      confidence,
+      validation,
       uncertainty,
+      duplicateResolution: canonicalIdentity ? 'matched' as const : translated.duplicateResolution,
+      proposedCompassEntryId: canonicalIdentity?.id ?? translated.proposedCompassEntryId,
+      proposedProductId: canonicalIdentity?.productId ?? translated.proposedProductId,
     };
   });
-  const supplier = hints.suppliers[0]?.name ?? null;
-  const providerGroup = proposal.groups.find(group => group.items.some(item => used.has(item))) ?? proposal.groups[0];
+  const itemGroups = new Map<string, { sourceId: string; supplier: string | null; supplierExplicit: boolean; items: ImportAnalysisItem[] }>();
+  for (let index = 0; index < items.length; index++) {
+    const hint = hints.items[index];
+    const key = `${hint.sourceId}:${hint.supplierName ?? ''}`;
+    const entry = itemGroups.get(key) ?? { sourceId: hint.sourceId, supplier: hint.supplierName ?? null, supplierExplicit: hint.supplierExplicit === true, items: [] };
+    entry.items.push(items[index]);
+    itemGroups.set(key, entry);
+  }
   return {
     ...proposal,
-    groups: [{
-      ...providerGroup,
-      key: `record:${hints.items[0].sourceId}`,
-      proposedVendorName: supplier ?? providerGroup.proposedVendorName,
-      proposedVendorCustomerId: supplier && comparable(providerGroup.proposedVendorName) !== comparable(supplier) ? null : providerGroup.proposedVendorCustomerId,
-      vendorConfidence: supplier ? 1 : providerGroup.vendorConfidence,
-      uncertainty: supplier ? Object.fromEntries(Object.entries(providerGroup.uncertainty ?? {}).filter(([field]) => field !== 'vendor')) : providerGroup.uncertainty,
-      items,
-    }],
+    groups: [...itemGroups.values()].map((entry, index) => {
+      const providerGroup = proposal.groups.find(group => comparable(group.proposedVendorName) === comparable(entry.supplier))
+        ?? proposal.groups[index]
+        ?? proposal.groups[0];
+      const providerConfirmed = Boolean(entry.supplier && comparable(providerGroup.proposedVendorName) === comparable(entry.supplier));
+      const exactVendor = entry.supplier ? candidates?.vendors.find(vendor => [vendor.name, ...(vendor.aliases ?? [])]
+        .some(name => comparable(name) === comparable(entry.supplier))) : undefined;
+      const vendorTrusted = entry.supplierExplicit || providerConfirmed || Boolean(exactVendor);
+      const uncertainty = { ...(providerGroup.uncertainty ?? {}) };
+      if (vendorTrusted) delete uncertainty.vendor;
+      else uncertainty.vendor = entry.supplier
+        ? 'Confirm whether the inferred section heading is the supplier.'
+        : 'No explicit supplier was found in the record.';
+      return {
+        ...providerGroup,
+        key: `record:${entry.sourceId}:${index}`,
+        proposedVendorName: entry.supplier ?? providerGroup.proposedVendorName,
+        proposedVendorCustomerId: exactVendor?.id ?? (entry.supplier && !providerConfirmed ? null : providerGroup.proposedVendorCustomerId),
+        vendorConfidence: vendorTrusted ? 1 : null,
+        uncertainty,
+        items: entry.items,
+      };
+    }),
   };
 }
 
 export function buildImportRecordFallbackProposal(hints: ImportRecordHints): ImportAnalysisProposal {
   if (!hints.complete || !hints.items.length) throw new Error('analysis_record_hints_incomplete');
-  const supplier = hints.suppliers[0]?.name ?? null;
+  const itemGroups = new Map<string, { sourceId: string; supplier: string | null; supplierExplicit: boolean; items: typeof hints.items }>();
+  for (const hint of hints.items) {
+    const key = `${hint.sourceId}:${hint.supplierName ?? ''}`;
+    const entry = itemGroups.get(key) ?? { sourceId: hint.sourceId, supplier: hint.supplierName ?? null, supplierExplicit: hint.supplierExplicit === true, items: [] };
+    entry.items.push(hint);
+    itemGroups.set(key, entry);
+  }
   return {
     overview: `Recovered ${hints.items.length} purchased ${hints.items.length === 1 ? 'item' : 'items'} from the record; translation and identity need review.`,
     language: hints.items.some(item => /\p{Script=Han}/u.test(item.originalName)) ? 'zh' : 'unknown',
-    groups: [{
-      key: `record:${hints.items[0].sourceId}`,
-      proposedVendorName: supplier,
+    groups: [...itemGroups.values()].map((entry, index) => ({
+      key: `record:${entry.sourceId}:${index}`,
+      proposedVendorName: entry.supplier,
       proposedVendorCustomerId: null,
-      vendorConfidence: supplier ? 1 : null,
-      uncertainty: {},
-      items: hints.items.map(hint => ({
-        sourceItemId: hint.sourceItemId,
-        category: 'tea',
-        originalName: hint.originalName,
-        englishName: null,
-        packWeight: hint.packWeight,
-        weightUnit: hint.weightUnit,
-        packCount: hint.packCount,
-        priceAmount: hint.priceAmount,
-        currency: hint.currency,
-        priceBasis: hint.priceBasis,
-        confidence: {
-          originalName: 1, packWeight: 1, weightUnit: 1, packCount: 1,
-          priceAmount: 1, currency: 1, priceBasis: 1, acquired: 1,
-        },
-        uncertainty: {
-          englishName: 'Translation provider unavailable; review the original name.',
-          duplicateResolution: 'Choose whether this is a new or existing Curate identity.',
-        },
-        evidenceRefs: [hint.evidenceRef],
-        acquired: true,
-        duplicateResolution: 'unresolved',
-      })),
-    }],
+      vendorConfidence: entry.supplierExplicit ? 1 : null,
+      uncertainty: entry.supplierExplicit ? {} : {
+        vendor: entry.supplier
+          ? 'Confirm whether the inferred section heading is the supplier.'
+          : 'No explicit supplier was found in the record.',
+      },
+      items: entry.items.map(hint => {
+        const englishName = deterministicTranslation(hint.originalName);
+        return {
+          sourceItemId: hint.sourceItemId,
+          category: 'tea' as const,
+          originalName: hint.originalName,
+          chineseName: HAN.test(hint.originalName) ? hint.originalName : null,
+          englishName,
+          packWeight: hint.packWeight,
+          weightUnit: hint.weightUnit,
+          packCount: hint.packCount,
+          priceAmount: hint.priceAmount,
+          currency: hint.currency,
+          priceBasis: hint.priceBasis,
+          confidence: {
+            originalName: 1, packWeight: 1, weightUnit: 1, packCount: 1,
+            priceAmount: 1, currency: 1, priceBasis: 1, acquired: 1,
+            ...(englishName ? { translation: 1 } : {}),
+          },
+          validation: { translation: englishName ? 'validated' as const : 'uncertain' as const },
+          uncertainty: {
+            ...(englishName ? {} : { englishName: 'Translation provider unavailable; review the original name.' }),
+            duplicateResolution: 'Choose whether this is a new or existing Curate identity.',
+          },
+          evidenceRefs: [hint.evidenceRef],
+          acquired: true,
+          duplicateResolution: 'unresolved' as const,
+        };
+      }),
+    })),
   };
 }
 
@@ -567,7 +972,8 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. priceAmount must be a JSON decimal string copied from evidence, never a JSON number. Use null or "unresolved" instead of guessing.',
     'Never infer priceBasis when the evidence is ambiguous; return "unknown" and explain uncertainty.',
     'Do not use invoice-level totals to multiply item quantities. Treat totals only as consistency checks. For an item written as unit-price / pack-size × count = line-total, use priceBasis "per_pack", priceAmount as the unit price, and packCount as the explicit count.',
-    'When RECORD_HINTS.complete is true, copy each hinted sourceItemId and evidenceRef exactly, return exactly those hinted items, use the hinted supplier as proposedVendorName, and retain the hinted numeric facts. Translate and enrich the product identities yourself.',
+    'When RECORD_HINTS.complete is true, copy each hinted sourceItemId and evidenceRef exactly, return exactly those hinted items, and retain the hinted numeric facts. Translate and enrich the product identities yourself.',
+    'Inferred supplier names are suggestions only. Use an explicit supplier hint as proposedVendorName; otherwise independently confirm that an inferred name is a supplier rather than a heading before returning it as proposedVendorName, and report vendor uncertainty when it is not confirmed.',
     'In the user-facing overview, call the submitted material a record or records, never evidence.',
     'Use only vendor and journey candidates supplied for this account. Never invent candidate ids.',
     `ACCOUNT_CANDIDATES=${JSON.stringify(providerCandidates)}`,

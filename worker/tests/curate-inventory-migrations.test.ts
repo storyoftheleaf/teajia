@@ -12,21 +12,16 @@ const migrationNames = [
   '103_inventory_purpose_receipts.sql',
   '104_inventory_receipts.sql',
   '105_stock_movements.sql',
+  '106_compass_promotion_identity.sql',
   '107_curate_import_idempotency.sql',
   '119_curate_import_analysis.sql',
+  '120_compass_sample_set.sql',
+  '121_curate_import_trust_pipeline.sql',
 ] as const;
 
 const migrations = migrationNames.map(name =>
   readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'),
 ).join('\n');
-const promotionMigration = readFileSync(
-  new URL('../migrations/106_compass_promotion_identity.sql', import.meta.url),
-  'utf8',
-);
-const durableCompassSampleMigration = readFileSync(
-  new URL('../migrations/120_compass_sample_set.sql', import.meta.url),
-  'utf8',
-);
 const schemaThrough098 = readFileSync(
   new URL('./fixtures/schema-through-098.sql', import.meta.url),
   'utf8',
@@ -120,10 +115,27 @@ const affectedTables = [
 ] as const;
 
 describe('Curate and Inventory migration rehearsal', () => {
+  it('applies the Curate and Inventory migrations in production numeric order through 121', () => {
+    expect(migrationNames).toEqual([
+      '099_compass_decision.sql',
+      '100_curate_context.sql',
+      '101_curate_imports.sql',
+      '102_compass_sample_state.sql',
+      '103_inventory_purpose_receipts.sql',
+      '104_inventory_receipts.sql',
+      '105_stock_movements.sql',
+      '106_compass_promotion_identity.sql',
+      '107_curate_import_idempotency.sql',
+      '119_curate_import_analysis.sql',
+      '120_compass_sample_set.sql',
+      '121_curate_import_trust_pipeline.sql',
+    ]);
+  });
+
   it('upgrades the committed production-faithful migration-098 snapshot without data loss', () => {
     const database = databaseFor(
       'teajia-curate-migrations-',
-      schemaThrough098 + seed + migrations + promotionMigration + promotionMigration + durableCompassSampleMigration,
+      schemaThrough098 + seed + migrations,
     );
 
     expect(query(database, `
@@ -164,10 +176,10 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(database, 'PRAGMA foreign_key_check;')).toEqual([]);
   });
 
-  it('matches the canonical schema for every Curate/Inventory table changed through migration 120', () => {
+  it('matches the canonical schema for every Curate/Inventory table changed through migration 121', () => {
     const upgraded = databaseFor(
       'teajia-upgraded-schema-',
-      schemaThrough098 + migrations + promotionMigration + durableCompassSampleMigration,
+      schemaThrough098 + migrations,
     );
     const canonical = databaseFor('teajia-canonical-schema-', canonicalSchema);
 
@@ -184,6 +196,22 @@ describe('Curate and Inventory migration rehearsal', () => {
     expect(query(upgraded, 'PRAGMA foreign_key_check;')).toEqual([]);
     expect(query(canonical, 'PRAGMA integrity_check;')).toEqual([{ integrity_check: 'ok' }]);
     expect(query(canonical, 'PRAGMA foreign_key_check;')).toEqual([]);
+  });
+
+  it('adds the Curate import trust-pipeline fields without changing existing values', () => {
+    const database = databaseFor(
+      'teajia-curate-trust-pipeline-',
+      schemaThrough098 + seed + migrations,
+    );
+
+    expect(normalizedColumns(database, 'tea_compass_entries').map(column => column.name)).toEqual(expect.arrayContaining([
+      'origin_country', 'classification', 'description',
+    ]));
+    expect(normalizedColumns(database, 'products').map(column => column.name)).toContain('classification');
+    expect(normalizedColumns(database, 'curate_import_batches').map(column => column.name)).toContain('analysis_annotations_json');
+    expect(query(database, `SELECT id, product_name FROM products WHERE id = 'product-new';`)).toEqual([
+      { id: 'product-new', product_name: 'Current encounter copy' },
+    ]);
   });
 
   it('enforces account-scoped import idempotency in a fresh canonical database', () => {
