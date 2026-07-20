@@ -1,10 +1,10 @@
 import type { CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
-import { importItemNoun } from './importReviewDomain';
+import { importDisposition, importItemNoun } from './importReviewDomain';
 import type { ImportPanelState } from './importTypes';
 
 export type ImportFolioPhase = 'evidence' | 'review' | 'added';
 
-type ImportFolioItem = Pick<CurateImportItem, 'id' | 'category' | 'blocking_fields'>;
+type ImportFolioItem = Pick<CurateImportItem, 'id' | 'category' | 'blocking_fields' | 'parsed_data' | 'disposition' | 'acquired' | 'vendor_group_id'>;
 type ImportFolioDetail = {
   items: ImportFolioItem[];
   groups: Array<Pick<CurateImportVendorGroup, 'id'>>;
@@ -49,10 +49,12 @@ export const folioPhaseContext = (
   const items = detail?.items ?? [];
   if (phase === 'review') {
     const itemCount = items.length;
-    const vendorCount = detail?.groups.length ?? 0;
+    const stockItems = items.filter(item => importDisposition(item) !== 'library_only');
+    const stockGroupIds = new Set(stockItems.map(item => item.vendor_group_id).filter((id): id is string => Boolean(id)));
+    const vendorCount = (detail?.groups.filter(group => stockGroupIds.has(group.id)).length ?? 0) + (stockItems.some(item => !item.vendor_group_id) ? 1 : 0);
     const needsReviewCount = items.filter(item => (item.blocking_fields?.length ?? 0) > 0).length;
     return {
-      title: `Review ${itemCount} ${importItemNoun(items, itemCount)} from ${vendorCount} ${vendorCount === 1 ? 'vendor' : 'vendors'}`,
+      title: `Review ${itemCount} ${importItemNoun(items, itemCount)}${vendorCount ? ` from ${vendorCount} ${vendorCount === 1 ? 'vendor' : 'vendors'}` : ''}`,
       status: needsReviewCount ? `${needsReviewCount} need review` : 'Ready to add',
     };
   }

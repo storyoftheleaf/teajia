@@ -9,6 +9,47 @@ export interface CompassSyncResult {
 }
 
 export type CurateImportSourceKind = 'wechat' | 'invoice' | 'vendor_list' | 'photo' | 'file' | 'paste';
+export type CurateImportDisposition = 'received' | 'in_transit' | 'library_only';
+export type CurateImportInventoryPurpose = 'working' | 'sample' | 'personal';
+export type CurateImportProvenanceState = 'source_fact' | 'canonical_match' | 'ai_interpretation' | 'user_edit' | 'not_present' | 'uncertain';
+export type CurateImportValidationState = 'source_fact' | 'ai_interpretation' | 'canonical_match' | 'validated' | 'not_present' | 'uncertain';
+export type CurateImportCanonicalField =
+  | 'originalName' | 'englishName' | 'chineseName' | 'category' | 'type' | 'classification' | 'form' | 'year'
+  | 'originCountry' | 'originRegion' | 'description' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceAmountExact'
+  | 'currency' | 'priceBasis' | 'lineCostExact' | 'unitCostExact' | 'totalQuantityGrams' | 'totalUnits'
+  | 'disposition' | 'inventoryPurpose' | 'vendorResolution' | 'identityResolution' | 'holdingResolution';
+export type CurateImportVendorResolution =
+  | { kind: 'existing'; vendorId: string; vendorName: string | null }
+  | { kind: 'new'; vendorName: string }
+  | { kind: 'unresolved'; vendorName: string | null }
+  | null;
+export type CurateImportIdentityResolution = { kind: 'existing'; compassEntryId: string } | { kind: 'new' } | { kind: 'unresolved' };
+export type CurateImportHoldingResolution = { kind: 'existing'; productId: string } | { kind: 'new' } | { kind: 'unresolved' } | null;
+export interface CurateImportCanonicalRecord {
+  sourceId?: string | null; sourceItemId?: string | null; evidenceRefs?: string[]; sourceExcerpt?: string | null; sourceLanguage?: string | null;
+  englishName?: string | null; originalName?: string | null; chineseName?: string | null; category?: 'tea' | 'teaware';
+  type?: string | null; classification?: string | null; form?: string | null; year?: number | null;
+  originCountry?: string | null; originRegion?: string | null; description?: string | null;
+  packWeight?: number | null; weightUnit?: 'g' | 'kg' | 'count' | null; packCount?: number | null;
+  priceAmount?: number | string | null; priceAmountExact?: string | null; currency?: string | null;
+  priceBasis?: 'per_pack' | 'line_total' | 'unknown'; lineCost?: number | null; lineCostExact?: string | null;
+  unitCost?: number | null; unitCostExact?: string | null; totalQuantityGrams?: number | null; totalUnits?: number | null;
+  disposition?: CurateImportDisposition | null; inventoryPurpose?: CurateImportInventoryPurpose | null;
+  vendorResolution?: CurateImportVendorResolution; identityResolution?: CurateImportIdentityResolution; holdingResolution?: CurateImportHoldingResolution;
+  provenance?: Partial<Record<CurateImportCanonicalField, CurateImportProvenanceState>>;
+  fieldProvenance?: Partial<Record<CurateImportCanonicalField, CurateImportProvenanceState>>;
+  validation?: Partial<Record<CurateImportCanonicalField | 'translation' | 'nameTranslation' | 'price' | 'priceAmount' | 'quantity' | 'acquisitionState' | 'acquired', CurateImportValidationState>>;
+  confidence?: Partial<Record<CurateImportCanonicalField | 'translation' | 'materialIdentity', number | 'not_present' | 'uncertain'>> | number | null;
+  uncertainty?: Partial<Record<CurateImportCanonicalField | 'translation' | 'materialIdentity', string>>;
+  blockingFields?: string[];
+  duplicateResolution?: 'new' | 'matched' | 'unresolved' | null;
+  proposedCompassEntryId?: string | null; proposedProductId?: string | null;
+  acquired?: boolean | null;
+}
+export interface CurateImportAnnotation {
+  kind: 'supplier' | 'shipping_or_fee' | 'heading' | 'note' | 'subtotal' | 'total' | 'ignored_duplicate';
+  sourceId?: string | null; sourceExcerpt?: string | null; label?: string | null; amountExact?: string | null; currency?: string | null;
+}
 export type LookupStatus = 'loading' | 'ready' | 'empty' | 'error';
 export interface LookupState<T> { status: LookupStatus; options: T[]; error: string | null }
 export interface CurateImportSource {
@@ -20,12 +61,12 @@ export interface CurateImportSource {
 }
 export interface CurateImportItem {
   id: string; batch_id: string; source_id: string | null; position: number; category: 'tea' | 'teaware';
-  name: string | null; raw_text: string | null; parsed_data: Record<string, unknown>;
+  name: string | null; raw_text: string | null; parsed_data: CurateImportCanonicalRecord & Record<string, unknown>;
   confidence: number | null; uncertainty: Record<string, unknown>;
   review_state: 'pending' | 'reviewing' | 'accepted' | 'merged' | 'abandoned';
   compass_entry_id: string | null; reserved_compass_entry_id: string;
   vendor_group_id?: string | null;
-  original_name?: string | null; english_name?: string | null;
+  original_name?: string | null; english_name?: string | null; chinese_name?: string | null;
   pack_weight?: number | null; weight_unit?: 'g' | 'kg' | 'count' | null; pack_count?: number | null;
   price_amount?: number | null; currency?: string | null; price_basis?: 'per_pack' | 'line_total' | 'unknown';
   price_amount_exact?: string | null;
@@ -34,8 +75,9 @@ export interface CurateImportItem {
   blocking_fields?: string[]; manually_corrected_fields?: string[];
   proposed_compass_entry_id?: string | null; proposed_product_id?: string | null;
   acquired?: boolean | null; duplicate_resolution?: 'new' | 'matched' | 'unresolved' | null;
+  disposition?: CurateImportDisposition | null;
 }
-export type CurateImportReviewedField = 'vendor' | 'identity' | 'englishName' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceBasis' | 'priceAmount' | 'currency' | 'acquired';
+export type CurateImportReviewedField = 'vendor' | 'identity' | 'englishName' | 'packWeight' | 'weightUnit' | 'packCount' | 'priceBasis' | 'priceAmount' | 'currency' | 'disposition' | 'inventoryPurpose' | 'acquired';
 export type CurateImportItemUpdate = Partial<CurateImportItem> & { reviewed_fields?: CurateImportReviewedField[] };
 export interface CurateImportBatch {
   id: string; title: string; review_state: 'pending' | 'reviewing' | 'completed' | 'abandoned';
@@ -43,6 +85,8 @@ export interface CurateImportBatch {
   analysis_state?: 'pending' | 'analyzing' | 'complete' | 'completed' | 'failed' | null;
   analysis_overview?: string | null; analysis_language?: string | null; analysis_version?: string | null;
   analysis_model?: string | null; analysis_error?: string | null; completed_at?: string | null;
+  analysis_annotations?: CurateImportAnnotation[];
+  analysis_annotations_json?: string | null;
 }
 export interface CurateImportVendorGroup {
   id: string; batch_id: string; position: number; proposed_vendor_name: string | null;
@@ -54,7 +98,7 @@ export interface CurateImportFinalizeResult {
   batchId?: string; idempotencyKey?: string;
   journey: { id: string; name: string } | null;
   receipts: Array<{ id: string; groupId: string; vendorId: string; vendorName: string; [key: string]: unknown }>;
-  items: Array<{ id: string; compassEntryId: string; productId: string; movementId: string; identityDisposition: 'created' | 'reused'; holdingDisposition: 'created' | 'reused' }>;
+  items: Array<{ id: string; compassEntryId: string; productId: string | null; movementId: string | null; identityDisposition: 'created' | 'reused'; holdingDisposition: 'created' | 'reused' | null }>;
 }
 export interface CurateImportDetail { batch: CurateImportBatch; sources: CurateImportSource[]; items: CurateImportItem[]; groups: CurateImportVendorGroup[] }
 

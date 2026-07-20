@@ -1,4 +1,9 @@
-import type { CurateImportDetail, CurateImportItem, CurateImportSourceKind } from '../../../lib/api';
+import type { CurateImportCanonicalField, CurateImportCanonicalRecord, CurateImportDetail, CurateImportDisposition, CurateImportItem, CurateImportProvenanceState, CurateImportSourceKind } from '../../../lib/api';
+
+export type ImportDisposition = CurateImportDisposition;
+export type ImportProvenanceState = CurateImportProvenanceState;
+export type ImportCanonicalField = CurateImportCanonicalField;
+export type ImportCanonicalRecord = CurateImportCanonicalRecord;
 
 export type ImportEvidenceStatus = 'ready' | 'uploading' | 'pending' | 'analyzed' | 'reference_only' | 'failed' | 'reselect';
 export type ImportEvidence = {

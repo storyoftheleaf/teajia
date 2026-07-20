@@ -23,6 +23,75 @@ function proposal(overrides: Partial<typeof item> = {}): ImportAnalysisProposal 
 }
 
 describe('Curate import analysis domain', () => {
+  it('keeps the live provider schema below the Anthropic optional-parameter limit', () => {
+    const countOptionalProperties = (schema: unknown): number => {
+      if (!schema || typeof schema !== 'object' || Array.isArray(schema)) return 0;
+      const value = schema as Record<string, unknown>;
+      let count = 0;
+      if (value.properties && typeof value.properties === 'object' && !Array.isArray(value.properties)) {
+        const required = new Set(Array.isArray(value.required) ? value.required : []);
+        count += Object.keys(value.properties).filter(key => !required.has(key)).length;
+      }
+      return count + Object.values(value).reduce((total, child) => total + countOptionalProperties(child), 0);
+    };
+
+    expect(countOptionalProperties(IMPORT_ANALYSIS_OUTPUT_SCHEMA)).toBeLessThanOrEqual(24);
+  });
+
+  it('decodes required nullable provider records without materializing null facts', () => {
+    const schema = IMPORT_ANALYSIS_OUTPUT_SCHEMA as any;
+    const itemSchema = schema.properties.groups.items.properties.items.items;
+    const nullableRecord = (recordSchema: any) => Object.fromEntries(Object.keys(recordSchema.properties).map(key => [key, null]));
+    const providerItem = {
+      ...item,
+      validation: nullableRecord(itemSchema.properties.validation),
+      confidence: nullableRecord(itemSchema.properties.confidence),
+      uncertainty: nullableRecord(itemSchema.properties.uncertainty),
+      proposedCompassEntryId: null,
+      proposedProductId: null,
+      chineseName: null,
+      type: null,
+      form: null,
+      year: null,
+      originCountry: null,
+      originRegion: null,
+      classification: null,
+      description: null,
+      inventoryPurpose: null,
+    };
+    const decoded = decodeImportAnalysisProposal({
+      overview: 'one', language: 'en', annotations: [],
+      groups: [{
+        key: 'v', proposedVendorName: null, proposedVendorCustomerId: null,
+        vendorConfidence: null, uncertainty: { vendor: null }, items: [providerItem],
+      }],
+    });
+
+    expect(decoded.groups[0].items[0]).toMatchObject({ confidence: {}, validation: {}, uncertainty: {} });
+    expect(decoded.groups[0].uncertainty).toEqual({});
+  });
+
+  it('rejects provider batches above the D1-safe item cap', () => {
+    const items = Array.from({ length: 101 }, (_, index) => ({ ...item, sourceItemId: `item-${index}` }));
+    expect(() => decodeImportAnalysisProposal({
+      overview: 'too many', language: 'en', groups: [{ key: 'v', proposedVendorName: 'V', items }],
+    })).toThrow(/analysis_too_many_items/);
+  });
+
+  it('decodes bounded provider-classified non-item record annotations', () => {
+    const value = proposal();
+    const decoded = decodeImportAnalysisProposal({
+      ...value,
+      annotations: [{ sourceId: 'source-1', kind: 'fee', text: 'Shipping: CNY 50', evidenceRef: 'source-1:19-35' }],
+    });
+
+    expect(decoded.annotations).toEqual([{ sourceId: 'source-1', kind: 'fee', text: 'Shipping: CNY 50', evidenceRef: 'source-1:19-35' }]);
+    expect(() => decodeImportAnalysisProposal({
+      ...value,
+      annotations: [{ sourceId: 'source-1', kind: 'tea', text: 'Not an annotation' }],
+    })).toThrow(/annotation/i);
+  });
+
   it('normalizes per-pack tea math while preserving Chinese names', () => {
     expect(normalizeImportProposal(proposal()).groups[0].items[0]).toMatchObject({
       originalName: '云南古树生普', totalQuantityGrams: 1000, totalUnits: null,
@@ -259,12 +328,19 @@ describe('Curate import analysis domain', () => {
     const itemSchema = (IMPORT_ANALYSIS_OUTPUT_SCHEMA.properties.groups.items.properties.items.items as { properties: Record<string, unknown> });
     expect(itemSchema.properties.confidence).toMatchObject({
       type: 'object',
-      properties: expect.objectContaining({ translation: { type: 'number' }, originalName: { type: 'number' }, priceBasis: { type: 'number' } }),
+      properties: expect.objectContaining({
+        translation: { anyOf: [{ type: 'number' }, { type: 'null' }] },
+        originalName: { anyOf: [{ type: 'number' }, { type: 'null' }] },
+        priceBasis: { anyOf: [{ type: 'number' }, { type: 'null' }] },
+      }),
       additionalProperties: false,
     });
     expect(itemSchema.properties.validation).toMatchObject({
       type: 'object',
-      properties: expect.objectContaining({ translation: { type: 'string', enum: expect.arrayContaining(['not_present', 'uncertain', 'validated']) } }),
+      properties: expect.objectContaining({ translation: { anyOf: [
+        { type: 'string', enum: expect.arrayContaining(['not_present', 'uncertain', 'validated']) },
+        { type: 'null' },
+      ] } }),
       additionalProperties: false,
     });
     expect(() => decodeImportAnalysisProposal(proposal({ confidence: { inventedField: 0.9 } }))).toThrow(/confidence\.inventedField/);
@@ -487,10 +563,13 @@ describe('Curate import analysis domain', () => {
     const groupSchema = IMPORT_ANALYSIS_OUTPUT_SCHEMA.properties.groups.items;
     const itemSchema = groupSchema.properties.items.items;
     expect(groupSchema.properties.uncertainty).toMatchObject({
-      type: 'object', properties: { vendor: { type: 'string' } }, additionalProperties: false,
+      type: 'object', properties: { vendor: { anyOf: [{ type: 'string' }, { type: 'null' }] } }, additionalProperties: false,
     });
     expect(itemSchema.properties.uncertainty).toMatchObject({
-      type: 'object', properties: expect.objectContaining({ translation: { type: 'string' }, packCount: { type: 'string' } }), additionalProperties: false,
+      type: 'object', properties: expect.objectContaining({
+        translation: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        packCount: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      }), additionalProperties: false,
     });
     expect(() => decodeImportAnalysisProposal(proposal({ uncertainty: { inventedField: 'unsupported' } }))).toThrow(/uncertainty\.inventedField/);
     const badGroup = proposal();

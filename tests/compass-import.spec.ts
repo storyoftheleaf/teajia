@@ -6,17 +6,19 @@ type ImportItem = {
   name: string | null; raw_text: string; parsed_data: Record<string, unknown>; confidence: number;
   uncertainty: Record<string, unknown>; review_state: 'pending' | 'accepted' | 'merged';
   compass_entry_id: string | null; reserved_compass_entry_id: string;
-  vendor_group_id?: string | null; english_name?: string | null; original_name?: string | null;
+  vendor_group_id?: string | null; english_name?: string | null; original_name?: string | null; chinese_name?: string | null;
   pack_weight?: number | null; weight_unit?: 'g' | 'kg' | 'count' | null; pack_count?: number | null;
   price_amount?: number | null; currency?: string | null; price_basis?: 'per_pack' | 'line_total' | 'unknown';
   total_quantity_grams?: number | null; total_units?: number | null; line_cost?: number | null;
   unit_cost?: number | null; blocking_fields?: string[];
+  acquired?: boolean | null; disposition?: 'received' | 'in_transit' | 'library_only' | null;
 };
 const workerImportParsedDataKeys = new Set([
   'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
   'priceAmount', 'priceAmountExact', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
-  'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
+  'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose', 'disposition',
+  'sourceId', 'sourceExcerpt', 'sourceLanguage', 'provenance', 'fieldProvenance', 'vendorResolution', 'identityResolution', 'holdingResolution',
 ]);
 const evidenceOrdinalByPage = new WeakMap<Page, { ordinal: number; injectSecondFailure: boolean }>();
 const importApiStateByPage = new WeakMap<Page, { createBodies: Array<Record<string, unknown>>; sources: Array<Record<string, unknown>> }>();
@@ -54,12 +56,14 @@ function analyzedImportDetail() {
   const items = analyzedTeaNames.map(([englishName, originalName], index) => ({
     id: `analyzed-item-${index + 1}`, batch_id: 'batch-analyzed', source_id: 'source-analyzed',
     vendor_group_id: index < 5 ? 'group-chen' : 'group-lin', position: index, category: 'tea' as const,
-    name: englishName, english_name: englishName, original_name: originalName,
+    name: englishName, english_name: englishName, original_name: originalName, chinese_name: originalName,
     raw_text: `${originalName} 500g ×2 ¥380`,
     parsed_data: {
-      englishName, originalName, type: index < 5 ? 'pu_er' : 'oolong', inventoryPurpose: index === 9 ? null : 'working',
-      acquired: index !== 9, duplicateResolution: index === 9 ? 'unresolved' : 'new',
+      englishName, originalName, chineseName: originalName, type: index < 5 ? 'pu_er' : 'oolong', inventoryPurpose: index === 9 ? null : 'working',
+      acquired: index !== 9, disposition: index === 9 ? null : 'received', duplicateResolution: index === 9 ? 'unresolved' : 'new',
       proposedCompassEntryId: null, proposedProductId: null,
+      sourceExcerpt: `${originalName} 500g ×2 ¥380`,
+      fieldProvenance: { originalName: 'source_fact', englishName: 'ai_interpretation', type: 'ai_interpretation' },
     },
     confidence: index === 9 ? 0.51 : 0.96,
     uncertainty: index === 9 ? {
@@ -83,6 +87,7 @@ function analyzedImportDetail() {
       id: 'batch-analyzed', title: 'Two vendor Chinese tea list', review_state: 'reviewing',
       journey_id: null, visit_id: null, analysis_state: 'completed', analysis_language: 'zh',
       analysis_overview: '10 teas found across 2 vendors. Chinese names translated; one pack count needs confirmation.',
+      analysis_annotations_json: JSON.stringify([{ kind: 'shipping_or_fee', label: 'Shipping', amountExact: '120', currency: 'CNY', sourceExcerpt: '运费 120元' }]),
       analysis_error: null,
     },
     sources: [{ id: 'source-analyzed', batch_id: 'batch-analyzed', kind: 'paste', pasted_text: 'Chinese vendor list', r2_object_key: null, metadata: {} }],
@@ -143,7 +148,7 @@ async function installAnalyzedImportApi(page: Page) {
       if (field === 'price_basis') return !parsedData.priceBasis || parsedData.priceBasis === 'unknown';
       if (field === 'currency') return !parsedData.currency;
       if (field === 'duplicate_identity') return parsedData.duplicateResolution !== 'new' && !parsedData.proposedCompassEntryId;
-      if (field === 'acquired') return parsedData.acquired !== true;
+      if (field === 'acquired') return !parsedData.disposition;
       if (field === 'inventory_purpose') return !parsedData.inventoryPurpose;
       return true;
     });
@@ -282,8 +287,7 @@ async function installImportApi(page: Page) {
       const clientId = request.headers()['x-client-evidence-id'];
       const filename = decodeURIComponent(request.headers()['x-filename']);
       const contentType = request.headers()['content-type'];
-      const referenceOnly = /wordprocessingml|msword/.test(contentType);
-      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, analysis_status: referenceOnly ? 'reference_only' : 'pending', analysis_error: null, reference_metadata: {}, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] }, __testBody: request.postDataBuffer()?.toString('utf8') };
+      const source = { id: `evidence-${sources.length}`, batch_id: 'batch-1', kind: contentType === 'application/pdf' ? 'invoice' : contentType.startsWith('image/') ? 'photo' : 'file', pasted_text: null, r2_object_key: `curate/acct-bali/batch-1/${filename}`, analysis_status: 'pending', analysis_error: null, reference_metadata: {}, metadata: { filename, content_type: contentType, size: request.postDataBuffer()?.length || 0, extraction_status: 'not_available', client_evidence_id: request.headers()['x-client-evidence-id'] }, __testBody: request.postDataBuffer()?.toString('utf8') };
       sources.push(source);
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
@@ -352,7 +356,12 @@ test.describe('Curate Import panel', () => {
     await expect(sourceDocument).toHaveClass(/text-ui-16/);
     await expect(sourceDocument).toHaveClass(/border-b/);
     await expect(sourceDocument).not.toHaveClass(/rounded|bg-tea-surface/);
-    await expect(page.getByText('DOC and DOCX are saved as reference-only and are not analyzed.')).toBeVisible();
+    await expect(page.getByText('DOC, DOCX, XLS, XLSX, ODT, ODS, and HEIC records are supported.')).toBeVisible();
+    await expect(page.getByText('Up to 50 records per import. Each file can be up to 5 MB, with 20 MB total, including pasted text.')).toBeVisible();
+    await expect(page.getByText(/record content is sent to configured AI providers for analysis/)).toBeVisible();
+    await expect(page.getByLabel('Add photos')).toHaveAttribute('accept', /\.heic/);
+    await expect(page.getByLabel('Add files')).toHaveAttribute('accept', /\.docx/);
+    await expect(page.getByLabel('Add files')).toHaveAttribute('accept', /\.xlsx/);
     const photoAction = page.getByRole('button', { name: 'Add photos' });
     const fileAction = page.getByRole('button', { name: 'Add files' });
     await expect(photoAction).not.toHaveClass(/rounded|border-tea-border/);
@@ -380,7 +389,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByTestId('import-vendor-group')).toHaveCount(1);
     await expect(page.getByTestId('import-item-row')).toHaveCount(3);
     await expect(page.getByTestId('import-item-row').filter({ hasText: 'Clay pot' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Add 3 items to Inventory' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Receive 3 items' })).toBeEnabled();
     await page.getByRole('button', { name: 'Review later' }).click();
     await expect(page.getByRole('button', { name: /Imported list: 3 items/ })).toBeVisible();
     await page.getByRole('tab', { name: 'Import' }).first().click();
@@ -394,9 +403,9 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Vendor list or invoice').fill('Clay pot — 2 units');
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(1);
-    await page.getByRole('button', { name: 'Add 1 teaware item to Inventory' }).click();
+    await page.getByRole('button', { name: 'Receive 1 teaware item' }).click();
     const completion = page.getByRole('region', { name: 'Import complete' });
-    await expect(completion.getByText('1 teaware item added · No sourcing run', { exact: true })).toBeVisible();
+    await expect(completion.getByText('1 teaware item received · No sourcing run', { exact: true })).toBeVisible();
     await expect(completion.getByTestId('completion-vendor-ledger')).toHaveCount(1);
     await expect(completion.getByTestId('completion-ledger-row')).toHaveCount(1);
     await expect(completion.getByText('Teaware record created', { exact: true })).toBeVisible();
@@ -477,7 +486,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Parser unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
-    await expect(page.getByText('RETRY tea', { exact: false })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'RETRY tea', level: 6 })).toBeVisible();
     await expect(page.getByText('Analyzed').first()).toBeVisible();
     const analyzedEvidence = page.getByTestId('import-evidence-source').filter({ hasText: 'invoice.pdf' });
     await expect(analyzedEvidence).toHaveClass(/border-b/);
@@ -549,14 +558,19 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('saved.pdf')).toHaveCount(0);
   });
 
-  test('preflights the Worker 5 MB limit and labels DOCX as reference-only', async ({ page }) => {
+  test('preflights the Worker 5 MB limit and accepts converted document formats', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
-    await expect(page.getByText('DOC and DOCX are saved as reference-only and are not analyzed.')).toBeVisible();
+    await expect(page.getByText('DOC, DOCX, XLS, XLSX, ODT, ODS, and HEIC records are supported.')).toBeVisible();
     await page.getByLabel('Add files').setInputFiles({ name: 'too-large.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(6 * 1024 * 1024) });
     await expect(page.getByText('Files must be 5 MB or smaller')).toBeVisible();
     await page.getByLabel('Add files').setInputFiles({ name: 'vendor-notes.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer: Buffer.from('PK-docx') });
-    await expect(page.getByText('Reference only · not analyzed')).toBeVisible();
+    await expect(page.getByText('Ready to upload')).toBeVisible();
+    await page.getByLabel('Add files').setInputFiles(Array.from({ length: 5 }, (_, index) => ({
+      name: `batch-${index}.pdf`, mimeType: 'application/pdf', buffer: Buffer.alloc(4 * 1024 * 1024 + 1),
+    })));
+    await expect(page.getByText(/Record content totals more than 20 MB/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Start import' })).toBeDisabled();
   });
 
   test('extracts selected JSON into reviewed rows and keeps the original evidence retrievable', async ({ page }) => {
@@ -772,6 +786,9 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.getByTestId('import-batch-context')).toContainText('10kg');
     await expect(dialog.getByTestId('import-batch-context')).toContainText('CNY 3,800');
     await expect(dialog.getByTestId('import-batch-context')).toContainText('TWD 6,000');
+    await expect(dialog.getByRole('region', { name: 'Import notes' })).toContainText('Shipping');
+    await expect(dialog.getByRole('region', { name: 'Import notes' })).toContainText('CNY 120');
+    await expect(dialog.getByRole('region', { name: 'Import notes' })).toContainText('运费 120元');
 
     const groups = dialog.getByTestId('import-vendor-group');
     const firstGroup = groups.first();
@@ -799,6 +816,9 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstGroupRows.first().getByRole('heading', { name: api.detail.items[1].english_name!, level: 6 })).toBeVisible();
     await expect(firstGroupRows.first()).toHaveAccessibleName(api.detail.items[1].english_name!);
     await expect(firstGroupRows.first().locator('.font-mono')).toHaveCount(1);
+    await expect(firstGroupRows.first().getByTestId('import-source-excerpt')).toContainText(api.detail.items[1].parsed_data.sourceExcerpt as string);
+    await expect(firstGroupRows.first().locator('[data-provenance="source_fact"]').first()).toBeVisible();
+    await expect(firstGroupRows.first().getByText('AI interpretation', { exact: true })).toBeVisible();
 
     const secondGroup = groups.nth(1);
     await expect(secondGroup.getByText('Needs review', { exact: true })).toHaveCount(1);
@@ -815,7 +835,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.locator(`[data-import-item-id="${api.detail.items[9].id}"]`)).toBeFocused();
     await nextIssue.click();
     await expect(dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`)).toBeFocused();
-    await expect(dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ })).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: /^Receive 10 teas/ })).toHaveCount(0);
 
     await firstGroup.getByRole('button', { name: /^Change vendor for / }).click();
     await expect(firstGroup.locator('.border-l-2')).toHaveCount(0);
@@ -865,8 +885,8 @@ test.describe('analyzed inventory import review', () => {
     await expect(rows).toHaveCount(10);
     const readyHeights = await dialog.locator('[data-blocked="false"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
     const blockedHeights = await dialog.locator('[data-blocked="true"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
-    expect(Math.max(...readyHeights), 'ready collapsed review rows should stay compact').toBeLessThanOrEqual(120);
-    expect(Math.max(...blockedHeights), 'rows listing required confirmations should stay compact').toBeLessThanOrEqual(150);
+    expect(Math.max(...readyHeights), 'ready collapsed review rows should remain bounded with destination controls').toBeLessThanOrEqual(280);
+    expect(Math.max(...blockedHeights), 'rows listing required confirmations should remain bounded').toBeLessThanOrEqual(320);
     for (let index = 0; index < analyzedTeaNames.length; index += 1) {
       const itemRow = dialog.locator(`[data-import-item-id="analyzed-item-${index + 1}"]`);
       await itemRow.scrollIntoViewIfNeeded();
@@ -874,8 +894,8 @@ test.describe('analyzed inventory import review', () => {
       await expect(itemRow).toContainText(analyzedTeaNames[index][1]);
     }
 
-    const finalAction = dialog.getByRole('button', { name: /^Add 10 teas to Inventory/ });
-    await expect(dialog.getByText('Confirm pack count, weight or unit, price interpretation, currency, tea identity, physical stock status, and Inventory purpose.')).toBeVisible();
+    const finalAction = dialog.getByRole('button', { name: /^Receive 10 teas/ });
+    await expect(dialog.getByText('Confirm pack count, weight or unit, price interpretation, currency, tea identity, Inventory purpose, and destination.')).toBeVisible();
     await expect(finalAction).toHaveCount(0);
     await expect(dialog.getByRole('button', { name: 'Next issue' })).toBeVisible();
 
@@ -891,6 +911,7 @@ test.describe('analyzed inventory import review', () => {
 
     const uncertainRow = dialog.locator('[data-import-item-id="analyzed-item-10"]');
     await uncertainRow.scrollIntoViewIfNeeded();
+    await uncertainRow.getByRole('radio', { name: /Received now/ }).click();
     await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
     await expect(uncertainRow.getByRole('button', { name: 'All details' })).toBeVisible();
     await expect(uncertainRow.getByLabel('Tea type')).toHaveCount(0);
@@ -899,7 +920,6 @@ test.describe('analyzed inventory import review', () => {
     await uncertainRow.getByLabel('Inventory purpose').selectOption('working');
     await uncertainRow.getByLabel('Match tea').click();
     await uncertainRow.getByRole('option').filter({ hasText: 'Create new Library identity' }).click();
-    await uncertainRow.getByLabel('Acquired into physical stock').selectOption('yes');
     await expect(uncertainRow.getByLabel('Sourcing run')).toHaveCount(0);
     await expect(uncertainRow.getByRole('button', { name: /^Change vendor for / })).toHaveCount(0);
 
@@ -922,11 +942,11 @@ test.describe('analyzed inventory import review', () => {
     const uncertainCorrection = api.correctionBodies.find(body => body.name === analyzedTeaNames[9][0]);
     expect(uncertainCorrection).toBeTruthy();
     expect(uncertainCorrection?.parsed_data).toMatchObject({
-      duplicateResolution: 'new', acquired: true, inventoryPurpose: 'working',
+      duplicateResolution: 'new', disposition: 'received', acquired: true, inventoryPurpose: 'working',
       proposedCompassEntryId: null, proposedProductId: null,
     });
     expect(uncertainCorrection?.reviewed_fields).toEqual([
-      'packWeight', 'weightUnit', 'packCount', 'priceBasis', 'priceAmount', 'currency', 'acquired', 'identity',
+      'packWeight', 'weightUnit', 'packCount', 'priceBasis', 'priceAmount', 'currency', 'inventoryPurpose', 'disposition', 'identity',
     ]);
     expect(Object.keys(uncertainCorrection?.parsed_data as Record<string, unknown>).filter(key => !workerImportParsedDataKeys.has(key))).toEqual([]);
 
@@ -938,7 +958,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(completion).toBeVisible();
     await expect(completion.getByText('Added to your records', { exact: true })).toBeVisible();
     await expect(completion.getByRole('heading', { name: 'Import complete' })).toHaveClass(/font-serif/);
-    await expect(completion.getByText('10 teas added · Taiwan · Spring · 2026', { exact: true })).toBeVisible();
+    await expect(completion.getByText('10 teas received · Taiwan · Spring · 2026', { exact: true })).toBeVisible();
     await expect(completion.getByLabel('Connected records')).toHaveCount(0);
     await expect(completion.locator('article')).toHaveCount(0);
 
@@ -956,11 +976,11 @@ test.describe('analyzed inventory import review', () => {
     await expect(chenLedger.getByTestId('completion-ledger-row').nth(1).getByText('1001g · CNY 999999999999999.99', { exact: true })).toBeVisible();
     await expect(chenVendorHeading).toHaveClass(/font-display/);
     await expect(chenVendorHeading).toHaveClass(/text-ui-28/);
-    await expect(chenLedger.getByRole('link', { name: 'Open received receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
+    await expect(chenLedger.getByRole('link', { name: 'Open receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-chen');
 
     const linLedger = completion.getByRole('region', { name: 'Lin Family High Mountain Tea Workshop, Nantou County vendor receipt' });
     await expect(linLedger.getByTestId('completion-ledger-row')).toHaveCount(5);
-    await expect(linLedger.getByRole('link', { name: 'Open received receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-lin');
+    await expect(linLedger.getByRole('link', { name: 'Open receipt' })).toHaveAttribute('href', '/admin/stock?receipt=receipt-lin');
     await expect(completion.getByRole('link', { name: /Open Inventory holding/ })).toHaveCount(10);
     await expect(completion.getByRole('link', { name: /Open Library identity/ }).first()).toHaveAttribute('href', /\/admin\/compass\?tab=library&entry=/);
     const completionActions = completion.getByRole('button');
@@ -1015,7 +1035,8 @@ test.describe('analyzed inventory import review', () => {
     const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
     await row.getByRole('button', { name: 'Edit tea' }).click();
     await expect(row.getByLabel('English inventory name')).toBeVisible();
-    await expect(row.getByLabel('Original or Chinese name')).toBeVisible();
+    await expect(row.getByLabel('Original supplier name')).toBeVisible();
+    await expect(row.getByLabel('Chinese name')).toBeVisible();
     await expect(row.getByText(/source-analyzed · Page 2/)).toBeVisible();
     await expect(row.getByRole('button', { name: 'All details' })).toBeVisible();
   });
@@ -1025,7 +1046,10 @@ test.describe('analyzed inventory import review', () => {
     const proposedItem = api.detail.items[9];
     proposedItem.proposed_compass_entry_id = 'identity-jingmai';
     proposedItem.proposed_product_id = 'holding-working';
-    Object.assign(proposedItem.parsed_data, { proposedCompassEntryId: 'identity-jingmai', proposedProductId: 'holding-working', duplicateResolution: 'matched' });
+    Object.assign(proposedItem.parsed_data, {
+      proposedCompassEntryId: 'identity-jingmai', proposedProductId: 'holding-working', duplicateResolution: 'matched',
+      identityResolution: { kind: 'existing', compassEntryId: 'identity-jingmai' }, holdingResolution: { kind: 'existing', productId: 'holding-working' },
+    });
     await page.route(/\/api\/customers(?:\?|$)/, route => route.fulfill({ json: [
       { id: 'vendor-other', name: 'Mountain Tea Market' },
       { id: 'vendor-chen', name: 'Chen Family Ancient Tree Tea Cooperative of Xishuangbanna' },
@@ -1050,6 +1074,7 @@ test.describe('analyzed inventory import review', () => {
     await vendorSearch.press('Enter');
 
     const row = dialog.locator('[data-import-item-id="analyzed-item-10"]');
+    await expect(row).toHaveAttribute('data-blocked', 'true');
     await row.getByRole('button', { name: 'Edit tea' }).click();
     await expect(row.getByText('Suggested: Jingmai Mountain Raw Pu’er')).toBeVisible();
     const holdingPicker = row.getByRole('combobox', { name: 'Choose stock record' });

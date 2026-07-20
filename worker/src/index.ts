@@ -21,11 +21,19 @@ import { INCIDENT_STATUSES, incidentToApi, normalizeIncidentInput, upsertInciden
 interface Env {
   DB: D1Database;
   MEDIA_BUCKET: R2Bucket;
+  IMAGES?: ImagesBinding;
+  AI?: {
+    toMarkdown(input: { name: string; blob: Blob }): Promise<
+      | { name?: string; format?: string; data?: string; error?: string }
+      | Array<{ name?: string; format?: string; data?: string; error?: string }>
+    >;
+  };
   ADMIN_PASSWORD_HASH: string;
   JWT_SECRET: string;
   VERIFICATION_CODE_SECRET?: string;
   ANTHROPIC_API_KEY: string;
   CURATE_IMPORT_ANALYSIS_MODEL?: string;
+  CURATE_IMPORT_GROQ_VISION_MODEL?: string;
   GEMINI_API_KEY: string;
   GROQ_API_KEY: string;
   // Optional — set SENDER_EMAIL + RESEND_API_KEY to enable transactional emails via Resend

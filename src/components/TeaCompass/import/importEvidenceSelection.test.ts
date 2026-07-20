@@ -10,18 +10,24 @@ describe('Curate evidence selection', () => {
     expect(result.file?.type).toBe('text/csv');
   });
 
-  it('normalizes DOCX as reference-only and rejects unknown blank-MIME files', () => {
+  it('accepts supported documents, spreadsheets, and HEIC for analysis', () => {
     const word = prepareImportEvidenceFile(new File(['PK-docx'], 'notes.docx'));
     expect(word.file?.type).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    expect(word.referenceOnly).toBe(true);
+    expect(word.referenceOnly).toBe(false);
+
+    expect(prepareImportEvidenceFile(new File(['doc'], 'notes.doc')).file?.type).toBe('application/msword');
+    expect(prepareImportEvidenceFile(new File(['sheet'], 'prices.xls')).file?.type).toBe('application/vnd.ms-excel');
+    expect(prepareImportEvidenceFile(new File(['PK-sheet'], 'prices.xlsx')).file?.type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(prepareImportEvidenceFile(new File(['ods'], 'prices.ods')).file?.type).toBe('application/vnd.oasis.opendocument.spreadsheet');
+    expect(prepareImportEvidenceFile(new File(['odt'], 'notes.odt')).file?.type).toBe('application/vnd.oasis.opendocument.text');
+
+    const heic = prepareImportEvidenceFile(new File(['0000ftypheic'], 'phone.heic'));
+    expect(heic.file?.type).toBe('image/heic');
+    expect(heic.error).toBeNull();
 
     const unknown = prepareImportEvidenceFile(new File(['binary'], 'archive.bin'));
     expect(unknown.file).toBeNull();
     expect(unknown.error).toBe('This file type cannot be analyzed');
-
-    const heic = prepareImportEvidenceFile(new File(['0000ftypheic'], 'phone.heic', { type: 'image/heic' }));
-    expect(heic.file).toBeNull();
-    expect(heic.error).toBe('Convert HEIC or HEIF photos to JPEG, PNG, or WebP before import');
   });
 
   it('selects only failed sources for retry', () => {

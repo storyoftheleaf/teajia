@@ -333,6 +333,97 @@ describe('curate import source normalization', () => {
     expect(result.original.contentHash).not.toBe(result.vision?.contentHash);
   });
 
+  it.each([
+    ['label.png', 'image/png'],
+    ['label.jpg', 'image/jpeg'],
+    ['label.webp', 'image/webp'],
+  ])('preserves %s vision evidence when OCR conversion fails', async (name, mediaType) => {
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    const [result] = await normalizeImportSources([{
+      id: 'ocr-fallback',
+      name,
+      mediaType,
+      objectKey: `private/${name}`,
+      blob: new Blob([bytes], { type: mediaType }),
+    }], converters({ toMarkdown: vi.fn(async () => { throw new Error('workers ai unavailable'); }) }));
+
+    expect(result).toMatchObject({
+      status: 'analyzed',
+      text: null,
+      original: {
+        objectKey: `private/${name}`,
+        mediaType,
+        contentHash: await contentHash(bytes),
+        authoritative: true,
+      },
+      derived: null,
+      vision: { mediaType, contentHash: await contentHash(bytes) },
+      error: { code: 'markdown_conversion_failed', message: 'workers ai unavailable', retryable: true },
+    });
+    expect(result.vision?.bytes).toEqual(bytes);
+
+    const input = buildGroqVisionInput(result, 'Analyze the visible record');
+    expect(input.representation).toEqual({
+      representedSourceIds: ['ocr-fallback'],
+      truncatedSourceIds: [],
+      omittedSourceIds: [],
+    });
+    expect((input.content[0] as { text: string }).text).toContain('"code":"markdown_conversion_failed"');
+    expect(input.content[1]).toEqual({
+      type: 'image_url',
+      image_url: { url: `data:${mediaType};base64,AQIDBA==` },
+    });
+  });
+
+  it.each(['heic', 'heif'])('preserves converted JPEG vision evidence when %s OCR conversion fails', async extension => {
+    const original = new Uint8Array([0, 1, 2, 3]);
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+    const [result] = await normalizeImportSources([{
+      id: `${extension}-ocr-fallback`,
+      name: `receipt.${extension}`,
+      mediaType: `image/${extension}`,
+      objectKey: `private/receipt.${extension}`,
+      blob: new Blob([original], { type: `image/${extension}` }),
+    }], converters({
+      heicToJpeg: vi.fn(async () => jpeg),
+      toMarkdown: vi.fn(async () => { throw new Error('workers ai unavailable'); }),
+    }));
+
+    expect(result).toMatchObject({
+      status: 'analyzed',
+      text: null,
+      original: {
+        objectKey: `private/receipt.${extension}`,
+        mediaType: `image/${extension}`,
+        contentHash: await contentHash(original),
+        authoritative: true,
+      },
+      derived: null,
+      vision: { mediaType: 'image/jpeg', contentHash: await contentHash(jpeg) },
+      error: { code: 'markdown_conversion_failed', message: 'workers ai unavailable', retryable: true },
+    });
+    expect(result.vision?.bytes).toEqual(jpeg);
+    expect(result.original.contentHash).not.toBe(result.vision?.contentHash);
+    expect(() => buildGroqVisionInput(result, 'Analyze the visible record')).not.toThrow();
+  });
+
+  it('does not mark an OCR-failed image analyzed when its only vision payload exceeds the provider bound', async () => {
+    const [result] = await normalizeImportSources([{
+      id: 'oversized-ocr-fallback',
+      name: 'oversized.png',
+      mediaType: 'image/png',
+      blob: new Blob([new Uint8Array(GROQ_VISION_IMAGE_MAX_BYTES + 1)], { type: 'image/png' }),
+    }], converters({ toMarkdown: vi.fn(async () => { throw new Error('workers ai unavailable'); }) }));
+
+    expect(result).toMatchObject({
+      status: 'failed',
+      text: null,
+      derived: null,
+      vision: null,
+      error: { code: 'markdown_conversion_failed', retryable: true },
+    });
+  });
+
   it('isolates a failed source and preserves usable siblings in source order', async () => {
     const toMarkdown = vi.fn(async ({ name }: { name: string }) => {
       if (name === 'broken.pdf') throw new Error('converter unavailable');

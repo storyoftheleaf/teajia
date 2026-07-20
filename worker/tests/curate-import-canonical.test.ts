@@ -246,10 +246,10 @@ describe('canonical Curate import record', () => {
     expect(normalizeCanonicalImportRecord({ disposition: input }).disposition).toBe(expected);
   });
 
-  it('keeps legacy acquired records safe while defaulting non-acquired material to Library only', () => {
+  it('keeps legacy acquired records safe without inventing a destination for other legacy material', () => {
     expect(normalizeCanonicalImportRecord({ acquired: true }).disposition).toBe('received');
-    expect(normalizeCanonicalImportRecord({ acquired: false }).disposition).toBe('library_only');
-    expect(normalizeCanonicalImportRecord({}).disposition).toBe('library_only');
+    expect(normalizeCanonicalImportRecord({ acquired: false }).disposition).toBeNull();
+    expect(normalizeCanonicalImportRecord({}).disposition).toBeNull();
   });
 
   it('normalizes kilogram and count quantities without mixing grams and units', () => {

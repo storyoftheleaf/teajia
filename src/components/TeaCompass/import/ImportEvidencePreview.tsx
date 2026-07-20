@@ -17,7 +17,6 @@ const statusCopy = (item: ImportEvidence) => {
   if (item.status === 'reference_only') return 'Reference only · not analyzed';
   if (item.status === 'reselect') return 'Reselect to upload';
   if (item.status === 'failed') return item.error || 'Upload failed';
-  if (/\.(doc|docx)$/i.test(item.name)) return 'Reference only · not analyzed';
   return 'Ready to upload';
 };
 

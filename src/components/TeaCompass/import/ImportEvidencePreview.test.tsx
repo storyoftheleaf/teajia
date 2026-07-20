@@ -16,4 +16,14 @@ describe('ImportEvidencePreview', () => {
     expect(markup).toContain('aria-hidden="true"');
     expect(markup).toContain('aria-label="Replace attachment invoice.pdf"');
   });
+
+  it('shows DOCX as ready for supported analysis', () => {
+    const markup = renderToStaticMarkup(<ImportEvidencePreview evidence={[{
+      id: 'file-2', file: new File(['PK'], 'invoice.docx'), kind: 'file', name: 'invoice.docx', size: 2,
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', status: 'ready', error: null,
+    }]} />);
+
+    expect(markup).toContain('Ready to upload');
+    expect(markup).not.toContain('Reference only');
+  });
 });

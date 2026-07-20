@@ -46,7 +46,16 @@ export interface ImportAnalysisGroup {
 export interface ImportAnalysisProposal {
   overview: string;
   language: string;
+  annotations?: ImportAnalysisAnnotation[];
   groups: ImportAnalysisGroup[];
+}
+
+export type ImportAnalysisAnnotationKind = 'heading' | 'note' | 'fee' | 'subtotal' | 'total' | 'ignored_duplicate';
+export interface ImportAnalysisAnnotation {
+  sourceId: string;
+  kind: ImportAnalysisAnnotationKind;
+  text: string;
+  evidenceRef?: string | null;
 }
 
 export interface NormalizedImportItem extends Omit<ImportAnalysisItem, 'priceAmount'> {
@@ -119,26 +128,26 @@ const CONFIDENCE_FIELDS = [
 ] as const satisfies readonly ImportConfidenceField[];
 const confidenceSchema = {
   type: 'object',
-  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, { type: 'number' }])),
-  required: [],
+  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'number' })])),
+  required: [...CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
 const validationSchema = {
   type: 'object',
-  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, { type: 'string', enum: ['source_fact', 'ai_interpretation', 'canonical_match', 'validated', 'not_present', 'uncertain'] }])),
-  required: [],
+  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string', enum: ['source_fact', 'ai_interpretation', 'canonical_match', 'validated', 'not_present', 'uncertain'] })])),
+  required: [...CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
 const itemUncertaintySchema = {
   type: 'object',
-  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, { type: 'string' }])),
-  required: [],
+  properties: Object.fromEntries(CONFIDENCE_FIELDS.map(field => [field, nullable({ type: 'string' })])),
+  required: [...CONFIDENCE_FIELDS],
   additionalProperties: false,
 };
 const groupUncertaintySchema = {
   type: 'object',
-  properties: { vendor: { type: 'string' } },
-  required: [],
+  properties: { vendor: nullable({ type: 'string' }) },
+  required: ['vendor'],
   additionalProperties: false,
 };
 
@@ -147,6 +156,20 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
   properties: {
     overview: { type: 'string' },
     language: { type: 'string' },
+    annotations: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          sourceId: { type: 'string' },
+          kind: { type: 'string', enum: ['heading', 'note', 'fee', 'subtotal', 'total', 'ignored_duplicate'] },
+          text: { type: 'string' },
+          evidenceRef: nullable({ type: 'string' }),
+        },
+        required: ['sourceId', 'kind', 'text', 'evidenceRef'],
+        additionalProperties: false,
+      },
+    },
     groups: {
       type: 'array',
       items: {
@@ -154,8 +177,8 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
         properties: {
           key: { type: 'string' },
           proposedVendorName: nullable({ type: 'string' }),
-          proposedVendorCustomerId: { type: 'string' },
-          vendorConfidence: { type: 'number' },
+          proposedVendorCustomerId: nullable({ type: 'string' }),
+          vendorConfidence: nullable({ type: 'number' }),
           uncertainty: groupUncertaintySchema,
           items: {
             type: 'array',
@@ -178,29 +201,29 @@ export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
                 evidenceRefs: { type: 'array', items: { type: 'string' } },
                 acquired: nullable({ type: 'boolean' }),
                 duplicateResolution: { type: 'string', enum: ['new', 'matched', 'unresolved'] },
-                proposedCompassEntryId: { type: 'string' },
-                proposedProductId: { type: 'string' },
-                chineseName: { type: 'string' },
-                type: { type: 'string' },
-                form: { type: 'string' },
-                year: { type: 'integer' },
-                originCountry: { type: 'string' },
-                originRegion: { type: 'string' },
-                classification: { type: 'string' },
-                description: { type: 'string' },
-                inventoryPurpose: { type: 'string' },
+                proposedCompassEntryId: nullable({ type: 'string' }),
+                proposedProductId: nullable({ type: 'string' }),
+                chineseName: nullable({ type: 'string' }),
+                type: nullable({ type: 'string' }),
+                form: nullable({ type: 'string' }),
+                year: nullable({ type: 'integer' }),
+                originCountry: nullable({ type: 'string' }),
+                originRegion: nullable({ type: 'string' }),
+                classification: nullable({ type: 'string' }),
+                description: nullable({ type: 'string' }),
+                inventoryPurpose: nullable({ type: 'string' }),
               },
-              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution'],
+              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'validation', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose'],
               additionalProperties: false,
             },
           },
         },
-        required: ['key', 'proposedVendorName', 'uncertainty', 'items'],
+        required: ['key', 'proposedVendorName', 'proposedVendorCustomerId', 'vendorConfidence', 'uncertainty', 'items'],
         additionalProperties: false,
       },
     },
   },
-  required: ['overview', 'language', 'groups'],
+  required: ['overview', 'language', 'annotations', 'groups'],
   additionalProperties: false,
 } as const;
 
@@ -258,6 +281,7 @@ function stringRecord(value: unknown, field: string, allowed?: readonly string[]
   const result: Record<string, string> = {};
   for (const [key, entry] of Object.entries(source)) {
     if (allowed && !allowed.includes(key)) throw new Error(`Invalid ${field}.${key}`);
+    if (entry == null) continue;
     if (typeof entry !== 'string' || entry.length > 2000) throw new Error(`Invalid ${field}.${key}`);
     result[key] = entry;
   }
@@ -269,6 +293,7 @@ function confidenceRecord(value: unknown): ImportAnalysisConfidence {
   const result: ImportAnalysisConfidence = {};
   for (const [key, entry] of Object.entries(source)) {
     if (!CONFIDENCE_FIELDS.includes(key as ImportConfidenceField)) throw new Error(`Invalid confidence.${key}`);
+    if (entry == null) continue;
     if (typeof entry !== 'number' || !Number.isFinite(entry) || entry < 0 || entry > 1) throw new Error(`Invalid confidence.${key}`);
     result[key as ImportConfidenceField] = entry;
   }
@@ -282,6 +307,7 @@ function validationRecord(value: unknown): ImportAnalysisValidation {
   const source = record(value, 'validation');
   const result: ImportAnalysisValidation = {};
   for (const [key, entry] of Object.entries(source)) {
+    if (entry == null) continue;
     if (!CONFIDENCE_FIELDS.includes(key as ImportConfidenceField) || typeof entry !== 'string' || !VALIDATION_STATES.has(entry as ImportValidationState)) {
       throw new Error(`Invalid validation.${key}`);
     }
@@ -325,10 +351,24 @@ function decodeItem(value: unknown, groupIndex: number, itemIndex: number): Impo
 
 export function decodeImportAnalysisProposal(value: unknown): ImportAnalysisProposal {
   const input = record(value, 'proposal');
-  rejectUnknown(input, ['overview', 'language', 'groups'], 'proposal');
+  rejectUnknown(input, ['overview', 'language', 'annotations', 'groups'], 'proposal');
   if (!Array.isArray(input.groups) || !input.groups.length || input.groups.length > 100) throw new Error('Invalid groups');
+  if (input.annotations != null && (!Array.isArray(input.annotations) || input.annotations.length > 500)) throw new Error('Invalid annotations');
+  const annotationKinds = new Set<ImportAnalysisAnnotationKind>(['heading', 'note', 'fee', 'subtotal', 'total', 'ignored_duplicate']);
   const proposal = {
     overview: string(input.overview, 'overview')!, language: string(input.language, 'language')!,
+    annotations: (input.annotations ?? []).map((value, index) => {
+      const annotation = record(value, `annotations[${index}]`);
+      rejectUnknown(annotation, ['sourceId', 'kind', 'text', 'evidenceRef'], 'annotation');
+      const kind = string(annotation.kind, `annotations[${index}].kind`) as ImportAnalysisAnnotationKind;
+      if (!annotationKinds.has(kind)) throw new Error(`Invalid annotation kind: ${kind}`);
+      return {
+        sourceId: string(annotation.sourceId, `annotations[${index}].sourceId`)!,
+        kind,
+        text: string(annotation.text, `annotations[${index}].text`)!,
+        evidenceRef: optionalText(annotation.evidenceRef, `annotations[${index}].evidenceRef`, 1000),
+      };
+    }),
     groups: input.groups.map((value, groupIndex) => {
       const group = record(value, `groups[${groupIndex}]`);
       rejectUnknown(group, ['key', 'proposedVendorName', 'proposedVendorCustomerId', 'vendorConfidence', 'uncertainty', 'items'], 'group');
@@ -345,10 +385,12 @@ export function decodeImportAnalysisProposal(value: unknown): ImportAnalysisProp
   };
   const groupKeys = new Set<string>();
   const sourceItemIds = new Set<string>();
+  let itemCount = 0;
   for (const group of proposal.groups) {
     if (groupKeys.has(group.key)) throw new Error(`Duplicate group key: ${group.key}`);
     groupKeys.add(group.key);
     for (const item of group.items) {
+      if (++itemCount > 100) throw new Error('analysis_too_many_items');
       if (sourceItemIds.has(item.sourceItemId)) throw new Error(`Duplicate sourceItemId: ${item.sourceItemId}`);
       sourceItemIds.add(item.sourceItemId);
     }
@@ -910,6 +952,12 @@ export function buildImportRecordFallbackProposal(hints: ImportRecordHints): Imp
   return {
     overview: `Recovered ${hints.items.length} purchased ${hints.items.length === 1 ? 'item' : 'items'} from the record; translation and identity need review.`,
     language: hints.items.some(item => /\p{Script=Han}/u.test(item.originalName)) ? 'zh' : 'unknown',
+    annotations: hints.annotations.map(annotation => ({
+      sourceId: annotation.sourceId,
+      kind: annotation.kind,
+      text: annotation.text,
+      evidenceRef: annotation.evidenceRef,
+    })),
     groups: [...itemGroups.values()].map((entry, index) => ({
       key: `record:${entry.sourceId}:${index}`,
       proposedVendorName: entry.supplier,
@@ -967,6 +1015,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
   return [
     'Interpret this free-form vendor record as an inventory import. The record may mix languages, arbitrary ordering, blank lines, conversational notes, photos, tables, prices, and totals.',
     'Classify meaning before extracting: identify suppliers, tea or teaware items, quantities, prices, totals, headings, and notes. A supplier, heading, subtotal, total, shipping charge, or note is never an inventory item.',
+    'Return every non-item heading, note, shipping/fee, subtotal, total, or ignored duplicate in the top-level annotations array with its sourceId, kind, exact source text, and evidenceRef when available.',
     'Preserve every original non-English product name and translate it into a concise, natural English product name. Put the original in originalName and the translation in englishName; never leave price, weight, count, or totals inside either name.',
     'Use explicit pack size and count to describe acquired stock. Application code derives total grams from packWeight × packCount and converts kg to grams.',
     'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. priceAmount must be a JSON decimal string copied from evidence, never a JSON number. Use null or "unresolved" instead of guessing.',

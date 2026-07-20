@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
-import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
+import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, importDisposition, importFinalActionLabel, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
 import { compatibleImportHoldings, filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, validateImportHoldingSelection, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
@@ -10,6 +10,7 @@ const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   pack_weight: 500, weight_unit: 'g', pack_count: 2, price_amount: 380, currency: 'CNY',
   price_basis: 'per_pack', total_quantity_grams: 1000, total_units: null, line_cost: 760, unit_cost: 0.76,
   review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: 'reserved-1',
+  acquired: true,
   ...overrides,
 });
 
@@ -70,8 +71,34 @@ describe('buildImportReviewModel', () => {
   it('requires inventoryPurpose to exactly match a finalizer-supported value', () => {
     const missing = detail({ items: [item({ parsed_data: {} })], groups: [detail().groups[1]] });
     expect(buildImportReviewModel(missing)).toMatchObject({ readyCount: 0, needsReviewCount: 1, canFinalize: false });
-    expect(buildImportReviewModel(detail({ items: [item({ parsed_data: { inventoryPurpose: 'service' } })], groups: [detail().groups[1]] })).canFinalize).toBe(false);
+    expect(buildImportReviewModel(detail({ items: [item({ parsed_data: { inventoryPurpose: 'service' as never } })], groups: [detail().groups[1]] })).canFinalize).toBe(false);
     expect(buildImportReviewModel(detail({ items: [item({ parsed_data: { inventoryPurpose: 'sample' } })], groups: [detail().groups[1]] })).canFinalize).toBe(true);
+  });
+
+  it('requires purpose and a holding only for stock-bearing dispositions', () => {
+    const libraryOnly = item({
+      parsed_data: { disposition: 'library_only', inventoryPurpose: null, proposedProductId: null },
+      acquired: false,
+      vendor_group_id: 'group-2',
+      blocking_fields: ['vendor', 'inventoryPurpose', 'productId', 'acquired'],
+    });
+    expect(buildImportReviewModel(detail({ items: [libraryOnly], groups: [detail().groups[0]] }))).toMatchObject({
+      readyCount: 1,
+      needsReviewCount: 0,
+      canFinalize: true,
+      groups: [{ vendorResolved: true, vendorRequired: false }],
+    });
+
+    const inTransit = item({
+      parsed_data: { disposition: 'in_transit', inventoryPurpose: null, proposedProductId: null },
+      acquired: false,
+      blocking_fields: ['inventoryPurpose', 'productId', 'acquired'],
+    });
+    expect(buildImportReviewModel(detail({ items: [inTransit], groups: [detail().groups[1]] }))).toMatchObject({
+      readyCount: 0,
+      needsReviewCount: 1,
+      canFinalize: false,
+    });
   });
 });
 
@@ -85,9 +112,14 @@ describe('importBlockingMessage', () => {
     expect(importBlockingMessage(item({ uncertainty: { description: 'Translation could be refined' }, blocking_fields: [] }))).toBeNull();
   });
 
-  it('names identity, holding, and physical-stock blockers precisely', () => {
+  it('uses an explicit or backwards-compatible received disposition instead of a physical-stock blocker', () => {
     expect(importBlockingMessage(item({ blocking_fields: ['duplicateIdentity', 'productId', 'acquisitionState'] })))
-      .toBe('Confirm tea identity, Inventory holding, and physical stock status.');
+      .toBe('Confirm tea identity and Inventory holding.');
+  });
+
+  it('uses category-aware identity wording and disposition wording', () => {
+    expect(importBlockingMessage(item({ category: 'teaware', acquired: false, blocking_fields: ['duplicateIdentity', 'disposition'] })))
+      .toBe('Confirm teaware identity and destination.');
   });
 });
 
@@ -141,10 +173,20 @@ describe('review navigation and journey helpers', () => {
     expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', journey: null, receipts: [], items: [] })).toBeNull();
   });
 
-  it('clears only blockers explicitly resolved by edited values', () => {
+  it('skips Library-only results when choosing an Inventory destination', () => {
+    expect(inventoryTargetFromFinalize({ batchId: 'b', idempotencyKey: 'k', journey: null, receipts: [], items: [
+      { id: 'library', compassEntryId: 'c-1', productId: null, movementId: null, identityDisposition: 'created', holdingDisposition: null },
+      { id: 'transit', compassEntryId: 'c-2', productId: 'product-2', movementId: null, identityDisposition: 'created', holdingDisposition: 'created' },
+    ] })).toBe('product-2');
+  });
+
+  it('keeps explicit identity and holding blockers until the user confirms a suggestion', () => {
     expect(resolveImportBlockingFields(['packCount', 'priceBasis', 'duplicateIdentity', 'productId', 'acquisitionState', 'year'], {
       packCount: 2, priceBasis: 'per_pack', duplicateResolution: 'new', proposedCompassEntryId: null, proposedProductId: null, acquired: true,
-    })).toEqual(['year']);
+    })).toEqual(['duplicateIdentity', 'productId', 'year']);
+    expect(resolveImportBlockingFields(['duplicateIdentity', 'productId', 'inventoryPurpose'], {
+      disposition: 'in_transit', inventoryPurpose: 'working', identityResolution: { kind: 'new' }, holdingResolution: { kind: 'new' },
+    })).toEqual(['duplicateIdentity', 'productId']);
   });
 
   it('omits derived arithmetic and blockers from correction payloads', () => {
@@ -154,12 +196,16 @@ describe('review navigation and journey helpers', () => {
 
   it('builds correction payloads with only canonical Worker identity and stock keys', () => {
     const payload = buildImportCorrectionParsedData({ sourceItemId: 'source-1', teaType: 'legacy', compassEntryId: 'legacy', productId: 'legacy', acquiredIntoStock: true }, {
-      englishName: 'Tea', originalName: null, type: 'raw puer', classification: null, year: 2024, form: 'cake',
+      englishName: 'Tea', originalName: 'Supplier title', chineseName: '茶', type: 'raw puer', classification: null, year: 2024, form: 'cake',
       originRegion: 'Yunnan', description: null, inventoryPurpose: 'working', compassSelection: 'compass-1',
-      productSelection: 'product-1', acquired: true, packWeight: 357, weightUnit: 'g', packCount: 1,
+      productSelection: 'product-1', disposition: 'received', acquired: true, packWeight: 357, weightUnit: 'g', packCount: 1,
       priceAmount: '80', currency: 'CNY', priceBasis: 'per_pack',
     });
-    expect(payload).toMatchObject({ type: 'raw puer', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1', acquired: true, duplicateResolution: 'matched' });
+    expect(payload).toMatchObject({
+      originalName: 'Supplier title', chineseName: '茶', type: 'raw puer', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1', disposition: 'received', acquired: true, duplicateResolution: 'matched',
+      identityResolution: { kind: 'existing', compassEntryId: 'compass-1' },
+      holdingResolution: { kind: 'existing', productId: 'product-1' },
+    });
     expect(payload).not.toHaveProperty('teaType');
     expect(payload).not.toHaveProperty('compassEntryId');
     expect(payload).not.toHaveProperty('productId');
@@ -170,7 +216,7 @@ describe('review navigation and journey helpers', () => {
     const payload = buildImportCorrectionParsedData({ sourceItemId: 'source-1', confidence: { priceAmount: 0.4 } }, {
       englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null,
       originRegion: null, description: null, inventoryPurpose: 'working', compassSelection: 'new', productSelection: 'new',
-      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '21.500', currency: 'USD', priceBasis: 'line_total',
+      disposition: 'received', acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '21.500', currency: 'USD', priceBasis: 'line_total',
     });
     expect(payload).toMatchObject({ priceAmount: '21.5', priceAmountExact: '21.5' });
     expect(typeof payload.priceAmount).toBe('string');
@@ -184,6 +230,32 @@ describe('review navigation and journey helpers', () => {
     expect(normalized.items[0]).toMatchObject({
       proposed_compass_entry_id: 'compass-2', proposed_product_id: 'product-2', acquired: true, duplicate_resolution: 'matched',
     });
+    const canonical = normalizeImportDetail(detail({ items: [item({ proposed_compass_entry_id: null, proposed_product_id: null, duplicate_resolution: null, parsed_data: {
+      disposition: 'in_transit', inventoryPurpose: 'sample', identityResolution: { kind: 'existing', compassEntryId: 'compass-3' }, holdingResolution: { kind: 'existing', productId: 'product-3' },
+    } })] }));
+    expect(canonical.items[0]).toMatchObject({
+      proposed_compass_entry_id: 'compass-3', proposed_product_id: 'product-3', duplicate_resolution: 'matched', disposition: 'in_transit',
+    });
+  });
+
+  it('prefers current canonical names over stale item columns', () => {
+    const normalized = normalizeImportDetail(detail({ items: [item({
+      english_name: 'Stale English', original_name: 'Stale supplier name', chinese_name: '旧中文',
+      parsed_data: { inventoryPurpose: 'working', englishName: 'Reviewed English', originalName: 'Reviewed supplier name', chineseName: '当前中文' },
+    })] }));
+    expect(normalized.items[0]).toMatchObject({
+      english_name: 'Reviewed English', original_name: 'Reviewed supplier name', chinese_name: '当前中文',
+    });
+  });
+
+  it('normalizes persisted batch annotation JSON into typed annotations', () => {
+    const normalized = normalizeImportDetail(detail({ batch: {
+      ...detail().batch,
+      analysis_annotations_json: JSON.stringify([{ kind: 'shipping_or_fee', label: 'Shipping', amountExact: '20', currency: 'CNY', sourceExcerpt: '运费 20元' }]),
+    } }));
+    expect(normalized.batch.analysis_annotations).toEqual([
+      { kind: 'shipping_or_fee', label: 'Shipping', amountExact: '20', currency: 'CNY', sourceExcerpt: '运费 20元' },
+    ]);
   });
 
   it('exposes exact prices for collapsed display when no safe numeric value exists', () => {
@@ -217,9 +289,22 @@ describe('review navigation and journey helpers', () => {
     const payload = buildImportCorrectionParsedData(parsed, {
       englishName: 'Edited tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
       description: 'Only this changed', inventoryPurpose: 'working', compassSelection: null, productSelection: null, identityTouched: false,
-      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+      disposition: 'received', acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
     });
     expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' });
+  });
+
+  it('preserves canonical new identity and holding resolutions on an unrelated untouched Save', () => {
+    const parsed = { sourceItemId: 'source-1', identityResolution: { kind: 'new' }, holdingResolution: { kind: 'new' } };
+    const payload = buildImportCorrectionParsedData(parsed, {
+      englishName: 'Edited tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
+      description: 'Only this changed', inventoryPurpose: 'working', compassSelection: null, productSelection: null, identityTouched: false,
+      disposition: 'received', acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(payload).toMatchObject({
+      duplicateResolution: 'new', proposedCompassEntryId: null, proposedProductId: null,
+      identityResolution: { kind: 'new' }, holdingResolution: { kind: 'new' },
+    });
   });
 
   it('confirms one explicitly touched picker without clearing its proposed companion', () => {
@@ -227,7 +312,7 @@ describe('review navigation and journey helpers', () => {
     const payload = buildImportCorrectionParsedData(parsed, {
       englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
       description: null, inventoryPurpose: 'working', compassSelection: 'compass-1', productSelection: null, identityTouched: true,
-      acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+      disposition: 'received', acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
     });
     expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' });
   });
@@ -236,7 +321,7 @@ describe('review navigation and journey helpers', () => {
     const payload = buildImportCorrectionParsedData({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' }, {
       englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
       description: null, inventoryPurpose: 'personal', compassSelection: 'compass-1', productSelection: null,
-      identityTouched: false, productSelectionTouched: true, acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1,
+      identityTouched: false, productSelectionTouched: true, disposition: 'received', acquired: true, packWeight: 100, weightUnit: 'g', packCount: 1,
       priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
     });
     expect(payload).toMatchObject({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: null });
@@ -246,5 +331,32 @@ describe('review navigation and journey helpers', () => {
     expect(importItemNoun([{ category: 'tea' }], 1)).toBe('tea');
     expect(importItemNoun([{ category: 'teaware' }], 1)).toBe('teaware item');
     expect(importItemNoun([{ category: 'tea' }, { category: 'teaware' }], 2)).toBe('items');
+  });
+
+  it('maps legacy acquired rows to received and leaves unknown legacy rows unresolved', () => {
+    expect(importDisposition(item({ parsed_data: {}, acquired: true }))).toBe('received');
+    expect(importDisposition(item({ parsed_data: {}, acquired: false }))).toBeNull();
+  });
+
+  it('describes every disposition in the final action', () => {
+    expect(importFinalActionLabel([
+      item({ id: 'received-1', parsed_data: { disposition: 'received', inventoryPurpose: 'working' } }),
+      item({ id: 'received-2', parsed_data: { disposition: 'received', inventoryPurpose: 'working' } }),
+      item({ id: 'transit', parsed_data: { disposition: 'in_transit', inventoryPurpose: 'working' }, acquired: false }),
+      item({ id: 'library', parsed_data: { disposition: 'library_only' }, acquired: false }),
+    ])).toBe('Receive 2 teas, hold 1 tea in transit, and save 1 Library record');
+    expect(importFinalActionLabel([
+      item({ parsed_data: { disposition: 'library_only' }, acquired: false }),
+    ])).toBe('Save 1 Library record');
+  });
+
+  it('clears holding and purpose intent for a Library-only correction', () => {
+    const payload = buildImportCorrectionParsedData({ duplicateResolution: 'matched', proposedCompassEntryId: 'compass-1', proposedProductId: 'product-1' }, {
+      englishName: 'Tea', originalName: null, type: null, classification: null, year: null, form: null, originRegion: null,
+      description: null, inventoryPurpose: 'working', compassSelection: 'compass-1', productSelection: 'product-1',
+      identityTouched: false, productSelectionTouched: false, disposition: 'library_only', acquired: false,
+      packWeight: 100, weightUnit: 'g', packCount: 1, priceAmount: '20', currency: 'USD', priceBasis: 'line_total',
+    });
+    expect(payload).toMatchObject({ disposition: 'library_only', inventoryPurpose: null, proposedProductId: null, acquired: false, holdingResolution: null });
   });
 });

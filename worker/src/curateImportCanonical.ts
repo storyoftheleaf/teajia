@@ -59,7 +59,7 @@ export interface CanonicalImportRecord {
   unitCostExact: string | null;
   totalQuantityGrams: number | null;
   totalUnits: number | null;
-  disposition: CanonicalImportDisposition;
+  disposition: CanonicalImportDisposition | null;
   inventoryPurpose: CanonicalImportInventoryPurpose | null;
   vendorResolution: CanonicalVendorResolution;
   identityResolution: CanonicalIdentityResolution;
@@ -174,11 +174,11 @@ function currency(value: unknown): string | null {
   return SUPPORTED_CURRENCIES.has(normalized) ? normalized : null;
 }
 
-function disposition(input: Record<string, unknown>): CanonicalImportDisposition {
+function disposition(input: Record<string, unknown>): CanonicalImportDisposition | null {
   const normalized = text(input.disposition)?.toLowerCase().replace(/[ -]/g, '_');
   if (normalized === 'received' || normalized === 'in_transit' || normalized === 'library_only') return normalized;
   if (normalized === 'ordered') return 'in_transit';
-  return input.acquired === true ? 'received' : 'library_only';
+  return input.acquired === true ? 'received' : null;
 }
 
 function inventoryPurpose(value: unknown): CanonicalImportInventoryPurpose | null {
@@ -220,7 +220,7 @@ function identityResolution(input: Record<string, unknown>): CanonicalIdentityRe
   return { kind: 'unresolved' };
 }
 
-function holdingResolution(input: Record<string, unknown>, itemDisposition: CanonicalImportDisposition): CanonicalHoldingResolution {
+function holdingResolution(input: Record<string, unknown>, itemDisposition: CanonicalImportDisposition | null): CanonicalHoldingResolution {
   if (itemDisposition === 'library_only') return null;
   const candidate = object(input.holdingResolution);
   const kind = text(candidate?.kind)?.toLowerCase();

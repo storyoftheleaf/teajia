@@ -1,4 +1,4 @@
-import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportReviewedField, CurateImportVendorGroup } from '../../../lib/api';
+import type { CurateImportCanonicalRecord, CurateImportDetail, CurateImportDisposition, CurateImportFinalizeResult, CurateImportInventoryPurpose, CurateImportItem, CurateImportReviewedField, CurateImportVendorGroup } from '../../../lib/api';
 import type { CurateJourney } from '../types';
 
 export interface ImportReviewItemRow {
@@ -10,6 +10,7 @@ export interface ImportReviewItemRow {
 
 export interface ImportReviewGroupRow extends CurateImportVendorGroup {
   items: ImportReviewItemRow[];
+  vendorRequired: boolean;
   vendorResolved: boolean;
 }
 
@@ -49,14 +50,16 @@ export const rankImportMatches = <T extends ImportMatchOption>(options: T[], que
     .map(({ option, matchReason }) => ({ ...option, ...(matchReason ? { matchReason } : {}) }));
 };
 
-export const compatibleImportHoldings = <T extends ImportMatchOption>(options: T[], selection: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }): T[] => options.filter(option =>
-  Boolean(selection.compassEntryId)
+export const compatibleImportHoldings = <T extends ImportMatchOption>(options: T[], selection: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null; disposition?: CurateImportDisposition | null }): T[] => options.filter(option =>
+  selection.disposition !== 'library_only'
+  && Boolean(selection.compassEntryId)
   && (!option.category || option.category === selection.category)
   && option.compassEntryId === selection.compassEntryId
   && (!selection.purpose || option.purpose === selection.purpose),
 );
 
-export const validateImportHoldingSelection = <T extends ImportMatchOption>(selectedId: string, options: T[], criteria: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null }): string => {
+export const validateImportHoldingSelection = <T extends ImportMatchOption>(selectedId: string, options: T[], criteria: { category: 'tea' | 'teaware'; compassEntryId: string | null; purpose: string | null; disposition?: CurateImportDisposition | null }): string => {
+  if (criteria.disposition === 'library_only') return '';
   if (!selectedId || selectedId === 'new') return selectedId;
   return compatibleImportHoldings(options, criteria).some(option => option.id === selectedId) ? selectedId : '';
 };
@@ -70,6 +73,7 @@ const BLOCKING_LABELS: Record<string, string> = {
   inventoryPurpose: 'Inventory purpose', inventory_purpose: 'Inventory purpose',
   duplicateIdentity: 'tea identity', compassEntryId: 'tea identity', productId: 'Inventory holding',
   acquisitionState: 'physical stock status', physicalStock: 'physical stock status', acquiredIntoStock: 'physical stock status',
+  disposition: 'destination',
 };
 
 export const filterImportJourneys = (journeys: CurateJourney[], query: string) => {
@@ -79,23 +83,31 @@ export const filterImportJourneys = (journeys: CurateJourney[], query: string) =
 };
 
 export const inventoryTargetFromFinalize = (result: CurateImportFinalizeResult): string | null => {
-  const first = result.items[0];
-  return first?.productId || null;
+  return result.items.find(item => item.productId)?.productId || null;
+};
+
+const DISPOSITIONS = new Set<CurateImportDisposition>(['received', 'in_transit', 'library_only']);
+export const importDisposition = (item: Pick<CurateImportItem, 'parsed_data' | 'disposition' | 'acquired'>): CurateImportDisposition | null => {
+  const candidate = item.parsed_data?.disposition ?? item.disposition;
+  if (typeof candidate === 'string' && DISPOSITIONS.has(candidate as CurateImportDisposition)) return candidate as CurateImportDisposition;
+  return item.acquired === true || item.parsed_data?.acquired === true ? 'received' : null;
 };
 
 const normalizedBlocker = (field: string) => field.replace(/_/g, '').toLocaleLowerCase();
 export const resolveImportBlockingFields = (fields: string[], values: Record<string, unknown>) => fields.filter(field => {
   const key = normalizedBlocker(field);
+  const disposition = DISPOSITIONS.has(values.disposition as CurateImportDisposition) ? values.disposition as CurateImportDisposition : null;
+  if (key === 'disposition') return !disposition;
+  if (disposition === 'library_only' && ['vendor', 'vendorgroupid', 'productid', 'proposedproductid', 'inventoryholding', 'purpose', 'inventorypurpose', 'acquisitionstate', 'physicalstock', 'acquiredintostock', 'acquired', 'packcount', 'packweight', 'weightunit', 'totalquantitygrams', 'totalunits', 'quantity', 'priceamount', 'linecost', 'pricebasis', 'currency'].includes(key)) return false;
+  if (['acquisitionstate', 'physicalstock', 'acquiredintostock', 'acquired'].includes(key)) return false;
   if (key === 'packcount') return !(typeof values.packCount === 'number' && values.packCount > 0);
   if (key === 'packweight') return !(typeof values.packWeight === 'number' && values.packWeight > 0);
   if (key === 'weightunit') return !values.weightUnit;
   if (key === 'priceamount') return !((typeof values.priceAmount === 'number' && values.priceAmount >= 0) || (typeof values.priceAmount === 'string' && /^\d+(?:\.\d+)?$/.test(values.priceAmount)));
   if (key === 'pricebasis') return !values.priceBasis || values.priceBasis === 'unknown';
   if (key === 'currency') return !values.currency;
-  if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return values.duplicateResolution !== 'new' && !values.proposedCompassEntryId;
-  if (['productid', 'proposedproductid', 'inventoryholding'].includes(key)) return values.duplicateResolution !== 'new' && !values.proposedProductId;
-  if (['acquisitionstate', 'physicalstock', 'acquiredintostock', 'acquired'].includes(key)) return values.acquired !== true;
-  if (['purpose', 'inventorypurpose'].includes(key)) return !values.inventoryPurpose;
+  if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid', 'productid', 'proposedproductid', 'inventoryholding'].includes(key)) return true;
+  if (['purpose', 'inventorypurpose'].includes(key)) return !['working', 'sample', 'personal'].includes(String(values.inventoryPurpose));
   return true;
 });
 
@@ -104,6 +116,8 @@ const WORKER_IMPORT_FIELDS = [
   'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
   'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form',
   'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose',
+  'sourceId', 'sourceExcerpt', 'sourceLanguage', 'provenance', 'fieldProvenance', 'disposition',
+  'vendorResolution', 'identityResolution', 'holdingResolution',
 ] as const;
 
 export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => Object.fromEntries(
@@ -111,11 +125,12 @@ export const withoutImportDerivedFields = (parsed: Record<string, unknown>) => O
 );
 
 export interface ImportCorrectionDraft {
-  englishName: string | null; originalName: string | null; type: string | null; classification: string | null;
-  year: number | null; form: string | null; originRegion: string | null; description: string | null;
-  inventoryPurpose: string | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
-  packWeight: number | null; weightUnit: string | null; packCount: number | null; priceAmount: string | null;
-  currency: string | null; priceBasis: string;
+  englishName: string | null; originalName: string | null; chineseName?: string | null; type: string | null; classification: string | null;
+  year: number | null; form: string | null; originCountry?: string | null; originRegion: string | null; description: string | null;
+  inventoryPurpose: CurateImportInventoryPurpose | null; compassSelection: string | null; productSelection: string | null; acquired: boolean;
+  disposition: CurateImportDisposition;
+  packWeight: number | null; weightUnit: CurateImportItem['weight_unit']; packCount: number | null; priceAmount: string | null;
+  currency: string | null; priceBasis: CurateImportItem['price_basis'];
   identityTouched?: boolean;
   productSelectionTouched?: boolean;
 }
@@ -123,11 +138,49 @@ export interface ImportCorrectionDraft {
 export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>, draft: ImportCorrectionDraft) => {
   const identityTouched = draft.identityTouched !== false;
   const productSelectionTouched = draft.productSelectionTouched === true;
-  const compassSelection = identityTouched ? draft.compassSelection : draft.compassSelection ?? (typeof parsed.proposedCompassEntryId === 'string' ? parsed.proposedCompassEntryId : parsed.duplicateResolution === 'new' ? 'new' : null);
-  const productSelection = productSelectionTouched ? draft.productSelection : draft.productSelection ?? (typeof parsed.proposedProductId === 'string' ? parsed.proposedProductId : null);
-  const createsIdentity = identityTouched ? compassSelection === 'new' : parsed.duplicateResolution === 'new';
-  const proposedCompassEntryId = identityTouched ? (createsIdentity ? null : compassSelection) : parsed.proposedCompassEntryId ?? null;
-  const proposedProductId = createsIdentity || productSelection === 'new' ? null : productSelection;
+  const canonicalIdentityResolution = parsed.identityResolution as { kind?: unknown; compassEntryId?: unknown } | null | undefined;
+  const canonicalHoldingResolution = parsed.holdingResolution as { kind?: unknown; productId?: unknown } | null | undefined;
+  const canonicalDuplicateResolution = canonicalIdentityResolution?.kind === 'existing'
+    ? 'matched'
+    : canonicalIdentityResolution?.kind === 'new'
+      ? 'new'
+      : canonicalIdentityResolution?.kind === 'unresolved'
+        ? 'unresolved'
+        : null;
+  const existingDuplicateResolution = ['new', 'matched', 'unresolved'].includes(String(parsed.duplicateResolution))
+    ? parsed.duplicateResolution as CurateImportItem['duplicate_resolution']
+    : canonicalDuplicateResolution ?? 'unresolved';
+  const existingCompassSelection = typeof parsed.proposedCompassEntryId === 'string'
+    ? parsed.proposedCompassEntryId
+    : canonicalIdentityResolution?.kind === 'existing' && typeof canonicalIdentityResolution.compassEntryId === 'string'
+      ? canonicalIdentityResolution.compassEntryId
+      : existingDuplicateResolution === 'new'
+        ? 'new'
+        : null;
+  const existingProductSelection = typeof parsed.proposedProductId === 'string'
+    ? parsed.proposedProductId
+    : canonicalHoldingResolution?.kind === 'existing' && typeof canonicalHoldingResolution.productId === 'string'
+      ? canonicalHoldingResolution.productId
+      : canonicalHoldingResolution?.kind === 'new'
+        ? 'new'
+        : null;
+  const compassSelection = identityTouched ? draft.compassSelection : draft.compassSelection ?? existingCompassSelection;
+  const productSelection = draft.disposition === 'library_only' ? null : productSelectionTouched ? draft.productSelection : draft.productSelection ?? existingProductSelection;
+  const createsIdentity = identityTouched ? compassSelection === 'new' : existingDuplicateResolution === 'new';
+  const proposedCompassEntryId = identityTouched ? (createsIdentity ? null : compassSelection) : existingCompassSelection === 'new' ? null : existingCompassSelection;
+  const proposedProductId = draft.disposition === 'library_only' || createsIdentity || productSelection === 'new' ? null : productSelection;
+  const identityResolution = createsIdentity
+    ? { kind: 'new' as const }
+    : proposedCompassEntryId
+      ? { kind: 'existing' as const, compassEntryId: proposedCompassEntryId }
+      : { kind: 'unresolved' as const };
+  const holdingResolution = draft.disposition === 'library_only'
+    ? null
+    : createsIdentity || productSelection === 'new'
+      ? { kind: 'new' as const }
+      : proposedProductId
+        ? { kind: 'existing' as const, productId: proposedProductId }
+        : { kind: 'unresolved' as const };
   const priceAmount = (() => {
     const source = draft.priceAmount?.trim();
     if (!source || !/^\d+(?:\.\d+)?$/.test(source)) return null;
@@ -136,27 +189,45 @@ export const buildImportCorrectionParsedData = (parsed: Record<string, unknown>,
     const canonicalFraction = fraction.replace(/0+$/, '');
     return canonicalFraction ? `${canonicalWhole}.${canonicalFraction}` : canonicalWhole;
   })();
+  const chineseName = draft.chineseName === undefined ? (typeof parsed.chineseName === 'string' ? parsed.chineseName : null) : draft.chineseName;
   return {
     ...withoutImportDerivedFields(parsed),
-    englishName: draft.englishName, originalName: draft.originalName, type: draft.type,
-    classification: draft.classification, year: draft.year, form: draft.form, originRegion: draft.originRegion,
-    description: draft.description, inventoryPurpose: draft.inventoryPurpose,
-    proposedCompassEntryId, proposedProductId, acquired: draft.acquired,
-    duplicateResolution: identityTouched ? (createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved') : parsed.duplicateResolution ?? 'unresolved',
+    englishName: draft.englishName, originalName: draft.originalName, chineseName, type: draft.type,
+    classification: draft.classification, year: draft.year, form: draft.form, originCountry: draft.originCountry ?? null, originRegion: draft.originRegion,
+    description: draft.description, inventoryPurpose: draft.disposition === 'library_only' ? null : draft.inventoryPurpose,
+    proposedCompassEntryId, proposedProductId, identityResolution, holdingResolution,
+    disposition: draft.disposition, acquired: draft.disposition === 'received',
+    duplicateResolution: identityTouched ? (createsIdentity ? 'new' : proposedCompassEntryId ? 'matched' : 'unresolved') : existingDuplicateResolution,
     packWeight: draft.packWeight, weightUnit: draft.weightUnit, packCount: draft.packCount,
     priceAmount, priceAmountExact: priceAmount, currency: draft.currency, priceBasis: draft.priceBasis,
-  };
+  } satisfies CurateImportCanonicalRecord & Record<string, unknown>;
+};
+
+const normalizedImportAnnotations = (batch: CurateImportDetail['batch']) => {
+  if (Array.isArray(batch.analysis_annotations)) return batch.analysis_annotations;
+  if (!batch.analysis_annotations_json) return [];
+  try {
+    const parsed = JSON.parse(batch.analysis_annotations_json);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 };
 
 export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportDetail => ({
   ...detail,
+  batch: { ...detail.batch, analysis_annotations: normalizedImportAnnotations(detail.batch) },
   groups: (detail.groups || []).map(group => ({ ...group, confidence: group.confidence ?? group.vendor_confidence ?? null })),
   items: detail.items.map(item => {
     const parsed = item.parsed_data || {};
+    const identityResolution = parsed.identityResolution as { kind?: string; compassEntryId?: string } | null | undefined;
+    const holdingResolution = parsed.holdingResolution as { kind?: string; productId?: string } | null | undefined;
+    const canonicalDuplicateResolution = identityResolution?.kind === 'existing' ? 'matched' : identityResolution?.kind === 'new' ? 'new' : identityResolution?.kind === 'unresolved' ? 'unresolved' : undefined;
     return {
       ...item,
-      english_name: (parsed.englishName as string | null | undefined) ?? item.english_name,
-      original_name: (parsed.originalName as string | null | undefined) ?? item.original_name,
+      english_name: 'englishName' in parsed ? (typeof parsed.englishName === 'string' ? parsed.englishName : null) : item.english_name ?? null,
+      original_name: 'originalName' in parsed ? (typeof parsed.originalName === 'string' ? parsed.originalName : null) : item.original_name ?? null,
+      chinese_name: 'chineseName' in parsed ? (typeof parsed.chineseName === 'string' ? parsed.chineseName : null) : item.chinese_name ?? null,
       pack_weight: (parsed.packWeight as number | null | undefined) ?? item.pack_weight,
       weight_unit: (parsed.weightUnit as CurateImportItem['weight_unit']) ?? item.weight_unit,
       pack_count: (parsed.packCount as number | null | undefined) ?? item.pack_count,
@@ -167,12 +238,15 @@ export const normalizeImportDetail = (detail: CurateImportDetail): CurateImportD
       total_quantity_grams: (parsed.totalQuantityGrams as number | null | undefined) ?? item.total_quantity_grams,
       total_units: (parsed.totalUnits as number | null | undefined) ?? item.total_units,
       line_cost: (parsed.lineCost as number | null | undefined) ?? item.line_cost,
+      line_cost_exact: (parsed.lineCostExact as string | null | undefined) ?? item.line_cost_exact,
       unit_cost: (parsed.unitCost as number | null | undefined) ?? item.unit_cost,
+      unit_cost_exact: (parsed.unitCostExact as string | null | undefined) ?? item.unit_cost_exact,
       blocking_fields: parsed.blockingFields ? (parsed.blockingFields as string[]).map(field => field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)) : item.blocking_fields ?? [],
-      proposed_compass_entry_id: (parsed.proposedCompassEntryId as string | null | undefined) ?? item.proposed_compass_entry_id,
-      proposed_product_id: (parsed.proposedProductId as string | null | undefined) ?? item.proposed_product_id,
+      proposed_compass_entry_id: identityResolution?.kind === 'existing' ? identityResolution.compassEntryId ?? null : (parsed.proposedCompassEntryId as string | null | undefined) ?? item.proposed_compass_entry_id,
+      proposed_product_id: holdingResolution?.kind === 'existing' ? holdingResolution.productId ?? null : (parsed.proposedProductId as string | null | undefined) ?? item.proposed_product_id,
       acquired: (parsed.acquired as boolean | null | undefined) ?? item.acquired,
-      duplicate_resolution: (parsed.duplicateResolution as CurateImportItem['duplicate_resolution']) ?? item.duplicate_resolution,
+      disposition: (parsed.disposition as CurateImportDisposition | null | undefined) ?? item.disposition ?? ((parsed.acquired ?? item.acquired) === true ? 'received' : null),
+      duplicate_resolution: (parsed.duplicateResolution as CurateImportItem['duplicate_resolution']) ?? canonicalDuplicateResolution ?? item.duplicate_resolution,
     };
   }),
 });
@@ -191,6 +265,22 @@ export const importItemNoun = (items: Array<Pick<CurateImportItem, 'category'>>,
   return count === 1 ? 'item' : 'items';
 };
 
+export const importFinalActionLabel = (items: CurateImportItem[]) => {
+  const byDisposition = (disposition: CurateImportDisposition) => items.filter(item => importDisposition(item) === disposition);
+  const received = byDisposition('received');
+  const transit = byDisposition('in_transit');
+  const libraryOnly = byDisposition('library_only');
+  const clauses = [
+    received.length ? `Receive ${received.length} ${importItemNoun(received, received.length)}` : null,
+    transit.length ? `hold ${transit.length} ${importItemNoun(transit, transit.length)} in transit` : null,
+    libraryOnly.length ? `save ${libraryOnly.length} Library ${libraryOnly.length === 1 ? 'record' : 'records'}` : null,
+  ].filter((clause): clause is string => Boolean(clause));
+  if (!clauses.length) return `Choose destination for ${items.length} ${importItemNoun(items, items.length)}`;
+  if (clauses.length === 1) return `${clauses[0][0].toLocaleUpperCase()}${clauses[0].slice(1)}`;
+  if (clauses.length === 2) return `${clauses[0]} and ${clauses[1]}`;
+  return `${clauses[0]}, ${clauses[1]}, and ${clauses[2]}`;
+};
+
 const joinLabels = (labels: string[]) => {
   if (labels.length === 1) return labels[0];
   if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
@@ -198,9 +288,18 @@ const joinLabels = (labels: string[]) => {
 };
 
 export const importBlockingMessage = (item: CurateImportItem): string | null => {
+  const disposition = importDisposition(item);
   const purpose = item.parsed_data?.inventoryPurpose;
-  const fields = [...(item.blocking_fields || []), ...(['working', 'sample', 'personal'].includes(String(purpose)) ? [] : ['inventoryPurpose'])];
-  const labels = Array.from(new Set(fields.map(field => BLOCKING_LABELS[field] || field.replace(/_/g, ' '))));
+  const fields = resolveImportBlockingFields([
+    ...(item.blocking_fields || []),
+    ...(disposition ? [] : ['disposition']),
+    ...(disposition !== 'library_only' && !['working', 'sample', 'personal'].includes(String(purpose)) ? ['inventoryPurpose'] : []),
+  ], { ...item.parsed_data, disposition, acquired: item.acquired });
+  const labels = Array.from(new Set(fields.map(field => {
+    const key = normalizedBlocker(field);
+    if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return item.category === 'tea' ? 'tea identity' : 'teaware identity';
+    return BLOCKING_LABELS[field] || field.replace(/_/g, ' ');
+  })));
   return labels.length ? `Confirm ${joinLabels(labels)}.` : null;
 };
 
@@ -218,11 +317,17 @@ export const buildImportReviewModel = (detail: CurateImportDetail): ImportReview
       .filter(item => group.id === '__ungrouped' ? !item.vendor_group_id || !detail.groups?.some(candidate => candidate.id === item.vendor_group_id) : item.vendor_group_id === group.id)
       .sort((a, b) => a.position - b.position)
       .map(item => {
+        const disposition = importDisposition(item);
         const purpose = item.parsed_data?.inventoryPurpose;
-        const blockingFields = [...(item.blocking_fields || []), ...(['working', 'sample', 'personal'].includes(String(purpose)) ? [] : ['inventoryPurpose'])];
+        const blockingFields = resolveImportBlockingFields([
+          ...(item.blocking_fields || []),
+          ...(disposition ? [] : ['disposition']),
+          ...(disposition !== 'library_only' && !['working', 'sample', 'personal'].includes(String(purpose)) ? ['inventoryPurpose'] : []),
+        ], { ...item.parsed_data, disposition, acquired: item.acquired });
         return { item, blockingFields, blockingMessage: importBlockingMessage(item), ready: blockingFields.length === 0 };
       });
-    return { ...group, items: rows, vendorResolved: Boolean(group.resolved_vendor_customer_id) };
+    const vendorRequired = rows.some(row => importDisposition(row.item) !== 'library_only');
+    return { ...group, items: rows, vendorRequired, vendorResolved: !vendorRequired || Boolean(group.resolved_vendor_customer_id) };
   }).filter(group => group.items.length > 0);
 
   const rows = orderedGroups.flatMap(group => group.items);

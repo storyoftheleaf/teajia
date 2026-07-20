@@ -7,7 +7,7 @@ import {
   partitionImportItems,
 } from './importFolioPresentation';
 
-type PresentationItem = Pick<CurateImportItem, 'id' | 'category' | 'blocking_fields'>;
+type PresentationItem = Pick<CurateImportItem, 'id' | 'category' | 'blocking_fields' | 'parsed_data' | 'disposition' | 'acquired' | 'vendor_group_id'>;
 type PresentationDetail = {
   items: PresentationItem[];
   groups: Array<Pick<CurateImportVendorGroup, 'id'>>;
@@ -17,6 +17,10 @@ const item = (id: string, blocked: boolean, category: CurateImportItem['category
   id,
   category,
   blocking_fields: blocked ? ['currency'] : [],
+  parsed_data: { disposition: 'received' },
+  disposition: 'received',
+  acquired: true,
+  vendor_group_id: 'vendor-1',
 });
 
 const row = (id: string, blocked: boolean) => ({ item: item(id, blocked) });
@@ -80,7 +84,7 @@ describe('import folio presentation', () => {
     const reviewDetail = detail([
       item('tea-1', true),
       item('tea-2', false),
-      item('tea-3', true),
+      { ...item('tea-3', true), vendor_group_id: 'vendor-2' },
     ], 2);
     expect(folioPhaseContext('review', reviewDetail)).toEqual({
       title: 'Review 3 teas from 2 vendors',
@@ -88,6 +92,12 @@ describe('import folio presentation', () => {
     });
     expect(folioPhaseContext('review', detail([item('pot-1', false, 'teaware')], 1))).toEqual({
       title: 'Review 1 teaware item from 1 vendor',
+      status: 'Ready to add',
+    });
+    expect(folioPhaseContext('review', detail([{
+      ...item('library-1', false), parsed_data: { disposition: 'library_only' }, disposition: 'library_only', acquired: false,
+    }], 1))).toEqual({
+      title: 'Review 1 tea',
       status: 'Ready to add',
     });
   });

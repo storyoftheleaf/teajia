@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import type { CurateJourney } from '../types';
 import type { CurateImportDetail, CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
-import { buildImportReviewModel, importItemNoun } from './importReviewDomain';
+import { buildImportReviewModel, importFinalActionLabel, importItemNoun } from './importReviewDomain';
 import { ImportBatchSummary } from './ImportBatchSummary';
 import { ImportVendorGroup, type ImportVendorOption } from './ImportVendorGroup';
 import { ImportEvidenceCard } from './ImportEvidenceCard';
@@ -41,7 +41,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   const itemLabel = importItemNoun(detail.items, itemCount);
   const primaryCurrency = model.currencyTotals.length === 1 ? model.currencyTotals[0] : null;
   const failedSourceIds = detail.sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
-  const finalLabel = `Add ${itemCount} ${itemLabel} to Inventory`;
+  const finalLabel = importFinalActionLabel(detail.items);
   const blockerItems = model.groups.flatMap(group => group.items.map(row => ({ id: row.item.id, blocking_fields: row.blockingFields })));
   const vendorUnresolved = model.groups.some(group => !group.vendorResolved);
   const goToNextIssue = () => {
@@ -54,7 +54,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   };
   return (
     <div className="space-y-5">
-      <ImportBatchSummary model={model} overview={detail.batch.analysis_overview} journeyId={detail.batch.journey_id} journeyLookup={journeyLookup} busy={Boolean(busyId)} onRetryJourneys={onRetryJourneys} onJourneyChange={onSetJourney} onCreateJourney={onCreateJourney} itemNoun={itemLabel} />
+      <ImportBatchSummary model={model} overview={detail.batch.analysis_overview} annotations={detail.batch.analysis_annotations} journeyId={detail.batch.journey_id} journeyLookup={journeyLookup} busy={Boolean(busyId)} onRetryJourneys={onRetryJourneys} onJourneyChange={onSetJourney} onCreateJourney={onCreateJourney} itemNoun={itemLabel} />
       {(detail.batch.analysis_state === 'failed' || (!model.groups.length && detail.sources.length > 0)) && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface p-3"><div><p className="text-ui-13 text-tea-text">Analysis did not finish</p><p className="text-ui-11 text-tea-text-sec">{savedRecordAnalysisMessage(detail.batch.analysis_error)}</p></div>{failedSourceIds.length > 0 && <button type="button" disabled={Boolean(busyId)} onClick={() => void onRetryAnalysis(failedSourceIds)} className="tap-target min-h-11 rounded-md border border-tea-gold px-3 text-ui-12 text-tea-gold disabled:opacity-50">{busyId === '__analysis' ? 'Analyzing…' : 'Retry failed records'}</button>}</div>}
       {detail.sources.some(source => source.r2_object_key) && <div className="space-y-2" aria-label="Saved records">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} analysisBusy={busyId === `source:${source.id}`} disabled={Boolean(busyId) && busyId !== `source:${source.id}`} onRetry={sourceId => void onRetryAnalysis([sourceId])} />)}</div>}
       <div className="space-y-5">{model.groups.map(group => <ImportVendorGroup key={group.id} group={group} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryVendors={onRetryVendors} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdateItem={onUpdate} onChangeVendor={onChangeVendor} onCreateVendor={onCreateVendor} />)}</div>
@@ -63,8 +63,8 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       <div className="flex flex-wrap justify-between gap-2 border-t border-tea-border pt-3"><button ref={abandonRef} type="button" disabled={Boolean(busyId)} onClick={() => setConfirmAbandon(true)} aria-expanded={confirmAbandon} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Abandon import</button><div className="flex flex-wrap gap-3"><button type="button" disabled={Boolean(busyId)} onClick={onDefer} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Review later</button><button type="button" disabled={Boolean(busyId)} onClick={onNew} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">New import</button></div></div>
       <div className="sticky bottom-0 bg-tea-elevated pb-nav-gap pt-3">
         {model.needsReviewCount > 0 ? <div className="flex items-center justify-between gap-3"><p className="text-ui-12 text-tea-text-sec">{model.needsReviewCount} unresolved</p><button type="button" disabled={Boolean(busyId)} onClick={goToNextIssue} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:opacity-50">Next issue</button></div> : <>
-          {vendorUnresolved && <p className="mb-2 text-ui-11 text-tea-text-sec">Choose each vendor before adding stock.</p>}
-          <button type="button" aria-label={finalLabel} disabled={Boolean(busyId) || !model.canFinalize} onClick={() => void onFinalize()} className="tap-target min-h-11 w-full rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">{busyId === '__finalize' ? 'Adding to Inventory…' : `${finalLabel}${primaryCurrency ? ` · ${primaryCurrency.currency} ${primaryCurrency.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : ''}`}</button>
+          {vendorUnresolved && <p className="mb-2 text-ui-11 text-tea-text-sec">Choose each vendor before saving these records.</p>}
+          <button type="button" aria-label={finalLabel} disabled={Boolean(busyId) || !model.canFinalize} onClick={() => void onFinalize()} className="tap-target min-h-11 w-full rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">{busyId === '__finalize' ? 'Saving records…' : `${finalLabel}${primaryCurrency ? ` · ${primaryCurrency.currency} ${primaryCurrency.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : ''}`}</button>
         </>}
       </div>
     </div>
