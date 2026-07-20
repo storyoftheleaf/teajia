@@ -170,7 +170,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({ item, busy, identi
       </div>
       {expanded && (
         <fieldset disabled={busy} className="mt-3 space-y-3 border-t border-tea-border pt-3">
-          {(item.raw_text || evidenceReferences.length > 0) && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Evidence used for this item</p>{item.raw_text && <p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p>}{evidenceReferences.map(reference => <p key={reference} className="mt-1 break-words font-mono text-ui-10 text-tea-text-sec">{evidenceReferenceLabel(reference)}</p>)}</div>}
+          {(item.raw_text || evidenceReferences.length > 0) && <div><p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">Record used for this item</p>{item.raw_text && <p className="mt-1 break-words text-ui-12 text-tea-text-sec">{item.raw_text}</p>}{evidenceReferences.map(reference => <p key={reference} className="mt-1 break-words font-mono text-ui-10 text-tea-text-sec">{evidenceReferenceLabel(reference)}</p>)}</div>}
           {namingBlocking && namingFields}
           {identitySelectionBlocking && identityFields}
           {quantityBlocking && quantityFields}

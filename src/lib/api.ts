@@ -608,6 +608,7 @@ const TIMEOUT_RETRY_ATTEMPT_MS = 15_000;
 /** RequestInit plus transport behavior that must not leak into fetch(). */
 export interface ApiRequestInit extends RequestInit {
   retryTimeouts?: boolean;
+  timeoutMs?: number;
   background?: boolean;
   reportIncident?: boolean;
 }
@@ -654,13 +655,14 @@ export async function fetchWithTimeout(url: string, options: ApiRequestInit = {}
     background = false,
     reportIncident = true,
     retryTimeouts: retryTimeoutOption,
+    timeoutMs,
     ...requestInit
   } = options;
   const method = (requestInit.method || 'GET').toUpperCase();
   const retryTimeouts = retryTimeoutOption ?? (method === 'GET' || method === 'HEAD');
   // When timeouts are retryable, fail each attempt fast and try a fresh
   // connection; a blackholed socket never recovers by waiting longer.
-  const attemptTimeoutMs = retryTimeouts ? TIMEOUT_RETRY_ATTEMPT_MS : REQUEST_TIMEOUT_MS;
+  const attemptTimeoutMs = timeoutMs ?? (retryTimeouts ? TIMEOUT_RETRY_ATTEMPT_MS : REQUEST_TIMEOUT_MS);
   let timeoutRetries = 0;
   let lastErr: any;
   for (let attempt = 0; attempt <= NETWORK_RETRY_BACKOFF_MS.length; attempt++) {
@@ -2392,7 +2394,7 @@ export const api = {
     }),
     getEvidence: (batchId: string, sourceId: string): Promise<Blob> => authedBlobFetch(`${API_URL}/api/curate/imports/${batchId}/sources/${sourceId}/content`),
     analyze: (id: string, sourceIds?: string[]): Promise<CurateImportDetail> =>
-      authedFetch(`${API_URL}/api/curate/imports/${id}/analyze`, { method: 'POST', body: JSON.stringify(sourceIds?.length ? { source_ids: sourceIds } : {}), retryTimeouts: true }),
+      authedFetch(`${API_URL}/api/curate/imports/${id}/analyze`, { method: 'POST', body: JSON.stringify(sourceIds?.length ? { source_ids: sourceIds } : {}), retryTimeouts: false, timeoutMs: 120_000 }),
     updateGroup: (batchId: string, groupId: string, updates: { resolved_vendor_customer_id?: string | null; proposed_vendor_name?: string | null }): Promise<CurateImportVendorGroup> =>
       authedFetch(`${API_URL}/api/curate/imports/${batchId}/groups/${groupId}`, { method: 'PUT', body: JSON.stringify(updates), retryTimeouts: true }),
     createVendorForGroup: (batchId: string, groupId: string, vendor: { name: string; contact?: string | null }): Promise<CurateImportVendorGroup> =>

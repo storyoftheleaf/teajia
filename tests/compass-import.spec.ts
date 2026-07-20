@@ -237,11 +237,11 @@ async function installImportApi(page: Page) {
       if (retrySource && analysisAttempts === 1) {
         Object.assign(retrySource, { analysis_status: 'failed', analysis_error: 'analysis_evidence_unavailable' });
         if (batch) Object.assign(batch, { review_state: 'pending', analysis_state: 'failed', analysis_error: 'analysis_no_usable_evidence' });
-        return route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'Import analysis failed', code: 'analysis_no_usable_evidence' }) });
+        return route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'This record has no usable text, photo, or supported file to analyze.', code: 'analysis_no_usable_evidence' }) });
       }
       if (retrySource && analysisAttempts > 1) {
         const body = request.postDataJSON() as { source_ids?: string[] };
-        if (JSON.stringify(body.source_ids) !== JSON.stringify([retrySource.id])) return route.fulfill({ status: 409, json: { error: 'Retry must target only failed evidence' } });
+        if (JSON.stringify(body.source_ids) !== JSON.stringify([retrySource.id])) return route.fulfill({ status: 409, json: { error: 'Retry must target only failed records' } });
       }
       if (!items.length) {
         const jsonSource = sources.find(source => (source.metadata as Record<string, unknown>)?.content_type === 'application/json' && typeof source.__testBody === 'string');
@@ -254,7 +254,7 @@ async function installImportApi(page: Page) {
           })));
         }
       }
-      if (batch) Object.assign(batch, { review_state: 'reviewing', analysis_state: 'completed', analysis_language: 'en', analysis_overview: `${items.length} items analyzed from saved evidence.` });
+      if (batch) Object.assign(batch, { review_state: 'reviewing', analysis_state: 'completed', analysis_language: 'en', analysis_overview: `${items.length} items analyzed from saved records.` });
       for (const source of sources) if (source.analysis_status !== 'reference_only') source.analysis_status = 'analyzed';
       groups.splice(0, groups.length, ...(items.length ? [{
         id: 'group-import', batch_id: 'batch-1', position: 0, proposed_vendor_name: 'Chen Family',
@@ -277,7 +277,7 @@ async function installImportApi(page: Page) {
       const ordinal = evidenceOrdinalByPage.get(page);
       if (ordinal) {
         ordinal.ordinal += 1;
-        if (ordinal.injectSecondFailure && ordinal.ordinal === 2) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary evidence failure' }) });
+        if (ordinal.injectSecondFailure && ordinal.ordinal === 2) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Temporary record failure' }) });
       }
       const clientId = request.headers()['x-client-evidence-id'];
       const filename = decodeURIComponent(request.headers()['x-filename']);
@@ -339,10 +339,10 @@ test.describe('Curate Import panel', () => {
     const dialog = page.getByRole('dialog', { name: 'Import' });
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
     const progress = page.getByRole('navigation', { name: 'Import progress' });
-    await expect(progress).toContainText('EvidenceReviewAdded');
+    await expect(progress).toContainText('RecordReviewAdded');
     await expect(progress).toHaveAttribute('data-current-phase', 'evidence');
-    await expect(progress.locator('[aria-current="step"]')).toHaveText('Evidence');
-    await expect(page.getByText('Add vendor evidence', { exact: true })).toBeVisible();
+    await expect(progress.locator('[aria-current="step"]')).toHaveText('Record');
+    await expect(page.getByText('Add vendor record', { exact: true })).toBeVisible();
     await expect(page.getByText('Draft saved', { exact: true })).toBeVisible();
     const sourceDocument = page.getByRole('textbox', { name: 'Vendor list or invoice' });
     await expect(sourceDocument).toBeVisible();
@@ -376,7 +376,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Vendor list or invoice').fill('Ali Shan — 600 TWD\n? Red Jade\nClay pot — 2 units');
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('Analyzing your evidence…')).toBeVisible();
+    await expect(page.getByText('Analyzing your record…')).toBeVisible();
     await expect(page.getByTestId('import-vendor-group')).toHaveCount(1);
     await expect(page.getByTestId('import-item-row')).toHaveCount(3);
     await expect(page.getByTestId('import-item-row').filter({ hasText: 'Clay pot' })).toBeVisible();
@@ -442,7 +442,7 @@ test.describe('Curate Import panel', () => {
     const analyzedEvidence = page.getByTestId('import-evidence-source').filter({ hasText: 'invoice.pdf' });
     await expect(analyzedEvidence).toHaveClass(/border-b/);
     await expect(analyzedEvidence).not.toHaveClass(/rounded|bg-tea-surface/);
-    await expect(page.getByAltText('Evidence preview: vendor-board.jpg')).toBeVisible();
+    await expect(page.getByAltText('Record preview: vendor-board.jpg')).toBeVisible();
   });
 
   test('keeps pasted text and an uploaded text file as exactly one source each', async ({ page }) => {
@@ -473,7 +473,7 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Replace second.pdf').setInputFiles({ name: 'replacement.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-replacement') });
     await expect(page.getByText('replacement.pdf')).toBeVisible();
     await page.getByRole('button', { name: 'Clear all attachments' }).click();
-    await expect(page.getByLabel('Attached evidence')).toHaveCount(0);
+    await expect(page.getByLabel('Attached records')).toHaveCount(0);
   });
 
   test('recovers an account-scoped dirty draft and requires restored files to be reselected', async ({ page }) => {
@@ -540,12 +540,12 @@ test.describe('Curate Import panel', () => {
   });
 
   test('keeps unsupported evidence recoverable and never invents a tea from its filename', async ({ page }) => {
-    await page.route('**/api/curate/imports/batch-1/evidence', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Evidence storage is not configured. Your file was not saved.' }) }));
+    await page.route('**/api/curate/imports/batch-1/evidence', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Record storage is not configured. Your file was not saved.' }) }));
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add files').setInputFiles({ name: 'not-a-tea.pdf', mimeType: 'application/pdf', buffer: Buffer.from('invoice') });
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByRole('alert').getByText('Evidence storage is not configured. Your file was not saved.')).toBeVisible();
+    await expect(page.getByRole('alert').getByText('Record storage is not configured. Your file was not saved.')).toBeVisible();
     await expect(page.getByTestId('import-item-row')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
   });
@@ -556,7 +556,7 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Add files').setInputFiles({ name: 'retry-source.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry') });
     await page.getByRole('button', { name: 'Start import' }).click();
 
-    await expect(page.getByText('Analysis failed · analysis_evidence_unavailable')).toBeVisible();
+    await expect(page.getByText('Analysis failed · Your saved record is ready to analyze again.')).toBeVisible();
     const retryRequest = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/api/curate/imports/batch-1/analyze') && request.postDataJSON()?.source_ids);
     await page.getByRole('button', { name: 'Retry import' }).click();
     expect((await retryRequest).postDataJSON()).toEqual({ source_ids: ['evidence-0'] });
@@ -583,7 +583,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add files').setInputFiles({ name: 'evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-evidence') });
     await page.getByRole('button', { name: 'Start import' }).click();
-    await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved evidence.')).toBeVisible();
+    await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved record.')).toBeVisible();
     const abandon = page.getByRole('button', { name: 'Abandon import' });
     await abandon.click();
     const confirmation = page.getByRole('group', { name: 'Abandon import confirmation' });
@@ -636,7 +636,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('one.jpg')).toHaveCount(1);
     await expect(page.getByText('Analyzed', { exact: true })).toBeVisible();
     await expect(page.getByText('two.pdf')).toBeVisible();
-    await expect(page.getByRole('alert').getByText('Temporary evidence failure')).toBeVisible();
+    await expect(page.getByRole('alert').getByText('Temporary record failure')).toBeVisible();
     const failedEvidence = page.getByTestId('import-evidence-item').filter({ hasText: 'two.pdf' });
     await expect(failedEvidence).toHaveClass(/rounded-md/);
     await expect(failedEvidence).toHaveClass(/border-tea-border/);

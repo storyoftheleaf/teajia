@@ -366,9 +366,9 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
   if (requestedSourceIds) {
     const retrySources = await env.DB.prepare('SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? ORDER BY created_at, id').bind(params.id, ctx.accountId).all<Record<string, unknown>>();
     const retryById = new Map(retrySources.results.map(source => [String(source.id), source]));
-    if (requestedSourceIds.some(id => retryById.get(id)?.analysis_status !== 'failed')) return response({ error: 'Only failed evidence can be retried', code: 'analysis_source_not_failed' }, 409);
+    if (requestedSourceIds.some(id => retryById.get(id)?.analysis_status !== 'failed')) return response({ error: 'Only failed records can be retried', code: 'analysis_source_not_failed' }, 409);
   }
-  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-4-20250514';
+  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-5';
   const attemptToken = crypto.randomUUID();
   const started = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, analysis_attempt_token = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
     .bind(attemptToken, params.id, ctx.accountId).run();
@@ -410,7 +410,11 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
       method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model, max_tokens: 8192, temperature: 0, messages: [{ role: 'user', content: [...media, { type: 'text', text: buildImportAnalysisPrompt(evidence, candidates) }] }] }),
     });
-    if (!ai.ok) throw new Error(`analysis_provider_${ai.status}`);
+    if (!ai.ok) {
+      const providerError = await ai.text();
+      console.error(`Curate import analysis upstream error: ${ai.status}: ${providerError.slice(0, 1000)}`);
+      throw new Error(`analysis_provider_${ai.status}`);
+    }
     const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
     validateEvidenceReferences(normalized, evidence);
     const evidenceReferences = evidenceReferencesBySource(normalized);
@@ -526,7 +530,10 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     const failed = await env.DB.batch(failedStatements);
     if (!(failed.at(-1)?.meta.changes ?? 0)) return analysisSupersededResponse();
     const status = message === 'analysis_no_usable_evidence' ? 422 : message === 'analysis_unsupported_document' ? 415 : 502;
-    return response({ error: 'Import analysis failed', code: message }, status);
+    const publicMessage = message === 'analysis_no_usable_evidence'
+      ? 'This record has no usable text, photo, or supported file to analyze.'
+      : "We couldn't analyze this record. Your record is saved. Try again.";
+    return response({ error: publicMessage, code: message }, status);
   }
 }
 
@@ -966,25 +973,25 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);
   if (batchIsTerminal(batch)) return terminalResponse();
-  if (!env.MEDIA_BUCKET) return response({ error: 'Evidence storage is not configured. Your file was not saved.' }, 503);
+  if (!env.MEDIA_BUCKET) return response({ error: 'Record storage is not configured. Your file was not saved.' }, 503);
   const contentType = (request.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
   if (contentType === 'image/heic' || contentType === 'image/heif') return response({ error: 'Convert HEIC or HEIF photos to JPEG, PNG, or WebP before import' }, 415);
-  if (!EVIDENCE_TYPES.has(contentType)) return response({ error: 'Unsupported evidence file type' }, 415);
+  if (!EVIDENCE_TYPES.has(contentType)) return response({ error: 'Unsupported record file type' }, 415);
   const declaredSize = Number(request.headers.get('Content-Length') || 0);
-  if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 5 MB or smaller' }, 413);
+  if (declaredSize > EVIDENCE_MAX_BYTES) return response({ error: 'Record files must be 5 MB or smaller' }, 413);
   const encodedFilename = request.headers.get('X-Filename') || '';
   const clientEvidenceId = request.headers.get('X-Client-Evidence-Id') || '';
-  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(clientEvidenceId)) return response({ error: 'Invalid client evidence identity' }, 400);
+  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(clientEvidenceId)) return response({ error: 'Invalid client record identity' }, 400);
   const existing = await env.DB.prepare(
     'SELECT * FROM curate_import_sources WHERE batch_id = ? AND account_id = ? AND client_evidence_id = ?'
   ).bind(params.id, ctx.accountId, clientEvidenceId).first<Record<string, unknown>>();
   if (existing) return response({ ...sourceRow(existing), already_uploaded: true });
   let filename = '';
-  try { filename = decodeURIComponent(encodedFilename); } catch { return response({ error: 'Invalid evidence filename' }, 400); }
-  if (!filename || filename.length > 500 || /[\u0000-\u001f\u007f]/.test(filename)) return response({ error: 'Invalid evidence filename' }, 400);
+  try { filename = decodeURIComponent(encodedFilename); } catch { return response({ error: 'Invalid record filename' }, 400); }
+  if (!filename || filename.length > 500 || /[\u0000-\u001f\u007f]/.test(filename)) return response({ error: 'Invalid record filename' }, 400);
   const bytes = await request.arrayBuffer();
-  if (!bytes.byteLength) return response({ error: 'Evidence file is empty' }, 400);
-  if (bytes.byteLength > EVIDENCE_MAX_BYTES) return response({ error: 'Evidence files must be 5 MB or smaller' }, 413);
+  if (!bytes.byteLength) return response({ error: 'Record file is empty' }, 400);
+  if (bytes.byteLength > EVIDENCE_MAX_BYTES) return response({ error: 'Record files must be 5 MB or smaller' }, 413);
   const head = new Uint8Array(bytes.slice(0, 16));
   const ascii = new TextDecoder().decode(head);
   const matchesType = contentType === 'application/pdf' ? ascii.startsWith('%PDF-')
@@ -998,7 +1005,7 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
     : contentType === 'application/msword' ? [0xd0, 0xcf, 0x11, 0xe0].every((byte, index) => head[index] === byte)
     : contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ? ascii.startsWith('PK')
     : true;
-  if (!matchesType) return response({ error: 'Evidence content does not match its declared file type' }, 415);
+  if (!matchesType) return response({ error: 'Record content does not match its declared file type' }, 415);
   const extensionByType: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf', 'application/json': 'json', 'text/plain': 'txt', 'text/csv': 'csv', 'application/csv': 'csv', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx' };
   const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
   const key = `curate/${ctx.accountId}/${params.id}/${clientEvidenceId}-${digest}.${extensionByType[contentType]}`;
@@ -1033,18 +1040,18 @@ export async function uploadCurateImportEvidence(request: Request, env: ImportEn
 }
 
 export async function getCurateImportEvidence(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
-  if (!env.MEDIA_BUCKET) return response({ error: 'Evidence storage is not configured' }, 503);
+  if (!env.MEDIA_BUCKET) return response({ error: 'Record storage is not configured' }, 503);
   const source = await env.DB.prepare(
     'SELECT * FROM curate_import_sources WHERE id = ? AND batch_id = ? AND account_id = ?'
   ).bind(params.sourceId, params.id, ctx.accountId).first<Record<string, unknown>>();
   if (!source?.r2_object_key || typeof source.r2_object_key !== 'string' || !safeR2ObjectKey(source.r2_object_key, ctx.accountId, params.id)) {
-    return response({ error: 'Evidence not found' }, 404);
+    return response({ error: 'Record not found' }, 404);
   }
   const objectBody = await env.MEDIA_BUCKET.get(source.r2_object_key);
-  if (!objectBody) return response({ error: 'Evidence not found' }, 404);
+  if (!objectBody) return response({ error: 'Record not found' }, 404);
   const metadata = parseJson(source.metadata_json, {}) as Record<string, unknown>;
   const contentType = typeof metadata.content_type === 'string' && EVIDENCE_TYPES.has(metadata.content_type) ? metadata.content_type : 'application/octet-stream';
-  const filename = typeof metadata.filename === 'string' ? metadata.filename : 'evidence';
+  const filename = typeof metadata.filename === 'string' ? metadata.filename : 'record';
   const disposition = contentType.startsWith('image/') ? 'inline' : 'attachment';
   return new Response(objectBody.body, { headers: {
     'Content-Type': contentType,

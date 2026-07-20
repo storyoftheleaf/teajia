@@ -12,7 +12,7 @@ interface ImportFolioHeaderProps {
 }
 
 const phases: Array<{ id: ImportFolioPhase; label: string }> = [
-  { id: 'evidence', label: 'Evidence' },
+  { id: 'evidence', label: 'Record' },
   { id: 'review', label: 'Review' },
   { id: 'added', label: 'Added' },
 ];

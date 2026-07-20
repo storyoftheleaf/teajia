@@ -16,6 +16,7 @@ import type { ImportHoldingOption, ImportIdentityOption } from './ImportItemRow'
 import { ImportCompletionSummary } from './ImportCompletionSummary';
 import { ImportFolioHeader } from './ImportFolioHeader';
 import { folioPhase, folioPhaseContext } from './importFolioPresentation';
+import { importRunErrorMessage } from './importErrorMessage';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -197,7 +198,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           setDraft(current => ({ ...current, evidence: current.evidence.map(item => item.id === evidence.id ? { ...item, status, error: null } : item) }));
           return { source, evidenceId: evidence.id, error: null };
         } catch (error) {
-          const message = errorMessage(error, 'Evidence upload failed');
+          const message = errorMessage(error, 'Record upload failed');
           setDraft(current => ({ ...current, evidence: current.evidence.map(item => item.id === evidence.id ? { ...item, status: 'failed', error: message } : item) }));
           return { source: null, evidenceId: evidence.id, error: message };
         }
@@ -216,7 +217,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
       const retrySourceIds = detail.batch.analysis_state === 'failed'
         ? failedImportSourceIds(detail.sources)
         : analysisWasComplete ? newlyUploadedSourceIds : undefined;
-      if (detail.batch.analysis_state === 'failed' && !retrySourceIds?.length) throw new Error('No failed evidence is available to retry');
+      if (detail.batch.analysis_state === 'failed' && !retrySourceIds?.length) throw new Error('No failed records are available to retry');
       if (!analysisWasComplete || retrySourceIds?.length) detail = normalizeImportDetail(await api.curateImports.analyze(detail.batch.id, retrySourceIds));
       if (uploadFailure) throw new Error(uploadFailure.error!);
       clearImportDraft(accountId);
@@ -229,7 +230,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           onDetailChange(detail);
         } catch { /* Keep the last saved detail when refresh itself is unavailable. */ }
       }
-      setState(current => ({ ...current, phase: 'error', detail: detail ?? current.detail, error: errorMessage(error, 'Import failed') }));
+      setState(current => ({ ...current, phase: 'error', detail: detail ?? current.detail, error: draft.text.trim() ? importRunErrorMessage(error) : errorMessage(error, 'Import failed') }));
     } finally { setBusyId(null); }
   };
   const replaceItem = (updated: CurateImportItem) => {
@@ -299,7 +300,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     setBusyId(sourceIds?.length === 1 ? `source:${sourceIds[0]}` : '__analysis');
     const action = async () => { const detail = normalizeImportDetail(await api.curateImports.analyze(state.detail!.batch.id, sourceIds)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
     try { setOperationError(null); await action(); }
-    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not analyze saved evidence')); }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not analyze saved records')); }
     finally { setBusyId(null); }
   };
   const finalize = async () => {
@@ -338,9 +339,9 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
             </div>
           </div>}
           {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeyLookup={journeyLookup} onRetryJourneys={loadJourneys} busy={Boolean(busyId)} onCreateJourney={createJourney} />}
-          {state.phase === 'parsing' && <div className="space-y-4"><div role="status" className="flex min-h-32 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your evidence…</div><ImportEvidencePreview evidence={draft.evidence} /></div>}
+          {state.phase === 'parsing' && <div className="space-y-4"><div role="status" className="flex min-h-32 items-center justify-center gap-3 text-ui-14 text-tea-text-sec"><Loader2 className="animate-spin" size={18} /> Analyzing your record…</div><ImportEvidencePreview evidence={draft.evidence} /></div>}
           {state.phase === 'error' && <div className="space-y-4">
-            {persistedEvidenceSources.length > 0 && <div className="space-y-2" aria-label="Persisted evidence outcomes">{persistedEvidenceSources.map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}
+            {persistedEvidenceSources.length > 0 && <div className="space-y-2" aria-label="Persisted record outcomes">{persistedEvidenceSources.map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}
             <ImportEvidencePreview evidence={unmatchedLocalEvidence} />
             <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p>{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button>}</div>
           </div>}

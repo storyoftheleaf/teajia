@@ -21,6 +21,7 @@ interface Env { WORKER_ORIGIN?: string }
 
 const READ_UPSTREAM_TIMEOUT_MS = 12_000;
 const WRITE_UPSTREAM_TIMEOUT_MS = 25_000;
+const IMPORT_ANALYSIS_TIMEOUT_MS = 120_000;
 
 function isTimeoutError(error: unknown): boolean {
   const name = error instanceof Error ? error.name : '';
@@ -42,9 +43,11 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   const incoming = new URL(request.url);
   const target = new URL(incoming.pathname + incoming.search, workerOrigin);
   const method = request.method.toUpperCase();
-  const timeoutMs = method === 'GET' || method === 'HEAD'
-    ? READ_UPSTREAM_TIMEOUT_MS
-    : WRITE_UPSTREAM_TIMEOUT_MS;
+  const timeoutMs = method === 'POST' && /^\/api\/curate\/imports\/[^/]+\/analyze$/.test(incoming.pathname)
+    ? IMPORT_ANALYSIS_TIMEOUT_MS
+    : method === 'GET' || method === 'HEAD'
+      ? READ_UPSTREAM_TIMEOUT_MS
+      : WRITE_UPSTREAM_TIMEOUT_MS;
   try {
     // Passing the original Request as init copies method, headers, and body
     // (including streamed upload bodies) faithfully; only the destination host

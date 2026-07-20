@@ -58,7 +58,7 @@ export const ImportInput: React.FC<ImportInputProps> = ({ draft, onChange, onSub
         <p className="basis-full text-ui-11 text-tea-text-sec">DOC and DOCX are saved as reference-only and are not analyzed.</p>
       </div>
       <ImportEvidencePreview evidence={draft.evidence} disabled={busy} onRemove={id => onChange(current => ({ ...current, evidence: current.evidence.filter(item => item.id !== id) }))} onReplace={replaceFile} onClear={() => onChange(current => ({ ...current, evidence: [] }))} />
-      {draft.evidence.some(item => item.kind === 'photo' || /\.(pdf|docx?)$/i.test(item.name)) && <p className="text-ui-12 leading-relaxed text-tea-text-sec">Photos and PDFs are analyzed with the pasted text. DOC and DOCX stay attached as reference-only. Originals remain private evidence, and uncertain readings stay marked for review.</p>}
+      {draft.evidence.some(item => item.kind === 'photo' || /\.(pdf|docx?)$/i.test(item.name)) && <p className="text-ui-12 leading-relaxed text-tea-text-sec">Photos and PDFs are analyzed with the pasted text. DOC and DOCX stay attached as reference-only. Original records remain private, and uncertain readings stay marked for review.</p>}
       <p className="text-ui-12 leading-relaxed text-tea-text-sec">Review reuses or creates a Library identity, then adds acquired quantity and cost to Inventory. Nothing is added until you confirm the batch.</p>
       <button ref={submitRef} type="button" disabled={busy || !canSubmit} onClick={() => { if (!busy) onSubmit(); }} className="tap-target ml-auto flex min-h-11 items-center justify-center rounded-md bg-tea-gold px-5 text-ui-13 font-medium text-tea-bg disabled:cursor-not-allowed disabled:opacity-50">
         Start import

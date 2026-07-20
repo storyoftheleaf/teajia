@@ -34,10 +34,10 @@ export const ImportEvidencePreview: React.FC<Props> = ({ evidence, onRemove, onR
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-ui-11 uppercase tracking-[0.12em] text-tea-text-dim">Attached evidence</p>
+        <p className="text-ui-11 uppercase tracking-[0.12em] text-tea-text-dim">Attached records</p>
         {onClear && <button type="button" disabled={disabled} onClick={onClear} aria-label="Clear all attachments" className="tap-target min-h-11 text-ui-11 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Clear all</button>}
       </div>
-      <ul className="border-t border-tea-border" aria-label="Attached evidence">
+      <ul className="border-t border-tea-border" aria-label="Attached records">
         {evidence.map(item => (
           <li key={item.id} data-testid="import-evidence-item" className={`flex min-w-0 flex-wrap items-center gap-2 px-1 py-2 text-ui-12 text-tea-text-sec ${item.status === 'failed' ? 'my-2 rounded-md border border-tea-border bg-tea-surface px-3' : 'border-b border-tea-border'}`}>
             {item.status === 'uploading' ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : item.kind === 'photo' ? <Image size={15} aria-hidden="true" /> : <FileText size={15} aria-hidden="true" />}

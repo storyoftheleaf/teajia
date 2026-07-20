@@ -44,7 +44,7 @@ export const folioPhaseContext = (
   detail: ImportFolioDetail | null,
   completion?: ImportFolioCompletion | null,
 ): ImportFolioPhaseContext => {
-  if (phase === 'evidence') return { title: 'Add vendor evidence', status: 'Draft saved' };
+  if (phase === 'evidence') return { title: 'Add vendor record', status: 'Draft saved' };
 
   const items = detail?.items ?? [];
   if (phase === 'review') {

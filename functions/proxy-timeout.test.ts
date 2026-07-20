@@ -39,6 +39,17 @@ describe('Pages proxy timeout responses', () => {
     );
   });
 
+  it('allows import analysis enough time to finish upstream', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+
+    await proxyApi({
+      request: new Request('https://teajia.test/api/curate/imports/batch-1/analyze', { method: 'POST' }),
+      env: { WORKER_ORIGIN: 'https://api.teajia.test' },
+    } as any);
+
+    expect(timeout).toHaveBeenCalledWith(120_000);
+  });
+
   it('returns a JSON 504 when the media upstream exceeds its budget', async () => {
     const response = await proxyMedia({
       request: new Request('https://teajia.test/media/photo.jpg'),

@@ -71,9 +71,9 @@ describe('import folio presentation', () => {
     expect(nextBlockingImportItemId([item('ready-1', false)], 'ready-1')).toBeNull();
   });
 
-  it('provides concise evidence and review context from the current detail', () => {
+  it('provides concise record and review context from the current detail', () => {
     expect(folioPhaseContext('evidence', null)).toEqual({
-      title: 'Add vendor evidence',
+      title: 'Add vendor record',
       status: 'Draft saved',
     });
 

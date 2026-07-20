@@ -328,6 +328,7 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. priceAmount must be a JSON decimal string copied from evidence, never a JSON number. Use null or "unresolved" instead of guessing.',
     'Never infer priceBasis when the evidence is ambiguous; return "unknown" and explain uncertainty.',
     'Do not calculate totals. Return evidence values only. Application code performs all arithmetic.',
+    'In the user-facing overview, call the submitted material a record or records, never evidence.',
     'Use only vendor and journey candidates supplied for this account. Never invent candidate ids.',
     `ACCOUNT_CANDIDATES=${JSON.stringify(providerCandidates)}`,
     `EVIDENCE=${JSON.stringify(evidence)}`,

@@ -37,6 +37,7 @@ describe('background API transport failures', () => {
   });
 
   afterEach(() => {
+    testClock = Math.max(testClock, Date.now());
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -82,6 +83,26 @@ describe('background API transport failures', () => {
     expect(dispatchEvent).not.toHaveBeenCalledWith(
       expect.objectContaining({ type: NETWORK_ERROR_EVENT }),
     );
+  });
+
+  it('gives import analysis one long attempt instead of restarting it every 15 seconds', async () => {
+    vi.mocked(fetch).mockImplementation((input, init) => {
+      if (String(input).includes('/version.json?probe=1')) return Promise.resolve(new Response('{}', { status: 200 }));
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        });
+      });
+    });
+
+    const outcome = api.curateImports.analyze('batch-long').catch(error => error as Error);
+
+    await vi.advanceTimersByTimeAsync(15_500);
+    expect(vi.mocked(fetch).mock.calls.filter(([input]) => String(input).includes('/batch-long/analyze'))).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(104_500);
+    await expect(outcome).resolves.toMatchObject({ message: 'Request timed out. Please try again.' });
   });
 
   it('uses a successful site probe to classify an API failure and dispatches recovery after success', async () => {

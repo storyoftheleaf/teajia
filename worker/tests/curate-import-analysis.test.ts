@@ -138,6 +138,7 @@ describe('Curate import analysis domain', () => {
     expect(prompt).toContain('vendor-a');
     expect(prompt).toContain('Never infer priceBasis');
     expect(prompt).toMatch(/priceAmount.*decimal string/i);
+    expect(prompt).toContain('call the submitted material a record or records, never evidence');
   });
 
   it('bounds provider candidates and strips contact aliases', () => {

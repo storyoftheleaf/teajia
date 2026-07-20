@@ -404,6 +404,7 @@ describe('Curate import provenance API', () => {
     expect(body.groups[0]).toMatchObject({ resolved_vendor_customer_id: 'vendor-a', vendor_confidence: 1 });
     expect(body.groups[1]).toMatchObject({ resolved_vendor_customer_id: null, vendor_confidence: 0.72 });
     const aiRequest = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(aiRequest.model).toBe('claude-sonnet-5');
     const prompt = aiRequest.messages[0].content.at(-1).text;
     expect(prompt).toContain('vendor-a');
     expect(prompt).not.toContain('vendor-b');
