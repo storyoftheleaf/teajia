@@ -1,6 +1,6 @@
 import { compassValuesFromImport } from './compassCodec';
 import { validateCurateContextPair } from './curateContextValidation';
-import { buildImportAnalysisPrompt, decodeImportAnalysisProposal, normalizeImportProposal, renormalizeImportItemData, type ImportMatchCandidates } from './curateImportAnalysis';
+import { applyImportRecordHints, buildImportAnalysisPrompt, buildImportRecordHints, decodeImportAnalysisProposal, IMPORT_ANALYSIS_OUTPUT_SCHEMA, normalizeImportProposal, renormalizeImportItemData, type ImportMatchCandidates } from './curateImportAnalysis';
 import { CurateImportFinalizeError, finalizeCurateImport, type CurateFinalizeData, type FinalizeReceiptLine } from './curateImportFinalize';
 import { decodeInventoryReceipt, inventoryPurposeConflict } from './inventoryDomain';
 
@@ -368,7 +368,7 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     const retryById = new Map(retrySources.results.map(source => [String(source.id), source]));
     if (requestedSourceIds.some(id => retryById.get(id)?.analysis_status !== 'failed')) return response({ error: 'Only failed records can be retried', code: 'analysis_source_not_failed' }, 409);
   }
-  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-5';
+  const model = env.CURATE_IMPORT_ANALYSIS_MODEL || 'claude-sonnet-4-6';
   const attemptToken = crypto.randomUUID();
   const started = await env.DB.prepare("UPDATE curate_import_batches SET analysis_state = 'analyzing', analysis_error = NULL, analysis_attempt_token = ?, updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL")
     .bind(attemptToken, params.id, ctx.accountId).run();
@@ -408,14 +408,21 @@ export async function analyzeCurateImport(request: Request, env: ImportEnv, ctx:
     if (!evidence.sources.some(source => source.analysisStatus === 'analyzed' && Boolean(source.text?.trim())) && !media.length) throw new Error('analysis_no_usable_evidence');
     const ai = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model, max_tokens: 8192, temperature: 0, messages: [{ role: 'user', content: [...media, { type: 'text', text: buildImportAnalysisPrompt(evidence, candidates) }] }] }),
+      body: JSON.stringify({
+        model,
+        max_tokens: 8192,
+        temperature: 0,
+        output_config: { format: { type: 'json_schema', schema: IMPORT_ANALYSIS_OUTPUT_SCHEMA } },
+        messages: [{ role: 'user', content: [...media, { type: 'text', text: buildImportAnalysisPrompt(evidence, candidates) }] }],
+      }),
     });
     if (!ai.ok) {
       const providerError = await ai.text();
       console.error(`Curate import analysis upstream error: ${ai.status}: ${providerError.slice(0, 1000)}`);
       throw new Error(`analysis_provider_${ai.status}`);
     }
-    const normalized = normalizeImportProposal(decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json()))));
+    const decoded = decodeImportAnalysisProposal(JSON.parse(anthopicText(await ai.json())));
+    const normalized = normalizeImportProposal(applyImportRecordHints(decoded, buildImportRecordHints(evidence)));
     validateEvidenceReferences(normalized, evidence);
     const evidenceReferences = evidenceReferencesBySource(normalized);
     const existingGroups = new Map(groupsResult.results.map(row => [String(row.group_key), row]));

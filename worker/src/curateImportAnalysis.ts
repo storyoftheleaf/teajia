@@ -67,6 +67,91 @@ export interface ImportMatchCandidates {
   products?: Array<{ id: string; compassEntryId: string | null; name: string | null; category: ImportCategory; purpose?: string | null }>;
 }
 
+export interface ImportRecordHints {
+  complete: boolean;
+  suppliers: Array<{ sourceId: string; name: string; evidenceRef: string }>;
+  items: Array<{
+    sourceId: string;
+    sourceItemId: string;
+    evidenceRef: string;
+    originalName: string;
+    packWeight: number;
+    weightUnit: ImportWeightUnit;
+    packCount: number;
+    priceAmount: string;
+    currency: string;
+    priceBasis: ImportPriceBasis;
+    lineTotal: string;
+    totalQuantityGrams: number | null;
+    arithmeticMatches: boolean;
+  }>;
+  ignoredSummaries: Array<{ sourceId: string; text: string; evidenceRef: string }>;
+}
+
+const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: 'null' }] });
+const emptyRecordSchema = { type: 'object', properties: {}, required: [], additionalProperties: false };
+
+export const IMPORT_ANALYSIS_OUTPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    overview: { type: 'string' },
+    language: { type: 'string' },
+    groups: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+          proposedVendorName: nullable({ type: 'string' }),
+          proposedVendorCustomerId: { type: 'string' },
+          vendorConfidence: { type: 'number' },
+          uncertainty: emptyRecordSchema,
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                sourceItemId: { type: 'string' },
+                category: { type: 'string', enum: ['tea', 'teaware'] },
+                originalName: nullable({ type: 'string' }),
+                englishName: nullable({ type: 'string' }),
+                packWeight: nullable({ type: 'number' }),
+                weightUnit: nullable({ type: 'string', enum: ['g', 'kg', 'count'] }),
+                packCount: nullable({ type: 'number' }),
+                priceAmount: nullable({ type: 'string' }),
+                currency: nullable({ type: 'string' }),
+                priceBasis: { type: 'string', enum: ['per_pack', 'line_total', 'unknown'] },
+                confidence: emptyRecordSchema,
+                uncertainty: emptyRecordSchema,
+                evidenceRefs: { type: 'array', items: { type: 'string' } },
+                acquired: nullable({ type: 'boolean' }),
+                duplicateResolution: { type: 'string', enum: ['new', 'matched', 'unresolved'] },
+                proposedCompassEntryId: { type: 'string' },
+                proposedProductId: { type: 'string' },
+                chineseName: { type: 'string' },
+                type: { type: 'string' },
+                form: { type: 'string' },
+                year: { type: 'integer' },
+                originCountry: { type: 'string' },
+                originRegion: { type: 'string' },
+                classification: { type: 'string' },
+                description: { type: 'string' },
+                inventoryPurpose: { type: 'string' },
+              },
+              required: ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['key', 'proposedVendorName', 'uncertainty', 'items'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['overview', 'language', 'groups'],
+  additionalProperties: false,
+} as const;
+
 const IMPORT_ITEM_INPUT_FIELDS = ['sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired', 'duplicateResolution', 'proposedCompassEntryId', 'proposedProductId', 'chineseName', 'type', 'form', 'year', 'originCountry', 'originRegion', 'classification', 'description', 'inventoryPurpose'] as const;
 const IMPORT_ITEM_DERIVED_FIELDS = ['totalQuantityGrams', 'totalUnits', 'priceAmountExact', 'lineCost', 'lineCostExact', 'unitCost', 'unitCostExact', 'blockingFields'] as const;
 
@@ -313,6 +398,117 @@ export function renormalizeImportItemData(value: unknown): NormalizedImportItem 
   return normalizeImportProposal(decodeImportAnalysisProposal({ overview: 'item', language: 'unknown', groups: [{ key: 'item', proposedVendorName: null, items: [raw] }] })).groups[0].items[0];
 }
 
+const SUMMARY_LINE = /^(?:共计|合计|总计|小计|grand\s+total|sub\s*total|total)\s*[:：]?/iu;
+const GENERIC_HEADER = /^(?:order|invoice|price\s*list|tea\s*list|record|supplier|vendor)\b/iu;
+const PURCHASE_LINE = /^(.+?)(\d+(?:\.\d+)?)\s*元\s*[\/／]\s*(\d+(?:\.\d+)?)\s*(克|公斤|千克|kg|g)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)\s*元$/iu;
+
+const comparable = (value: string | null | undefined) => (value ?? '').normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase();
+
+export function buildImportRecordHints(evidence: ImportEvidenceForAnalysis): ImportRecordHints {
+  const hints: ImportRecordHints = { complete: false, suppliers: [], items: [], ignoredSummaries: [] };
+  let unexplainedLines = 0;
+  for (const source of evidence.sources) {
+    if (!source.text) continue;
+    const lines = [...source.text.matchAll(/[^\r\n]+/gu)].map((match, lineIndex) => {
+      const raw = match[0];
+      const leading = raw.length - raw.trimStart().length;
+      const text = raw.trim();
+      const start = (match.index ?? 0) + leading;
+      return { lineIndex, text, normalized: text.normalize('NFKC'), evidenceRef: `${source.id}:${start}-${start + text.length}` };
+    }).filter(line => line.text);
+    const parsed = lines.map(line => ({ line, match: line.normalized.match(PURCHASE_LINE) }));
+    const firstItemIndex = parsed.findIndex(entry => Boolean(entry.match));
+    for (let index = 0; index < parsed.length; index++) {
+      const { line, match } = parsed[index];
+      if (SUMMARY_LINE.test(line.normalized)) {
+        hints.ignoredSummaries.push({ sourceId: source.id, text: line.text, evidenceRef: line.evidenceRef });
+        continue;
+      }
+      if (match) {
+        const packWeight = Number(match[3]);
+        const weightUnit = /^(?:公斤|千克|kg)$/iu.test(match[4]) ? 'kg' : 'g';
+        const packCount = Number(match[5]);
+        const priceAmount = match[2];
+        const lineTotal = match[6];
+        const expectedTotal = Number(priceAmount) * packCount;
+        const totalQuantityGrams = packWeight * packCount * (weightUnit === 'kg' ? 1000 : 1);
+        hints.items.push({
+          sourceId: source.id,
+          sourceItemId: `record:${source.id}:${line.lineIndex}`,
+          evidenceRef: line.evidenceRef,
+          originalName: match[1].trim(),
+          packWeight,
+          weightUnit,
+          packCount,
+          priceAmount,
+          currency: 'CNY',
+          priceBasis: 'per_pack',
+          lineTotal,
+          totalQuantityGrams,
+          arithmeticMatches: Number.isFinite(expectedTotal) && Math.abs(expectedTotal - Number(lineTotal)) < 0.000001,
+        });
+        continue;
+      }
+      const supplierCandidate = index < firstItemIndex
+        && !GENERIC_HEADER.test(line.normalized)
+        && /^[\p{L}\p{M}.'’ -]{2,100}$/u.test(line.text)
+        && line.text.trim().split(/\s+/).length <= 6;
+      if (supplierCandidate) hints.suppliers.push({ sourceId: source.id, name: line.text, evidenceRef: line.evidenceRef });
+      else unexplainedLines += 1;
+    }
+  }
+  hints.complete = hints.items.length > 0
+    && hints.suppliers.length <= 1
+    && unexplainedLines === 0
+    && hints.items.every(item => item.arithmeticMatches);
+  return hints;
+}
+
+export function applyImportRecordHints(proposal: ImportAnalysisProposal, hints: ImportRecordHints): ImportAnalysisProposal {
+  if (!hints.complete || !hints.items.length) return proposal;
+  const providerItems = proposal.groups.flatMap(group => group.items);
+  const used = new Set<ImportAnalysisItem>();
+  const items = hints.items.map(hint => {
+    const translated = providerItems.find(item => !used.has(item) && (
+      item.sourceItemId === hint.sourceItemId
+      || comparable(item.originalName) === comparable(hint.originalName)
+      || comparable(item.originalName).includes(comparable(hint.originalName))
+    ));
+    if (!translated) throw new Error('analysis_missing_record_item');
+    used.add(translated);
+    const uncertainty = { ...translated.uncertainty };
+    for (const field of ['packWeight', 'weightUnit', 'quantity', 'packCount', 'priceBasis', 'price', 'priceAmount', 'currency', 'acquisitionState', 'acquired']) delete uncertainty[field];
+    return {
+      ...translated,
+      sourceItemId: hint.sourceItemId,
+      originalName: hint.originalName,
+      packWeight: hint.packWeight,
+      weightUnit: hint.weightUnit,
+      packCount: hint.packCount,
+      priceAmount: hint.priceAmount,
+      currency: hint.currency,
+      priceBasis: hint.priceBasis,
+      acquired: true,
+      evidenceRefs: [hint.evidenceRef],
+      uncertainty,
+    };
+  });
+  const supplier = hints.suppliers[0]?.name ?? null;
+  const providerGroup = proposal.groups.find(group => group.items.some(item => used.has(item))) ?? proposal.groups[0];
+  return {
+    ...proposal,
+    groups: [{
+      ...providerGroup,
+      key: `record:${hints.items[0].sourceId}`,
+      proposedVendorName: supplier ?? providerGroup.proposedVendorName,
+      proposedVendorCustomerId: supplier && comparable(providerGroup.proposedVendorName) !== comparable(supplier) ? null : providerGroup.proposedVendorCustomerId,
+      vendorConfidence: supplier ? 1 : providerGroup.vendorConfidence,
+      uncertainty: supplier ? Object.fromEntries(Object.entries(providerGroup.uncertainty ?? {}).filter(([field]) => field !== 'vendor')) : providerGroup.uncertainty,
+      items,
+    }],
+  };
+}
+
 export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, candidates: ImportMatchCandidates): string {
   const evidenceText = evidence.sources.map(source => source.text ?? '').join(' ').normalize('NFKD').toLowerCase();
   const bounded = <T extends { name: string | null }>(values: T[]) => values.map((value, index) => ({ value, index, relevant: Boolean(value.name && evidenceText.includes(value.name.normalize('NFKD').toLowerCase())) }))
@@ -323,14 +519,20 @@ export function buildImportAnalysisPrompt(evidence: ImportEvidenceForAnalysis, c
     identities: bounded(candidates.identities ?? []).map(({ id, name, chineseName, category, year, originCountry, originRegion, type, form, classification, vendorName }) => ({ id, name, chineseName, category, year, originCountry, originRegion, type, form, classification, vendorName })),
     products: bounded(candidates.products ?? []).map(({ id, compassEntryId, name, category, purpose }) => ({ id, compassEntryId, name, category, purpose })),
   };
+  const recordHints = buildImportRecordHints(evidence);
   return [
-    'Extract a Curate inventory import as strict JSON. Preserve original Chinese names and translate to concise English.',
+    'Interpret this free-form vendor record as an inventory import. The record may mix languages, arbitrary ordering, blank lines, conversational notes, photos, tables, prices, and totals.',
+    'Classify meaning before extracting: identify suppliers, tea or teaware items, quantities, prices, totals, headings, and notes. A supplier, heading, subtotal, total, shipping charge, or note is never an inventory item.',
+    'Preserve every original non-English product name and translate it into a concise, natural English product name. Put the original in originalName and the translation in englishName; never leave price, weight, count, or totals inside either name.',
+    'Use explicit pack size and count to describe acquired stock. Application code derives total grams from packWeight × packCount and converts kg to grams.',
     'Each item must include sourceItemId, category, originalName, englishName, packWeight, weightUnit, packCount, priceAmount, currency, priceBasis, acquired, duplicateResolution, confidence, uncertainty, and evidenceRefs. priceAmount must be a JSON decimal string copied from evidence, never a JSON number. Use null or "unresolved" instead of guessing.',
     'Never infer priceBasis when the evidence is ambiguous; return "unknown" and explain uncertainty.',
-    'Do not calculate totals. Return evidence values only. Application code performs all arithmetic.',
+    'Do not use invoice-level totals to multiply item quantities. Treat totals only as consistency checks. For an item written as unit-price / pack-size × count = line-total, use priceBasis "per_pack", priceAmount as the unit price, and packCount as the explicit count.',
+    'When RECORD_HINTS.complete is true, copy each hinted sourceItemId and evidenceRef exactly, return exactly those hinted items, use the hinted supplier as proposedVendorName, and retain the hinted numeric facts. Translate and enrich the product identities yourself.',
     'In the user-facing overview, call the submitted material a record or records, never evidence.',
     'Use only vendor and journey candidates supplied for this account. Never invent candidate ids.',
     `ACCOUNT_CANDIDATES=${JSON.stringify(providerCandidates)}`,
+    `RECORD_HINTS=${JSON.stringify(recordHints)}`,
     `EVIDENCE=${JSON.stringify(evidence)}`,
   ].join('\n');
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyImportRecordHints,
   buildImportAnalysisPrompt,
+  buildImportRecordHints,
   decodeImportAnalysisProposal,
   normalizeImportProposal,
   type ImportAnalysisProposal,
@@ -139,6 +141,62 @@ describe('Curate import analysis domain', () => {
     expect(prompt).toContain('Never infer priceBasis');
     expect(prompt).toMatch(/priceAmount.*decimal string/i);
     expect(prompt).toContain('call the submitted material a record or records, never evidence');
+  });
+
+  it('recognizes supplier, purchased tea lines, totals, and acquired grams in a pasted vendor record', () => {
+    const evidence = { sources: [{
+      id: 'source-huang', kind: 'paste',
+      text: 'Huang Wei\n陈年六堡茶380元/500克 x1=380元\n陈年旧熟普400元/500克 x2=800元\n北越旧熟普280元/500克 x4=1120元\n共计：2300元X2=4600元',
+    }] };
+
+    const hints = buildImportRecordHints(evidence);
+
+    expect(hints).toMatchObject({
+      complete: true,
+      suppliers: [{ name: 'Huang Wei' }],
+      items: [
+        { originalName: '陈年六堡茶', packWeight: 500, weightUnit: 'g', packCount: 1, priceAmount: '380', currency: 'CNY', priceBasis: 'per_pack', lineTotal: '380', totalQuantityGrams: 500 },
+        { originalName: '陈年旧熟普', packWeight: 500, weightUnit: 'g', packCount: 2, priceAmount: '400', currency: 'CNY', priceBasis: 'per_pack', lineTotal: '800', totalQuantityGrams: 1000 },
+        { originalName: '北越旧熟普', packWeight: 500, weightUnit: 'g', packCount: 4, priceAmount: '280', currency: 'CNY', priceBasis: 'per_pack', lineTotal: '1120', totalQuantityGrams: 2000 },
+      ],
+      ignoredSummaries: [{ text: '共计：2300元X2=4600元' }],
+    });
+    expect(buildImportAnalysisPrompt(evidence, { vendors: [], journeys: [] })).toContain('RECORD_HINTS=');
+  });
+
+  it('uses deterministic record facts while retaining the model translations', () => {
+    const evidence = { sources: [{
+      id: 'source-huang', kind: 'paste',
+      text: 'Huang Wei\n陈年六堡茶380元/500克 x1=380元\n陈年旧熟普400元/500克 x2=800元\n北越旧熟普280元/500克 x4=1120元\n共计：2300元X2=4600元',
+    }] };
+    const hints = buildImportRecordHints(evidence);
+    const proposed = (sourceItemId: string, originalName: string, englishName: string) => ({
+      ...item, sourceItemId, originalName, englishName, evidenceRefs: ['source-huang'],
+    });
+    const providerProposal: ImportAnalysisProposal = {
+      overview: 'Imported lines', language: 'zh', groups: [{ key: 'unknown', proposedVendorName: null, items: [
+        proposed('supplier', 'Huang Wei', 'Huang Wei'),
+        proposed('tea-1', '陈年六堡茶', 'Aged Liubao Tea'),
+        proposed('tea-2', '陈年旧熟普', 'Aged Ripe Pu’er'),
+        proposed('tea-3', '北越旧熟普', 'Northern Vietnam Aged Ripe Pu’er'),
+        proposed('total', '共计', 'Total'),
+      ] }],
+    };
+
+    const normalized = normalizeImportProposal(applyImportRecordHints(providerProposal, hints));
+
+    expect(normalized.groups).toHaveLength(1);
+    expect(normalized.groups[0].proposedVendorName).toBe('Huang Wei');
+    expect(normalized.groups[0].items.map(entry => ({
+      originalName: entry.originalName,
+      englishName: entry.englishName,
+      totalQuantityGrams: entry.totalQuantityGrams,
+      lineCost: entry.lineCost,
+    }))).toEqual([
+      { originalName: '陈年六堡茶', englishName: 'Aged Liubao Tea', totalQuantityGrams: 500, lineCost: 380 },
+      { originalName: '陈年旧熟普', englishName: 'Aged Ripe Pu’er', totalQuantityGrams: 1000, lineCost: 800 },
+      { originalName: '北越旧熟普', englishName: 'Northern Vietnam Aged Ripe Pu’er', totalQuantityGrams: 2000, lineCost: 1120 },
+    ]);
   });
 
   it('bounds provider candidates and strips contact aliases', () => {

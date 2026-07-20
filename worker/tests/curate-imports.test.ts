@@ -375,6 +375,55 @@ describe('Curate import provenance API', () => {
     });
   });
 
+  it('turns a free-form Huang Wei purchase record into three translated teas with acquired grams', async () => {
+    const db = new ImportDb();
+    const lines = [
+      'Huang Wei',
+      '陈年六堡茶380元/500克 x1=380元',
+      '陈年旧熟普400元/500克 x2=800元',
+      '北越旧熟普280元/500克 x4=1120元',
+      '共计：2300元X2=4600元',
+    ];
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
+      title: 'Huang Wei record', source_kind: 'paste', pasted_text: lines.join('\n'),
+      items: lines.map((line, position) => ({ position, category: 'tea', name: line, raw_text: line, parsed_data: { name: line } })),
+    }) });
+    const { batch, sources } = await created.json() as any;
+    const providerItem = (sourceItemId: string, originalName: string, englishName: string) => ({
+      ...itemProposal(sourceItemId, sources[0].id), originalName, englishName,
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify({
+      overview: 'Three purchased teas', language: 'zh', groups: [{ key: 'unstructured', proposedVendorName: null, items: [
+        providerItem('supplier', 'Huang Wei', 'Huang Wei'),
+        providerItem('tea-1', '陈年六堡茶', 'Aged Liubao Tea'),
+        providerItem('tea-2', '陈年旧熟普', 'Aged Ripe Pu’er'),
+        providerItem('tea-3', '北越旧熟普', 'Northern Vietnam Aged Ripe Pu’er'),
+        providerItem('summary', '共计', 'Total'),
+      ] }],
+    }) }] }), { status: 200 }));
+
+    const analyzed = await request(db, `/api/curate/imports/${batch.id}/analyze`, { method: 'POST' });
+    const body = await analyzed.json() as any;
+
+    expect(analyzed.status).toBe(200);
+    expect(body.batch).toMatchObject({ analysis_state: 'complete', analysis_model: 'claude-sonnet-4-6' });
+    expect(body.groups).toHaveLength(1);
+    expect(body.groups[0]).toMatchObject({ proposed_vendor_name: 'Huang Wei' });
+    expect(body.items.map((entry: any) => ({
+      name: entry.name,
+      originalName: entry.parsed_data.originalName,
+      packWeight: entry.parsed_data.packWeight,
+      packCount: entry.parsed_data.packCount,
+      totalQuantityGrams: entry.parsed_data.totalQuantityGrams,
+      lineCost: entry.parsed_data.lineCost,
+      currency: entry.parsed_data.currency,
+    }))).toEqual([
+      { name: 'Aged Liubao Tea', originalName: '陈年六堡茶', packWeight: 500, packCount: 1, totalQuantityGrams: 500, lineCost: 380, currency: 'CNY' },
+      { name: 'Aged Ripe Pu’er', originalName: '陈年旧熟普', packWeight: 500, packCount: 2, totalQuantityGrams: 1000, lineCost: 800, currency: 'CNY' },
+      { name: 'Northern Vietnam Aged Ripe Pu’er', originalName: '北越旧熟普', packWeight: 500, packCount: 4, totalQuantityGrams: 2000, lineCost: 1120, currency: 'CNY' },
+    ]);
+  });
+
   it('ingests an unrepresentable provider decimal as exact string provenance', async () => {
     const db = new ImportDb();
     const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Exact price', pasted_text: 'Collector lot' }) });
@@ -404,7 +453,8 @@ describe('Curate import provenance API', () => {
     expect(body.groups[0]).toMatchObject({ resolved_vendor_customer_id: 'vendor-a', vendor_confidence: 1 });
     expect(body.groups[1]).toMatchObject({ resolved_vendor_customer_id: null, vendor_confidence: 0.72 });
     const aiRequest = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(aiRequest.model).toBe('claude-sonnet-5');
+    expect(aiRequest.model).toBe('claude-sonnet-4-6');
+    expect(aiRequest.output_config).toMatchObject({ format: { type: 'json_schema', schema: expect.any(Object) } });
     const prompt = aiRequest.messages[0].content.at(-1).text;
     expect(prompt).toContain('vendor-a');
     expect(prompt).not.toContain('vendor-b');
