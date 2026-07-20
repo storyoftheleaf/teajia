@@ -151,6 +151,36 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   };
   useEffect(() => { loadJourneys(); loadVendors(); loadIdentities(); loadHoldings(); }, [accountId]);
   useEffect(() => {
+    const batchId = initialDetail?.batch.id;
+    if (!batchId) return;
+    let active = true;
+    let refreshing = false;
+    const refresh = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const latest = await api.curateImports.get(batchId);
+        if (!latest?.batch || latest.batch.id !== batchId) return;
+        const detail = normalizeImportDetail(latest);
+        if (!active) return;
+        setState(current => current.phase === 'review' && current.detail?.batch.id === batchId
+          ? { ...current, detail, error: null }
+          : current);
+        onDetailChange(detail);
+      } catch {
+        // Keep the last saved review available when a background refresh fails.
+      } finally {
+        refreshing = false;
+      }
+    };
+    void refresh();
+    window.addEventListener('focus', refresh);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refresh);
+    };
+  }, [accountId, initialDetail?.batch.id, onDetailChange]);
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();

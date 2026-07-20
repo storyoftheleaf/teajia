@@ -403,6 +403,46 @@ test.describe('Curate Import panel', () => {
     await expect(completion.getByText('Stock record created', { exact: true })).toBeVisible();
   });
 
+  test('refreshes a stale import record when its review panel opens', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const stale = structuredClone(api.detail);
+    for (const item of stale.items) {
+      item.name = item.original_name;
+      item.english_name = null;
+      item.parsed_data.englishName = null;
+      item.blocking_fields = [...(item.blocking_fields || []), 'englishName'];
+    }
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [stale] } }));
+
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await expect(dialog.getByRole('heading', { name: 'Yunnan Ancient Tree Raw Pu’er', level: 6 })).toBeVisible();
+    await expect.poll(api.detailGetCalls).toBeGreaterThan(0);
+  });
+
+  test('refreshes an open import record when the window regains focus', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const first = api.detail.items[0];
+    first.name = first.original_name;
+    first.english_name = null;
+    first.parsed_data.englishName = null;
+    first.blocking_fields = [...(first.blocking_fields || []), 'englishName'];
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await expect(dialog.getByRole('heading', { name: first.original_name!, level: 6 })).toBeVisible();
+
+    first.name = 'Aged Liu Bao Tea';
+    first.english_name = 'Aged Liu Bao Tea';
+    first.parsed_data.englishName = 'Aged Liu Bao Tea';
+    first.blocking_fields = (first.blocking_fields || []).filter(field => field !== 'englishName');
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    await expect(dialog.getByRole('heading', { name: 'Aged Liu Bao Tea', level: 6 })).toBeVisible();
+  });
+
   test('shows every incomplete batch and clears account A import state immediately on account switch', async ({ page }) => {
     const detail = (id: string, title: string) => ({ batch: { id, title, review_state: 'pending', journey_id: null, visit_id: null }, sources: [{ id: `source-${id}`, batch_id: id, kind: 'paste', pasted_text: title, r2_object_key: null, metadata: {} }], items: [] });
     let switched = false;
