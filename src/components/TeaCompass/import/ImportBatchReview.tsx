@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { CurateJourney } from '../types';
 import type { CurateImportDetail, CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
 import { buildImportReviewModel, importFinalActionLabel, importItemNoun } from './importReviewDomain';
@@ -8,6 +8,7 @@ import { ImportEvidenceCard } from './ImportEvidenceCard';
 import type { ImportIdentityOption, ImportHoldingOption } from './ImportItemRow';
 import { nextBlockingImportItemId } from './importFolioPresentation';
 import { savedRecordAnalysisMessage } from './importErrorMessage';
+import { ImportDeleteAction } from './ImportDeleteAction';
 
 interface ImportBatchReviewProps {
   detail: CurateImportDetail;
@@ -33,9 +34,7 @@ interface ImportBatchReviewProps {
 }
 
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, journeyLookup, vendorLookup, identityLookup, holdingLookup, busyId, onRetryJourneys, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdate, onSetJourney, onCreateJourney, onChangeVendor, onCreateVendor, onFinalize, onRetryAnalysis, onDefer, onNew, onAbandon }) => {
-  const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
-  const abandonRef = useRef<HTMLButtonElement>(null);
   const model = useMemo(() => buildImportReviewModel(detail), [detail]);
   const itemCount = detail.items.length;
   const itemLabel = importItemNoun(detail.items, itemCount);
@@ -59,8 +58,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       {detail.sources.some(source => source.r2_object_key) && <div className="space-y-2" aria-label="Saved records">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} analysisBusy={busyId === `source:${source.id}`} disabled={Boolean(busyId) && busyId !== `source:${source.id}`} onRetry={sourceId => void onRetryAnalysis([sourceId])} />)}</div>}
       <div className="space-y-5">{model.groups.map(group => <ImportVendorGroup key={group.id} group={group} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryVendors={onRetryVendors} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdateItem={onUpdate} onChangeVendor={onChangeVendor} onCreateVendor={onCreateVendor} />)}</div>
       {!model.groups.length && <p className="rounded-md border border-tea-border bg-tea-surface p-4 text-ui-13 text-tea-text-sec">No analyzed teas yet. Retry analysis from this saved record.</p>}
-      {confirmAbandon && <div role="group" aria-label="Abandon import confirmation" className="space-y-3 rounded-md border border-tea-border bg-tea-surface p-3"><p className="text-ui-12 text-tea-text">Keep the saved record, but permanently stop reviewing this import?</p><div className="flex justify-between gap-3"><button autoFocus type="button" disabled={Boolean(busyId)} onClick={() => { setConfirmAbandon(false); requestAnimationFrame(() => abandonRef.current?.focus()); }} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Cancel abandon</button><button type="button" disabled={Boolean(busyId)} onClick={() => void onAbandon()} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">Confirm abandon</button></div></div>}
-      <div className="flex flex-wrap justify-between gap-2 border-t border-tea-border pt-3"><button ref={abandonRef} type="button" disabled={Boolean(busyId)} onClick={() => setConfirmAbandon(true)} aria-expanded={confirmAbandon} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Abandon import</button><div className="flex flex-wrap gap-3"><button type="button" disabled={Boolean(busyId)} onClick={onDefer} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Review later</button><button type="button" disabled={Boolean(busyId)} onClick={onNew} className="tap-target min-h-11 text-ui-12 text-tea-gold disabled:opacity-50">New import</button></div></div>
+      <ImportDeleteAction busy={Boolean(busyId)} onDelete={onAbandon} compact trailingActions={<><button type="button" disabled={Boolean(busyId)} onClick={onDefer} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Review later</button><button type="button" disabled={Boolean(busyId)} onClick={onNew} className="tap-target min-h-11 text-ui-12 text-tea-gold hover:text-tea-gold-lt disabled:opacity-50">New import</button></>} />
       <div className="sticky bottom-0 bg-tea-elevated pb-nav-gap pt-3">
         {model.needsReviewCount > 0 ? <div className="flex items-center justify-between gap-3"><p className="text-ui-12 text-tea-text-sec">{model.needsReviewCount} unresolved</p><button type="button" disabled={Boolean(busyId)} onClick={goToNextIssue} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-13 font-medium text-tea-bg disabled:opacity-50">Next issue</button></div> : <>
           {vendorUnresolved && <p className="mb-2 text-ui-11 text-tea-text-sec">Choose each vendor before saving these records.</p>}

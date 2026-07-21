@@ -17,6 +17,7 @@ import { ImportCompletionSummary } from './ImportCompletionSummary';
 import { ImportFolioHeader } from './ImportFolioHeader';
 import { folioPhase, folioPhaseContext } from './importFolioPresentation';
 import { importRunErrorMessage } from './importErrorMessage';
+import { ImportDeleteAction } from './ImportDeleteAction';
 
 interface ImportPanelProps {
   initialDetail: CurateImportDetail | null;
@@ -200,6 +201,8 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
 
   const runImport = async () => {
     if (busyId) return;
+    retryAction.current = null;
+    setOperationError(null);
     setBusyId('__import');
     setState(current => ({ ...current, phase: 'parsing', error: null }));
     let detail = state.detail;
@@ -329,7 +332,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     if (!state.detail || busyId) return;
     setBusyId(sourceIds?.length === 1 ? `source:${sourceIds[0]}` : '__analysis');
     const action = async () => { const detail = normalizeImportDetail(await api.curateImports.analyze(state.detail!.batch.id, sourceIds)); setState({ phase: 'review', detail, error: null }); onDetailChange(detail); };
-    try { setOperationError(null); await action(); }
+    try { setOperationError(null); await action(); retryAction.current = null; }
     catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not analyze saved records')); }
     finally { setBusyId(null); }
   };
@@ -349,8 +352,9 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
   const abandon = async () => {
     if (!state.detail || busyId) return;
     setBusyId('__abandon');
-    try { setOperationError(null); await api.curateImports.abandon(state.detail.batch.id); onDetailChange({ ...state.detail, batch: { ...state.detail.batch, review_state: 'abandoned' } }); onClose(); }
-    catch (error) { setOperationError(errorMessage(error, 'Could not abandon import')); }
+    const action = async () => { await api.curateImports.abandon(state.detail!.batch.id); onDetailChange({ ...state.detail!, batch: { ...state.detail!.batch, review_state: 'abandoned' } }); onClose(); };
+    try { setOperationError(null); await action(); retryAction.current = null; }
+    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not delete import')); }
     finally { setBusyId(null); }
   };
 
@@ -373,7 +377,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
           {state.phase === 'error' && <div className="space-y-4">
             {persistedEvidenceSources.length > 0 && <div className="space-y-2" aria-label="Persisted record outcomes">{persistedEvidenceSources.map(source => <ImportEvidenceCard key={source.id} source={source} />)}</div>}
             <ImportEvidencePreview evidence={unmatchedLocalEvidence} />
-            <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p>{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold">Retry import</button>}</div>
+            <div role="alert" className="space-y-4 rounded-md border border-tea-border bg-tea-surface p-4"><p className="text-ui-14 text-tea-text">{state.error}</p><div className="flex flex-wrap items-center justify-between gap-3">{state.detail && <ImportDeleteAction busy={Boolean(busyId)} onDelete={abandon} compact />}{(!state.detail || state.detail.batch.analysis_state !== 'failed' || failedImportSourceIds(state.detail.sources).length > 0) && <button type="button" disabled={Boolean(busyId)} onClick={runImport} className="tap-target min-h-11 rounded-md border border-tea-gold px-4 text-ui-12 text-tea-gold hover:border-tea-gold hover:text-tea-gold-lt disabled:opacity-50">Retry import</button>}</div></div>
           </div>}
           {operationError && <div role="alert" className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-tea-border bg-tea-surface p-3 text-ui-12 text-tea-text"><span>{operationError}</span><button type="button" disabled={!!busyId} onClick={async () => { if (!retryAction.current || busyId) return; setBusyId('__retry'); setOperationError(null); try { await retryAction.current(); retryAction.current = null; } catch (error) { setOperationError(error instanceof Error ? error.message : 'Action failed again'); } finally { setBusyId(null); } }} className="tap-target text-tea-gold disabled:opacity-50">Retry action</button></div>}
           {state.phase === 'review' && normalizedDetail && (completion

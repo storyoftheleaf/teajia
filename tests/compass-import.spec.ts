@@ -183,6 +183,7 @@ async function installAnalyzedImportApi(page: Page) {
 async function installImportApi(page: Page) {
   let attempts = 0;
   let analysisAttempts = 0;
+  let abandonAttempts = 0;
   const items: ImportItem[] = [];
   const sources: Array<Record<string, unknown>> = [];
   const createBodies: Array<Record<string, unknown>> = [];
@@ -238,7 +239,7 @@ async function installImportApi(page: Page) {
     }
     if (method === 'POST' && path === '/api/curate/imports/batch-1/analyze') {
       analysisAttempts += 1;
-      const retrySource = sources.find(source => (source.metadata as Record<string, unknown>)?.filename === 'retry-source.pdf');
+      const retrySource = sources.find(source => ['retry-source.pdf', 'retry-delete-source.pdf'].includes(String((source.metadata as Record<string, unknown>)?.filename)));
       if (retrySource && analysisAttempts === 1) {
         Object.assign(retrySource, { analysis_status: 'failed', analysis_error: 'analysis_evidence_unavailable' });
         if (batch) Object.assign(batch, { review_state: 'pending', analysis_state: 'failed', analysis_error: 'analysis_no_usable_evidence' });
@@ -292,6 +293,11 @@ async function installImportApi(page: Page) {
       return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(source) });
     }
     if (method === 'POST' && /\/abandon$/.test(path)) {
+      abandonAttempts += 1;
+      const retryableDelete = sources.some(source => ['delete-retry.pdf', 'retry-delete-source.pdf'].includes(String((source.metadata as Record<string, unknown>)?.filename)));
+      if (retryableDelete && abandonAttempts === 1) {
+        return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Delete import is temporarily unavailable' }) });
+      }
       if (batch) batch.review_state = 'abandoned';
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, review_state: 'abandoned' }) });
     }
@@ -604,6 +610,29 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
   });
 
+  test('deletes a persisted import immediately after initial analysis failure', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files').setInputFiles({ name: 'retry-source.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+
+    await expect(page.getByText('Analysis failed · Your saved record is ready to analyze again.')).toBeVisible();
+    const deleteImport = page.getByRole('button', { name: 'Delete import' });
+    await expect(deleteImport).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
+    await deleteImport.click();
+    const confirmation = page.getByRole('group', { name: 'Delete import confirmation' });
+    await expect(confirmation).toContainText('saved record is retained');
+    const cancel = confirmation.getByRole('button', { name: 'Cancel' });
+    await expect(cancel).toBeFocused();
+    await cancel.click();
+    await expect(deleteImport).toBeFocused();
+    await deleteImport.click();
+    await confirmation.getByRole('button', { name: 'Delete import' }).click();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /retry-source: 0 items/ })).toHaveCount(0);
+  });
+
   test('reloads persisted source outcomes after initial analysis failure and retries only failed evidence', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
@@ -614,6 +643,46 @@ test.describe('Curate Import panel', () => {
     const retryRequest = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/api/curate/imports/batch-1/analyze') && request.postDataJSON()?.source_ids);
     await page.getByRole('button', { name: 'Retry import' }).click();
     expect((await retryRequest).postDataJSON()).toEqual({ source_ids: ['evidence-0'] });
+  });
+
+  test('retries a failed import deletion', async ({ page }) => {
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files').setInputFiles({ name: 'delete-retry.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-delete') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+
+    await page.getByRole('button', { name: 'Delete import' }).click();
+    await page.getByRole('group', { name: 'Delete import confirmation' }).getByRole('button', { name: 'Delete import' }).click();
+    await expect(page.getByText('Delete import is temporarily unavailable')).toBeVisible();
+    await page.getByRole('button', { name: 'Retry action' }).click();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /delete-retry: 0 items/ })).toHaveCount(0);
+  });
+
+  test('invalidates a failed deletion retry after importing recovers the batch', async ({ page }) => {
+    let abandonRequests = 0;
+    page.on('request', request => {
+      if (request.method() === 'POST' && request.url().endsWith('/abandon')) abandonRequests += 1;
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByLabel('Add files').setInputFiles({ name: 'retry-delete-source.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-retry-delete') });
+    await page.getByRole('button', { name: 'Start import' }).click();
+
+    await expect(page.getByText('Analysis failed · Your saved record is ready to analyze again.')).toBeVisible();
+    await page.getByRole('button', { name: 'Delete import' }).click();
+    await page.getByRole('group', { name: 'Delete import confirmation' }).getByRole('button', { name: 'Delete import' }).click();
+    await expect(page.getByText('Delete import is temporarily unavailable')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Retry action' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Retry import' }).click();
+    await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved record.')).toBeVisible();
+    await expect(page.getByText('Delete import is temporarily unavailable')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Retry action' })).toHaveCount(0);
+    await expect.poll(() => abandonRequests).toBe(1);
+    await page.getByRole('button', { name: 'Delete import' }).click();
+    await expect(page.getByRole('group', { name: 'Delete import confirmation' })).toBeVisible();
+    await expect.poll(() => abandonRequests).toBe(1);
   });
 
   test('recovers saved evidence and its grouped incomplete batch after reload', async ({ page }) => {
@@ -632,24 +701,36 @@ test.describe('Curate Import panel', () => {
     await retrieval;
   });
 
-  test('keeps an evidence-only batch recoverable through explicit abandon', async ({ page }) => {
+  test('keeps an evidence-only batch recoverable through explicit deletion', async ({ page }) => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Add files').setInputFiles({ name: 'evidence.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-evidence') });
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved record.')).toBeVisible();
-    const abandon = page.getByRole('button', { name: 'Abandon import' });
-    await abandon.click();
-    const confirmation = page.getByRole('group', { name: 'Abandon import confirmation' });
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const deleteImport = dialog.getByRole('button', { name: 'Delete import' });
+    const actionRow = deleteImport.locator('..');
+    await expect(actionRow.getByRole('button', { name: 'Review later' })).toBeVisible();
+    await expect(actionRow.getByRole('button', { name: 'New import' })).toBeVisible();
+    await actionRow.getByRole('button', { name: 'Review later' }).click();
+    await expect(dialog).toHaveCount(0);
+    const recoveryEntry = page.getByRole('button', { name: /invoice: 0 items/ });
+    await expect(recoveryEntry).toBeVisible();
+    await recoveryEntry.click();
+    await expect(dialog).toBeVisible();
+    const reopenedDeleteImport = dialog.getByRole('button', { name: 'Delete import' });
+    await reopenedDeleteImport.click();
+    const confirmation = page.getByRole('group', { name: 'Delete import confirmation' });
     await expect(confirmation).toBeVisible();
-    await expect(confirmation).toContainText('permanently stop reviewing this import');
-    await expect(page.getByRole('button', { name: 'Cancel abandon' })).toBeFocused();
-    await page.getByRole('button', { name: 'Cancel abandon' }).click();
-    await expect(abandon).toBeFocused();
-    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
-    await abandon.click();
-    await page.getByRole('button', { name: 'Confirm abandon' }).click();
-    await expect(page.getByRole('button', { name: /invoice: 0 items/ })).toHaveCount(0);
+    await expect(confirmation).toContainText('saved record is retained');
+    await expect(page.getByRole('button', { name: 'Cancel' })).toBeFocused();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(reopenedDeleteImport).toBeFocused();
+    await expect(dialog).toBeVisible();
+    await reopenedDeleteImport.click();
+    await confirmation.getByRole('button', { name: 'Delete import' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(recoveryEntry).toHaveCount(0);
   });
 
   test('keeps 25 recovered batches compact and capture visible without overflow', async ({ page }) => {
