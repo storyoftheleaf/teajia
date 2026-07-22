@@ -22,6 +22,12 @@ interface SampleStoreState {
   sampleSetTombstones: string[];
   accountScopeId: string | null;
   dataByAccount: Record<string, SampleAccountData>;
+  // Bumped ONLY by local edits the user makes. Server reconciliation never
+  // touches it, so a finished sync can never re-arm the sync that produced it.
+  // The sync hook watches this instead of a derived "is anything pending"
+  // boolean: that boolean flickered during reconciliation and drove a hot
+  // request loop (~120k requests/day) that ran until the tab was closed.
+  outboxRevision: number;
   switchAccount: (accountId: string | null) => void;
   reconcileRemote: (accountId: string, samples: TeaSample[], sampleSets: SampleSet[]) => boolean;
   markRemoteCommitted: (accountId: string, sampleIds: string[], sampleSetIds: string[]) => boolean;
@@ -94,6 +100,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
       dataByAccount: {},
       activeSampleId: null,
       activeSetId: null,
+      outboxRevision: 0,
 
       switchAccount: (accountId) => set((state) => {
         if (state.accountScopeId === accountId) return state;
@@ -229,6 +236,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
       addSample: (sample) =>
         set((state) => ({
           samples: [sample, ...state.samples],
+          outboxRevision: state.outboxRevision + 1,
         })),
 
       updateSample: (id, updates) =>
@@ -236,6 +244,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           samples: state.samples.map((s) =>
             s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString(), synced: false } : s
           ),
+          outboxRevision: state.outboxRevision + 1,
         })),
 
       removeSample: (id) =>
@@ -253,6 +262,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             sampleTombstones: tombstone
               ? Array.from(new Set([...state.sampleTombstones, tombstone]))
               : state.sampleTombstones,
+            outboxRevision: state.outboxRevision + 1,
           };
         }),
 
@@ -269,6 +279,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
                 }
               : s
           ),
+          outboxRevision: state.outboxRevision + 1,
         })),
 
       updateSampleStatus: (id, status) =>
@@ -276,6 +287,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           samples: state.samples.map((s) =>
             s.id === id ? { ...s, status, updatedAt: new Date().toISOString(), synced: false } : s
           ),
+          outboxRevision: state.outboxRevision + 1,
         })),
 
       bulkUpdateStatus: (ids, status) => {
@@ -284,12 +296,14 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           samples: state.samples.map((s) =>
             idSet.has(s.id) ? { ...s, status, updatedAt: new Date().toISOString(), synced: false } : s
           ),
+          outboxRevision: state.outboxRevision + 1,
         }));
       },
 
       addSampleSet: (sampleSet) =>
         set((state) => ({
           sampleSets: [{ ...sampleSet, synced: sampleSet.synced ?? false }, ...state.sampleSets],
+          outboxRevision: state.outboxRevision + 1,
         })),
 
       updateSampleSet: (id, updates) =>
@@ -297,6 +311,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
           sampleSets: state.sampleSets.map((ss) =>
             ss.id === id ? { ...ss, ...updates, updatedAt: new Date().toISOString(), synced: false } : ss
           ),
+          outboxRevision: state.outboxRevision + 1,
         })),
 
       removeSampleSet: (id) =>
@@ -315,6 +330,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             sampleSetTombstones: tombstone
               ? Array.from(new Set([...state.sampleSetTombstones, tombstone]))
               : state.sampleSetTombstones,
+            outboxRevision: state.outboxRevision + 1,
           };
         }),
 
@@ -333,6 +349,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             sampleSetTombstones: state.accountScopeId
               ? Array.from(new Set([...state.sampleSetTombstones, id]))
               : state.sampleSetTombstones,
+            outboxRevision: state.outboxRevision + 1,
           };
         }),
 
@@ -342,6 +359,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
             ss.id === id ? { ...ss, archived: true, updatedAt: new Date().toISOString(), synced: false } : ss
           ),
           activeSetId: state.activeSetId === id ? null : state.activeSetId,
+          outboxRevision: state.outboxRevision + 1,
         }));
       },
 
@@ -376,6 +394,7 @@ export function createSampleStore(storage?: PersistStorage<SampleStoreState>) {
                 ? { ...ss, sampleIds: [...ss.sampleIds, ...newSamples.map((s) => s.id)], updatedAt: now, synced: false }
                 : ss
             ),
+            outboxRevision: state.outboxRevision + 1,
           };
         });
       },

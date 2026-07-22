@@ -7,6 +7,9 @@ import { selectSampleSyncPending, useSampleStore } from '../samples/sampleStore'
 import { useSampleCartStore } from '../samples/sampleCartStore';
 import { sampleRepository } from '../samples/sampleRepository';
 
+/** Never sync samples automatically more often than this. */
+const MIN_AUTO_SYNC_GAP_MS = 15_000;
+
 /**
  * Syncs the Tea Compass entries between local Zustand store and D1.
  *
@@ -25,13 +28,18 @@ import { sampleRepository } from '../samples/sampleRepository';
 export function useCompassSync(isAuthenticated: boolean) {
   const activeAccountId = useAppStore((s) => s.activeAccountId);
   const entries = useTeaCompassStore((s) => s.entries);
-  const samplesPending = useSampleStore((state) => (
-    state.accountScopeId === activeAccountId && selectSampleSyncPending(state)
+  // Watch the local-edit counter, never a derived "is anything pending" flag:
+  // a finished sync rewrites the store, and any flicker in a derived flag
+  // re-arms this effect and loops forever. The counter only moves when the
+  // user actually changes something.
+  const outboxRevision = useSampleStore((state) => (
+    state.accountScopeId === activeAccountId ? state.outboxRevision : 0
   ));
   const hasFetchedRef = useRef(false);
   const prevAuthRef = useRef(isAuthenticated);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sampleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSampleSyncAtRef = useRef(0);
   const [tokenRevision, setTokenRevision] = useState(0);
 
   useEffect(() => {
@@ -93,15 +101,22 @@ export function useCompassSync(isAuthenticated: boolean) {
   useEffect(() => {
     if (!isAuthenticated || !activeAccountId || !hasToken() || !isTokenScopedToAccount(activeAccountId)) return;
     if (!hasFetchedRef.current) return;
-    if (!samplesPending) return;
+    if (!outboxRevision) return;
     if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
+    // Floor between automatic syncs. Belt and braces: even if some future
+    // caller re-arms this effect in a loop, the network cost stays bounded.
+    const sinceLast = Date.now() - lastSampleSyncAtRef.current;
+    const wait = Math.max(2000, MIN_AUTO_SYNC_GAP_MS - sinceLast);
     sampleDebounceRef.current = setTimeout(() => {
+      const state = useSampleStore.getState();
+      if (state.accountScopeId !== activeAccountId || !selectSampleSyncPending(state)) return;
+      lastSampleSyncAtRef.current = Date.now();
       sampleRepository.sync(activeAccountId).catch(() => {});
-    }, 2000);
+    }, wait);
     return () => {
       if (sampleDebounceRef.current) clearTimeout(sampleDebounceRef.current);
     };
-  }, [activeAccountId, isAuthenticated, samplesPending]);
+  }, [activeAccountId, isAuthenticated, outboxRevision]);
 
   // Retry sync when the browser transitions back online
   useEffect(() => {
@@ -133,7 +148,10 @@ export function useCompassSync(isAuthenticated: boolean) {
       const sampleState = useSampleStore.getState();
       const hasPendingSamples = sampleState.accountScopeId === activeAccountId
         && selectSampleSyncPending(sampleState);
-      if (hasToken() && hasPendingSamples) sampleRepository.sync(activeAccountId).catch(() => {});
+      if (hasToken() && hasPendingSamples && Date.now() - lastSampleSyncAtRef.current >= MIN_AUTO_SYNC_GAP_MS) {
+        lastSampleSyncAtRef.current = Date.now();
+        sampleRepository.sync(activeAccountId).catch(() => {});
+      }
     };
     const interval = setInterval(retryIfPending, 30_000);
     const handleVisible = () => {
