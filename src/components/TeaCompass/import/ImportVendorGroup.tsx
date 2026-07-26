@@ -32,14 +32,14 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
   const readyHeadingId = `vendor-${group.id}-ready-heading`;
   const renderRows = (rows: typeof partition.needsReview) => rows.map(({ row }) => <ImportItemRow key={row.item.id} item={row.item} busy={Boolean(busyId)} identityLookup={identityLookup} holdingLookup={holdingLookup} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdate={updates => onUpdateItem(row.item, updates)} />);
   return (
-    <section data-testid="import-vendor-group" aria-labelledby={`vendor-${group.id}`} className="relative space-y-4 border-b border-tea-border pb-6">
-      {group.vendorRequired ? <div className="pr-12">
-        <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Vendor · {group.items.length} {groupNoun}{!group.vendorResolved ? ' · suggested' : ''}</p>
-        <h4 id={`vendor-${group.id}`} className="mt-1 w-full break-words font-display text-ui-28 leading-tight text-tea-text">{vendorName}</h4>
-        <button type="button" disabled={Boolean(busyId)} onClick={() => setChanging(value => !value)} aria-label={`Change vendor for ${vendorName}`} aria-expanded={changing} className="tap-target absolute right-0 top-0 text-ui-10 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Change</button>
+    <section data-testid="import-vendor-group" aria-labelledby={`vendor-${group.id}`} className="curate-cluster space-y-3">
+      {group.vendorRequired ? <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="min-w-0"><p className="curate-support text-tea-text-dim">Vendor · {group.items.length} {groupNoun}{!group.vendorResolved ? ' · suggested' : ''}</p>
+        <h4 id={`vendor-${group.id}`} className="curate-primary truncate font-medium">{vendorName}</h4></div>
+        <button type="button" disabled={Boolean(busyId)} onClick={() => setChanging(value => !value)} aria-label={`Change vendor for ${vendorName}`} aria-expanded={changing} className="curate-action curate-compact-target shrink-0 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Change</button>
       </div> : <div>
-        <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Library records · {group.items.length} {groupNoun}</p>
-        <h4 id={`vendor-${group.id}`} className="mt-1 font-display text-ui-20 font-normal text-tea-text">Saved without vendor</h4>
+        <p className="curate-support text-tea-text-dim">Library records · {group.items.length} {groupNoun}</p>
+        <h4 id={`vendor-${group.id}`} className="curate-primary font-medium">Saved without vendor</h4>
       </div>}
       {group.vendorRequired && changing && (
         <div className="space-y-3 border-y border-tea-border py-4">

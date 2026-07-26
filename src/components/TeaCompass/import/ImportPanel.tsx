@@ -360,10 +360,10 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
 
   return (
     <div ref={overlayRef} data-testid="import-folio-shell" className="fixed inset-0 sidebar-inset z-modal bg-tea-bg text-tea-text" role="presentation">
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="curate-import-title" className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-tea-bg">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Import into Curate" className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-tea-bg">
         <ImportFolioHeader phase={currentFolioPhase} context={folioContext} busy={Boolean(busyId)} closeRef={closeRef} onClose={requestClose} />
         <div className="min-h-0 flex-1 overflow-y-auto" aria-live="polite">
-          <div className="pb-nav mx-auto w-full max-w-3xl px-4 py-7 sm:px-6 lg:py-10">
+          <div className={`pb-nav mx-auto w-full max-w-3xl ${state.phase === 'review' ? 'px-2 py-2 sm:px-4 lg:py-4' : 'px-4 py-7 sm:px-6 lg:py-10'}`}>
           {confirmClose && <div role="group" aria-label="Keep import draft" className="mb-4 rounded-md border border-tea-border bg-tea-surface p-4">
             <h3 className={`${TYPOGRAPHY_CLASSES.h3} text-tea-text`}>Keep import draft?</h3>
             <p className="mt-2 text-ui-13 leading-relaxed text-tea-text-sec">Your pasted text, sourcing run, and attachment names are saved for this account. Files will need to be reselected.</p>

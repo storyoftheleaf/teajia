@@ -1,5 +1,5 @@
-import type { CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
-import { importDisposition, importItemNoun } from './importReviewDomain';
+import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
+import { buildImportReviewModel, importItemNoun } from './importReviewDomain';
 import type { ImportPanelState } from './importTypes';
 
 export type ImportFolioPhase = 'evidence' | 'review' | 'added';
@@ -49,13 +49,10 @@ export const folioPhaseContext = (
   const items = detail?.items ?? [];
   if (phase === 'review') {
     const itemCount = items.length;
-    const stockItems = items.filter(item => importDisposition(item) !== 'library_only');
-    const stockGroupIds = new Set(stockItems.map(item => item.vendor_group_id).filter((id): id is string => Boolean(id)));
-    const vendorCount = (detail?.groups.filter(group => stockGroupIds.has(group.id)).length ?? 0) + (stockItems.some(item => !item.vendor_group_id) ? 1 : 0);
     const needsReviewCount = items.filter(item => (item.blocking_fields?.length ?? 0) > 0).length;
     return {
-      title: `Review ${itemCount} ${importItemNoun(items, itemCount)}${vendorCount ? ` from ${vendorCount} ${vendorCount === 1 ? 'vendor' : 'vendors'}` : ''}`,
-      status: needsReviewCount ? `${needsReviewCount} need review` : 'Ready to add',
+      title: 'Review imported teas',
+      status: `${needsReviewCount} of ${itemCount} ${needsReviewCount === 1 ? 'needs' : 'need'} attention`,
     };
   }
 
@@ -66,4 +63,29 @@ export const folioPhaseContext = (
     title: 'Import complete',
     status: `${addedCount} ${importItemNoun(addedItems.length ? addedItems : items, addedCount)} added`,
   };
+};
+
+const numberLabel = (value: number, maximumFractionDigits = 2) => value.toLocaleString('en-US', { maximumFractionDigits });
+
+const weightLabel = (grams: number): string | null => {
+  if (!Number.isFinite(grams) || grams <= 0) return null;
+  if (grams >= 1000 && Number.isInteger(grams / 10)) return `${numberLabel(grams / 1000)} kg`;
+  return `${numberLabel(grams, 3)} g`;
+};
+
+export const importBatchSummary = (detail: CurateImportDetail): string => {
+  const model = buildImportReviewModel(detail);
+  const count = model.readyCount + model.needsReviewCount;
+  const parts = [`${count} ${importItemNoun(detail.items, count)}`];
+  const vendorGroups = model.groups.filter(group => group.vendorRequired);
+  if (vendorGroups.length === 1) {
+    const name = vendorGroups[0].resolved_vendor_name?.trim();
+    parts.push(name || '1 vendor');
+  } else if (vendorGroups.length > 1) {
+    parts.push(`${vendorGroups.length} vendors`);
+  }
+  const weight = weightLabel(model.totalQuantityGrams);
+  if (weight) parts.push(weight);
+  parts.push(...model.currencyTotals.map(total => `${total.currency} ${numberLabel(total.amount)}`));
+  return parts.join(' · ');
 };
