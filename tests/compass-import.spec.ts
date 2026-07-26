@@ -182,6 +182,14 @@ async function installAnalyzedImportApi(page: Page) {
   };
 }
 
+async function openAnalyzedImportFromLibrary(page: Page) {
+  await openCompass(page);
+  await page.getByRole('tab', { name: 'Library', exact: true }).click();
+  const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+  await imports.getByRole('button', { name: 'Open Two vendor Chinese tea list' }).click();
+  await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
+}
+
 async function installImportApi(page: Page) {
   let attempts = 0;
   let analysisAttempts = 0;
@@ -334,8 +342,7 @@ test.describe('Curate Import panel', () => {
 
   test('uses a compact import review shell with one sticky header', async ({ page }, testInfo) => {
     const api = await installAnalyzedImportApi(page);
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
 
     const shell = page.getByTestId('import-folio-shell');
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
@@ -368,8 +375,7 @@ test.describe('Curate Import panel', () => {
       if (abandonRequests === 1) return route.fulfill({ status: 503, json: { error: 'Delete import is temporarily unavailable' } });
       return route.fulfill({ json: { success: true, review_state: 'abandoned' } });
     });
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const deleteAction = dialog.getByRole('button', { name: 'Delete import', exact: true });
@@ -494,8 +500,7 @@ test.describe('Curate Import panel', () => {
     }
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [stale] } }));
 
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await expect.poll(api.detailGetCalls).toBeGreaterThan(0);
@@ -510,8 +515,7 @@ test.describe('Curate Import panel', () => {
     first.english_name = null;
     first.parsed_data.englishName = null;
     first.blocking_fields = [...(first.blocking_fields || []), 'englishName'];
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await expect(dialog.getByRole('heading', { name: first.original_name!, level: 6 })).toBeVisible();
 
@@ -1031,8 +1035,7 @@ test.describe('analyzed inventory import review', () => {
     api.detail.items[1].blocking_fields = ['english_name'];
     api.detail.items[1].confidence = 0.54;
     api.detail.items[1].uncertainty = { english_name: 'The translated name needs confirmation' };
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await expect(dialog.getByText('AI reading', { exact: true })).toBeVisible();
@@ -1107,8 +1110,7 @@ test.describe('analyzed inventory import review', () => {
     api.detail.items[1].total_quantity_grams = 1001;
     api.detail.items[1].line_cost = null;
     api.detail.items[1].parsed_data.lineCostExact = '999999999999999.99';
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await expect(dialog).toBeVisible();
@@ -1244,6 +1246,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(completionActions).toHaveText(['Close summary', 'Start another import']);
     await expect(page).toHaveURL(/\/admin\/compass/);
     await completion.getByRole('button', { name: 'Close summary' }).click();
+    await page.getByRole('tab', { name: 'Source', exact: true }).click();
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByLabel('Vendor list or invoice')).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row')).toHaveCount(0);
@@ -1266,8 +1269,7 @@ test.describe('analyzed inventory import review', () => {
     await page.route('**/api/customers', delayed('vendor', [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }]));
     await page.route('**/api/compass/entries', delayed('identity', { entries: [{ id: 'identity-yunnan', name: 'Yunnan Tea', category: 'tea' }] }));
     await page.route('**/api/products', delayed('holding', [{ id: 'holding-yunnan', given_name: 'Yunnan holding', type: 'tea', source_compass_entry_id: 'identity-yunnan', inventory_purpose: 'working' }]));
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const row = dialog.locator(`[data-import-item-id="${api.detail.items[0].id}"]`);
     await row.getByRole('button', { name: 'Review' }).click();
@@ -1299,8 +1301,7 @@ test.describe('analyzed inventory import review', () => {
       if (secondSaveAttempts === 1) return route.fulfill({ status: 503, json: { error: 'Correction temporarily unavailable' } });
       return route.fallback();
     });
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const first = dialog.locator('[data-import-item-id="analyzed-item-1"]');
@@ -1352,8 +1353,7 @@ test.describe('analyzed inventory import review', () => {
 
   test('drops stock-only confirmations and payload review fields when destination changes to Library only', async ({ page }) => {
     const api = await installAnalyzedImportApi(page);
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const row = dialog.locator('[data-import-item-id="analyzed-item-10"]');
 
@@ -1384,8 +1384,7 @@ test.describe('analyzed inventory import review', () => {
     Object.assign(last, { blocking_fields: [], acquired: true, duplicate_resolution: 'new' });
     Object.assign(last.parsed_data, { disposition: 'received', acquired: true, inventoryPurpose: 'working', duplicateResolution: 'new' });
     api.detail.items[0].blocking_fields = ['english_name'];
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const row = dialog.locator('[data-import-item-id="analyzed-item-1"]');
 
@@ -1406,8 +1405,7 @@ test.describe('analyzed inventory import review', () => {
     api.detail.items[0].blocking_fields = ['english_name'];
     api.detail.groups[0].resolved_vendor_customer_id = null;
     api.detail.groups[0].resolved_vendor_name = null;
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const row = dialog.locator('[data-import-item-id="analyzed-item-1"]');
 
@@ -1428,8 +1426,7 @@ test.describe('analyzed inventory import review', () => {
     item.raw_text = 'raw-secret-be8fd906-47f1-4a34-bf8c-f5d26db23454';
     item.blocking_fields = ['english_name'];
     item.parsed_data.evidenceRefs = ['source-analyzed:page=2'];
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
     await row.getByRole('button', { name: 'Review' }).click();
     await expect(row.getByLabel('English name')).toBeVisible();
@@ -1464,8 +1461,7 @@ test.describe('analyzed inventory import review', () => {
       { id: 'holding-working', given_name: 'Jingmai service holding', type: 'tea', source_compass_entry_id: 'identity-jingmai', inventory_purpose: 'working' },
       { id: 'holding-personal', given_name: 'Jingmai personal holding', type: 'tea', source_compass_entry_id: 'identity-jingmai', inventory_purpose: 'personal' },
     ] }));
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await dialog.getByRole('button', { name: /^Change vendor for Chen Family/ }).click();
     const vendorSearch = dialog.getByRole('combobox', { name: /^Vendor for Chen Family/ });
@@ -1508,8 +1504,7 @@ test.describe('analyzed inventory import review', () => {
       if (!vendorAvailable) return route.fulfill({ status: 400, json: { error: 'Vendor lookup unavailable' } });
       return route.fulfill({ json: [{ id: 'vendor-chen', name: 'Chen Family Tea' }] });
     });
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await dialog.getByRole('button', { name: /^Change vendor for Chen Family/ }).click();
     const lookupAlert = dialog.getByRole('alert').filter({ hasText: 'Vendor lookup unavailable' });
@@ -1528,8 +1523,7 @@ test.describe('analyzed inventory import review', () => {
       if (!journeyAvailable) return route.fulfill({ status: 400, json: { error: 'Sourcing run lookup unavailable' } });
       return route.fulfill({ json: { journeys: [] } });
     });
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     await dialog.getByRole('button', { name: 'Add sourcing run' }).click();
     const lookupAlert = dialog.getByRole('alert').filter({ hasText: 'Sourcing run lookup unavailable' });
@@ -1553,8 +1547,7 @@ test.describe('analyzed inventory import review', () => {
       Object.assign(api.detail.items[0], updates);
       return route.fulfill({ json: api.detail.items[0] });
     });
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const first = dialog.getByTestId('import-item-row').first();
     await dialog.getByRole('button', { name: '5 ready' }).click();
@@ -1579,8 +1572,7 @@ test.describe('analyzed inventory import review', () => {
     Object.assign(firstItem.parsed_data, { proposedCompassEntryId: 'identity-yunnan', proposedProductId: 'holding-working', duplicateResolution: 'matched' });
     await page.route('**/api/compass/entries', route => route.fulfill({ json: { entries: [{ id: 'identity-yunnan', name: 'Yunnan Ancient Tree Raw Pu’er', category: 'tea' }] } }));
     await page.route('**/api/products', route => route.fulfill({ json: [{ id: 'holding-working', given_name: 'Yunnan service holding', type: 'tea', source_compass_entry_id: 'identity-yunnan', inventory_purpose: 'working' }] }));
-    await openCompass(page);
-    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    await openAnalyzedImportFromLibrary(page);
     const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
     await page.getByRole('dialog', { name: 'Import into Curate' }).getByRole('button', { name: '5 ready' }).click();
     await row.getByRole('button', { name: 'Review' }).click();
