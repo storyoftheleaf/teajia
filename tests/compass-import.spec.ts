@@ -397,8 +397,10 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByTestId('import-item-row').filter({ hasText: 'Clay pot' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Receive 3 items' })).toBeEnabled();
     await page.getByRole('button', { name: 'Review later' }).click();
-    await expect(page.getByRole('button', { name: /Imported list: 3 items/ })).toBeVisible();
-    await page.getByRole('tab', { name: 'Import' }).first().click();
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+    await expect(imports.getByRole('button', { name: 'Open Imported list' })).toBeVisible();
+    await imports.getByRole('button', { name: 'Open Imported list' }).click();
     await page.getByRole('button', { name: 'New import' }).click();
     await expect(page.getByLabel('Vendor list or invoice')).toBeVisible();
   });
@@ -463,8 +465,10 @@ test.describe('Curate Import panel', () => {
     let switched = false;
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports: switched ? [] : [detail('batch-a', 'First list'), detail('batch-b', 'Second list')] }) }));
     await openCompass(page);
-    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(2);
-    await page.getByRole('button', { name: /Imported list: 0 items/ }).first().click();
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+    await expect(imports.getByRole('button', { name: /^Open / })).toHaveCount(2);
+    await imports.getByRole('button', { name: 'Open First list' }).click();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
     switched = true;
     await page.evaluate(async () => {
@@ -473,7 +477,72 @@ test.describe('Curate Import panel', () => {
       useAppStore.getState().setActiveAccountId('acct-empty');
     });
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeHidden();
-    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Imports' }).filter({ visible: true })).toHaveCount(0);
+  });
+
+  test('Library imports move out of Source and open from the visible Library surface', async ({ page }) => {
+    const savedImport = {
+      batch: { id: 'batch-library', title: 'Imported list', review_state: 'reviewing', journey_id: null, visit_id: null, analysis_state: 'completed' },
+      sources: [{ id: 'source-library', batch_id: 'batch-library', kind: 'paste', pasted_text: 'Imported list', r2_object_key: null, metadata: {} }],
+      groups: [],
+      items: [{
+        id: 'item-library', batch_id: 'batch-library', source_id: 'source-library', position: 0, category: 'tea', name: 'Library tea', raw_text: 'Library tea',
+        parsed_data: {}, confidence: 0.5, uncertainty: { currency: 'Confirm currency' }, review_state: 'pending', compass_entry_id: null,
+        reserved_compass_entry_id: 'compass-library', blocking_fields: ['currency'],
+      }],
+    };
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [savedImport] } }));
+    await page.route('**/api/curate/imports/batch-library', route => route.fulfill({ json: savedImport }));
+
+    await openCompass(page);
+    await expect(page.getByRole('region', { name: 'Incomplete imports' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Open Imported list' })).toHaveCount(0);
+
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+    await expect(imports).toBeVisible();
+    await expect(imports.getByRole('button', { name: 'Open Imported list' })).toBeVisible();
+    await expect(imports.getByRole('button', { name: 'Delete Imported list' })).toBeVisible();
+    await imports.getByRole('button', { name: 'Open Imported list' }).click();
+    await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
+  });
+
+  test('delete imported list confirms once, retains its source, and retries inline', async ({ page }) => {
+    const savedSource = { id: 'source-delete', batch_id: 'batch-delete', kind: 'invoice', pasted_text: null, r2_object_key: 'curate/batch-delete/invoice.pdf', metadata: { filename: 'invoice.pdf' } };
+    const savedImport = {
+      batch: { id: 'batch-delete', title: 'Delete retry list', review_state: 'reviewing', journey_id: null, visit_id: null, analysis_state: 'completed' },
+      sources: [savedSource], groups: [], items: [],
+    };
+    let abandonRequests = 0;
+    await page.addInitScript(() => localStorage.setItem('teajia-curate-import:acct-bali', 'batch-delete'));
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: savedImport.batch.review_state === 'abandoned' ? [] : [savedImport] } }));
+    await page.route('**/api/curate/imports/batch-delete', route => route.fulfill({ json: savedImport }));
+    await page.route('**/api/curate/imports/batch-delete/abandon', route => {
+      abandonRequests += 1;
+      if (abandonRequests === 1) return route.fulfill({ status: 503, json: { error: 'Delete import is temporarily unavailable' } });
+      savedImport.batch.review_state = 'abandoned';
+      return route.fulfill({ json: { success: true, review_state: 'abandoned' } });
+    });
+
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+    await imports.getByRole('button', { name: 'Delete Delete retry list' }).click();
+    const confirmation = imports.getByRole('group', { name: 'Delete Delete retry list confirmation' });
+    await expect(confirmation).toContainText('source record and evidence are retained');
+    expect(abandonRequests).toBe(0);
+
+    await confirmation.getByRole('button', { name: 'Delete import' }).click();
+    await expect(imports.getByRole('alert')).toContainText('Delete import is temporarily unavailable');
+    expect(abandonRequests).toBe(1);
+    expect(savedImport.sources).toEqual([savedSource]);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('teajia-curate-import:acct-bali'))).toBe('batch-delete');
+
+    await imports.getByRole('button', { name: 'Retry delete Delete retry list' }).click();
+    await expect(page.getByRole('region', { name: 'Imports' }).filter({ visible: true })).toHaveCount(0);
+    expect(abandonRequests).toBe(2);
+    expect(savedImport.sources).toEqual([savedSource]);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('teajia-curate-import:acct-bali'))).toBeNull();
   });
 
   test('supports photo, document, and invoice evidence plus retry after parsing failure', async ({ page }) => {
@@ -693,11 +762,14 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Analyzed', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Review later' }).click();
     await page.reload();
-    await expect(page.getByRole('button', { name: /invoice: 0 items, 0 reviewed, 0 remaining/ })).toBeVisible();
-    await page.getByRole('button', { name: /invoice: 0 items/ }).click();
-    await expect(page.getByText('invoice.pdf')).toBeVisible();
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+    await expect(imports.getByRole('button', { name: 'Open invoice.pdf' })).toBeVisible();
+    await imports.getByRole('button', { name: 'Open invoice.pdf' }).click();
+    const reopenedDialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    await expect(reopenedDialog.getByTestId('import-evidence-source').getByText('invoice.pdf', { exact: true })).toBeVisible();
     const retrieval = page.waitForRequest(request => request.method() === 'GET' && request.url().includes('/sources/evidence-0/content'));
-    await page.getByRole('button', { name: 'Open invoice.pdf' }).click();
+    await reopenedDialog.getByRole('button', { name: 'Open invoice.pdf' }).click();
     await retrieval;
   });
 
@@ -714,7 +786,8 @@ test.describe('Curate Import panel', () => {
     await expect(actionRow.getByRole('button', { name: 'New import' })).toBeVisible();
     await actionRow.getByRole('button', { name: 'Review later' }).click();
     await expect(dialog).toHaveCount(0);
-    const recoveryEntry = page.getByRole('button', { name: /invoice: 0 items/ });
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const recoveryEntry = page.getByRole('region', { name: 'Imports' }).filter({ visible: true }).getByRole('button', { name: 'Open evidence.pdf' });
     await expect(recoveryEntry).toBeVisible();
     await recoveryEntry.click();
     await expect(dialog).toBeVisible();
@@ -733,15 +806,15 @@ test.describe('Curate Import panel', () => {
     await expect(recoveryEntry).toHaveCount(0);
   });
 
-  test('keeps 25 recovered batches compact and capture visible without overflow', async ({ page }) => {
+  test('keeps 25 recovered batches in Library without overflow', async ({ page }) => {
     const imports = Array.from({ length: 25 }, (_, index) => ({ batch: { id: `batch-${index}`, title: `Batch ${index}`, review_state: 'pending', journey_id: null, visit_id: null }, sources: [{ id: `source-${index}`, batch_id: `batch-${index}`, kind: 'paste', pasted_text: `Batch ${index}`, r2_object_key: null, metadata: {} }], items: [] }));
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ imports }) }));
     await openCompass(page);
-    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(2);
-    await page.getByRole('button', { name: '23 more imports' }).click();
-    await expect(page.getByRole('button', { name: /Imported list: 0 items/ })).toHaveCount(25);
-    await expect(page.getByPlaceholder('Tea name').filter({ visible: true })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Source', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Library', exact: true }).click();
+    const visibleImports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
+    await expect(visibleImports.getByRole('button', { name: /^Open Batch / })).toHaveCount(25);
+    await expect(page.getByPlaceholder('Search Library').filter({ visible: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Library', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   });
 

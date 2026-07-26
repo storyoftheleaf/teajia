@@ -26,7 +26,7 @@ import { BatchCaptureRow } from './BatchCaptureRow';
 import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
 import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { ImportPanel } from './import/ImportPanel';
-import { ImportBatchChip } from './ImportBatchChip';
+import { LibraryImportsSection } from './LibraryImportsSection';
 import { SampleOrderAction } from './SampleOrderAction';
 import { CaptureActionFooter } from './CaptureActionFooter';
 
@@ -209,7 +209,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [importDetails, setImportDetails] = useState<CurateImportDetail[]>([]);
   const [importAccountId, setImportAccountId] = useState<string | null>(null);
   const [importPanelVersion, setImportPanelVersion] = useState(0);
-  const [showAllImports, setShowAllImports] = useState(false);
+  const [busyLibraryImportId, setBusyLibraryImportId] = useState<string | null>(null);
+  const [libraryImportErrors, setLibraryImportErrors] = useState<Record<string, string>>({});
   const [importPointerId, setImportPointerId] = useState<string | null>(null);
   const importTriggerRef = useRef<HTMLButtonElement>(null);
   const openImportFrom = useCallback((trigger: HTMLButtonElement) => {
@@ -223,6 +224,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
   useLayoutEffect(() => {
     setImportOpen(false); setImportDetail(null); setImportDetails([]); setImportAccountId(activeAccountId); setImportPanelVersion(version => version + 1);
+    setBusyLibraryImportId(null); setLibraryImportErrors({});
     setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
   }, [activeAccountId]);
   const { data: pointedImport } = useQuery({
@@ -242,8 +244,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     const imports = (incompleteImports?.imports ?? []).filter(detail => detail.batch.review_state !== 'completed' && detail.batch.review_state !== 'abandoned');
     const selected = importPointerId && pointedImport && pointedImport.batch.review_state !== 'completed' && pointedImport.batch.review_state !== 'abandoned' ? pointedImport : imports[0] ?? null;
     setImportDetails(selected && !imports.some(detail => detail.batch.id === selected.batch.id) ? [selected, ...imports] : imports);
-    if (!importDetail) setImportDetail(selected);
-  }, [activeAccountId, importAccountId, importDetail, importPointerId, incompleteImports, pointedImport]);
+    if (!importDetail && !importOpen) setImportDetail(selected);
+  }, [activeAccountId, importAccountId, importDetail, importOpen, importPointerId, incompleteImports, pointedImport]);
   const rememberImportDetail = useCallback((detail: CurateImportDetail) => {
     if (detail.batch.review_state === 'completed' || detail.batch.review_state === 'abandoned') {
       setImportDetails(current => current.filter(candidate => candidate.batch.id !== detail.batch.id));
@@ -396,6 +398,55 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
     setImportPointerId(null);
     await queryClient.invalidateQueries({ queryKey: ['curate-imports'] });
   }, [activeAccountId, importDetail, queryClient]);
+
+  const openSavedImport = useCallback((detail: CurateImportDetail) => {
+    setImportDetail(detail);
+    setImportPanelVersion(version => version + 1);
+    setImportOpen(true);
+  }, []);
+
+  const deleteSavedImport = useCallback(async (detail: CurateImportDetail) => {
+    const accountId = activeAccountId;
+    const importId = detail.batch.id;
+    if (!accountId) return;
+
+    setBusyLibraryImportId(importId);
+    setLibraryImportErrors(current => {
+      const next = { ...current };
+      delete next[importId];
+      return next;
+    });
+
+    try {
+      await api.curateImports.abandon(importId);
+      queryClient.setQueryData<{ imports: CurateImportDetail[] }>(['curate-imports', 'incomplete', accountId], current => current
+        ? { ...current, imports: current.imports.filter(candidate => candidate.batch.id !== importId) }
+        : current);
+
+      if (useAppStore.getState().activeAccountId !== accountId) return;
+      setImportDetails(current => current.filter(candidate => candidate.batch.id !== importId));
+      setImportDetail(current => current?.batch.id === importId ? null : current);
+      setImportPointerId(current => current === importId ? null : current);
+      const storageKey = `teajia-curate-import:${accountId}`;
+      if (localStorage.getItem(storageKey) === importId) localStorage.removeItem(storageKey);
+      setLibraryImportErrors(current => {
+        const next = { ...current };
+        delete next[importId];
+        return next;
+      });
+    } catch (error) {
+      if (useAppStore.getState().activeAccountId === accountId) {
+        setLibraryImportErrors(current => ({
+          ...current,
+          [importId]: error instanceof Error ? error.message : 'Delete import failed. Try again.',
+        }));
+      }
+    } finally {
+      if (useAppStore.getState().activeAccountId === accountId) {
+        setBusyLibraryImportId(current => current === importId ? null : current);
+      }
+    }
+  }, [activeAccountId, queryClient]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -821,13 +872,6 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         )}
       </div>
 
-      {mode === 'sourcing' && importAccountId === activeAccountId && importDetails.length > 0 && (
-        <div className="shrink-0 max-h-40 overflow-y-auto border-b border-tea-border px-4 py-2" aria-label="Incomplete imports">
-          <div className="flex flex-wrap gap-2">{(showAllImports ? importDetails : importDetails.slice(0, 2)).map(detail => <ImportBatchChip key={detail.batch.id} detail={detail} onOpen={() => { setImportDetail(detail); setImportPanelVersion(version => version + 1); setImportOpen(true); }} />)}</div>
-          {importDetails.length > 2 && <button type="button" onClick={() => setShowAllImports(value => !value)} className="tap-target mt-1 min-h-11 text-ui-11 text-tea-gold">{showAllImports ? 'Show fewer imports' : `${importDetails.length - 2} more imports`}</button>}
-        </div>
-      )}
-
       {/* ── BODY ── */}
       <div className="flex-1 min-h-0 flex flex-col">
 
@@ -1110,6 +1154,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     </div>
                   )}
 
+                  <LibraryImportsSection
+                    imports={importAccountId === activeAccountId ? importDetails : []}
+                    busyImportId={busyLibraryImportId}
+                    errorByImportId={libraryImportErrors}
+                    onOpen={openSavedImport}
+                    onDelete={deleteSavedImport}
+                  />
                   <BrowseView
                     onEditEntry={handleEditEntry}
                     onNewCapture={handleNewCapture}
@@ -1458,6 +1509,13 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       </div>
                     )}
 
+                    <LibraryImportsSection
+                      imports={importAccountId === activeAccountId ? importDetails : []}
+                      busyImportId={busyLibraryImportId}
+                      errorByImportId={libraryImportErrors}
+                      onOpen={openSavedImport}
+                      onDelete={deleteSavedImport}
+                    />
                     <BrowseView
                       onEditEntry={handleEditEntry}
                       onNewCapture={handleNewCapture}
