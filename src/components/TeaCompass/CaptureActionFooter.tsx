@@ -1,4 +1,5 @@
 import React from 'react';
+import { CurateActionBand, type CurateActionSpec } from './CuratePrimitives';
 
 interface CaptureActionFooterProps {
   onBuy: () => void;
@@ -11,9 +12,6 @@ interface CaptureActionFooterProps {
   className?: string;
 }
 
-const targetClass = 'curate-action curate-compact-target font-medium';
-const quietChromeClass = 'curate-compact-chrome w-full border border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text';
-
 export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   onBuy,
   onDone,
@@ -23,39 +21,38 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   purchasePickerId,
   doneTestId,
   className = '',
-}) => (
-  <div data-testid="capture-action-footer" className={`grid ${onSample ? 'grid-cols-3' : 'grid-cols-2'} gap-2 ${className}`}>
-    <button
-      type="button"
-      onClick={onBuy}
-      className={targetClass}
-      aria-label="Buy"
-      aria-expanded={buyExpanded}
-      aria-controls={purchasePickerId}
-      data-curate-action
-      data-curate-compact-target
-    >
-      <span className={quietChromeClass} data-curate-compact-chrome>Buy</span>
-    </button>
-    <button
-      type="button"
-      onClick={onDone}
-      disabled={!doneEnabled}
-      data-testid={doneTestId}
-      className={`${targetClass} disabled:cursor-not-allowed`}
-      aria-label="Done, commit this entry"
-      data-visual-state={doneEnabled ? 'primary' : 'disabled-neutral'}
-      data-curate-action
-      data-curate-compact-target
-    >
-      <span className={`curate-compact-chrome w-full border ${doneEnabled ? 'border-tea-gold bg-tea-gold text-tea-bg hover:bg-tea-gold-lt' : 'border-tea-border bg-tea-surface text-tea-text-sec'}`} data-curate-compact-chrome>Done</span>
-    </button>
-    {onSample && (
-      <button type="button" onClick={onSample} className={targetClass} aria-label="Sample" data-curate-action data-curate-compact-target>
-        <span className={quietChromeClass} data-curate-compact-chrome>Sample</span>
-      </button>
-    )}
-  </div>
-);
+}) => {
+  const neutral: CurateActionSpec[] = [
+    {
+      label: 'Buy',
+      onClick: onBuy,
+      ariaLabel: 'Buy',
+      buttonProps: {
+        'aria-expanded': buyExpanded,
+        'aria-controls': purchasePickerId,
+      },
+    },
+  ];
+
+  if (onSample) neutral.push({ label: 'Sample', onClick: onSample, ariaLabel: 'Sample' });
+
+  return (
+    <div data-testid="capture-action-footer" className={className}>
+      <CurateActionBand
+        neutral={neutral}
+        primary={{
+          label: 'Done',
+          onClick: onDone,
+          disabled: !doneEnabled,
+          ariaLabel: 'Done, commit this entry',
+          buttonProps: {
+            'data-testid': doneTestId,
+            'data-visual-state': doneEnabled ? 'primary' : 'disabled-neutral',
+          },
+        }}
+      />
+    </div>
+  );
+};
 
 export default CaptureActionFooter;
