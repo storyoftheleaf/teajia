@@ -15,13 +15,13 @@ const importDetail = (
   items: [
     {
       id: `item-${id}-1`, batch_id: id, source_id: `source-${id}`, position: 0, category: 'tea',
-      name: 'Reviewed tea', raw_text: 'Reviewed tea', parsed_data: {}, confidence: 0.95, uncertainty: {},
-      review_state: 'accepted', compass_entry_id: null, reserved_compass_entry_id: `compass-${id}-1`, blocking_fields: [],
+      name: 'Reviewed tea', raw_text: 'Reviewed tea', parsed_data: { disposition: 'received', inventoryPurpose: 'working' }, confidence: 0.95, uncertainty: {},
+      review_state: 'pending', acquired: true, compass_entry_id: null, reserved_compass_entry_id: `compass-${id}-1`, blocking_fields: [],
     },
     {
       id: `item-${id}-2`, batch_id: id, source_id: `source-${id}`, position: 1, category: 'tea',
-      name: 'Tea needing attention', raw_text: 'Tea needing attention', parsed_data: {}, confidence: 0.5, uncertainty: { currency: 'Confirm currency' },
-      review_state: 'pending', compass_entry_id: null, reserved_compass_entry_id: `compass-${id}-2`, blocking_fields: ['currency'],
+      name: 'Tea needing attention', raw_text: 'Tea needing attention', parsed_data: { disposition: 'received', inventoryPurpose: 'working' }, confidence: 0.5, uncertainty: { currency: 'Confirm currency' },
+      review_state: 'pending', acquired: true, compass_entry_id: null, reserved_compass_entry_id: `compass-${id}-2`, blocking_fields: ['currency'],
     },
   ],
 });
@@ -57,6 +57,30 @@ describe('LibraryImportsSection', () => {
     expect(html).toContain('aria-label="Open Summer vendor list"');
     expect(html).toContain('aria-label="Delete Summer vendor list"');
     expect(html).toContain('curate-cluster');
+  });
+
+  it('counts missing effective destination and inventory purpose as needing attention', () => {
+    const missingDecisions = importDetail('batch-1', 'Summer vendor list');
+    missingDecisions.items = [{
+      ...missingDecisions.items[0],
+      parsed_data: {},
+      acquired: false,
+      review_state: 'accepted',
+      blocking_fields: [],
+    }];
+
+    const html = renderToStaticMarkup(
+      <LibraryImportsSection
+        imports={[missingDecisions]}
+        busyImportId={null}
+        errorByImportId={{}}
+        onOpen={() => undefined}
+        onDelete={async () => undefined}
+      />,
+    );
+
+    expect(html).toContain('0/1 reviewed');
+    expect(html).toContain('1 needs attention');
   });
 
   it('omits completed and abandoned imports, including the empty section', () => {

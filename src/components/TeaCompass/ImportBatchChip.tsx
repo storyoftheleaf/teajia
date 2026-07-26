@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { CurateImportDetail } from '../../lib/api';
 import { CurateRecordRow } from './CuratePrimitives';
+import { buildImportReviewModel } from './import/importReviewDomain';
 
 interface ImportBatchChipProps {
   detail: CurateImportDetail;
@@ -15,11 +16,9 @@ export const ImportBatchChip: React.FC<ImportBatchChipProps> = ({ detail, onOpen
   const wrapperRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const title = detail.batch.title || 'Untitled import';
-  const reviewed = detail.items.filter(item => item.review_state === 'accepted' || item.review_state === 'merged').length;
-  const attention = detail.items.filter(item =>
-    (item.blocking_fields?.length ?? 0) > 0
-    || (item.blocking_fields == null && Object.keys(item.uncertainty || {}).length > 0)
-  ).length;
+  const reviewModel = buildImportReviewModel(detail);
+  const reviewed = reviewModel.readyCount;
+  const attention = reviewModel.needsReviewCount;
 
   useEffect(() => {
     if (confirming) cancelRef.current?.focus();
