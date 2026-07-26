@@ -8,6 +8,7 @@ type CurateActionButtonProps = Omit<
 > & {
   'data-testid'?: string;
   'data-visual-state'?: string;
+  ref?: React.Ref<HTMLButtonElement>;
 };
 
 export interface CurateActionSpec {
@@ -19,6 +20,12 @@ export interface CurateActionSpec {
   ariaLabel?: string;
   /** Adapter-only DOM attributes such as disclosure ARIA and existing test ids. */
   buttonProps?: CurateActionButtonProps;
+}
+
+export type CurateActionBandColumnCount = 1 | 2 | 3 | 4;
+export interface CurateActionBandColumns {
+  base: CurateActionBandColumnCount;
+  sm?: CurateActionBandColumnCount;
 }
 
 interface CurateFieldControlProps extends React.HTMLAttributes<HTMLElement> {
@@ -148,11 +155,17 @@ export const CurateActionBand: React.FC<{
   neutral?: CurateActionSpec[];
   primary: CurateActionSpec;
   primaryIndex?: number;
+  columns?: CurateActionBandColumns;
   className?: string;
   testId?: string;
   withBandChrome?: boolean;
-}> = ({ neutral = [], primary, primaryIndex, className = '', testId, withBandChrome = true }) => {
-  const gridClass = neutral.length > 1 ? 'grid-cols-3' : neutral.length === 1 ? 'grid-cols-2' : 'grid-cols-1';
+}> = ({ neutral = [], primary, primaryIndex, columns, className = '', testId, withBandChrome = true }) => {
+  const baseColumnClasses: Record<CurateActionBandColumnCount, string> = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' };
+  const smColumnClasses: Record<CurateActionBandColumnCount, string> = { 1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' };
+  const inferredColumnCount: CurateActionBandColumnCount = neutral.length > 1 ? 3 : neutral.length === 1 ? 2 : 1;
+  const gridClass = columns
+    ? `${baseColumnClasses[columns.base]}${columns.sm ? ` ${smColumnClasses[columns.sm]}` : ''}`
+    : baseColumnClasses[inferredColumnCount];
   const resolvedPrimaryIndex = Math.min(Math.max(primaryIndex ?? neutral.length, 0), neutral.length);
   const orderedActions: Array<{ action: CurateActionSpec; primary: boolean }> = neutral.map((action) => ({ action, primary: false }));
   orderedActions.splice(resolvedPrimaryIndex, 0, { action: primary, primary: true });

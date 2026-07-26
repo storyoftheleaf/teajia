@@ -62,6 +62,25 @@ describe('Curate presentation primitives', () => {
     expect(html).toContain('curate-action-band');
   });
 
+  it('replaces inferred columns with an explicit responsive action layout', () => {
+    const html = renderToStaticMarkup(
+      <CurateActionBand
+        columns={{ base: 2, sm: 4 }}
+        neutral={[
+          { label: 'Delete', onClick: () => undefined },
+          { label: 'Review later', onClick: () => undefined },
+          { label: 'New import', onClick: () => undefined },
+        ]}
+        primary={{ label: 'Review next tea', onClick: () => undefined }}
+      />,
+    );
+
+    const bandTag = html.match(/<div[^>]*class="[^"]*curate-action-band[^"]*"[^>]*>/)?.[0];
+    expect(bandTag).toContain('grid-cols-2');
+    expect(bandTag).toContain('sm:grid-cols-4');
+    expect(bandTag).not.toContain('grid-cols-3');
+  });
+
   it('renders separate Open and optional Delete controls for a busy record row', () => {
     const html = renderToStaticMarkup(
       <CurateRecordRow

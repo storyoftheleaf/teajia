@@ -73,11 +73,21 @@ export const importBatchSummary = (detail: CurateImportDetail): string => {
   const count = model.readyCount + model.needsReviewCount;
   const parts = [`${count} ${importItemNoun(detail.items, count)}`];
   const vendorGroups = model.groups.filter(group => group.vendorRequired);
-  if (vendorGroups.length === 1) {
-    const name = vendorGroups[0].resolved_vendor_name?.trim();
+  const resolvedVendors = new Map<string, string | null>();
+  let unresolvedVendorCount = 0;
+  for (const group of vendorGroups) {
+    if (group.resolved_vendor_customer_id) {
+      if (!resolvedVendors.has(group.resolved_vendor_customer_id)) resolvedVendors.set(group.resolved_vendor_customer_id, group.resolved_vendor_name?.trim() || null);
+    } else {
+      unresolvedVendorCount += 1;
+    }
+  }
+  const vendorCount = resolvedVendors.size + unresolvedVendorCount;
+  if (vendorCount === 1) {
+    const name = unresolvedVendorCount ? null : resolvedVendors.values().next().value;
     parts.push(name || '1 vendor');
-  } else if (vendorGroups.length > 1) {
-    parts.push(`${vendorGroups.length} vendors`);
+  } else if (vendorCount > 1) {
+    parts.push(`${vendorCount} vendors`);
   }
   const weight = weightLabel(model.totalQuantityGrams);
   if (weight) parts.push(weight);

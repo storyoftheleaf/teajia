@@ -154,6 +154,20 @@ describe('import folio presentation', () => {
     })).toBe('1 tea · Huang Wei · 1,001 g');
   });
 
+  it('counts repeated resolved vendor groups once while preserving their display name', () => {
+    const sameVendorDetail = phaseDetail([
+      summaryItem('tea-1'),
+      summaryItem('tea-2', { vendor_group_id: 'vendor-2', position: 1 }),
+    ], 2);
+    sameVendorDetail.groups[1] = {
+      ...sameVendorDetail.groups[1],
+      resolved_vendor_customer_id: sameVendorDetail.groups[0].resolved_vendor_customer_id,
+      resolved_vendor_name: sameVendorDetail.groups[0].resolved_vendor_name,
+    };
+
+    expect(importBatchSummary(sameVendorDetail)).toBe('2 teas · Vendor 1');
+  });
+
   it('reports the actual finalized item count and noun after import', () => {
     const importDetail = phaseDetail([
       summaryItem('tea-1'),

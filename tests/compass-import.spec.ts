@@ -343,17 +343,53 @@ test.describe('Curate Import panel', () => {
     await expect(header.getByText('1 of 10 needs attention', { exact: true })).toBeVisible();
     await expect(dialog.getByTestId('import-batch-summary')).toContainText('10 teas · 2 vendors');
 
-    const assertCompactShell = async () => {
+    const assertCompactShell = async (columnCount: number) => {
       expect((await header.boundingBox())?.height).toBeLessThanOrEqual(64);
       expect(await dialog.locator('*').evaluateAll(elements => elements
         .filter(element => getComputedStyle(element).position === 'sticky')
         .map(element => element.tagName))).toEqual(['HEADER']);
-      await expect(dialog.getByTestId('import-review-actions')).not.toHaveCSS('position', 'sticky');
+      const actions = dialog.getByTestId('import-review-actions');
+      await expect(actions).not.toHaveCSS('position', 'sticky');
+      expect(await actions.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(columnCount);
     };
-    await assertCompactShell();
+    await assertCompactShell(4);
     await page.setViewportSize({ width: 390, height: 844 });
-    await assertCompactShell();
+    await assertCompactShell(2);
     expect(api.detail.items).toHaveLength(10);
+  });
+
+  test('compact import delete restores focus and retries only after confirmation', async ({ page }) => {
+    await installAnalyzedImportApi(page);
+    let abandonRequests = 0;
+    await page.route('**/api/curate/imports/batch-analyzed/abandon', route => {
+      abandonRequests += 1;
+      if (abandonRequests === 1) return route.fulfill({ status: 503, json: { error: 'Delete import is temporarily unavailable' } });
+      return route.fulfill({ json: { success: true, review_state: 'abandoned' } });
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const deleteAction = dialog.getByRole('button', { name: 'Delete import', exact: true });
+    await deleteAction.scrollIntoViewIfNeeded();
+    await deleteAction.click();
+    const confirmation = dialog.getByRole('group', { name: 'Delete import confirmation' });
+    const cancel = confirmation.getByRole('button', { name: 'Cancel delete import' });
+    await expect(confirmation).toBeVisible();
+    await expect(cancel).toBeFocused();
+    expect(abandonRequests).toBe(0);
+
+    await cancel.click();
+    await expect(dialog.getByRole('button', { name: 'Delete import', exact: true })).toBeFocused();
+    expect(abandonRequests).toBe(0);
+
+    await dialog.getByRole('button', { name: 'Delete import', exact: true }).click();
+    await confirmation.getByRole('button', { name: 'Delete import', exact: true }).click();
+    await expect(dialog.getByRole('alert').filter({ hasText: 'Delete import is temporarily unavailable' })).toContainText('Delete import is temporarily unavailable');
+    expect(abandonRequests).toBe(1);
+    await dialog.getByRole('button', { name: 'Retry action' }).click();
+    await expect(dialog).toBeHidden();
+    expect(abandonRequests).toBe(2);
   });
 
   test('opens as a full-screen Curate workspace and preserves capture state', async ({ page }) => {

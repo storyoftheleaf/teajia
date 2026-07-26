@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { CurateJourney } from '../types';
 import type { CurateImportAnnotation, CurateImportDetail, CurateImportItem, CurateImportItemUpdate, LookupState } from '../../../lib/api';
 import { buildImportReviewModel, importFinalActionLabel } from './importReviewDomain';
@@ -39,12 +39,17 @@ const annotationAmount = (annotation: CurateImportAnnotation) => [annotation.cur
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, journeyLookup, vendorLookup, identityLookup, holdingLookup, busyId, onRetryJourneys, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdate, onSetJourney, onCreateJourney, onChangeVendor, onCreateVendor, onFinalize, onRetryAnalysis, onDefer, onNew, onAbandon }) => {
   const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteRef = useRef<HTMLButtonElement>(null);
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null);
   const model = useMemo(() => buildImportReviewModel(detail), [detail]);
   const primaryCurrency = model.currencyTotals.length === 1 ? model.currencyTotals[0] : null;
   const failedSourceIds = detail.sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
   const finalLabel = importFinalActionLabel(detail.items);
   const blockerItems = model.groups.flatMap(group => group.items.map(row => ({ id: row.item.id, blocking_fields: row.blockingFields })));
   const vendorUnresolved = model.groups.some(group => !group.vendorResolved);
+  useEffect(() => {
+    if (confirmDelete) cancelDeleteRef.current?.focus();
+  }, [confirmDelete]);
   const goToNextIssue = () => {
     const nextId = nextBlockingImportItemId(blockerItems, currentIssueId);
     if (!nextId) return;
@@ -77,9 +82,13 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
     label: 'Cancel',
     ariaLabel: 'Cancel delete import',
     disabled: Boolean(busyId),
-    onClick: () => setConfirmDelete(false),
+    buttonProps: { ref: cancelDeleteRef },
+    onClick: () => {
+      setConfirmDelete(false);
+      requestAnimationFrame(() => deleteRef.current?.focus());
+    },
   }] : [
-    { label: 'Delete', ariaLabel: 'Delete import', disabled: Boolean(busyId), onClick: () => setConfirmDelete(true) },
+    { label: 'Delete', ariaLabel: 'Delete import', disabled: Boolean(busyId), buttonProps: { ref: deleteRef }, onClick: () => setConfirmDelete(true) },
     { label: 'Review later', disabled: Boolean(busyId), onClick: onDefer },
     { label: 'New import', disabled: Boolean(busyId), onClick: onNew },
   ];
@@ -99,11 +108,11 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       {detail.sources.some(source => source.r2_object_key) && <div className="curate-cluster space-y-2" aria-label="Saved records">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} analysisBusy={busyId === `source:${source.id}`} disabled={Boolean(busyId) && busyId !== `source:${source.id}`} onRetry={sourceId => void onRetryAnalysis([sourceId])} />)}</div>}
       {model.groups.map(group => <ImportVendorGroup key={group.id} group={group} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryVendors={onRetryVendors} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdateItem={onUpdate} onChangeVendor={onChangeVendor} onCreateVendor={onCreateVendor} />)}
       {!model.groups.length && <p className="curate-cluster text-ui-13 text-tea-text-sec">No analyzed teas yet. Retry analysis from this saved record.</p>}
-      <div className="curate-cluster space-y-2">
+      <div role={confirmDelete ? 'group' : undefined} aria-label={confirmDelete ? 'Delete import confirmation' : undefined} className="curate-cluster space-y-2">
         {confirmDelete && <p className="text-ui-12 text-tea-text-sec">This import will be removed from your incomplete imports. Its saved record is retained for audit and recovery.</p>}
         {!confirmDelete && model.needsReviewCount > 0 && <p className="curate-support text-tea-text-sec">{model.needsReviewCount} {model.needsReviewCount === 1 ? 'decision' : 'decisions'} remaining</p>}
         {!confirmDelete && model.needsReviewCount === 0 && vendorUnresolved && <p className="curate-support text-tea-text-sec">Choose each vendor before saving these records.</p>}
-        <CurateActionBand testId="import-review-actions" neutral={neutralActions} primary={primaryAction} className={confirmDelete ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'} />
+        <CurateActionBand testId="import-review-actions" neutral={neutralActions} primary={primaryAction} columns={confirmDelete ? { base: 2 } : { base: 2, sm: 4 }} />
       </div>
     </div>
   );
