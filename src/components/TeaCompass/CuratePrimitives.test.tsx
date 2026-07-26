@@ -96,6 +96,7 @@ describe('Capture adapters', () => {
         buyExpanded
         purchasePickerId="purchase-picker"
         doneTestId="capture-done"
+        className="capture-footer-shell"
       />,
     );
 
@@ -105,8 +106,32 @@ describe('Capture adapters', () => {
     expect(html).toContain('aria-controls="purchase-picker"');
     expect(html).toContain('data-visual-state="disabled-neutral"');
     expect(html).toContain('>Sample</span>');
-    expect(html.indexOf('Buy')).toBeLessThan(html.indexOf('Sample'));
-    expect(html.indexOf('Sample')).toBeLessThan(html.indexOf('Done'));
+    expect(html.indexOf('Buy')).toBeLessThan(html.indexOf('Done'));
+    expect(html.indexOf('Done')).toBeLessThan(html.indexOf('Sample'));
+
+    const footerTag = html.match(/<div[^>]*data-testid="capture-action-footer"[^>]*>/)?.[0];
+    expect(footerTag).toContain('grid');
+    expect(footerTag).toContain('grid-cols-3');
+    expect(footerTag).toContain('gap-2');
+    expect(footerTag).toContain('capture-footer-shell');
+    expect(footerTag).not.toContain('curate-action-band');
+  });
+
+  it('keeps the two-column Buy then Done layout when Sample is absent', () => {
+    const html = renderToStaticMarkup(
+      <CaptureActionFooter
+        onBuy={() => undefined}
+        onDone={() => undefined}
+        doneEnabled
+        buyExpanded={false}
+        purchasePickerId="purchase-picker"
+      />,
+    );
+
+    const footerTag = html.match(/<div[^>]*data-testid="capture-action-footer"[^>]*>/)?.[0];
+    expect(footerTag).toContain('grid-cols-2');
+    expect(html.indexOf('Buy')).toBeLessThan(html.indexOf('Done'));
+    expect(html).not.toContain('Sample');
   });
 
   it('renders Capture details through the shared controlled disclosure', () => {

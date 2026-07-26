@@ -147,16 +147,21 @@ const ActionButton: React.FC<{ action: CurateActionSpec; primary?: boolean }> = 
 export const CurateActionBand: React.FC<{
   neutral?: CurateActionSpec[];
   primary: CurateActionSpec;
+  primaryIndex?: number;
   className?: string;
-}> = ({ neutral = [], primary, className = '' }) => {
+  testId?: string;
+  withBandChrome?: boolean;
+}> = ({ neutral = [], primary, primaryIndex, className = '', testId, withBandChrome = true }) => {
   const gridClass = neutral.length > 1 ? 'grid-cols-3' : neutral.length === 1 ? 'grid-cols-2' : 'grid-cols-1';
+  const resolvedPrimaryIndex = Math.min(Math.max(primaryIndex ?? neutral.length, 0), neutral.length);
+  const orderedActions: Array<{ action: CurateActionSpec; primary: boolean }> = neutral.map((action) => ({ action, primary: false }));
+  orderedActions.splice(resolvedPrimaryIndex, 0, { action: primary, primary: true });
 
   return (
-    <div className={`curate-action-band grid w-full ${gridClass} gap-2 ${className}`}>
-      {neutral.map((action, index) => (
-        <ActionButton key={`${action.label}-${index}`} action={action} />
+    <div data-testid={testId} className={`${withBandChrome ? 'curate-action-band ' : ''}grid w-full ${gridClass} gap-2 ${className}`}>
+      {orderedActions.map(({ action, primary: actionIsPrimary }, index) => (
+        <ActionButton key={`${action.label}-${index}`} action={action} primary={actionIsPrimary} />
       ))}
-      <ActionButton action={primary} primary />
     </div>
   );
 };

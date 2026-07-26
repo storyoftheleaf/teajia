@@ -37,21 +37,23 @@ export const CaptureActionFooter: React.FC<CaptureActionFooterProps> = ({
   if (onSample) neutral.push({ label: 'Sample', onClick: onSample, ariaLabel: 'Sample' });
 
   return (
-    <div data-testid="capture-action-footer" className={className}>
-      <CurateActionBand
-        neutral={neutral}
-        primary={{
-          label: 'Done',
-          onClick: onDone,
-          disabled: !doneEnabled,
-          ariaLabel: 'Done, commit this entry',
-          buttonProps: {
-            'data-testid': doneTestId,
-            'data-visual-state': doneEnabled ? 'primary' : 'disabled-neutral',
-          },
-        }}
-      />
-    </div>
+    <CurateActionBand
+      testId="capture-action-footer"
+      className={className}
+      neutral={neutral}
+      primaryIndex={1}
+      withBandChrome={false}
+      primary={{
+        label: 'Done',
+        onClick: onDone,
+        disabled: !doneEnabled,
+        ariaLabel: 'Done, commit this entry',
+        buttonProps: {
+          'data-testid': doneTestId,
+          'data-visual-state': doneEnabled ? 'primary' : 'disabled-neutral',
+        },
+      }}
+    />
   );
 };
 
