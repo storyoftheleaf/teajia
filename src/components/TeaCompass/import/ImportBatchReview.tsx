@@ -37,7 +37,7 @@ const annotationTitle = (annotation: CurateImportAnnotation) => annotation.label
 const annotationAmount = (annotation: CurateImportAnnotation) => [annotation.currency, annotation.amountExact].filter(Boolean).join(' ');
 
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, journeyLookup, vendorLookup, identityLookup, holdingLookup, busyId, onRetryJourneys, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdate, onSetJourney, onCreateJourney, onChangeVendor, onCreateVendor, onFinalize, onRetryAnalysis, onDefer, onNew, onAbandon }) => {
-  const [currentIssueId, setCurrentIssueId] = useState<string | null>(null);
+  const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteRef = useRef<HTMLButtonElement>(null);
   const cancelDeleteRef = useRef<HTMLButtonElement>(null);
@@ -50,13 +50,28 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   useEffect(() => {
     if (confirmDelete) cancelDeleteRef.current?.focus();
   }, [confirmDelete]);
-  const goToNextIssue = () => {
-    const nextId = nextBlockingImportItemId(blockerItems, currentIssueId);
-    if (!nextId) return;
-    setCurrentIssueId(nextId);
-    const row = document.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(nextId)}"]`);
+  const focusEditor = (itemId: string) => requestAnimationFrame(() => {
+    const row = document.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(itemId)}"]`);
     row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    row?.focus({ preventScroll: true });
+    (row?.querySelector<HTMLElement>('[data-import-editor] input:not([disabled]), [data-import-editor] select:not([disabled]), [data-import-editor] textarea:not([disabled])') || row)?.focus({ preventScroll: true });
+  });
+  const openIssue = (itemId: string) => {
+    setOpenItemId(itemId);
+    focusEditor(itemId);
+  };
+  const goToNextIssue = () => {
+    const nextId = nextBlockingImportItemId(blockerItems, openItemId);
+    if (!nextId) return;
+    openIssue(nextId);
+  };
+  const itemSaved = (itemId: string) => {
+    const savedIndex = blockerItems.findIndex(item => item.id === itemId);
+    const remaining = savedIndex < 0
+      ? blockerItems.filter(item => item.id !== itemId)
+      : [...blockerItems.slice(savedIndex + 1), ...blockerItems.slice(0, savedIndex)].filter(item => item.id !== itemId);
+    const nextId = nextBlockingImportItemId(remaining, null);
+    setOpenItemId(nextId);
+    if (nextId) focusEditor(nextId);
   };
   const primaryAction: CurateActionSpec = confirmDelete ? {
     label: 'Delete import',
@@ -106,7 +121,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       </div>}
       {(detail.batch.analysis_state === 'failed' || (!model.groups.length && detail.sources.length > 0)) && <div role="alert" className="curate-cluster flex flex-wrap items-center justify-between gap-3"><div><p className="text-ui-13 text-tea-text">Analysis did not finish</p><p className="text-ui-11 text-tea-text-sec">{savedRecordAnalysisMessage(detail.batch.analysis_error)}</p></div>{failedSourceIds.length > 0 && <button type="button" disabled={Boolean(busyId)} onClick={() => void onRetryAnalysis(failedSourceIds)} className="tap-target min-h-11 rounded-md border border-tea-gold px-3 text-ui-12 text-tea-gold disabled:opacity-50">{busyId === '__analysis' ? 'Analyzing…' : 'Retry failed records'}</button>}</div>}
       {detail.sources.some(source => source.r2_object_key) && <div className="curate-cluster space-y-2" aria-label="Saved records">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} analysisBusy={busyId === `source:${source.id}`} disabled={Boolean(busyId) && busyId !== `source:${source.id}`} onRetry={sourceId => void onRetryAnalysis([sourceId])} />)}</div>}
-      {model.groups.map(group => <ImportVendorGroup key={group.id} group={group} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} onRetryVendors={onRetryVendors} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdateItem={onUpdate} onChangeVendor={onChangeVendor} onCreateVendor={onCreateVendor} />)}
+      {model.groups.map(group => <ImportVendorGroup key={group.id} group={group} vendorLookup={vendorLookup} identityLookup={identityLookup} holdingLookup={holdingLookup} busyId={busyId} openItemId={openItemId} onOpenItem={openIssue} onCloseItem={() => setOpenItemId(null)} onItemSaved={itemSaved} onRetryVendors={onRetryVendors} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdateItem={onUpdate} onChangeVendor={onChangeVendor} onCreateVendor={onCreateVendor} />)}
       {!model.groups.length && <p className="curate-cluster text-ui-13 text-tea-text-sec">No analyzed teas yet. Retry analysis from this saved record.</p>}
       <div role={confirmDelete ? 'group' : undefined} aria-label={confirmDelete ? 'Delete import confirmation' : undefined} className="curate-cluster space-y-2">
         {confirmDelete && <p className="text-ui-12 text-tea-text-sec">This import will be removed from your incomplete imports. Its saved record is retained for audit and recovery.</p>}

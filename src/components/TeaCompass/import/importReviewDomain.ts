@@ -111,6 +111,65 @@ export const resolveImportBlockingFields = (fields: string[], values: Record<str
   return true;
 });
 
+const FIELD_BLOCKER_ALIASES: Record<string, string[]> = {
+  englishName: ['englishname', 'englishinventoryname', 'translation', 'name'],
+  originalName: ['originalname', 'suppliername'],
+  chineseName: ['chinesename'],
+  type: ['type', 'teatype'],
+  originCountry: ['origincountry'],
+  originRegion: ['origin', 'originregion'],
+  year: ['year'],
+  packWeight: ['packweight', 'totalquantitygrams', 'quantity'],
+  weightUnit: ['weightunit', 'totalquantitygrams', 'quantity'],
+  packCount: ['packcount', 'totalunits', 'quantity'],
+  priceAmount: ['priceamount', 'linecost', 'price'],
+  currency: ['currency'],
+  priceBasis: ['pricebasis', 'linecost'],
+  disposition: ['disposition', 'acquired', 'acquisitionstate', 'physicalstock', 'acquiredintostock'],
+  identity: ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'],
+  holding: ['productid', 'proposedproductid', 'inventoryholding'],
+  inventoryPurpose: ['inventorypurpose', 'purpose'],
+};
+
+export const importFieldNeedsConfirmation = (field: keyof typeof FIELD_BLOCKER_ALIASES, blockingFields: string[]) => {
+  const blockers = new Set(blockingFields.map(normalizedBlocker));
+  return FIELD_BLOCKER_ALIASES[field].some(alias => blockers.has(alias));
+};
+
+export const effectiveImportBlockingFields = (item: CurateImportItem): string[] => {
+  const disposition = importDisposition(item);
+  const purpose = item.parsed_data?.inventoryPurpose;
+  return resolveImportBlockingFields([
+    ...(item.blocking_fields || []),
+    ...(disposition ? [] : ['disposition']),
+    ...(disposition !== 'library_only' && !['working', 'sample', 'personal'].includes(String(purpose)) ? ['inventoryPurpose'] : []),
+  ], { ...item.parsed_data, disposition, acquired: item.acquired });
+};
+
+const exactImportNumber = (value: number | string | null | undefined) => value == null || value === '' ? null : String(value);
+export const importQuantityCostEquation = (item: CurateImportItem): string => {
+  const packWeight = exactImportNumber(item.pack_weight);
+  const pack = packWeight && item.weight_unit ? `${packWeight}${item.weight_unit}` : null;
+  const count = exactImportNumber(item.pack_count);
+  const quantityTotal = exactImportNumber(item.total_quantity_grams) && item.weight_unit !== 'count'
+    ? `${exactImportNumber(item.total_quantity_grams)}g`
+    : exactImportNumber(item.total_units)
+      ? `${exactImportNumber(item.total_units)} ${item.total_units === 1 ? 'unit' : 'units'}`
+      : null;
+  const price = exactImportNumber(item.price_amount_exact ?? item.parsed_data?.priceAmountExact ?? item.price_amount);
+  const lineCost = exactImportNumber(item.line_cost_exact ?? item.parsed_data?.lineCostExact ?? item.line_cost);
+  const currency = item.currency ? `${item.currency} ` : '';
+  const quantity = pack ? `${pack}${count ? ` × ${count}` : ''}${quantityTotal ? ` = ${quantityTotal}` : ''}` : quantityTotal;
+  const cost = price
+    ? item.price_basis === 'per_pack'
+      ? `${currency}${price} each${lineCost ? ` = ${currency}${lineCost}` : ''}`
+      : `${currency}${lineCost ?? price} total`
+    : lineCost
+      ? `${currency}${lineCost} total`
+      : null;
+  return [quantity, cost].filter(Boolean).join(' · ') || 'Quantity or cost needs review';
+};
+
 const WORKER_IMPORT_FIELDS = [
   'sourceItemId', 'category', 'originalName', 'englishName', 'packWeight', 'weightUnit', 'packCount',
   'priceAmount', 'currency', 'priceBasis', 'confidence', 'uncertainty', 'evidenceRefs', 'acquired',
@@ -288,13 +347,7 @@ const joinLabels = (labels: string[]) => {
 };
 
 export const importBlockingMessage = (item: CurateImportItem): string | null => {
-  const disposition = importDisposition(item);
-  const purpose = item.parsed_data?.inventoryPurpose;
-  const fields = resolveImportBlockingFields([
-    ...(item.blocking_fields || []),
-    ...(disposition ? [] : ['disposition']),
-    ...(disposition !== 'library_only' && !['working', 'sample', 'personal'].includes(String(purpose)) ? ['inventoryPurpose'] : []),
-  ], { ...item.parsed_data, disposition, acquired: item.acquired });
+  const fields = effectiveImportBlockingFields(item);
   const labels = Array.from(new Set(fields.map(field => {
     const key = normalizedBlocker(field);
     if (['duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(key)) return item.category === 'tea' ? 'tea identity' : 'teaware identity';
@@ -317,13 +370,7 @@ export const buildImportReviewModel = (detail: CurateImportDetail): ImportReview
       .filter(item => group.id === '__ungrouped' ? !item.vendor_group_id || !detail.groups?.some(candidate => candidate.id === item.vendor_group_id) : item.vendor_group_id === group.id)
       .sort((a, b) => a.position - b.position)
       .map(item => {
-        const disposition = importDisposition(item);
-        const purpose = item.parsed_data?.inventoryPurpose;
-        const blockingFields = resolveImportBlockingFields([
-          ...(item.blocking_fields || []),
-          ...(disposition ? [] : ['disposition']),
-          ...(disposition !== 'library_only' && !['working', 'sample', 'personal'].includes(String(purpose)) ? ['inventoryPurpose'] : []),
-        ], { ...item.parsed_data, disposition, acquired: item.acquired });
+        const blockingFields = effectiveImportBlockingFields(item);
         return { item, blockingFields, blockingMessage: importBlockingMessage(item), ready: blockingFields.length === 0 };
       });
     const vendorRequired = rows.some(row => importDisposition(row.item) !== 'library_only');

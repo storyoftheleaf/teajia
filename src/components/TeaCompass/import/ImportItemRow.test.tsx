@@ -21,7 +21,7 @@ const item: CurateImportItem = {
 };
 
 describe('ImportItemRow', () => {
-  it('shows names, exact excerpt, arithmetic, provenance, and all disposition controls', () => {
+  it('shows a continuous collapsed row without audit or destination controls', () => {
     const markup = renderToStaticMarkup(<ImportItemRow
       item={item}
       busy={false}
@@ -35,18 +35,42 @@ describe('ImportItemRow', () => {
     expect(markup).toContain('Aged Liu Bao Tea');
     expect(markup).toContain('Supplier lot 88');
     expect(markup).toContain('陈年六堡茶');
-    expect(markup).toContain('500g ×1');
-    expect(markup).toContain('CNY 380');
-    expect(markup).toContain('陈年六堡茶380元/500克 x1=380元');
+    expect(markup).toContain('500g × 1 = 500g');
+    expect(markup).toContain('CNY 380 total');
+    expect(markup).not.toContain('陈年六堡茶380元/500克 x1=380元');
     expect(markup).not.toContain('normalized legacy row');
-    expect(markup).toContain('AI interpretation');
-    expect(markup).toContain('Source fact');
-    expect(markup).toContain('Canonical match');
-    expect(markup).toContain('Received now');
-    expect(markup).toContain('In transit');
-    expect(markup).toContain('Library only');
-    expect(markup).toContain('data-testid="import-source-excerpt"');
-    expect(markup).toContain('grid-cols-3');
-    expect(markup).not.toContain('grid-cols-1');
+    expect(markup).not.toContain('AI interpretation');
+    expect(markup).not.toContain('Source fact');
+    expect(markup).not.toContain('Canonical match');
+    expect(markup).not.toContain('Received now');
+    expect(markup).not.toContain('In transit');
+    expect(markup).not.toContain('Library only');
+    expect(markup).not.toContain('data-testid="import-source-excerpt"');
+    expect(markup).not.toContain('Exact source excerpt');
+    expect(markup).toContain('>Review<');
+    expect(markup).not.toContain('Close editing');
+    expect(markup).not.toContain('All details');
+  });
+
+  it('orders the shared editor zones and marks only unresolved fields for confirmation', () => {
+    const markup = renderToStaticMarkup(<ImportItemRow
+      item={{ ...item, blocking_fields: ['english_name', 'price_basis'] }}
+      blockingFields={['english_name', 'price_basis']}
+      open
+      busy={false}
+      identityLookup={{ status: 'empty', options: [], error: null }}
+      holdingLookup={{ status: 'empty', options: [], error: null }}
+      onRetryIdentities={() => undefined}
+      onRetryHoldings={() => undefined}
+      onUpdate={async () => true}
+    />);
+
+    expect(markup.indexOf('>Identity<')).toBeLessThan(markup.indexOf('>Purchase<'));
+    expect(markup.indexOf('>Purchase<')).toBeLessThan(markup.indexOf('>Inventory<'));
+    expect(markup.match(/>Confirm</g)).toHaveLength(2);
+    expect(markup).toContain('More tea details');
+    expect(markup).toContain('>Cancel<');
+    expect(markup).toContain('>Save tea<');
+    expect(markup).not.toContain('data-provenance');
   });
 });

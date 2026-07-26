@@ -5,6 +5,7 @@ import type { CurateImportItem, CurateImportItemUpdate, LookupState } from '../.
 import { ImportMatchPicker } from './ImportMatchPicker';
 import type { ImportIdentityOption, ImportHoldingOption } from './ImportItemRow';
 import { partitionImportItems } from './importFolioPresentation';
+import { CurateDisclosure } from '../CuratePrimitives';
 
 export interface ImportVendorOption { id: string; name: string }
 
@@ -14,6 +15,10 @@ interface Props {
   identityLookup: LookupState<ImportIdentityOption>;
   holdingLookup: LookupState<ImportHoldingOption>;
   busyId: string | null;
+  openItemId?: string | null;
+  onOpenItem?: (itemId: string) => void;
+  onCloseItem?: () => void;
+  onItemSaved?: (itemId: string) => void;
   onRetryVendors: () => void;
   onRetryIdentities: () => void;
   onRetryHoldings: () => void;
@@ -22,15 +27,30 @@ interface Props {
   onCreateVendor: (groupId: string, name: string) => Promise<boolean>;
 }
 
-export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identityLookup, holdingLookup, busyId, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdateItem, onChangeVendor, onCreateVendor }) => {
+export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identityLookup, holdingLookup, busyId, openItemId = null, onOpenItem, onCloseItem, onItemSaved, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdateItem, onChangeVendor, onCreateVendor }) => {
   const [changing, setChanging] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
+  const [readyOpen, setReadyOpen] = useState(false);
   const vendorName = group.resolved_vendor_name || vendorLookup.options.find(vendor => vendor.id === group.resolved_vendor_customer_id)?.name || group.proposed_vendor_name || 'Choose vendor';
   const groupNoun = group.items.every(row => row.item.category === 'tea') ? (group.items.length === 1 ? 'tea' : 'teas') : group.items.every(row => row.item.category === 'teaware') ? (group.items.length === 1 ? 'teaware item' : 'teaware items') : (group.items.length === 1 ? 'item' : 'items');
   const partition = partitionImportItems(group.items.map(row => ({ row, item: { blocking_fields: row.blockingFields } })));
   const needsReviewHeadingId = `vendor-${group.id}-needs-review-heading`;
-  const readyHeadingId = `vendor-${group.id}-ready-heading`;
-  const renderRows = (rows: typeof partition.needsReview) => rows.map(({ row }) => <ImportItemRow key={row.item.id} item={row.item} busy={Boolean(busyId)} identityLookup={identityLookup} holdingLookup={holdingLookup} onRetryIdentities={onRetryIdentities} onRetryHoldings={onRetryHoldings} onUpdate={updates => onUpdateItem(row.item, updates)} />);
+  const renderRows = (rows: typeof partition.needsReview) => rows.map(({ row }) => <ImportItemRow
+    key={row.item.id}
+    item={row.item}
+    blockingFields={row.blockingFields}
+    busy={Boolean(busyId)}
+    open={openItemId === row.item.id}
+    identityLookup={identityLookup}
+    holdingLookup={holdingLookup}
+    onOpen={() => onOpenItem?.(row.item.id)}
+    onClose={onCloseItem}
+    onSaved={onItemSaved}
+    onRetryIdentities={onRetryIdentities}
+    onRetryHoldings={onRetryHoldings}
+    onUpdate={updates => onUpdateItem(row.item, updates)}
+  />);
+  const showReady = readyOpen || partition.ready.some(({ row }) => row.item.id === openItemId);
   return (
     <section data-testid="import-vendor-group" aria-labelledby={`vendor-${group.id}`} className="curate-cluster space-y-3">
       {group.vendorRequired ? <div className="flex min-w-0 items-center justify-between gap-3">
@@ -54,8 +74,8 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
         </div>
       )}
       <div className="space-y-4">
-        {partition.needsReview.length > 0 && <section aria-labelledby={needsReviewHeadingId}><h5 id={needsReviewHeadingId} className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Needs review</h5><div className="divide-y divide-tea-border">{renderRows(partition.needsReview)}</div></section>}
-        {partition.ready.length > 0 && <section aria-labelledby={readyHeadingId}><h5 id={readyHeadingId} className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Ready</h5><div className="divide-y divide-tea-border">{renderRows(partition.ready)}</div></section>}
+        {partition.needsReview.length > 0 && <section aria-labelledby={needsReviewHeadingId}><h5 id={needsReviewHeadingId} className="border-b border-tea-border pb-1 text-ui-10 uppercase tracking-[1.2px] text-tea-text-dim">Needs attention</h5><div className="divide-y divide-tea-border">{renderRows(partition.needsReview)}</div></section>}
+        {partition.ready.length > 0 && <CurateDisclosure id={`vendor-${group.id}-ready`} label={`${partition.ready.length} ready`} open={showReady} onToggle={() => setReadyOpen(current => !current)} disabled={Boolean(busyId)}><div className="divide-y divide-tea-border">{renderRows(partition.ready)}</div></CurateDisclosure>}
       </div>
     </section>
   );

@@ -34,5 +34,8 @@ describe('ImportVendorGroup', () => {
     expect(markup).toContain('Library records');
     expect(markup).not.toContain('Change vendor');
     expect(markup).not.toContain('Vendor ·');
+    expect(markup).toContain('1 ready');
+    expect(markup).not.toContain('>Ready<');
+    expect(markup).not.toContain('Library tea');
   });
 });

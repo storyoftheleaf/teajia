@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
 import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, importDisposition, importFinalActionLabel, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
-import { compatibleImportHoldings, filterImportJourneys, importItemNoun, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, validateImportHoldingSelection, withoutImportDerivedFields } from './importReviewDomain';
+import { compatibleImportHoldings, filterImportJourneys, importFieldNeedsConfirmation, importItemNoun, importQuantityCostEquation, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, validateImportHoldingSelection, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   id: 'item-1', batch_id: 'batch-1', source_id: null, vendor_group_id: 'group-1', position: 0,
@@ -120,6 +120,25 @@ describe('importBlockingMessage', () => {
   it('uses category-aware identity wording and disposition wording', () => {
     expect(importBlockingMessage(item({ category: 'teaware', acquired: false, blocking_fields: ['duplicateIdentity', 'disposition'] })))
       .toBe('Confirm teaware identity and destination.');
+  });
+});
+
+describe('continuous import review presentation', () => {
+  it('keeps the exact Chinese example values in a quiet quantity-cost equation', () => {
+    expect(importQuantityCostEquation(item({
+      original_name: '陈年六堡茶', chinese_name: '陈年六堡茶', pack_weight: 500, weight_unit: 'g', pack_count: 1,
+      total_quantity_grams: 500, price_amount: 380, price_amount_exact: '380', price_basis: 'line_total',
+      line_cost: 380, line_cost_exact: '380', currency: 'CNY',
+    }))).toBe('500g × 1 = 500g · CNY 380 total');
+  });
+
+  it('maps canonical and legacy blocker aliases only to their unresolved controls', () => {
+    const blockers = ['english_name', 'priceBasis', 'duplicate_identity'];
+    expect(importFieldNeedsConfirmation('englishName', blockers)).toBe(true);
+    expect(importFieldNeedsConfirmation('priceBasis', blockers)).toBe(true);
+    expect(importFieldNeedsConfirmation('identity', blockers)).toBe(true);
+    expect(importFieldNeedsConfirmation('chineseName', blockers)).toBe(false);
+    expect(importFieldNeedsConfirmation('currency', blockers)).toBe(false);
   });
 });
 

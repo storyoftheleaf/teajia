@@ -131,6 +131,7 @@ async function installAnalyzedImportApi(page: Page) {
     const item = detail.items.find(candidate => candidate.id === itemId)!;
     const updates = route.request().postDataJSON() as Record<string, unknown> & { parsed_data?: Record<string, unknown> };
     const parsedData = updates.parsed_data || {};
+    const reviewedFields = Array.isArray(updates.reviewed_fields) ? updates.reviewed_fields : [];
     const unknownKeys = Object.keys(parsedData).filter(key => !workerImportParsedDataKeys.has(key));
     if (unknownKeys.length) {
       return route.fulfill({ status: 400, json: { error: `Unknown parsed_data fields: ${unknownKeys.join(', ')}` } });
@@ -143,6 +144,7 @@ async function installAnalyzedImportApi(page: Page) {
       proposed_product_id: parsedData.proposedProductId,
     });
     item.blocking_fields = (item.blocking_fields || []).filter(field => {
+      if (field === 'english_name') return !reviewedFields.includes('englishName');
       if (field === 'pack_count') return !(typeof parsedData.packCount === 'number' && parsedData.packCount > 0);
       if (field === 'weight_unit') return !parsedData.weightUnit;
       if (field === 'price_basis') return !parsedData.priceBasis || parsedData.priceBasis === 'unknown';
@@ -359,7 +361,7 @@ test.describe('Curate Import panel', () => {
   });
 
   test('compact import delete restores focus and retries only after confirmation', async ({ page }) => {
-    await installAnalyzedImportApi(page);
+    const api = await installAnalyzedImportApi(page);
     let abandonRequests = 0;
     await page.route('**/api/curate/imports/batch-analyzed/abandon', route => {
       abandonRequests += 1;
@@ -1231,16 +1233,18 @@ test.describe('analyzed inventory import review', () => {
       lookupResponses.set(key, (lookupResponses.get(key) ?? 0) + 1);
       return route.fulfill({ json: body });
     };
-    await installAnalyzedImportApi(page);
+    const api = await installAnalyzedImportApi(page);
+    api.detail.items[0].blocking_fields = ['english_name'];
     await page.route('**/api/customers', delayed('vendor', [{ id: 'vendor-chen', name: 'Chen Family', tags: ['vendor'] }]));
     await page.route('**/api/compass/entries', delayed('identity', { entries: [{ id: 'identity-yunnan', name: 'Yunnan Tea', category: 'tea' }] }));
     await page.route('**/api/products', delayed('holding', [{ id: 'holding-yunnan', given_name: 'Yunnan holding', type: 'tea', source_compass_entry_id: 'identity-yunnan', inventory_purpose: 'working' }]));
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
-    const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
-    await row.getByRole('button', { name: 'Edit tea' }).click();
-    await row.getByRole('button', { name: 'All details' }).click();
-    const name = row.getByLabel('English inventory name');
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const row = dialog.locator(`[data-import-item-id="${api.detail.items[0].id}"]`);
+    await row.getByRole('button', { name: 'Review' }).click();
+    await expect(dialog.locator('[data-import-editor]')).toHaveCount(1);
+    const name = row.getByLabel('English name');
     await name.fill('Typed while matching');
 
     for (const key of ['vendor', 'identity', 'holding']) {
@@ -1248,7 +1252,62 @@ test.describe('analyzed inventory import review', () => {
       await expect.poll(() => lookupResponses.get(key) ?? 0).toBeGreaterThanOrEqual(1);
       await expect(name).toHaveValue('Typed while matching');
     }
-    await expect(row.getByRole('button', { name: 'Close editing' })).toBeVisible();
+    await expect(row.getByRole('button', { name: 'More tea details' })).toBeVisible();
+    await row.getByRole('button', { name: 'Cancel' }).click();
+    await expect(row.getByRole('button', { name: 'Review' })).toBeFocused();
+  });
+
+  test('uses one continuous editor, advances after save, and preserves a failed retry draft', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    for (const item of api.detail.items.slice(0, 2)) {
+      item.blocking_fields = ['english_name'];
+      item.confidence = 0.52;
+      item.uncertainty = { english_name: 'Translation needs confirmation' };
+    }
+    let secondSaveAttempts = 0;
+    await page.route('**/api/curate/imports/batch-analyzed/items/analyzed-item-2', async route => {
+      if (route.request().method() !== 'PUT') return route.fallback();
+      secondSaveAttempts += 1;
+      if (secondSaveAttempts === 1) return route.fulfill({ status: 503, json: { error: 'Correction temporarily unavailable' } });
+      return route.fallback();
+    });
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const first = dialog.locator('[data-import-item-id="analyzed-item-1"]');
+    const second = dialog.locator('[data-import-item-id="analyzed-item-2"]');
+    await expect(dialog.getByText('Needs attention', { exact: true }).first()).toBeVisible();
+    await expect(dialog.getByRole('button', { name: /3 ready/ })).toBeVisible();
+    await expect(dialog.getByText('Source fact', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText('AI interpretation', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText('Exact source excerpt', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole('radio')).toHaveCount(0);
+
+    await first.getByRole('button', { name: 'Review' }).click();
+    await expect(dialog.locator('[data-import-editor]')).toHaveCount(1);
+    const firstZones = await first.locator('[data-zone]').evaluateAll(elements => elements.map(element => element.getAttribute('data-zone')));
+    expect(firstZones).toEqual(['identity', 'purchase', 'inventory']);
+    await expect(first.getByText('Confirm', { exact: true })).toHaveCount(1);
+    await first.getByLabel('English name').fill('Reviewed Yunnan tea');
+    await first.getByRole('button', { name: 'Save tea' }).click();
+
+    await expect(second.locator('[data-import-editor]')).toBeVisible();
+    await expect(second.getByLabel('English name')).toBeFocused();
+    await expect(dialog.locator('[data-import-editor]')).toHaveCount(1);
+    await second.getByRole('button', { name: 'Cancel' }).click();
+    await expect(second.getByRole('button', { name: 'Review' })).toBeFocused();
+
+    await second.getByRole('button', { name: 'Review' }).click();
+    const secondName = second.getByLabel('English name');
+    await secondName.fill('Draft kept for retry');
+    await second.getByRole('button', { name: 'Save tea' }).click();
+    await expect(dialog.getByRole('alert').filter({ hasText: 'Correction temporarily unavailable' })).toBeVisible();
+    await expect(secondName).toHaveValue('Draft kept for retry');
+    await dialog.getByRole('button', { name: 'Retry action' }).click();
+    await expect(dialog.getByText('Correction temporarily unavailable')).toHaveCount(0);
+    await expect(secondName).toHaveValue('Draft kept for retry');
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   });
 
   test('promotes naming blockers and referenced image or PDF evidence before all details', async ({ page }) => {
