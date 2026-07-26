@@ -119,6 +119,9 @@ const FIELD_BLOCKER_ALIASES: Record<string, string[]> = {
   originCountry: ['origincountry'],
   originRegion: ['origin', 'originregion'],
   year: ['year'],
+  classification: ['classification', 'production'],
+  form: ['form'],
+  description: ['description'],
   packWeight: ['packweight', 'totalquantitygrams', 'quantity'],
   weightUnit: ['weightunit', 'totalquantitygrams', 'quantity'],
   packCount: ['packcount', 'totalunits', 'quantity'],
@@ -147,6 +150,51 @@ export const effectiveImportBlockingFields = (item: CurateImportItem): string[] 
 };
 
 const exactImportNumber = (value: number | string | null | undefined) => value == null || value === '' ? null : String(value);
+
+const multiplyExactDecimal = (amount: string, count: string): string | null => {
+  if (!/^\d+(?:\.\d+)?$/.test(amount) || !/^\d+$/.test(count)) return null;
+  const [whole, fraction = ''] = amount.split('.');
+  const product = BigInt(`${whole}${fraction}`) * BigInt(count);
+  const padded = product.toString().padStart(fraction.length + 1, '0');
+  if (!fraction.length) return padded;
+  const resultWhole = padded.slice(0, -fraction.length);
+  const resultFraction = padded.slice(-fraction.length).replace(/0+$/, '');
+  return resultFraction ? `${resultWhole}.${resultFraction}` : resultWhole;
+};
+
+export interface ImportQuantityCostDraft {
+  packWeight: string;
+  weightUnit: string;
+  packCount: string;
+  priceAmount: string;
+  currency: string;
+  priceBasis: string;
+}
+
+export const importDraftQuantityCostEquation = (draft: ImportQuantityCostDraft): string => {
+  const packWeight = draft.packWeight.trim();
+  const unit = draft.weightUnit.trim();
+  const count = draft.packCount.trim();
+  const price = draft.priceAmount.trim();
+  const currency = draft.currency.trim();
+  const pack = packWeight && unit ? `${packWeight}${unit}` : null;
+  const multipliedQuantity = packWeight && count ? multiplyExactDecimal(packWeight, count) : null;
+  const quantityTotal = multipliedQuantity
+    ? unit === 'count' ? `${multipliedQuantity} ${multipliedQuantity === '1' ? 'unit' : 'units'}` : `${multipliedQuantity}${unit}`
+    : null;
+  const quantity = pack ? `${pack}${count ? ` × ${count}` : ''}${quantityTotal ? ` = ${quantityTotal}` : ''}` : null;
+  const currencyPrefix = currency ? `${currency} ` : '';
+  const lineCost = price && count ? multiplyExactDecimal(price, count) : null;
+  const cost = price
+    ? draft.priceBasis === 'per_pack'
+      ? `${currencyPrefix}${price} each${lineCost ? ` = ${currencyPrefix}${lineCost}` : ''}`
+      : draft.priceBasis === 'line_total'
+        ? `${currencyPrefix}${price} total`
+        : `${currencyPrefix}${price} · interpretation needed`
+    : null;
+  return [quantity, cost].filter(Boolean).join(' · ') || 'Quantity or cost needs review';
+};
+
 export const importQuantityCostEquation = (item: CurateImportItem): string => {
   const packWeight = exactImportNumber(item.pack_weight);
   const pack = packWeight && item.weight_unit ? `${packWeight}${item.weight_unit}` : null;

@@ -7,6 +7,7 @@ import {
   compatibleImportHoldings,
   effectiveImportBlockingFields,
   importBlockingMessage,
+  importDraftQuantityCostEquation,
   importDisposition,
   importFieldNeedsConfirmation,
   importQuantityCostEquation,
@@ -31,7 +32,7 @@ interface ImportItemRowProps {
   onSaved?: (itemId: string) => void;
   onRetryIdentities: () => void;
   onRetryHoldings: () => void;
-  onUpdate: (updates: CurateImportItemUpdate) => Promise<boolean>;
+  onUpdate: (updates: CurateImportItemUpdate, onRetrySuccess?: () => void) => Promise<boolean>;
 }
 
 const value = (input: unknown) => input == null ? '' : String(input);
@@ -57,13 +58,13 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   const identityBlocked = normalizedBlockers.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
   const productBlocked = normalizedBlockers.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
   const [draft, setDraft] = useState(() => draftFromItem(item, identityBlocked, productBlocked));
-  const [detailsExpanded, setDetailsExpanded] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(() => expanded && effectiveBlockers.length === 0);
   const reviewRef = useRef<HTMLButtonElement>(null);
   const identityResolutionTouched = useRef(false);
   const holdingResolutionTouched = useRef(false);
   const wasExpanded = useRef(false);
   const initializedItemId = useRef(item.id);
-  const label = item.english_name || item.name || item.raw_text || `Item ${item.position + 1}`;
+  const label = item.english_name || item.name || (item.category === 'tea' ? 'Unnamed tea' : 'Unnamed item');
   const editLabel = item.category === 'tea' ? 'tea' : 'item';
   const headingId = `import-item-${item.id}-heading`;
   const blocking = importBlockingMessage({ ...item, blocking_fields: effectiveBlockers });
@@ -86,20 +87,20 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     status: holdingLookup.status === 'ready' && holdingOptions.length === 0 ? 'empty' : holdingLookup.status,
   }), [holdingLookup, holdingOptions]);
   const proposedIdentityName = identityLookup.options.find(option => option.id === item.proposed_compass_entry_id)?.name
-    || (item.proposed_compass_entry_id ? `Library identity ${item.proposed_compass_entry_id}` : 'New Library identity');
+    || (item.proposed_compass_entry_id ? 'Suggested Library identity' : 'New Library identity');
   const compatibleProposedHolding = holdingOptions.find(option => option.id === item.proposed_product_id);
 
   useEffect(() => {
     const opening = expanded && (!wasExpanded.current || initializedItemId.current !== item.id);
     if (opening) {
       setDraft(draftFromItem(item, identityBlocked, productBlocked));
-      setDetailsExpanded(false);
+      setDetailsExpanded(effectiveBlockers.length === 0);
       identityResolutionTouched.current = false;
       holdingResolutionTouched.current = false;
       initializedItemId.current = item.id;
     }
     wasExpanded.current = expanded;
-  }, [expanded, identityBlocked, item, productBlocked]);
+  }, [effectiveBlockers.length, expanded, identityBlocked, item, productBlocked]);
 
   useEffect(() => {
     if (!expanded || (holdingLookup.status !== 'ready' && holdingLookup.status !== 'empty')) return;
@@ -173,11 +174,74 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       parsed_data: parsedValues,
       ...(reviewedFields.length ? { reviewed_fields: reviewedFields } : {}),
     };
-    if (!await onUpdate(updates)) return;
-    if (onSaved) onSaved(item.id); else setLocalOpen(false);
+    const completeSave = () => {
+      if (onSaved) onSaved(item.id); else setLocalOpen(false);
+    };
+    if (!await onUpdate(updates, completeSave)) return;
+    completeSave();
   };
 
   const field = (name: Parameters<typeof needsConfirm>[0]) => needsConfirm(name) ? 'Confirm' : undefined;
+  const draftEquation = importDraftQuantityCostEquation({
+    packWeight: draft.pack_weight,
+    weightUnit: draft.weight_unit,
+    packCount: draft.pack_count,
+    priceAmount: draft.price_amount,
+    currency: draft.currency,
+    priceBasis: draft.price_basis,
+  });
+  const identityFields = ['englishName', 'chineseName', 'originalName', 'type', 'year', 'originCountry', 'originRegion', 'classification', 'form', 'description'] as const;
+  const purchaseFields = ['packWeight', 'weightUnit', 'packCount', 'priceAmount', 'currency', 'priceBasis'] as const;
+  const inventoryFields = ['disposition', 'identity', 'holding', 'inventoryPurpose'] as const;
+  const hasBlocked = (fields: readonly Parameters<typeof needsConfirm>[0][]) => fields.some(needsConfirm);
+  const hasRemaining = (fields: readonly Parameters<typeof needsConfirm>[0][]) => fields.some(name => !needsConfirm(name));
+  const show = (name: Parameters<typeof needsConfirm>[0], blocked: boolean) => needsConfirm(name) === blocked;
+
+  const renderIdentityFields = (blocked: boolean) => <>
+    {show('englishName', blocked) && <CurateField label="English name" status={field('englishName')}><input aria-label="English name" value={draft.english_name} onChange={event => set('english_name', event.target.value)} /></CurateField>}
+    {(show('chineseName', blocked) || show('originalName', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {show('chineseName', blocked) && <CurateField label="Chinese name" status={field('chineseName')}><input aria-label="Chinese name" value={draft.chinese_name} onChange={event => set('chinese_name', event.target.value)} /></CurateField>}
+      {show('originalName', blocked) && <CurateField label="Original name" status={field('originalName')}><input aria-label="Original name" value={draft.original_name} onChange={event => set('original_name', event.target.value)} /></CurateField>}
+    </div>}
+    {(show('type', blocked) || show('year', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {show('type', blocked) && <CurateField label="Tea type" status={field('type')}><input aria-label="Tea type" value={draft.tea_type} onChange={event => set('tea_type', event.target.value)} /></CurateField>}
+      {show('year', blocked) && <CurateField label="Year" status={field('year')}><input aria-label="Year" inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} /></CurateField>}
+    </div>}
+    {(show('originCountry', blocked) || show('originRegion', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {show('originCountry', blocked) && <CurateField label="Origin country" status={field('originCountry')}><input aria-label="Origin country" value={draft.origin_country} onChange={event => set('origin_country', event.target.value)} /></CurateField>}
+      {show('originRegion', blocked) && <CurateField label="Origin region" status={field('originRegion')}><input aria-label="Origin region" value={draft.origin} onChange={event => set('origin', event.target.value)} /></CurateField>}
+    </div>}
+    {show('classification', blocked) && <CurateField label="Production or classification" status={field('classification')}><input aria-label="Production or classification" value={draft.classification} onChange={event => set('classification', event.target.value)} /></CurateField>}
+    {show('form', blocked) && <CurateField label="Form" status={field('form')}><input aria-label="Form" value={draft.form} onChange={event => set('form', event.target.value)} /></CurateField>}
+    {show('description', blocked) && <CurateField label="Description" status={field('description')}><textarea aria-label="Description" rows={3} value={draft.description} onChange={event => set('description', event.target.value)} /></CurateField>}
+  </>;
+
+  const renderPurchaseFields = (blocked: boolean) => <>
+    {(show('packWeight', blocked) || show('weightUnit', blocked) || show('packCount', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      {show('packWeight', blocked) && <CurateField label="Pack weight" status={field('packWeight')}><input aria-label="Pack weight" inputMode="decimal" value={draft.pack_weight} onChange={event => set('pack_weight', event.target.value)} /></CurateField>}
+      {show('weightUnit', blocked) && <CurateField label="Weight unit" status={field('weightUnit')}><select aria-label="Weight unit" value={draft.weight_unit} onChange={event => set('weight_unit', event.target.value)}><option value="">Choose unit</option><option value="g">g</option><option value="kg">kg</option><option value="count">count</option></select></CurateField>}
+      {show('packCount', blocked) && <CurateField label="Pack count" status={field('packCount')}><input aria-label="Pack count" inputMode="numeric" value={draft.pack_count} onChange={event => set('pack_count', event.target.value)} /></CurateField>}
+    </div>}
+    {(show('priceAmount', blocked) || show('currency', blocked) || show('priceBasis', blocked)) && <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      {show('priceAmount', blocked) && <CurateField label="Price" status={field('priceAmount')}><input aria-label="Price amount" inputMode="decimal" value={draft.price_amount} onChange={event => set('price_amount', event.target.value)} /></CurateField>}
+      {show('currency', blocked) && <CurateField label="Currency" status={field('currency')}><input aria-label="Currency" value={draft.currency} onChange={event => set('currency', event.target.value)} /></CurateField>}
+      {show('priceBasis', blocked) && <CurateField label="Price interpretation" status={field('priceBasis')}><select aria-label="Price interpretation" value={draft.price_basis} onChange={event => set('price_basis', event.target.value)}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></CurateField>}
+    </div>}
+    <p className="curate-support break-words font-mono text-tea-text-dim">{draftEquation}</p>
+  </>;
+
+  const renderInventoryFields = (blocked: boolean) => <>
+    {show('disposition', blocked) && <CurateField label="Destination" status={field('disposition')}><select aria-label="Destination" value={draft.disposition} onChange={event => set('disposition', event.target.value)}><option value="">Choose destination</option><option value="received">Received now</option><option value="in_transit">In transit</option><option value="library_only">Library only</option></select></CurateField>}
+    {show('identity', blocked) && <div className="space-y-1">
+      <div className="flex items-center justify-between"><p className="curate-support text-tea-text-sec">Library match</p>{blocked && <span className="curate-inline-label text-tea-gold">Confirm</span>}</div>
+      <ImportMatchPicker label={item.category === 'tea' ? 'Match tea' : 'Match teaware'} lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} />
+    </div>}
+    {draft.disposition !== 'library_only' && show('holding', blocked) && <div className="space-y-1">
+      <div className="flex items-center justify-between"><p className="curate-support text-tea-text-sec">Inventory holding</p>{blocked && <span className="curate-inline-label text-tea-gold">Confirm</span>}</div>
+      <ImportMatchPicker label="Choose stock record" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={compatibleProposedHolding?.name || 'New Inventory holding'} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} />
+    </div>}
+    {draft.disposition !== 'library_only' && show('inventoryPurpose', blocked) && <CurateField label="Inventory purpose" status={field('inventoryPurpose')}><select aria-label="Inventory purpose" value={draft.purpose} onChange={event => setPurpose(event.target.value)}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></CurateField>}
+  </>;
   return (
     <article data-testid="import-item-row" data-import-item-id={item.id} data-blocked={effectiveBlockers.length ? 'true' : 'false'} aria-labelledby={headingId} tabIndex={-1} className="scroll-mt-24 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
       <div className="flex min-w-0 items-start gap-2">
@@ -194,60 +258,33 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       </div>
 
       {expanded && <fieldset disabled={busy} data-import-editor data-curate-source data-visual-layout="continuous-sheet" className="mt-3 border-t border-tea-border">
-        <section className="curate-cluster curate-zone-identity space-y-2" data-zone="identity" aria-labelledby={`${headingId}-identity`}>
+        {hasBlocked(identityFields) && <section className="curate-cluster curate-zone-identity space-y-2" data-zone="identity" aria-labelledby={`${headingId}-identity`}>
           <h5 id={`${headingId}-identity`} className="curate-section-title">Identity</h5>
-          <CurateField label="English name" status={field('englishName')}><input aria-label="English name" value={draft.english_name} onChange={event => set('english_name', event.target.value)} /></CurateField>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <CurateField label="Chinese name" status={field('chineseName')}><input aria-label="Chinese name" value={draft.chinese_name} onChange={event => set('chinese_name', event.target.value)} /></CurateField>
-            <CurateField label="Original name" status={field('originalName')}><input aria-label="Original name" value={draft.original_name} onChange={event => set('original_name', event.target.value)} /></CurateField>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <CurateField label="Tea type" status={field('type')}><input aria-label="Tea type" value={draft.tea_type} onChange={event => set('tea_type', event.target.value)} /></CurateField>
-            <CurateField label="Year" status={field('year')}><input aria-label="Year" inputMode="numeric" value={draft.year} onChange={event => set('year', event.target.value)} /></CurateField>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <CurateField label="Origin country" status={field('originCountry')}><input aria-label="Origin country" value={draft.origin_country} onChange={event => set('origin_country', event.target.value)} /></CurateField>
-            <CurateField label="Origin region" status={field('originRegion')}><input aria-label="Origin region" value={draft.origin} onChange={event => set('origin', event.target.value)} /></CurateField>
-          </div>
-        </section>
-
-        <section className="curate-cluster curate-zone-purchase space-y-2" data-zone="purchase" aria-labelledby={`${headingId}-purchase`}>
+          {renderIdentityFields(true)}
+        </section>}
+        {hasBlocked(purchaseFields) && <section className="curate-cluster curate-zone-purchase space-y-2" data-zone="purchase" aria-labelledby={`${headingId}-purchase`}>
           <h5 id={`${headingId}-purchase`} className="curate-section-title">Purchase</h5>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <CurateField label="Pack weight" status={field('packWeight')}><input aria-label="Pack weight" inputMode="decimal" value={draft.pack_weight} onChange={event => set('pack_weight', event.target.value)} /></CurateField>
-            <CurateField label="Weight unit" status={field('weightUnit')}><select aria-label="Weight unit" value={draft.weight_unit} onChange={event => set('weight_unit', event.target.value)}><option value="">Choose unit</option><option value="g">g</option><option value="kg">kg</option><option value="count">count</option></select></CurateField>
-            <CurateField label="Pack count" status={field('packCount')}><input aria-label="Pack count" inputMode="numeric" value={draft.pack_count} onChange={event => set('pack_count', event.target.value)} /></CurateField>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <CurateField label="Price" status={field('priceAmount')}><input aria-label="Price amount" inputMode="decimal" value={draft.price_amount} onChange={event => set('price_amount', event.target.value)} /></CurateField>
-            <CurateField label="Currency" status={field('currency')}><input aria-label="Currency" value={draft.currency} onChange={event => set('currency', event.target.value)} /></CurateField>
-            <CurateField label="Price interpretation" status={field('priceBasis')}><select aria-label="Price interpretation" value={draft.price_basis} onChange={event => set('price_basis', event.target.value)}><option value="unknown">Choose interpretation</option><option value="per_pack">Per pack</option><option value="line_total">Line total</option></select></CurateField>
-          </div>
-          <p className="curate-support break-words font-mono text-tea-text-dim">{importQuantityCostEquation(item)}</p>
-        </section>
-
-        <section className="curate-cluster curate-zone-notes space-y-2" data-zone="inventory" aria-labelledby={`${headingId}-inventory`}>
+          {renderPurchaseFields(true)}
+        </section>}
+        {hasBlocked(inventoryFields) && <section className="curate-cluster curate-zone-notes space-y-2" data-zone="inventory" aria-labelledby={`${headingId}-inventory`}>
           <h5 id={`${headingId}-inventory`} className="curate-section-title">Inventory</h5>
-          <CurateField label="Destination" status={field('disposition')}><select aria-label="Destination" value={draft.disposition} onChange={event => set('disposition', event.target.value)}><option value="">Choose destination</option><option value="received">Received now</option><option value="in_transit">In transit</option><option value="library_only">Library only</option></select></CurateField>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between"><p className="curate-support text-tea-text-sec">Library match</p>{needsConfirm('identity') && <span className="curate-inline-label text-tea-gold">Confirm</span>}</div>
-            <ImportMatchPicker label={item.category === 'tea' ? 'Match tea' : 'Match teaware'} lookup={identityState} selectedId={draft.compass_entry_id} proposedId={item.proposed_compass_entry_id} proposedName={proposedIdentityName} newOptionLabel="Create new Library identity" disabled={busy} onRetry={onRetryIdentities} onSelect={setIdentity} />
-          </div>
-          {draft.disposition !== 'library_only' && <>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between"><p className="curate-support text-tea-text-sec">Inventory holding</p>{needsConfirm('holding') && <span className="curate-inline-label text-tea-gold">Confirm</span>}</div>
-              <ImportMatchPicker label="Choose stock record" lookup={holdingState} selectedId={draft.product_id} proposedId={compatibleProposedHolding?.id} proposedName={compatibleProposedHolding?.name || 'New Inventory holding'} newOptionLabel="Create new Inventory holding" disabled={busy} onRetry={onRetryHoldings} onSelect={selection => { holdingResolutionTouched.current = true; set('product_id', selection); }} />
-            </div>
-            <CurateField label="Inventory purpose" status={field('inventoryPurpose')}><select aria-label="Inventory purpose" value={draft.purpose} onChange={event => setPurpose(event.target.value)}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></CurateField>
-          </>}
-        </section>
-
+          {renderInventoryFields(true)}
+        </section>}
         <div className="curate-cluster">
           <CurateDisclosure id={`import-${item.id}-more-details`} label="More tea details" open={detailsExpanded} onToggle={() => setDetailsExpanded(current => !current)} disabled={busy}>
-            <div className="space-y-2 pt-2">
-              <CurateField label="Production or classification"><input aria-label="Production or classification" value={draft.classification} onChange={event => set('classification', event.target.value)} /></CurateField>
-              <CurateField label="Form"><input aria-label="Form" value={draft.form} onChange={event => set('form', event.target.value)} /></CurateField>
-              <CurateField label="Description"><textarea aria-label="Description" rows={3} value={draft.description} onChange={event => set('description', event.target.value)} /></CurateField>
+            <div className="space-y-3 pt-2">
+              {hasRemaining(identityFields) && <section className="space-y-2" data-detail-zone="identity" aria-labelledby={`${headingId}-identity-details`}>
+                <h5 id={`${headingId}-identity-details`} className="curate-section-title">Identity</h5>
+                {renderIdentityFields(false)}
+              </section>}
+              {hasRemaining(purchaseFields) && <section className="space-y-2" data-detail-zone="purchase" aria-labelledby={`${headingId}-purchase-details`}>
+                <h5 id={`${headingId}-purchase-details`} className="curate-section-title">Purchase</h5>
+                {renderPurchaseFields(false)}
+              </section>}
+              {hasRemaining(inventoryFields) && <section className="space-y-2" data-detail-zone="inventory" aria-labelledby={`${headingId}-inventory-details`}>
+                <h5 id={`${headingId}-inventory-details`} className="curate-section-title">Inventory</h5>
+                {renderInventoryFields(false)}
+              </section>}
             </div>
           </CurateDisclosure>
           <CurateActionBand className="mt-2" neutral={[{ label: 'Cancel', onClick: cancel, disabled: busy }]} primary={{ label: `Save ${editLabel}`, busy, busyLabel: 'Saving…', disabled: !draft.english_name.trim() || !draft.disposition, onClick: () => void submit() }} columns={{ base: 2 }} />

@@ -21,7 +21,7 @@ interface ImportBatchReviewProps {
   onRetryVendors: () => void;
   onRetryIdentities: () => void;
   onRetryHoldings: () => void;
-  onUpdate: (item: CurateImportItem, updates: CurateImportItemUpdate) => Promise<boolean>;
+  onUpdate: (item: CurateImportItem, updates: CurateImportItemUpdate, onRetrySuccess?: () => void) => Promise<boolean>;
   onSetJourney: (journeyId: string | null) => Promise<boolean>;
   onCreateJourney: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
   onChangeVendor: (groupId: string, vendorId: string) => Promise<boolean>;
@@ -117,7 +117,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       </section>
       {(detail.batch.analysis_overview || annotations.length > 0) && <div className="curate-cluster space-y-3">
         {detail.batch.analysis_overview && <div className="space-y-1"><p className="curate-support text-tea-text-dim">AI reading</p><p className="max-w-[70ch] font-body text-ui-13 italic leading-relaxed text-tea-text-sec">{detail.batch.analysis_overview}</p></div>}
-        {annotations.length > 0 && <section className="space-y-2" aria-label="Import notes"><p className="curate-support text-tea-text-dim">Import notes</p><ul className="space-y-1">{annotations.map((annotation, index) => <li key={`${annotation.kind}-${annotation.sourceId || index}`} className="flex min-w-0 flex-wrap gap-x-2 text-ui-11 text-tea-text-sec"><span className="font-medium text-tea-text">{annotationTitle(annotation)}</span>{annotationAmount(annotation) && <span>{annotationAmount(annotation)}</span>}{annotation.sourceExcerpt && <span className="basis-full whitespace-pre-wrap break-words">{annotation.sourceExcerpt}</span>}</li>)}</ul></section>}
+        {annotations.length > 0 && <section className="space-y-2" aria-label="Import notes"><p className="curate-support text-tea-text-dim">Import notes</p><ul className="space-y-1">{annotations.map((annotation, index) => <li key={`${annotation.kind}-${annotation.sourceId || index}`} className="flex min-w-0 flex-wrap gap-x-2 text-ui-11 text-tea-text-sec"><span className="font-medium text-tea-text">{annotationTitle(annotation)}</span>{annotationAmount(annotation) && <span>{annotationAmount(annotation)}</span>}</li>)}</ul></section>}
       </div>}
       {(detail.batch.analysis_state === 'failed' || (!model.groups.length && detail.sources.length > 0)) && <div role="alert" className="curate-cluster flex flex-wrap items-center justify-between gap-3"><div><p className="text-ui-13 text-tea-text">Analysis did not finish</p><p className="text-ui-11 text-tea-text-sec">{savedRecordAnalysisMessage(detail.batch.analysis_error)}</p></div>{failedSourceIds.length > 0 && <button type="button" disabled={Boolean(busyId)} onClick={() => void onRetryAnalysis(failedSourceIds)} className="tap-target min-h-11 rounded-md border border-tea-gold px-3 text-ui-12 text-tea-gold disabled:opacity-50">{busyId === '__analysis' ? 'Analyzing…' : 'Retry failed records'}</button>}</div>}
       {detail.sources.some(source => source.r2_object_key) && <div className="curate-cluster space-y-2" aria-label="Saved records">{detail.sources.filter(source => source.r2_object_key).map(source => <ImportEvidenceCard key={source.id} source={source} analysisBusy={busyId === `source:${source.id}`} disabled={Boolean(busyId) && busyId !== `source:${source.id}`} onRetry={sourceId => void onRetryAnalysis([sourceId])} />)}</div>}

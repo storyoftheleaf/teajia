@@ -66,11 +66,61 @@ describe('ImportItemRow', () => {
     />);
 
     expect(markup.indexOf('>Identity<')).toBeLessThan(markup.indexOf('>Purchase<'));
-    expect(markup.indexOf('>Purchase<')).toBeLessThan(markup.indexOf('>Inventory<'));
+    expect(markup).not.toContain('>Inventory<');
     expect(markup.match(/>Confirm</g)).toHaveLength(2);
+    expect(markup).toContain('aria-label="English name"');
+    expect(markup).toContain('aria-label="Price interpretation"');
+    expect(markup).not.toContain('aria-label="Chinese name"');
+    expect(markup).not.toContain('aria-label="Pack count"');
+    expect(markup).not.toContain('aria-label="Destination"');
     expect(markup).toContain('More tea details');
     expect(markup).toContain('>Cancel<');
     expect(markup).toContain('>Save tea<');
     expect(markup).not.toContain('data-provenance');
+  });
+
+  it('opens every field behind More tea details for a ready row', () => {
+    const markup = renderToStaticMarkup(<ImportItemRow
+      item={item}
+      blockingFields={[]}
+      open
+      busy={false}
+      identityLookup={{ status: 'empty', options: [], error: null }}
+      holdingLookup={{ status: 'empty', options: [], error: null }}
+      onRetryIdentities={() => undefined}
+      onRetryHoldings={() => undefined}
+      onUpdate={async () => true}
+    />);
+
+    expect(markup).toContain('aria-expanded="true"');
+    expect(markup).toContain('aria-label="English name"');
+    expect(markup).toContain('aria-label="Pack count"');
+    expect(markup).toContain('aria-label="Destination"');
+    expect(markup).toContain('aria-label="Production or classification"');
+  });
+
+  it('never falls back to raw excerpts, UUIDs, or evidence ranges in review', () => {
+    const uuid = 'be8f2e98-f44e-4c2d-a927-e788e6ed9c70';
+    const markup = renderToStaticMarkup(<ImportItemRow
+      item={{
+        ...item, name: null, english_name: null, original_name: null, chinese_name: null,
+        raw_text: `raw supplier excerpt ${uuid}:14-49`, proposed_compass_entry_id: uuid,
+        parsed_data: { ...item.parsed_data, evidenceRefs: [`${uuid}:14-49`] }, blocking_fields: ['duplicate_identity'],
+      }}
+      blockingFields={['duplicate_identity']}
+      open
+      busy={false}
+      identityLookup={{ status: 'empty', options: [], error: null }}
+      holdingLookup={{ status: 'empty', options: [], error: null }}
+      onRetryIdentities={() => undefined}
+      onRetryHoldings={() => undefined}
+      onUpdate={async () => true}
+    />);
+
+    expect(markup).toContain('Unnamed tea');
+    expect(markup).toContain('Suggested Library identity');
+    expect(markup).not.toContain('raw supplier excerpt');
+    expect(markup).not.toContain(uuid);
+    expect(markup).not.toContain('14-49');
   });
 });

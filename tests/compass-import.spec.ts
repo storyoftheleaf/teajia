@@ -1018,7 +1018,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.getByTestId('import-batch-summary')).toContainText('TWD 6,000');
     await expect(dialog.getByRole('region', { name: 'Import notes' })).toContainText('Shipping');
     await expect(dialog.getByRole('region', { name: 'Import notes' })).toContainText('CNY 120');
-    await expect(dialog.getByRole('region', { name: 'Import notes' })).toContainText('运费 120元');
+    await expect(dialog.getByRole('region', { name: 'Import notes' })).not.toContainText('运费 120元');
 
     const groups = dialog.getByTestId('import-vendor-group');
     const firstGroup = groups.first();
@@ -1026,14 +1026,14 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstVendorName).toHaveClass(/curate-primary/);
     await expect(firstVendorName).not.toHaveClass(/font-display|text-ui-28/);
     await expect(firstGroup).not.toHaveClass(/rounded|bg-tea-surface/);
-    await expect(firstGroup.getByText('Needs review', { exact: true })).toHaveCount(1);
-    await expect(firstGroup.getByText('Ready', { exact: true })).toHaveCount(1);
-    const needsReviewSection = firstGroup.getByRole('region', { name: 'Needs review' });
-    const readySection = firstGroup.getByRole('region', { name: 'Ready' });
+    await expect(firstGroup.getByText('Needs attention', { exact: true })).toHaveCount(1);
+    await expect(firstGroup.getByRole('button', { name: '4 ready' })).toBeVisible();
+    const needsReviewSection = firstGroup.getByRole('region', { name: 'Needs attention' });
+    await firstGroup.getByRole('button', { name: '4 ready' }).click();
+    const readySection = firstGroup.getByRole('region', { name: '4 ready' });
     await expect(needsReviewSection).toBeVisible();
     await expect(readySection).toBeVisible();
-    await expect(needsReviewSection.getByRole('heading', { name: 'Needs review', level: 5 })).toBeVisible();
-    await expect(readySection.getByRole('heading', { name: 'Ready', level: 5 })).toBeVisible();
+    await expect(needsReviewSection.getByRole('heading', { name: 'Needs attention', level: 5 })).toBeVisible();
 
     const firstGroupRows = firstGroup.getByTestId('import-item-row');
     await expect(firstGroupRows.first()).toHaveAttribute('data-import-item-id', api.detail.items[1].id);
@@ -1046,25 +1046,25 @@ test.describe('analyzed inventory import review', () => {
     await expect(firstGroupRows.first().getByRole('heading', { name: api.detail.items[1].english_name!, level: 6 })).toBeVisible();
     await expect(firstGroupRows.first()).toHaveAccessibleName(api.detail.items[1].english_name!);
     await expect(firstGroupRows.first().locator('.font-mono')).toHaveCount(1);
-    await expect(firstGroupRows.first().getByTestId('import-source-excerpt')).toContainText(api.detail.items[1].parsed_data.sourceExcerpt as string);
-    await expect(firstGroupRows.first().locator('[data-provenance="source_fact"]').first()).toBeVisible();
-    await expect(firstGroupRows.first().getByText('AI interpretation', { exact: true })).toBeVisible();
+    await expect(firstGroupRows.first()).not.toContainText(api.detail.items[1].parsed_data.sourceExcerpt as string);
+    await expect(firstGroupRows.first().locator('[data-provenance]')).toHaveCount(0);
+    await expect(firstGroupRows.first().getByText('AI interpretation', { exact: true })).toHaveCount(0);
 
     const secondGroup = groups.nth(1);
-    await expect(secondGroup.getByText('Needs review', { exact: true })).toHaveCount(1);
-    await expect(secondGroup.getByText('Ready', { exact: true })).toHaveCount(1);
+    await expect(secondGroup.getByText('Needs attention', { exact: true })).toHaveCount(1);
+    await expect(secondGroup.getByRole('button', { name: '4 ready' })).toBeVisible();
     await expect(secondGroup.getByTestId('import-item-row').first()).toHaveAttribute('data-import-item-id', api.detail.items[9].id);
 
     const nextIssue = dialog.getByRole('button', { name: 'Review next tea' });
     await expect(dialog.getByText('2 decisions remaining', { exact: true })).toBeVisible();
     await nextIssue.click();
     const firstFocusedIssue = dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`);
-    await expect(firstFocusedIssue).toBeFocused();
+    await expect(firstFocusedIssue.locator('[data-import-editor] input, [data-import-editor] select, [data-import-editor] textarea').first()).toBeFocused();
     await expect(firstFocusedIssue).toHaveAccessibleName(api.detail.items[1].english_name!);
     await nextIssue.click();
-    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[9].id}"]`)).toBeFocused();
+    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[9].id}"] [data-import-editor] input, [data-import-item-id="${api.detail.items[9].id}"] [data-import-editor] select, [data-import-item-id="${api.detail.items[9].id}"] [data-import-editor] textarea`).first()).toBeFocused();
     await nextIssue.click();
-    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"]`)).toBeFocused();
+    await expect(dialog.locator(`[data-import-item-id="${api.detail.items[1].id}"] [data-import-editor] input, [data-import-item-id="${api.detail.items[1].id}"] [data-import-editor] select, [data-import-item-id="${api.detail.items[1].id}"] [data-import-editor] textarea`).first()).toBeFocused();
     await expect(dialog.getByRole('button', { name: /^Receive 10 teas/ })).toHaveCount(0);
 
     await firstGroup.getByRole('button', { name: /^Change vendor for / }).click();
@@ -1100,8 +1100,8 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.getByRole('button', { name: 'Change sourcing run' })).toBeVisible();
     await expect(dialog.getByTestId('import-vendor-group')).toHaveCount(2);
     await expect(dialog.getByRole('button', { name: /^Change vendor for / })).toHaveCount(2);
-    await expect(dialog.getByTestId('import-vendor-group').first().getByText('Needs review', { exact: true })).toHaveCount(0);
-    await expect(dialog.getByTestId('import-vendor-group').first().getByText('Ready', { exact: true })).toHaveCount(1);
+    await expect(dialog.getByTestId('import-vendor-group').first().getByText('Needs attention', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByTestId('import-vendor-group').first().getByRole('button', { name: '5 ready' })).toBeVisible();
     await expect(dialog.getByText('Chen Family Ancient Tree Tea Cooperative of Xishuangbanna', { exact: true })).toBeVisible();
     await expect(dialog.getByText('Lin Family High Mountain Tea Workshop, Nantou County', { exact: true })).toBeVisible();
 
@@ -1110,6 +1110,7 @@ test.describe('analyzed inventory import review', () => {
       expect(await changeActions.nth(index).evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeLessThanOrEqual(13);
     }
 
+    for (const disclosure of await dialog.getByRole('button', { name: /\d+ ready/ }).all()) await disclosure.click();
     const rows = dialog.getByTestId('import-item-row');
     await expect(rows).toHaveCount(10);
     const readyHeights = await dialog.locator('[data-blocked="false"]').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().height));
@@ -1129,8 +1130,7 @@ test.describe('analyzed inventory import review', () => {
     await expect(dialog.getByRole('button', { name: 'Review next tea' })).toBeVisible();
 
     const readyRow = rows.nth(0);
-    await readyRow.getByRole('button', { name: 'Edit tea' }).click();
-    await readyRow.getByRole('button', { name: 'All details' }).click();
+    await readyRow.getByRole('button', { name: 'Review' }).click();
     await expect(readyRow.getByLabel(/English (inventory )?name/i)).toHaveValue('Yunnan Ancient Tree Raw Pu’er');
     await readyRow.getByLabel(/English (inventory )?name/i).fill('Yunnan Ancient Tree Raw Pu’er — Spring Lot');
     await expect(readyRow.getByLabel('Sourcing run')).toHaveCount(0);
@@ -1140,9 +1140,9 @@ test.describe('analyzed inventory import review', () => {
 
     const uncertainRow = dialog.locator('[data-import-item-id="analyzed-item-10"]');
     await uncertainRow.scrollIntoViewIfNeeded();
-    await uncertainRow.getByRole('radio', { name: /Received now/ }).click();
-    await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
-    await expect(uncertainRow.getByRole('button', { name: 'All details' })).toBeVisible();
+    await uncertainRow.getByRole('button', { name: 'Review' }).click();
+    await uncertainRow.getByLabel('Destination').selectOption('received');
+    await expect(uncertainRow.getByRole('button', { name: 'More tea details' })).toBeVisible();
     await expect(uncertainRow.getByLabel('Tea type')).toHaveCount(0);
     await expect(uncertainRow.getByLabel('Production or classification')).toHaveCount(0);
     await uncertainRow.getByLabel('Pack count').fill('3');
@@ -1162,12 +1162,12 @@ test.describe('analyzed inventory import review', () => {
 
     await uncertainRow.getByRole('button', { name: 'Save tea' }).click();
     await expect(finalAction).toBeEnabled();
-    await uncertainRow.getByRole('button', { name: 'Edit tea' }).click();
-    await uncertainRow.getByRole('button', { name: 'All details' }).click();
+    await uncertainRow.getByRole('button', { name: 'Review' }).click();
+    await uncertainRow.getByRole('button', { name: 'More tea details' }).click();
     await expect(uncertainRow.getByLabel('Pack count')).toHaveValue('3');
     await expect(uncertainRow.getByLabel('Tea type')).toBeVisible();
     await expect(uncertainRow.getByLabel('Production or classification')).toBeVisible();
-    await uncertainRow.getByRole('button', { name: 'Close editing' }).click();
+    await uncertainRow.getByRole('button', { name: 'Cancel' }).click();
     const uncertainCorrection = api.correctionBodies.find(body => body.name === analyzedTeaNames[9][0]);
     expect(uncertainCorrection).toBeTruthy();
     expect(uncertainCorrection?.parsed_data).toMatchObject({
@@ -1287,9 +1287,12 @@ test.describe('analyzed inventory import review', () => {
     await first.getByRole('button', { name: 'Review' }).click();
     await expect(dialog.locator('[data-import-editor]')).toHaveCount(1);
     const firstZones = await first.locator('[data-zone]').evaluateAll(elements => elements.map(element => element.getAttribute('data-zone')));
-    expect(firstZones).toEqual(['identity', 'purchase', 'inventory']);
+    expect(firstZones).toEqual(['identity']);
     await expect(first.getByText('Confirm', { exact: true })).toHaveCount(1);
     await first.getByLabel('English name').fill('Reviewed Yunnan tea');
+    await first.getByRole('button', { name: 'More tea details' }).click();
+    await first.getByLabel('Pack count').fill('3');
+    await expect(first.getByText('500g × 3 = 1500g · CNY 380 each = CNY 1140', { exact: true })).toBeVisible();
     await first.getByRole('button', { name: 'Save tea' }).click();
 
     await expect(second.locator('[data-import-editor]')).toBeVisible();
@@ -1306,25 +1309,30 @@ test.describe('analyzed inventory import review', () => {
     await expect(secondName).toHaveValue('Draft kept for retry');
     await dialog.getByRole('button', { name: 'Retry action' }).click();
     await expect(dialog.getByText('Correction temporarily unavailable')).toHaveCount(0);
-    await expect(secondName).toHaveValue('Draft kept for retry');
+    await expect(second.locator('[data-import-editor]')).toHaveCount(0);
+    await expect(dialog.locator('[data-import-item-id="analyzed-item-10"] [data-import-editor]')).toBeVisible();
+    await expect(dialog.locator('[data-import-item-id="analyzed-item-10"] [data-import-editor] input, [data-import-item-id="analyzed-item-10"] [data-import-editor] select, [data-import-item-id="analyzed-item-10"] [data-import-editor] textarea').first()).toBeFocused();
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   });
 
-  test('promotes naming blockers and referenced image or PDF evidence before all details', async ({ page }) => {
+  test('promotes only naming blockers and keeps raw evidence references out of the editor', async ({ page }) => {
     const api = await installAnalyzedImportApi(page);
     const item = api.detail.items[0];
-    item.raw_text = null as unknown as string;
+    item.raw_text = 'raw-secret-be8fd906-47f1-4a34-bf8c-f5d26db23454';
     item.blocking_fields = ['english_name'];
     item.parsed_data.evidenceRefs = ['source-analyzed:page=2'];
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
-    await row.getByRole('button', { name: 'Edit tea' }).click();
-    await expect(row.getByLabel('English inventory name')).toBeVisible();
-    await expect(row.getByLabel('Original supplier name')).toBeVisible();
+    await row.getByRole('button', { name: 'Review' }).click();
+    await expect(row.getByLabel('English name')).toBeVisible();
+    await expect(row.getByLabel('Original name')).toHaveCount(0);
+    await expect(row.getByLabel('Chinese name')).toHaveCount(0);
+    await expect(row).not.toContainText('source-analyzed');
+    await expect(row).not.toContainText('be8fd906-47f1-4a34-bf8c-f5d26db23454');
+    await row.getByRole('button', { name: 'More tea details' }).click();
+    await expect(row.getByLabel('Original name')).toBeVisible();
     await expect(row.getByLabel('Chinese name')).toBeVisible();
-    await expect(row.getByText(/source-analyzed · Page 2/)).toBeVisible();
-    await expect(row.getByRole('button', { name: 'All details' })).toBeVisible();
   });
 
   test('searches ranked vendor, Library identity, and compatible Inventory holding matches', async ({ page }) => {
@@ -1361,8 +1369,9 @@ test.describe('analyzed inventory import review', () => {
 
     const row = dialog.locator('[data-import-item-id="analyzed-item-10"]');
     await expect(row).toHaveAttribute('data-blocked', 'true');
-    await row.getByRole('button', { name: 'Edit tea' }).click();
+    await row.getByRole('button', { name: 'Review' }).click();
     await expect(row.getByText('Suggested: Jingmai Mountain Raw Pu’er')).toBeVisible();
+    await row.getByRole('button', { name: 'More tea details' }).click();
     const holdingPicker = row.getByRole('combobox', { name: 'Choose stock record' });
     await holdingPicker.click();
     await expect(row.getByRole('option').filter({ hasText: 'Jingmai service holding' })).toHaveCount(0);
@@ -1441,17 +1450,18 @@ test.describe('analyzed inventory import review', () => {
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
     const first = dialog.getByTestId('import-item-row').first();
-    await first.getByRole('button', { name: 'Edit tea' }).click();
+    await dialog.getByRole('button', { name: '5 ready' }).click();
+    await first.getByRole('button', { name: 'Review' }).click();
     await first.getByRole('button', { name: 'Save tea' }).click();
     await expect(first.getByRole('button', { name: 'Saving…' })).toBeDisabled();
-    await expect(dialog.getByTestId('import-item-row').nth(1).getByRole('button', { name: 'Edit tea' })).toBeDisabled();
+    await expect(dialog.getByTestId('import-item-row').nth(1).getByRole('button', { name: 'Review' })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: /^Change vendor for / }).first()).toBeDisabled();
     await expect(dialog.getByRole('button', { name: 'Review next tea' })).toBeDisabled();
     await expect(dialog.getByRole('button', { name: 'Close Import' })).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeVisible();
     releaseSave();
-    await expect(first.getByRole('button', { name: 'Edit tea' })).toBeEnabled();
+    await expect(first.getByRole('button', { name: 'Review' })).toBeEnabled();
   });
 
   test('persists an explicitly cleared proposed holding after purpose makes it incompatible', async ({ page }) => {
@@ -1465,8 +1475,8 @@ test.describe('analyzed inventory import review', () => {
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
     const row = page.getByRole('dialog', { name: 'Import into Curate' }).getByTestId('import-item-row').first();
-    await row.getByRole('button', { name: 'Edit tea' }).click();
-    await row.getByRole('button', { name: 'All details' }).click();
+    await page.getByRole('dialog', { name: 'Import into Curate' }).getByRole('button', { name: '5 ready' }).click();
+    await row.getByRole('button', { name: 'Review' }).click();
     await expect(row.getByText('Selected: Yunnan service holding')).toBeVisible();
     await row.getByLabel('Inventory purpose').selectOption('personal');
     await expect(row.getByText('Selected: Yunnan service holding')).toHaveCount(0);

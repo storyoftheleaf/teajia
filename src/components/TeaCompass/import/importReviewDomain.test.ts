@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail, CurateImportItem } from '../../../lib/api';
 import { buildImportCorrectionParsedData, buildImportReviewModel, importBlockingMessage, importDisposition, importFinalActionLabel, normalizeImportDetail, reviewedFieldsForImportSave } from './importReviewDomain';
-import { compatibleImportHoldings, filterImportJourneys, importFieldNeedsConfirmation, importItemNoun, importQuantityCostEquation, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, validateImportHoldingSelection, withoutImportDerivedFields } from './importReviewDomain';
+import { compatibleImportHoldings, filterImportJourneys, importDraftQuantityCostEquation, importFieldNeedsConfirmation, importItemNoun, importQuantityCostEquation, inventoryTargetFromFinalize, rankImportMatches, resolveImportBlockingFields, validateImportHoldingSelection, withoutImportDerivedFields } from './importReviewDomain';
 
 const item = (overrides: Partial<CurateImportItem> = {}): CurateImportItem => ({
   id: 'item-1', batch_id: 'batch-1', source_id: null, vendor_group_id: 'group-1', position: 0,
@@ -133,12 +133,23 @@ describe('continuous import review presentation', () => {
   });
 
   it('maps canonical and legacy blocker aliases only to their unresolved controls', () => {
-    const blockers = ['english_name', 'priceBasis', 'duplicate_identity'];
+    const blockers = ['english_name', 'priceBasis', 'duplicate_identity', 'classification', 'form', 'description'];
     expect(importFieldNeedsConfirmation('englishName', blockers)).toBe(true);
     expect(importFieldNeedsConfirmation('priceBasis', blockers)).toBe(true);
     expect(importFieldNeedsConfirmation('identity', blockers)).toBe(true);
     expect(importFieldNeedsConfirmation('chineseName', blockers)).toBe(false);
     expect(importFieldNeedsConfirmation('currency', blockers)).toBe(false);
+    expect(importFieldNeedsConfirmation('classification', blockers)).toBe(true);
+    expect(importFieldNeedsConfirmation('form', blockers)).toBe(true);
+    expect(importFieldNeedsConfirmation('description', blockers)).toBe(true);
+  });
+
+  it('derives quiet totals from exact draft strings without changing persisted values', () => {
+    const draft = { packWeight: '500', weightUnit: 'g', packCount: '3', priceAmount: '380', currency: 'CNY', priceBasis: 'per_pack' };
+    expect(importDraftQuantityCostEquation(draft)).toBe('500g × 3 = 1500g · CNY 380 each = CNY 1140');
+    expect(draft).toEqual({ packWeight: '500', weightUnit: 'g', packCount: '3', priceAmount: '380', currency: 'CNY', priceBasis: 'per_pack' });
+    expect(importDraftQuantityCostEquation({ ...draft, packWeight: '0.125', packCount: '2', priceAmount: '21.500' }))
+      .toBe('0.125g × 2 = 0.25g · CNY 21.500 each = CNY 43');
   });
 });
 

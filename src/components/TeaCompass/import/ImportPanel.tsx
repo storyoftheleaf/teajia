@@ -277,12 +277,16 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
     const detail = normalizeImportDetail(await api.curateImports.get(batchId));
     setState(current => ({ ...current, detail })); onDetailChange(detail);
   };
-  const updateItem = async (item: CurateImportItem, updates: CurateImportItemUpdate) => {
+  const updateItem = async (item: CurateImportItem, updates: CurateImportItemUpdate, onRetrySuccess?: () => void) => {
     if (busyId) return false;
     setBusyId(item.id);
     const action = async () => { replaceItem(await api.curateImports.updateItem(item.batch_id, item.id, updates)); await refreshDetail(item.batch_id); };
     try { setOperationError(null); await action(); return true; }
-    catch (error) { retryAction.current = action; setOperationError(errorMessage(error, 'Could not save correction')); return false; }
+    catch (error) {
+      retryAction.current = async () => { await action(); onRetrySuccess?.(); };
+      setOperationError(errorMessage(error, 'Could not save correction'));
+      return false;
+    }
     finally { setBusyId(null); }
   };
   const setJourney = async (journeyId: string | null): Promise<boolean> => {

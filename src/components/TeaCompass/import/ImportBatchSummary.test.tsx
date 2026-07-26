@@ -21,7 +21,7 @@ describe('ImportBatchSummary', () => {
     expect(markup).toContain('Import notes');
     expect(markup).toContain('Shipping');
     expect(markup).toContain('CNY 20');
-    expect(markup).toContain('运费 20元');
+    expect(markup).not.toContain('运费 20元');
   });
 
   it('does not describe Library-only groups as vendors', () => {
