@@ -167,11 +167,12 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       packCount: draft.pack_count ? Number(draft.pack_count) : null, priceAmount: draft.price_amount.trim() || null,
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis as CurateImportItem['price_basis'],
     });
+    const recordsInventory = draft.disposition !== 'library_only';
     const visibleMaterialFields: CurateImportReviewedField[] = [
       ...(requiredConfirmation('englishName') ? ['englishName' as const] : []),
-      ...(requiredConfirmation('packWeight') || requiredConfirmation('weightUnit') || requiredConfirmation('packCount') ? ['packWeight' as const, 'weightUnit' as const, 'packCount' as const] : []),
-      ...(requiredConfirmation('priceAmount') || requiredConfirmation('currency') || requiredConfirmation('priceBasis') ? ['priceBasis' as const, 'priceAmount' as const, 'currency' as const] : []),
-      ...(requiredConfirmation('inventoryPurpose') ? ['inventoryPurpose' as const] : []),
+      ...(recordsInventory && (requiredConfirmation('packWeight') || requiredConfirmation('weightUnit') || requiredConfirmation('packCount')) ? ['packWeight' as const, 'weightUnit' as const, 'packCount' as const] : []),
+      ...(recordsInventory && (requiredConfirmation('priceAmount') || requiredConfirmation('currency') || requiredConfirmation('priceBasis')) ? ['priceBasis' as const, 'priceAmount' as const, 'currency' as const] : []),
+      ...(recordsInventory && requiredConfirmation('inventoryPurpose') ? ['inventoryPurpose' as const] : []),
       'disposition',
     ];
     const reviewedFields = reviewedFieldsForImportSave(

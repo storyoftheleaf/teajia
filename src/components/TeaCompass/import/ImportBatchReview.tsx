@@ -38,6 +38,7 @@ const annotationAmount = (annotation: CurateImportAnnotation) => [annotation.cur
 
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, journeyLookup, vendorLookup, identityLookup, holdingLookup, busyId, onRetryJourneys, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdate, onSetJourney, onCreateJourney, onChangeVendor, onCreateVendor, onFinalize, onRetryAnalysis, onDefer, onNew, onAbandon }) => {
   const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [pendingEditorFocusId, setPendingEditorFocusId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [focusFinalAfterSave, setFocusFinalAfterSave] = useState(false);
   const deleteRef = useRef<HTMLButtonElement>(null);
@@ -66,11 +67,23 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       setFocusFinalAfterSave(false);
     });
   }, [busyId, focusFinalAfterSave, model.canFinalize, model.needsReviewCount, vendorUnresolved]);
-  const focusEditor = (itemId: string) => requestAnimationFrame(() => {
-    const row = document.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(itemId)}"]`);
+  useEffect(() => {
+    if (!pendingEditorFocusId || busyId || openItemId !== pendingEditorFocusId) return;
+    const frame = requestAnimationFrame(() => {
+      const row = reviewRootRef.current?.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(pendingEditorFocusId)}"]`);
+      const target = row?.querySelector<HTMLElement>('[data-import-editor] input:not([disabled]), [data-import-editor] select:not([disabled]), [data-import-editor] textarea:not([disabled])');
+      if (!row || !target) return;
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.focus({ preventScroll: true });
+      setPendingEditorFocusId(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [busyId, openItemId, pendingEditorFocusId]);
+  const focusEditor = (itemId: string) => {
+    const row = reviewRootRef.current?.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(itemId)}"]`);
     row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    (row?.querySelector<HTMLElement>('[data-import-editor] input:not([disabled]), [data-import-editor] select:not([disabled]), [data-import-editor] textarea:not([disabled])') || row)?.focus({ preventScroll: true });
-  });
+    setPendingEditorFocusId(itemId);
+  };
   const openIssue = (itemId: string) => {
     setOpenItemId(itemId);
     focusEditor(itemId);
