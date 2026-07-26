@@ -26,7 +26,7 @@ import { BatchCaptureRow } from './BatchCaptureRow';
 import { CompassEntryDetailPanel } from './CompassEntryDetailPanel';
 import { LedgerOverviewPanel } from './LedgerOverviewPanel';
 import { ImportPanel } from './import/ImportPanel';
-import { LibraryImportsSection } from './LibraryImportsSection';
+import { LibraryImportsSection, nextLibraryImportFocusId, type LibraryImportFocusRequest } from './LibraryImportsSection';
 import { SampleOrderAction } from './SampleOrderAction';
 import { CaptureActionFooter } from './CaptureActionFooter';
 
@@ -211,6 +211,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const [importPanelVersion, setImportPanelVersion] = useState(0);
   const [busyLibraryImportId, setBusyLibraryImportId] = useState<string | null>(null);
   const [libraryImportErrors, setLibraryImportErrors] = useState<Record<string, string>>({});
+  const [libraryDeleteFocusRequest, setLibraryDeleteFocusRequest] = useState<LibraryImportFocusRequest | null>(null);
   const [importPointerId, setImportPointerId] = useState<string | null>(null);
   const importTriggerRef = useRef<HTMLButtonElement>(null);
   const openImportFrom = useCallback((trigger: HTMLButtonElement) => {
@@ -224,7 +225,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   });
   useLayoutEffect(() => {
     setImportOpen(false); setImportDetail(null); setImportDetails([]); setImportAccountId(activeAccountId); setImportPanelVersion(version => version + 1);
-    setBusyLibraryImportId(null); setLibraryImportErrors({});
+    setBusyLibraryImportId(null); setLibraryImportErrors({}); setLibraryDeleteFocusRequest(null);
     setImportPointerId(activeAccountId ? localStorage.getItem(`teajia-curate-import:${activeAccountId}`) : null);
   }, [activeAccountId]);
   const { data: pointedImport } = useQuery({
@@ -408,6 +409,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const deleteSavedImport = useCallback(async (detail: CurateImportDetail) => {
     const accountId = activeAccountId;
     const importId = detail.batch.id;
+    const targetImportId = nextLibraryImportFocusId(importDetails, importId);
     if (!accountId) return;
 
     setBusyLibraryImportId(importId);
@@ -429,6 +431,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
       setImportPointerId(current => current === importId ? null : current);
       const storageKey = `teajia-curate-import:${accountId}`;
       if (localStorage.getItem(storageKey) === importId) localStorage.removeItem(storageKey);
+      setLibraryDeleteFocusRequest(current => ({ requestId: (current?.requestId ?? 0) + 1, targetImportId }));
       setLibraryImportErrors(current => {
         const next = { ...current };
         delete next[importId];
@@ -446,7 +449,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
         setBusyLibraryImportId(current => current === importId ? null : current);
       }
     }
-  }, [activeAccountId, queryClient]);
+  }, [activeAccountId, importDetails, queryClient]);
 
   const handleSelectEntry = useCallback(
     (id: string) => {
@@ -635,7 +638,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
 
   // Tab-level search — shared across all tabs; cleared on tab switch
   const [tabSearchQuery, setTabSearchQuery] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
 
   // Per-share preview expand state
   const [expandedShareIds, setExpandedShareIds] = useState<Set<string>>(new Set());
@@ -886,7 +890,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
-                  ref={searchInputRef}
+                  ref={mobileSearchInputRef}
                   type="text"
                   value={tabSearchQuery}
                   onChange={(e) => setTabSearchQuery(e.target.value)}
@@ -900,7 +904,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                 {tabSearchQuery && (
                   <button
                     type="button"
-                    onClick={() => { setTabSearchQuery(''); searchInputRef.current?.focus(); }}
+                    onClick={() => { setTabSearchQuery(''); mobileSearchInputRef.current?.focus(); }}
                     className="tap-target absolute right-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec hover:text-tea-text transition-colors"
                     aria-label="Clear search"
                   >
@@ -1158,6 +1162,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                     imports={importAccountId === activeAccountId ? importDetails : []}
                     busyImportId={busyLibraryImportId}
                     errorByImportId={libraryImportErrors}
+                    focusRequest={libraryDeleteFocusRequest}
+                    fallbackFocusRef={mobileSearchInputRef}
                     onOpen={openSavedImport}
                     onDelete={deleteSavedImport}
                   />
@@ -1241,6 +1247,7 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
                 <input
+                  ref={desktopSearchInputRef}
                   type="text"
                   value={tabSearchQuery}
                   onChange={(e) => setTabSearchQuery(e.target.value)}
@@ -1513,6 +1520,8 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
                       imports={importAccountId === activeAccountId ? importDetails : []}
                       busyImportId={busyLibraryImportId}
                       errorByImportId={libraryImportErrors}
+                      focusRequest={libraryDeleteFocusRequest}
+                      fallbackFocusRef={desktopSearchInputRef}
                       onOpen={openSavedImport}
                       onDelete={deleteSavedImport}
                     />

@@ -2,7 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { CurateImportDetail } from '../../lib/api';
-import { LibraryImportsSection } from './LibraryImportsSection';
+import { LibraryImportsSection, nextLibraryImportFocusId } from './LibraryImportsSection';
 
 const importDetail = (
   id: string,
@@ -27,6 +27,18 @@ const importDetail = (
 });
 
 describe('LibraryImportsSection', () => {
+  it('chooses the next visible row after deletion and falls back when none remain', () => {
+    const imports = [
+      importDetail('batch-1', 'First list'),
+      importDetail('batch-2', 'Second list'),
+      importDetail('batch-3', 'Third list'),
+    ];
+
+    expect(nextLibraryImportFocusId(imports, 'batch-2')).toBe('batch-3');
+    expect(nextLibraryImportFocusId(imports, 'batch-3')).toBe('batch-2');
+    expect(nextLibraryImportFocusId([imports[0]], 'batch-1')).toBeNull();
+  });
+
   it('renders active imports as accessible Curate record rows with review and attention counts', () => {
     const html = renderToStaticMarkup(
       <LibraryImportsSection

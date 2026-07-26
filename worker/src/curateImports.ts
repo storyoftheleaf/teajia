@@ -1529,12 +1529,17 @@ export async function addCurateImportItem(request: Request, env: ImportEnv, ctx:
 export async function abandonCurateImport(_request: Request, env: ImportEnv, ctx: CurateImportContext, params: Record<string, string>) {
   const batch = await scopedBatch(env, params.id, ctx.accountId);
   if (!batch) return response({ error: 'Import not found' }, 404);
+  if (batch.review_state === 'abandoned') return response({ success: true, id: params.id, review_state: 'abandoned' });
   if (batchIsTerminal(batch)) return terminalResponse();
   const results = await env.DB.batch([
     env.DB.prepare("UPDATE curate_import_items SET review_state = 'abandoned', updated_at = datetime('now') WHERE batch_id = ? AND account_id = ? AND review_state IN ('pending', 'reviewing') AND EXISTS (SELECT 1 FROM curate_import_batches WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL)").bind(params.id, ctx.accountId, params.id, ctx.accountId),
     env.DB.prepare("UPDATE curate_import_batches SET review_state = 'abandoned', updated_at = datetime('now') WHERE id = ? AND account_id = ? AND review_state NOT IN ('completed', 'abandoned') AND finalize_idempotency_key IS NULL").bind(params.id, ctx.accountId),
   ]);
-  if (!(results[1]?.meta.changes ?? 0)) return terminalResponse();
+  if (!(results[1]?.meta.changes ?? 0)) {
+    const latestBatch = await scopedBatch(env, params.id, ctx.accountId);
+    if (latestBatch?.review_state === 'abandoned') return response({ success: true, id: params.id, review_state: 'abandoned' });
+    return terminalResponse();
+  }
   return response({ success: true, id: params.id, review_state: 'abandoned' });
 }
 

@@ -513,11 +513,21 @@ test.describe('Curate Import panel', () => {
       batch: { id: 'batch-delete', title: 'Delete retry list', review_state: 'reviewing', journey_id: null, visit_id: null, analysis_state: 'completed' },
       sources: [savedSource], groups: [], items: [],
     };
+    const nextImport = {
+      batch: { id: 'batch-next', title: 'Next imported list', review_state: 'reviewing', journey_id: null, visit_id: null, analysis_state: 'completed' },
+      sources: [{ id: 'source-next', batch_id: 'batch-next', kind: 'paste', pasted_text: 'Next imported list', r2_object_key: null, metadata: {} }], groups: [], items: [],
+    };
     let abandonRequests = 0;
     await page.addInitScript(() => localStorage.setItem('teajia-curate-import:acct-bali', 'batch-delete'));
-    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: savedImport.batch.review_state === 'abandoned' ? [] : [savedImport] } }));
+    await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [savedImport, nextImport].filter(detail => detail.batch.review_state !== 'abandoned') } }));
     await page.route('**/api/curate/imports/batch-delete', route => route.fulfill({ json: savedImport }));
-    await page.route('**/api/curate/imports/batch-delete/abandon', route => {
+    await page.route('**/api/curate/imports/batch-next', route => route.fulfill({ json: nextImport }));
+    await page.route('**/api/curate/imports/*/abandon', route => {
+      const importId = new URL(route.request().url()).pathname.split('/').at(-2);
+      if (importId === 'batch-next') {
+        nextImport.batch.review_state = 'abandoned';
+        return route.fulfill({ json: { success: true, review_state: 'abandoned' } });
+      }
       abandonRequests += 1;
       if (abandonRequests === 1) return route.fulfill({ status: 503, json: { error: 'Delete import is temporarily unavailable' } });
       savedImport.batch.review_state = 'abandoned';
@@ -539,10 +549,15 @@ test.describe('Curate Import panel', () => {
     await expect.poll(() => page.evaluate(() => localStorage.getItem('teajia-curate-import:acct-bali'))).toBe('batch-delete');
 
     await imports.getByRole('button', { name: 'Retry delete Delete retry list' }).click();
-    await expect(page.getByRole('region', { name: 'Imports' }).filter({ visible: true })).toHaveCount(0);
+    await expect(imports.getByRole('button', { name: 'Open Next imported list' })).toBeFocused();
     expect(abandonRequests).toBe(2);
     expect(savedImport.sources).toEqual([savedSource]);
     await expect.poll(() => page.evaluate(() => localStorage.getItem('teajia-curate-import:acct-bali'))).toBeNull();
+
+    await imports.getByRole('button', { name: 'Delete Next imported list' }).click();
+    await imports.getByRole('group', { name: 'Delete Next imported list confirmation' }).getByRole('button', { name: 'Delete import' }).click();
+    await expect(page.getByRole('region', { name: 'Imports' }).filter({ visible: true })).toHaveCount(0);
+    await expect(page.getByPlaceholder('Search Library').filter({ visible: true })).toBeFocused();
   });
 
   test('supports photo, document, and invoice evidence plus retry after parsing failure', async ({ page }) => {

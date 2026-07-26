@@ -1890,6 +1890,31 @@ describe('Curate import provenance API', () => {
     expect((await (await request(db, '/api/curate/imports?state=incomplete')).json() as any).imports).toHaveLength(0);
   });
 
+  it('replays abandon after response loss without removing source evidence', async () => {
+    const db = new ImportDb();
+    const objects = new Map<string, ArrayBuffer>();
+    const bucket = {
+      put: async (key: string, value: ArrayBuffer) => { objects.set(key, value); },
+      delete: async (key: string) => { objects.delete(key); },
+      get: async (key: string) => objects.has(key) ? { body: new Response(objects.get(key)).body } : null,
+    } as unknown as R2Bucket;
+    const created = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({ title: 'Retry-safe abandon', items: [{ name: 'Saved tea' }] }) }, 'account-a', 'user-a', bucket);
+    const { batch } = await created.json() as any;
+    const uploaded = await request(db, `/api/curate/imports/${batch.id}/evidence`, {
+      method: 'POST', headers: { 'X-Filename': 'invoice.pdf', 'X-Client-Evidence-Id': 'abandon-evidence', 'Content-Type': 'application/pdf' }, body: '%PDF-kept',
+    }, 'account-a', 'user-a', bucket);
+    const source = await uploaded.json() as any;
+
+    const first = await request(db, `/api/curate/imports/${batch.id}/abandon`, { method: 'POST' }, 'account-a', 'user-a', bucket);
+    const replay = await request(db, `/api/curate/imports/${batch.id}/abandon`, { method: 'POST' }, 'account-a', 'user-a', bucket);
+
+    expect(first.status).toBe(200);
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toMatchObject({ success: true, review_state: 'abandoned' });
+    expect(db.sources.get(source.id)).toMatchObject({ id: source.id, r2_object_key: source.r2_object_key });
+    expect(objects.has(source.r2_object_key)).toBe(true);
+  });
+
   it('enforces the 100-item cap on initial creation and atomic manual addition', async () => {
     const db = new ImportDb();
     const tooMany = await request(db, '/api/curate/imports', { method: 'POST', body: JSON.stringify({
