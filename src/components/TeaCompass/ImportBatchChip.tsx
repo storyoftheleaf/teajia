@@ -5,7 +5,7 @@ import { buildImportReviewModel } from './import/importReviewDomain';
 
 interface ImportBatchChipProps {
   detail: CurateImportDetail;
-  onOpen: () => void;
+  onOpen: (trigger: HTMLButtonElement) => void;
   onDelete: () => Promise<void>;
   busy?: boolean;
   error?: string;
@@ -36,7 +36,7 @@ export const ImportBatchChip: React.FC<ImportBatchChipProps> = ({ detail, onOpen
         metadata={`${reviewed}/${detail.items.length} reviewed`}
         status={`${attention} ${attention === 1 ? 'needs' : 'need'} attention`}
         openLabel={`Open ${title}`}
-        onOpen={onOpen}
+        onOpen={event => onOpen(event.currentTarget)}
         deleteLabel={`Delete ${title}`}
         onDelete={() => setConfirming(true)}
         busy={busy}

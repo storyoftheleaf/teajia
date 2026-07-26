@@ -184,7 +184,7 @@ export const CurateRecordRow: React.FC<{
   metadata: string;
   status?: string;
   openLabel?: string;
-  onOpen: () => void;
+  onOpen: (event: React.MouseEvent<HTMLButtonElement>) => void;
   deleteLabel?: string;
   onDelete?: () => void;
   busy?: boolean;

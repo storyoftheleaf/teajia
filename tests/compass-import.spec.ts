@@ -549,27 +549,48 @@ test.describe('Curate Import panel', () => {
     const savedImport = {
       batch: { id: 'batch-library', title: 'Imported list', review_state: 'reviewing', journey_id: null, visit_id: null, analysis_state: 'completed' },
       sources: [{ id: 'source-library', batch_id: 'batch-library', kind: 'paste', pasted_text: 'Imported list', r2_object_key: null, metadata: {} }],
-      groups: [],
+      groups: [{ id: 'group-library', batch_id: 'batch-library', position: 0, proposed_vendor_name: 'Library vendor', resolved_vendor_customer_id: 'vendor-library', resolved_vendor_name: 'Library vendor', confidence: 1, uncertainty: {}, review_state: 'accepted' }],
       items: [{
-        id: 'item-library', batch_id: 'batch-library', source_id: 'source-library', position: 0, category: 'tea', name: 'Library tea', raw_text: 'Library tea',
-        parsed_data: {}, confidence: 0.5, uncertainty: { currency: 'Confirm currency' }, review_state: 'pending', compass_entry_id: null,
-        reserved_compass_entry_id: 'compass-library', blocking_fields: ['currency'],
+        id: 'item-library', batch_id: 'batch-library', source_id: 'source-library', position: 0, category: 'tea', name: 'Library tea', english_name: null, raw_text: 'Library tea',
+        parsed_data: { disposition: 'library_only', duplicateResolution: 'new' }, confidence: 0.5, uncertainty: { english_name: 'Confirm translation' }, review_state: 'pending', compass_entry_id: null,
+        reserved_compass_entry_id: 'compass-library', blocking_fields: ['english_name'], duplicate_resolution: 'new', vendor_group_id: 'group-library',
+        pack_weight: 500, weight_unit: 'g', pack_count: 1, price_amount: 380, currency: null, price_basis: 'line_total',
       }],
     };
     await page.route('**/api/curate/imports?state=incomplete', route => route.fulfill({ json: { imports: [savedImport] } }));
     await page.route('**/api/curate/imports/batch-library', route => route.fulfill({ json: savedImport }));
+    await page.route('**/api/curate/imports/batch-library/items/item-library', async route => {
+      if (route.request().method() !== 'PUT') return route.fallback();
+      Object.assign(savedImport.items[0], route.request().postDataJSON(), { blocking_fields: [], uncertainty: {}, confidence: 0.96 });
+      return route.fulfill({ json: savedImport.items[0] });
+    });
 
     await openCompass(page);
     await expect(page.getByRole('region', { name: 'Incomplete imports' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Open Imported list' })).toHaveCount(0);
 
+    const sourceImport = page.getByRole('tab', { name: 'Import', exact: true }).first();
+    await sourceImport.click();
+    await expect(page.getByLabel('Vendor list or invoice')).toBeVisible();
+    await expect(page.getByText('Library tea', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Close Import' }).click();
+    await expect(sourceImport).toBeFocused();
+
     await page.getByRole('tab', { name: 'Library', exact: true }).click();
     const imports = page.getByRole('region', { name: 'Imports' }).filter({ visible: true });
     await expect(imports).toBeVisible();
-    await expect(imports.getByRole('button', { name: 'Open Imported list' })).toBeVisible();
+    const openSavedImport = imports.getByRole('button', { name: 'Open Imported list' });
+    await expect(openSavedImport).toBeVisible();
     await expect(imports.getByRole('button', { name: 'Delete Imported list' })).toBeVisible();
-    await imports.getByRole('button', { name: 'Open Imported list' }).click();
+    await openSavedImport.click();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toBeVisible();
+    const savedRow = page.locator('[data-import-item-id="item-library"]');
+    await savedRow.getByRole('button', { name: 'Review' }).click();
+    await savedRow.getByLabel('English name').fill('Reviewed Library tea');
+    await savedRow.getByRole('button', { name: 'Save tea' }).click();
+    await page.getByRole('button', { name: 'Close Import' }).click();
+    await expect(openSavedImport).toBeFocused();
+    await expect(imports.getByText('1/1 reviewed', { exact: true })).toBeVisible();
   });
 
   test('delete imported list confirms once, retains its source, and retries inline', async ({ page }) => {

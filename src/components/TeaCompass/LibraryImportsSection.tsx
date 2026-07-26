@@ -21,7 +21,7 @@ interface LibraryImportsSectionProps {
   errorByImportId: Record<string, string>;
   focusRequest?: LibraryImportFocusRequest | null;
   fallbackFocusRef?: RefObject<HTMLElement | null>;
-  onOpen: (detail: CurateImportDetail) => void;
+  onOpen: (detail: CurateImportDetail, trigger: HTMLButtonElement) => void;
   onDelete: (detail: CurateImportDetail) => Promise<void>;
 }
 
@@ -57,7 +57,7 @@ export const LibraryImportsSection: React.FC<LibraryImportsSectionProps> = ({ im
               detail={detail}
               busy={busyImportId === detail.batch.id}
               error={errorByImportId[detail.batch.id]}
-              onOpen={() => onOpen(detail)}
+              onOpen={trigger => onOpen(detail, trigger)}
               onDelete={() => onDelete(detail)}
             />
           </div>
