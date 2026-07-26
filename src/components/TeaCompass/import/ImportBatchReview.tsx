@@ -43,6 +43,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   const deleteRef = useRef<HTMLButtonElement>(null);
   const cancelDeleteRef = useRef<HTMLButtonElement>(null);
   const finalActionRef = useRef<HTMLButtonElement>(null);
+  const reviewRootRef = useRef<HTMLDivElement>(null);
   const model = useMemo(() => buildImportReviewModel(detail), [detail]);
   const primaryCurrency = model.currencyTotals.length === 1 ? model.currencyTotals[0] : null;
   const failedSourceIds = detail.sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
@@ -55,10 +56,16 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   useEffect(() => {
     if (!focusFinalAfterSave || model.needsReviewCount > 0 || busyId) return;
     requestAnimationFrame(() => {
-      finalActionRef.current?.focus();
+      const finalAction = finalActionRef.current;
+      const vendorAction = vendorUnresolved
+        ? reviewRootRef.current?.querySelector<HTMLButtonElement>('[data-import-vendor-action]:not(:disabled)')
+        : null;
+      const fallbackAction = reviewRootRef.current?.querySelector<HTMLButtonElement>('[data-testid="import-review-actions"] button:not(:disabled)');
+      if (model.canFinalize && finalAction && !finalAction.disabled) finalAction.focus();
+      else (vendorAction || fallbackAction)?.focus();
       setFocusFinalAfterSave(false);
     });
-  }, [busyId, focusFinalAfterSave, model.needsReviewCount]);
+  }, [busyId, focusFinalAfterSave, model.canFinalize, model.needsReviewCount, vendorUnresolved]);
   const focusEditor = (itemId: string) => requestAnimationFrame(() => {
     const row = document.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(itemId)}"]`);
     row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -119,7 +126,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   ];
   const annotations = detail.batch.analysis_annotations ?? [];
   return (
-    <div className="curate-source-sheet">
+    <div ref={reviewRootRef} className="curate-source-sheet">
       <section aria-labelledby="import-summary-heading">
         <h3 id="import-summary-heading" className="sr-only">Import batch context</h3>
         <p data-testid="import-batch-summary" className="curate-context-band px-2 py-2 text-ui-12 text-tea-text-sec">{importBatchSummary(detail)}</p>

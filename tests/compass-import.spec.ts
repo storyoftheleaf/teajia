@@ -1370,6 +1370,30 @@ test.describe('analyzed inventory import review', () => {
     await expect(finalAction).toBeFocused();
   });
 
+  test('focuses unresolved vendor action instead of disabled finalize after saving the last item blocker', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const last = api.detail.items.at(-1)!;
+    Object.assign(last, { blocking_fields: [], acquired: true, duplicate_resolution: 'new' });
+    Object.assign(last.parsed_data, { disposition: 'received', acquired: true, inventoryPurpose: 'working', duplicateResolution: 'new' });
+    api.detail.items[0].blocking_fields = ['english_name'];
+    api.detail.groups[0].resolved_vendor_customer_id = null;
+    api.detail.groups[0].resolved_vendor_name = null;
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const row = dialog.locator('[data-import-item-id="analyzed-item-1"]');
+
+    await row.getByRole('button', { name: 'Review' }).click();
+    await row.getByLabel('English name').fill('Final reviewed tea');
+    await row.getByRole('button', { name: 'Save tea' }).click();
+
+    const finalAction = dialog.getByTestId('import-review-actions').getByRole('button', { name: 'Receive 10 teas' });
+    const vendorAction = dialog.getByRole('button', { name: /^Change vendor for Chen Family/ });
+    await expect(finalAction).toBeDisabled();
+    await expect(vendorAction).toBeEnabled();
+    await expect(vendorAction).toBeFocused();
+  });
+
   test('promotes only naming blockers and keeps raw evidence references out of the editor', async ({ page }) => {
     const api = await installAnalyzedImportApi(page);
     const item = api.detail.items[0];

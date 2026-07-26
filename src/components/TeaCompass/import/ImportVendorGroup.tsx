@@ -56,7 +56,7 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
       {group.vendorRequired ? <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0"><p className="curate-support text-tea-text-dim">Vendor · {group.items.length} {groupNoun}{!group.vendorResolved ? ' · suggested' : ''}</p>
         <h4 id={`vendor-${group.id}`} className="curate-primary truncate font-medium">{vendorName}</h4></div>
-        <button type="button" disabled={Boolean(busyId)} onClick={() => setChanging(value => !value)} aria-label={`Change vendor for ${vendorName}`} aria-expanded={changing} className="curate-action curate-compact-target shrink-0 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Change</button>
+        <button type="button" data-import-vendor-action disabled={Boolean(busyId)} onClick={() => setChanging(value => !value)} aria-label={`Change vendor for ${vendorName}`} aria-expanded={changing} className="curate-action curate-compact-target shrink-0 text-tea-text-sec hover:text-tea-text disabled:opacity-50">Change</button>
       </div> : <div>
         <p className="curate-support text-tea-text-dim">Library records · {group.items.length} {groupNoun}</p>
         <h4 id={`vendor-${group.id}`} className="curate-primary font-medium">Saved without vendor</h4>
