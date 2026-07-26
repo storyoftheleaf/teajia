@@ -332,7 +332,7 @@ test.describe('Curate Import panel', () => {
   });
   test.afterEach(async ({ page }) => expectNoUnhandledCompassApi(page));
 
-  test('uses a compact import review shell with one sticky header', async ({ page }) => {
+  test('uses a compact import review shell with one sticky header', async ({ page }, testInfo) => {
     const api = await installAnalyzedImportApi(page);
     await openCompass(page);
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
@@ -354,7 +354,7 @@ test.describe('Curate Import panel', () => {
       await expect(actions).not.toHaveCSS('position', 'sticky');
       expect(await actions.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(columnCount);
     };
-    await assertCompactShell(4);
+    await assertCompactShell(testInfo.project.name === 'Mobile Chrome' ? 2 : 4);
     await page.setViewportSize({ width: 390, height: 844 });
     await assertCompactShell(2);
     expect(api.detail.items).toHaveLength(10);
@@ -454,6 +454,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Analyzing your record…')).toBeVisible();
     await expect(page.getByTestId('import-vendor-group')).toHaveCount(1);
+    await page.getByTestId('import-vendor-group').getByRole('button', { name: '3 ready', exact: true }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(3);
     await expect(page.getByTestId('import-item-row').filter({ hasText: 'Clay pot' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Receive 3 items' })).toBeEnabled();
@@ -471,6 +472,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import' }).first().click();
     await page.getByLabel('Vendor list or invoice').fill('Clay pot — 2 units');
     await page.getByRole('button', { name: 'Start import' }).click();
+    await page.getByTestId('import-vendor-group').getByRole('button', { name: '1 ready', exact: true }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(1);
     await page.getByRole('button', { name: 'Receive 1 teaware item' }).click();
     const completion = page.getByRole('region', { name: 'Import complete' });
@@ -496,8 +498,9 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
 
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
-    await expect(dialog.getByRole('heading', { name: 'Yunnan Ancient Tree Raw Pu’er', level: 6 })).toBeVisible();
     await expect.poll(api.detailGetCalls).toBeGreaterThan(0);
+    await dialog.getByTestId('import-vendor-group').first().getByRole('button', { name: '5 ready', exact: true }).click();
+    await expect(dialog.getByRole('heading', { name: 'Yunnan Ancient Tree Raw Pu’er', level: 6 })).toBeVisible();
   });
 
   test('refreshes an open import record when the window regains focus', async ({ page }) => {
@@ -518,6 +521,7 @@ test.describe('Curate Import panel', () => {
     first.blocking_fields = (first.blocking_fields || []).filter(field => field !== 'englishName');
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
 
+    await dialog.getByTestId('import-vendor-group').first().getByRole('button', { name: '5 ready', exact: true }).click();
     await expect(dialog.getByRole('heading', { name: 'Aged Liu Bao Tea', level: 6 })).toBeVisible();
   });
 
@@ -603,7 +607,7 @@ test.describe('Curate Import panel', () => {
     await expect(confirmation).toContainText('source record and evidence are retained');
     expect(abandonRequests).toBe(0);
 
-    await confirmation.getByRole('button', { name: 'Delete import' }).click();
+    await confirmation.getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(imports.getByRole('alert')).toContainText('Delete import is temporarily unavailable');
     expect(abandonRequests).toBe(1);
     expect(savedImport.sources).toEqual([savedSource]);
@@ -616,7 +620,7 @@ test.describe('Curate Import panel', () => {
     await expect.poll(() => page.evaluate(() => localStorage.getItem('teajia-curate-import:acct-bali'))).toBeNull();
 
     await imports.getByRole('button', { name: 'Delete Next imported list' }).click();
-    await imports.getByRole('group', { name: 'Delete Next imported list confirmation' }).getByRole('button', { name: 'Delete import' }).click();
+    await imports.getByRole('group', { name: 'Delete Next imported list confirmation' }).getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Imports' }).filter({ visible: true })).toHaveCount(0);
     await expect(page.getByPlaceholder('Search Library').filter({ visible: true })).toBeFocused();
   });
@@ -637,6 +641,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('Parser unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Retry import' }).click();
+    await page.getByTestId('import-vendor-group').getByRole('button', { name: '1 ready', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'RETRY tea', level: 6 })).toBeVisible();
     await expect(page.getByText('Analyzed').first()).toBeVisible();
     const analyzedEvidence = page.getByTestId('import-evidence-source').filter({ hasText: 'invoice.pdf' });
@@ -732,6 +737,7 @@ test.describe('Curate Import panel', () => {
       name: 'vendor-list.json', mimeType: 'application/json', buffer: Buffer.from(original),
     });
     await page.getByRole('button', { name: 'Start import' }).click();
+    await page.getByTestId('import-vendor-group').getByRole('button', { name: '2 ready', exact: true }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(2);
     await expect(page.getByTestId('import-item-row').nth(0)).toContainText('Ali Shan');
     await expect(page.getByTestId('import-item-row').nth(1)).toContainText('Red Jade');
@@ -762,7 +768,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
 
     await expect(page.getByText('Analysis failed · Your saved record is ready to analyze again.')).toBeVisible();
-    const deleteImport = page.getByRole('button', { name: 'Delete import' });
+    const deleteImport = page.getByRole('button', { name: 'Delete import', exact: true });
     await expect(deleteImport).toBeVisible();
     await expect(page.getByRole('button', { name: 'Retry import' })).toBeVisible();
     await deleteImport.click();
@@ -773,7 +779,7 @@ test.describe('Curate Import panel', () => {
     await cancel.click();
     await expect(deleteImport).toBeFocused();
     await deleteImport.click();
-    await confirmation.getByRole('button', { name: 'Delete import' }).click();
+    await confirmation.getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /retry-source: 0 items/ })).toHaveCount(0);
   });
@@ -796,8 +802,8 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Add files').setInputFiles({ name: 'delete-retry.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-delete') });
     await page.getByRole('button', { name: 'Start import' }).click();
 
-    await page.getByRole('button', { name: 'Delete import' }).click();
-    await page.getByRole('group', { name: 'Delete import confirmation' }).getByRole('button', { name: 'Delete import' }).click();
+    await page.getByRole('button', { name: 'Delete import', exact: true }).click();
+    await page.getByRole('group', { name: 'Delete import confirmation' }).getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(page.getByText('Delete import is temporarily unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Retry action' }).click();
     await expect(page.getByRole('dialog', { name: 'Import into Curate' })).toHaveCount(0);
@@ -815,8 +821,8 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
 
     await expect(page.getByText('Analysis failed · Your saved record is ready to analyze again.')).toBeVisible();
-    await page.getByRole('button', { name: 'Delete import' }).click();
-    await page.getByRole('group', { name: 'Delete import confirmation' }).getByRole('button', { name: 'Delete import' }).click();
+    await page.getByRole('button', { name: 'Delete import', exact: true }).click();
+    await page.getByRole('group', { name: 'Delete import confirmation' }).getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(page.getByText('Delete import is temporarily unavailable')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Retry action' })).toBeVisible();
 
@@ -825,7 +831,7 @@ test.describe('Curate Import panel', () => {
     await expect(page.getByText('Delete import is temporarily unavailable')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Retry action' })).toHaveCount(0);
     await expect.poll(() => abandonRequests).toBe(1);
-    await page.getByRole('button', { name: 'Delete import' }).click();
+    await page.getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(page.getByRole('group', { name: 'Delete import confirmation' })).toBeVisible();
     await expect.poll(() => abandonRequests).toBe(1);
   });
@@ -856,7 +862,7 @@ test.describe('Curate Import panel', () => {
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByText('No analyzed teas yet. Retry analysis from this saved record.')).toBeVisible();
     const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
-    const deleteImport = dialog.getByRole('button', { name: 'Delete import' });
+    const deleteImport = dialog.getByRole('button', { name: 'Delete import', exact: true });
     const actionRow = deleteImport.locator('..');
     await expect(actionRow.getByRole('button', { name: 'Review later' })).toBeVisible();
     await expect(actionRow.getByRole('button', { name: 'New import' })).toBeVisible();
@@ -867,7 +873,7 @@ test.describe('Curate Import panel', () => {
     await expect(recoveryEntry).toBeVisible();
     await recoveryEntry.click();
     await expect(dialog).toBeVisible();
-    const reopenedDeleteImport = dialog.getByRole('button', { name: 'Delete import' });
+    const reopenedDeleteImport = dialog.getByRole('button', { name: 'Delete import', exact: true });
     await reopenedDeleteImport.click();
     const confirmation = page.getByRole('group', { name: 'Delete import confirmation' });
     await expect(confirmation).toBeVisible();
@@ -877,7 +883,7 @@ test.describe('Curate Import panel', () => {
     await expect(reopenedDeleteImport).toBeFocused();
     await expect(dialog).toBeVisible();
     await reopenedDeleteImport.click();
-    await confirmation.getByRole('button', { name: 'Delete import' }).click();
+    await confirmation.getByRole('button', { name: 'Delete import', exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(recoveryEntry).toHaveCount(0);
   });
@@ -985,6 +991,7 @@ test.describe('Curate Import panel', () => {
     await page.getByLabel('Vendor list or invoice').fill(Array.from({ length: 30 }, (_, index) => `Tea ${index + 1}`).join('\n'));
     await page.getByRole('button', { name: 'Start import' }).click();
     await expect(page.getByTestId('import-batch-summary')).toContainText('30 teas');
+    await page.getByTestId('import-vendor-group').getByRole('button', { name: '30 ready', exact: true }).click();
     await expect(page.getByTestId('import-item-row')).toHaveCount(30);
     await page.getByTestId('import-item-row').last().scrollIntoViewIfNeeded();
     await expect(page.getByTestId('import-item-row').last()).toContainText('Tea 30');
