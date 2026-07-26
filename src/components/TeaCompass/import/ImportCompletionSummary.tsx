@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { CurateImportDetail, CurateImportFinalizeResult } from '../../../lib/api';
+import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { importDisposition, importItemNoun } from './importReviewDomain';
 
 interface Props {
@@ -108,7 +109,7 @@ export const ImportCompletionSummary: React.FC<Props> = ({ detail, result, onClo
               <header className="flex flex-wrap items-end justify-between gap-3 border-b border-tea-border p-4 sm:p-5">
                 <div className="min-w-0 flex-1">
                   <p className="text-ui-10 uppercase tracking-[1.2px] text-tea-text-sec">{groupKind}</p>
-                  <h4 className="mt-1 break-words font-display text-ui-28 font-normal leading-tight text-tea-text">{vendorName}</h4>
+                  <h4 className={`mt-1 break-words text-tea-text ${TYPOGRAPHY_CLASSES.h3}`}>{vendorName}</h4>
                   <p className="mt-1 text-ui-11 text-tea-text-sec">{groupSummary}</p>
                 </div>
                 {receipt?.id ? (

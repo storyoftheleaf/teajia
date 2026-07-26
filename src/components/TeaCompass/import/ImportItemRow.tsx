@@ -83,6 +83,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     },
   });
   const needsConfirm = (field: Parameters<typeof importFieldNeedsConfirmation>[0]) => importFieldNeedsConfirmation(field, draftEffectiveBlockers);
+  const requiredConfirmation = (field: Parameters<typeof importFieldNeedsConfirmation>[0]) => importFieldNeedsConfirmation(field, effectiveBlockers);
 
   const identityOptions = useMemo(() => identityLookup.options.filter(option => option.category === item.category), [identityLookup.options, item.category]);
   const identityState = useMemo<LookupState<ImportIdentityOption>>(() => ({
@@ -167,10 +168,10 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
       currency: draft.currency.trim().toUpperCase() || null, priceBasis: draft.price_basis as CurateImportItem['price_basis'],
     });
     const visibleMaterialFields: CurateImportReviewedField[] = [
-      ...(needsConfirm('englishName') ? ['englishName' as const] : []),
-      ...(needsConfirm('packWeight') || needsConfirm('weightUnit') || needsConfirm('packCount') ? ['packWeight' as const, 'weightUnit' as const, 'packCount' as const] : []),
-      ...(needsConfirm('priceAmount') || needsConfirm('currency') || needsConfirm('priceBasis') ? ['priceBasis' as const, 'priceAmount' as const, 'currency' as const] : []),
-      ...(needsConfirm('inventoryPurpose') ? ['inventoryPurpose' as const] : []),
+      ...(requiredConfirmation('englishName') ? ['englishName' as const] : []),
+      ...(requiredConfirmation('packWeight') || requiredConfirmation('weightUnit') || requiredConfirmation('packCount') ? ['packWeight' as const, 'weightUnit' as const, 'packCount' as const] : []),
+      ...(requiredConfirmation('priceAmount') || requiredConfirmation('currency') || requiredConfirmation('priceBasis') ? ['priceBasis' as const, 'priceAmount' as const, 'currency' as const] : []),
+      ...(requiredConfirmation('inventoryPurpose') ? ['inventoryPurpose' as const] : []),
       'disposition',
     ];
     const reviewedFields = reviewedFieldsForImportSave(
