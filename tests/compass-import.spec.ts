@@ -1307,12 +1307,67 @@ test.describe('analyzed inventory import review', () => {
     await second.getByRole('button', { name: 'Save tea' }).click();
     await expect(dialog.getByRole('alert').filter({ hasText: 'Correction temporarily unavailable' })).toBeVisible();
     await expect(secondName).toHaveValue('Draft kept for retry');
+    await secondName.fill('Edited after failed save');
+    await second.getByRole('button', { name: 'More tea details' }).click();
+    await second.getByLabel('Price amount').fill('455.25');
     await dialog.getByRole('button', { name: 'Retry action' }).click();
     await expect(dialog.getByText('Correction temporarily unavailable')).toHaveCount(0);
+    expect(api.correctionBodies.at(-1)).toMatchObject({
+      name: 'Edited after failed save',
+      parsed_data: { englishName: 'Edited after failed save', priceAmount: '455.25' },
+    });
     await expect(second.locator('[data-import-editor]')).toHaveCount(0);
     await expect(dialog.locator('[data-import-item-id="analyzed-item-10"] [data-import-editor]')).toBeVisible();
     await expect(dialog.locator('[data-import-item-id="analyzed-item-10"] [data-import-editor] input, [data-import-item-id="analyzed-item-10"] [data-import-editor] select, [data-import-item-id="analyzed-item-10"] [data-import-editor] textarea').first()).toBeFocused();
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  });
+
+  test('drops stock-only confirmations and payload review fields when destination changes to Library only', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const row = dialog.locator('[data-import-item-id="analyzed-item-10"]');
+
+    await row.getByRole('button', { name: 'Review' }).click();
+    await expect(row.getByLabel('Pack count')).toBeVisible();
+    await expect(row.getByLabel('Inventory purpose')).toBeVisible();
+    await row.getByLabel('Destination').selectOption('library_only');
+
+    await expect(row.getByLabel('Pack count')).toHaveCount(0);
+    await expect(row.getByLabel('Weight unit')).toHaveCount(0);
+    await expect(row.getByLabel('Price interpretation')).toHaveCount(0);
+    await expect(row.getByLabel('Currency')).toHaveCount(0);
+    await expect(row.getByLabel('Inventory purpose')).toHaveCount(0);
+    await expect(row.getByLabel('Choose stock record')).toHaveCount(0);
+    await expect(row.getByText('Confirm', { exact: true })).toHaveCount(1);
+    await row.getByLabel('Match tea').click();
+    await row.getByRole('option').filter({ hasText: 'Create new Library identity' }).click();
+    await row.getByRole('button', { name: 'Save tea' }).click();
+
+    const correction = api.correctionBodies.at(-1);
+    expect(correction?.reviewed_fields).toEqual(['disposition', 'identity']);
+    expect(correction?.parsed_data).toMatchObject({ disposition: 'library_only', inventoryPurpose: null, proposedProductId: null });
+  });
+
+  test('focuses the final import action after saving the last blocker', async ({ page }) => {
+    const api = await installAnalyzedImportApi(page);
+    const last = api.detail.items.at(-1)!;
+    Object.assign(last, { blocking_fields: [], acquired: true, duplicate_resolution: 'new' });
+    Object.assign(last.parsed_data, { disposition: 'received', acquired: true, inventoryPurpose: 'working', duplicateResolution: 'new' });
+    api.detail.items[0].blocking_fields = ['english_name'];
+    await openCompass(page);
+    await page.getByRole('tab', { name: 'Import', exact: true }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Import into Curate' });
+    const row = dialog.locator('[data-import-item-id="analyzed-item-1"]');
+
+    await row.getByRole('button', { name: 'Review' }).click();
+    await row.getByLabel('English name').fill('Final reviewed tea');
+    await row.getByRole('button', { name: 'Save tea' }).click();
+
+    const finalAction = dialog.getByTestId('import-review-actions').getByRole('button', { name: 'Receive 10 teas' });
+    await expect(finalAction).toBeVisible();
+    await expect(finalAction).toBeFocused();
   });
 
   test('promotes only naming blockers and keeps raw evidence references out of the editor', async ({ page }) => {

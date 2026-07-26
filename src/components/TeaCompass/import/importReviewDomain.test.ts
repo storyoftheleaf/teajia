@@ -219,6 +219,13 @@ describe('review navigation and journey helpers', () => {
     })).toEqual(['duplicateIdentity', 'productId']);
   });
 
+  it('drops stock-only blockers for a live Library-only draft while preserving identity and naming blockers', () => {
+    expect(resolveImportBlockingFields([
+      'english_name', 'pack_count', 'weight_unit', 'price_basis', 'currency',
+      'duplicate_identity', 'product_id', 'inventory_purpose', 'acquired',
+    ], { disposition: 'library_only', inventoryPurpose: null })).toEqual(['english_name', 'duplicate_identity']);
+  });
+
   it('omits derived arithmetic and blockers from correction payloads', () => {
     expect(withoutImportDerivedFields({ englishName: 'Tea', unknownMetadata: true, totalQuantityGrams: 1000, lineCost: 80, unitCost: 0.08, blockingFields: ['priceBasis'] }))
       .toEqual({ englishName: 'Tea' });

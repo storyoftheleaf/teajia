@@ -11,6 +11,7 @@ import {
   importDisposition,
   importFieldNeedsConfirmation,
   importQuantityCostEquation,
+  resolveImportBlockingFields,
   reviewedFieldsForImportSave,
   validateImportHoldingSelection,
   type ImportMatchOption,
@@ -32,7 +33,7 @@ interface ImportItemRowProps {
   onSaved?: (itemId: string) => void;
   onRetryIdentities: () => void;
   onRetryHoldings: () => void;
-  onUpdate: (updates: CurateImportItemUpdate, onRetrySuccess?: () => void) => Promise<boolean>;
+  onUpdate: (updates: CurateImportItemUpdate, retryCurrentDraft?: () => Promise<boolean>) => Promise<boolean>;
 }
 
 const value = (input: unknown) => input == null ? '' : String(input);
@@ -58,17 +59,30 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
   const identityBlocked = normalizedBlockers.some(field => ['identity', 'duplicateidentity', 'compassentryid', 'proposedcompassentryid'].includes(field));
   const productBlocked = normalizedBlockers.some(field => ['identity', 'productid', 'proposedproductid', 'inventoryholding'].includes(field));
   const [draft, setDraft] = useState(() => draftFromItem(item, identityBlocked, productBlocked));
+  const draftEffectiveBlockers = resolveImportBlockingFields(effectiveBlockers, {
+    disposition: draft.disposition || null,
+    inventoryPurpose: draft.purpose || null,
+  });
   const [detailsExpanded, setDetailsExpanded] = useState(() => expanded && effectiveBlockers.length === 0);
   const reviewRef = useRef<HTMLButtonElement>(null);
   const identityResolutionTouched = useRef(false);
   const holdingResolutionTouched = useRef(false);
   const wasExpanded = useRef(false);
   const initializedItemId = useRef(item.id);
+  const submitLatestRef = useRef<() => Promise<boolean>>(async () => false);
   const label = item.english_name || item.name || (item.category === 'tea' ? 'Unnamed tea' : 'Unnamed item');
   const editLabel = item.category === 'tea' ? 'tea' : 'item';
   const headingId = `import-item-${item.id}-heading`;
-  const blocking = importBlockingMessage({ ...item, blocking_fields: effectiveBlockers });
-  const needsConfirm = (field: Parameters<typeof importFieldNeedsConfirmation>[0]) => importFieldNeedsConfirmation(field, effectiveBlockers);
+  const blocking = importBlockingMessage({
+    ...item,
+    blocking_fields: draftEffectiveBlockers,
+    parsed_data: {
+      ...item.parsed_data,
+      disposition: (draft.disposition || null) as CurateImportDisposition | null,
+      inventoryPurpose: (draft.purpose || null) as CurateImportInventoryPurpose | null,
+    },
+  });
+  const needsConfirm = (field: Parameters<typeof importFieldNeedsConfirmation>[0]) => importFieldNeedsConfirmation(field, draftEffectiveBlockers);
 
   const identityOptions = useMemo(() => identityLookup.options.filter(option => option.category === item.category), [identityLookup.options, item.category]);
   const identityState = useMemo<LookupState<ImportIdentityOption>>(() => ({
@@ -139,7 +153,7 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusReview); else focusReview();
   };
 
-  const submit = async () => {
+  const submit = async (): Promise<boolean> => {
     const parsedValues = buildImportCorrectionParsedData(item.parsed_data, {
       englishName: draft.english_name.trim() || null, originalName: draft.original_name.trim() || null, chineseName: draft.chinese_name.trim() || null,
       type: draft.tea_type.trim() || null, classification: draft.classification.trim() || null, year: draft.year ? Number(draft.year) : null,
@@ -177,9 +191,11 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     const completeSave = () => {
       if (onSaved) onSaved(item.id); else setLocalOpen(false);
     };
-    if (!await onUpdate(updates, completeSave)) return;
+    if (!await onUpdate(updates, () => submitLatestRef.current())) return false;
     completeSave();
+    return true;
   };
+  submitLatestRef.current = submit;
 
   const field = (name: Parameters<typeof needsConfirm>[0]) => needsConfirm(name) ? 'Confirm' : undefined;
   const draftEquation = importDraftQuantityCostEquation({
@@ -243,9 +259,9 @@ export const ImportItemRow: React.FC<ImportItemRowProps> = ({
     {draft.disposition !== 'library_only' && show('inventoryPurpose', blocked) && <CurateField label="Inventory purpose" status={field('inventoryPurpose')}><select aria-label="Inventory purpose" value={draft.purpose} onChange={event => setPurpose(event.target.value)}><option value="">Choose purpose</option><option value="working">Tea service</option><option value="personal">Personal collection</option><option value="sample">Sample</option></select></CurateField>}
   </>;
   return (
-    <article data-testid="import-item-row" data-import-item-id={item.id} data-blocked={effectiveBlockers.length ? 'true' : 'false'} aria-labelledby={headingId} tabIndex={-1} className="scroll-mt-24 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
+    <article data-testid="import-item-row" data-import-item-id={item.id} data-blocked={draftEffectiveBlockers.length ? 'true' : 'false'} aria-labelledby={headingId} tabIndex={-1} className="scroll-mt-24 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50">
       <div className="flex min-w-0 items-start gap-2">
-        <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${effectiveBlockers.length ? 'text-tea-gold' : 'bg-tea-accent-sub text-tea-gold'}`} aria-label={effectiveBlockers.length ? 'Needs attention' : 'Ready'}>{effectiveBlockers.length ? <AlertCircle size={16} /> : <Check size={13} />}</span>
+        <span className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${draftEffectiveBlockers.length ? 'text-tea-gold' : 'bg-tea-accent-sub text-tea-gold'}`} aria-label={draftEffectiveBlockers.length ? 'Needs attention' : 'Ready'}>{draftEffectiveBlockers.length ? <AlertCircle size={16} /> : <Check size={13} />}</span>
         <div className="min-w-0 flex-1">
           <h6 id={headingId} className="break-words font-display text-ui-20 leading-snug text-tea-text">{label}</h6>
           {(item.original_name || item.chinese_name) && <p className="mt-0.5 break-words text-ui-12 text-tea-text-sec">

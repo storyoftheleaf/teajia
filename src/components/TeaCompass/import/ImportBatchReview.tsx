@@ -21,7 +21,7 @@ interface ImportBatchReviewProps {
   onRetryVendors: () => void;
   onRetryIdentities: () => void;
   onRetryHoldings: () => void;
-  onUpdate: (item: CurateImportItem, updates: CurateImportItemUpdate, onRetrySuccess?: () => void) => Promise<boolean>;
+  onUpdate: (item: CurateImportItem, updates: CurateImportItemUpdate, retryCurrentDraft?: () => Promise<boolean>) => Promise<boolean>;
   onSetJourney: (journeyId: string | null) => Promise<boolean>;
   onCreateJourney: (input: { name: string; season?: string; year?: number }) => Promise<boolean>;
   onChangeVendor: (groupId: string, vendorId: string) => Promise<boolean>;
@@ -39,8 +39,10 @@ const annotationAmount = (annotation: CurateImportAnnotation) => [annotation.cur
 export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, journeyLookup, vendorLookup, identityLookup, holdingLookup, busyId, onRetryJourneys, onRetryVendors, onRetryIdentities, onRetryHoldings, onUpdate, onSetJourney, onCreateJourney, onChangeVendor, onCreateVendor, onFinalize, onRetryAnalysis, onDefer, onNew, onAbandon }) => {
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [focusFinalAfterSave, setFocusFinalAfterSave] = useState(false);
   const deleteRef = useRef<HTMLButtonElement>(null);
   const cancelDeleteRef = useRef<HTMLButtonElement>(null);
+  const finalActionRef = useRef<HTMLButtonElement>(null);
   const model = useMemo(() => buildImportReviewModel(detail), [detail]);
   const primaryCurrency = model.currencyTotals.length === 1 ? model.currencyTotals[0] : null;
   const failedSourceIds = detail.sources.filter(source => source.analysis_status === 'failed').map(source => source.id);
@@ -50,6 +52,13 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
   useEffect(() => {
     if (confirmDelete) cancelDeleteRef.current?.focus();
   }, [confirmDelete]);
+  useEffect(() => {
+    if (!focusFinalAfterSave || model.needsReviewCount > 0 || busyId) return;
+    requestAnimationFrame(() => {
+      finalActionRef.current?.focus();
+      setFocusFinalAfterSave(false);
+    });
+  }, [busyId, focusFinalAfterSave, model.needsReviewCount]);
   const focusEditor = (itemId: string) => requestAnimationFrame(() => {
     const row = document.querySelector<HTMLElement>(`[data-import-item-id="${CSS.escape(itemId)}"]`);
     row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -71,7 +80,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
       : [...blockerItems.slice(savedIndex + 1), ...blockerItems.slice(0, savedIndex)].filter(item => item.id !== itemId);
     const nextId = nextBlockingImportItemId(remaining, null);
     setOpenItemId(nextId);
-    if (nextId) focusEditor(nextId);
+    if (nextId) focusEditor(nextId); else setFocusFinalAfterSave(true);
   };
   const primaryAction: CurateActionSpec = confirmDelete ? {
     label: 'Delete import',
@@ -92,6 +101,7 @@ export const ImportBatchReview: React.FC<ImportBatchReviewProps> = ({ detail, jo
     busyLabel: 'Saving records…',
     disabled: Boolean(busyId) || !model.canFinalize,
     onClick: () => void onFinalize(),
+    buttonProps: { ref: finalActionRef },
   };
   const neutralActions: CurateActionSpec[] = confirmDelete ? [{
     label: 'Cancel',

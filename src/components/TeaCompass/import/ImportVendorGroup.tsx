@@ -22,7 +22,7 @@ interface Props {
   onRetryVendors: () => void;
   onRetryIdentities: () => void;
   onRetryHoldings: () => void;
-  onUpdateItem: (item: CurateImportItem, updates: CurateImportItemUpdate, onRetrySuccess?: () => void) => Promise<boolean>;
+  onUpdateItem: (item: CurateImportItem, updates: CurateImportItemUpdate, retryCurrentDraft?: () => Promise<boolean>) => Promise<boolean>;
   onChangeVendor: (groupId: string, vendorId: string) => Promise<boolean>;
   onCreateVendor: (groupId: string, name: string) => Promise<boolean>;
 }
@@ -48,7 +48,7 @@ export const ImportVendorGroup: React.FC<Props> = ({ group, vendorLookup, identi
     onSaved={onItemSaved}
     onRetryIdentities={onRetryIdentities}
     onRetryHoldings={onRetryHoldings}
-    onUpdate={(updates, onRetrySuccess) => onUpdateItem(row.item, updates, onRetrySuccess)}
+    onUpdate={(updates, retryCurrentDraft) => onUpdateItem(row.item, updates, retryCurrentDraft)}
   />);
   const showReady = readyOpen || partition.ready.some(({ row }) => row.item.id === openItemId);
   return (
