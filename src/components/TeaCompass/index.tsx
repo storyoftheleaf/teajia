@@ -249,6 +249,12 @@ export const TeaCompass: React.FC<TeaCompassProps> = ({ onBack, initialMode, ini
   const rememberImportDetail = useCallback((detail: CurateImportDetail) => {
     if (detail.batch.review_state === 'completed' || detail.batch.review_state === 'abandoned') {
       setImportDetails(current => current.filter(candidate => candidate.batch.id !== detail.batch.id));
+      if (activeAccountId) {
+        queryClient.setQueryData<{ imports: CurateImportDetail[] }>(['curate-imports', 'incomplete', activeAccountId], current => current
+          ? { ...current, imports: current.imports.filter(candidate => candidate.batch.id !== detail.batch.id) }
+          : current);
+        queryClient.setQueryData(['curate-import', detail.batch.id, activeAccountId], detail);
+      }
       if (activeAccountId) localStorage.removeItem(`teajia-curate-import:${activeAccountId}`);
       setImportDetail(detail);
       return;
