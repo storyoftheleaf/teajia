@@ -1,14 +1,9 @@
-import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
+import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem } from '../../../lib/api';
 import { buildImportReviewModel, importItemNoun } from './importReviewDomain';
 import type { ImportPanelState } from './importTypes';
 
 export type ImportFolioPhase = 'evidence' | 'review' | 'added';
 
-type ImportFolioItem = Pick<CurateImportItem, 'id' | 'category' | 'blocking_fields' | 'parsed_data' | 'disposition' | 'acquired' | 'vendor_group_id'>;
-type ImportFolioDetail = {
-  items: ImportFolioItem[];
-  groups: Array<Pick<CurateImportVendorGroup, 'id'>>;
-};
 type ImportFolioCompletion = Pick<CurateImportFinalizeResult, 'items'>;
 
 export interface ImportFolioPhaseContext {
@@ -41,7 +36,7 @@ export const nextBlockingImportItemId = (
 
 export const folioPhaseContext = (
   phase: ImportFolioPhase,
-  detail: ImportFolioDetail | null,
+  detail: CurateImportDetail | null,
   completion?: ImportFolioCompletion | null,
 ): ImportFolioPhaseContext => {
   if (phase === 'evidence') return { title: 'Add vendor record', status: 'Draft saved' };
@@ -49,7 +44,7 @@ export const folioPhaseContext = (
   const items = detail?.items ?? [];
   if (phase === 'review') {
     const itemCount = items.length;
-    const needsReviewCount = items.filter(item => (item.blocking_fields?.length ?? 0) > 0).length;
+    const needsReviewCount = detail ? buildImportReviewModel(detail).needsReviewCount : 0;
     return {
       title: 'Review imported teas',
       status: `${needsReviewCount} of ${itemCount} ${needsReviewCount === 1 ? 'needs' : 'need'} attention`,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem, CurateImportVendorGroup } from '../../../lib/api';
+import type { CurateImportDetail, CurateImportFinalizeResult, CurateImportItem } from '../../../lib/api';
 import {
   folioPhase,
   folioPhaseContext,
@@ -9,11 +9,6 @@ import {
 } from './importFolioPresentation';
 
 type PresentationItem = Pick<CurateImportItem, 'id' | 'category' | 'blocking_fields' | 'parsed_data' | 'disposition' | 'acquired' | 'vendor_group_id'>;
-type PresentationDetail = {
-  items: PresentationItem[];
-  groups: Array<Pick<CurateImportVendorGroup, 'id'>>;
-};
-
 const item = (id: string, blocked: boolean, category: CurateImportItem['category'] = 'tea'): PresentationItem => ({
   id,
   category,
@@ -34,9 +29,15 @@ const summaryItem = (id: string, overrides: Partial<CurateImportItem> = {}): Cur
   ...overrides,
 });
 
-const detail = (items: PresentationItem[], vendorCount: number): PresentationDetail => ({
+const phaseDetail = (items: CurateImportItem[], vendorCount = 1): CurateImportDetail => ({
+  batch: { id: 'batch-1', title: 'List', review_state: 'reviewing', journey_id: null, visit_id: null },
+  sources: [],
   items,
-  groups: Array.from({ length: vendorCount }, (_, index) => ({ id: `vendor-${index + 1}` })),
+  groups: Array.from({ length: vendorCount }, (_, index) => ({
+    id: `vendor-${index + 1}`, batch_id: 'batch-1', position: index,
+    proposed_vendor_name: `Vendor ${index + 1}`, resolved_vendor_customer_id: `customer-${index + 1}`,
+    resolved_vendor_name: `Vendor ${index + 1}`, uncertainty: {},
+  })),
 });
 
 const completion = (ids: string[]): Pick<CurateImportFinalizeResult, 'items'> => ({
@@ -90,22 +91,41 @@ describe('import folio presentation', () => {
       status: 'Draft saved',
     });
 
-    const reviewDetail = detail([
-      item('tea-1', true),
-      item('tea-2', false),
-      { ...item('tea-3', true), vendor_group_id: 'vendor-2' },
+    const reviewDetail = phaseDetail([
+      summaryItem('tea-1', { blocking_fields: ['currency'] }),
+      summaryItem('tea-2'),
+      summaryItem('tea-3', { blocking_fields: ['currency'], vendor_group_id: 'vendor-2' }),
     ], 2);
     expect(folioPhaseContext('review', reviewDetail)).toEqual({
       title: 'Review imported teas',
       status: '2 of 3 need attention',
     });
-    expect(folioPhaseContext('review', detail([item('pot-1', false, 'teaware')], 1))).toEqual({
+    expect(folioPhaseContext('review', phaseDetail([summaryItem('pot-1', { category: 'teaware' })]))).toEqual({
       title: 'Review imported teas',
       status: '0 of 1 need attention',
     });
-    expect(folioPhaseContext('review', detail([{
-      ...item('library-1', false), parsed_data: { disposition: 'library_only' }, disposition: 'library_only', acquired: false,
-    }], 1))).toEqual({
+    expect(folioPhaseContext('review', phaseDetail([summaryItem('library-1', {
+      parsed_data: { disposition: 'library_only' }, disposition: 'library_only', acquired: false,
+    })]))).toEqual({
+      title: 'Review imported teas',
+      status: '0 of 1 need attention',
+    });
+  });
+
+  it('counts missing effective disposition and purpose decisions in header progress', () => {
+    expect(folioPhaseContext('review', phaseDetail([summaryItem('missing-decision', {
+      parsed_data: {}, disposition: null, acquired: false, blocking_fields: [],
+    })]))).toEqual({
+      title: 'Review imported teas',
+      status: '1 of 1 needs attention',
+    });
+  });
+
+  it('removes stale stock blockers from Library-only header progress', () => {
+    expect(folioPhaseContext('review', phaseDetail([summaryItem('library-only', {
+      parsed_data: { disposition: 'library_only' }, disposition: 'library_only', acquired: false,
+      blocking_fields: ['vendor', 'inventoryPurpose', 'productId', 'acquired'],
+    })]))).toEqual({
       title: 'Review imported teas',
       status: '0 of 1 need attention',
     });
@@ -135,10 +155,10 @@ describe('import folio presentation', () => {
   });
 
   it('reports the actual finalized item count and noun after import', () => {
-    const importDetail = detail([
-      item('tea-1', false),
-      item('pot-1', false, 'teaware'),
-      item('tea-2', false),
+    const importDetail = phaseDetail([
+      summaryItem('tea-1'),
+      summaryItem('pot-1', { category: 'teaware' }),
+      summaryItem('tea-2', { vendor_group_id: 'vendor-2' }),
     ], 2);
 
     expect(folioPhaseContext('added', importDetail, completion(['tea-1', 'pot-1']))).toEqual({
