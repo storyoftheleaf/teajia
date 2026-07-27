@@ -5,14 +5,14 @@ import { getThemeColor } from '../../themeUtils';
 
 export interface QuickEditColumn {
   key: string;
-  /** Tailwind width class (e.g. 'w-[9%]') — the SAME class the table column uses. */
+  /** Tailwind width class (e.g. 'w-[9%]'), the SAME class the table column uses. */
   width: string;
 }
 
 export interface QuickEditFieldsProps {
   /** The product being quick-edited. */
   product: Product;
-  /** The visible columns (key + width), in order — the editors align to these. */
+  /** The visible columns (key + width), in order, the editors align to these. */
   cols: QuickEditColumn[];
   /** Same optimistic + persisted update path the table's inline edits use. */
   onUpdate: (id: string, field: keyof Product, value: any) => void;
@@ -29,7 +29,7 @@ export interface QuickEditFieldsProps {
 }
 
 // A single editable value, sitting in its own column cell directly under the
-// matching table header. No label needed — the column header above IS the label.
+// matching table header. No label needed, the column header above IS the label.
 // Saves on blur only when the value changed, mirroring GhostInput.
 const CellInput = ({
   value, onSave, ariaLabel, prefix, suffix,
@@ -113,7 +113,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
     }
   };
 
-  // The first (widest, Product) column carries the in-shop control — a clearly
+  // The first (widest, Product) column carries the in-shop control, a clearly
   // LABELLED checkbox so it reads as "show this tea in the shop", never a bare
   // pill that looks like a stray tag or a date.
   const inShop = (
@@ -126,7 +126,7 @@ export const QuickEditFields: React.FC<QuickEditFieldsProps> = ({
     >
       <span
         className={`inline-flex items-center justify-center w-4 h-4 rounded-[4px] border transition-colors ${
-          product.isPublic ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border'
+          product.isPublic ? 'cta-solid border-tea-gold' : 'border-tea-border'
         }`}
         aria-hidden="true"
       >

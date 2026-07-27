@@ -294,7 +294,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     stockGrams: '',
     quantityPurchased: '', 
     costAmount: '', // BASE Cost (Source Currency)
-    shippingRateUSD: '13', // INPUT IS ALWAYS USD NOW — $13/kg default
+    shippingRateUSD: '13', // INPUT IS ALWAYS USD NOW, $13/kg default
     costCurrency: 'USD' as Currency,
     vendor: '',
     description: '',
@@ -359,7 +359,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     return () => { cancelled = true; };
   }, [isOpen, initialData?.sourceCompassEntryId]);
 
-  // #42 — Wrap onClose to clear draft on deliberate close
+  // #42: Wrap onClose to clear draft on deliberate close
   const handleClose = () => {
     if (!isEditMode) setDraftProduct(null);
     onClose();
@@ -544,7 +544,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [autoFillSource, setAutoFillSource] = useState<string | null>(null);
   const autoFillSnapshotRef = useRef<typeof formData | null>(null);
 
-  // #42 — Show restore banner when opening a new product form and a draft exists
+  // #42: Show restore banner when opening a new product form and a draft exists
   useEffect(() => {
     if (isOpen && !initialData && draftProduct && Object.keys(draftProduct).length > 0) {
       setShowDraftBanner(true);
@@ -554,7 +554,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // #42 — Debounced auto-save draft (only for new products, not edits)
+  // #42: Debounced auto-save draft (only for new products, not edits)
   useEffect(() => {
     if (!isOpen || initialData) return;
     const timer = setTimeout(() => {
@@ -691,7 +691,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
-  // Reusable input styles — warm tones only, zero grey
+  // Reusable input styles: warm tones only, zero grey
   const inputStyle = "w-full bg-transparent border-b border-tea-border rounded-none px-0 py-1.5 text-sm font-sans text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors placeholder-tea-text-sec";
   const selectStyle = "w-full bg-transparent border-b border-tea-border rounded-none appearance-none px-0 py-1.5 text-sm text-tea-text outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-1 focus-visible:ring-offset-tea-bg focus:border-tea-accent-sub transition-colors cursor-pointer font-sans";
   const labelStyle = "block text-xs uppercase tracking-wider text-tea-gold/70 mb-1 flex items-center gap-1 font-bold";
@@ -758,7 +758,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        {/* #42 — Draft restore banner */}
+        {/* #42: Draft restore banner */}
         {showDraftBanner && !isEditMode && (
           <div className="px-6 py-2.5 bg-tea-gold/10 border-b border-tea-border flex items-center justify-between gap-4 shrink-0">
             <span className="text-xs text-tea-text-sec">You have an unsaved draft. Restore?</span>
@@ -789,11 +789,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        {/* Content — O-P0-1: essentials block + 3 collapsed expanders */}
+        {/* Content, O-P0-1: essentials block + 3 collapsed expanders */}
         <form id="add-product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar">
           <div className="max-w-3xl mx-auto p-5 lg:p-8 space-y-6">
 
-          {/* ── ESSENTIALS — six fields that make a usable, sellable tea ── */}
+          {/* ── ESSENTIALS: six fields that make a usable, sellable tea ── */}
           <section aria-label="Essentials" className="space-y-5">
 
             {/* 1. Photo */}
@@ -901,7 +901,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
               </select>
             </div>
 
-            {/* 4. Cost — currency + amount + weight + shipping → True Cost */}
+            {/* 4. Cost, currency + amount + weight + shipping → True Cost */}
             <section aria-labelledby="cost-heading" className="pt-4 border-t border-tea-border">
               <div className="flex items-baseline justify-between mb-4">
                 <h3 id="cost-heading" className="text-base font-serif italic text-tea-text">Cost</h3>
@@ -955,7 +955,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 </div>
               </div>
 
-              {/* True cost — large and confident */}
+              {/* True cost, large and confident */}
               <div className="mt-5 flex items-end justify-between gap-4">
                 <div>
                   <div className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">True cost</div>
@@ -1005,7 +1005,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 )}
               </div>
 
-              {/* Wholesale — platform accounts only */}
+              {/* Wholesale, platform accounts only */}
               {isPlatformAccount && (
                 <div className="mt-4">
                   <label htmlFor="wholesale-input" className={labelStyle}>Wholesale USD/g</label>
@@ -1057,7 +1057,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   name="form" value={formData.form} onChange={handleChange}
                   className={selectStyle}
                 >
-                  <option value="" className="bg-tea-surface text-tea-text">— unset —</option>
+                  <option value="" className="bg-tea-surface text-tea-text">Not set</option>
                   {['Loose', 'Cake', 'Tuo', 'Brick', 'Rolled', 'Ball', 'Powder', 'Bag', 'Other'].map(f => (
                     <option key={f} value={f} className="bg-tea-surface text-tea-text">{f}</option>
                   ))}
@@ -1153,7 +1153,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                         </span>
                       ) : (
                         <span className="text-ui-10 uppercase tracking-[0.15em] text-tea-text-dim italic" style={{ fontFamily: 'var(--font-display)' }}>
-                          Draft — not yet confirmed
+                          Draft, not yet confirmed
                         </span>
                       );
                     })()}
@@ -1261,7 +1261,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     className="flex items-center gap-2 text-ui-11 uppercase tracking-wider text-tea-text-sec hover:text-tea-text transition-colors"
                   >
                     <ChevronDown size={12} className={`transition-transform duration-200 ${legacyNotesOpen ? '' : '-rotate-90'}`} />
-                    <span>Advanced — legacy tasting notes</span>
+                    <span>Advanced: legacy tasting notes</span>
                     {!legacyNotesOpen && formData.tastingNotes && (
                       <span aria-label="has content" className="inline-block w-1.5 h-1.5 rounded-full bg-tea-gold/70" />
                     )}
@@ -1281,7 +1281,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                   )}
                 </div>
 
-                {/* Tea Key — cross-account review anchor */}
+                {/* Tea Key, cross-account review anchor */}
                 <div className="pt-2 border-t border-tea-border">
                   <label className={labelStyle}>
                     Network Tea Key
@@ -1423,7 +1423,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
         </form>
 
-        {/* Feature 26: Sourcing lineage — edit mode only when sourceCompassEntryId is set */}
+        {/* Feature 26: Sourcing lineage, edit mode only when sourceCompassEntryId is set */}
         {isEditMode && initialData?.sourceCompassEntryId && (
           <div className="px-6 py-4 border-t border-tea-border">
             <div className="flex items-center gap-2 mb-3">
@@ -1485,7 +1485,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        {/* Stock History — edit mode only */}
+        {/* Stock History, edit mode only */}
         {isEditMode && initialData?.id && (
           <div className="px-6 py-4 border-t border-tea-border">
             <StockLedgerPanel
@@ -1495,7 +1495,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           </div>
         )}
 
-        {/* Network Reviews — edit mode only when tea_key is set */}
+        {/* Network Reviews, edit mode only when tea_key is set */}
         {isEditMode && formData.teaKey && (
           <div className="px-6 py-4 border-t border-tea-border">
             <h3 className="text-xs uppercase tracking-wider text-tea-gold/70 font-bold mb-3">
@@ -1528,7 +1528,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     if (form) form.requestSubmit();
                 }}
                 disabled={loading || uploading}
-                className="px-6 py-2.5 bg-tea-gold text-tea-bg text-sm font-medium hover:bg-tea-gold/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl"
+                className="px-6 py-2.5 cta-solid text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-xl"
             >
                 {loading || uploading ? <Loader2 className="animate-spin" size={14} aria-hidden="true" /> : <Save size={14} aria-hidden="true" />}
                 <span>Save item</span>

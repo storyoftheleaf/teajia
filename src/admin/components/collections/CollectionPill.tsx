@@ -64,7 +64,7 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
     try {
       localStorage.setItem(LAST_ID_KEY, id);
       localStorage.setItem(LAST_TITLE_KEY, title);
-    } catch { /* storage disabled — degrade to no last-used */ }
+    } catch { /* storage disabled, degrade to no last-used */ }
   };
 
   const flashOk = () => {
@@ -206,7 +206,7 @@ export const CollectionPill: React.FC<CollectionPillProps> = ({ productId }) => 
                       type="button"
                       onClick={createAndAdd}
                       disabled={!newTitle.trim() || busy}
-                      className="shrink-0 px-2 py-1 bg-tea-gold text-tea-bg rounded text-ui-10 font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                      className="shrink-0 px-2 py-1 cta-solid rounded text-ui-10 font-medium transition-colors disabled:opacity-40"
                     >
                       {busy ? <Loader2 size={10} className="animate-spin" /> : 'Add'}
                     </button>

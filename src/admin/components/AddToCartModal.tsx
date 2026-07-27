@@ -123,7 +123,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           <button
             onClick={() => { if (Number(quantity) > 0) onConfirm(Number(quantity)); }}
             disabled={!quantity || Number(quantity) <= 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10 focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:outline-none"
           >
             Add Item
           </button>

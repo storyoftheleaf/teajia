@@ -80,8 +80,11 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
         onClick={e => e.stopPropagation()}
-        className="relative w-full sm:max-w-md bg-tea-surface border-t sm:border border-tea-border sm:rounded-xl rounded-t-xl overflow-hidden flex flex-col max-h-[85vh]"
-        style={{ boxShadow: '0 24px 60px rgba(24,19,14,0.5)' }}
+        /* Lift shadow stays a warm near-black in both modes, like every entry
+           in designTokens SHADOWS. Written as an arbitrary shadow class so it
+           falls under the documented Rule 2 carve-out rather than sitting as a
+           bare literal inside a style object. */
+        className="relative w-full sm:max-w-md bg-tea-surface border-t sm:border border-tea-border sm:rounded-xl rounded-t-xl overflow-hidden flex flex-col max-h-[85vh] shadow-[0_24px_60px_rgba(24,19,14,0.5)]"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-tea-border">
@@ -138,7 +141,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           )}
         </div>
 
-        {/* Footer — create-new + cancel. Cancel sits bottom-left per app rules. */}
+        {/* Footer, create-new + cancel. Cancel sits bottom-left per app rules. */}
         <div className="border-t border-tea-border px-5 py-4 flex flex-col gap-3">
           {creating ? (
             <div className="flex items-center gap-2">
@@ -155,7 +158,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
                 type="button"
                 onClick={createAndAdd}
                 disabled={!newTitle.trim() || busy}
-                className="px-4 py-2 bg-tea-gold text-tea-bg rounded-md text-ui-12 font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40 shrink-0"
+                className="px-4 py-2 cta-solid rounded-md text-ui-12 font-medium transition-colors disabled:opacity-40 shrink-0"
               >
                 {busy ? <Loader2 size={13} className="animate-spin" /> : 'Create'}
               </button>

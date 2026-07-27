@@ -177,7 +177,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ attendee, onRefresh 
         </div>
       )}
 
-      {/* Row 5: Actions — collapses to notify button post-approval */}
+      {/* Row 5: Actions, collapses to notify button post-approval */}
       {whatsappNotifyUrl ? (
         <div className="flex items-center gap-2 pt-1">
           <a

@@ -105,7 +105,7 @@ function parsePasteFormat(raw: string): {
       const firstToken = section.split(/[\n: ]/)[0].toUpperCase();
       if (KNOWN_KEYWORDS.includes(firstToken)) {
         const preview = section.slice(0, 50);
-        warnings.push(`Unrecognized format: "${preview}${section.length > 50 ? '…' : ''}" — check keyword spelling and spacing.`);
+        warnings.push(`Unrecognized format: "${preview}${section.length > 50 ? '…' : ''}", check keyword spelling and spacing.`);
       }
       blocks.push({ type: 'paragraph', text: section.trim() });
     }
@@ -412,7 +412,7 @@ const PreviewPane: React.FC<{
                 <blockquote key={i} className="border-l-2 border-tea-gold/40 pl-4 py-0.5 space-y-1">
                   <p className="text-ui-14 italic text-tea-text leading-relaxed">"{block.text}"</p>
                   {block.attribution && (
-                    <p className="text-ui-11 text-tea-text-sec">— {block.attribution}</p>
+                    <p className="text-ui-11 text-tea-text-sec">{block.attribution}</p>
                   )}
                 </blockquote>
               );
@@ -591,7 +591,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   const saveRef = useRef(save);
   useEffect(() => { saveRef.current = save; }, [save]);
 
-  // Auto-save on field change (debounced 1.5s) — only when we have a title.
+  // Auto-save on field change (debounced 1.5s), only when we have a title.
   // Reads the freshest save via the ref so the persisted payload always
   // reflects the latest state at the moment the timer fires.
   const scheduleAutoSave = useCallback(() => {
@@ -667,7 +667,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     setPasteWarnings(warnings);
 
     if (newBlocks.length === 0 && !t && !s && !a) {
-      // Nothing usable parsed — keep paste panel open so operator can fix the input
+      // Nothing usable parsed, keep paste panel open so operator can fix the input
       return;
     }
 
@@ -692,10 +692,10 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
   ];
   const LAYOUT_TEMPLATES = [
     { value: IMMERSIVE_TEMPLATE, label: 'Immersive scroll (new reader)' },
-    { value: 'default', label: 'Carousel — Default (4:5)' },
-    { value: 'minimal', label: 'Carousel — Minimal' },
-    { value: 'dark', label: 'Carousel — Dark' },
-    { value: 'interview', label: 'Carousel — Interview' },
+    { value: 'default', label: 'Carousel: Default (4:5)' },
+    { value: 'minimal', label: 'Carousel: Minimal' },
+    { value: 'dark', label: 'Carousel: Dark' },
+    { value: 'interview', label: 'Carousel: Interview' },
   ];
 
   if (!isOpen) return null;
@@ -704,7 +704,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
     <div className="fixed inset-0 z-modal flex flex-col bg-tea-bg text-tea-text">
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 md:px-6 py-3 border-b border-tea-border bg-tea-surface/90 backdrop-blur-xl flex-shrink-0">
-        {/* Close — top-left per panel convention */}
+        {/* Close, top-left per panel convention */}
         <button
           onClick={onClose}
           className="p-1.5 rounded-md text-tea-text-sec hover:text-tea-text transition-colors shrink-0"
@@ -722,7 +722,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           className="flex-1 min-w-0 bg-transparent text-base font-semibold text-tea-text placeholder:text-tea-text-sec/40 outline-none focus:placeholder:text-tea-text-sec/20 transition-colors"
         />
 
-        {/* Render-mode toggle — the single most important wire: choose the
+        {/* Render-mode toggle, the single most important wire: choose the
             immersive scroll reader vs the 4:5 carousel. Persists via
             layout_template on save. Text-only segments per brand law. */}
         <div className="hidden md:flex items-center rounded-full border border-tea-border bg-tea-elevated p-0.5 shrink-0" role="group" aria-label="Article render mode">
@@ -732,7 +732,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             aria-pressed={!isImmersive}
             onClick={() => { setLayoutTemplate('default'); scheduleAutoSave(); }}
             className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${
-              !isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec hover:text-tea-text'
+              !isImmersive ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
             Carousel
@@ -743,7 +743,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             aria-pressed={isImmersive}
             onClick={() => { setLayoutTemplate(IMMERSIVE_TEMPLATE); scheduleAutoSave(); }}
             className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${
-              isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec hover:text-tea-text'
+              isImmersive ? 'cta-solid' : 'text-tea-text-sec hover:text-tea-text'
             }`}
           >
             Immersive
@@ -767,7 +767,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-40 shrink-0 ${
             status === 'published'
               ? 'text-tea-text-sec hover:text-tea-text bg-tea-elevated'
-              : 'text-tea-bg bg-tea-gold hover:bg-tea-gold/90'
+              : 'cta-solid'
           }`}
           title={status === 'published' ? 'Unpublish' : 'Publish'}
         >
@@ -780,7 +780,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           onClick={() => { void save(); }}
           aria-label="Save"
           disabled={saveState === 'saving' || !title.trim()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40 shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40 shrink-0"
         >
           {saveState === 'saving' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           <span className="hidden sm:inline">Save</span>
@@ -790,7 +790,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
       {/* ── Body ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
 
-        {/* Left panel — Block editor (55%) */}
+        {/* Left panel: Block editor (55%) */}
         <div className="flex-1 lg:w-[55%] overflow-y-auto pb-nav-gap lg:pb-4">
           <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 space-y-3">
 
@@ -857,7 +857,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
           </div>
         </div>
 
-        {/* Right panel — Metadata / Preview tabs (45%) */}
+        {/* Right panel: Metadata / Preview tabs (45%) */}
         <div className="hidden lg:flex flex-col w-[45%] max-w-sm border-l border-tea-border overflow-hidden">
 
           {/* Tab bar */}
@@ -937,7 +937,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                       >
                         {CATEGORIES.map(c => (
                           <option key={c} value={c} className="bg-tea-surface text-tea-text">
-                            {c || '— Select category —'}
+                            {c || 'Select category'}
                           </option>
                         ))}
                       </select>
@@ -1040,7 +1040,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                         <button
                           onClick={handleParse}
                           disabled={!pasteText.trim()}
-                          className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                          className="w-full py-2 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40"
                         >
                           Parse into blocks
                         </button>
@@ -1065,7 +1065,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             </div>
           )}
 
-          {/* Reader (immersive) tab — the real reader render, phone + desktop */}
+          {/* Reader (immersive) tab: the real reader render, phone + desktop */}
           {rightTab === 'immersive' && (
             <div className="flex-1 overflow-hidden flex flex-col">
               {!isImmersive && (
@@ -1108,7 +1108,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                   data-testid="render-mode-carousel-mobile"
                   aria-pressed={!isImmersive}
                   onClick={() => { setLayoutTemplate('default'); scheduleAutoSave(); }}
-                  className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${!isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec'}`}
+                  className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${!isImmersive ? 'cta-solid' : 'text-tea-text-sec'}`}
                 >
                   Carousel
                 </button>
@@ -1117,7 +1117,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                   data-testid="render-mode-immersive-mobile"
                   aria-pressed={isImmersive}
                   onClick={() => { setLayoutTemplate(IMMERSIVE_TEMPLATE); scheduleAutoSave(); }}
-                  className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${isImmersive ? 'bg-tea-gold text-tea-bg' : 'text-tea-text-sec'}`}
+                  className={`px-3 py-1 rounded-full text-ui-10 uppercase tracking-[0.12em] transition-colors ${isImmersive ? 'cta-solid' : 'text-tea-text-sec'}`}
                 >
                   Immersive
                 </button>
@@ -1135,7 +1135,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
             <Field label="Category">
               <div className="relative">
                 <select value={category} onChange={e => { setCategory(e.target.value); scheduleAutoSave(); }} className={selectClass}>
-                  {CATEGORIES.map(c => (<option key={c} value={c} className="bg-tea-surface text-tea-text">{c || '— Select category —'}</option>))}
+                  {CATEGORIES.map(c => (<option key={c} value={c} className="bg-tea-surface text-tea-text">{c || 'Select category'}</option>))}
                 </select>
                 <ChevronDown size={12} className="absolute right-0 top-1/2 -translate-y-1/2 text-tea-text-dim pointer-events-none" />
               </div>
@@ -1168,7 +1168,7 @@ export const ArticleEditorModal: React.FC<ArticleEditorModalProps> = ({
                 ))}
               </div>
             )}
-            <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full py-2 rounded-md bg-tea-gold text-tea-bg text-xs font-medium hover:bg-tea-gold/90 transition-colors disabled:opacity-40">
+            <button onClick={handleParse} disabled={!pasteText.trim()} className="w-full py-2 rounded-md cta-solid text-xs font-medium transition-colors disabled:opacity-40">
               Parse into blocks
             </button>
           </div>

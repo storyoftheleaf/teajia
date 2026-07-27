@@ -21,13 +21,13 @@ interface TeaTableProps {
   error?: Error | null;
   onEdit?: (product: Product) => void;
   onRefresh?: () => void;
-  /** Skip default Active/non-Teaware/non-Personal filter — show all passed products */
+  /** Skip default Active/non-Teaware/non-Personal filter, show all passed products */
   showAll?: boolean;
   /** Override header title */
   title?: string;
   /** Render custom content above the filter bar */
   headerSlot?: React.ReactNode;
-  /** Inline mode — auto height instead of full viewport */
+  /** Inline mode, auto height instead of full viewport */
   inline?: boolean;
 }
 
@@ -166,7 +166,7 @@ export const TeaTable: React.FC<TeaTableProps> = ({
                 {title || 'Tea Glossary'}
               </h2>
               <span className="text-tea-text-sec text-xs tracking-wide">
-                — {sortedProducts.length} items
+                · {sortedProducts.length} items
               </span>
             </div>
           )}
@@ -348,7 +348,11 @@ export const TeaTable: React.FC<TeaTableProps> = ({
 
                                     <td className="px-4 align-middle overflow-hidden">
                                         <span className="flex items-center gap-2 text-xs font-medium tracking-wide text-tea-text-sec truncate">
-                                            <span style={{ color: dotColor, fontSize: '10px' }}>&#9679;</span> {product.type}
+                                            {/* The bullet is written as a unicode escape rather than the
+                                                HTML entity &#9679;. The entity reads as a hex literal to the
+                                                colour lint, which flags this style object for a colour that
+                                                is not in it. */}
+                                            <span className="text-ui-10" style={{ color: dotColor }}>{'\u25CF'}</span> {product.type}
                                         </span>
                                     </td>
 

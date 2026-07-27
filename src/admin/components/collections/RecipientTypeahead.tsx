@@ -316,7 +316,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
   // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
-      {/* Compose surface — typeahead + quick-add rails read as one tool */}
+      {/* Compose surface, typeahead + quick-add rails read as one tool */}
       <div className="rounded-xl border border-tea-border bg-tea-bg/40 overflow-visible">
         {/* Typeahead row */}
         <div className="relative">
@@ -380,7 +380,7 @@ export const RecipientTypeahead: React.FC<RecipientTypeaheadProps> = ({
           )}
         </div>
 
-        {/* Quick-add rails — separated by a hairline, never just floating */}
+        {/* Quick-add rails: separated by a hairline, never just floating */}
         {hasQuickAdds && (
           <div className="px-3 pb-2.5 pt-1 flex flex-col gap-2">
             {visibleRecents.length > 0 && (

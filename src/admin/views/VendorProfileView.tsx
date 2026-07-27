@@ -1,9 +1,9 @@
 /**
- * VendorProfileView — /admin/vendors/:vendorId
+ * VendorProfileView, /admin/vendors/:vendorId
  *
  * A read-rich story page for a single vendor: their identity, the teas they
  * sourced, the value of that stock, and every purchase invoice tied to their
- * products.  Not a form — this is an intelligence document.
+ * products.  Not a form, this is an intelligence document.
  */
 
 import React, { useMemo } from 'react';

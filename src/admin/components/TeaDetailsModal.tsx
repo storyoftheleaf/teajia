@@ -126,7 +126,7 @@ export const TeaDetailsModal: React.FC<TeaDetailsModalProps> = ({
   return (
     <>
       {dialog}
-      {/* Tasting Editor Modal — rendered via portal to avoid click propagation closing the parent */}
+      {/* Tasting Editor Modal, rendered via portal to avoid click propagation closing the parent */}
       {tastingProduct && createPortal(
         <TastingEditorModal
           product={tastingProduct}

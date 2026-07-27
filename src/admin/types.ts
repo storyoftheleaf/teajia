@@ -6,7 +6,7 @@ import type { TeaType, TeaForm as WisdomTeaForm } from '../wisdom';
 export type ProductType = TeaType | 'Teaware' | 'Misc' | 'MISSING_TYPE';
 
 // Admin inventory tracks a few physical forms the shared wisdom vocabulary
-// doesn't (Rolled, Powder, Other) — composed on top rather than redeclared.
+// doesn't (Rolled, Powder, Other), composed on top rather than redeclared.
 export type TeaForm = WisdomTeaForm | 'Rolled' | 'Powder' | 'Other';
 
 export type Currency = 'USD' | 'NT' | 'Yuan' | 'IDR' | 'JPY' | 'MYR' | 'HKD' | 'AUD' | 'UNK';
@@ -58,8 +58,8 @@ export interface Product {
   isPersonal: boolean; // Personal collection flag
   canReorder: boolean; // Restockable flag
   isPublic: boolean; // Publicly visible flag (operator's "list this at all")
-  shownInShop: boolean; // Stock spine step 2 — location owner's curation gate; storefront requires isPublic && shownInShop
-  ownerUserId?: string | null; // Stock spine step 1 — whose stock this is; null = owned by the location
+  shownInShop: boolean; // Stock spine step 2, location owner's curation gate; storefront requires isPublic && shownInShop
+  ownerUserId?: string | null; // Stock spine step 1, whose stock this is; null = owned by the location
   isFeatured?: boolean; // Suggested/Featured flag
   isCurated?: boolean; // Curated selection flag
   isSample?: boolean; // Sample/trial tea not yet committed to inventory
@@ -77,7 +77,7 @@ export interface Product {
   mood?: string; // e.g. "Grounding & Meditative"
   experience?: string; // e.g. "A deeply centering tea..."
   additionalImages?: string[]; // Extra photos (different angles, detail shots)
-  bagPhotoUrl?: string; // Original bag shot from capture — kept apart from product imagery so it's never displaced; replaceable deliberately
+  bagPhotoUrl?: string; // Original bag shot from capture, kept apart from product imagery so it's never displaced; replaceable deliberately
   // Teaware-specific fields (null/undefined for tea)
   material?: string; // e.g. "Yixing clay", "porcelain", "silver"
   capacityMl?: number; // Vessel capacity in ml
@@ -88,7 +88,7 @@ export interface Product {
   tasting?: TastingData;
   tastingSource?: 'common' | 'owner' | 'community';
   sourceCompassEntryId?: string; // Persistent link to the Tea Compass entry that sourced this product
-  teaKey?: string; // Normalised tea identity key — shared across accounts for cross-store review aggregation
+  teaKey?: string; // Normalised tea identity key, shared across accounts for cross-store review aggregation
   wholesalePrice?: number;
   catalogVisible?: boolean;
   sessionReserveGrams?: number; // Stock below this threshold shows a soft low-availability warning on the public shop
@@ -170,7 +170,7 @@ export interface Customer {
   name: string;
   company?: string;
   contacts: ContactEntry[];
-  // Legacy flat fields — kept for backwards compat, contacts is the source of truth
+  // Legacy flat fields: kept for backwards compat, contacts is the source of truth
   email?: string;
   phone?: string;
   whatsapp?: string;

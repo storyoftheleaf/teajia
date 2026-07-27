@@ -10,7 +10,7 @@ import { WholesaleOrdersList } from './WholesaleOrdersList';
 import { AdoptionQueue } from './AdoptionQueue';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Network hub — single page that holds the four working surfaces as tabs.
+// Network hub, single page that holds the four working surfaces as tabs.
 //
 // One sidebar entry, one URL, one place. Catalog / Suggestions / Wholesale /
 // Adoptions live here as text-link tabs. Deep sub-pages (an open wholesale
@@ -60,7 +60,7 @@ export const NetworkLanding: React.FC = () => {
   return (
     <div className="pt-8 pb-nav-gap-lg">
 
-      {/* Orientation header — page-level intro that frames all four tabs at once */}
+      {/* Orientation header, page-level intro that frames all four tabs at once */}
       <header className="px-4 md:px-8 max-w-2xl mx-auto mb-8">
         <p className={`${TYPOGRAPHY_CLASSES.label} text-tea-text-sec mb-3`}>
           The network
@@ -89,7 +89,7 @@ export const NetworkLanding: React.FC = () => {
         </div>
       </header>
 
-      {/* Tab strip — text-link tabs in the editorial register */}
+      {/* Tab strip, text-link tabs in the editorial register */}
       {visibleTabs.length > 0 && (
         <nav
           className="px-4 md:px-8 max-w-3xl mx-auto mb-8 border-b border-tea-border pb-3 flex flex-wrap items-baseline gap-x-6 gap-y-2"
@@ -116,7 +116,7 @@ export const NetworkLanding: React.FC = () => {
         </nav>
       )}
 
-      {/* Active tab content — each surface rendered embedded so its own header
+      {/* Active tab content, each surface rendered embedded so its own header
           padding doesn't double up with the hub container's. */}
       <div>
         {visibleTabs.length === 0 && (

@@ -16,11 +16,11 @@ import type {
   WholesaleOrderStatus,
 } from '../../types';
 
-// ── Wholesale order draft — Surface 8 per docs/NETWORK_UI_BRIEF.md ──────────
+// ── Wholesale order draft: Surface 8 per docs/NETWORK_UI_BRIEF.md ──────────
 //
 // Two routes share this component:
-//   /admin/network/wholesale/new       — new draft
-//   /admin/network/wholesale/:orderId  — edit existing draft / view submitted+
+//   /admin/network/wholesale/new       new draft
+//   /admin/network/wholesale/:orderId  edit existing draft / view submitted+
 //
 // Reads as an invoice draft, not a shopping cart. Editorial register throughout.
 // Sell bundle required.
@@ -32,7 +32,7 @@ import type {
 interface DraftItem {
   /** Local-only key for list rendering. */
   key: string;
-  /** Profile ID — used as display key and for deduplication. */
+  /** Profile ID, used as display key and for deduplication. */
   profile_id: string;
   /**
    * Supplier's product_listing ID. Populated from:
@@ -51,7 +51,7 @@ interface DraftItem {
   /** Wholesale price per gram in order currency (buyer's currency). */
   unit_price_amount: number;
   unit_price_currency: string;
-  /** Retail reference in supplier's currency — for display only. */
+  /** Retail reference in supplier's currency, for display only. */
   retail_amount: number | null;
   retail_currency: string | null;
   wholesale_margin_pct: number | null;
@@ -202,7 +202,7 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
       key: `draft-${profile.id}-${Date.now()}`,
       profile_id: profile.id,
       // The catalog endpoint exposes the curator's listing_id directly.
-      // If null (rare — profile without a curator listing), the worker rejects
+      // If null (rare: profile without a curator listing), the worker rejects
       // the wholesale order on submit.
       supplier_listing_id: profile.curator_listing_id ?? '',
       profile_name: profile.name,
@@ -270,8 +270,8 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
       {!loading && filtered.length > 0 && (
         <ul className="divide-y divide-tea-border">
           {filtered.map(profile => {
-            // Disable when the curator has no active listing for this profile —
-            // worker requires supplier_listing_id and would 404 on submit.
+            // Disable when the curator has no active listing for this profile.
+            // The worker requires supplier_listing_id and would 404 on submit.
             const noSupplierListing = !profile.curator_listing_id;
             return (
               <li key={profile.id}>
@@ -292,7 +292,7 @@ const CatalogPicker: React.FC<CatalogPickerProps> = ({
                       </span>
                     ) : null}
                     {noSupplierListing && (
-                      <span className="italic ml-2">— supplier has no active listing</span>
+                      <span className="italic ml-2">(supplier has no active listing)</span>
                     )}
                   </div>
                 </button>
@@ -457,7 +457,7 @@ export const WholesaleOrderDraft: React.FC = () => {
     })),
   );
 
-  // Bundle gate — Sell bundle required
+  // Bundle gate: Sell bundle required
   const hasSell = selectHasBundle({ memberships, activeAccountId, platformRole }, 'sell');
 
   // ── Load state ─────────────────────────────────────────────────────────────
@@ -559,7 +559,7 @@ export const WholesaleOrderDraft: React.FC = () => {
     [items],
   );
 
-  // FX snapshot is intentionally null — the server doesn't return an explicit
+  // FX snapshot is intentionally null, the server doesn't return an explicit
   // rate on the order detail. The fallback prose below ("rates are locked when
   // you submit") covers what the partner needs to know without showing a half-
   // baked rate string. When the server starts returning the snapshot rate this
@@ -604,7 +604,7 @@ export const WholesaleOrderDraft: React.FC = () => {
       if (persistedOrderId) {
         await api.wholesale.updateOrder(persistedOrderId, body);
       } else {
-        // New draft — requires a supplier. If none resolved yet, show error.
+        // New draft: requires a supplier. If none resolved yet, show error.
         if (!supplierAccountId) {
           setSaveStatus('error');
           return;
@@ -753,7 +753,7 @@ export const WholesaleOrderDraft: React.FC = () => {
         </div>
       )}
 
-      {/* Supplier's reply note — shown when status is 'replied' */}
+      {/* Supplier's reply note, shown when status is 'replied' */}
       {orderStatus === 'replied' && orderDetail?.order.supplier_notes && (
         <div className="mb-6 border-b border-tea-border pb-6">
           <p className="font-body italic text-ui-15 text-tea-text-sec leading-[1.7]">
@@ -1053,7 +1053,7 @@ export const WholesaleOrderDraft: React.FC = () => {
               </p>
             )}
 
-            {/* Main footer buttons — Save draft left, Submit right (non-sticky for reference) */}
+            {/* Main footer buttons: Save draft left, Submit right (non-sticky for reference) */}
             {!submitConfirming && (
               <div className="flex items-center justify-between gap-4">
                 <button
@@ -1082,7 +1082,7 @@ export const WholesaleOrderDraft: React.FC = () => {
             )}
           </div>
 
-          {/* Sticky submit button footer — sticky to bottom of viewport on mobile */}
+          {/* Sticky submit button footer, sticky to bottom of viewport on mobile */}
           <div className="sticky bottom-0 md:hidden bg-tea-bg border-t border-tea-border z-10 bottom-nav-gap flex items-center justify-end gap-4 px-4 py-4">
             <button
               type="button"

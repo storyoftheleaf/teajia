@@ -31,7 +31,7 @@ const TeawareCard: React.FC<{
               <TeaIllustration type={product.type} />
           </div>
       )}
-      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 bg-tea-gold text-tea-bg p-3 rounded-full shadow-lg opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300" title="Add to Invoice">
+      <button onClick={() => onAdd(product)} className="absolute bottom-4 right-4 cta-solid p-3 rounded-full shadow-lg opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300" title="Add to Invoice">
         <Plus size={20} />
       </button>
     </div>
@@ -150,7 +150,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
               />
             </div>
 
-            {/* View Toggle — icon button pair, no segmented pill */}
+            {/* View Toggle: icon button pair, no segmented pill */}
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setViewMode('database')}
@@ -172,7 +172,7 @@ export const TeawareCatalog = ({ products, currency, rates, onAdd, loading, isAd
 
             <button
               onClick={() => { if (products.length > 0) onAdd(products[0]); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               <Plus size={13} />
               <span>New</span>

@@ -1,3 +1,16 @@
+/**
+ * InvoicePdf: the printable invoice, rendered by @react-pdf/renderer.
+ *
+ * @color-literals This file draws a document, not a screen. The output is a PDF
+ * a customer downloads, prints, or forwards to an accountant, and a PDF has no
+ * theme: it carries its own ink and its own paper for the life of the file.
+ * @react-pdf/renderer also runs its own layout engine rather than a browser, so
+ * it cannot resolve a CSS custom property at all. A `var(--tea-text)` here
+ * would not adapt, it would simply fail, and an invoice would go out with
+ * whatever the renderer falls back to. The palette below is deliberately a
+ * document palette (white stock, near-black body, grey meta) rather than the
+ * app's parchment and bronze, because it has to survive a monochrome printer.
+ */
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { InvoiceDisplayItem, ExchangeRate, Currency } from '../types';
@@ -5,7 +18,7 @@ import { InvoiceDisplayItem, ExchangeRate, Currency } from '../types';
 // Register a font that supports nice typography
 Font.register({
   family: 'Plus Jakarta Sans',
-  // Self-hosted (converted from the repo's woff2 by fontTools) — the old
+  // Self-hosted (converted from the repo's woff2 by fontTools), the old
   // fonts.gstatic.com URL is blocked in mainland China, which killed PDF
   // generation exactly where the ledger gets used.
   src: '/fonts/PlusJakartaSans-Regular.ttf'
@@ -92,7 +105,7 @@ const styles = StyleSheet.create({
   }
 });
 
-// Compact template — minimal spacing, smaller text, no descriptions
+// Compact template: minimal spacing, smaller text, no descriptions
 const compactStyles = StyleSheet.create({
   page: { ...styles.page, padding: 30, fontSize: 9 },
   header: { ...styles.header, marginBottom: 20, paddingBottom: 10 },
@@ -100,7 +113,7 @@ const compactStyles = StyleSheet.create({
   tableRow: { ...styles.tableRow, paddingVertical: 4 },
 });
 
-// Detailed template — includes product descriptions and notes
+// Detailed template, includes product descriptions and notes
 const detailedStyles = StyleSheet.create({
   page: { ...styles.page, padding: 40 },
   noteSection: { marginTop: 30, borderTopWidth: 1, borderTopColor: '#e5e5e5', paddingTop: 15 },
@@ -197,7 +210,7 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
           </View>
         </View>
 
-        {/* Notes section — detailed template or when notes provided */}
+        {/* Notes section, detailed template or when notes provided */}
         {(isDetailed || notes) && notes && (
           <View style={detailedStyles.noteSection}>
             <Text style={{fontSize: 8, textTransform: 'uppercase', color: '#666', marginBottom: 6}}>Notes</Text>
@@ -208,7 +221,7 @@ export const InvoicePdfDocument: React.FC<InvoicePdfProps> = ({
         {/* Footer */}
         <View style={{ position: 'absolute', bottom: 30, left: 50, right: 50 }}>
           <Text style={{ fontSize: 8, color: '#999', textAlign: 'center' }}>
-            Thank you for choosing Teajia. — teajia.com
+            Thank you for choosing Teajia · teajia.com
           </Text>
         </View>
       </Page>

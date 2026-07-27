@@ -87,7 +87,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
 
   const handlePromote = async (note: TastingNote, visibility: VisibilityOption) => {
     if (!note.teaName) {
-      showToast('This note has no associated tea — cannot promote', 'error');
+      showToast('This note has no associated tea, cannot promote', 'error');
       return;
     }
     setPromoting(note.id);
@@ -179,7 +179,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => setConfirmNote(note)}
                   disabled={promoting === note.id || !note.teaName}
-                  title={!note.teaName ? 'No tea linked — cannot publish' : 'Publish as tea review'}
+                  title={!note.teaName ? 'No tea linked, cannot publish' : 'Publish as tea review'}
                   className="flex items-center gap-1 text-ui-10 text-tea-text-sec hover:text-tea-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {promoting === note.id
@@ -256,7 +256,7 @@ const TastingNotesTab: React.FC<TastingNotesTabProps> = ({ notes }) => {
                   type="button"
                   onClick={() => handlePromote(confirmNote, selectedVisibility)}
                   disabled={!!promoting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {promoting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
                   Publish
@@ -473,7 +473,7 @@ export const EventDetail: React.FC = () => {
         <ArrowLeft size={14} /> <span>Events</span>
       </button>
 
-      {/* Hero block — surface card */}
+      {/* Hero block, surface card */}
       <div className="bg-tea-surface border border-tea-border rounded-xl p-5 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
@@ -534,7 +534,7 @@ export const EventDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Header — capacity + quick actions */}
+      {/* Header, capacity + quick actions */}
       <div className="mb-6">
         {/* Capacity bar */}
         <div className="mb-4 space-y-2">
@@ -546,12 +546,12 @@ export const EventDetail: React.FC = () => {
                 aria-label={`${confirmedCount} of ${event.totalCapacity} confirmed, ${requestedCount} pending, ${waitlistCount} waitlisted`}
                 className="h-2 bg-tea-bg rounded-full overflow-hidden flex"
               >
-                {/* Confirmed — solid gold */}
+                {/* Confirmed, solid gold */}
                 <div
                   className="h-full bg-tea-gold transition-all duration-500 flex-shrink-0"
                   style={{ width: `${event.totalCapacity > 0 ? Math.min((confirmedCount / event.totalCapacity) * 100, 100) : 0}%` }}
                 />
-                {/* Pending approval — lighter, dashed-pattern via repeating gradient */}
+                {/* Pending approval: lighter, dashed-pattern via repeating gradient */}
                 <div
                   className="h-full flex-shrink-0 transition-all duration-500"
                   style={{
@@ -560,7 +560,7 @@ export const EventDetail: React.FC = () => {
                     opacity: 0.45,
                   }}
                 />
-                {/* Waitlist — dimmest */}
+                {/* Waitlist, dimmest */}
                 <div
                   className="h-full bg-tea-text-sec/25 flex-shrink-0 transition-all duration-500"
                   style={{ width: `${event.totalCapacity > 0 ? Math.min((waitlistCount / event.totalCapacity) * 100, Math.max(0, 100 - Math.min(((confirmedCount + requestedCount) / event.totalCapacity) * 100, 100))) : 0}%` }}
@@ -768,7 +768,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleSaveBriefing}
                   disabled={savingBriefing}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {savingBriefing ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Save Briefing Cards
@@ -813,7 +813,7 @@ export const EventDetail: React.FC = () => {
                   type="button"
                   onClick={handleCreateArticleDraft}
                   disabled={drafting}
-                  className="tap-target inline-flex items-center gap-1.5 rounded-md bg-tea-gold px-3 py-2 text-ui-12 font-medium text-tea-bg transition-colors hover:bg-tea-gold/90 disabled:opacity-50"
+                  className="tap-target inline-flex items-center gap-1.5 rounded-md cta-solid px-3 py-2 text-ui-12 font-medium transition-colors disabled:opacity-50"
                 >
                   {drafting ? <Loader2 size={13} className="animate-spin" /> : <Edit3 size={13} />}
                   {draftExisting
@@ -1050,7 +1050,7 @@ export const EventDetail: React.FC = () => {
                 type="button"
                 onClick={handleSaveVenue}
                 disabled={savingVenue}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {savingVenue ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
                 Save Venue
@@ -1123,7 +1123,7 @@ export const EventDetail: React.FC = () => {
                     }
                   }}
                   disabled={closingRsvp}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {closingRsvp ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />}
                   Confirm

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-// Hoisted to module scope — defining this inside EditForm gave it a new
+// Hoisted to module scope, defining this inside EditForm gave it a new
 // component identity every render, remounting its whole subtree.
 export const SectionHeader = ({
   label,

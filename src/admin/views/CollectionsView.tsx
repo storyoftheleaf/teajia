@@ -95,7 +95,7 @@ export const CollectionsView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-tea-bg">
-      {/* Page chrome — narrow */}
+      {/* Page chrome, narrow */}
       <div className="max-w-3xl mx-auto w-full px-4 md:px-6 pt-6 md:pt-8 pb-4 flex-shrink-0">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
@@ -114,7 +114,7 @@ export const CollectionsView: React.FC = () => {
             {mode === 'mine' && (
               <button
                 onClick={() => setCreating(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} /> New Collection
               </button>
@@ -123,7 +123,7 @@ export const CollectionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Mine vs Inbound — underline tabs §6 */}
+      {/* Mine vs Inbound, underline tabs §6 */}
       <div className="max-w-3xl mx-auto w-full px-4 md:px-6 flex-shrink-0">
         <div className="flex items-center gap-6 border-b border-tea-border flex-wrap">
           <button
@@ -148,7 +148,7 @@ export const CollectionsView: React.FC = () => {
             <Inbox size={12} /> Inbound
             <span className="text-tea-text-dim normal-case tracking-normal">({inbound.length})</span>
             {unreadCount > 0 && (
-              <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-tea-gold text-tea-bg text-ui-9 font-semibold tabular-nums normal-case tracking-normal">
+              <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full cta-solid text-ui-9 font-semibold tabular-nums normal-case tracking-normal">
                 {unreadCount}
               </span>
             )}
@@ -156,7 +156,7 @@ export const CollectionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Status filter — only for mine */}
+      {/* Status filter, only for mine */}
       {mode === 'mine' && (
         <div className="max-w-3xl mx-auto w-full px-4 md:px-6 flex-shrink-0 mt-3">
           <div className="flex items-center gap-6 border-b border-tea-border flex-wrap">
@@ -280,7 +280,7 @@ export const CollectionsView: React.FC = () => {
                 {tab === 'all' && (
                   <button
                     onClick={() => setCreating(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
                   >
                     <Plus size={13} /> New Collection
                   </button>
@@ -364,7 +364,7 @@ export const CollectionsView: React.FC = () => {
                 type="button"
                 onClick={handleCreateDraft}
                 disabled={!newTitle.trim() || creatingSubmitting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
               >
                 {creatingSubmitting ? <Loader2 size={12} className="animate-spin" /> : null}
                 Create draft

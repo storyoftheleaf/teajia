@@ -11,7 +11,7 @@ const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
 /**
  * Parse a value that may be a JSON string, an already-parsed object, or null.
- * A malformed DB column must not throw inside a queryFn — that fails the whole
+ * A malformed DB column must not throw inside a queryFn, that fails the whole
  * query and blanks the page. Falls back instead.
  */
 function safeParse<T>(value: unknown, fallback: T): T {
@@ -79,7 +79,7 @@ function mapEvent(e: any): TeaEvent {
   };
 }
 
-// Fetch a single event by ID (admin) — dedicated endpoint, no full list fetch
+// Fetch a single event by ID (admin): dedicated endpoint, no full list fetch
 export const useEvent = (id: string) => {
   return useQuery({
     queryKey: ['events', id],
@@ -272,7 +272,7 @@ export const useGuestInvites = (eventId: string) => {
   });
 };
 
-// Fetch all venues (admin). Single shared cache — EventForm, EventDetail and
+// Fetch all venues (admin). Single shared cache: EventForm, EventDetail and
 // VenueManager should all consume this rather than calling api.venues.list()
 // independently. Invalidate ['venues'] after a mutation to refresh.
 export const useVenues = () => {

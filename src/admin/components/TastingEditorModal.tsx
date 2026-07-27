@@ -55,8 +55,8 @@ export const TastingEditorModal: React.FC<TastingEditorModalProps> = ({
       // Optimistically patch every public-product cache so toggling a star
       // (on or off) reflects on the card immediately. There are two distinct
       // query keys depending on which storefront path is active:
-      //   ['products', 'public']            — legacy default (Bali) path
-      //   ['storefront', 'products', slug]  — slug-scoped multi-store path
+      //   ['products', 'public']            legacy default (Bali) path
+      //   ['storefront', 'products', slug]  slug-scoped multi-store path
       // Patching both means the optimistic state survives regardless of which
       // hook is rendering the card. We intentionally do NOT invalidate after:
       // the public endpoint has a 10s CDN edge cache, so an immediate refetch

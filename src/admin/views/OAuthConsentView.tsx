@@ -9,7 +9,7 @@ import { TYPOGRAPHY_CLASSES } from '../../designTokens';
 //
 // Two arrival shapes are supported:
 //   • New (robust): the worker persists the authorize request and redirects to
-//     /admin/oauth-consent/<request_id> — a PATH segment, which survives the
+//     /admin/oauth-consent/<request_id>: a PATH segment, which survives the
 //     302 even in in-app browsers that drop query strings (the Claude-mobile
 //     bug). We fetch the params back from /oauth/authorize/request/<id>.
 //   • Legacy: params arrive in the query string (older worker builds / desktop).
@@ -39,7 +39,7 @@ interface ScopeDef {
 }
 
 // Mirrors worker MCP_SCOPES + the mint UI. The worker re-filters owner-tier
-// scopes by the approver's tier, so showing them here is safe — they're simply
+// scopes by the approver's tier, so showing them here is safe, they're simply
 // stripped server-side if the approver isn't owner-tier.
 const SCOPE_DEFS: ScopeDef[] = [
   { scope: 'inventory:read', label: 'inventory:read', description: 'Search teas, view stock', group: 'read', defaultChecked: true },
@@ -242,8 +242,8 @@ export const OAuthConsentView: React.FC = () => {
 
   const scopeGroups: { key: ScopeDef['group']; title: string; note?: string }[] = [
     { key: 'read', title: 'Read' },
-    { key: 'operator', title: 'Write — Operator' },
-    { key: 'owner', title: 'Write — Owner', note: 'Granted only if you are an account owner' },
+    { key: 'operator', title: 'Write: Operator' },
+    { key: 'owner', title: 'Write: Owner', note: 'Granted only if you are an account owner' },
   ];
 
   return (

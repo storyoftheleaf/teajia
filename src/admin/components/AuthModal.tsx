@@ -84,7 +84,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
     setError('');
     setInfo('');
 
-    // Dev bypass — only available in development builds
+    // Dev bypass, only available in development builds
     if (import.meta.env.DEV && mode === 'login' && password === 'dev') {
       setDevAdmin(true);
       setLoading(false);
@@ -97,10 +97,10 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
       if (mode === 'forgot') {
         const result = await api.auth.forgotPassword(email);
         if (result?.email_sent) {
-          // Email succeeded — token is intentionally not returned.
+          // Email succeeded, token is intentionally not returned.
           setInfo(result?.message || 'Check your email for a link to reset your password.');
         } else if (result?.token) {
-          // Email not configured or send failed — fall back to in-app recovery.
+          // Email not configured or send failed, fall back to in-app recovery.
           setResetToken(result.token);
           setMode('reset');
           setInfo("We couldn't send a reset email. Use this token here to choose a new password, or contact support.");
@@ -291,7 +291,7 @@ export const AuthModal = ({ isOpen, onClose, onAuthSuccess }: { isOpen: boolean;
           <button
             type="submit"
             disabled={loading || (mode === 'verify-signup' && (verificationCode.length !== 6 || verificationExpired || verificationFailures >= 3))}
-            className="w-full py-3 bg-tea-gold text-tea-bg text-xs font-semibold rounded-md hover:bg-tea-gold/90 transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10"
+            className="w-full py-3 cta-solid text-xs font-semibold rounded-md transition-colors disabled:opacity-50 flex justify-center mt-6 shadow-lg shadow-tea-gold/10"
           >
             {loading ? <Loader2 className="animate-spin" /> : submitLabel}
           </button>

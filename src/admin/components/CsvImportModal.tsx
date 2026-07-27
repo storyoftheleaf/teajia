@@ -468,7 +468,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
             <div className="h-full flex flex-col items-center justify-center gap-6">
               <div className="w-full max-w-md border-2 border-dashed border-tea-border rounded-xl hover:border-tea-text-sec transition-colors p-10 flex flex-col items-center bg-tea-bg">
                 <Upload size={48} className="text-tea-text-sec mb-4" strokeWidth={1.25} />
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors shadow-lg shadow-tea-gold/10">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors shadow-lg shadow-tea-gold/10">
                   Select CSV File
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -513,7 +513,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                   const hasErrors = row.errors.length > 0;
                   return (
                     <div key={row.id} className={`border border-tea-border rounded-xl mb-2 overflow-hidden ${hasErrors ? 'border-tea-gold/40' : ''}`}>
-                      {/* Collapsed header — tap to expand */}
+                      {/* Collapsed header, tap to expand */}
                       <button
                         className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors ${isExpanded ? 'bg-tea-surface/60' : idx % 2 === 0 ? 'bg-transparent' : 'bg-tea-surface/20'} active:bg-tea-surface/80`}
                         onClick={() => setExpandedRowId(isExpanded ? null : row.id)}
@@ -719,7 +719,7 @@ export const CsvImportModal = ({ isOpen, onClose, onComplete }: { isOpen: boolea
                 <button onClick={onClose} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
                 <button onClick={() => setStage('upload')} className="px-2 py-1 text-xs text-tea-text-sec hover:text-tea-text transition-colors">Back</button>
               </div>
-              <button onClick={handleCommit} disabled={!stagingData.some(row => row.isValid)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
+              <button onClick={handleCommit} disabled={!stagingData.some(row => row.isValid)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-tea-gold/10">
                   Import Ready ({stagingData.filter(row => row.isValid).length})
               </button>
             </div>

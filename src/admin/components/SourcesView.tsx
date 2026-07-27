@@ -26,7 +26,7 @@ import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '
 import type { Currency } from '../types';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 
-/** Canonical status pill — see DesignSystemShowcase §8 */
+/** Canonical status pill, see DesignSystemShowcase §8 */
 const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
   variant = 'draft',
   className = '',
@@ -44,7 +44,21 @@ function vendorInitials(name: string | undefined): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Gradient avatar swatch — canonical from §19 showcase */
+/**
+ * Vendor avatar fallback: the initials disc shown when a source has no photo.
+ *
+ * It used to be a three-stop radial gradient of raw hexes with the initials in
+ * `text-tea-bg/90` on top. The highlight stop was #c6a473, and parchment
+ * initials on that measure 2.00:1, so in light mode the letters were very
+ * nearly gone. It read fine to whoever built it because they were in dark mode,
+ * where the same stop is 6.94:1.
+ *
+ * It is now the flat measured CTA fill, --tea-gold-solid, with the initials at
+ * full --tea-bg: 4.85:1 in light mode and 4.83:1 in dark, the same pair the
+ * primary buttons use. The gradient is gone rather than retinted because a
+ * gradient means the worst stop sets the contrast, and there is nothing a
+ * 40px disc gains from three stops that is worth carrying that.
+ */
 const VendorAvatar: React.FC<{ name: string; size?: number; className?: string; photo?: string }> = ({
   name,
   size = 40,
@@ -62,11 +76,11 @@ const VendorAvatar: React.FC<{ name: string; size?: number; className?: string; 
       <>
         <div
           className="absolute inset-0"
-          style={{ background: 'radial-gradient(circle at 30% 30%, #c6a473, #8e6d2e 55%, #3a3126)' }}
+          style={{ background: 'var(--tea-gold-solid)' }}
           aria-hidden="true"
         />
         <div
-          className="absolute inset-0 flex items-center justify-center font-display text-tea-bg/90"
+          className="absolute inset-0 flex items-center justify-center font-display text-tea-bg"
           style={{ fontSize: Math.max(10, Math.round(size * 0.32)), letterSpacing: '0.04em' }}
         >
           {vendorInitials(name)}
@@ -145,7 +159,7 @@ const SourceModal = ({
         </div>
         <div className="flex justify-between gap-3 p-6 border-t border-tea-border">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-tea-text-sec hover:text-tea-text transition-colors">Cancel</button>
-          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 bg-tea-gold text-tea-bg text-sm font-medium rounded-xl hover:bg-tea-gold/90 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={saving || !form.name.trim()} className="px-5 py-2 cta-solid text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add Source'}
           </button>
         </div>
@@ -249,7 +263,7 @@ const GhostInput = ({
   );
 };
 
-// --- COLLAPSIBLE SECTION (canonical card §§19 — bg-tea-bg border rounded-xl) ---
+// --- COLLAPSIBLE SECTION (canonical card §§19, bg-tea-bg border rounded-xl) ---
 const CollapsibleSection = ({ title, defaultOpen = true, children }: {
   title: string, defaultOpen?: boolean, children: React.ReactNode
 }) => {
@@ -311,7 +325,7 @@ export const SourcesView = () => {
   const sampleSets = useSampleStore((s) => s.sampleSets);
   const getSamplesForSet = useSampleStore((s) => s.getSamplesForSet);
 
-  // Expanded source — shows inline inventory table
+  // Expanded source, shows inline inventory table
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(null);
 
   // --- LOCAL VIEW STATE ---
@@ -335,7 +349,7 @@ export const SourcesView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<Customer | null>(null);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
-  // "Needs info" filter — show only vendors started but not yet connected (no
+  // "Needs info" filter, show only vendors started but not yet connected (no
   // way to reach them). Lets a vendor captured in person be finished later.
   const [showOnlyIncomplete, setShowOnlyIncomplete] = useState(false);
 
@@ -378,7 +392,7 @@ export const SourcesView = () => {
       .map(c => ({ ...c, teaCount: teaCountMap[c.id] || 0 }));
   }, [customers, teaCountMap]);
 
-  // A vendor "needs info" when there's no way to reach it yet — the signature of
+  // A vendor "needs info" when there's no way to reach it yet, the signature of
   // one started in person (a name, maybe a photo) but not finished.
   const isIncomplete = useCallback((s: SourceRow) => !s.email && !s.phone && !s.whatsapp, []);
   const incompleteCount = useMemo(() => allSources.filter(isIncomplete).length, [allSources, isIncomplete]);
@@ -774,7 +788,7 @@ export const SourcesView = () => {
                     {source.name}
                   </h2>
                   <span className="text-tea-text-sec text-xs tracking-wide">
-                    — {getSourceProducts(source.name).length} teas supplied
+                    · {getSourceProducts(source.name).length} teas supplied
                   </span>
                 </div>
               }
@@ -836,7 +850,7 @@ export const SourcesView = () => {
   return (
     <div className={`h-full flex flex-col overflow-hidden bg-tea-bg ${panelSource ? 'md:mr-[420px]' : ''} transition-all duration-300`}>
 
-      {/* --- SAVED VIEWS TAB BAR (desktop only — underline tabs, §6 canonical) --- */}
+      {/* --- SAVED VIEWS TAB BAR (desktop only: underline tabs, §6 canonical) --- */}
       <div className="hidden md:block px-4 md:px-8 border-b border-tea-border bg-tea-bg flex-shrink-0">
         <div className="flex items-center gap-5 overflow-x-auto hide-scrollbar flex-wrap">
           {savedViews.map(view => {
@@ -1050,7 +1064,7 @@ export const SourcesView = () => {
               onClick={() => setShowOnlyIncomplete(v => !v)}
               className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 h-7 rounded-md text-ui-11 font-medium tabular-nums transition-colors ${showOnlyIncomplete ? 'bg-tea-gold/15 text-tea-gold' : 'bg-tea-gold/[0.07] text-tea-gold/80 hover:bg-tea-gold/[0.12]'}`}
               aria-pressed={showOnlyIncomplete}
-              title="Vendors with no contact yet — tap to show only these"
+              title="Vendors with no contact yet, tap to show only these"
             >
               {incompleteCount} need info
             </button>
@@ -1076,7 +1090,7 @@ export const SourcesView = () => {
                 onClick={() => setIsEditMode(!isEditMode)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors ${
                   isEditMode
-                    ? 'bg-tea-gold text-tea-bg font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80'
+                    ? 'cta-solid font-semibold'
                     : 'border border-tea-border text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub'
                 }`}
               >
@@ -1088,7 +1102,7 @@ export const SourcesView = () => {
 
               <button
                 onClick={() => { setEditingSource(null); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Plus size={13} />
                 <span>New</span>
@@ -1197,7 +1211,7 @@ export const SourcesView = () => {
         className="flex-1 overflow-auto custom-scrollbar bg-tea-bg md:px-6"
       >
 
-        {/* MOBILE CARDS — canonical list rows §8 + identity-card-in-miniature §19 */}
+        {/* MOBILE CARDS, canonical list rows §8 + identity-card-in-miniature §19 */}
         <div className="md:hidden pb-nav-gap">
           <ul className="divide-y divide-tea-border bg-tea-surface border border-tea-border rounded-xl overflow-hidden mx-3 mt-3">
             {processedSources.map((source) => {
@@ -1421,20 +1435,25 @@ export const SourcesView = () => {
         </div>
       </div>
 
-      {/* --- SIDE PANEL — canonical drawer §15 (close X top-LEFT, w-full max-w-md, bg-tea-surface) --- */}
+      {/* --- SIDE PANEL: canonical drawer §15 (close X top-LEFT, w-full max-w-md, bg-tea-surface) --- */}
       <AnimatePresence>
         {panelSource && (() => {
           const panelStatus = sourceStatus(panelSource);
           return (
+          /* The left-edge drop shadow stays a warm near-black in both modes. A
+             shadow is the absence of light, so it does not invert with the
+             theme, which is why every entry in designTokens SHADOWS is also
+             black-based. It moved from an inline style to an arbitrary shadow
+             class so it sits under the documented Rule 2 carve-out instead of
+             reading as a stray literal inside a style object. */
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 right-0 z-drawer w-full md:max-w-md bg-tea-surface border-l border-tea-border flex flex-col"
-            style={{ boxShadow: '-12px 0 40px -8px rgba(24,19,14,0.35)' }}
+            className="fixed inset-y-0 right-0 z-drawer w-full md:max-w-md bg-tea-surface border-l border-tea-border flex flex-col shadow-[-12px_0_40px_-8px_rgba(24,19,14,0.35)]"
           >
-            {/* Panel Header — close X top-LEFT, nav toolbar right (panel-with-toolbar exception) */}
+            {/* Panel Header: close X top-LEFT, nav toolbar right (panel-with-toolbar exception) */}
             <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-tea-border bg-tea-surface flex-shrink-0">
               <button
                 onClick={() => setPanelSource(null)}
@@ -1461,7 +1480,7 @@ export const SourcesView = () => {
               </div>
             </div>
 
-            {/* Identity card — canonical from §19 */}
+            {/* Identity card, canonical from §19 */}
             <div className="px-5 py-5 border-b border-tea-border flex items-start gap-4 flex-shrink-0">
               <VendorAvatar name={panelSource.name} photo={panelSource.storefront_photo || panelSource.business_card_photo} size={48} />
               <div className="flex-1 min-w-0">
@@ -1842,7 +1861,7 @@ export const SourcesView = () => {
                         {vendorDetails.lat != null && vendorDetails.lng != null && (
                           <div>
                             <div className="text-ui-9 text-tea-text-sec/50 uppercase tracking-wider mb-1">Location</div>
-                            {/* OpenStreetMap, not Google Maps — Google is blocked in
+                            {/* OpenStreetMap, not Google Maps: Google is blocked in
                                 mainland China, exactly where vendor pins get used. */}
                             <a
                               href={`https://www.openstreetmap.org/?mlat=${vendorDetails.lat}&mlon=${vendorDetails.lng}#map=16/${vendorDetails.lat}/${vendorDetails.lng}`}
@@ -1952,8 +1971,13 @@ export const SourcesView = () => {
                   .sort((a, b) => b[1] - a[1])
                   .slice(0, 12);
 
-                // Unique liquor colors
-                const uniqueColors = [...new Set(liquorColors)].slice(0, 6);
+                // Unique liquor colors. Only terms the taxonomy actually has a
+                // colour for get a swatch. This used to fall back to a flat
+                // grey, which drew a swatch that claimed to be a measurement of
+                // the liquor when the truth was that nobody had recorded one.
+                const uniqueColors = [...new Set(liquorColors)]
+                  .filter((c) => Boolean(LIQUOR_COLORS[c]))
+                  .slice(0, 6);
                 // Unique moods
                 const uniqueMoods = [...new Set(moods)].slice(0, 4);
 
@@ -1970,7 +1994,7 @@ export const SourcesView = () => {
                             <div
                               key={c}
                               className="w-5 h-5 rounded-full border border-tea-border"
-                              style={{ backgroundColor: LIQUOR_COLORS[c] || '#888' }}
+                              style={{ backgroundColor: LIQUOR_COLORS[c] }}  // color-data: liquor colour from the taxonomy, what the tea looks like in the cup
                               title={resolveTermLabel(c)}
                             />
                           ))}
@@ -2193,7 +2217,7 @@ export const SourcesView = () => {
                 // We don't have createdAt on products client-side, so use a fallback
                 for (const p of sourceProducts) {
                   events.push({
-                    date: '', // no date available — will sort to end
+                    date: '', // no date available, will sort to end
                     type: 'product',
                     label: `Added to inventory: ${p.givenName || p.productName}`,
                     detail: `${p.type} · ${p.status}`,
@@ -2258,7 +2282,7 @@ export const SourcesView = () => {
               })()}
             </div>
 
-            {/* Panel Footer — destructive secondary left, primary right (§ button rules) */}
+            {/* Panel Footer: destructive secondary left, primary right (§ button rules) */}
             <div className="px-5 py-3 border-t border-tea-border bg-tea-surface flex items-center justify-between flex-shrink-0">
               <button
                 onClick={() => handleDelete(panelSource)}
@@ -2268,7 +2292,7 @@ export const SourcesView = () => {
               </button>
               <button
                 onClick={() => { setEditingSource(panelSource); setIsModalOpen(true); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
               >
                 <Edit3 size={13} /> <span>Full Edit</span>
               </button>

@@ -23,7 +23,7 @@ const STATUS_LABELS: Record<AttendeeStatus, string> = {
   denied: 'denied',
 };
 
-// Status chip styles — NO borders on chips per CLAUDE.md
+// Status chip styles: NO borders on chips per CLAUDE.md
 const STATUS_CHIPS: Record<AttendeeStatus, string> = {
   requested: 'bg-tea-gold/15 text-tea-gold',
   confirmed: 'bg-tea-leaf/10 text-tea-leaf',
@@ -84,7 +84,7 @@ const AttendeeActions: React.FC<{
   );
 };
 
-// Hover card content — built from EventAttendee data already in scope (no API call)
+// Hover card content, built from EventAttendee data already in scope (no API call)
 const AttendeeHoverCard: React.FC<{
   attendee: EnrichedAttendee;
   pos: { x: number; y: number };
@@ -310,7 +310,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
 
   const filtered = useMemo((): EnrichedAttendee[] => {
     let list = [...attendees];
-    // Filter out 'requested' from the attendees view — they belong in the Requests tab
+    // Filter out 'requested' from the attendees view, they belong in the Requests tab
     if (filter === 'all') {
       list = list.filter(a => a.status !== 'requested');
     } else {
@@ -420,7 +420,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
     setHoverPos(null);
   };
 
-  // Name cell — linked customer: clickable with profile open; unlinked: name + create prompt
+  // Name cell, linked customer: clickable with profile open; unlinked: name + create prompt
   const AttendeeName: React.FC<{ attendee: EnrichedAttendee; compact?: boolean }> = ({ attendee, compact }) => {
     if (attendee.customerId) {
       return (
@@ -659,7 +659,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
                         onClick={() => toggleAttended(attendee)}
                         disabled={loadingId === attendee.id || attendee.isDenied}
                         className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                          attendee.attended ? 'bg-tea-gold border-tea-gold text-tea-bg' : 'border-tea-border text-tea-text-sec hover:border-tea-gold/50'
+                          attendee.attended ? 'cta-solid border-tea-gold' : 'border-tea-border text-tea-text-sec hover:border-tea-gold/50'
                         } disabled:opacity-30`}
                       >
                         {loadingId === attendee.id ? <Loader2 size={10} className="animate-spin" /> : attendee.attended ? <Check size={10} /> : null}
@@ -678,7 +678,7 @@ export const AttendeeTable: React.FC<AttendeeTableProps> = ({ attendees, eventId
         </>
       )}
 
-      {/* Hover card — fixed-position to escape table overflow clipping */}
+      {/* Hover card, fixed-position to escape table overflow clipping */}
       {hoveredAttendee && hoverPos && (
         <AttendeeHoverCard attendee={hoveredAttendee} pos={hoverPos} />
       )}

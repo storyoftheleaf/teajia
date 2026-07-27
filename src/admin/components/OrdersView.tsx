@@ -76,7 +76,7 @@ function stockLabel(order: Pick<DbOrder, 'inventory_deducted' | 'status'>): stri
   return order.inventory_deducted ? 'Stock gone' : 'Stock pending';
 }
 
-/** DB row shape returned by GET /api/invoices — extends InvoiceWithItems with computed fields */
+/** DB row shape returned by GET /api/invoices, extends InvoiceWithItems with computed fields */
 interface DbOrder extends InvoiceWithItems {
   computed_total?: number;
   items?: DbOrderItem[];
@@ -203,7 +203,7 @@ export const OrdersView = () => {
       await api.invoices.update(invoice.id, { status: 'Pending' });
       setViewingInvoice((prev) => prev ? { ...prev, status: 'Pending' } : null);
       refetch();
-      showToast(`Order ${invoice.invoice_number} accepted — ready to review and fulfil.`, 'success');
+      showToast(`Order ${invoice.invoice_number} accepted, ready to review and fulfil.`, 'success');
     } catch (err: any) {
       showToast(err?.message || 'Could not accept this draft. Try again.', 'error');
     }
@@ -310,7 +310,7 @@ export const OrdersView = () => {
       <div className="sticky top-0 z-dropdown bg-tea-bg/90 backdrop-blur-md border-b border-tea-border flex-shrink-0">
         {/* Row 1: filter + actions */}
         <div className="px-3 md:px-6 lg:px-10 max-w-5xl mx-auto flex items-center gap-2 md:gap-4 py-2.5 md:h-16 md:py-0">
-          {/* Pipeline Summary — segmented filter */}
+          {/* Pipeline Summary, segmented filter */}
           <div className="flex items-center bg-tea-surface rounded-xl border border-tea-border p-0.5 overflow-x-auto hide-scrollbar min-w-0">
             {([
               { id: 'all',     label: 'All',     dot: null },
@@ -356,7 +356,7 @@ export const OrdersView = () => {
           </button>
         </div>
 
-        {/* Row 2 (mobile only): search — separated so it doesn't crowd the filter row */}
+        {/* Row 2 (mobile only): search, separated so it doesn't crowd the filter row */}
         <div className="px-3 pb-2 md:hidden">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-tea-text-sec" size={14} />
@@ -416,7 +416,7 @@ export const OrdersView = () => {
                 <tr><td colSpan={6} className="text-center py-16">
                   <div className="flex flex-col items-center gap-3 text-tea-text-sec">
                     <Package size={32} strokeWidth={1} className="opacity-40" />
-                    <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
+                    <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched, try different words.' : 'No orders yet.'}</span>
                     {(search || statusFilter !== 'all') && (
                       <button onClick={() => { setSearch(''); setStatusFilter('all'); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                         Clear filters
@@ -565,7 +565,7 @@ export const OrdersView = () => {
           {filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
               <Package size={32} strokeWidth={1} className="opacity-40" />
-              <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched — try different words.' : 'No orders yet.'}</span>
+              <span className="font-serif italic">{search || statusFilter !== 'all' ? 'Nothing matched, try different words.' : 'No orders yet.'}</span>
             </div>
           ) : (
             filteredOrders.map((order) => {
@@ -880,7 +880,7 @@ export const OrdersView = () => {
                         </p>
                         <button
                             onClick={() => acceptDraft(viewingInvoice)}
-                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
                             <Check size={18} /> Accept &amp; Make Order
                         </button>
@@ -891,14 +891,14 @@ export const OrdersView = () => {
                      <div className="mt-8 pt-6 border-t border-tea-border">
                         <button
                             onClick={() => { setViewingInvoice(null); openFulfillConfirm(viewingInvoice); }}
-                            className="w-full py-4 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
+                            className="w-full py-4 cta-solid font-bold uppercase tracking-[0.2em] text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-tea-gold/10"
                         >
                             <PackageCheck size={18} /> Confirm Order & Deduct Stock
                         </button>
                      </div>
                 )}
 
-                {/* WhatsApp status notification — available for Pending/Filled orders with phone */}
+                {/* WhatsApp status notification, available for Pending/Filled orders with phone */}
                 {viewingInvoice.customer_phone && viewingInvoice.status !== 'Void' && (
                   <div className="mt-4">
                     <button
@@ -927,7 +927,7 @@ export const OrdersView = () => {
                   </div>
                 )}
 
-                {/* Copy draft link — pre-fills QuickInvoiceModal with this order's items */}
+                {/* Copy draft link, pre-fills QuickInvoiceModal with this order's items */}
                 {viewingInvoice.items && viewingInvoice.items.length > 0 && (
                   <div className="mt-3">
                     <button

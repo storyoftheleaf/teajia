@@ -297,7 +297,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 </span>
               </label>
             </div>
-            {/* Right — Flyer */}
+            {/* Right: Flyer */}
             <div className="space-y-4">
               <Field label="Flyer Image">
                 {flyerImageUrl ? (

@@ -93,7 +93,7 @@ export const calculatePricing = (
   const totalShipping = isTeaware ? 0 : (shippingRatePerKg * (quantity > 0 ? quantity / 1000 : 0));
   const totalBatchCostSource = costAmount + totalShipping;
 
-  // 3. Cost Per Unit (Source Currency) — per gram for tea, per unit for teaware
+  // 3. Cost Per Unit (Source Currency): per gram for tea, per unit for teaware
   const costPerUnitSource = quantity > 0 ? totalBatchCostSource / quantity : 0;
 
   // 4. Convert to USD

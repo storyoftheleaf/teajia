@@ -145,7 +145,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`Change stock — ${product.productName || product.givenName}`}
+        aria-label={`Change stock: ${product.productName || product.givenName}`}
         className="relative w-full max-w-[420px] max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-3rem)] bg-tea-elevated border border-tea-border rounded-xl flex flex-col overflow-hidden"
       >
         <header className="relative shrink-0 px-4 py-3 pr-12 border-b border-tea-border">
@@ -207,8 +207,8 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
               <span className="text-tea-text-sec">Resulting balance</span>
               <span className="text-tea-text tabular-nums">
                 {movementType !== 'recount' && !quantity
-                  ? `${current}${unit} → —`
-                  : Number.isFinite(next) ? `${current}${unit} → ${next}${unit}` : `${current}${unit} → —`}
+                  ? `${current}${unit} \u2192 \u2014`
+                  : Number.isFinite(next) ? `${current}${unit} \u2192 ${next}${unit}` : `${current}${unit} \u2192 \u2014`}
               </span>
             </div>
             {insufficient && <p className="text-ui-12 text-tea-error">Only {current}{unit} available</p>}
@@ -252,7 +252,7 @@ export const StockMovementPanel: React.FC<StockMovementPanelProps> = ({
             {error && <div role="alert" className="rounded-md border border-tea-border bg-tea-surface px-3 py-2 text-ui-12 text-tea-error">{error}</div>}
             <div className="flex justify-between items-center border-t border-tea-border pt-3">
               <button type="button" onClick={onClose} className="tap-target text-ui-13 text-tea-text-sec hover:text-tea-text">Cancel</button>
-              <button type="submit" disabled={!canSubmit} className="tap-target rounded-md bg-tea-gold px-4 py-2 text-ui-13 text-tea-bg disabled:opacity-50 inline-flex items-center gap-2">
+              <button type="submit" disabled={!canSubmit} className="tap-target rounded-md cta-solid px-4 py-2 text-ui-13 disabled:opacity-50 inline-flex items-center gap-2">
                 {saving && <Loader2 size={14} className="animate-spin" />} Record movement
               </button>
             </div>

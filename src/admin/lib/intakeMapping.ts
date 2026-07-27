@@ -1,4 +1,4 @@
-// Intake column mapping — the primitive that lets ANY spreadsheet shape load
+// Intake column mapping, the primitive that lets ANY spreadsheet shape load
 // into Teajia. A loaded file's columns are matched (best-effort) to a set of
 // target fields; the user can correct the mapping; the corrected mapping is
 // remembered per header-signature so the same file shape auto-maps next time.
@@ -61,7 +61,7 @@ export type ColumnMapping = Record<string, string>;
 const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Best-effort suggestion for a single header. Returns a target key or '' (ignore).
-// Ranks candidates so the LONGEST matching alias wins — this avoids substring
+// Ranks candidates so the LONGEST matching alias wins, this avoids substring
 // false-positives like "Discounts" matching "count" (qty) before "discounts".
 export function suggestTarget(header: string, alreadyUsed: Set<string>): string {
   const n = normalize(header);
@@ -251,7 +251,7 @@ function resolveCurrency(row: Record<string, any>, mapping: ColumnMapping, costR
 }
 
 // Detect teaware from an item's name (English + Chinese) and classify it.
-// Order matters — more specific vessels win over generic accessories so
+// Order matters, more specific vessels win over generic accessories so
 // "tea tray" → tray, "tea knife" → accessory, "kettle" → pot. Returns a
 // teaware_category, or '' when the name isn't teaware (e.g. a jade pendant).
 const TEAWARE_RULES: { cat: string; kw: string[] }[] = [
@@ -260,7 +260,7 @@ const TEAWARE_RULES: { cat: string; kw: string[] }[] = [
   { cat: 'storage', kw: ['caddy', 'canister', 'storage', 'jar', 'tin', 'basket', '罐', '仓', '倉', '储', '儲', '收纳', '收納'] },
   { cat: 'tray', kw: ['tray', 'tea table', 'tea boat', 'saucer', 'pot stand', '茶盘', '茶盤', '茶船', '茶台', '茶臺', '壶承', '壺承'] },
   { cat: 'decorative', kw: ['incense', 'censer', 'ornament', 'statue', 'figurine', '香炉', '香爐', '摆件', '擺件'] },
-  // Tool keywords are kept specific so tea names don't collide — e.g. bare
+  // Tool keywords are kept specific so tea names don't collide, e.g. bare
   // "needle"/"pick" would wrongly catch "Silver Needle" or "hand-picked".
   { cat: 'accessory', kw: ['tea knife', 'pu knife', 'tea needle', 'pu needle', 'pry needle', 'tea pick', 'tongs', 'tweezer', 'tea scoop', 'tea cloth', 'tea towel', 'tea filter', 'strainer', 'funnel', 'stove', 'tea brush', 'coaster', 'lid rest', 'tea spoon', '茶刀', '茶夹', '茶夾', '茶针', '茶針', '茶则', '茶則', '滤网', '濾網', '炉', '爐', '杯垫', '杯墊', '盖置', '蓋置'] },
 ];
@@ -304,10 +304,10 @@ export function detectForm(...names: string[]): WisdomTeaForm | 'Rolled' | 'Powd
   return '';
 }
 
-// A rough default *size* (relative bulk — how much shipping space an item takes,
+// A rough default *size* (relative bulk: how much shipping space an item takes,
 // NOT weight) used to prorate shipping. Teaware uses a per-piece size by category
-// × unit count; tea uses a per-form size × piece count. Starting points only —
-// the user edits each one.
+// × unit count; tea uses a per-form size × piece count. Starting points only.
+// The user edits each one.
 const TEAWARE_SIZE: Record<string, number> = { pot: 100, cup: 15, tray: 120, storage: 60, accessory: 8, decorative: 40 };
 const FORM_SIZE: Record<string, number> = { Cake: 30, Brick: 28, Tuo: 12, Ball: 5, Bag: 2, Rolled: 12, 'Loose': 15, Powder: 8 };
 export function defaultSize(it: { type: string; teawareCategory: string; form?: string | null; quantityPurchased: number; stockGrams: number; quantityUnits: number }): number {
@@ -400,7 +400,7 @@ export function isReadyItem(it: StagedItem): boolean {
 }
 
 // Build the product object the bulkCreate endpoint expects.
-// Everything from intake lands as Draft — a deliberate safety choice so nothing
+// Everything from intake lands as Draft, a deliberate safety choice so nothing
 // reaches the public storefront without an explicit activation step. isReadyItem
 // drives the UI badge (ready-to-activate vs needs-info), not the import status.
 // extraCost (in the item's own currency) is the prorated shipping share folded

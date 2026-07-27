@@ -5,7 +5,7 @@ import type { TooltipProps } from 'recharts';
 import { Loader2, DollarSign, PieChart as PieIcon, MapPin, TrendingUp, AlertCircle, UserPlus, Clock } from 'lucide-react';
 import { Product, Customer } from '../types';
 import { useRates } from '../hooks/useAdminData';
-import { fmtDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
+import { fmtRecordDollars, fmtPct, fmtNum } from '../../utils/formatNumber';
 import { api } from '../../lib/api';
 
 const TooltipWrapper = (props: TooltipProps<number, string>) => (
@@ -159,14 +159,14 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
     </div>
     <div className="px-4 md:px-6 lg:px-10 pt-6 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-nav-gap-lg">
 
-      {/* KPI Cards — horizontal scroll on mobile, grid on desktop */}
+      {/* KPI Cards: horizontal scroll on mobile, grid on desktop */}
       <div className="flex md:grid md:grid-cols-3 gap-3 md:gap-6 overflow-x-auto pb-2 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <div className="absolute top-0 right-0 p-4 md:p-6 opacity-5 text-tea-gold">
              <DollarSign size={60} className="md:w-20 md:h-20" />
           </div>
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Total Asset Cost</p>
-          <h3 className="font-display font-normal text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalCostUSD)}</h3>
+          <h3 className="font-display font-normal text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtRecordDollars(metrics.totalCostUSD)}</h3>
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Capital deployed</p>
         </div>
 
@@ -175,13 +175,13 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
              <PieIcon size={60} className="md:w-20 md:h-20" />
           </div>
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Retail Valuation</p>
-          <h3 className="font-display font-normal text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtDollars(metrics.totalRetailUSD)}</h3>
+          <h3 className="font-display font-normal text-tea-text num text-ui-28 md:text-[44px] leading-tight">{fmtRecordDollars(metrics.totalRetailUSD)}</h3>
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">At current prices</p>
         </div>
 
         <div className="bg-tea-surface border border-tea-border p-5 md:p-8 rounded-xl relative overflow-hidden min-w-[260px] md:min-w-0 snap-center flex-shrink-0 md:flex-shrink">
           <p className="label-caps text-tea-text-dim mb-2 md:mb-4">Unrealized P&L</p>
-          <h3 className="font-display font-normal text-tea-gold num text-ui-28 md:text-[44px] leading-tight">+{fmtDollars(metrics.potentialProfit)}</h3>
+          <h3 className="font-display font-normal text-tea-gold num text-ui-28 md:text-[44px] leading-tight">+{fmtRecordDollars(metrics.potentialProfit)}</h3>
           <p className="text-ui-11 md:text-ui-12 text-tea-text-sec mt-2 md:mt-4 num">Margin: {fmtPct(metrics.totalCostUSD > 0 ? (metrics.potentialProfit / metrics.totalCostUSD) * 100 : 0)}</p>
         </div>
       </div>
@@ -214,7 +214,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
               </Pie>
               <RechartsTooltip 
                  contentStyle={{ backgroundColor: '#141210', borderColor: '#26221D', color: '#E8E3D9', fontSize: '12px', borderRadius: '8px' }}
-                 formatter={(value: number) => fmtDollars(value)}
+                 formatter={(value: number) => fmtRecordDollars(value)}
               />
               <Legend 
                 verticalAlign="bottom" 
@@ -252,11 +252,11 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
                      rate.currency === 'JPY' ? 'JPY' :
                      rate.currency === 'MYR' ? 'MYR' : rate.currency}
                     <span className="hidden md:inline">
-                      {rate.currency === 'NT' ? ' — New Taiwan Dollar' :
-                       rate.currency === 'Yuan' ? ' — Chinese Yuan' :
-                       rate.currency === 'IDR' ? ' — Indonesian Rupiah' :
-                       rate.currency === 'JPY' ? ' — Japanese Yen' :
-                       rate.currency === 'MYR' ? ' — Malaysian Ringgit' : ''}
+                      {rate.currency === 'NT' ? ' (New Taiwan Dollar)' :
+                       rate.currency === 'Yuan' ? ' (Chinese Yuan)' :
+                       rate.currency === 'IDR' ? ' (Indonesian Rupiah)' :
+                       rate.currency === 'JPY' ? ' (Japanese Yen)' :
+                       rate.currency === 'MYR' ? ' (Malaysian Ringgit)' : ''}
                     </span>
                   </span>
                 </div>
@@ -369,7 +369,7 @@ export const DashboardView = ({ products = [], isLoading }: { products?: Product
         </div>
       )}
 
-      {/* Customer Intelligence — RFM */}
+      {/* Customer Intelligence: RFM */}
       {(customerMetrics || rfmData) && (
         <div className="mt-8">
           <h2 className="label-caps text-tea-text-dim mb-4">

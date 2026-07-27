@@ -448,7 +448,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
             >
               {saving ? <Loader2 className="animate-spin" size={13} /> : <Save size={13} />}
               Save Changes
@@ -457,7 +457,7 @@ export const AccountSettingsView: React.FC<AccountSettingsViewProps> = ({ embedd
         )}
       </form>
 
-      {/* Integrations — per-account third-party API keys (BYOK) */}
+      {/* Integrations, per-account third-party API keys (BYOK) */}
       {canEdit && (
         <div className="mt-10">
           <h2 className="label-caps text-tea-text-dim mb-3">
@@ -848,7 +848,7 @@ const IntegrationsSection: React.FC<{
           <button
             type="button"
             onClick={() => { setEditing(true); setKeyInput(''); setErr(null); }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Add Key
           </button>
@@ -880,7 +880,7 @@ const IntegrationsSection: React.FC<{
               type="button"
               onClick={save}
               disabled={busy || keyInput.trim().length < 10}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
             >
               {busy && <Loader2 className="animate-spin" size={12} />}
               Save Key
@@ -975,7 +975,7 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 1: Select target member */}
       {step === 'select-member' && (
         <div className="border-t border-tea-border px-5 py-4 space-y-3">
-          <p className="label-caps text-tea-text-dim">Step 1 of 3 — Select new owner</p>
+          <p className="label-caps text-tea-text-dim">Step 1 of 3: Select new owner</p>
           {loadingMembers ? (
             <div className="flex items-center gap-2 text-ui-12 text-tea-text-dim py-2">
               <Loader2 size={12} className="animate-spin" /> Loading team members…
@@ -993,7 +993,7 @@ const TransferOwnershipSection: React.FC<{
                   onChange={(e) => setSelectedMemberId(e.target.value)}
                   className="w-full bg-tea-bg border border-tea-border rounded-md px-3 py-2 text-ui-14 text-tea-text focus:border-tea-gold focus:ring-2 focus:ring-tea-gold/30 focus:outline-none"
                 >
-                  <option value="">— select a team member —</option>
+                  <option value="">Select a team member</option>
                   {members.map((m) => (
                     <option key={m.user_id} value={m.user_id}>
                       {m.name || m.email} ({m.role})
@@ -1013,7 +1013,7 @@ const TransferOwnershipSection: React.FC<{
                   type="button"
                   disabled={!selectedMemberId}
                   onClick={() => { setConfirmName(''); setStep('confirm-name'); }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
                 >
                   Next <ArrowRight size={11} />
                 </button>
@@ -1026,7 +1026,7 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 2: Type exact account name */}
       {step === 'confirm-name' && selectedMember && (
         <div className="border-t border-tea-border px-5 py-4 space-y-3">
-          <p className="label-caps text-tea-text-dim">Step 2 of 3 — Confirm account name</p>
+          <p className="label-caps text-tea-text-dim">Step 2 of 3: Confirm account name</p>
           <div className="bg-tea-bg border border-tea-border rounded-md px-4 py-3 text-ui-14 text-tea-text-sec space-y-1">
             <p>
               Transfer <span className="text-tea-text">{account.name}</span> to{' '}
@@ -1062,7 +1062,7 @@ const TransferOwnershipSection: React.FC<{
               type="button"
               disabled={!nameMatches}
               onClick={() => { setPasswordInput(''); setTransferError(null); setStep('verify-password'); }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40"
             >
               Next <ArrowRight size={11} />
             </button>
@@ -1073,7 +1073,7 @@ const TransferOwnershipSection: React.FC<{
       {/* Gate 3: Re-enter password */}
       {step === 'verify-password' && selectedMember && (
         <div className="border-t border-tea-border px-5 py-4 space-y-3">
-          <p className="label-caps text-tea-text-dim">Step 3 of 3 — Authorise</p>
+          <p className="label-caps text-tea-text-dim">Step 3 of 3: Authorise</p>
           <div>
             <label className="label-caps text-tea-text-sec mb-1.5 block">
               Re-enter your password to authorise

@@ -29,7 +29,7 @@ type TileData = {
   path: string;
 };
 
-// All tiles — filtered at render time based on role
+// All tiles, filtered at render time based on role
 const memberTiles: TileData[] = [
   { id: 'compass',  label: 'Curate',      sub: 'Browse & capture',   icon: Compass,     path: '/admin/compass' },
   { id: 'capture',  label: 'Capture',     sub: 'Quick intake',       icon: Camera,      path: '/admin/capture' },

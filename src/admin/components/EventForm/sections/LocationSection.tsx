@@ -245,7 +245,7 @@ const LocationSection: React.FC<LocationSectionProps> = ({
                   type="button"
                   onClick={onSaveLocation}
                   disabled={savingLocation}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {savingLocation ? <Loader2 size={11} className="animate-spin" /> : <Bookmark size={11} />}
                   Save Location

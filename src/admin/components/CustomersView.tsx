@@ -13,7 +13,7 @@ import { STATUS_PILL_BASE, STATUS_PILL_VARIANTS, type StatusPillVariant } from '
 import { ConfirmModal } from './ConfirmModal';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 
-/** Canonical status pill — see DesignSystemShowcase §8 */
+/** Canonical status pill, see DesignSystemShowcase §8 */
 const StatusPill: React.FC<{ variant?: StatusPillVariant; className?: string; children: React.ReactNode }> = ({
   variant = 'draft',
   className = '',
@@ -133,7 +133,7 @@ const TAG_COLORS: Record<CustomerTag, string> = {
   inactive: 'bg-tea-elevated/60 text-tea-text-dim',
 };
 
-// Active (selected) tag chip style — used in the edit modal
+// Active (selected) tag chip style, used in the edit modal
 const TAG_ACTIVE_COLORS: Record<CustomerTag, string> = {
   wholesale: 'bg-tea-elevated text-tea-text',
   retail: 'bg-tea-elevated text-tea-text',
@@ -523,7 +523,7 @@ const CustomerModal = ({
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-3 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? 'Saving...' : isEditing ? 'Update Customer' : 'Add Customer'}
           </button>
@@ -653,7 +653,7 @@ export const CustomerDetail = ({
         role="dialog"
         aria-label={`${customer.name} details`}
       >
-        {/* Header — close X top-LEFT per panel rule §15, toolbar on the right */}
+        {/* Header: close X top-LEFT per panel rule §15, toolbar on the right */}
         <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-tea-border flex-shrink-0">
           <button
             onClick={onClose}
@@ -747,7 +747,7 @@ export const CustomerDetail = ({
                 className="w-full flex justify-between items-center"
               >
                 <h4 className="text-xs uppercase tracking-[0.2em] text-tea-text-sec flex items-center gap-2">
-                  <Leaf size={12} /> Vendor — Products Sourced
+                  <Leaf size={12} /> Vendor: Products Sourced
                   {!loadingSupplied && suppliedProducts.length > 0 && <span className="text-tea-gold">({suppliedProducts.length})</span>}
                 </h4>
                 {showSupplied ? <ChevronUp size={14} className="text-tea-text-sec" /> : <ChevronDown size={14} className="text-tea-text-sec" />}
@@ -1073,7 +1073,7 @@ export const CustomerDetail = ({
                             <div key={i} className="text-xs">
                               <p className="font-serif italic text-tea-text-sec">"{imp.impression}"</p>
                               <p className="font-sans text-tea-text-dim mt-0.5">
-                                {imp.teaName} — {imp.eventTitle}
+                                {imp.teaName} · {imp.eventTitle}
                               </p>
                             </div>
                           ))}
@@ -1093,7 +1093,7 @@ export const CustomerDetail = ({
             )}
           </div>
 
-          {/* Tea History — purchased teas + event tastings merged */}
+          {/* Tea History, purchased teas + event tastings merged */}
           <div className="bg-tea-surface border border-tea-border rounded-xl p-5">
             <button
               onClick={() => setShowTeas(!showTeas)}
@@ -1740,7 +1740,7 @@ export const CustomersView = () => {
             </span>
           </div>
 
-          {/* Tag filter pills — multi-select, scrollable on mobile */}
+          {/* Tag filter pills: multi-select, scrollable on mobile */}
           <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar md:ml-2">
             {/* Customer / Supplier segment */}
             <button onClick={() => setTypeFilter('all')} className={typeFilter === 'all' ? 'pill-active' : 'pill'}>
@@ -1951,7 +1951,7 @@ export const CustomersView = () => {
             </button>
             <button
               onClick={() => { setEditingCustomer(null); setIsModalOpen(true); }}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors"
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
             >
               <Plus size={13} />
               <span>New</span>
@@ -1967,7 +1967,7 @@ export const CustomersView = () => {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-tea-text-sec">
             <Users size={32} className="opacity-40" />
-            <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'Nothing matched — try different words.' : 'No customers yet.'}</span>
+            <span className="font-serif italic">{search || filterTags.length > 0 || filterAttendedEvents ? 'Nothing matched, try different words.' : 'No customers yet.'}</span>
             {(search || filterTags.length > 0 || filterAttendedEvents) && (
               <button onClick={() => { setSearch(''); setFilterTags([]); setFilterAttendedEvents(false); }} className="text-xs text-tea-gold hover:text-tea-gold/80 transition-colors">
                 Clear filters
@@ -1984,7 +1984,7 @@ export const CustomersView = () => {
           </div>
         ) : (
           <>
-            {/* MOBILE LIST — compact rows like OrdersView */}
+            {/* MOBILE LIST, compact rows like OrdersView */}
             <div className="md:hidden pb-24">
               {filtered.map((customer, idx) => (
                 <button

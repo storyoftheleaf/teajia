@@ -19,7 +19,7 @@ interface DraftsViewProps {
 
 type FilterMode = 'all' | 'review' | 'ready';
 
-// "Ready to approve" gate — single source of truth for what's been triaged.
+// "Ready to approve" gate, single source of truth for what's been triaged.
 function isReadyToApprove(p: Product): boolean {
   const hasName = !!p.givenName && p.givenName !== 'Unnamed Tea' && p.givenName.trim().length > 0;
   const hasType = !!p.type && p.type !== 'Misc' && (p.type as string) !== 'MISSING_TYPE';
@@ -52,7 +52,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
     if (readyToApprove.length === 0 || approving) return;
     setApproving(true);
     setApproveError(null);
-    // allSettled, not all — with Promise.all one flaky request aborted the
+    // allSettled, not all, with Promise.all one flaky request aborted the
     // whole batch silently: some drafts activated server-side while the UI
     // still showed them as drafts (and no refetch fired, so the list lied).
     const results = await Promise.allSettled(
@@ -60,7 +60,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
     );
     const failed = results.filter(r => r.status === 'rejected').length;
     if (failed > 0) {
-      setApproveError(`${failed} of ${results.length} didn't go through — check your connection and approve again.`);
+      setApproveError(`${failed} of ${results.length} didn't go through, check your connection and approve again.`);
     }
     // Always refetch: partial successes must show as Active immediately.
     onDraftCreated();
@@ -115,7 +115,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
           <span className="text-ui-11 text-tea-error truncate">{approveError}</span>
         )}
 
-        {/* Bulk intake handoff — load many files / photos at once */}
+        {/* Bulk intake handoff: load many files / photos at once */}
         <button
           type="button"
           onClick={() => navigate('/admin/intake')}
@@ -126,7 +126,7 @@ export const DraftsView: React.FC<DraftsViewProps> = ({
           <span>Bulk intake</span>
         </button>
 
-        {/* Compass handoff — quiet text link on the right */}
+        {/* Compass handoff, quiet text link on the right */}
         <button
           type="button"
           onClick={goToCompass}

@@ -51,6 +51,6 @@ export function stripMatchingYear(name: string, year: number | string | null | u
   const y = String(year).trim();
   if (!/^\d{4}$/.test(y)) return name;
   // Match the year at the end, optionally preceded by whitespace/punctuation.
-  const stripped = name.replace(new RegExp(`[\\s,\\-–—]*${y}\\s*$`), '').trim();
+  const stripped = name.replace(new RegExp(`[\\s,\\-\u2013\u2014]*${y}\\s*$`), '').trim();
   return stripped.length > 0 ? stripped : name;
 }
