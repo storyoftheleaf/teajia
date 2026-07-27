@@ -52,6 +52,7 @@ export const ADMIN_TOOLS: AdminTool[] = [
   { id: 'access', label: 'Members & Access', group: 'teach', route: '/admin/access', addedAt: '2026-04-26', requires: 'owner', bundle: 'members', staffVisible: true },
   { id: 'settings', label: 'Settings', group: 'teach', route: '/admin/account-settings', addedAt: '2026-04-27', requires: 'owner' },
   { id: 'mcp-tokens', label: 'Voice & Agent (MCP)', group: 'teach', route: '/admin/mcp-tokens', addedAt: '2026-05-09', requires: 'owner' },
+  { id: 'wisdom', label: 'Wisdom', group: 'teach', route: '/admin/wisdom', addedAt: '2026-07-27' },
   { id: 'platform-access', label: 'Platform Access', group: 'teach', route: '/admin/access/platform', addedAt: '2026-04-26', requires: 'platform' },
   { id: 'currency-rates', label: 'Exchange Rates', group: 'teach', route: '/admin/currency', addedAt: '2026-04-27', requires: 'platform' },
   { id: 'platform-dashboard', label: 'Platform Dashboard', group: 'teach', route: '/admin/platform', addedAt: '2026-05-10', requires: 'platform' },

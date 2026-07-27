@@ -50,6 +50,7 @@ import { PlatformAccessView } from './views/PlatformAccessView';
 import { CurrencyRatesView } from './views/CurrencyRatesView';
 import { MCPTokensView } from './views/MCPTokensView';
 import { OAuthConsentView } from './views/OAuthConsentView';
+import { WisdomView } from './views/WisdomView';
 import { EventsManager } from './components/EventsManager';
 import { EventDetail } from './components/EventDetail';
 import { TastingEventsList } from './components/tasting/TastingEventsList';
@@ -570,6 +571,7 @@ const AdminContent = ({ onAccountClick, onSearchClick }: AdminContentProps) => {
               <Route path="mcp-tokens" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><MCPTokensView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
               <Route path="oauth-consent/:requestId" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><OAuthConsentView /></PageTransition></ProtectedRoute>} />
+              <Route path="wisdom" element={<ProtectedRoute hasAccess={isAdmin} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><WisdomView /></PageTransition></ProtectedRoute>} />
               {/* Network hub — single page with tabbed surfaces */}
               <Route path="network" element={<ProtectedRoute hasAccess={canUseNetwork} isLoggingIn={isLoginOpen || !isLoggedIn}><PageTransition><NetworkLanding /></PageTransition></ProtectedRoute>} />
               {/* Legacy destination routes redirect into the hub with their tab */}
