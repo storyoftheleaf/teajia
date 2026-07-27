@@ -514,6 +514,8 @@ export interface InventoryItem {
   supplier?: string; // Supplier/vendor name for the item
   supplier_location?: string; // Location/country where supplier is based (maps to currency)
   chineseName?: string;
+  /** The plant this tea is made from, resolved against the tea wisdom base. */
+  cultivar?: string | null;
   lore?: string;
   showWisdom?: boolean;
   terroir?: string;

@@ -23,6 +23,7 @@ import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import type { Product } from '../admin/types';
 import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
+import { TeaLineage, resolveLineage, type TeaLineageProduct } from '../components/wisdom/TeaLineage';
 
 // ── Feature 4: Public tea reviews section ────────────────────────────────────
 
@@ -226,6 +227,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const isFavorited = favoriteTeas.includes(item.id);
   const presets = [25, 50, 100, 250].filter(p => p <= sliderMax);
 
+  // Resolved once here so the structured data below and the Lineage section
+  // render the same plant and place without duplicating the resolution.
+  const lineageProduct: TeaLineageProduct = {
+    name: item.name,
+    chineseName: item.chineseName,
+    origin: item.origin,
+    cultivar: item.cultivar,
+  };
+  const { cultivar: lineageCultivar, region: lineageRegion } = resolveLineage(lineageProduct);
+
   const mainStory = item.lore || '';
   const introduction = item.description || '';
   const terroir = item.terroir || '';
@@ -267,6 +278,23 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     brand: { '@type': 'Brand', name: 'Teajia' },
     category: item.category === 'ware' ? 'Teaware' : `${item.type} Tea`,
     ...(item.origin && { countryOfOrigin: { '@type': 'Country', name: item.origin } }),
+    ...((lineageCultivar || lineageRegion) && {
+      additionalProperty: [
+        ...(lineageCultivar ? [{ '@type': 'PropertyValue', name: 'Cultivar', value: lineageCultivar.name }] : []),
+        ...(lineageCultivar?.chineseName
+          ? [{ '@type': 'PropertyValue', name: 'Cultivar (Chinese)', value: lineageCultivar.chineseName }]
+          : []),
+        ...(lineageCultivar?.originRegion || lineageCultivar?.originCountry
+          ? [{
+              '@type': 'PropertyValue',
+              name: 'Cultivar Origin',
+              value: [lineageCultivar?.originRegion, lineageCultivar?.originCountry].filter(Boolean).join(', '),
+            }]
+          : []),
+        ...(lineageRegion?.altitude ? [{ '@type': 'PropertyValue', name: 'Growing Altitude', value: lineageRegion.altitude }] : []),
+        ...(lineageRegion?.climate ? [{ '@type': 'PropertyValue', name: 'Growing Climate', value: lineageRegion.climate }] : []),
+      ],
+    }),
     offers: {
       '@type': 'Offer',
       price: (pricePerGram * 50).toFixed(2), // Price per 50g serving
@@ -477,6 +505,11 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               <p className="text-sm text-tea-text-sec leading-relaxed whitespace-pre-line">{processing}</p>
             </div>
           )}
+
+          {/* Tea wisdom lineage: shared background beneath Adrian's own words above,
+              marked as reference rather than voice. Renders nothing when the plant
+              can't be resolved (see TeaLineage.tsx). */}
+          <TeaLineage product={lineageProduct} />
 
           {brewingProfile && (
             <div className="mb-5 rounded-md border border-tea-border bg-tea-surface p-4">
