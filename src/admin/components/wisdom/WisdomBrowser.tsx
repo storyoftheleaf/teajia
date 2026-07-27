@@ -17,6 +17,7 @@ import {
   WISDOM_TYPE,
   compareWisdom,
   defaultPrefs,
+  groupAbsence,
   isSectionFolded,
   mayNearMiss,
   nearestWisdom,
@@ -199,6 +200,20 @@ interface Props {
    * silence. Empty for every link that fits, which is nearly all of them.
    */
   shapeRefused?: readonly string[];
+  /**
+   * Rewrites the address from the shape that is actually on screen.
+   *
+   * The refusal bar could state every refusal and offered nothing to press. The
+   * reader was told which half of the link had landed and left holding an
+   * address that still carried the half that had not, so copying it on passed
+   * the same dead key to the next person, and the only way to be rid of it was
+   * to shape the list by hand until the address was rewritten as a side effect.
+   * This is that rewrite as a deliberate act: keep what landed, drop what did
+   * not. The bar clears itself, because there is then nothing left to refuse.
+   *
+   * Optional, like every other write-back here: the engine runs standalone.
+   */
+  onKeepHonoured?: () => void;
 }
 
 interface Section {
@@ -224,7 +239,7 @@ const joinDots = (parts: React.ReactNode[]): React.ReactNode =>
 
 export const WisdomBrowser: React.FC<Props> = ({
   holding, tabs, selectedId, onSelect, onJump, siblings, prefs, onPrefsChange,
-  initialQuery = '', onQueryChange, usage, shapeRefused,
+  initialQuery = '', onQueryChange, usage, shapeRefused, onKeepHonoured,
 }) => {
   const [query, setQuery] = useState(initialQuery);
   const nameColumn = holding.columns[0];
@@ -484,11 +499,20 @@ export const WisdomBrowser: React.FC<Props> = ({
     [holding, groupKey],
   );
 
+  /**
+   * What a row with no answer for this grouping is called, over the rows.
+   *
+   * Read from the column the grouping is about, so the heading and the cell
+   * under it cannot say two different things about the same missing field. See
+   * `groupAbsence`.
+   */
+  const absent = useMemo(() => (group ? groupAbsence(group, holding) : UNGROUPED), [group, holding]);
+
   const sections = useMemo<Section[]>(() => {
     if (!group) return [{ key: '', label: null, rows: filtered }];
     const buckets = new Map<string, unknown[]>();
     for (const row of filtered) {
-      const key = group.of(row) || UNGROUPED;
+      const key = group.of(row) || absent;
       const bucket = buckets.get(key);
       if (bucket) bucket.push(row);
       else buckets.set(key, [row]);
@@ -496,9 +520,9 @@ export const WisdomBrowser: React.FC<Props> = ({
     // Rows with no answer collect at the end. Absence is not a heading.
     return [...buckets.entries()]
       .sort(([left], [right]) =>
-        left === UNGROUPED ? 1 : right === UNGROUPED ? -1 : left.localeCompare(right))
+        left === absent ? 1 : right === absent ? -1 : left.localeCompare(right))
       .map(([key, rows]) => ({ key, label: key, rows }));
-  }, [filtered, group]);
+  }, [absent, filtered, group]);
 
   /** Every row a reader can currently reach, in the order it appears. */
   const ordered = useMemo(
@@ -794,7 +818,7 @@ export const WisdomBrowser: React.FC<Props> = ({
     if (group) {
       return {
         label: group.label,
-        value: (row: unknown) => group.of(row) || UNGROUPED,
+        value: (row: unknown) => group.of(row) || absent,
         recorded: (row: unknown) => group.of(row) || null,
       };
     }
@@ -805,7 +829,7 @@ export const WisdomBrowser: React.FC<Props> = ({
       value: (row: unknown) => wisdomShown(axis, row),
       recorded: (row: unknown) => axis.value(row) ?? null,
     };
-  }, [group, holding, nameColumn, sort.key]);
+  }, [absent, group, holding, nameColumn, sort.key]);
 
   /**
    * Type-ahead, the way a native list does it: press L and land on the first L.
@@ -877,8 +901,14 @@ export const WisdomBrowser: React.FC<Props> = ({
    * now, and `WISDOM_SEAT` is the pair of complementary classes that makes
    * exactly one of them visible at any width, stated once in config so an edit
    * to one seat cannot quietly print the sentence twice.
+   *
+   * ONE STATEMENT, SAID IN AS MANY WORDS AS THE SEAT HOLDS. The narrow seat is a
+   * single truncating line on a 366px row, and the sentence it existed to carry
+   * was eighty-eight characters, so on the one device with no columns to read
+   * instead it ended in an ellipsis. The phone is not told something different;
+   * it is told the same thing without the clauses a wide screen has room for.
    */
-  const typedStatus = () => {
+  const typedStatus = (narrow: boolean) => {
     if (typeMiss) {
       // The one moment the two searches visibly disagree, said in words with the
       // other one offered rather than left to be guessed at.
@@ -888,14 +918,14 @@ export const WisdomBrowser: React.FC<Props> = ({
       // used to be wrong about is a jump that lands rather than a miss.
       return (
         <span data-testid="wisdom-type-miss">
-          No {jumpBy.label.toLowerCase()} on this list starts with{' '}
+          No {jumpBy.label.toLowerCase()} {narrow ? '' : 'on this list '}starts with{' '}
           <span className="font-mono text-tea-text-sec">{typed}</span>.{' '}
           <button
             type="button"
             onClick={findTypedInstead}
             className="text-tea-gold transition-colors hover:text-tea-gold-lt"
           >
-            Find it in every column
+            {narrow ? 'Find it' : 'Find it in every column'}
           </button>
         </span>
       );
@@ -911,7 +941,8 @@ export const WisdomBrowser: React.FC<Props> = ({
     // word they can see and being told the base does not hold it.
     return typeOnDefault ? (
       <span data-testid="wisdom-type-default">
-        {jumping}. These rows record nothing there, so Find will not match it.
+        {jumping}.{' '}
+        {narrow ? 'Find cannot match that.' : 'These rows record nothing there, so Find will not match it.'}
       </span>
     ) : jumping;
   };
@@ -1138,9 +1169,14 @@ export const WisdomBrowser: React.FC<Props> = ({
           // What was recorded, or what the column says instead when nothing was.
           // The fallback is a rendering, never a value: it reaches the cell and
           // it never reaches the text the find field reads.
-          const content = column.render
-            ? column.render(row, linkCtx)
-            : (column.value(row) ?? column.fallback ?? null);
+          //
+          // Read through `wisdomShown`, which is the same expression the jump
+          // axis reads. It used to be spelled out again here, one edit away from
+          // disagreeing with the axis it feeds: type-ahead promised to land on
+          // the word the cell prints, and only a copied expression made that
+          // true. A `render` that answers with nothing falls through to it as
+          // well, so a column may not have a default the cell refuses to show.
+          const content = column.render?.(row, linkCtx) ?? wisdomShown(column, row);
           if (columnIndex === 0) {
             return (
               <span key={column.key} className="flex min-w-0 flex-1 items-baseline gap-2 text-left">
@@ -1213,7 +1249,7 @@ export const WisdomBrowser: React.FC<Props> = ({
             className={`${WISDOM_SEAT.wide} min-w-0 shrink truncate text-ui-11 text-tea-text-dim`}
             data-testid="wisdom-seat-wide"
           >
-            {typed ? typedStatus() : statusLine(true, !condensed)}
+            {typed ? typedStatus(false) : statusLine(true, !condensed)}
           </p>
           <div className="flex shrink-0 items-center gap-3">{foldAll}{sortMenu}{groupMenu}</div>
         </div>
@@ -1236,7 +1272,7 @@ export const WisdomBrowser: React.FC<Props> = ({
             className={`${WISDOM_SEAT.narrow} min-w-0 truncate text-ui-11 text-tea-text-dim`}
             data-testid="wisdom-seat-narrow"
           >
-            {typed ? typedStatus() : statusLine(false)}
+            {typed ? typedStatus(true) : statusLine(false)}
           </p>
           <div className="hidden min-w-0 items-center gap-3 md:flex" data-testid="wisdom-key-hints">
             {keyHints(jumpBy.label).map((hint, index) => (
@@ -1294,41 +1330,25 @@ export const WisdomBrowser: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Where this holding is read, what is currently riding on it, and the
-          fact that it is read only.
-          It used to sit under the rows, which on Varieties is under 316 of them
-          and is the one place on the screen nobody arrives at. It is orientation:
-          what this holding answers for, and what an edit to it would move. That
-          is worth reading BEFORE the rows and worthless after them, so it reads
-          first and then scrolls away for good. It sits outside the sticky block
-          on purpose, so it costs the list nothing but its first 55 pixels.
-          The public address inside the sentence is the link to it: an operator
-          checking how a correction reads to a customer was retyping it by hand. */}
-      <div className="border-b border-tea-border px-3 py-1.5 md:px-4" data-testid="wisdom-reach">
-        <p className="max-w-3xl text-ui-11 leading-[1.6] text-tea-text-dim">
-          {reachLine}{' '}
-          {holdingUsage !== null && (
-            <span data-testid="wisdom-holding-usage">
-              {holdingUsage === 0
-                ? `None of the ${usage!.total} products in this account resolve through it today.`
-                : `${holdingUsage} of the ${usage!.total} products in this account resolve through it today.`}{' '}
-            </span>
-          )}
-          Read only. Entries change by re-running the build from the source data.
-        </p>
-      </div>
+      {/* WHAT CHANGES, THEN WHAT STANDS, in ONE block rather than two.
 
-      {/* A hole in the data, counted. Forty-five cultivars naming a place the
+          A hole in the data, counted. Forty-five cultivars naming a place the
           base does not hold is a work queue; the same forty-five met one row at
           a time is a shrug. The count is also the way to see exactly those rows.
+          That sentence moves with the reader, with the grouping and with the
+          account's own products.
 
-          The line is never silent now. Silence used to carry two opposite
-          meanings: a holding whose count came out at zero rendered nothing, and
-          so did a holding that had never measured a hole at all. One of those is
-          a clean record and the other is an unasked question, and they looked
-          identical. Each of the three states says which it is. */}
-      {(holding.gap || holding.unmeasured) && (
-        <div className="border-b border-tea-border px-3 py-1.5 md:px-4" data-testid="wisdom-gap">
+          Under it, and no longer over it, the standing text: where this holding
+          is read, what is riding on it, and the fact that it is read only. That
+          paragraph is the same on every visit and answers nothing the reader has
+          just done, so it no longer takes the first line above a working list,
+          and the divider that used to separate the two is gone with it. Reading
+          it is still worth more before the rows than under 316 of them, which is
+          why it is here at all rather than back at the foot of the list.
+          The public address inside the sentence is the link to it: an operator
+          checking how a correction reads to a customer was retyping it by hand. */}
+      <div className="border-b border-tea-border px-3 py-1.5 md:px-4">
+        <div data-testid="wisdom-gap">
           {/* ONE PARAGRAPH, not four stacked blocks.
               Each statement used to be its own `<p>` in a wrapping flex row, so
               every one of them rounded up to a whole line and the toggle spent a
@@ -1345,39 +1365,6 @@ export const WisdomBrowser: React.FC<Props> = ({
                   ? holding.gap.sentence(gapRows.length, holding.rows.length)
                   : holding.gap.whole(holding.rows.length)}
               </span>{' '}
-              {/* A number that moves on its own reads as a fault. This one is
-                  an over-count until the account's own products are read, and
-                  it says so rather than quietly narrowing a beat after arrival.
-                  It also says when it has stopped being an over-count, which is
-                  the half that was missing: the qualification used to vanish,
-                  and a reader told a number was conditional was never told it
-                  had settled. An account holding no products is the third state
-                  and used to wear the first one forever, waiting on a reading
-                  that had already happened and had nothing to say. */}
-              {gapAccount === 'waiting' && gapRows.length > 0 && (
-                <>
-                  <span data-testid="wisdom-gap-provisional">
-                    Counted from the base alone until the products in this account are read, so it can only fall.
-                  </span>{' '}
-                </>
-              )}
-              {gapAccount === 'none' && gapRows.length > 0 && (
-                <>
-                  <span data-testid="wisdom-gap-base-only">
-                    This account holds no products, so the count is the base alone. It will fall when stock arrives.
-                  </span>{' '}
-                </>
-              )}
-              {/* Due at the transition, and quiet afterwards. A reader who
-                  watched the number narrow is owed the word that it has stopped;
-                  a reader who arrived to a counted answer was never told it was
-                  in doubt and is owed nothing. It stays for as long as it takes
-                  to read what it says, which is where its dwell comes from. */}
-              {gapAccount === 'settled' && settledFresh && gapRows.length > 0 && (
-                <>
-                  <span data-testid="wisdom-gap-settled" aria-live="polite">{gapSettledLine}</span>{' '}
-                </>
-              )}
               {/* Said, not done silently. The reader pressed one control and up
                   to three things moved, and a grouping that changes without a
                   word is the kind of thing that reads as a bug the first time it
@@ -1402,14 +1389,78 @@ export const WisdomBrowser: React.FC<Props> = ({
                   </span>{' '}
                 </>
               )}
+              {/* HOW FAR THE COUNT HAS GOT, LAST, because this is the one sentence
+                  on the screen that arrives and leaves on its own.
+                  It used to sit second, right behind the number it qualifies, and
+                  so the moment the account's products landed it swapped a hundred
+                  and eight characters for eighty-five in the middle of a paragraph
+                  and reflowed every sentence after it. Its dwell was measured from
+                  what it says and its arrival was measured from nothing. Last in
+                  the paragraph, the swap moves only itself and the control under
+                  it, and adjacency is the price: the number is two sentences away
+                  rather than one.
+
+                  A number that moves on its own reads as a fault. This one is an
+                  over-count until the account's own products are read, and it says
+                  so rather than quietly narrowing a beat after arrival. It also
+                  says when it has stopped being an over-count, which is the half
+                  that was missing: the qualification used to vanish, and a reader
+                  told a number was conditional was never told it had settled. An
+                  account holding no products is the third state and used to wear
+                  the first one forever, waiting on a reading that had already
+                  happened and had nothing to say. */}
+              {gapAccount === 'waiting' && gapRows.length > 0 && (
+                <>
+                  <span data-testid="wisdom-gap-provisional">
+                    Counted from the base alone until the products in this account are read, so it can only fall.
+                  </span>{' '}
+                </>
+              )}
+              {gapAccount === 'none' && gapRows.length > 0 && (
+                <>
+                  <span data-testid="wisdom-gap-base-only">
+                    This account holds no products, so the count is the base alone. It will fall when stock arrives.
+                  </span>{' '}
+                </>
+              )}
+              {/* Due at the transition, and quiet afterwards. A reader who
+                  watched the number narrow is owed the word that it has stopped;
+                  a reader who arrived to a counted answer was never told it was
+                  in doubt and is owed nothing. It stays for as long as it takes
+                  to read what it says, which is where its dwell comes from. */}
+              {gapAccount === 'settled' && settledFresh && gapRows.length > 0 && (
+                <>
+                  <span data-testid="wisdom-gap-settled" aria-live="polite">{gapSettledLine}</span>{' '}
+                </>
+              )}
               {(gapRows.length > 0 || gapOnly) && (
+                /* THE TOGGLE GETS ITS LINE BACK WHERE THERE IS ROOM FOR ONE.
+                   Folding four statements into one paragraph put the only control
+                   in the block at the end of the last sentence, where a wide
+                   screen has to read four lines of prose to find it. `md:block`
+                   gives it its own line from md up, which costs a paragraph that
+                   is two lines there nothing at all, and leaves it inline on the
+                   phone, where a line is a row of the list and the compaction was
+                   worth paying for.
+
+                   And it says which of two things it will do. Show all clears the
+                   gap filter, and where the filter took a grouping on loan it also
+                   hands that back; after a sort or a query settles the loan it
+                   only does the first, and one word stood for both. */
                 <button
                   type="button"
                   onClick={toggleGapOnly}
                   aria-pressed={gapOnly}
-                  className="whitespace-nowrap text-tea-gold transition-colors hover:text-tea-gold-lt"
+                  aria-label={
+                    gapOnly
+                      ? borrowedGiveBack
+                        ? `Show all ${holding.noun} and give back ${borrowedGiveBack}`
+                        : `Show all ${holding.noun}, leaving the list shaped as it is`
+                      : `Show only the ${gapRows.length} ${holding.noun} this counts`
+                  }
+                  className="whitespace-nowrap text-tea-gold transition-colors hover:text-tea-gold-lt md:mt-1 md:block"
                 >
-                  {gapOnly ? 'Show all' : 'Show only these'}
+                  {gapOnly ? (borrowedGiveBack ? 'Show all and give it back' : 'Show all') : 'Show only these'}
                 </button>
               )}
             </p>
@@ -1419,7 +1470,18 @@ export const WisdomBrowser: React.FC<Props> = ({
             </p>
           )}
         </div>
-      )}
+        <p className="mt-1 max-w-3xl text-ui-11 leading-[1.5] text-tea-text-dim" data-testid="wisdom-reach">
+          {reachLine}{' '}
+          {holdingUsage !== null && (
+            <span data-testid="wisdom-holding-usage">
+              {holdingUsage === 0
+                ? `None of the ${usage!.total} products in this account resolve through it today.`
+                : `${holdingUsage} of the ${usage!.total} products in this account resolve through it today.`}{' '}
+            </span>
+          )}
+          Read only. Entries change by re-running the build from the source data.
+        </p>
+      </div>
 
       {/* A link whose shape this holding could not honour, said out loud.
           Everything else on this screen explains itself; the token was the one
@@ -1427,7 +1489,14 @@ export const WisdomBrowser: React.FC<Props> = ({
           link to "marks grouped by producer, sorted by era" could arrive at a
           list sorted by name with nothing anywhere saying which half had been
           refused. It clears itself: the moment the reader shapes the list, the
-          address is rewritten from what is actually on screen. */}
+          address is rewritten from what is actually on screen.
+
+          And it can be cleared on purpose. Stating a refusal and offering
+          nothing to press left the reader holding an address that still carried
+          the dead key, so passing the link on passed the fault on with it, and
+          the only repair was to shape the list by hand until the address was
+          rewritten as a side effect of something else. One press keeps the half
+          that landed and drops the half that did not. */}
       {shapeRefused && shapeRefused.length > 0 && (
         <div
           className="border-b border-tea-border px-3 py-1.5 md:px-4"
@@ -1436,7 +1505,18 @@ export const WisdomBrowser: React.FC<Props> = ({
         >
           <p className="text-ui-11 leading-[1.5] text-tea-text-dim">
             Part of the shape this link asked for is not something {holding.label} can do, so it was
-            refused rather than obeyed. {shapeRefused.join(' ')}
+            refused rather than obeyed. {shapeRefused.join(' ')}{' '}
+            {onKeepHonoured && (
+              <button
+                type="button"
+                onClick={onKeepHonoured}
+                data-testid="wisdom-shape-repair"
+                aria-label="Rewrite this address from the list on screen, dropping what was refused"
+                className="whitespace-nowrap text-tea-gold transition-colors hover:text-tea-gold-lt md:mt-1 md:block"
+              >
+                Keep what landed
+              </button>
+            )}
           </p>
         </div>
       )}

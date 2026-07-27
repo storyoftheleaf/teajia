@@ -23,6 +23,7 @@ import { getThemeTextColor } from '../../themeUtils';
 import { CultivarDetailPanel } from './CultivarDetailPanel';
 import { WisdomChip, WisdomRoving } from './WisdomDetailPanel';
 import {
+  UNGROUPED,
   WISDOM_SLOT,
   WISDOM_TYPE,
   defineHolding,
@@ -147,6 +148,11 @@ const regionChip = (written: string | null | undefined, ctx?: WisdomLinkCtx) => 
  * beside it, so the same row read as "Any" in the list and "Any tea" in the
  * panel, and a fourth caller would have invented a third word. The column
  * declaration was the right design; what was missing was one string behind it.
+ *
+ * The grouping no longer names the absence at all. It answers with what was
+ * recorded or with nothing, and `groupAbsence` takes the heading from the column
+ * that is about the same field, so the cell and the heading over it read the
+ * same word by construction rather than by two authors agreeing.
  */
 const ANY_TYPE = 'Any tea';
 
@@ -293,7 +299,7 @@ const cultivars = defineHolding<Cultivar>({
   // them in. What is left is what the row carries and the list does not show.
   beyondColumns: row => [row.chineseName, ...row.altNames],
   matchEntity: query => matchCultivar(query),
-  reach: 'Read by the lineage block on every shop product page, by the import editor when it identifies a tea, and by the public reference at /wisdom/cultivars.',
+  reach: 'Read by the lineage block on every shop page, by the import editor, and by /wisdom/cultivars.',
   publicRef: { index: '/wisdom/cultivars', entry: row => `/wisdom/cultivar/${row.id}` },
   columns: [
     {
@@ -382,7 +388,7 @@ const regions = defineHolding<Region>({
   // shows and the list does not, so it is the only thing left to declare.
   beyondColumns: row => [row.climate],
   matchEntity: query => findRegion(query),
-  reach: 'Offers the region suggestions on the capture card and the import editor, answers the country a record leaves blank everywhere resolveTea runs, and backs the public reference at /wisdom/regions.',
+  reach: 'Suggests places at capture and import, fills the country a record leaves blank, and backs /wisdom/regions.',
   publicRef: { index: '/wisdom/regions', entry: row => `/wisdom/region/${row.id}` },
   columns: [
     {
@@ -507,7 +513,7 @@ const varieties = defineHolding<FlatVariety>({
     if (!match) return null;
     return ALL_VARIETIES.find(row => row.type === match.type && row.name === match.name) ?? null;
   },
-  reach: 'The largest holding, and the one that teaches type recognition: a variety added here is recognised by the import editor, the capture card and the worker without anyone writing a keyword. It is the one holding with no public page of its own, because a variety reaches a reader through the cultivar and the region it resolves to.',
+  reach: 'Teaches the import editor, the capture card and the worker to recognise a type. It has no public page of its own: a variety reaches a reader through the cultivar and the region it resolves to.',
   columns: [
     {
       key: 'name',
@@ -571,7 +577,7 @@ const producers = defineHolding<Producer>({
   // country with it. The marks a producer is known for are only in the panel.
   beyondColumns: row => [row.chineseName, ...row.altNames, ...row.notableMarks],
   matchEntity: query => matchProducer(query),
-  reach: 'Answers who made a tea wherever one is identified, at import and in the shop, and backs the public reference at /wisdom/producers.',
+  reach: 'Answers who made a tea at import and in the shop, and backs /wisdom/producers.',
   publicRef: { index: '/wisdom/producers', entry: row => `/wisdom/producer/${row.id}` },
   // Not "no hole": no hole COUNTED. A producer whose notable marks the base does
   // not hold as marks is the same shape of absence as every other gap on this
@@ -642,7 +648,7 @@ const marks = defineHolding<Mark>({
   // Name, era and producer are columns. The wrapper names are not.
   beyondColumns: row => [row.chineseName, ...row.altNames],
   matchEntity: query => matchMark(query),
-  reach: 'Turns a recipe number on a wrapper into a producer and an era at import, and backs the public reference at /wisdom/marks.',
+  reach: 'Turns a recipe number on a wrapper into a producer and an era at import, and backs /wisdom/marks.',
   publicRef: { index: '/wisdom/marks', entry: row => `/wisdom/mark/${row.id}` },
   columns: [
     {
@@ -652,11 +658,14 @@ const marks = defineHolding<Mark>({
       value: row => row.name,
       render: row => nameCell(row.name, row.chineseName),
     },
-    slot('kind', { key: 'era', label: 'Era', value: row => row.era ?? null }),
+    // Both are grouped by, so both have to say what an absence is called. The
+    // heading reads this declaration rather than inventing a second word.
+    slot('kind', { key: 'era', label: 'Era', value: row => row.era ?? null, fallback: UNGROUPED }),
     slot('place', {
       key: 'producer',
       label: 'Producer',
       value: row => findProducerById(row.producerId)?.name ?? null,
+      fallback: UNGROUPED,
       render: (row, ctx) => {
         const producer = findProducerById(row.producerId);
         return producer ? linkCell(producer.name, { holding: 'producers', entry: producer.id }, ctx) : null;
@@ -717,7 +726,7 @@ const styles = defineHolding<Style>({
   // Name, applies-to and region are columns. The alternate names are not.
   beyondColumns: row => [row.chineseName, ...row.altNames],
   matchEntity: query => matchStyle(query),
-  reach: 'Names how a tea was made or pressed when that is not simply its form, wherever a tea is identified, and backs /wisdom/styles.',
+  reach: 'Names how a tea was made or pressed when that is not simply its form, and backs /wisdom/styles.',
   publicRef: { index: '/wisdom/styles', entry: row => `/wisdom/style/${row.id}` },
   columns: [
     {
@@ -738,7 +747,9 @@ const styles = defineHolding<Style>({
     }),
     slot('place', { key: 'region', label: 'Region', value: row => row.region ?? null }),
   ],
-  groups: [{ key: 'applies', label: 'Applies to', of: row => listOf(row.appliesToTypes) }],
+  // The heading for a style that states no types comes from the column's own
+  // default, not from a second copy of it written here.
+  groups: [{ key: 'applies', label: 'Applies to', of: row => recorded(row.appliesToTypes) ?? '' }],
   gap: {
     test: row => unheldPlace(row.region),
     sentence: (missing, total) =>
@@ -778,7 +789,7 @@ const namedTeas = defineHolding<NamedTea>({
   // country. Where a named tea came from and what it belongs to are not columns.
   beyondColumns: row => [row.chineseName, ...row.altNames, row.collection, row.vendor, row.tradition],
   matchEntity: query => matchNamedTea(query),
-  reach: 'Lets a tea that arrived already named resolve at import instead of falling through, and backs the public reference at /wisdom/named.',
+  reach: 'Lets a tea that arrived already named resolve at import, and backs /wisdom/named.',
   publicRef: { index: '/wisdom/named', entry: row => `/wisdom/named/${row.id}` },
   // The one holding where absence is the record rather than a hole in it: a
   // named tea is whatever a vendor called it, and an undisclosed provenance is

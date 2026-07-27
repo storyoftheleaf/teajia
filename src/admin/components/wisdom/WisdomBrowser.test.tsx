@@ -566,6 +566,121 @@ describe('WisdomBrowser', () => {
     expect(searched).not.toContain(`data-wisdom-id="${marks.idOf(bare)}"`);
   });
 
+  // Stating a refusal and offering nothing to press left the reader holding an
+  // address that still carried the dead key, so passing the link on passed the
+  // fault on with it.
+  it('offers one press to keep the half of a link that landed', () => {
+    const refused = ['"nonsense" is not a grouping Cultivars has, so the list is ungrouped.'];
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <WisdomBrowser
+          holding={cultivars}
+          tabs={() => null}
+          selectedId={null}
+          onSelect={() => {}}
+          onJump={() => {}}
+          shapeRefused={refused}
+          onKeepHonoured={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    expect(html).toContain('data-testid="wisdom-shape-repair"');
+    expect(html).toContain('Keep what landed');
+    // Nothing to press where nobody is listening, and nothing to press when the
+    // link fitted, which is nearly every link.
+    expect(render(cultivars, { shapeRefused: refused })).not.toContain('data-testid="wisdom-shape-repair"');
+    expect(render(cultivars)).not.toContain('data-testid="wisdom-shape-repair"');
+  });
+
+  // The only control in the gap block ended up the last word of a four-sentence
+  // paragraph, which is the price the compaction paid and never paid back.
+  it('gives the gap toggle its own line where there is room for one', () => {
+    const html = render();
+    const at = html.indexOf('Show only these');
+    const tag = html.slice(html.lastIndexOf('<button', at), at);
+    // Its own line from md up, still inline on the phone, one control either way.
+    expect(tag).toContain('md:block');
+    expect((html.match(/Show only these/g) ?? []).length).toBe(1);
+  });
+
+  // Show all cleared the gap filter, and where the filter had a grouping on loan
+  // it handed that back too. One word stood for both, and after a sort or a query
+  // settled the loan the word did not change.
+  it('says which of two things Show all will do', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const onLoan = render(marks, {
+      gapOnly: true,
+      groupKey: 'producer',
+      borrowed: { groupKey: 'era', collapsed: [] },
+    });
+    expect(onLoan).toContain('Show all and give it back');
+    expect(onLoan).toContain('give back your grouping by era');
+    // Settled, it only clears the filter, and it stops promising otherwise.
+    const settled = render(marks, { gapOnly: true, groupKey: 'producer' });
+    expect(settled).not.toContain('Show all and give it back');
+    expect(settled).toContain('leaving the list shaped as it is');
+  });
+
+  // The one sentence that arrives and leaves on its own used to sit second, so
+  // its arrival reflowed every sentence after it.
+  it('seats the count qualification last, where its arrival moves nothing', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const html = render(regions, { gapOnly: true, groupKey: 'country' });
+    const count = html.indexOf('data-testid="wisdom-gap-count"');
+    const grouped = html.indexOf('data-testid="wisdom-gap-grouped"');
+    const qualified = html.indexOf('data-testid="wisdom-gap-provisional"');
+    expect(count).toBeGreaterThan(-1);
+    // Behind every other sentence in the paragraph, so a swap moves only itself.
+    expect(qualified).toBeGreaterThan(count);
+    if (grouped > -1) expect(qualified).toBeGreaterThan(grouped);
+    // Only the control follows it.
+    expect(html.indexOf('Show all', qualified)).toBeGreaterThan(qualified);
+  });
+
+  // Standing text that answers nothing the reader just did no longer takes the
+  // first line above a working list, and the divider between the two is gone.
+  it('reads what changes before what stands, in one block', () => {
+    const html = render();
+    const gap = html.indexOf('data-testid="wisdom-gap"');
+    const reach = html.indexOf('data-testid="wisdom-reach"');
+    expect(gap).toBeLessThan(reach);
+    // One bordered block for the pair, not two: no divider between them.
+    expect(html.slice(gap, reach)).not.toContain('border-b border-tea-border');
+  });
+
+  // The narrow seat is a single truncating line on a 366px row, and the sentence
+  // it exists to carry was eighty-eight characters long.
+  it('says the same thing in fewer words where the seat is one phone line', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const applies = marks.columns.find(column => column.key === 'applies')!;
+    // The default a cell prints is the axis word the two seats disagree about.
+    expect(applies.fallback).toBe('Any tea');
+    const wide = 'These rows record nothing there, so Find will not match it.';
+    const narrow = 'Find cannot match that.';
+    expect(narrow.length).toBeLessThan(wide.length / 2);
+    // Both seats exist and neither is the other's abbreviation by accident.
+    const html = render(marks);
+    expect(html).toContain('data-testid="wisdom-seat-wide"');
+    expect(html).toContain('data-testid="wisdom-seat-narrow"');
+  });
+
+  // The cell used to spell out `value ?? fallback` a second time, one edit away
+  // from disagreeing with the axis type-ahead promises to land on.
+  it('prints the same word in a cell that the jump axis reads', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const producer = marks.columns.find(column => column.key === 'producer')!;
+    const unheld = marks.rows.find(row => producer.value(row) === null)!;
+    expect(unheld).toBeDefined();
+    // A render that answers with nothing falls through to the column's default
+    // rather than leaving a cell blank under a heading that names the absence.
+    expect(producer.render!(unheld, { jump: () => {} })).toBe(null);
+    const grouped = render(marks, { groupKey: 'producer' });
+    const heading = producer.fallback!;
+    expect(grouped).toContain(heading);
+    // The heading over those rows and the cells under it say one word.
+    expect((grouped.match(new RegExp(heading, 'g')) ?? []).length).toBeGreaterThan(1);
+  });
+
   it('makes the public address in the reach line the way to reach it', () => {
     for (const holding of WISDOM_HOLDINGS) {
       const index = holding.publicRef?.index;

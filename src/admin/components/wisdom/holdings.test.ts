@@ -4,10 +4,12 @@ import {
   ALL_FOLDED,
   NEAR_MISS_LIMIT,
   OPEN_MARK,
+  UNGROUPED,
   WISDOM_SLOT,
   compareWisdom,
   defaultPrefs,
   editDistance,
+  groupAbsence,
   isSectionFolded,
   nearestWisdom,
   readFold,
@@ -15,6 +17,7 @@ import {
   readWisdomShape,
   readWisdomShapeReport,
   recogniseQuery,
+  revealEntry,
   settleLoan,
   toggleFold,
   wisdomEntryHref,
@@ -127,10 +130,12 @@ describe('wisdom holdings', () => {
   it('keeps a rendered default out of the text find reads', () => {
     const withFallback = WISDOM_HOLDINGS.flatMap(holding =>
       holding.columns.filter(column => column.fallback).map(column => ({ holding, column })));
-    // Two columns declare one, and both are the same absence: applies to nothing
-    // in particular. If a third appears it is held to the same rule.
+    // Four columns declare one. Two are the same absence, applies to nothing in
+    // particular; the other two are fields a grouping also sections by, and a
+    // heading may not name an absence in a word its own cells refuse to print.
+    // If a fifth appears it is held to the same rule.
     expect(withFallback.map(entry => `${entry.holding.id}.${entry.column.key}`))
-      .toEqual(['marks.applies', 'styles.applies']);
+      .toEqual(['marks.era', 'marks.producer', 'marks.applies', 'styles.applies']);
 
     for (const { holding, column } of withFallback) {
       const tokens = wisdomQueryTokens(column.fallback!);
@@ -660,6 +665,68 @@ describe('readGapAccount', () => {
   });
 });
 
+// A jump carries an entry into a holding wearing the shape this reader last gave
+// it, and that shape could exclude the very row the jump was made to open: the
+// panel came up with no position beside prev and next, and the list underneath
+// had quietly refused to contain the thing being read.
+describe('revealEntry', () => {
+  const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+  const held = marks.rows.find(row => !marks.gap!.test(row))!;
+  const missing = marks.rows.find(row => marks.gap!.test(row))!;
+  const shape = (over: Partial<WisdomPrefs> = {}): WisdomPrefs => ({
+    ...defaultPrefs(marks),
+    ...over,
+  });
+
+  it('leaves a shape that can already hold the entry exactly as it stands', () => {
+    const standing = shape({ groupKey: 'producer' });
+    expect(revealEntry(standing, marks, marks.idOf(held))).toBe(standing);
+    // A gap filter the entry does belong to is not in the way either.
+    const gapped = shape({ gapOnly: true, groupKey: 'producer' });
+    expect(revealEntry(gapped, marks, marks.idOf(missing))).toBe(gapped);
+  });
+
+  it('puts away a gap filter this entry is not part of, loan and all', () => {
+    const next = revealEntry(
+      shape({ gapOnly: true, groupKey: 'producer', borrowed: { groupKey: 'era', collapsed: ['Vintage'] } }),
+      marks,
+      marks.idOf(held),
+    );
+    expect(next.gapOnly).toBe(false);
+    // Put away the way Show all puts it away: the loan goes back rather than
+    // being adopted behind the reader on a gesture they did not make.
+    expect(next.groupKey).toBe('era');
+    expect(next.collapsed).toEqual(['Vintage']);
+    expect(next.borrowed).toBe(null);
+  });
+
+  it('opens the one folded heading holding the entry, and no others', () => {
+    const producer = marks.groups!.find(group => group.key === 'producer')!;
+    const section = producer.of(held);
+    expect(section).toBeTruthy();
+    const next = revealEntry(shape({ groupKey: 'producer', collapsed: [ALL_FOLDED] }), marks, marks.idOf(held));
+    // Everything the reader folded stays folded; the sentinel keeps an exception.
+    expect(readFold(next.collapsed).all).toBe(true);
+    expect(isSectionFolded(readFold(next.collapsed), section)).toBe(false);
+    const other = marks.rows.find(row => producer.of(row) && producer.of(row) !== section);
+    if (other) expect(isSectionFolded(readFold(next.collapsed), producer.of(other))).toBe(true);
+  });
+
+  it('opens the absence heading, under the word the column declares', () => {
+    const next = revealEntry(
+      shape({ groupKey: 'producer', collapsed: [groupAbsence(marks.groups![0], marks)] }),
+      marks,
+      marks.idOf(missing),
+    );
+    expect(next.collapsed).toEqual([]);
+  });
+
+  it('says nothing about an entry the holding does not hold', () => {
+    const standing = shape({ gapOnly: true });
+    expect(revealEntry(standing, marks, 'no-such-mark')).toBe(standing);
+  });
+});
+
 describe('the folded shape', () => {
   const every = ['China', 'India', 'Japan', 'Taiwan'];
 
@@ -879,9 +946,46 @@ describe('wisdomShown', () => {
     // nothing where nothing was recorded.
     const stated = marks.rows.find(row => applies.value(row) !== null)!;
     expect(wisdomShown(applies, stated)).toBe(applies.value(stated));
-    const era = marks.columns.find(column => column.key === 'era')!;
-    const undated = marks.rows.find(row => era.value(row) === null);
-    if (undated) expect(wisdomShown(era, undated)).toBe(null);
+    const region = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const province = region.columns.find(column => column.key === 'province')!;
+    const unplaced = region.rows.find(row => province.value(row) === null);
+    if (unplaced) expect(wisdomShown(province, unplaced)).toBe(null);
+  });
+});
+
+// A grouping and a column can be about the same field, and when they are, the
+// same missing value used to be named twice in two different words: an empty
+// Producer cell under a heading reading "Not recorded", and a style column
+// printing "Any tea" beside a grouping that wrote the default out again itself.
+describe('groupAbsence', () => {
+  it('gives a heading and the cells under it one word for one absence', () => {
+    for (const holding of WISDOM_HOLDINGS) {
+      for (const group of holding.groups ?? []) {
+        const column = holding.columns.find(entry => entry.key === group.key);
+        const word = groupAbsence(group, holding);
+        // Whatever the heading says, the cell under it says the same, because
+        // both read the column's own declaration.
+        if (column) expect(word, `${holding.id}.${group.key}`).toBe(column.fallback ?? UNGROUPED);
+
+        // And a grouping that can leave a row with no answer must have a column
+        // saying what that absence is called, or the heading invents a word the
+        // rows below it will not print.
+        const homeless = holding.rows.filter(row => !group.of(row));
+        if (homeless.length === 0) continue;
+        expect(column, `${holding.id}.${group.key} groups rows with no answer`).toBeDefined();
+        expect(column!.fallback, `${holding.id}.${group.key}`).toBe(word);
+        for (const row of homeless) {
+          expect(wisdomShown(column!, row), `${holding.id}.${group.key}`).toBe(word);
+        }
+      }
+    }
+  });
+
+  it('falls back to the one general word where a grouping is about no column', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const byEntry = regions.groups!.find(group => group.key === 'entry')!;
+    expect(regions.columns.some(column => column.key === 'entry')).toBe(false);
+    expect(groupAbsence(byEntry, regions)).toBe(UNGROUPED);
   });
 });
 

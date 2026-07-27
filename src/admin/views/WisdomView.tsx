@@ -9,6 +9,7 @@ import {
   WISDOM_TYPE,
   defaultPrefs,
   readWisdomShapeReport,
+  revealEntry,
   wisdomShapeToken,
   type AnyWisdomHolding,
   type WisdomLink,
@@ -224,19 +225,39 @@ export const WisdomView: React.FC = () => {
    * Walks a held relation into another holding: a mark's producer, a producer's
    * marks, or a place's forty varieties. The tab moves with an entry to open or
    * a query to narrow by, so the jump is a place the reader can be sent back to.
+   *
+   * A jump that names an ENTRY lands on a shape that can hold it. The remembered
+   * shape is the right thing for a jump that only names a holding, and it was
+   * quietly the wrong thing for one that names a row: a remembered gap filter or
+   * a folded heading could exclude the entry being opened, so the panel came up
+   * with no position beside prev and next and the list underneath had been given
+   * a shape the reader never chose in this gesture. `revealEntry` keeps every
+   * standing choice that can hold the row and moves only the ones that cannot.
    */
   const jump = useCallback(
     (link: WisdomLink) => {
       const holding = findHolding(link.holding) ?? active;
+      const shape = shapeOf(holding);
       write({
         holding,
         entry: link.entry ?? null,
         query: link.query ?? '',
-        prefs: shapeOf(holding),
+        prefs: link.entry ? revealEntry(shape, holding, link.entry) : shape,
       });
     },
     [active, write, shapeOf],
   );
+
+  /**
+   * The repair for a link that half fitted: rewrite the address from the shape
+   * that is actually on screen.
+   *
+   * `prefs` is already the honoured half, read out of the token and checked
+   * against this holding, so writing it back is exactly "keep what landed, drop
+   * what did not". The refused sentences are recomputed from the new token and
+   * come out empty, so the bar clears itself.
+   */
+  const keepHonoured = useCallback(() => setPrefs(prefs), [prefs, setPrefs]);
 
   // Wraps rather than scrolls. At 390px the seven tabs fall onto three lines; a
   // sideways-scrolling strip would hide the holdings a reader has not met yet,
@@ -360,6 +381,7 @@ export const WisdomView: React.FC = () => {
         onQueryChange={changeQuery}
         usage={usage}
         shapeRefused={reading.refused}
+        onKeepHonoured={keepHonoured}
       />
     </div>
   );

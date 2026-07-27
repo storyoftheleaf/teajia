@@ -222,6 +222,28 @@ export interface WisdomGroup<T> {
 export const UNGROUPED = 'Not recorded';
 
 /**
+ * ONE WORD FOR ONE ABSENCE, on the row and over the rows.
+ *
+ * A grouping and a column can be about the same field, and when they were, the
+ * same missing value was named twice in two different words: a mark with no
+ * producer showed an empty Producer cell and sat under a heading reading "Not
+ * recorded", and a style applying to no stated type read "Any tea" in the cell
+ * while its grouping wrote the same default out again by hand. Two declarations
+ * of one word, kept in step by nothing.
+ *
+ * The COLUMN is the source. It is the thing the reader can point at, it already
+ * had to declare what a cell says where nothing was recorded, and `wisdomShown`
+ * already reads that declaration for the jump axis. A grouping keyed to a column
+ * now takes its empty heading from the same place, so the heading and the cell
+ * cannot say different things, and a grouping keyed to nothing falls back to the
+ * one general word.
+ */
+export const groupAbsence = (
+  group: { key: string },
+  holding: { columns: ReadonlyArray<{ key: string; fallback?: string }> },
+): string => holding.columns.find(column => column.key === group.key)?.fallback ?? UNGROUPED;
+
+/**
  * What a gap test may ask about the world outside the base.
  *
  * Regions are the case that needs it: a place is a hole when nothing names it,
@@ -639,6 +661,55 @@ export function toggleFold(
   }
   if (coversAll) return [ALL_FOLDED];
   return [...next];
+}
+
+/**
+ * The shape a holding has to be in for one entry to be reachable inside it.
+ *
+ * A jump carries an entry into another holding, and that holding arrives wearing
+ * the shape this reader last gave it. That is right for the LIST and wrong for
+ * the ENTRY: a remembered gap filter or a folded heading can hide the very row
+ * the jump was made to open, and it did so in silence. The panel opened, the
+ * position beside prev and next was blank because the row was not in the run at
+ * all, and the reader had followed a near miss into a list that had quietly
+ * refused to contain it.
+ *
+ * So a jump that names an entry keeps the reader's standing choices and moves
+ * exactly as much as it must to show the row: a gap filter this entry does not
+ * belong to is put away, giving back anything it had on loan, and the one folded
+ * heading holding the entry is opened. Everything else is left as it stands.
+ */
+export function revealEntry(
+  prefs: WisdomPrefs,
+  holding: AnyWisdomHolding,
+  entryId: string,
+): WisdomPrefs {
+  const row = holding.rows.find(entry => holding.idOf(entry) === entryId);
+  if (!row) return prefs;
+
+  let next = prefs;
+  // A gap filter is a list of rows this entry may not be one of. Put away the
+  // same way Show all puts it away, loan and all, rather than half way.
+  if (next.gapOnly && !(holding.gap?.test(row) ?? false)) {
+    next = next.borrowed
+      ? {
+          sort: next.sort,
+          groupKey: next.borrowed.groupKey,
+          collapsed: next.borrowed.collapsed,
+          gapOnly: false,
+          borrowed: null,
+        }
+      : { ...next, gapOnly: false };
+  }
+
+  const group = holding.groups?.find(option => option.key === next.groupKey);
+  if (group) {
+    const section = group.of(row) || groupAbsence(group, holding);
+    if (isSectionFolded(readFold(next.collapsed), section)) {
+      next = { ...next, collapsed: toggleFold(next.collapsed, section) };
+    }
+  }
+  return next;
 }
 
 /* ─────────────────────────────── the address ──────────────────────────────── */
