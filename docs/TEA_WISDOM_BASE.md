@@ -25,7 +25,7 @@ The inverse rule matters as much: **no surface keeps its own copy.** The moment 
 ```
 src/wisdom/
   vocabulary.ts          the controlled words + dialect normalizer
-  regions.ts             83 researched origins merged with the working list
+  regions.ts             researched origins merged with the working list
   cultivars.ts           79 plants, matching, lineage walking, story loading
   types.ts               the record shapes
   index.ts               resolveTea() — the one call every surface makes
@@ -67,9 +67,11 @@ Returns the type, form, variety, cultivar, region, country and year it can estab
 |---|---|---|
 | Tea varieties | 316 | Hand-built, powers capture autocomplete |
 | Cultivars | 79 | Research corpus, all with description, 65 with breeding lineage |
-| Growing regions | 83 researched + 84 working | Research corpus merged with the capture list |
+| Growing regions | 98 researched + working list, 182 merged | Research corpus, grown from Adrian's own write-ups |
 | Glossary terms | 47 | Existing, not yet joined in |
 | Sensory terms | 136 | Existing, already single-sourced |
+
+Coverage against Adrian's own 303 write-ups, measured by `node scripts/audit-wisdom-coverage.mjs`: every origin he has written resolves (34 of 34), but only 75 of 185 teas resolve to a known identity. The base does not yet know 110 of his teas. Full findings in [_notes/wisdom-gap-report.md](_notes/wisdom-gap-report.md).
 
 Deliberately discarded from the research corpus: a 7,161-row cultivar-by-type matrix that was 91% empty with the rest a default rating and paired Da Hong Pao with Matcha, and a tea-types export belonging to a different product.
 
@@ -93,7 +95,7 @@ Most prose here was AI-drafted from research. That must be visible, never hidden
 - **Reviewed** — read and corrected, with a date
 - **Authored** — written in Adrian's own words, marked as such
 
-The 266 existing tea write-ups sit permanently on the top rung and should look different, because they are why the rest is trusted.
+Adrian's own tea write-ups sit permanently on the top rung and should look different, because they are why the rest is trusted.
 
 ## Governance
 

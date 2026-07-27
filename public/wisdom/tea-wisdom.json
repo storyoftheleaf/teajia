@@ -8,7 +8,7 @@
     "contact": "hello@teajia.com",
     "counts": {
       "cultivars": 79,
-      "regions": 167,
+      "regions": 182,
       "teaVarieties": 316,
       "vocabulary": 24
     }
@@ -145,6 +145,14 @@
       "climate": "Famous mountain range for high-altitude tea cultivation"
     },
     {
+      "id": "anhua",
+      "name": "Anhua",
+      "country": "China",
+      "province": "Hunan",
+      "altitude": null,
+      "climate": "Wild tea mountains at various elevations; the county's microbial environment is central to Anhua dark tea (heicha) character."
+    },
+    {
       "id": "anhui",
       "name": "Anhui",
       "country": "China",
@@ -193,6 +201,14 @@
       "climate": null
     },
     {
+      "id": "banzhang",
+      "name": "Banzhang",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": null,
+      "climate": null
+    },
+    {
       "id": "bao-loc",
       "name": "Bao Loc",
       "country": "Vietnam",
@@ -207,6 +223,14 @@
       "province": "Lam Dong",
       "altitude": "800-1200m",
       "climate": "Tea cultivation center in southern Vietnam"
+    },
+    {
+      "id": "beipu",
+      "name": "Beipu",
+      "country": "Taiwan",
+      "province": "Hsinchu",
+      "altitude": null,
+      "climate": "Hakka settlement in northwestern Taiwan at moderate elevation; warm, humid conditions and rolling hills, producing fuller-bodied oolong with less high-mountain floral character than central mountain regions; also known for Oriental Beauty."
     },
     {
       "id": "bergamot",
@@ -239,6 +263,22 @@
       "province": null,
       "altitude": null,
       "climate": null
+    },
+    {
+      "id": "bulang-mountain",
+      "name": "Bulang Mountain",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": null,
+      "climate": null
+    },
+    {
+      "id": "cangwu",
+      "name": "Cangwu",
+      "country": "China",
+      "province": "Guangxi",
+      "altitude": null,
+      "climate": "Centered dark-tea tradition along the Xijiang river system; warm, humid climate and soil conditions support the microbial cultures that define liu bao and Liao Fu character."
     },
     {
       "id": "ceylon",
@@ -281,6 +321,14 @@
       "climate": "Includes Alishan mountain area for high-altitude teas"
     },
     {
+      "id": "china",
+      "name": "China",
+      "country": "China",
+      "province": "Various Provinces",
+      "altitude": "100-2000m",
+      "climate": "Diverse tea growing regions across the country"
+    },
+    {
       "id": "chuzhou",
       "name": "Chuzhou",
       "country": "China",
@@ -289,12 +337,28 @@
       "climate": null
     },
     {
+      "id": "da-xue-shan",
+      "name": "Da Xue Shan",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": "2000-2800m",
+      "climate": "Dense subtropical forest; wild trees grow in deep forest shade with no pruning, fertilizing, or managed picking paths; ancient forest-floor soil rich in organic matter from leaf fall."
+    },
+    {
       "id": "da-yu-ling",
       "name": "Da Yu Ling",
       "country": "Taiwan",
       "province": null,
       "altitude": null,
       "climate": null
+    },
+    {
+      "id": "dali",
+      "name": "Dali",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": null,
+      "climate": "Named as one endpoint of wild-tea forests between Dali and Lincang in western Yunnan; exact grove unrecorded."
     },
     {
       "id": "daping-anxi",
@@ -665,6 +729,14 @@
       "climate": null
     },
     {
+      "id": "kunlu-mountain",
+      "name": "Kunlu Mountain",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": null,
+      "climate": null
+    },
+    {
       "id": "kunming",
       "name": "Kunming",
       "country": "China",
@@ -769,6 +841,14 @@
       "climate": "Chinese-settled area with traditional tea cultivation"
     },
     {
+      "id": "mahei",
+      "name": "Mahei",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": "1300m (approx.)",
+      "climate": "Village within the Yiwu tea region, Xishuangbanna; ancient tea forests, source of some of the most sought-after raw material in the pu-erh world."
+    },
+    {
       "id": "meghalaya",
       "name": "Meghalaya",
       "country": "India",
@@ -849,12 +929,28 @@
       "climate": "High plateau area known for tea and dairy"
     },
     {
+      "id": "muzha",
+      "name": "Muzha",
+      "country": "Taiwan",
+      "province": "Taipei",
+      "altitude": null,
+      "climate": "Tea-growing district of southern Taipei established by Fujian immigrants bringing Tie Guan Yin cuttings; distinct local microclimate and soil composition from the mainland origin."
+    },
+    {
       "id": "muzha-district-taipei",
       "name": "Muzha District, Taipei",
       "country": "Taiwan",
       "province": "Taipei",
       "altitude": "100-400m",
       "climate": "Urban tea region known for Tie Guan Yin"
+    },
+    {
+      "id": "naka",
+      "name": "Naka",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": "1600m (approx.)",
+      "climate": "Village on Nannuo Mountain (one of the ancient six tea mountains) in Menghai county, Xishuangbanna; ancient gardens cultivated by the Lahu ethnic minority."
     },
     {
       "id": "nangang-district-taipei",
@@ -935,6 +1031,14 @@
       "province": null,
       "altitude": null,
       "climate": null
+    },
+    {
+      "id": "pasha",
+      "name": "Pasha",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": "1700m (approx.)",
+      "climate": "Village in Menghai county, Xishuangbanna, with ancient tea gardens tended by the Hani ethnic minority."
     },
     {
       "id": "phoenix-mountain",
@@ -1281,6 +1385,14 @@
       "climate": "UNESCO World Heritage site, famous for rock teas and red cliffs"
     },
     {
+      "id": "wuzhou",
+      "name": "Wuzhou",
+      "country": "China",
+      "province": "Guangxi",
+      "altitude": null,
+      "climate": "City on the Xijiang river; consistent subtropical heat and humidity supports liu bao's slow post-fermentation aging."
+    },
+    {
       "id": "xiaguan",
       "name": "Xiaguan",
       "country": "China",
@@ -1295,6 +1407,14 @@
       "province": "Fujian",
       "altitude": "200-600m",
       "climate": "Coastal region near Fuding, also grows Da Bai cultivar"
+    },
+    {
+      "id": "xiniu-tang",
+      "name": "Xiniu Tang",
+      "country": "China",
+      "province": "Yunnan",
+      "altitude": null,
+      "climate": "Named micro-origin within the greater Yiwu tea area, Xishuangbanna; each named micro-origin carries slightly different soil, elevation, and microclimate."
     },
     {
       "id": "xinyang",

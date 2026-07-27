@@ -3,25 +3,33 @@ aichi-prefecture,Aichi Prefecture,Japan,Aichi,100-400m,"Temperate climate suitab
 ailao-mountain,Ailao Mountain,China,,,
 alishan,Alishan,Taiwan,,,
 alishan-nantou-chiayi,"Alishan, Nantou/Chiayi",Taiwan,Nantou,1000-2300m,Famous mountain range for high-altitude tea cultivation
+anhua,Anhua,China,Hunan,,Wild tea mountains at various elevations; the county's microbial environment is central to Anhua dark tea (heicha) character.
 anhui,Anhui,China,,,
 anji,Anji,China,,,
 anji-county-zhejiang,"Anji County, Zhejiang",China,Zhejiang,400-800m,"Mountainous region with bamboo forests, cool misty climate ideal for green tea"
 anxi,Anxi,China,,,
 anxi-county-fujian,"Anxi County, Fujian",China,Fujian,300-1000m,"Mountainous terrain with red soil, ideal for oolong cultivation"
 assam,Assam,India,,,
+banzhang,Banzhang,China,Yunnan,,
 bao-loc,Bao Loc,Vietnam,,,
 bao-loc-lam-dong,"Bao Loc, Lam Dong",Vietnam,Lam Dong,800-1200m,Tea cultivation center in southern Vietnam
+beipu,Beipu,Taiwan,Hsinchu,,"Hakka settlement in northwestern Taiwan at moderate elevation; warm, humid conditions and rolling hills, producing fuller-bodied oolong with less high-mountain floral character than central mountain regions; also known for Oriental Beauty."
 bergamot,Bergamot,Italy,Calabria,200-600m,Mediterranean climate ideal for bergamot citrus cultivation
 bitaco-valle-del-cauca,"Bitaco, Valle del Cauca",Colombia,Valle del Cauca,1400-1700m,Mountain area with experimental tea cultivation
 boseong,Boseong,South Korea,,,
 bozhou,Bozhou,China,,,
+bulang-mountain,Bulang Mountain,China,Yunnan,,
+cangwu,Cangwu,China,Guangxi,,"Centered dark-tea tradition along the Xijiang river system; warm, humid climate and soil conditions support the microbial cultures that define liu bao and Liao Fu character."
 ceylon,Ceylon,Sri Lanka,Central Highlands,1000-2500m,"High altitude tropical climate, produces bright citrusy black tea"
 changkeng-anxi,"Changkeng, Anxi",China,Fujian,400-800m,Another high altitude area in Anxi for premium oolongs
 chiang-rai,Chiang Rai,Thailand,,,
 chiang-rai-province,Chiang Rai Province,Thailand,Chiang Rai,500-1500m,Northern Thailand mountains with suitable climate for oolong
 chiayi-county,Chiayi County,Taiwan,Chiayi,200-2000m,Includes Alishan mountain area for high-altitude teas
+china,China,China,Various Provinces,100-2000m,Diverse tea growing regions across the country
 chuzhou,Chuzhou,China,,,
+da-xue-shan,Da Xue Shan,China,Yunnan,2000-2800m,"Dense subtropical forest; wild trees grow in deep forest shade with no pruning, fertilizing, or managed picking paths; ancient forest-floor soil rich in organic matter from leaf fall."
 da-yu-ling,Da Yu Ling,Taiwan,,,
+dali,Dali,China,Yunnan,,Named as one endpoint of wild-tea forests between Dali and Lincang in western Yunnan; exact grove unrecorded.
 daping-anxi,"Daping, Anxi",China,Fujian,400-800m,High altitude area within Anxi known for Ben Shan cultivar
 darjeeling,Darjeeling,India,West Bengal,2000-2500m,"High altitude Himalayan foothills, famous for muscatel flavor"
 dehong,Dehong,China,,,
@@ -68,6 +76,7 @@ junshan-island-hunan,"Junshan Island, Hunan",China,Hunan,50-100m,Lake island wit
 kagoshima-prefecture,Kagoshima Prefecture,Japan,Kagoshima,100-800m,Southernmost major tea region with volcanic soil
 kandy,Kandy,Sri Lanka,,,
 kenya,Kenya,Kenya,,,
+kunlu-mountain,Kunlu Mountain,China,Yunnan,,
 kunming,Kunming,China,,,
 kyoto-prefecture,Kyoto Prefecture,Japan,Kyoto,100-600m,Historic tea region with traditional cultivation methods
 lam-dong-province,Lam Dong Province,Vietnam,Lam Dong,800-1500m,High plateau region suitable for tea cultivation
@@ -81,6 +90,7 @@ lugu,Lugu,Taiwan,,,
 lugu-township-nantou,"Lugu Township, Nantou",Taiwan,Nantou,700-1200m,Mountain township known for oolong production
 lushan,Lushan,China,,,
 mae-salong-chiang-rai,"Mae Salong, Chiang Rai",Thailand,Chiang Rai,800-1300m,Chinese-settled area with traditional tea cultivation
+mahei,Mahei,China,Yunnan,1300m (approx.),"Village within the Yiwu tea region, Xishuangbanna; ancient tea forests, source of some of the most sought-after raw material in the pu-erh world."
 meghalaya,Meghalaya,India,,,
 mengding-mountain-ya-an,"Mengding Mountain, Ya'an",China,Sichuan,800-1400m,"Historic tea mountain, birthplace of tea cultivation in China"
 menghai,Menghai,China,,,
@@ -91,7 +101,9 @@ mie-prefecture,Mie Prefecture,Japan,Mie,100-500m,Central Japan with mountain reg
 mingjian-township-nantou,"Mingjian Township, Nantou",Taiwan,Nantou,200-800m,Lower altitude area for commercial tea production
 miyazaki-prefecture,Miyazaki Prefecture,Japan,Miyazaki,100-600m,Warm southern climate suitable for early harvest cultivars
 moc-chau-son-la,"Moc Chau, Son La",Vietnam,Son La,1000-1400m,High plateau area known for tea and dairy
+muzha,Muzha,Taiwan,Taipei,,Tea-growing district of southern Taipei established by Fujian immigrants bringing Tie Guan Yin cuttings; distinct local microclimate and soil composition from the mainland origin.
 muzha-district-taipei,"Muzha District, Taipei",Taiwan,Taipei,100-400m,Urban tea region known for Tie Guan Yin
+naka,Naka,China,Yunnan,1600m (approx.),"Village on Nannuo Mountain (one of the ancient six tea mountains) in Menghai county, Xishuangbanna; ancient gardens cultivated by the Lahu ethnic minority."
 nangang-district-taipei,"Nangang District, Taipei",Taiwan,Taipei,100-300m,Urban area with traditional tea cultivation
 nanjing,Nanjing,China,,,
 nantou,Nantou,Taiwan,,,
@@ -102,6 +114,7 @@ new-taipei-city,New Taipei City,Taiwan,New Taipei,100-800m,Northern Taiwan with 
 nilgiri,Nilgiri,India,,,
 nishio-city-aichi,"Nishio City, Aichi",Japan,Aichi,50-200m,Major Matcha production center with ideal climate
 nuwara-eliya,Nuwara Eliya,Sri Lanka,,,
+pasha,Pasha,China,Yunnan,1700m (approx.),"Village in Menghai county, Xishuangbanna, with ancient tea gardens tended by the Hani ethnic minority."
 phoenix-mountain,Phoenix Mountain,China,,,
 phoenix-mountains-chaozhou,"Phoenix Mountains, Chaozhou",China,Guangdong,400-1200m,"High altitude mountains with ancient tea trees, famous for Dan Cong oolongs"
 pinghe-county-fujian,"Pinghe County, Fujian",China,Fujian,400-800m,Mountain region growing various oolong cultivars
@@ -145,8 +158,10 @@ wudong-mountain-chaozhou,"Wudong Mountain, Chaozhou",China,Guangdong,800-1200m,"
 wuliang-mountain,Wuliang Mountain,China,,,
 wuyi,Wuyi,China,,,
 wuyi-mountains-fujian,"Wuyi Mountains, Fujian",China,Fujian,200-800m,"UNESCO World Heritage site, famous for rock teas and red cliffs"
+wuzhou,Wuzhou,China,Guangxi,,City on the Xijiang river; consistent subtropical heat and humidity supports liu bao's slow post-fermentation aging.
 xiaguan,Xiaguan,China,,,
 xiapu-county-fujian,"Xiapu County, Fujian",China,Fujian,200-600m,"Coastal region near Fuding, also grows Da Bai cultivar"
+xiniu-tang,Xiniu Tang,China,Yunnan,,"Named micro-origin within the greater Yiwu tea area, Xishuangbanna; each named micro-origin carries slightly different soil, elevation, and microclimate."
 xinyang,Xinyang,China,,,
 xishuangbanna-prefecture,Xishuangbanna Prefecture,China,Yunnan,500-1800m,Tropical region with ancient tea gardens and diverse terroir
 ya-an,Ya'an,China,,,
