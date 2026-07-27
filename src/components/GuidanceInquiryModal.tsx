@@ -253,7 +253,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                                 onClick={() => setFormData(prev => ({ ...prev, experienceLevel: level as 'beginner' | 'intermediate' | 'advanced' }))}
                                 className={`flex-1 py-2 px-3 text-xs uppercase tracking-wider rounded-md border transition-all ${
                                   formData.experienceLevel === level
-                                    ? 'border-tea-gold bg-tea-gold text-tea-bg'
+                                    ? 'border-tea-gold cta-solid'
                                     : 'border-tea-border text-tea-text/70 hover:border-tea-gold/50'
                                 }`}
                               >
@@ -285,7 +285,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                                 onClick={() => setFormData(prev => ({ ...prev, spaceType: option.id as 'home' | 'commercial' | 'outdoor' }))}
                                 className={`flex-1 py-2 px-3 text-xs uppercase tracking-wider rounded-md border transition-all ${
                                   formData.spaceType === option.id
-                                    ? 'border-tea-gold bg-tea-gold text-tea-bg'
+                                    ? 'border-tea-gold cta-solid'
                                     : 'border-tea-border text-tea-text/70 hover:border-tea-gold/50'
                                 }`}
                               >
@@ -313,7 +313,7 @@ export const GuidanceInquiryModal: React.FC<GuidanceInquiryModalProps> = ({ onCl
                                 onClick={() => setFormData(prev => ({ ...prev, budget: option.id as 'under-5k' | '5k-15k' | '15k-50k' | 'over-50k' }))}
                                 className={`py-2 px-3 text-xs rounded-md border transition-all ${
                                   formData.budget === option.id
-                                    ? 'border-tea-gold bg-tea-gold text-tea-bg'
+                                    ? 'border-tea-gold cta-solid'
                                     : 'border-tea-border text-tea-text/70 hover:border-tea-gold/50'
                                 }`}
                               >

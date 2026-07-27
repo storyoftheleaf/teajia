@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * The Pot That Remembers — The Craft of Tea, N°14
  * A Yixing zisha teapot essay: the clay, the seasoning, and the patina of years.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

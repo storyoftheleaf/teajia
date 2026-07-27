@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Earth, Water, Fire — Conversations over Tea, N°03
  * A Jingdezhen porcelain potter on the vessels that hold the tea.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

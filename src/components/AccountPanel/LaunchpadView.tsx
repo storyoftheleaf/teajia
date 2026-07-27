@@ -91,7 +91,7 @@ const Tile: React.FC<LaunchpadTile> = ({ verb, hint, icon, badge, accent, onClic
         {icon}
       </div>
       {badge !== undefined && badge > 0 && (
-        <span className="min-w-[20px] h-5 px-1.5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
+        <span className="min-w-[20px] h-5 px-1.5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
           {badge > 99 ? '99+' : badge}
         </span>
       )}

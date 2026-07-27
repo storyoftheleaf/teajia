@@ -535,7 +535,7 @@ const TransactionCard: React.FC<{
                         type="button"
                         onClick={handleConfirm}
                         whileTap={{ scale: 0.98 }}
-                        className="py-1.5 px-3 rounded-md bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-all"
+                        className="py-1.5 px-3 rounded-md cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-all"
                       >
                         {isPurchase ? 'Purchase' : 'Sale'}
                       </motion.button>
@@ -677,7 +677,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         <div className="flex flex-col gap-2 w-full max-w-xs">
           <button
             onClick={() => openPurchaseOrder()}
-            className="w-full px-5 py-3 bg-tea-gold text-tea-bg text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
+            className="w-full px-5 py-3 cta-solid text-ui-10 font-semibold uppercase tracking-[0.08em] transition-colors flex items-center justify-center gap-2"
           >
             <ShoppingBag size={14} />
             Purchase Order Builder
@@ -770,7 +770,7 @@ export const LedgerView: React.FC<LedgerViewProps> = ({ embedded, onOpenEntry, s
         </div>
         <button
           onClick={() => openPurchaseOrder()}
-          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-tea-gold text-tea-bg text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl cta-solid text-ui-11 font-semibold uppercase tracking-[0.08em] transition-colors"
         >
           <ShoppingBag size={14} />
           Full Purchase Order Builder

@@ -72,11 +72,11 @@ export const SyncIndicator: React.FC = () => {
         type="button"
         onClick={handleSync}
         className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-error/[0.10] text-tea-error border border-tea-error/30 hover:bg-tea-error/[0.16] transition-colors text-ui-11 font-medium"
-        aria-label="Couldn't save to the server — tap to retry"
-        title="Couldn't reach the server — tap to retry"
+        aria-label="Couldn't save to the server. Tap to retry."
+        title="Couldn't reach the server. Tap to retry."
       >
         <CloudOff size={12} strokeWidth={1.75} />
-        <span>Not saved — retry</span>
+        <span>Not saved. Retry</span>
       </button>
     );
   }
@@ -86,8 +86,8 @@ export const SyncIndicator: React.FC = () => {
       type="button"
       onClick={handleSync}
       className="tap-target inline-flex items-center gap-1.5 px-2 h-7 rounded-md bg-tea-gold/[0.08] text-tea-gold border border-tea-gold/30 hover:bg-tea-gold/[0.14] transition-colors text-ui-11 font-medium"
-      aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'} — tap to sync`}
-      title={`${unsyncedCount} unsaved — tap to sync`}
+      aria-label={`${unsyncedCount} unsaved ${unsyncedCount === 1 ? 'entry' : 'entries'}, tap to sync`}
+      title={`${unsyncedCount} unsaved, tap to sync`}
     >
       <CloudOff size={12} strokeWidth={1.75} />
       <span className="tabular-nums">{unsyncedCount}</span>

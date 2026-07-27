@@ -131,7 +131,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
             isInLedger
               ? 'bg-tea-gold/20 text-tea-gold'
               : status === 'in_stock'
-                ? 'bg-tea-gold text-tea-bg'
+                ? 'cta-solid'
                 : 'bg-tea-gold/8 text-tea-text-sec active:bg-tea-gold/15 hover:bg-tea-gold/12'
           }`}
         >
@@ -276,7 +276,7 @@ export const StatusActions: React.FC<StatusActionsProps> = ({
                 <button
                   type="button"
                   onClick={handleConfirmAdd}
-                  className="flex-1 py-2 rounded-xl bg-tea-gold text-tea-bg font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
+                  className="flex-1 py-2 rounded-xl cta-solid font-semibold text-xs uppercase tracking-[0.08em] transition-opacity active:opacity-80"
                 >
                   Add to Ledger
                 </button>

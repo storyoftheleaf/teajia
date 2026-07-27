@@ -91,7 +91,7 @@ const StackedCards: React.FC<StackedCardsProps> = ({ cards, stackTitle }) => {
               style={{
                 borderLeft: cards[currentIndex].accent
                   ? `3px solid ${cards[currentIndex].accent}`
-                  : '3px solid var(--color-tea-gold, #c9a84c)',
+                  : '3px solid var(--tea-gold)',
               }}
             >
               <h3 className="text-tea-text font-semibold text-sm leading-snug">
@@ -148,8 +148,8 @@ const StackedCards: React.FC<StackedCardsProps> = ({ cards, stackTitle }) => {
               height: 6,
               background:
                 i === currentIndex
-                  ? 'var(--color-tea-gold, #c9a84c)'
-                  : 'var(--color-tea-border, #ccc)',
+                  ? 'var(--tea-gold)'
+                  : 'var(--tea-border)',
               opacity: i === currentIndex ? 1 : 0.4,
             }}
             aria-label={`Go to card ${i + 1}`}

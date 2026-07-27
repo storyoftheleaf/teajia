@@ -316,7 +316,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
       try {
         await api.rpc.reserveStock(invoiceData.id);
       } catch {
-        showToast('Stock reservation pending — verify before fulfilling', 'info');
+        showToast('Stock reservation pending. Verify before fulfilling.', 'info');
       }
       onSuccess();
       showToast('Order submitted.', 'success');
@@ -504,7 +504,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               {isPurchase && lastInvoice._purchaseMessage && (
                 <button
                   onClick={() => { navigator.clipboard.writeText(lastInvoice._purchaseMessage); showToast('Copied.', 'success'); }}
-                  className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors"
+                  className="flex w-full py-3 rounded-xl font-medium items-center justify-center gap-2 text-sm cta-solid transition-colors"
                 >
                   <Share2 size={16} /> Copy Order Text
                 </button>
@@ -534,7 +534,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
               </button>
               <div className="h-px bg-tea-border my-4" />
               <button onClick={() => { handleStartNewSale(); if (isPurchase) setCartDirection('sale'); }}
-                className="w-full bg-tea-gold text-tea-bg py-3 rounded-xl font-medium hover:bg-tea-gold/90 transition-colors flex items-center justify-center gap-2 text-sm">
+                className="w-full cta-solid py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 text-sm">
                 <RefreshCcw size={16} /> {isPurchase ? 'Done' : 'Start New Sale'}
               </button>
               {!isPurchase && (
@@ -641,7 +641,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                 ))}
                 {customerSuggestions.length === 0 && customerName.trim() && (
                   <div className="px-3 py-2 text-xs text-tea-text-sec">
-                    <span className="italic">New contact — will be saved automatically</span>
+                    <span className="italic">New contact, saved automatically</span>
                     <span className="block mt-1 text-tea-gold/70">Tip: Add full details in Customers & Sources after checkout</span>
                   </div>
                 )}
@@ -752,7 +752,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
                     <div className="flex items-center justify-between mt-1">
                       <span className={`text-ui-9 num ${item.quantity > item.product.stockGrams ? 'text-tea-gold' : 'text-tea-text-sec/50'}`}>
                         {item.quantity}{item.product.type === 'Teaware' ? 'u' : 'g'} / {item.product.stockGrams}{item.product.type === 'Teaware' ? 'u' : 'g'} avail.
-                        {item.quantity > item.product.stockGrams && ' — exceeds stock'}
+                        {item.quantity > item.product.stockGrams && ' (exceeds stock)'}
                       </span>
                     </div>
                   )}
@@ -828,7 +828,7 @@ export const AdminCart: React.FC<AdminCartProps> = ({
             className={`w-full py-4 text-xs font-semibold rounded-md flex items-center justify-center gap-2 transition-all ${
               isEmpty
                 ? 'bg-tea-bg text-tea-text-sec cursor-not-allowed border border-tea-border'
-                : 'bg-tea-gold text-tea-bg hover:bg-tea-gold/90 shadow-lg shadow-tea-gold/10'
+                : 'cta-solid shadow-lg shadow-tea-gold/10'
             }`}
           >
             {isProcessing ? <Loader2 className="animate-spin" size={14} /> : isPurchase ? 'Send Purchase Order' : 'Create Invoice'}

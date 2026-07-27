@@ -170,7 +170,7 @@ const ActionButton: React.FC<{ action: CurateActionSpec; primary?: boolean }> = 
   const chromeClass = primary
     ? unavailable && !action.busy
       ? 'border-tea-border bg-tea-surface text-tea-text-sec'
-      : 'border-tea-gold bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'
+      : 'border-tea-gold cta-solid'
     : 'border-tea-border bg-tea-bg text-tea-text-sec hover:bg-tea-accent-sub hover:text-tea-text';
 
   return (

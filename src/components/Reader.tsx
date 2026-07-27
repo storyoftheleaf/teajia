@@ -483,7 +483,7 @@ export const Reader: React.FC<ReaderProps> = ({ story, onBack, onNavigate, isSav
       try {
         await navigator.share({
           title: story.title,
-          text: `${story.title} — Page ${currentPageIndex + 1}`,
+          text: `${story.title} · Page ${currentPageIndex + 1}`,
           url: window.location.href,
         });
       } catch { /* user cancelled */ }

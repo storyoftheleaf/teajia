@@ -116,7 +116,7 @@ export const LearnHub: React.FC<LearnHubProps> = ({
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>Craft — Teajia</title>
+        <title>Craft · Teajia</title>
         <meta name="description" content="A practitioner toolkit for your tea practice. Courses, glossary, videos, journeys, visual guides, and shared wisdom." />
       </Helmet>
       {!isSubView && (

@@ -35,7 +35,7 @@ export const PullToRefreshIndicator: React.FC<PullToRefreshIndicatorProps> = ({
         transform: `translateY(${pullDistance}px)`,
         opacity: Math.min(progress * 1.6, 1),
         // Soft shadow for legibility when the emblem floats over content.
-        filter: 'drop-shadow(0 4px 14px rgba(0,0,0,0.45))',
+        filter: 'drop-shadow(0 4px 14px rgb(var(--tea-shadow-rgb) / 0.45))',
       }}
     >
       {isRefreshing ? (

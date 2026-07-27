@@ -127,9 +127,9 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
       const trimmed = value.trim();
       if (!trimmed) return 'Location is required';
       if (trimmed.length < 4) return 'Please enter your city and country';
-      if (!trimmed.includes(',')) return 'Include your country — e.g. Bangkok, Thailand';
+      if (!trimmed.includes(',')) return 'Include your country, e.g. Bangkok, Thailand';
       const country = trimmed.split(',')[1]?.trim() ?? '';
-      if (country.length < 2) return 'Include your country — e.g. Bangkok, Thailand';
+      if (country.length < 2) return 'Include your country, e.g. Bangkok, Thailand';
     }
     return '';
   };
@@ -439,7 +439,7 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
                   <label htmlFor="inquiry-location" className="block text-ui-11 uppercase tracking-[0.15em] text-tea-text-sec mb-0.5">
                     Shipping Location *
                   </label>
-                  <p className="text-ui-11 text-tea-text-dim mb-1">City, Country — e.g. Tokyo, Japan</p>
+                  <p className="text-ui-11 text-tea-text-dim mb-1">City, Country (e.g. Tokyo, Japan)</p>
                   <div className="relative">
                     <input
                       id="inquiry-location"

@@ -68,7 +68,7 @@ const BreathPacer: React.FC<BreathPacerProps> = ({ active, onToggle }) => {
         className="flex items-center justify-center w-11 h-11 rounded-full bg-tea-surface text-tea-text-sec hover:bg-tea-elevated transition-colors"
       >
         {/* Lotus-like symbol */}
-        <span className="text-xl leading-none select-none" style={{ color: active ? 'var(--color-tea-gold, #c9a84c)' : undefined }}>
+        <span className="text-xl leading-none select-none" style={{ color: active ? 'var(--tea-gold)' : undefined }}>
           ❀
         </span>
       </button>

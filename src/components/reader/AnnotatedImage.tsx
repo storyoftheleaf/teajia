@@ -87,7 +87,7 @@ const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                         height: 0,
                         borderLeft: '5px solid transparent',
                         borderRight: '5px solid transparent',
-                        borderTop: '5px solid var(--color-tea-surface, #f5f0e8)',
+                        borderTop: '5px solid var(--tea-surface)',
                       }}
                     />
                   </motion.div>

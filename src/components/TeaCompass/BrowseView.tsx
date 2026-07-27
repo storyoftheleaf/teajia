@@ -681,7 +681,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
         </p>
         <button
           onClick={onNewCapture}
-          className="tap-target min-h-11 px-8 py-3 bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors rounded-md"
+          className="tap-target min-h-11 px-8 py-3 cta-solid text-ui-12 font-semibold transition-colors rounded-md"
         >
           Begin
         </button>
@@ -815,7 +815,7 @@ const renderEntries = (list: TeaCompassEntry[], opts?: {
       )}
       {possessionError && libraryFilters.possession && (
         <div role="alert" className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-tea-border bg-tea-surface px-3 text-ui-12 text-tea-text-sec">
-          <span>Inventory unavailable — possession results are hidden to avoid misclassifying entries.</span>
+          <span>Inventory unavailable. Possession results are hidden to avoid misclassifying entries.</span>
           <button type="button" className="tap-target min-h-11 text-tea-gold hover:text-tea-gold-lt" onClick={() => setPossessionRetry((value) => value + 1)}>Retry</button>
         </div>
       )}

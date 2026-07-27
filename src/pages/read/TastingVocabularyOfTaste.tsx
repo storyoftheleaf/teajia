@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * The Vocabulary of Taste — The Language of Tea, N°08
  * A radial flavour-wheel + switchable radar chart explorer.
  * Ported pixel-faithfully from the Claude Design mockup.

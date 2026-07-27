@@ -545,7 +545,11 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         >
           <PageHeaderTabs
             tabs={[
-              { id: 'Curated', label: 'recommended' },
+              // Filter chip, not navigation. The id and the filter behind it
+              // are untouched; only the word changes. It read "recommended",
+              // which named a merchandising flag one person sets in the admin
+              // panel as though it were a recommendation made to the reader.
+              { id: 'Curated', label: 'On the Shelf' },
               { id: 'Sale', label: 'On Sale' },
               { id: 'Liked', label: 'My Likes' },
               { id: 'Tasted', label: 'Tasted' },
@@ -1105,7 +1109,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-sticky animate-[fadeIn_0.3s_ease-out]">
           <button
             onClick={() => setShowCompare(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-tea-gold text-tea-bg text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg hover:bg-tea-gold-lt transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 cta-solid text-xs uppercase tracking-[0.1em] font-medium rounded-md shadow-lg transition-all active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1" />

@@ -78,11 +78,11 @@ const NavButton: React.FC<{
 
   const badgeEl = item.badge !== undefined && item.badge > 0 && (
     collapsed ? (
-      <span className="absolute -top-1 -right-1 w-4 h-4 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
+      <span className="absolute -top-1 -right-1 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none">
         {item.badge > 9 ? '9+' : item.badge}
       </span>
     ) : (
-      <span className="ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
+      <span className="ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none">
         {item.badge > 9 ? '9+' : item.badge}
       </span>
     )
@@ -489,7 +489,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       />
                       {cartItemCount > 0 && (
                         <div
-                          className={`absolute -top-2 -right-2.5 w-4 h-4 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
+                          className={`absolute -top-2 -right-2.5 w-4 h-4 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center leading-none ${
                             badgeAnimating ? 'cart-badge-pulse' : ''
                           }`}
                           aria-hidden="true"
@@ -510,7 +510,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       </span>
                       {cartItemCount > 0 && (
                         <span
-                          className={`ml-auto w-5 h-5 bg-tea-gold text-tea-bg text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
+                          className={`ml-auto w-5 h-5 cta-solid text-ui-10 font-bold rounded-full flex items-center justify-center shrink-0 leading-none ${
                             badgeAnimating ? 'cart-badge-pulse' : ''
                           }`}
                           aria-hidden="true"

@@ -62,7 +62,7 @@ const VenueGuide: React.FC<VenueGuideProps> = ({ venueGuide, mapLink, className 
             {/* Step content */}
             <div className="p-5" aria-live="polite">
               <div className="flex items-center gap-3 mb-3">
-                <span className="flex items-center justify-center w-7 h-7 rounded-full bg-tea-gold text-tea-bg text-ui-12 font-semibold shrink-0">
+                <span className="flex items-center justify-center w-7 h-7 rounded-full cta-solid text-ui-12 font-semibold shrink-0">
                   {activeStep + 1}
                 </span>
                 <p className="text-ui-14 text-tea-text-sec leading-relaxed">

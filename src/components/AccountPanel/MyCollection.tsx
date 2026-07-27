@@ -40,7 +40,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'My Tea Collection — Teajia',
+          title: 'My Tea Collection · Teajia',
           text: `Check out my favorite teas on Teajia! ${favoriteItems.length} selections.`,
           url,
         });

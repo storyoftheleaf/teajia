@@ -70,6 +70,7 @@ const SURFACES = [
   './ProductReviews.tsx',
   './CompareView.tsx',
   './CollectionTab.tsx',
+  './alcove/AlcoveCarouselShell.tsx',
   './alcove/AlcoveModals.tsx',
   './alcove/AlcoveSensoryGrid.tsx',
   './alcove/AlcoveCommerceFooter.tsx',

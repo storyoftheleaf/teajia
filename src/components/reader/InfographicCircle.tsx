@@ -153,7 +153,7 @@ const InfographicCircle: React.FC<InfographicCircleProps> = ({
         })}
 
         {/* Donut hole */}
-        <circle cx={cx} cy={cy} r={innerR} fill="var(--color-tea-bg, #faf6ef)" />
+        <circle cx={cx} cy={cy} r={innerR} fill="var(--tea-bg)" />
 
         {/* Center label */}
         <text
@@ -162,7 +162,7 @@ const InfographicCircle: React.FC<InfographicCircleProps> = ({
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={size * 0.055}
-          fill="var(--color-tea-text, #2c2416)"
+          fill="var(--tea-text)"
           fontWeight="700"
         >
           {title ?? largest?.label ?? ''}

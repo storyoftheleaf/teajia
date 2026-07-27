@@ -464,7 +464,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   {photoError && (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 text-ui-12 text-tea-error">
                       <AlertCircle size={12} />
-                      <span>Photo didn't save — check your connection and try again.</span>
+                      <span>Photo didn't save. Check your connection and try again.</span>
                     </div>
                   )}
                   <button
@@ -649,7 +649,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                   type="button"
                   onClick={handleCreateVendor}
                   disabled={!newName.trim()}
-                  className="tap-target min-h-11 bg-tea-gold text-tea-bg font-semibold text-ui-12 uppercase tracking-[0.08em] px-4 py-2.5 rounded-md disabled:opacity-40 transition-opacity"
+                  className="tap-target min-h-11 cta-solid font-semibold text-ui-12 uppercase tracking-[0.08em] px-4 py-2.5 rounded-md disabled:opacity-40 transition-opacity"
                 >
                   Add
                 </button>
@@ -751,7 +751,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                 {saveError && (
                   <p className="flex items-center gap-1.5 text-ui-12 text-tea-error">
                     <AlertCircle size={12} />
-                    Details didn't reach the server — kept on this phone, retrying as you edit.
+                    Details didn't reach the server. Kept on this phone, retrying as you edit.
                   </p>
                 )}
                 {/* Photos & location summary (if any) */}
@@ -839,7 +839,7 @@ export const VendorStrip: React.FC<VendorStripProps> = ({
                     />
                   </div>
                   {locError && (
-                    <p className="text-ui-12 text-tea-error pl-6">Couldn't read coordinates from that — try a "lat, lng" pair.</p>
+                    <p className="text-ui-12 text-tea-error pl-6">Couldn't read coordinates from that. Try a "lat, lng" pair.</p>
                   )}
                   <div className="flex items-center gap-2">
                     <Phone size={14} className="text-tea-text-dim shrink-0" />

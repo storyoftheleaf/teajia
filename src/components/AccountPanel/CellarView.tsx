@@ -119,7 +119,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
   return (
     <div className={embedded ? 'py-6 space-y-5' : 'px-6 pt-6 pb-6 space-y-5'}>
       <p className="text-ui-13 text-tea-text-sec leading-relaxed">
-        Tea you personally own, kept private. Add what's on your shelf with a weight —
+        Tea you personally own, kept private. Add what's on your shelf with a weight,
         only you can see it.
       </p>
 
@@ -201,7 +201,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
             <button
               onClick={submitAdd}
               disabled={!name.trim() || createMut.isPending}
-              className="inline-flex items-center gap-1.5 bg-tea-gold text-tea-bg rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
             >
               {createMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
               Add to cellar
@@ -269,7 +269,7 @@ export const CellarView: React.FC<CellarViewProps> = ({ embedded = false }) => {
                     <button
                       onClick={() => submitEdit(item.id)}
                       disabled={!editName.trim() || updateMut.isPending}
-                      className="inline-flex items-center gap-1 bg-tea-gold text-tea-bg rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
+                      className="inline-flex items-center gap-1 cta-solid rounded-md px-3 py-1.5 text-ui-13 font-medium disabled:opacity-50"
                     >
                       {updateMut.isPending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
                     </button>

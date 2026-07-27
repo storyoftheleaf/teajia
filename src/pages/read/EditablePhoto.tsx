@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * EditablePhoto — a photo frame for the hand-built Read story pages.
  *
  * Reads/writes through the shared story-edit draft (see storyEdit.tsx), so a

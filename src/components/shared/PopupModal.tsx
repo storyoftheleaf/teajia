@@ -189,7 +189,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
 
   // Hide purchase controls entirely when onAddToCart is not provided
   const purchaseControls = onAddToCart && showQuantityControls && (
-    <div className="rounded-xl p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgba(0,0,0,0.2)' }}>
+    <div className="rounded-xl p-4 w-full backdrop-blur-sm mt-4" style={{ background: 'var(--tea-accent-sub)', boxShadow: 'inset 0 1px 0 var(--tea-border), inset 0 -1px 0 var(--tea-accent-sub), 0 1px 4px rgb(var(--tea-shadow-rgb) / 0.2)' }}>
       {itemType === 'tea' ? (
         <>
           <div className="flex items-center gap-4 px-1 mb-4">

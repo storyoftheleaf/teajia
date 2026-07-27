@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Ten Thousand Mornings — A History of Tea, N°07
  * Five thousand years of tea history, told along a horizontal ink spine
  * that draws as you scroll through the six eras.

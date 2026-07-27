@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Seven Steeps — The Ritual of Tea, N°05
  * Gongfu cha scrollytelling: a single handful of leaves brewed again and again.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Shangyin Qiwu — Porcelain and Tea, N°15
  * A porcelain restorer on repair, patience, and mending what we love.
  * The only real interview in the issue. Built on the Earth, Water, Fire

@@ -76,7 +76,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   // Page metadata
   useEffect(() => {
     if (store?.name) {
-      document.title = `${store.name} — Teajia`;
+      document.title = `${store.name} · Teajia`;
     }
   }, [store?.name]);
 
@@ -100,7 +100,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
         </p>
         <Link
           to="/find-a-table"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           Browse the network
         </Link>
@@ -113,7 +113,7 @@ export const Storefront: React.FC<StorefrontProps> = ({
   return (
     <div className="w-full animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>{store.name} — Teajia</title>
+        <title>{store.name} · Teajia</title>
         {store.tagline && <meta name="description" content={store.tagline} />}
         {store.description && !store.tagline && (
           <meta name="description" content={store.description.slice(0, 160)} />

@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * The Rock Remembers — Conversations over Tea, N°02
  * A Wuyi rock-tea roaster on fire, patience and lineage.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

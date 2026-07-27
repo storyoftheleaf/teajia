@@ -251,7 +251,7 @@ async function renderPosterToCanvas(comp: ShareComposition, article: DbArticle):
     ctx.fillRect(PAD, y + 20, 40, 1);
     setBody(15, 'italic');
     ctx.fillStyle = C.textSec;
-    ctx.fillText(`— ${article.title}`, PAD, y + 46);
+    ctx.fillText(article.title, PAD, y + 46);
   } else if (comp.type === 'passage') {
     setDisplay(32, 'italic');
     ctx.fillStyle = C.text;
@@ -317,7 +317,7 @@ function SharePoster({ comp, article }: { comp: ShareComposition; article: DbArt
             <div style={{ position: 'absolute', top: '-7cqi', left: '-2cqi', fontFamily: T.display, fontStyle: 'italic', fontSize: '26cqi', color: T.gold, opacity: 0.4, lineHeight: 0.8, pointerEvents: 'none' } as React.CSSProperties}>&ldquo;</div>
             <p style={{ fontFamily: T.display, fontStyle: 'italic', fontWeight: 400, fontSize: '6.2cqi', lineHeight: 1.18, margin: 0, color: T.text, position: 'relative' } as React.CSSProperties}>{truncate(comp.content, 160)}</p>
             <div style={{ width: '6cqi', height: 1, background: T.gold, margin: '5cqi 0 2.5cqi' } as React.CSSProperties} />
-            <p style={{ fontFamily: T.body, fontStyle: 'italic', fontSize: '3.2cqi', color: T.textSec, margin: 0 } as React.CSSProperties}>— {article.title}</p>
+            <p style={{ fontFamily: T.body, fontStyle: 'italic', fontSize: '3.2cqi', color: T.textSec, margin: 0 } as React.CSSProperties}>{article.title}</p>
           </div>
         )}
         {comp.type === 'passage' && (
@@ -426,7 +426,7 @@ export function SharePanel({ page, article, onClose }: SharePanelProps) {
   }, [comp, article]);
 
   const shareUrl = window.location.href;
-  const shareText = `${article.title}${article.subtitle ? ` — ${article.subtitle}` : ''} · Teajia Journal`;
+  const shareText = `${article.title}${article.subtitle ? ` · ${article.subtitle}` : ''} · Teajia Journal`;
   const articleId = article.slug ?? article.id;
 
   const flash = (msg: string) => {
@@ -466,7 +466,7 @@ export function SharePanel({ page, article, onClose }: SharePanelProps) {
       await navigator.clipboard.writeText(shareUrl);
       flash('Link copied');
     } catch {
-      flash('Could not copy — select the URL bar manually');
+      flash('Could not copy. Select the URL bar manually.');
     }
   };
 

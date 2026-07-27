@@ -42,7 +42,7 @@ export const SharedCollection: React.FC = () => {
           </p>
           <a
             href="/shop"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors mt-6"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors mt-6"
           >
             Browse shop
           </a>
@@ -112,7 +112,7 @@ export const SharedCollection: React.FC = () => {
       <div className="text-center pt-10 pb-2">
         <a
           href="/shop"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
         >
           Browse full shop
         </a>

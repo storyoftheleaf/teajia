@@ -168,7 +168,7 @@ const EventLanding: React.FC = () => {
     const evRaw = event as TeaEvent & Record<string, any>;
     const evDate: string = evRaw.eventDate ?? evRaw.event_date;
     const { date } = formatEventDate(evDate);
-    document.title = `${event.title} — Teajia`;
+    document.title = `${event.title} · Teajia`;
 
     const setMeta = (name: string, content: string, prop = false) => {
       const sel = prop
@@ -265,7 +265,7 @@ const EventLanding: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
           >
             Return home
           </button>
@@ -365,7 +365,7 @@ const EventLanding: React.FC = () => {
         {isAdmin && (
           <button
             onClick={() => navigate(`/admin/events/${event.id}`)}
-            className="absolute top-3 right-4 z-dropdown inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-tea-gold text-tea-bg hover:bg-tea-gold/90 transition-colors backdrop-blur-md"
+            className="absolute top-3 right-4 z-dropdown inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold cta-solid transition-colors backdrop-blur-md"
           >
             <Edit3 size={13} /> Edit
           </button>
@@ -518,7 +518,7 @@ const EventLanding: React.FC = () => {
                             setMyAttendee(null);
                             setShowCancelConfirm(false);
                           } catch {
-                            setCancelFeedback('Could not cancel — please contact us directly.');
+                            setCancelFeedback('Could not cancel. Please contact us directly.');
                           } finally {
                             setCancelling(false);
                           }
@@ -537,7 +537,7 @@ const EventLanding: React.FC = () => {
               <div className="space-y-2.5">
                 <button
                   onClick={() => setShowRSVP(true)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-md cta-solid text-xs font-semibold transition-colors"
                 >
                   {isInstantConfirm ? 'Reserve my seat' : 'Request your seat'}
                 </button>

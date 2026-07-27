@@ -27,8 +27,14 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const baseClasses = 'inline-flex items-center justify-center gap-2 font-sans font-medium tracking-wide transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg';
 
+  // `primary` carries no colour of its own. `.cta-solid` (card-utilities.css) is
+  // the one measured solid-bronze treatment: the hand-written `bg-tea-gold
+  // text-tea-bg` this used to spell out resolves to cream on #8e6d2e in light
+  // mode, which is 4.10:1 and under the 4.5:1 floor. `.cta-solid` fills with
+  // `--tea-gold-solid`, identical to `--tea-gold` on espresso and darkened to
+  // #806229 on parchment, which measures 4.91:1 with the same cream.
   const variantClasses = {
-    primary: 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt active:bg-tea-gold/80 rounded-xl min-w-[44px] min-h-[44px]',
+    primary: 'cta-solid rounded-xl min-w-[44px] min-h-[44px]',
     secondary: 'bg-tea-surface text-tea-text border border-tea-border hover:bg-tea-elevated rounded-xl min-w-[44px] min-h-[44px]',
     ghost: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-xl min-w-[44px] min-h-[44px]',
     icon: 'bg-transparent text-tea-text-sec hover:text-tea-text hover:bg-tea-accent-sub rounded-xl min-w-[44px] min-h-[44px]',

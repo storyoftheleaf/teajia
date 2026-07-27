@@ -120,7 +120,7 @@ const InterestCapture: React.FC<InterestCaptureProps> = ({ slug, className = '' 
       <button
         type="submit"
         disabled={!isValid || mutation.isPending}
-        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-md cta-solid text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {mutation.isPending ? (
           <span className="inline-block w-3.5 h-3.5 border-2 border-tea-bg/40 border-t-tea-bg rounded-full animate-spin" />

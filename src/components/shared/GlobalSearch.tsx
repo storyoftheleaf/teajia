@@ -368,7 +368,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
           {query.trim() !== '' && results.length === 0 && (
             <div className="px-4 py-10 text-center">
               <p className="text-sm text-tea-text-sec">
-                Nothing matched — try different words.
+                Nothing matched. Try different words.
               </p>
             </div>
           )}

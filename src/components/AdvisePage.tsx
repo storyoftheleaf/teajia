@@ -20,7 +20,7 @@ const SERVICES = [
   {
     id: 'design',
     label: 'Tea House Design & Curation',
-    desc: 'From concept through opening — design, curation, tea selection, training, and operations.',
+    desc: 'From concept through opening. Design, curation, tea selection, training, and operations.',
     price: '$5,000 – $100,000+',
     preselect: 'Space design or tea integration',
     cta: 'Start a conversation',
@@ -28,7 +28,7 @@ const SERVICES = [
   {
     id: 'sourcing',
     label: 'Tea Curation & Sourcing',
-    desc: 'Direct sourcing from Taiwan, China, and trusted origins — for collectors, spaces, and communities.',
+    desc: 'Direct sourcing from Taiwan, China, and trusted origins, for collectors, spaces, and communities.',
     price: 'By inquiry',
     preselect: 'Tea sourcing',
     cta: 'Inquire',
@@ -132,7 +132,7 @@ export const AdvisePage: React.FC<AdvisePageProps> = ({ onCartClick, onAccountCl
   return (
     <div className="w-full animate-[fadeIn_0.6s_ease-out]">
       <Helmet>
-        <title>Advise — Teajia</title>
+        <title>Advise · Teajia</title>
         <meta name="description" content="Tea space design, sourcing guidance, ceremony training. Twenty years of practice distilled into services for those who take tea seriously." />
       </Helmet>
       <PageHeader title="Advise" onCartClick={onCartClick} onAccountClick={onAccountClick} cartItemCount={cartItemCount} />
@@ -462,7 +462,7 @@ const ClosingCTA: React.FC<ClosingCTAProps> = ({ onOpenInquiry }) => (
     </h3>
     <button
       onClick={onOpenInquiry}
-      className="mt-10 bg-tea-gold text-tea-bg text-xs font-medium
+      className="mt-10 cta-solid text-xs font-medium
                  py-2.5 px-6 hover:bg-tea-gold/90 transition-colors duration-300
                  active:scale-95 min-h-[44px]
                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"

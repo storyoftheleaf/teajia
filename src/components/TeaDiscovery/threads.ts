@@ -20,21 +20,21 @@ export const THREADS: Record<string, Thread> = {
     id: 'stillness',
     name: 'Stillness',
     description:
-      'You come to tea to go inward — a cup is a way to slow down and be present. ' +
+      'You come to tea to go inward. A cup is a way to slow down and be present. ' +
       'The meditative pour, drunk for its quiet.',
   },
   connection: {
     id: 'connection',
     name: 'Connection',
     description:
-      'Tea is something you share — a reason to gather, to host, to keep someone ' +
+      'Tea is something you share: a reason to gather, to host, to keep someone ' +
       'at the table. The cup is for the people around it.',
   },
   quality: {
     id: 'quality',
     name: 'Quality',
     description:
-      'You come for the tea itself — the genuinely good cup, well-made and worth ' +
+      'You come for the tea itself: the genuinely good cup, well-made and worth ' +
       'tasting. Not to study it; simply to drink something excellent.',
   },
 };

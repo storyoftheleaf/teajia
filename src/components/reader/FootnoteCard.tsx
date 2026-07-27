@@ -88,7 +88,7 @@ const FootnoteCard: React.FC<FootnoteCardProps> = ({
         width: CARD_WIDTH,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderTop: '3px solid var(--color-tea-gold, #c9a84c)',
+        borderTop: '3px solid var(--tea-gold)',
       }}
       onClick={(e) => e.stopPropagation()}
     >

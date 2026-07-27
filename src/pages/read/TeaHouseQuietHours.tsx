@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * A Tea House — Quiet Hours · N°09
  * How a homesick cup and a stack of reclaimed timber became a tea house at the
  * far end of the world. Told by Mei and Tom Hale, Brunswick, Melbourne.

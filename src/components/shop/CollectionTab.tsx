@@ -153,8 +153,8 @@ const ItemCard: React.FC<{
                 />
               )}
               {/* The buy button reads the one measured solid-CTA treatment
-                  (.cta-solid) rather than writing `bg-tea-gold text-tea-bg`
-                  again: that pairing is 4.1:1 in light mode. */}
+                  (.cta-solid) rather than spelling the gold fill and the cream
+                  text out by hand: that pairing is 4.1:1 in light mode. */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -220,21 +220,33 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
     [favoriteTeas, inventory]
   );
 
-  // Our picks: featured items, excluding already-saved ones
-  const recommendedItems = useMemo(
+  /**
+   * The shelf: whatever the curator has flagged as featured, minus what the
+   * reader has already saved.
+   *
+   * The variable was called `recommendedItems` and it is not a
+   * recommendation. `isFeatured` is a merchandising flag one person sets in the
+   * admin panel; it does not read the reader, it does not know what they have
+   * looked at, and it is the same list for everyone who opens this tab. The
+   * page presented it as personalisation anyway, under a heading of "For You"
+   * and a line about teas we think you'll love, which is a claim the code
+   * cannot support and a mode this project does not build. The filter is
+   * unchanged. The name and the copy now say what it is.
+   */
+  const shelfItems = useMemo(
     () => inventory.filter(item => item.isFeatured && !favoriteTeas.includes(item.id)),
     [inventory, favoriteTeas]
   );
 
   // All items for modal navigation
   const allDisplayItems = useMemo(
-    () => [...savedItems, ...recommendedItems],
-    [savedItems, recommendedItems]
+    () => [...savedItems, ...shelfItems],
+    [savedItems, shelfItems]
   );
 
   const hasSaved = savedItems.length > 0;
-  const hasRecommended = recommendedItems.length > 0;
-  const isEmpty = !hasSaved && !hasRecommended;
+  const hasShelf = shelfItems.length > 0;
+  const isEmpty = !hasSaved && !hasShelf;
 
   return (
     <div className="max-w-5xl mx-auto px-3 md:px-4 lg:px-6 py-6 animate-[fadeIn_0.5s_ease-out]">
@@ -264,10 +276,10 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
       <div className="mb-8">
         <div className="w-12 h-[1px] bg-tea-gold mb-4" />
         <h2 className={`${HEADING} mb-2 text-tea-text`}>
-          For You
+          Liked
         </h2>
         <p className={`${BODY} max-w-lg text-tea-text-sec`}>
-          Teas you've saved and teas we think you'll love. Tap the heart on any tea across the shop to add it here. Your own shortlist for when you're ready to order.
+          Teas you've set aside, and the shelf we're pouring from this season. Tap the heart on any tea across the shop to add it here. Your own shortlist for when you're ready to order.
         </p>
       </div>
 
@@ -305,15 +317,15 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
         </>
       )}
 
-      {/* Recommended / Our Picks section */}
-      {hasRecommended && (
+      {/* The curator's shelf. Not a recommendation: see the `shelfItems` note. */}
+      {hasShelf && (
         <>
           <SectionDivider
-            label="Our Picks"
-            subtitle="Teas we keep coming back to. Worth a try if you haven't already."
+            label="On the Shelf"
+            subtitle="What the curator has out this season. The same shelf for everyone who walks in."
           />
           <div className="flex flex-col gap-6 md:gap-8">
-            {recommendedItems.map(item => (
+            {shelfItems.map(item => (
               <ItemCard
                 key={item.id}
                 item={item}

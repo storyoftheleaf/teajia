@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * The Immortals' Cliff — Legend · N°13
  * The Da Hong Pao mother trees of Wuyi: six bushes, a red robe, and a retirement.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

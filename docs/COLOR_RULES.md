@@ -1,4 +1,4 @@
-# COLOR_RULES.md — Teajia Structural Color & Styling Rules
+# COLOR_RULES.md: Teajia Structural Color & Styling Rules
 
 **Purpose:** Prevent theme-flip bugs, invisible text, hardcoded-rgba drift, and white-border-on-dark issues. These rules are mandatory for all component work.
 
@@ -27,6 +27,14 @@ These are the ONLY color tokens that should be used in new code. They all use CS
 | `tea-green` | `#5A6E5A` | Tea type badge only |
 | `tea-moss` | `#2A3430` | Tea type badge only |
 
+### The format-badge hues
+
+Nine hues exist outside the palette above, for the media-format badges in the reading and listening library (book, podcast, article, video, playlist, documentary) and the playlist platform tags. They live in `card-utilities.css` as `--badge-<name>-rgb`, one triplet per hue, and are only ever reached through the `.badge-format-<name>` classes. Do not write `text-[#fcd34d]`; there is no Tailwind token for these and there should not be.
+
+Before round nine this block was a second colour system: ten hues, each spelled twice as a raw Tailwind-stock literal, none of them tokens and none of them measured. Six of the ten failed AA in light mode on the surface they actually sit on, at 11px, because every light ink was a Tailwind 700 shade picked to sit on white and never rechecked against parchment: green 3.50, orange 3.54, amber 3.63, teal 3.77, pink 4.04, red 4.30. All nine now measure between 4.98:1 and 5.99:1 in light mode and 6.14:1 to 7.40:1 in dark, against the composited tint over `--tea-surface`, and each number is written on the line that sets the colour. `tea-green` was deleted: declared, never referenced, and its dark ink was a copy of `green`'s.
+
+Adding a hue means adding a triplet and measuring both inks.
+
 ---
 
 ## Rule 1: NEVER Use Legacy Aliases in New Code
@@ -35,9 +43,9 @@ The following tokens have **misleading names** and MUST NOT be used:
 
 | Legacy Token | Why It's Dangerous | Use Instead |
 |---|---|---|
-| `tea-ink` | Maps to `var(--tea-text)` — is **cream** in dark mode, not "ink" | `tea-text` |
-| `tea-paper` | Hardcoded `#ede4d4` — does **not** adapt to theme | `tea-text` (for readable text) or `tea-bg` |
-| `tea-charcoal` | Maps to `var(--tea-bg)` — is **parchment** in light mode | `tea-bg` |
+| `tea-ink` | Maps to `var(--tea-text)`, is **cream** in dark mode, not "ink" | `tea-text` |
+| `tea-paper` | Hardcoded `#ede4d4`, does **not** adapt to theme | `tea-text` (for readable text) or `tea-bg` |
+| `tea-charcoal` | Maps to `var(--tea-bg)`, is **parchment** in light mode | `tea-bg` |
 | `tea-seal` | Just an alias for `tea-gold` | `tea-gold` |
 | `tea-muted` | Just an alias for `tea-text-dim` | `tea-text-dim` |
 | `tea-beige` | Just an alias for `tea-elevated` | `tea-elevated` |
@@ -108,7 +116,7 @@ className="bg-tea-ink dark:bg-tea-ink text-tea-paper dark:text-tea-paper"
 className="bg-tea-surface text-tea-text"
 ```
 
-The `dark:` prefix is ONLY for genuine cases where light and dark modes need fundamentally different values — not for fixing tokens that should already adapt.
+The `dark:` prefix is ONLY for genuine cases where light and dark modes need fundamentally different values, not for fixing tokens that should already adapt.
 
 ---
 
@@ -140,9 +148,9 @@ Text must always contrast with its background. Here are the safe pairings:
 | `tea-bg` | `tea-text` | `tea-text-sec` | `tea-text-dim` |
 | `tea-surface` | `tea-text` | `tea-text-sec` | `tea-text-dim` |
 | `tea-elevated` | `tea-text` | `tea-text-sec` | `tea-text-dim` |
-| any background | `tea-gold` | `tea-gold/70` | — |
+| any background | `tea-gold` | `tea-gold/70` |, |
 
-**Never** pair `text-tea-paper` with `bg-tea-ink` — both resolve to cream in dark mode.
+**Never** pair `text-tea-paper` with `bg-tea-ink`, both resolve to cream in dark mode.
 
 ---
 
@@ -167,11 +175,11 @@ className="border-tea-border"  // prefer the token if it fits
 ## Rule 8: Interactive Hover/Focus States
 
 ```tsx
-// ✅ Button hover — use gold for emphasis
+// ✅ Button hover, use gold for emphasis
 className="hover:bg-tea-gold/10"
 className="hover:border-tea-gold/30"
 
-// ✅ Focus ring — always gold
+// ✅ Focus ring, always gold
 className="focus-visible:ring-2 focus-visible:ring-tea-gold/50 focus-visible:ring-offset-2"
 
 // ❌ Never hardcode hover colors
@@ -233,7 +241,7 @@ For raw pixel font sizes, use the named UI text scale in `src/designTokens.ts` (
 <span className="text-ui-10">…</span>
 ```
 
-Long-tail display sizes (one-off hero text at 48px / 69px / 140px / etc.) are allowed as `text-[Npx]` arbitrary classes — they don't have scale stops because they appear once or twice.
+Long-tail display sizes (one-off hero text at 48px / 69px / 140px / etc.) are allowed as `text-[Npx]` arbitrary classes, they don't have scale stops because they appear once or twice.
 
 For full typography presets (font, weight, leading, tracking together), use `TYPOGRAPHY_CLASSES` from `designTokens.ts` (`h1`, `h2`, `h3`, `body`, `label`, `nav`, etc.).
 
@@ -244,7 +252,7 @@ For full typography presets (font, weight, leading, tracking together), use `TYP
 Any interactive icon or button under 44×44 must add the `tap-target` utility class (defined in `card-utilities.css`). It enforces the WCAG 2.5.5 / Apple HIG / Material Design floor by adding invisible padding around the click area without changing the visible element size.
 
 ```tsx
-// ❌ 36×36 button — fails WCAG 2.5.5
+// ❌ 36×36 button, fails WCAG 2.5.5
 <button className="w-9 h-9 rounded-full">
   <ChevronLeft />
 </button>
@@ -291,6 +299,72 @@ A term the taxonomy has no colour for gets no swatch. Never invent a grey to sta
 
 **2. The file renders an artifact that leaves the app.** A PNG export or a PDF has no theme to adapt to, and the rasteriser reads computed inline values, so a custom property would bake in whichever theme the sender happened to be using. Put `@color-literals` in the file's header comment with the reason. See `src/components/tasting/TastingCard.tsx`.
 
+**3. The whole surface is theme-independent by design.** Added in round nine for the Read section, and narrower than it sounds: it is not "this page looks better dark". It means the surface does not participate in the site theme at all, has a declared palette of its own, and would be broken rather than restyled by taking `--tea-*`. See the decision recorded below.
+
+### The Read section, decided
+
+`src/pages/read/**` held 363 of the remaining literals. That is now a decision rather than a backlog item.
+
+The Read section is a single always-dark editorial system, ported from mockups, that stays dark when the rest of the site is on parchment. `read/immersive.tsx` owns its palette in a `C` block, deliberately scoped rather than reaching for `--tea-*`, because `--tea-bg` on parchment turns a night read into a white page. Much of the colour there is also art direction in the strict sense: the oxidation gradient in `LeafToLiquor` runs from green leaf to black leaf, and the six dots beside the six colours of tea are what those teas look like. Those are the same kind of fact as a liquor colour.
+
+Every file in that directory carries `@color-literals`, and `immersive.tsx` carries the full reasoning plus three conditions:
+
+1. New colour goes in `C` or `ACCENTS`, once, not as a hex in a component.
+2. Text pairs are still measured, against that palette's own background. `C.dim` on `C.bg` is 4.09:1 and is confined to non-essential marginalia; body and navigation take `C.taupe` at 10.6:1.
+3. The marker exempts files that exist. The directory is in the blocking list, so a new file there fails until someone writes the marker and means it.
+
+`ProductPage.tsx` is marked under exception 2 for the same round: its chrome is all tokens, its plate art is drawing on a fixed 1080x1350 frame built to be screenshotted.
+
 ### Enforcement is a ratchet
 
-The rule **blocks** on `src/components/shop/`, `src/components/tasting/`, `src/components/wisdom/`, `ProductPage.tsx`, `Shop.tsx`, `TeaInventory.tsx`. These are clean. Everywhere else it prints a **notice** with a count (505 lines across ~70 files at the time of writing, mostly decorative art direction in `src/pages/read/`). Extend `INLINE_STYLE_ENFORCED` in `scripts/lint-colors.sh` as each area is cleared. Do not widen it to a directory you have not cleared.
+The rule **blocks** on `src/components/shop/`, `src/components/tasting/`, `src/components/wisdom/`, `src/components/shared/`, `src/components/reader/`, `src/pages/read/`, `ProductPage.tsx`, `Shop.tsx`, `TeaInventory.tsx`. Everywhere else it prints a **notice** with a count (505 at the start of round nine, 79 after it). Extend `INLINE_STYLE_ENFORCED` in `scripts/lint-colors.sh` as each area is cleared. Do not widen it to a directory you have not cleared or claimed.
+
+One thing round nine found while clearing `src/components/reader/`, worth repeating because it is invisible: seven components wrote `var(--color-tea-gold, #c9a84c)`. There is no `--color-tea-gold`. The palette declares `--tea-gold`. Twelve declarations across eight files had therefore been painting their hex fallbacks in both themes since they were written. If you see a `var(--x, #hex)` pair, check that `--x` exists before assuming the fallback is a fallback.
+
+---
+
+## Rule 12: One Solid CTA Treatment
+
+`bg-tea-gold` next to `text-tea-bg` is cream on bronze. Measure it:
+
+| Mode | Pair | Ratio |
+|---|---|---|
+| Dark | `#ede4d4`-adjacent cream on `#a8874d` | 4.84:1, passes |
+| Light | `#f4ece0` on `#8e6d2e` | **4.10:1, fails** |
+
+Light mode is the mode a customer is most likely reading in outdoors, and this is the pairing on primary actions across the app.
+
+The fix is one class, in `card-utilities.css`:
+
+```tsx
+// ❌ Blocked by lint:colors Rule 12
+className="bg-tea-gold text-tea-bg hover:bg-tea-gold-lt"
+
+// ✅ The measured treatment. Carries colour only; compose shape and type yourself.
+className="cta-solid rounded-xl"
+
+// ✅ Or just use the shared button, which points at it
+<Button variant="primary">Add to basket</Button>
+```
+
+`.cta-solid` fills with `--tea-gold-solid`, which is identical to `--tea-gold` on espresso and darkens to `#806229` on parchment: **4.91:1** with the same cream, still visibly bronze rather than brown. Dark mode is untouched. The hover moves away from the page in both modes via `--tea-gold-solid-hover`, which is why it needs a token of its own: lightening a bronze fill is right on espresso (6.6:1) and wrong on parchment, where `--tea-gold-lt` under cream measures 3.0:1, so the button became unreadable exactly while the cursor was on it.
+
+For an outline button that fills on hover, use `.cta-solid-hover` rather than writing `hover:bg-tea-gold hover:text-tea-bg`.
+
+**Ratchet:** blocking on `src/components/**` and `ProductPage.tsx` (101 sites cleared in round nine). A notice with a count elsewhere, currently 171, nearly all `src/admin/` and `src/pages/`.
+
+---
+
+## Rule 13: No Em-Dashes, Including In Comments
+
+The project bans the em-dash in all copy and all comments. Use a period, a comma, a colon, parentheses, or rephrase.
+
+This had never been checked, which is how `card-utilities.css` accumulated 111 in its own comments and `lint-colors.sh` accumulated 20, eight of those inside the error strings it prints at whoever it is correcting.
+
+**Ratchet:** blocking on `scripts/lint-colors.sh` and `src/styles/*.css`, which are clear. A notice with a count on `src/**`, currently around 2,100, the large majority in comments.
+
+A note for whoever sweeps the rest: three uses are not prose and must not be replaced blindly.
+
+- `'—'` as the empty-value glyph in a table cell (`value || '—'`). That is a typographic placeholder, not writing.
+- `split('—')` / `join(' — ')` in `SinglePageRenderer` and `TeaCompass/import/importEvidence`. Those are parser tokens with tests pinned to them.
+- Attribution dashes under a quote. Round nine removed these instead, since the gold rule above the attribution already carries the signal.

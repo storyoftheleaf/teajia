@@ -299,7 +299,7 @@ export const LearnExplore: React.FC<LearnExploreProps> = ({ watchedStories, onNa
                 onClick={() => { setWisdomFilter(filter); setShowAllWisdom(false); }}
                 className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
                   wisdomFilter === filter
-                    ? 'bg-tea-gold text-tea-bg'
+                    ? 'cta-solid'
                     : 'bg-tea-text/5 text-tea-text/60 hover:bg-tea-text/10'
                 }`}
               >

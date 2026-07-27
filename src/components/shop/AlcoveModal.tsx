@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React from 'react';
 import { AlcoveCard } from './AlcoveCard';
-import { useScrollLock } from '../../hooks/useScrollLock';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { useAppStore } from '../../lib/store';
+import { AlcoveCarouselShell, AlcoveCloseButton } from './alcove/AlcoveCarouselShell';
 import type { InventoryItem } from '../../types';
 
 interface AlcoveModalProps {
@@ -18,6 +15,14 @@ interface AlcoveModalProps {
   isAdmin?: boolean;
 }
 
+/**
+ * The tea carousel. Every carousel behaviour lives in `AlcoveCarouselShell`;
+ * this file is the card, its four editorial callbacks, and the breakpoint
+ * sizing the tea card needs and the teaware card does not.
+ *
+ * The shell's defaults are this modal's values, so nothing here restates a
+ * scrim, a z-layer, a peek opacity or an arrow treatment.
+ */
 export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   item,
   items,
@@ -28,390 +33,56 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   onTaste,
   onEditProductTasting,
   isAdmin,
-}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const isOpen = !!item;
-  useScrollLock(isOpen);
-
-  // Hide the floating BottomTabBar while this full-screen card is open so it
-  // can't overlap the card's bottom action bar. Works regardless of whether
-  // the call site syncs the open product to the URL.
-  const setProductOverlayOpen = useAppStore(s => s.setProductOverlayOpen);
-  useEffect(() => {
-    setProductOverlayOpen(isOpen);
-    return () => setProductOverlayOpen(false);
-  }, [isOpen, setProductOverlayOpen]);
-
-  // Swipe navigation state
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchStartTime, setTouchStartTime] = useState<number | null>(null);
-  const [swipeOffset, setSwipeOffset] = useState(0);
-
-  // Slide transition direction
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
-  const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const justNavigatedRef = useRef(false);
-
-  /**
-   * The trap is the shared hook now, not thirty lines of it written again.
-   *
-   * This dialog kept its own Tab cycle, its own focusable-element query and its
-   * own previously-focused element, twenty lines from the three sample, custom
-   * amount and image dialogs that round six moved onto `useFocusTrap`. Two
-   * implementations of one behaviour is how one of them quietly stops matching:
-   * this copy read the focusable list on every keypress but restored focus from
-   * an effect that only ran when `item` changed, so stepping through the
-   * carousel and then closing returned focus to whatever had been focused
-   * before the *last* card, not before the modal.
-   *
-   * The hook needed two things this copy already had, so both moved into it:
-   * it skips `[inert]` and `[aria-hidden="true"]` subtrees (the peeking preview
-   * cards), and it reads the focusable list at Tab time rather than at arm
-   * time (the card is swapped out from under it by the arrow keys).
-   */
-  const dialogRef = useFocusTrap<HTMLDivElement>(isOpen, { initialFocus: '[data-alcove-close]' });
-
-  const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
-  const isFirst = currentIndex <= 0;
-  const isLast = currentIndex >= items.length - 1;
-  const prevItem = !isFirst ? items[currentIndex - 1] : null;
-  const nextItem = !isLast ? items[currentIndex + 1] : null;
-
-  const goNext = useCallback(() => {
-    if (!item || !onItemChange || isLast) return;
-    justNavigatedRef.current = true;
-    requestAnimationFrame(() => { justNavigatedRef.current = false; });
-    setSlideDirection('left');
-    if (slideTimeoutRef.current) clearTimeout(slideTimeoutRef.current);
-    slideTimeoutRef.current = setTimeout(() => setSlideDirection(null), 350);
-    onItemChange(items[currentIndex + 1]);
-  }, [item, onItemChange, items, currentIndex, isLast]);
-
-  const goPrev = useCallback(() => {
-    if (!item || !onItemChange || isFirst) return;
-    justNavigatedRef.current = true;
-    requestAnimationFrame(() => { justNavigatedRef.current = false; });
-    setSlideDirection('right');
-    if (slideTimeoutRef.current) clearTimeout(slideTimeoutRef.current);
-    slideTimeoutRef.current = setTimeout(() => setSlideDirection(null), 350);
-    onItemChange(items[currentIndex - 1]);
-  }, [item, onItemChange, items, currentIndex, isFirst]);
-
-  // The preview cards are `aria-hidden` in the markup, which is what the focus
-  // trap reads. `inert` is set here as well so a pointer cannot reach into them
-  // either; it is a property rather than an attribute because React does not
-  // serialise it on every version this app runs on.
-  useEffect(() => {
-    if (item) {
-      requestAnimationFrame(() => setIsVisible(true));
-      requestAnimationFrame(() => {
-        dialogRef.current?.querySelectorAll<HTMLElement>('[data-alcove-preview]').forEach((el) => {
-          (el as HTMLElement & { inert: boolean }).inert = true;
-        });
-      });
-    } else {
-      setIsVisible(false);
-    }
-  }, [item, dialogRef]);
-
-  // Keyboard navigation (Escape + arrow keys)
-  useEffect(() => {
-    if (!item) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'ArrowRight') goNext();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [item, onClose, goPrev, goNext]);
-
-  useEffect(() => {
-    return () => {
-      if (slideTimeoutRef.current) clearTimeout(slideTimeoutRef.current);
-    };
-  }, []);
-
-  if (!item) return null;
-
-  // Close when clicking anywhere outside the active card
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (justNavigatedRef.current) return;
-    if (cardRef.current && cardRef.current.contains(e.target as Node)) return;
-    onClose();
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('input')) return;
-    setTouchStart(e.touches[0].clientX);
-    setTouchStartTime(Date.now());
-    setSwipeOffset(0);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
-    const raw = e.touches[0].clientX - touchStart;
-    // Add resistance at boundaries
-    if ((raw > 0 && isFirst) || (raw < 0 && isLast)) {
-      setSwipeOffset(raw * 0.15);
-    } else {
-      setSwipeOffset(raw);
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null || touchStartTime === null) return;
-
-    const diff = touchStart - e.changedTouches[0].clientX;
-    const distance = Math.abs(diff);
-    const velocity = distance / (Date.now() - touchStartTime);
-    const threshold = velocity > 0.3 ? 20 : 40;
-
-    if (distance > threshold && onItemChange) {
-      if (diff > 0 && !isLast) {
-        goNext();
-      } else if (diff < 0 && !isFirst) {
-        goPrev();
-      }
-    }
-
-    setTouchStart(null);
-    setTouchStartTime(null);
-    setSwipeOffset(0);
-  };
-
-  const handleAddToCart = (addedItem: InventoryItem, qty: number, total: number) => {
-    if (onAddToCart) onAddToCart(addedItem, qty, total);
-  };
-
-  const hasNavigation = items.length > 1 && onItemChange;
-
-  const peekGap = 40;
-
-  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-      return;
-    }
-    if (e.key === 'ArrowLeft') {
-      e.stopPropagation();
-      goPrev();
-      return;
-    }
-    if (e.key === 'ArrowRight') {
-      e.stopPropagation();
-      goNext();
-      return;
-    }
-    // Tab is `useFocusTrap`'s business.
-  };
-
-  return (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={`alcove-title-${item.id}`}
-      className={`fixed inset-0 z-panel-modal transition-all duration-300 ${isVisible ? 'bg-black/85 backdrop-blur-sm' : 'bg-black/0 pointer-events-none'}`}
-      onClick={handleBackdropClick}
-      onKeyDown={handleDialogKeyDown}
-    >
-      {/* Carousel container */}
-      <div
-        className="relative flex items-center justify-center w-full h-full overflow-hidden"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Previous card (peeking from left) */}
-        {hasNavigation && prevItem && (
-          <div
-            data-alcove-preview
-            aria-hidden="true"
-            className="absolute hidden md:block pointer-events-auto cursor-pointer"
-            style={{
-              zIndex: 1,
-              width: 'min(480px, 85vw)',
-              height: 'min(90vh, 780px)',
-              minHeight: '480px',
-              left: `calc(50% - min(240px, 42.5vw) - ${peekGap}px - min(480px, 85vw) + 100px)`,
-              transform: `translateX(${swipeOffset * 0.5}px) scale(0.88)`,
-              transition: touchStart ? 'none' : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-              opacity: 0.2,
-              filter: 'blur(8px)',
-            }}
-            onClick={(e) => { e.stopPropagation(); goPrev(); }}
-          >
-            <AlcoveCard item={prevItem} onClose={() => {}} />
-          </div>
-        )}
-
-        {/* Mobile: previous card peek */}
-        {hasNavigation && prevItem && (
-          <div
-            data-alcove-preview
-            aria-hidden="true"
-            className="absolute md:hidden pointer-events-none"
-            style={{
-              zIndex: 1,
-              width: '85vw',
-              maxWidth: '480px',
-              height: 'min(90vh, 780px)',
-              minHeight: '480px',
-              right: `calc(100% - 24px + ${Math.max(0, -swipeOffset) * 0.3}px)`,
-              transform: `scale(0.9) translateX(${swipeOffset > 0 ? swipeOffset * 0.5 : 0}px)`,
-              transition: touchStart ? 'none' : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-              opacity: Math.min(0.3, Math.abs(swipeOffset) / 300 + 0.15),
-            }}
-          >
-            <AlcoveCard item={prevItem} onClose={() => {}} />
-          </div>
-        )}
-
-        {/* Current card */}
-        <div
-          className="flex flex-col items-center justify-center p-0 md:p-8"
-          style={{
-            zIndex: 5,
-            position: 'relative',
-            transform: `translateX(${swipeOffset * 0.4}px)`,
-            transition: touchStart ? 'none' : 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-            width: '100%',
-            height: '100%',
-          }}
-        >
-          <div
-            ref={cardRef}
-            className="relative w-full md:max-w-[560px] md:flex md:items-center md:justify-center"
-            style={{
-              height: '100%',
-              maxHeight: '100dvh',
-              width: '100%',
-            }}
-          >
-          {/* On desktop, constrain size. On mobile (<lg), leave just enough
-              clearance at the bottom for the global BottomTabBar so the alcove
-              commerce footer sits low, close above the floating capsule, instead
-              of leaving a dead gap. The capsule floats 12px off the bottom, so we
-              reserve 32px here and the footer drops nearer to it. */}
-          <style>{`
+}) => (
+  <AlcoveCarouselShell
+    item={item}
+    items={items}
+    onClose={onClose}
+    onItemChange={onItemChange}
+    ariaLabelledBy={item ? `alcove-title-${item.id}` : undefined}
+    slotStyle={{ width: '100%', height: '100%' }}
+    renderPeek={(peeked) => <AlcoveCard item={peeked} onClose={() => {}} />}
+    renderCard={(focused) => (
+      <>
+        {/* On desktop, constrain size. On mobile (<lg), leave just enough
+            clearance at the bottom for the global BottomTabBar so the alcove
+            commerce footer sits low, close above the floating capsule, instead
+            of leaving a dead gap. The capsule floats 12px off the bottom, so we
+            reserve 32px here and the footer drops nearer to it. */}
+        <style>{`
+          [data-alcove-card-wrapper] {
+            height: calc(100dvh - 44px - 32px - env(safe-area-inset-bottom, 0px));
+            max-height: calc(100dvh - 44px - 32px - env(safe-area-inset-bottom, 0px));
+          }
+          @media (min-width: 1024px) {
             [data-alcove-card-wrapper] {
-              height: calc(100dvh - 44px - 32px - env(safe-area-inset-bottom, 0px));
-              max-height: calc(100dvh - 44px - 32px - env(safe-area-inset-bottom, 0px));
+              height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
+              max-height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
             }
-            @media (min-width: 1024px) {
-              [data-alcove-card-wrapper] {
-                height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
-                max-height: calc(100dvh - 44px - env(safe-area-inset-bottom, 0px));
-              }
+          }
+          @media (min-width: 768px) {
+            [data-alcove-card-wrapper] {
+              height: min(90vh, 780px) !important;
+              min-height: 480px !important;
+              width: min(480px, 85vw) !important;
+              max-height: min(90vh, 780px) !important;
+              border-radius: 3px;
             }
-            @media (min-width: 768px) {
-              [data-alcove-card-wrapper] {
-                height: min(90vh, 780px) !important;
-                min-height: 480px !important;
-                width: min(480px, 85vw) !important;
-                max-height: min(90vh, 780px) !important;
-                border-radius: 3px;
-              }
-            }
-          `}</style>
-          <div data-alcove-card-wrapper className="relative w-full md:rounded-[3px] overflow-hidden">
-            <AlcoveCard
-              item={item}
-              onAddToCart={handleAddToCart}
-              onClose={onClose}
-              onTermClick={onTermClick}
-              onTaste={onTaste}
-              onEditProductTasting={onEditProductTasting}
-              isAdmin={isAdmin}
-            />
-            {/* Close button: top-left of the card per CLAUDE.md panel header rule */}
-            <button
-              data-alcove-close
-              className="tap-target absolute top-2 left-2 z-10 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-          </div>
+          }
+        `}</style>
+        <div data-alcove-card-wrapper className="relative w-full md:rounded-[3px] overflow-hidden">
+          <AlcoveCard
+            item={focused}
+            onAddToCart={onAddToCart}
+            onClose={onClose}
+            onTermClick={onTermClick}
+            onTaste={onTaste}
+            onEditProductTasting={onEditProductTasting}
+            isAdmin={isAdmin}
+          />
+          <AlcoveCloseButton onClose={onClose} />
         </div>
-
-        {/* Next card (peeking from right) */}
-        {hasNavigation && nextItem && (
-          <div
-            data-alcove-preview
-            aria-hidden="true"
-            className="absolute hidden md:block pointer-events-auto cursor-pointer"
-            style={{
-              zIndex: 1,
-              width: 'min(480px, 85vw)',
-              height: 'min(90vh, 780px)',
-              minHeight: '480px',
-              right: `calc(50% - min(240px, 42.5vw) - ${peekGap}px - min(480px, 85vw) + 100px)`,
-              transform: `translateX(${swipeOffset * 0.5}px) scale(0.88)`,
-              transition: touchStart ? 'none' : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-              opacity: 0.2,
-              filter: 'blur(8px)',
-            }}
-            onClick={(e) => { e.stopPropagation(); goNext(); }}
-          >
-            <AlcoveCard item={nextItem} onClose={() => {}} />
-          </div>
-        )}
-
-        {/* Mobile: next card peek */}
-        {hasNavigation && nextItem && (
-          <div
-            data-alcove-preview
-            aria-hidden="true"
-            className="absolute md:hidden pointer-events-none"
-            style={{
-              zIndex: 1,
-              width: '85vw',
-              maxWidth: '480px',
-              height: 'min(90vh, 780px)',
-              minHeight: '480px',
-              left: `calc(100% - 24px - ${Math.max(0, swipeOffset) * 0.3}px)`,
-              transform: `scale(0.9) translateX(${swipeOffset < 0 ? swipeOffset * 0.5 : 0}px)`,
-              transition: touchStart ? 'none' : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-              opacity: Math.min(0.3, Math.abs(swipeOffset) / 300 + 0.15),
-            }}
-          >
-            <AlcoveCard item={nextItem} onClose={() => {}} />
-          </div>
-        )}
-
-        {/* Desktop prev/next arrows */}
-        {hasNavigation && !isFirst && (
-          <button
-            className="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all glass-panel hover:bg-tea-gold/15 text-tea-gold"
-            style={{ zIndex: 10 }}
-            onClick={(e) => { e.stopPropagation(); goPrev(); }}
-            aria-label="Previous tea"
-          >
-            <ChevronLeft size={20} />
-          </button>
-        )}
-        {hasNavigation && !isLast && (
-          <button
-            className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 items-center justify-center rounded-full transition-all glass-panel hover:bg-tea-gold/15 text-tea-gold"
-            style={{ zIndex: 10 }}
-            onClick={(e) => { e.stopPropagation(); goNext(); }}
-            aria-label="Next tea"
-          >
-            <ChevronRight size={20} />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
+      </>
+    )}
+  />
+);

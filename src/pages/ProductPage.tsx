@@ -78,7 +78,7 @@ const RELATION_LABEL: Record<Relation, string> = {
  * another, and neither could tell which was the shop's actual quote. Markup
  * that varies per visitor is worse than markup that is honestly fixed.
  *
- * The prices in the record are USD (`fmtPrice` and every shop formatter print
+ * The prices in the record are USD (the record formatters and every shop formatter print
  * a dollar sign unconditionally), so USD is what is published, unconverted, to
  * every reader and every crawler. Localising the visible number is the visible
  * page's job, and when it gains that ability the markup does not have to move.
@@ -256,7 +256,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </p>
         <Link
           to="/shop"
-          className={`${LABEL} rounded-md bg-tea-gold px-8 py-3 text-tea-bg transition-colors hover:bg-tea-gold-lt`}
+          className={`${LABEL} rounded-md cta-solid px-8 py-3 transition-colors`}
         >
           Back to shop
         </Link>
@@ -831,7 +831,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                   ? 'bg-tea-accent-sub text-tea-text-sec border border-tea-border cursor-not-allowed opacity-60'
                   : added
                     ? 'bg-tea-green text-tea-bg border border-tea-green'
-                    : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt border border-tea-gold'
+                    : 'cta-solid border border-tea-gold'
               }`}
             >
               <span>{isSoldOut ? 'Sold Out' : added ? 'Added!' : 'Add to Cart'}</span>
@@ -1056,7 +1056,7 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
               className={`${LABEL} inline-flex min-h-[44px] items-center px-5 rounded-md font-medium transition-all active:scale-[0.98] flex-shrink-0 ${
                 added
                   ? 'bg-tea-green text-tea-bg'
-                  : 'bg-tea-gold text-tea-bg hover:bg-tea-gold-lt'
+                  : 'cta-solid'
               }`}
             >
               {added ? 'Added!' : 'Add'}

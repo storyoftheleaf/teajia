@@ -106,7 +106,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     >
                       <Icons.Bag className="w-5 h-5 text-tea-text/60" />
                       {cartItemCount > 0 && (
-                        <div className={`absolute -top-0.5 -right-0.5 w-4 h-4 bg-tea-gold text-tea-bg text-ui-9 font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
+                        <div className={`absolute -top-0.5 -right-0.5 w-4 h-4 cta-solid text-ui-9 font-bold rounded-full flex items-center justify-center ${badgeAnimating ? 'cart-badge-pulse' : ''}`}>
                           {cartItemCount > 9 ? '9+' : cartItemCount}
                         </div>
                       )}

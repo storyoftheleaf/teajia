@@ -1101,7 +1101,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
             type="button"
             onClick={handleAddToLedger}
             disabled={receiptBusy}
-            className="curate-action w-full rounded-md bg-tea-gold px-3 font-semibold text-tea-bg active:opacity-80"
+            className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
           >
             {receiptBusy ? 'Adding…' : 'Add to Ledger'}
           </button>
@@ -1120,7 +1120,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
               <p>Inventory changes only after you accept this receipt.</p>
               <div className="flex justify-between gap-3 border-t border-tea-border pt-2">
                 <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
-                <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 font-semibold text-tea-bg">Accept into Inventory</button>
+                <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md cta-solid px-4 font-semibold">Accept into Inventory</button>
               </div>
             </div>
           )}
@@ -1434,7 +1434,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                     type="button"
                     onClick={commitCustomEra}
                     disabled={!eraInputValue.trim()}
-                    className="curate-action shrink-0 rounded-md bg-tea-gold px-3 font-medium text-tea-bg disabled:opacity-40"
+                    className="curate-action shrink-0 rounded-md cta-solid px-3 font-medium disabled:opacity-40"
                   >
                     Add
                   </button>
@@ -2109,7 +2109,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   type="button"
                   onClick={handleAddToLedger}
                   disabled={receiptBusy}
-                  className="curate-action w-full rounded-md bg-tea-gold px-3 font-semibold text-tea-bg active:opacity-80"
+                  className="curate-action w-full rounded-md cta-solid px-3 font-semibold active:opacity-80"
                   data-curate-action
                 >
                   {receiptBusy ? 'Adding…' : 'Add to Ledger'}
@@ -2136,7 +2136,7 @@ export const CaptureCard: React.FC<CaptureCardProps> = ({ entryId, onSwitchToLed
                   <p className="text-tea-text-sec">Inventory changes only after you accept this receipt.</p>
                   <div className="flex justify-between gap-3 border-t border-tea-border pt-2">
                     <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('reject')} className="tap-target min-h-11 text-tea-text-sec hover:text-tea-text">Reject</button>
-                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 font-semibold text-tea-bg">Accept into Inventory</button>
+                    <button type="button" disabled={receiptBusy} onClick={() => reviewReceipt('accept')} className="tap-target min-h-11 rounded-md cta-solid px-4 font-semibold">Accept into Inventory</button>
                   </div>
                 </div>
               )}

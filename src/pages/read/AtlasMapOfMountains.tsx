@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * A Map of Mountains — The Geography of Tea, N°06
  * An interactive terroir atlas of the great tea mountains of China.
  * Ported pixel-faithfully from the Claude Design mockup:

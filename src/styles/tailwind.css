@@ -24,7 +24,7 @@
 }
 
 /* ============================================
-   Espresso + Gold — Theme Variables
+   Espresso + Gold: Theme Variables
    Dark mode (default) and Light mode
    ============================================ */
 
@@ -67,14 +67,14 @@ nav[aria-label="Admin navigation"] * {
   --tea-gold-rgb: 168 135 77;
   --tea-gold-lt: #bfa06a;
   --tea-gold-lt-rgb: 191 160 106;
-  /* Warm gold pinned for text — keeps reading gold even if --tea-gold shifts toward aged brass */
+  /* Warm gold pinned for text, keeps reading gold even if --tea-gold shifts toward aged brass */
   --tea-readgold: #a8874d;
   --tea-readgold-rgb: 168 135 77;
-  /* Derived from --tea-gold-rgb at canonical alpha — keeps border/glow in sync with accent */
+  /* Derived from --tea-gold-rgb at canonical alpha, keeps border/glow in sync with accent */
   --tea-border: rgb(var(--tea-gold-rgb) / 0.14);
   --tea-accent-sub: rgb(var(--tea-gold-rgb) / 0.16);
   --tea-leaf: #5A6E5A;
-  /* Warmed from oxblood #8a3a32 to terracotta — reds now read on espresso */
+  /* Warmed from oxblood #8a3a32 to terracotta, reds now read on espresso */
   --tea-error: #c46a5a;
   --tea-error-rgb: 196 106 90;
 
@@ -83,7 +83,7 @@ nav[aria-label="Admin navigation"] * {
   --font-serif: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-body: 'Lora', 'Lora Fallback', 'Noto Serif SC', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
-  /* Mono rebound to Plus Jakarta Sans 500 with tabular-nums — clean geometric numerals, no dotted zero */
+  /* Mono rebound to Plus Jakarta Sans 500 with tabular-nums, clean geometric numerals, no dotted zero */
   --font-mono: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
 }
@@ -105,7 +105,7 @@ nav[aria-label="Admin navigation"] * {
   /* Raised well above WCAG AA for outdoor legibility */
   --tea-text-dim: #564a37;
   --tea-text-dim-rgb: 86 74 55;
-  /* Spec says #8e6d2e for light gold (was production-drift #6b4f28 — too dark on parchment) */
+  /* Spec says #8e6d2e for light gold (was production-drift #6b4f28, too dark on parchment) */
   --tea-gold: #8e6d2e;
   --tea-gold-rgb: 142 109 46;
   --tea-gold-lt: #a88340;
@@ -120,7 +120,7 @@ nav[aria-label="Admin navigation"] * {
   --tea-error-rgb: 115 42 35;
 }
 
-/* Force dark tokens on any nested .dark wrapper (e.g. Journal — always dark) */
+/* Force dark tokens on any nested .dark wrapper (e.g. Journal, always dark) */
 :root.light .dark, .light .dark {
   color-scheme: dark;
   --tea-bg: #22201c;
@@ -165,12 +165,12 @@ nav[aria-label="Admin navigation"] * {
 .tea-card-scroll::-webkit-scrollbar-track { background: transparent; }
 .tea-card-scroll::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
 
-/* Admin form overrides — kill native browser chrome */
+/* Admin form overrides, kill native browser chrome */
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(200,170,120,0.15); border-radius: 2px; }
 
-/* Form elements — kill native browser grey/white chrome */
+/* Form elements, kill native browser grey/white chrome */
 select option { background: var(--tea-surface); color: var(--tea-text); }
 select { color-scheme: dark; }
 input[type="datetime-local"],
@@ -201,7 +201,7 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Scrollbar utilities consolidated in card-utilities.css (.hide-scrollbar, .hide-scrollbar-always) */
 
 /* ============================================
-   Base Typography — Plus Jakarta Sans for UI, Lora for reading
+   Base Typography: Plus Jakarta Sans for UI, Lora for reading
    ============================================ */
 
 html, body {
@@ -221,7 +221,7 @@ body {
   transition: background-color 500ms ease, color 500ms ease, border-color 500ms ease !important;
 }
 
-/* Outdoor-legibility weight floor — text runs one step heavier than the
+/* Outdoor-legibility weight floor, text runs one step heavier than the
    bare utility weights so thin strokes survive bright light. */
 .font-light  { font-weight: 400 !important; }
 .font-normal { font-weight: 500 !important; }
@@ -505,7 +505,7 @@ p {
   50% { transform: translateY(-8px); }
 }
 
-/* Cart panel transitions — quartic ease-out, no bounce */
+/* Cart panel transitions, quartic ease-out, no bounce */
 @keyframes cartFadeIn {
   from { opacity: 0; transform: translateY(2px); }
   to { opacity: 1; transform: translateY(0); }

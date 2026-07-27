@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * PlateRow — the photo-essay row of a hand-built Read story.
  *
  * The set + order of plates lives in the story-edit draft (`plates`), defaulting

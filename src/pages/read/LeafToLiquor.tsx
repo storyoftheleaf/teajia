@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * From Leaf to Liquor — The Art of Tea, N°01
  * A tea-education explainer in five switchable directions:
  *   I  Manuscript — classical, narrow column, drop caps, marginalia

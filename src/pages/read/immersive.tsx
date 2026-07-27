@@ -1,4 +1,46 @@
 /**
+ * @color-literals. Decided, not deferred.
+ *
+ * Every file in src/pages/read/ carries this marker, and this is the file that
+ * says why, because this is the file that owns the palette.
+ *
+ * The Read section is not a themed surface. It is a single dark editorial
+ * system, ported pixel-faithfully from the Claude Design mockups, and it stays
+ * dark when the rest of the site is on parchment. That is the whole design: an
+ * article opens and the site recedes. The `C` block below is its palette, and
+ * it is scoped here deliberately rather than reaching for `--tea-*`, because
+ * `--tea-bg` on parchment would turn a night read into a white page.
+ *
+ * The colours themselves are art direction, which is the second thing that
+ * matters here. The oxidation scale in LeafToLiquor is a gradient from green
+ * leaf to black leaf; the six dots beside the six colours of tea are what those
+ * teas look like. Those are measurements of an object, in the same sense a
+ * liquor colour is, and they do not have a dark variant any more than a
+ * photograph does.
+ *
+ * The editing chrome in this folder (StoryEditorBar, EditablePhoto, PlateRow,
+ * storyEdit) is covered by the same marker for the same reason: it floats on
+ * top of an always-dark page, so it has to match the page rather than the site.
+ *
+ * Three conditions on the exception, so it stays a decision rather than a
+ * loophole:
+ *
+ *   1. New colour goes in `C` or `ACCENTS` here. A read page that needs a hue
+ *      the system does not have adds it to the palette, once, rather than
+ *      typing a hex into a component.
+ *   2. Text pairs are still measured against this palette's own background,
+ *      not the site's. `C.dim` (#80735f) on `C.bg` (#14100b) is 4.09:1, which
+ *      is under the floor and is why the site colophon stopped using it. It
+ *      survives here only on non-essential marginalia; body and navigation
+ *      take `C.taupe` (10.6:1) or `C.warm`.
+ *   3. The marker exempts a file that exists. lint-colors.sh blocks this
+ *      directory, so a NEW file here fails until someone writes the marker and
+ *      means it.
+ *
+ * The alternative was to leave 363 lines sitting in a non-blocking notice that
+ * nobody was ever going to read, which is not a decision, it is a backlog.
+ */
+/**
  * ╔══════════════════════════════════════════════════════════════════╗
  * ║  IMMERSIVE READER — shared primitives                             ║
  * ║                                                                   ║

@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * StoryEditorBar — the floating owner toolbar for a hand-built Read story.
  *
  * Shown only to the owner. One switch turns edit mode on (every editable zone

@@ -31,6 +31,39 @@ import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
  * Deliberately not applied to structured data. `PUBLISHED_CURRENCY` on the
  * product page stays USD, because markup that varies per visitor is worse than
  * markup that is honestly fixed.
+ *
+ * ── One rate table, twelve readers ──────────────────────────────────────────
+ *
+ * Twelve components call this hook, and each call opens its own subscription to
+ * `useRates()`, which is `useQuery(['rates', account, user])` in
+ * admin/hooks/useAdminData.ts. As of this writing:
+ *
+ *   TeaInventory, Shop, SharedCollection, AlcoveCard, TeawareAlcoveCard,
+ *   CompareView, CollectionTab, MyCollection, PublicCart, CartItem,
+ *   PopupModal, ProductPage.
+ *
+ * `CartItem` renders once per basket row, so the live subscription count is
+ * higher than the component count, and a full basket on the product page is
+ * comfortably past twenty.
+ *
+ * That is one network request, not twenty, and it is worth saying out loud why:
+ * React Query happens to dedupe by key, and nothing at any of those call sites
+ * says so. This is the same shape the product-impressions hook was given last
+ * round, for the same reason. The failure mode is quiet. Change the key, the
+ * account scope or the six-hour `staleTime` in one place and the app starts
+ * issuing a second request for a table it already holds, or worse, shows one
+ * vintage of the rate on the card and another on the page the card opens, which
+ * is a tea changing price by being tapped. That exact bug is what the note
+ * above this one was written about.
+ *
+ * The consequence for a caller: this hook is cheap, and you should call it
+ * rather than thread a converted string down through props. The consequence for
+ * anyone editing `useRates`: the key and the staleTime are a contract with
+ * twelve files, and there is no test that will tell you if you break it.
+ *
+ * Shop.tsx and PublicCart.tsx currently hold both subscriptions, calling
+ * `useRates()` directly *and* `useShopPrice()`. Harmless for the same dedupe
+ * reason, but they are the two files that should read the table once.
  */
 export interface ShopPrice {
   /** True when the reader is being shown something other than the shop's USD. */

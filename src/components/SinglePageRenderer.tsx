@@ -1744,7 +1744,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                     <div className={`${paperBase} ${PAD.spacious} flex items-center`} data-page-type="text" style={OPENTYPE}>
                         <div className="ml-[25%] w-[60%]">
                             <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headlineSm} font-display font-light ${LH.loose} whitespace-pre-wrap opacity-85`} placeholder="Each line / on its own..." tag="p" readOnly={readOnly} />
-                            <div className={`${TYPE.caption} font-caption text-right mt-12 opacity-30`}>— Author</div>
+                            <div className={`${TYPE.caption} font-caption text-right mt-12 opacity-30`}>Author</div>
                         </div>
                     </div>
                 );
@@ -1789,7 +1789,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             ))}
                         </div>
                         <div className="absolute bottom-16">
-                            <span className={`${TYPE.micro} font-caption opacity-20`}>— kigo</span>
+                            <span className={`${TYPE.micro} font-caption opacity-20`}>kigo</span>
                         </div>
                     </div>
                 );
@@ -1806,7 +1806,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                                     <EditableText value={content} onChange={isEditable ? updateContent : undefined} className={`${TYPE.headline} font-display tracking-wide font-light italic text-tea-text leading-[1.3] mb-8 hang-punct`} placeholder="Quote..." tag="p" readOnly={readOnly} />
                                 </div>
                             </div>
-                            <span className={`${TYPE.caption} font-caption text-tea-text/50`}>— Attribution</span>
+                            <span className={`${TYPE.caption} font-caption text-tea-text/50`}>Attribution</span>
                         </div>
                     </div>
                 );
@@ -2001,7 +2001,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                         <div className="w-16 h-16 bg-current opacity-8 rounded-md flex items-center justify-center mb-8">
                             <span className="text-[40px] font-display font-light opacity-30">T</span>
                         </div>
-                        <span className={`${TYPE.caption} font-caption mb-2`}>Teajia Journal — Issue 03</span>
+                        <span className={`${TYPE.caption} font-caption mb-2`}>Teajia Journal · Issue 03</span>
                         <span className={`${TYPE.micro} opacity-15 font-caption`}>2024</span>
                     </div>
                 );
@@ -2087,7 +2087,7 @@ export const SinglePageRenderer: React.FC<SinglePageRendererProps> = ({ page, st
                             {/* Annotation circles */}
                             {annotations.map((ann, i) => (
                                 <div key={i} className="absolute z-20 pointer-events-none" style={{ left: `${ann.x}%`, top: `${ann.y}%`, transform: 'translate(-50%, -50%)' }}>
-                                    <div className="w-8 h-8 rounded-full bg-tea-gold text-tea-bg flex items-center justify-center text-ui-14 font-bold shadow-lg border-2 border-tea-bg">
+                                    <div className="w-8 h-8 rounded-full cta-solid flex items-center justify-center text-ui-14 font-bold shadow-lg border-2 border-tea-bg">
                                         {i + 1}
                                     </div>
                                 </div>

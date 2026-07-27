@@ -259,7 +259,7 @@ export const PrimaryVerb: React.FC<PrimaryVerbProps> = ({ label, onClick, varian
         'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-tea-gold focus-visible:ring-offset-2 focus-visible:ring-offset-tea-bg',
         'border',
         variant === 'filled'
-          ? 'bg-tea-gold text-tea-bg border-tea-gold hover:bg-tea-gold-lt hover:border-tea-gold-lt'
+          ? 'cta-solid border-tea-gold hover:border-tea-gold-lt'
           : 'bg-transparent text-tea-gold border-tea-gold/50 hover:bg-tea-gold/10 hover:border-tea-gold',
       ].join(' ')}
       style={{ WebkitTapHighlightColor: 'transparent' }}

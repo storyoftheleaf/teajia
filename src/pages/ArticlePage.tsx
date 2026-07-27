@@ -1,3 +1,19 @@
+/**
+ * @color-literals. Decided, not deferred.
+ *
+ * The token block `T` below is the rule in this file: chrome, type and surfaces
+ * all read `var(--tea-*)`. What is exempt is the plate art, and only the plate
+ * art: the radial washes behind a cover, the concentric rings of the compass
+ * plate, the gradient scrim that lets a title sit on a photograph. Those are
+ * drawings, and the page they are drawn on is a fixed 1080x1350 frame designed
+ * to be screenshotted at that size and posted. A rasteriser reads computed
+ * inline values, so a custom property in a plate bakes in whichever theme the
+ * sender happened to be using when they hit export.
+ *
+ * Same reasoning as components/tasting/TastingCard.tsx, and the same condition:
+ * a colour that is chrome rather than art still takes a token. See
+ * COLOR_RULES.md Rule 11.
+ */
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';

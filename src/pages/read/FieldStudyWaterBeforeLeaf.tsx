@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Field Study — The Water Before the Leaf · N°12
  * Lu Yu's forgotten half: water hardness, temperature, and the classical
  * ranking of sources.

@@ -153,7 +153,7 @@ const StoryCardsBriefing: React.FC<StoryCardsBriefingProps> = ({
               <button
                 type="button"
                 onClick={onComplete}
-                className="tap-target pointer-events-auto mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-ui-12 uppercase tracking-[0.2em] hover:bg-tea-gold hover:text-tea-bg transition-colors duration-300"
+                className="tap-target cta-solid-hover pointer-events-auto mt-10 flex items-center gap-2 px-6 py-3 border border-tea-gold text-tea-gold text-ui-12 uppercase tracking-[0.2em] transition-colors duration-300"
               >
                 View Your Ticket
                 <ArrowRight className="w-3.5 h-3.5" />

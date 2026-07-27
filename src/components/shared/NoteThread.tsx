@@ -59,7 +59,11 @@ const TastingArtifact: React.FC<{ snapshot: TastingData }> = ({ snapshot }) => {
           <div className="flex-1 h-[2px] rounded-full overflow-hidden bg-tea-elevated">
             <div
               className="h-full rounded-full"
-              style={{ width: `${snapshot.quality * 10}%`, background: 'linear-gradient(90deg, #d4ac6666, #b8924e)' }}
+              // The second copy of the tasting journal's quality bar, carrying
+              // the same two raw golds (`#d4ac6666`, `#b8924e`) that neither
+              // theme declares, so it has always painted a brighter gold than
+              // the palette allows. Real tokens, same intent.
+              style={{ width: `${snapshot.quality * 10}%`, background: 'linear-gradient(90deg, rgb(var(--tea-gold-lt-rgb) / 0.5), var(--tea-gold))' }}
             />
           </div>
           <span className="text-ui-12 font-semibold tabular-nums text-tea-gold shrink-0" style={{ fontFamily: 'var(--font-mono)' }}>

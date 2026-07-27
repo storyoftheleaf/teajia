@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * The Long Way to the Cup — Essay · First Person, N°10
  * A personal essay on growing up surrounded by tea without ever tasting it,
  * and the journey — literally to Bali — that finally brought it home.

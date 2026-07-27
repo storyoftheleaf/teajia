@@ -325,7 +325,7 @@ export const Shop: React.FC<ShopProps> = ({
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddStarterSet(set); }}
                 disabled={isAddingToCart[set.id]}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 active:bg-tea-gold/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {isAddingToCart[set.id] && <Loader2 size={13} className="animate-spin" />}
                 <span>{isAddingToCart[set.id] ? 'Adding...' : 'Add Set to Cart'}</span>
@@ -366,8 +366,8 @@ export const Shop: React.FC<ShopProps> = ({
   return (
     <div className="flex flex-col flex-1 bg-tea-bg animate-[fadeIn_0.5s_ease-out]">
       <Helmet>
-        <title>Shop — Teajia</title>
-        <meta name="description" content="Browse curated fine teas and teaware. Oolongs, pu-erh, greens, whites, and handmade vessels — sourced directly from farmers and artisans." />
+        <title>Shop · Teajia</title>
+        <meta name="description" content="Browse curated fine teas and teaware. Oolongs, pu-erh, greens, whites, and handmade vessels, sourced directly from farmers and artisans." />
       </Helmet>
       <PageHeader
         title="Shop"

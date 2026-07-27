@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * The Art of Tea — Read-section index.
  * "The Reading Room" — magazine layout ported from the Claude Design mockup
  * (saved at docs/_design-import/tea-article-redesign/).

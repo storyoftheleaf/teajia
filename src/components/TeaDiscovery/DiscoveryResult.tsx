@@ -160,7 +160,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
           <p className="font-body text-ui-15 leading-relaxed text-tea-text">
             {observed.tastingCount} {observed.tastingCount === 1 ? 'tea' : 'teas'} logged
             {observed.topTypes.length > 0 && (
-              <> — lately leaning <span className="text-tea-gold">{observed.topTypes.join(' and ')}</span></>
+              <>, lately leaning <span className="text-tea-gold">{observed.topTypes.join(' and ')}</span></>
             )}.
           </p>
           {suggestion && (
@@ -175,7 +175,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
                 <button
                   type="button"
                   onClick={() => onAdopt(suggestion.level, suggestion.threadIds)}
-                  className="rounded-xl bg-tea-gold px-4 py-2 font-sans text-ui-13 font-medium text-tea-bg transition-all hover:bg-tea-gold/90"
+                  className="rounded-xl cta-solid px-4 py-2 font-sans text-ui-13 font-medium transition-all"
                 >
                   Adopt this
                 </button>
@@ -204,7 +204,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
       ) : (
         <div className="mt-7 rounded-xl border border-tea-border bg-tea-elevated px-5 py-4">
           <p className="font-body text-ui-14 leading-relaxed text-tea-text-sec">
-            This is a beginning, not a label. What draws you can deepen — and new threads can surface —
+            This is a beginning, not a label. What draws you can deepen, and new threads can surface,
             as your practice does; every tea you sit with teaches it a little more.{' '}
             <Link
               to="/account/journal"
@@ -280,7 +280,7 @@ export const DiscoveryResult: React.FC<DiscoveryResultProps> = ({ profile, onRet
           >
             Sign in to keep it
           </Link>{' '}
-          — so the right tea, and the right words, can find you.
+          so the right tea, and the right words, can find you.
         </p>
       )}
 

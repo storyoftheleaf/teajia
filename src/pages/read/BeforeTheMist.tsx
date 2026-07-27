@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Before the Mist Burns Away — Field Notes, N°04
  * A photo-essay from a Yunnan spring harvest, from first grey light to first cup.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

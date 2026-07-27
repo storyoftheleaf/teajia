@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { InventoryItem, CostCurrency, TEA_TYPES } from '../../types';
 import { convertToUSD, CURRENCY_SYMBOLS, loadExchangeRates } from '../../utils/currency';
 import { CURRENCY_BY_LOCATION, SUPPLIER_LOCATIONS } from './currencyHelpers';
-import { fmtPricePerGram } from '../../utils/formatNumber';
+import { fmtRecordPricePerGram } from '../../utils/formatNumber';
 
 export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: InventoryItem) => void; onCancel: () => void; }> = ({ item, onSave, onCancel }) => {
     const [currentItem, setCurrentItem] = useState(item);
@@ -104,7 +104,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                     </button>
                     <button
                         onClick={() => onSave(currentItem)}
-                        className="px-6 py-2 bg-tea-gold hover:bg-tea-gold/90 text-tea-bg rounded-md text-sm uppercase tracking-wider font-medium transition-colors duration-200 shadow-lg"
+                        className="px-6 py-2 cta-solid rounded-md text-sm uppercase tracking-wider font-medium transition-colors duration-200 shadow-lg"
                     >
                         Save
                     </button>
@@ -226,7 +226,7 @@ export const InventoryEditor: React.FC<{ item: InventoryItem; onSave: (i: Invent
                             <label className="text-xs uppercase text-tea-gold block mb-2 tracking-wider font-semibold">Calculated Price</label>
                             <div className="bg-tea-bg border border-tea-border rounded-md p-3 text-center">
                                 <div className="text-2xl font-semibold text-tea-text">
-                                    {fmtPricePerGram(parseFloat(currentItem.category === 'tea' ? currentItem.price_per_gram || '0' : currentItem.price_50g || '0') || 0)}
+                                    {fmtRecordPricePerGram(parseFloat(currentItem.category === 'tea' ? currentItem.price_per_gram || '0' : currentItem.price_50g || '0') || 0)}
                                 </div>
                             </div>
                         </div>

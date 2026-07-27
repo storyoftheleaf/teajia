@@ -1107,7 +1107,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {onCreatePO && (verdict === 'love' || verdict === 'like') && (
                 <button
                   onClick={() => { onCreatePO(); onClose(); }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98] transition-all"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold cta-solid hover:opacity-90 active:scale-[0.98] transition-all"
                 >
                   <ShoppingCart size={16} />
                   Create Purchase Order
@@ -1116,7 +1116,7 @@ export const TastingSession: React.FC<TastingSessionProps> = ({
               {onOrderTea && (
                 <button
                   onClick={() => { onOrderTea(item); onClose(); }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-tea-gold text-tea-bg hover:opacity-90 active:scale-[0.98] transition-all"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold cta-solid hover:opacity-90 active:scale-[0.98] transition-all"
                 >
                   <ShoppingCart size={16} />
                   Order This Tea

@@ -373,7 +373,7 @@ export const ImportPanel: React.FC<ImportPanelProps> = ({ initialDetail, onDetai
             <p className="mt-2 text-ui-13 leading-relaxed text-tea-text-sec">Your pasted text, sourcing run, and attachment names are saved for this account. Files will need to be reselected.</p>
             <div className="mt-4 flex justify-between gap-3">
               <button type="button" onClick={() => { clearImportDraft(accountId); setConfirmClose(false); onClose(); }} className="tap-target min-h-11 text-ui-12 text-tea-text-sec hover:text-tea-text">Discard draft</button>
-              <button type="button" autoFocus onClick={() => { preserveDraft(); setConfirmClose(false); onClose(); }} className="tap-target min-h-11 rounded-md bg-tea-gold px-4 text-ui-12 font-medium text-tea-bg">Keep draft</button>
+              <button type="button" autoFocus onClick={() => { preserveDraft(); setConfirmClose(false); onClose(); }} className="tap-target min-h-11 rounded-md cta-solid px-4 text-ui-12 font-medium">Keep draft</button>
             </div>
           </div>}
           {state.phase === 'input' && <ImportInput draft={draft} onChange={setDraft} onSubmit={runImport} submitRef={submitRef} journeyLookup={journeyLookup} onRetryJourneys={loadJourneys} busy={Boolean(busyId)} onCreateJourney={createJourney} />}

@@ -68,7 +68,7 @@ export const WalkthroughDock: React.FC = () => {
 
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {step.to && (
-              <button onClick={() => navigate(step.to!)} className="inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium text-tea-bg bg-tea-gold rounded-full px-3.5 py-1.5 hover:bg-tea-gold-lt tap-target">
+              <button onClick={() => navigate(step.to!)} className="inline-flex items-center gap-1.5 font-sans text-ui-13 font-medium cta-solid rounded-full px-3.5 py-1.5 tap-target">
                 {step.goLabel || 'Go there'} <ArrowRight className="w-3.5 h-3.5" weight="bold" />
               </button>
             )}
@@ -96,7 +96,7 @@ export const WalkthroughDock: React.FC = () => {
             <input
               value={entry.note}
               onChange={(e) => setNote(current, e.target.value)}
-              placeholder="Note a problem here — it saves as you type"
+              placeholder="Note a problem here. It saves as you type."
               className="w-full bg-tea-surface rounded-xl px-3 py-2 font-serif text-ui-14 text-tea-text placeholder:text-tea-text-dim border border-transparent focus:border-tea-gold/30 focus:outline-none"
             />
             {entry.note.trim() !== '' && (

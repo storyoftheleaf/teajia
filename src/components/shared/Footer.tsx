@@ -3,13 +3,20 @@ import { Link } from 'react-router-dom';
 import { LogoEmblem } from '../Logos';
 
 /**
- * Colophon-style site footer — matches the Read section's closing block.
- * Self-contained palette/fonts so it renders identically on every page.
+ * Colophon-style site footer, matching the Read section's closing block.
+ *
+ * The band is deliberately darker than the page in both themes, which is why
+ * it does not simply take `--tea-bg`. What it used to do instead was carry its
+ * own three-colour palette as hexes in this file, off the token system and
+ * unmeasured, and the rest colour for the link row was #80735f: 4.09:1 on the
+ * band at 11px uppercase mono, under the floor, on the footer of every page.
+ * The band, the ink and the dim ink are declared and measured in
+ * card-utilities.css now; this file only names them.
  */
 const C = {
-  taupe: '#cdc0a8',
-  dim: '#80735f',
-  hair: 'rgba(168,135,77,0.14)',
+  taupe: 'var(--tea-footer-ink)',
+  dim: 'var(--tea-footer-ink-dim)',
+  hair: 'var(--tea-border)',
 } as const;
 const F = {
   display: "'Cormorant Garamond',serif",
@@ -61,13 +68,13 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: '#14100b',
+        background: 'var(--tea-footer-band)',
         borderTop: `1px solid ${C.hair}`,
         padding: 'clamp(44px,6vw,72px) clamp(24px,5vw,56px) clamp(28px,4vw,40px)',
         textAlign: 'center',
       }}
     >
-      {/* Circle emblem — muted, no gold highlight */}
+      {/* Circle emblem, muted, no gold highlight */}
       <div style={{ marginBottom: 24, opacity: 0.7, display: 'flex', justifyContent: 'center' }}>
         <LogoEmblem size={38} color={C.taupe} />
       </div>
@@ -91,7 +98,7 @@ export default function Footer() {
         {links.map((l) => <FooterLink key={l.label} {...l} />)}
       </nav>
 
-      {/* Base — copyright + admin */}
+      {/* Base: copyright + admin */}
       <div
         className="pb-nav-gap md:pb-0"
         style={{

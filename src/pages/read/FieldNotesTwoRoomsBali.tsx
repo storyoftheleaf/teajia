@@ -1,4 +1,8 @@
 /**
+ * @color-literals. The Read section is one always-dark editorial surface.
+ * Rationale, and the conditions on this exception, in read/immersive.tsx.
+ */
+/**
  * Field Notes: Two Rooms in Bali — Field Notes · N°11
  * Two tea rooms in the hills above Ubud: one dark as a drum, one open to the sky.
  * Ported pixel-faithfully from the tea-article-redesign mockup.

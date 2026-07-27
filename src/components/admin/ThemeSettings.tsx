@@ -8,7 +8,7 @@ export const ThemeSettings: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-tea-gold text-tea-bg text-xs font-semibold hover:bg-tea-gold/90 transition-colors"
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md cta-solid text-xs font-semibold transition-colors"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
       {theme === 'dark' ? (

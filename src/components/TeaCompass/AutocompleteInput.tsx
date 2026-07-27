@@ -204,7 +204,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       {showSearchDropdown && (
         <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-tea-surface border border-tea-border rounded-xl shadow-lg max-h-52 overflow-y-auto">
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-tea-text-dim italic">No matches — add as new</div>
+            <div className="px-3 py-2 text-sm text-tea-text-dim italic">No matches, add as new</div>
           ) : (
             filtered.map((suggestion, idx) => {
               const data = itemData?.[suggestion];

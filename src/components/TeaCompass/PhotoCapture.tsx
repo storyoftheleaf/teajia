@@ -567,7 +567,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
               <button
                 type="button"
                 onClick={handleApply}
-                className="tap-target min-h-11 flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors"
+                className="tap-target min-h-11 flex-[2] py-3 rounded-xl cta-solid text-ui-12 font-semibold transition-colors"
               >
                 Apply to form
               </button>
@@ -622,7 +622,7 @@ export const PhotoCapture: React.FC<PhotoCaptureProps> = ({
                 <button
                   type="button"
                   onClick={handleUsePhotoOnly}
-                  className="tap-target min-h-11 flex-[2] py-3 rounded-xl bg-tea-gold text-tea-bg text-ui-12 font-semibold hover:bg-tea-gold/90 transition-colors"
+                  className="tap-target min-h-11 flex-[2] py-3 rounded-xl cta-solid text-ui-12 font-semibold transition-colors"
                 >
                   Use this photo
                 </button>
