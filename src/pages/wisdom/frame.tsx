@@ -12,8 +12,9 @@
  * cost nothing, and the fallback needs them. `wisdomShared` re-exports the
  * whole module, so every page keeps importing from one place.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 
 // ─── The four type roles ─────────────────────────────────────────────────────
 
@@ -108,19 +109,16 @@ export const switchMark = (active: boolean): string =>
     : 'text-tea-text-sec hover:text-tea-text';
 
 /**
- * The persistent way around, and the only serif switcher on the page. Wraps at
- * narrow widths rather than scrolling sideways: a nav you have to discover by
- * swiping is a nav half the readers never see.
+ * The strip as it is meant to be read: all seven holdings at once, in the order
+ * the front door lists them. Wraps rather than scrolling sideways, because a nav
+ * you have to discover by swiping is a nav half the readers never see.
  *
  * It is also the only wayfinding a detail page carries. A back link above it
  * saying "All tea plants" repeated what the lit "Plants" item already said, and
  * cost 44px at the top of every entry.
  */
-export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
-  <nav
-    aria-label="The wisdom base"
-    className="flex flex-wrap items-center gap-x-5 sm:gap-x-6 border-b border-tea-border"
-  >
+const WisdomStrip: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
+  <nav aria-label="The wisdom base" className="flex flex-wrap items-center gap-x-6 border-b border-tea-border">
     {WISDOM_SECTIONS.map(section => {
       const isActive = section.id === active;
       return (
@@ -135,6 +133,80 @@ export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active
       );
     })}
   </nav>
+);
+
+/**
+ * The same seven holdings on a phone, where they do not fit on one line.
+ *
+ * Seven serif items need about 495px of line. At 390px, inside 16px of page
+ * padding, there are 358px, so the strip wrapped to two 44px rows: 88px of
+ * navigation above the title of every page, a tenth of the viewport, before a
+ * reader had read a word. Shrinking the type to fit would have cost the strip
+ * its one job, which is to be legible at a glance outdoors.
+ *
+ * So below sm it collapses to the holding you are in, and opens in place. Six
+ * labels are hidden until asked for; nothing is unreachable, nothing scrolls
+ * sideways, and the closed state still names where you are. The panel pushes
+ * the page down rather than floating over it: this is a contents list, not a
+ * menu that has to clear the app chrome.
+ */
+const WisdomCompactNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => {
+  const [open, setOpen] = useState(false);
+  const current = WISDOM_SECTIONS.find(section => section.id === active) ?? WISDOM_SECTIONS[0];
+
+  return (
+    <nav aria-label="The wisdom base" className="border-b border-tea-border">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="wisdom-holdings"
+        onClick={() => setOpen(value => !value)}
+        className="w-full min-h-[44px] flex items-center gap-2 text-left"
+      >
+        <span className={`${NAME_CLASS} text-tea-gold min-w-0 break-words`}>{current.label}</span>
+        <ChevronDown
+          size={15}
+          aria-hidden
+          className={`shrink-0 text-tea-text-sec transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+        <span className={`${LABEL} ml-auto shrink-0`}>
+          {open ? 'Close' : `${WISDOM_SECTIONS.length} holdings`}
+        </span>
+      </button>
+
+      {open && (
+        <ul id="wisdom-holdings" className="list-none m-0 p-0 pb-2">
+          {WISDOM_SECTIONS.filter(section => section.id !== active).map(section => (
+            <li key={section.id} className="border-t border-tea-border">
+              <Link
+                to={section.path}
+                onClick={() => setOpen(false)}
+                className={`flex items-center min-h-[44px] ${NAME_CLASS} text-tea-text-sec hover:text-tea-text transition-colors`}
+              >
+                {section.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </nav>
+  );
+};
+
+/**
+ * One switcher, two shapes. `hidden` is display:none, so exactly one of them is
+ * in the accessibility tree at any width and a screen reader never hears the
+ * holdings twice.
+ */
+export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
+  <>
+    <div className="sm:hidden">
+      <WisdomCompactNav active={active} />
+    </div>
+    <div className="hidden sm:block">
+      <WisdomStrip active={active} />
+    </div>
+  </>
 );
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────

@@ -12,12 +12,14 @@
  * 10px caps the reference used to run under every row on every page.
  */
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
+import { DATASET_BUILT, DATASET_RECORDS, DATASET_VERSION } from './datasetStamp';
 import {
-  AuthorshipNote,
   FACT,
   FOOTNOTE,
+  HoldingAuthorship,
   HoldingRow,
   IndexTable,
   Invitation,
@@ -96,8 +98,20 @@ const TOTAL_ENTRIES = HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
 /** Enough to answer a name, short enough that the list is still readable. */
 const HIT_LIMIT = 40;
 
+/** "2026-07-27" as "27 July 2026". Parsed by hand: `new Date` on a bare date reads it as UTC. */
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+export function readableDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  if (!year || !month || !day) return iso;
+  return `${day} ${MONTHS[month - 1]} ${year}`;
+}
+
 const WisdomHomePage: React.FC = () => {
-  const [query, setQuery] = useState('');
+  // Every index carries a line across to this search, and it carries the words
+  // already typed. Arriving here with the field empty would have made the trip
+  // cost the reader their own question.
+  const [params] = useSearchParams();
+  const [query, setQuery] = useState(() => params.get('q') ?? '');
   const searching = query.trim().length > 0;
   const hits = useMemo(() => searchHoldings(query, HIT_LIMIT), [query]);
 
@@ -202,10 +216,17 @@ const WisdomHomePage: React.FC = () => {
           <code className="text-tea-text-sec">/wisdom/</code> folder. CC BY 4.0, minus Adrian&rsquo;s own tea write-ups
           and tasting notes, which remain his.
         </p>
+        {/* What it is, as of when. A reference that asks to be cited has to be
+            able to be cited: a version, a date, and a count, read from the
+            export itself rather than typed here and left to rot. */}
+        <p className={`${FOOTNOTE} mt-3 max-w-[68ch]`}>
+          Version {DATASET_VERSION}, built {readableDate(DATASET_BUILT)}, {DATASET_RECORDS} records. Cite it as: Teajia
+          Tea Wisdom Base (teajia.com), version {DATASET_VERSION}, {readableDate(DATASET_BUILT)}, CC BY 4.0.
+        </p>
       </div>
 
       <div className="mt-8 pt-8 border-t border-tea-border">
-        <AuthorshipNote className="max-w-[64ch]" />
+        <HoldingAuthorship noun="entries" className="max-w-[64ch]" />
         <ScopeNote className="max-w-[64ch] mt-1" />
       </div>
 

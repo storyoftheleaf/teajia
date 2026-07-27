@@ -12,9 +12,10 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { CULTIVARS, TEA_TYPES, type Cultivar, type TeaType } from '../../wisdom';
 import {
-  AuthorshipNote,
   FACT,
   GroupHead,
+  GroupJump,
+  HoldingAuthorship,
   HoldingRow,
   IndexTable,
   Invitation,
@@ -65,11 +66,14 @@ const CultivarRow: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => (
   />
 );
 
+const anchorId = (label: string) =>
+  `plant-${label.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
 const Group: React.FC<{ label: string; rows: Cultivar[] }> = ({ label, rows }) => {
   if (rows.length === 0) return null;
   return (
     <section>
-      <GroupHead label={label} count={rows.length} />
+      <GroupHead id={anchorId(label)} label={label} count={rows.length} />
       <ul className="list-none m-0 p-0">
         {rows.map(cultivar => (
           <CultivarRow key={cultivar.id} cultivar={cultivar} />
@@ -78,6 +82,12 @@ const Group: React.FC<{ label: string; rows: Cultivar[] }> = ({ label, rows }) =
     </section>
   );
 };
+
+/** The groups on screen right now, as somewhere to jump to. */
+const jumpFrom = (groups: Array<[string, Cultivar[]]>) =>
+  groups
+    .filter(([, rows]) => rows.length > 0)
+    .map(([label, rows]) => ({ id: anchorId(label), label, count: rows.length }));
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -165,8 +175,16 @@ const CultivarIndexPage: React.FC = () => {
         visible={visible.length}
         total={CULTIVARS.length}
         noun="cultivars"
+        everywhere
       >
         <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the plants" />
+        {/* Silent at 79 plants: the threshold lives in GroupJump, so this
+            appears on its own the day the holding outgrows a plain scroll. */}
+        <GroupJump
+          groups={jumpFrom(view === 'origin' ? byCountry : view === 'type' ? byType : byLetter)}
+          rows={visible.length}
+          label="Jump to a group of plants"
+        />
       </WisdomToolbar>
 
       {visible.length === 0 && <NoMatch noun="plant" query={query} />}
@@ -197,7 +215,7 @@ const CultivarIndexPage: React.FC = () => {
           which is why two gardens on the same slope can taste like different countries. What follows is the breeding
           record as we hold it, with the crosses named where they are known and left blank where they are not.
         </p>
-        <AuthorshipNote className="max-w-[64ch] mt-6" />
+        <HoldingAuthorship noun="plants" className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="Tea plants" />

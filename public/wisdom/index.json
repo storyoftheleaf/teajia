@@ -18,6 +18,8 @@
   "about": "A contents page for the Teajia tea wisdom base. Every holding, its size, and where to fetch it.",
   "standard": "This is not everything. The goal is to be everything. If you know something that isn't here, send it to hello@teajia.com.",
   "everything": "https://teajia.com/wisdom/tea-wisdom.json",
+  "reference": "https://teajia.com/wisdom",
+  "sitemap": "https://teajia.com/wisdom/sitemap.xml",
   "holdings": [
     {
       "name": "cultivars",
@@ -26,6 +28,8 @@
       "count": 79,
       "csv": "https://teajia.com/wisdom/tea-wisdom-cultivars.csv",
       "record": "https://teajia.com/wisdom/cultivar/{id}.json",
+      "index": "https://teajia.com/wisdom/cultivars",
+      "page": "https://teajia.com/wisdom/cultivar/{id}",
       "ids": [
         "anji-bai-cha",
         "asahi",
@@ -115,6 +119,8 @@
       "count": 182,
       "csv": "https://teajia.com/wisdom/tea-wisdom-regions.csv",
       "record": "https://teajia.com/wisdom/region/{id}.json",
+      "index": "https://teajia.com/wisdom/regions",
+      "page": "https://teajia.com/wisdom/region/{id}",
       "ids": [
         "aichi-prefecture",
         "ailao-mountain",
@@ -303,10 +309,12 @@
     {
       "name": "teaVarieties",
       "label": "Tea varieties",
-      "about": "Named teas, their Chinese names and alternate romanisations.",
+      "about": "Named teas, their Chinese names and alternate romanisations. Data only: no reader-facing page.",
       "count": 316,
       "csv": "https://teajia.com/wisdom/tea-wisdom-varieties.csv",
       "record": "https://teajia.com/wisdom/variety/{id}.json",
+      "index": null,
+      "page": null,
       "ids": [
         "green-longjing",
         "green-biluochun",
@@ -633,6 +641,8 @@
       "count": 10,
       "csv": "https://teajia.com/wisdom/tea-wisdom-producers.csv",
       "record": "https://teajia.com/wisdom/producer/{id}.json",
+      "index": "https://teajia.com/wisdom/producers",
+      "page": "https://teajia.com/wisdom/producer/{id}",
       "ids": [
         "china-national-tea-corporation",
         "hengfengyuan",
@@ -653,6 +663,8 @@
       "count": 15,
       "csv": "https://teajia.com/wisdom/tea-wisdom-marks.csv",
       "record": "https://teajia.com/wisdom/mark/{id}.json",
+      "index": "https://teajia.com/wisdom/marks",
+      "page": "https://teajia.com/wisdom/mark/{id}",
       "ids": [
         "7572",
         "aaa-grade",
@@ -678,6 +690,8 @@
       "count": 10,
       "csv": "https://teajia.com/wisdom/tea-wisdom-styles.csv",
       "record": "https://teajia.com/wisdom/style/{id}.json",
+      "index": "https://teajia.com/wisdom/styles",
+      "page": "https://teajia.com/wisdom/style/{id}",
       "ids": [
         "bai-liang-hua-juan",
         "bamboo-tube",
@@ -698,6 +712,8 @@
       "count": 17,
       "csv": "https://teajia.com/wisdom/tea-wisdom-named-teas.csv",
       "record": "https://teajia.com/wisdom/named/{id}.json",
+      "index": "https://teajia.com/wisdom/named",
+      "page": "https://teajia.com/wisdom/named/{id}",
       "ids": [
         "courage",
         "french-brick",

@@ -9,7 +9,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findMarkById, findProducerById } from '../../wisdom';
 import {
-  AuthorshipNote,
+  EntryAuthorship,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
@@ -109,9 +109,7 @@ const MarkPage: React.FC = () => {
         </section>
       )}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={mark.id} className="max-w-[64ch]" />
-      </div>
+      <EntryAuthorship id={mark.id} />
 
       <Invitation subject={`Mark: ${mark.name}`} />
     </article>

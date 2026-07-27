@@ -3,28 +3,45 @@
  *
  * Neither a plant variety nor a basic form: Xiao Qing Gan is shou stuffed in a
  * green mandarin, Tie Bing is a cake pressed in a stone-weighted iron mould.
+ *
+ * Ten rows, and until now one fixed order with an empty half toolbar. The axis
+ * that actually separates them is what they are done to: five of the ten are
+ * dark-tea practices, three are pu-erh pressings and storages, one is an oolong
+ * finish. A style can sit under more than one type, exactly as a plant can.
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { STYLES, type Style } from '../../wisdom';
+import { STYLES, TEA_TYPES, type Style, type TeaType } from '../../wisdom';
 import {
-  AuthorshipNote,
   FACT,
+  GroupHead,
+  HoldingAuthorship,
   HoldingRow,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
   type IndexColumns,
 } from './wisdomShared';
+
+type View = 'type' | 'alphabetical';
+
+const VIEWS: Array<{ id: View; label: string }> = [
+  { id: 'type', label: 'By tea type' },
+  { id: 'alphabetical', label: 'A to Z' },
+];
 
 const COLUMNS: IndexColumns = {
   template: 'minmax(0,1fr) 132px 168px',
   nameLabel: 'Style',
   labels: ['Applies to', 'Region'],
 };
+
+/** Three words, so the group head stays inside the micro-caps rule. */
+const NO_TYPE = 'Type not stated';
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -38,9 +55,37 @@ function matches(style: Style, query: string): boolean {
 
 const byName = (left: Style, right: Style) => left.name.localeCompare(right.name);
 
+const StyleRows: React.FC<{ rows: Style[] }> = ({ rows }) => (
+  <ul className="list-none m-0 p-0">
+    {rows.map(style => (
+      <HoldingRow
+        key={style.id}
+        to={`/wisdom/style/${style.id}`}
+        name={style.name}
+        chineseName={style.chineseName}
+        cells={[
+          style.appliesToTypes.join(', ') || { absent: 'Not stated' },
+          style.region || { absent: 'Not recorded' },
+        ]}
+      />
+    ))}
+  </ul>
+);
+
 const StyleIndexPage: React.FC = () => {
+  const [view, setView] = useState<View>('type');
   const [query, setQuery] = useState('');
   const visible = useMemo(() => STYLES.filter(style => matches(style, query)).sort(byName), [query]);
+
+  const byType = useMemo(() => {
+    const groups: Array<[string, Style[]]> = TEA_TYPES.map(
+      (type: TeaType) => [type, visible.filter(style => style.appliesToTypes.includes(type))] as [string, Style[]],
+    );
+    const unstated = visible.filter(style => style.appliesToTypes.length === 0);
+    return [...groups.filter(([, rows]) => rows.length > 0), [NO_TYPE, unstated] as [string, Style[]]].filter(
+      ([, rows]) => rows.length > 0,
+    );
+  }, [visible]);
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -86,32 +131,33 @@ const StyleIndexPage: React.FC = () => {
         visible={visible.length}
         total={STYLES.length}
         noun="styles"
-      />
+        everywhere
+      >
+        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the styles" />
+      </WisdomToolbar>
 
       {visible.length === 0 && <NoMatch noun="style" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">
-          <ul className="list-none m-0 p-0">
-            {visible.map(style => (
-              <HoldingRow
-                key={style.id}
-                to={`/wisdom/style/${style.id}`}
-                name={style.name}
-                chineseName={style.chineseName}
-                cells={[style.appliesToTypes.join(', ') || undefined, style.region]}
-              />
+          {view === 'alphabetical' && <StyleRows rows={visible} />}
+          {view === 'type' &&
+            byType.map(([type, rows]) => (
+              <section key={type}>
+                <GroupHead label={type} count={rows.length} />
+                <StyleRows rows={rows} />
+              </section>
             ))}
-          </ul>
         </IndexTable>
       )}
 
       <div className="mt-12 pt-8 border-t border-tea-border">
         <p className={`${FACT} max-w-[68ch]`}>
           A style is neither the plant nor the basic form a tea is pressed into. It is a recognised way of making or
-          pressing, the kind of fact a write-up states about a tea without it being a place, a plant, or a maker.
+          pressing, the kind of fact a write-up states about a tea without it being a place, a plant, or a maker. One
+          style can apply to more than one type, so a name can appear under two headings above.
         </p>
-        <AuthorshipNote className="max-w-[64ch] mt-6" />
+        <HoldingAuthorship noun="styles" className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A style that is missing" />

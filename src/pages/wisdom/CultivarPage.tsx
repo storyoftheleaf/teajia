@@ -11,7 +11,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findCultivarById } from '../../wisdom';
 import {
-  AuthorshipNote,
+  EntryAuthorship,
   CELL,
   FACT,
   FACT_CLASS,
@@ -21,6 +21,7 @@ import {
   LABEL,
   NAME_CLASS,
   PageHead,
+  Passage,
   ProseSkeleton,
   QUIET_LINK,
   SectionHead,
@@ -32,17 +33,6 @@ import { LineageTree, isCultivar, nameOf, readLineage } from './LineageTree';
 
 const titleCase = (value: string) =>
   value.replace(/\b[a-z]/g, letter => letter.toUpperCase()).replace(/\bAnd\b/g, 'and');
-
-/** A paragraph of the drafted record, under its own quiet heading. */
-const Passage: React.FC<{ label: string; text?: string | null }> = ({ label, text }) => {
-  if (!text) return null;
-  return (
-    <div className="mt-6 first:mt-0">
-      <p className={`${LABEL} mb-1.5`}>{label}</p>
-      <p className={`${FACT} max-w-[68ch]`}>{text}</p>
-    </div>
-  );
-};
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -199,9 +189,12 @@ const CultivarPage: React.FC = () => {
           <Fact label="Recorded origin">{cultivar.originRegion || cultivar.originCountry}</Fact>
           {place && place.name !== cultivar.originRegion && <Fact label="Matched place">{place.name}</Fact>}
           <Fact label="Altitude">{place?.altitude}</Fact>
-          <Fact label="Climate">{place?.climate}</Fact>
           <Fact label="Developed">{cultivar.developedYear ? String(cultivar.developedYear) : null}</Fact>
         </div>
+
+        {/* Climate is research prose, not a fact, and is set as prose. Same
+            field, same source, same treatment as on the place's own page. */}
+        <Passage label="Climate" text={place?.climate} className="mt-6" />
 
         {loading && (
           <div className="mt-6">
@@ -299,9 +292,7 @@ const CultivarPage: React.FC = () => {
         </p>
       </section>
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={cultivar.id} className="max-w-[64ch]" />
-      </div>
+      <EntryAuthorship id={cultivar.id} />
 
       <Invitation subject={`Cultivar: ${cultivar.name}`} />
     </article>

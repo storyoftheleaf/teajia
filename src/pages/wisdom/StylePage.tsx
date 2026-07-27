@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findStyleById } from '../../wisdom';
 import {
-  AuthorshipNote,
+  EntryAuthorship,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
@@ -92,9 +92,7 @@ const StylePage: React.FC = () => {
         </section>
       )}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={style.id} className="max-w-[64ch]" />
-      </div>
+      <EntryAuthorship id={style.id} />
 
       <Invitation subject={`Style: ${style.name}`} />
     </article>

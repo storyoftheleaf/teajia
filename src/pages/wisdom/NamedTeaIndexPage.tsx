@@ -11,15 +11,16 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { NAMED_TEAS, NAMING_TRADITIONS, namedTeasInTradition, type NamedTea } from '../../wisdom';
 import {
-  AuthorshipNote,
   FACT,
   FOOTNOTE,
   GroupHead,
+  HoldingAuthorship,
   HoldingRow,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
   type IndexColumns,
@@ -81,12 +82,36 @@ function matches(tea: NamedTea, query: string): boolean {
     .some(field => matchKey(field as string).includes(needle));
 }
 
+type View = 'tradition' | 'type' | 'alphabetical';
+
+const VIEWS: Array<{ id: View; label: string }> = [
+  { id: 'tradition', label: 'By tradition' },
+  { id: 'type', label: 'By tea type' },
+  { id: 'alphabetical', label: 'A to Z' },
+];
+
+/** Three words. A named tea whose type the record never stated is still a tea. */
+const NO_TYPE = 'Type not stated';
+
+const NamedTeaRows: React.FC<{ rows: NamedTea[] }> = ({ rows }) => (
+  <ul className="list-none m-0 p-0">
+    {rows.map(tea => (
+      <HoldingRow
+        key={tea.id}
+        to={`/wisdom/named/${tea.id}`}
+        name={tea.name}
+        chineseName={tea.chineseName}
+        cells={[tea.type || { absent: 'Not stated' }, tea.form || { absent: 'Not stated' }]}
+      />
+    ))}
+  </ul>
+);
+
 const NamedTeaIndexPage: React.FC = () => {
+  const [view, setView] = useState<View>('tradition');
   const [query, setQuery] = useState('');
-  const visibleIds = useMemo(
-    () => new Set(NAMED_TEAS.filter(tea => matches(tea, query)).map(tea => tea.id)),
-    [query],
-  );
+  const visible = useMemo(() => NAMED_TEAS.filter(tea => matches(tea, query)), [query]);
+  const visibleIds = useMemo(() => new Set(visible.map(tea => tea.id)), [visible]);
   const visibleCount = visibleIds.size;
 
   const groups = useMemo(
@@ -94,6 +119,17 @@ const NamedTeaIndexPage: React.FC = () => {
       .filter(([, rows]) => rows.length > 0),
     [visibleIds],
   );
+
+  const byType = useMemo(() => {
+    const map = new Map<string, NamedTea[]>();
+    for (const tea of visible) {
+      const label = tea.type || NO_TYPE;
+      map.set(label, [...(map.get(label) ?? []), tea]);
+    }
+    return [...map.entries()].sort((left, right) => right[1].length - left[1].length || left[0].localeCompare(right[0]));
+  }, [visible]);
+
+  const alphabetical = useMemo(() => [...visible].sort((left, right) => left.name.localeCompare(right.name)), [visible]);
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -139,13 +175,16 @@ const NamedTeaIndexPage: React.FC = () => {
         visible={visibleCount}
         total={NAMED_TEAS.length}
         noun="named teas"
-      />
+        everywhere
+      >
+        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the named teas" />
+      </WisdomToolbar>
 
       {visibleCount === 0 && <NoMatch noun="named tea" query={query} />}
 
       {/* The one line the group heads no longer have to carry. Said here once,
           in place of a naming tradition written out in full above every group. */}
-      {visibleCount > 0 && (
+      {visibleCount > 0 && view === 'tradition' && (
         <p className={`${FOOTNOTE} mt-3`}>
           Grouped by how the tea came by its name. Each entry states its tradition in full.
         </p>
@@ -153,22 +192,21 @@ const NamedTeaIndexPage: React.FC = () => {
 
       {visibleCount > 0 && (
         <IndexTable columns={COLUMNS} className="mt-1">
-          {groups.map(([tradition, rows]) => (
-            <section key={tradition}>
-              <GroupHead label={traditionLabel(tradition)} count={rows.length} />
-              <ul className="list-none m-0 p-0">
-                {rows.map(tea => (
-                  <HoldingRow
-                    key={tea.id}
-                    to={`/wisdom/named/${tea.id}`}
-                    name={tea.name}
-                    chineseName={tea.chineseName}
-                    cells={[tea.type, tea.form]}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
+          {view === 'tradition' &&
+            groups.map(([tradition, rows]) => (
+              <section key={tradition}>
+                <GroupHead label={traditionLabel(tradition)} count={rows.length} />
+                <NamedTeaRows rows={rows} />
+              </section>
+            ))}
+          {view === 'type' &&
+            byType.map(([type, rows]) => (
+              <section key={type}>
+                <GroupHead label={type} count={rows.length} />
+                <NamedTeaRows rows={rows} />
+              </section>
+            ))}
+          {view === 'alphabetical' && <NamedTeaRows rows={alphabetical} />}
         </IndexTable>
       )}
 
@@ -178,7 +216,7 @@ const NamedTeaIndexPage: React.FC = () => {
           often is not either, and the tea moves on carrying only that word. That is not a gap in the record. It is the
           nature of the record, and holding it plainly beats not holding it at all.
         </p>
-        <AuthorshipNote className="max-w-[64ch] mt-6" />
+        <HoldingAuthorship noun="teas" className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A named tea that is missing" />

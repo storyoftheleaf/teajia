@@ -11,7 +11,7 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
-  AuthorshipNote,
+  EntryAuthorship,
   CELL,
   FACT,
   FACT_CLASS,
@@ -118,9 +118,7 @@ const NamedTeaPage: React.FC = () => {
         </section>
       )}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={tea.id} className="max-w-[64ch]" />
-      </div>
+      <EntryAuthorship id={tea.id} />
 
       <Invitation subject={`Named tea: ${tea.name}`} />
     </article>

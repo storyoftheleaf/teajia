@@ -160,20 +160,31 @@ writeFileSync(
 // is the page and /wisdom/cultivar/rou-gui.json is the same record for a reader
 // that is not a person.
 
+// `page` is the human address of the same record, and `index` the human page
+// that lists the holding. A holding that has a reader-facing page and does not
+// say so is a holding an agent has to guess at; the regions were exported for a
+// release before they had one, and nothing here said when they got it.
 const HOLDINGS = [
-  { key: 'cultivars', singular: 'cultivar', label: 'Tea plant cultivars', records: cultivars,
+  { key: 'cultivars', singular: 'cultivar', index: '/wisdom/cultivars', records: cultivars,
+    label: 'Tea plant cultivars',
     note: 'Plants, with breeding lineage where it is recorded, and prose drafted from research.' },
-  { key: 'regions', singular: 'region', label: 'Growing regions', records: regions,
+  { key: 'regions', singular: 'region', index: '/wisdom/regions', records: regions,
+    label: 'Growing regions',
     note: 'Places tea is grown, with altitude and climate where a source stated them.' },
-  { key: 'teaVarieties', singular: 'variety', label: 'Tea varieties', records: teaVarieties,
-    note: 'Named teas, their Chinese names and alternate romanisations.' },
-  { key: 'producers', singular: 'producer', label: 'Producers', records: PRODUCERS,
+  { key: 'teaVarieties', singular: 'variety', index: null, records: teaVarieties,
+    label: 'Tea varieties',
+    note: 'Named teas, their Chinese names and alternate romanisations. Data only: no reader-facing page.' },
+  { key: 'producers', singular: 'producer', index: '/wisdom/producers', records: PRODUCERS,
+    label: 'Producers',
     note: 'Factories, houses and brands that make tea. Never the seller a tea was bought from.' },
-  { key: 'marks', singular: 'mark', label: 'Marks', records: MARKS,
+  { key: 'marks', singular: 'mark', index: '/wisdom/marks', records: MARKS,
+    label: 'Marks',
     note: 'Recipe numbers, seals and labels identifying a product line.' },
-  { key: 'styles', singular: 'style', label: 'Styles', records: STYLES,
+  { key: 'styles', singular: 'style', index: '/wisdom/styles', records: STYLES,
+    label: 'Styles',
     note: 'Ways of making or pressing that are neither a plant nor a basic form.' },
-  { key: 'namedTeas', singular: 'named', label: 'Named teas', records: NAMED_TEAS,
+  { key: 'namedTeas', singular: 'named', index: '/wisdom/named', records: NAMED_TEAS,
+    label: 'Named teas',
     note: 'Teas that arrived already named, where the composition is undisclosed. The name is the identity.' },
 ];
 
@@ -197,6 +208,8 @@ const contents = {
   about: 'A contents page for the Teajia tea wisdom base. Every holding, its size, and where to fetch it.',
   standard: "This is not everything. The goal is to be everything. If you know something that isn't here, send it to hello@teajia.com.",
   everything: `${SITE}/wisdom/tea-wisdom.json`,
+  reference: `${SITE}/wisdom`,
+  sitemap: `${SITE}/wisdom/sitemap.xml`,
   holdings: HOLDINGS.map(holding => ({
     name: holding.key,
     label: holding.label,
@@ -204,11 +217,66 @@ const contents = {
     count: holding.records.length,
     csv: `${SITE}/wisdom/tea-wisdom-${holding.key === 'teaVarieties' ? 'varieties' : holding.key === 'namedTeas' ? 'named-teas' : holding.key}.csv`,
     record: `${SITE}/wisdom/${holding.singular}/{id}.json`,
+    index: holding.index ? `${SITE}${holding.index}` : null,
+    page: holding.index ? `${SITE}/wisdom/${holding.singular}/{id}` : null,
     ids: holding.records.map(record => record.id).filter(Boolean),
   })),
 };
 
 writeFileSync(join(outDir, 'index.json'), `${JSON.stringify(contents, null, 2)}\n`);
+
+// ------------------------------------------------------------------- sitemap
+// Every reader-facing address the reference has, in one place a crawler
+// already knows how to read. The root sitemap carries the seven holding
+// indexes; this one carries all three hundred entries, which is more URLs than
+// belong in a hand-maintained file. Only /wisdom/ paths appear here, so it is
+// valid submitted on its own.
+
+const pageUrls = [
+  `${SITE}/wisdom`,
+  ...HOLDINGS.filter(holding => holding.index).flatMap(holding => [
+    `${SITE}${holding.index}`,
+    ...holding.records
+      .map(record => record.id)
+      .filter(Boolean)
+      .map(id => `${SITE}/wisdom/${holding.singular}/${id}`),
+  ]),
+];
+
+writeFileSync(
+  join(outDir, 'sitemap.xml'),
+  `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${pageUrls
+  .map(url => `  <url>\n    <loc>${url}</loc>\n    <lastmod>${GENERATED_AT}</lastmod>\n    <changefreq>monthly</changefreq>\n  </url>`)
+  .join('\n')}
+</urlset>\n`
+);
+
+// --------------------------------------------------------------- build stamp
+// The version and the build date are facts the export has always known and the
+// reference had no way to read, so a page that asks to be cited could not say
+// what it was as of when. Written as a module rather than fetched at runtime:
+// it is three constants, it must be there in the first frame, and it must be
+// true of the files that shipped in the same build.
+
+writeFileSync(
+  join(root, 'src/pages/wisdom/datasetStamp.ts'),
+  `// Generated by scripts/export-wisdom-dataset.mjs. Do not edit by hand.
+//
+// What the public dataset in public/wisdom is, and when it was built. The
+// reference reads these to say so on the front door and to print a citation
+// that names a version.
+
+export const DATASET_VERSION = '${VERSION}';
+
+/** ISO date the export last ran. */
+export const DATASET_BUILT = '${GENERATED_AT}';
+
+/** One file per record, across every holding. */
+export const DATASET_RECORDS = ${recordFiles};
+`
+);
 
 // ------------------------------------------------------------------------ csv
 

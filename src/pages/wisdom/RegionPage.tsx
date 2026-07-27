@@ -11,8 +11,8 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { REGIONS, findRegion } from '../../wisdom';
 import {
-  AuthorshipNote,
   CELL,
+  EntryAuthorship,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
@@ -20,6 +20,7 @@ import {
   IndexTable,
   Invitation,
   PageHead,
+  Passage,
   SectionHead,
   WisdomSubNav,
   plantsGrownIn,
@@ -119,8 +120,14 @@ const RegionPage: React.FC = () => {
         <Fact label="Country">{region.country}</Fact>
         <Fact label="Province">{region.province}</Fact>
         <Fact label="Altitude">{region.altitude}</Fact>
-        <Fact label="Climate">{region.climate}</Fact>
       </div>
+
+      {/* Climate is the one field here that is research prose, not a fact:
+          the longest runs to 239 characters, four lines of body type. Inside
+          the 152px label track it read as a paragraph stuffed into a field and
+          broke the axis the three facts above it form. It gets the full
+          measure and its label above it instead. */}
+      <Passage label="Climate" text={region.climate} className="mt-8" />
 
       {!region.altitude && !region.climate && (
         <p className={`${FACT_CLASS} text-tea-text-dim mt-6 max-w-[64ch]`}>
@@ -152,9 +159,7 @@ const RegionPage: React.FC = () => {
         )}
       </section>
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={region.id} className="max-w-[64ch]" />
-      </div>
+      <EntryAuthorship id={region.id} />
 
       <Invitation subject={`Growing place: ${region.name}`} />
     </article>

@@ -34,7 +34,7 @@ import {
   type Region,
   type TeaType,
 } from '../../wisdom';
-import { authorshipLine } from '../../wisdom/authorship';
+import { AUTHORSHIP, authorshipLine, getAuthorship } from '../../wisdom/authorship';
 import {
   CELL,
   CELL_CLASS,
@@ -87,9 +87,13 @@ export const PageHead: React.FC<{ title: string; chineseName?: string; note?: st
   note,
 }) => (
   <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-    <h1 className={`${TITLE_CLASS} text-tea-text`}>{title}</h1>
-    {chineseName && <span className={`${NAME_CLASS} text-tea-text-sec`}>{chineseName}</span>}
-    {note && <p className={`${FACT} max-w-[56ch]`}>{note}</p>}
+    {/* min-w-0 and break-words together: a flex item's default min-width is its
+        longest word, so at 390px a name like "Huangshan Qunti Zhong" set at
+        28px would otherwise widen the header past the viewport rather than
+        wrap. Every long string in the head is treated the same way. */}
+    <h1 className={`${TITLE_CLASS} text-tea-text min-w-0 break-words`}>{title}</h1>
+    {chineseName && <span className={`${NAME_CLASS} text-tea-text-sec min-w-0 break-words`}>{chineseName}</span>}
+    {note && <p className={`${FACT} min-w-0 break-words max-w-[56ch]`}>{note}</p>}
   </header>
 );
 
@@ -107,6 +111,59 @@ export const PageHead: React.FC<{ title: string; chineseName?: string; note?: st
  */
 export const AuthorshipNote: React.FC<{ id?: string | null; className?: string }> = ({ id = null, className = '' }) => (
   <p className={`${FOOTNOTE} ${className}`}>{authorshipLine(id)}</p>
+);
+
+/**
+ * Has anything in the base actually been read by a human yet.
+ *
+ * Read fresh rather than captured at module load, because the day a rung is
+ * added it must change what the pages say without anyone remembering to move a
+ * component. It walks an object that is empty today and will hold tens of keys
+ * at its largest, so the cost is nothing.
+ */
+export const someEntryIsVerified = (): boolean =>
+  Object.values(AUTHORSHIP).some(entry => entry.rung !== 'drafted');
+
+/**
+ * Where the authorship line belongs, and why it moved.
+ *
+ * It used to print on all three hundred entries, saying the identical sentence
+ * on every one of them, because every one of them is on the identical rung.
+ * A sentence that cannot vary is not provenance, it is wallpaper: a reader
+ * learns it once and stops seeing it, which is the opposite of what a
+ * disclosure is for.
+ *
+ * So while the base is uniform, the holding says it once, on its index, in the
+ * plural, and an entry says nothing. The moment a single record is reviewed or
+ * authored, `someEntryIsVerified` turns true and every entry starts carrying
+ * its own line again, because from then on the sentence distinguishes one
+ * entry from the next and the reader needs it at the point of citation. An
+ * entry that has itself been reviewed always says so, uniform base or not,
+ * since a credit is owed to a person by name.
+ *
+ * Nothing was deleted. The claim is still on the page a reader reaches the
+ * entries through, still in the export on every record as `authorshipRung`,
+ * and still on the front door. What went is three hundred copies of it.
+ */
+export const EntryAuthorship: React.FC<{ id: string }> = ({ id }) => {
+  if (getAuthorship(id).rung === 'drafted' && !someEntryIsVerified()) return null;
+  return (
+    <div className="mt-12 pt-8 border-t border-tea-border">
+      <AuthorshipNote id={id} className="max-w-[64ch]" />
+    </div>
+  );
+};
+
+/**
+ * The same claim, made once for a whole holding, in the plural. This is the
+ * line that carries the disclosure while the base is uniform.
+ */
+export const HoldingAuthorship: React.FC<{ noun: string; className?: string }> = ({ noun, className = '' }) => (
+  <p className={`${FOOTNOTE} ${className}`}>
+    {someEntryIsVerified()
+      ? `Each of these ${noun} states its own authorship at the foot of its page.`
+      : `Every one of these ${noun} was drafted from research. None has been read by a human yet, and each says so in the download as its authorship rung.`}
+  </p>
 );
 
 /**
@@ -171,9 +228,46 @@ export const ViewSwitch = <T extends string>({
 );
 
 /**
+ * The way out of a holding you guessed wrong.
+ *
+ * The search that reaches every holding at once lived only on the front door,
+ * so a reader who typed "Menghai" into Plants was told no plant answers to it
+ * and left to work out for themselves that the reference does hold the name,
+ * one holding over. One line, under the toolbar of every index, carries the
+ * typed words across.
+ */
+export const everywhereTo = (query: string): string =>
+  query.trim() ? `/wisdom?q=${encodeURIComponent(query.trim())}` : '/wisdom';
+
+export const SearchEverywhere: React.FC<{ query: string; className?: string }> = ({ query, className = '' }) => (
+  <p className={`${FOOTNOTE} ${className}`}>
+    {query.trim() ? (
+      <>
+        Wrong holding?{' '}
+        <Link to={everywhereTo(query)} className={QUIET_LINK}>
+          Search every holding for &ldquo;{query.trim()}&rdquo;
+        </Link>
+        .
+      </>
+    ) : (
+      <>
+        Not sure this is the right holding?{' '}
+        <Link to={everywhereTo('')} className={QUIET_LINK}>
+          Search every holding at once
+        </Link>
+        .
+      </>
+    )}
+  </p>
+);
+
+/**
  * One row carrying everything functional: how the list is ordered on the left,
  * the search field and the live count on the right. The reference used to spend
  * a 68px band on the field alone and another on the count line beneath it.
+ *
+ * `everywhere` adds the one line that reaches the cross-holding search. The
+ * front door is the only index that leaves it off, being the search itself.
  */
 export const WisdomToolbar: React.FC<{
   query: string;
@@ -184,28 +278,78 @@ export const WisdomToolbar: React.FC<{
   visible: number;
   total: number;
   noun: string;
+  everywhere?: boolean;
   children?: React.ReactNode;
-}> = ({ query, onQueryChange, placeholder, searchLabel, visible, total, noun, children }) => (
-  <div className="flex flex-wrap items-center gap-x-6 border-b border-tea-border">
-    {children}
-    <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-x-4 min-w-0">
-      <div className="relative flex-1 sm:flex-none sm:w-[188px] min-w-0">
-        <Search size={14} aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim" />
-        <input
-          type="search"
-          value={query}
-          onChange={event => onQueryChange(event.target.value)}
-          placeholder={placeholder}
-          aria-label={searchLabel}
-          className={`${CELL_CLASS} w-full h-11 bg-transparent pl-5 pr-1 rounded-md text-tea-text placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
-        />
+}> = ({ query, onQueryChange, placeholder, searchLabel, visible, total, noun, everywhere = false, children }) => (
+  <>
+    <div className="flex flex-wrap items-center gap-x-6 border-b border-tea-border">
+      {children}
+      <div className="w-full sm:w-auto sm:ml-auto flex items-center gap-x-4 min-w-0">
+        <div className="relative flex-1 sm:flex-none sm:w-[188px] min-w-0">
+          <Search size={14} aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-tea-text-dim" />
+          <input
+            type="search"
+            value={query}
+            onChange={event => onQueryChange(event.target.value)}
+            placeholder={placeholder}
+            aria-label={searchLabel}
+            className={`${CELL_CLASS} w-full h-11 bg-transparent pl-5 pr-1 rounded-md text-tea-text placeholder:text-tea-text-dim focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+          />
+        </div>
+        <span className={`${LABEL} shrink-0 tabular-nums whitespace-nowrap`}>
+          {visible === total ? `${total} ${noun}` : `${visible} / ${total}`}
+        </span>
       </div>
-      <span className={`${LABEL} shrink-0 tabular-nums whitespace-nowrap`}>
-        {visible === total ? `${total} ${noun}` : `${visible} / ${total}`}
-      </span>
     </div>
-  </div>
+    {everywhere && <SearchEverywhere query={query} className="mt-2" />}
+  </>
 );
+
+/**
+ * Somewhere to land inside a long list.
+ *
+ * The places index runs 182 rows, 98 of them under China, and the only way to
+ * reach the bottom of it was the scroll bar. A rail of chips would have cost
+ * three wrapped rows on a phone to save scrolling on one; a native select costs
+ * one control on a line the toolbar was already spending, and opens as the
+ * platform's own list, over everything, at any width.
+ */
+export const GroupJump: React.FC<{
+  groups: Array<{ id: string; label: string; count: number }>;
+  /** Rows in the whole list. A jump is for a list you cannot reasonably scroll. */
+  rows: number;
+  label: string;
+}> = ({ groups, rows, label }) => {
+  // Both thresholds matter. Under four groups there is nothing to choose
+  // between, and under a hundred rows the scroll bar is already the answer:
+  // 79 plants do not need a control that would cost a phone a second toolbar
+  // row. The places index, at 182, does. Neither number is typed anywhere
+  // else, so a holding that grows into needing this gets it on its own.
+  if (groups.length < 4 || rows < 100) return null;
+  return (
+    <select
+      aria-label={label}
+      value=""
+      onChange={event => {
+        document.getElementById(event.target.value)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }}
+      /* bg-tea-bg, not transparent: the closed control reads as flat against
+         the page, and the browser's own popup gets an opaque background to
+         draw its options on. The width is capped so a long group name cannot
+         push the toolbar onto a second row at 390px. */
+      className={`${CELL_CLASS} min-h-[44px] min-w-0 max-w-[136px] bg-tea-bg text-tea-text-sec hover:text-tea-text rounded-md pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50`}
+    >
+      {/* The placeholder is the label. A separate micro-caps "Jump to" beside
+          it said the same word twice and cost 60px of a 358px line. */}
+      <option value="">Jump to</option>
+      {groups.map(group => (
+        <option key={group.id} value={group.id}>
+          {group.label} ({group.count})
+        </option>
+      ))}
+    </select>
+  );
+};
 
 // ─── One holding, as a list with real columns ────────────────────────────────
 
@@ -271,9 +415,26 @@ export const IndexTable: React.FC<{ columns: IndexColumns; children: React.React
  * A group inside an index. A quiet label and a count, no rule and no glyph:
  * the old head was a full-width hairline with a serif marker, which read louder
  * than the plant names underneath it.
+ *
+ * It sticks to the top of the viewport for as long as its own group is on
+ * screen. Ninety-eight Chinese places scrolled past under a heading that left
+ * with the first screenful, so from the second screenful on a reader had no way
+ * of knowing which country they were inside. The background is the page's own,
+ * so rows pass behind it rather than through it.
+ *
+ * `sub` is a group inside a group: same device, indented and dimmer, and it
+ * sticks below the head above it rather than replacing it.
  */
-export const GroupHead: React.FC<{ label: string; count: number }> = ({ label, count }) => (
-  <div className="flex items-baseline gap-2 pt-5 pb-1">
+export const GroupHead: React.FC<{ label: string; count: number; id?: string; sub?: boolean }> = ({
+  label,
+  count,
+  id,
+  sub = false,
+}) => (
+  <div
+    id={id}
+    className={`sticky ${sub ? 'top-[38px] pl-3' : 'top-0'} z-10 bg-tea-bg flex items-baseline gap-2 pt-5 pb-1`}
+  >
     <span className={isMicroCapsLabel(label) ? LABEL : `${CELL_CLASS} text-tea-text-dim`}>{label}</span>
     <span className={`${CELL_CLASS} text-tea-text-dim tabular-nums`}>{count}</span>
   </div>
@@ -289,9 +450,24 @@ export interface CellLink {
   to: string;
 }
 
-export type RowCell = string | CellLink | undefined;
+/**
+ * A cell the base has nothing for. Seven of the fifteen marks have no producer
+ * recorded, and an empty cell says nothing about why: a reader cannot tell an
+ * unknown producer from a column that failed to render. The entry page has
+ * always said "Not recorded" in that position, so the row says it too, in the
+ * dim tone the value would not have used, which keeps absence from reading as
+ * a fact at a glance.
+ */
+export interface CellAbsent {
+  absent: string;
+}
 
-const cellText = (cell: RowCell): string => (typeof cell === 'string' ? cell : (cell?.text ?? ''));
+export type RowCell = string | CellLink | CellAbsent | undefined;
+
+const isLink = (cell: RowCell): cell is CellLink => typeof cell === 'object' && cell !== null && 'to' in cell;
+const isAbsent = (cell: RowCell): cell is CellAbsent => typeof cell === 'object' && cell !== null && 'absent' in cell;
+
+const cellText = (cell: RowCell): string => (typeof cell === 'string' ? cell : '');
 
 /**
  * One line of record. A serif name (plus the Chinese name when the record has
@@ -331,7 +507,7 @@ export const HoldingRow: React.FC<{
           {chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{chineseName}</span>}
         </span>
         {cells.map((cell, index) =>
-          typeof cell === 'object' && cell ? (
+          isLink(cell) ? (
             <span key={index} className={`${CELL} min-w-0 break-words`}>
               {/* `relative` lifts it above the name link's stretched ::after so
                   the cell is its own destination. `py-2` grows the hit box on an
@@ -342,6 +518,8 @@ export const HoldingRow: React.FC<{
                 {cell.text}
               </Link>
             </span>
+          ) : isAbsent(cell) ? (
+            <span key={index} className={`${CELL_CLASS} text-tea-text-dim min-w-0 truncate`}>{cell.absent}</span>
           ) : (
             <span key={index} className={`${CELL} min-w-0 truncate tabular-nums`}>
               {cellText(cell)}
@@ -360,15 +538,24 @@ export const HoldingRow: React.FC<{
  * the toolbar reading zero is not an answer.
  */
 export const NoMatch: React.FC<{ noun: string; query?: string }> = ({ noun, query }) => (
-  <p className={`${FACT} py-10 text-center max-w-[46ch] mx-auto`}>
-    {query?.trim() ? (
-      <>
-        No {noun} here answers to &ldquo;{query.trim()}&rdquo;. If one should, send it and it will be added.
-      </>
-    ) : (
-      <>No {noun} here answers to that name. If one should, send it and it will be added.</>
-    )}
-  </p>
+  <div className="py-10">
+    <p className={`${FACT} text-center max-w-[46ch] mx-auto`}>
+      {query?.trim() ? (
+        <>
+          No {noun} here answers to &ldquo;{query.trim()}&rdquo;.{' '}
+          {/* The likeliest reason a holding has no answer is that the name
+              lives in a different holding, so the way across comes before the
+              invitation to send a correction. */}
+          <Link to={everywhereTo(query)} className={QUIET_LINK}>
+            Look in every holding
+          </Link>
+          , or send it and it will be added.
+        </>
+      ) : (
+        <>No {noun} here answers to that name. If one should, send it and it will be added.</>
+      )}
+    </p>
+  </div>
 );
 
 /** A holding's id did not resolve. Same shape on every detail page in the reference. */
@@ -408,7 +595,38 @@ export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ 
   return (
     <div className="py-2.5 border-t border-tea-border sm:grid sm:grid-cols-[152px_minmax(0,1fr)] sm:gap-x-6">
       <span className={`${LABEL} block sm:pt-1`}>{label}</span>
-      <span className={`${FACT_CLASS} text-tea-text max-w-[60ch] block`}>{children}</span>
+      <span className={`${FACT_CLASS} text-tea-text max-w-[60ch] block min-w-0 break-words`}>{children}</span>
+    </div>
+  );
+};
+
+/**
+ * A paragraph, under its own quiet heading. What a `Fact` is not.
+ *
+ * A fact is a phrase that answers a label: a country, an altitude, a year. Set
+ * in a 152px label track, it forms an axis the eye runs down. Research prose
+ * does not belong in that axis. A region's climate runs to 240 characters, and
+ * inside a value cell it became a paragraph wearing a field's clothes: four
+ * lines of body type hanging off a micro-caps label, breaking the axis for
+ * every row below it.
+ *
+ * So prose gets the full measure, the label sits above it rather than beside
+ * it, and the reader is told by the shape of the block which kind of thing they
+ * are about to read before they read a word of it.
+ */
+export const Passage: React.FC<{ label: string; text?: string | null; className?: string }> = ({
+  label,
+  text,
+  // The caller owns the spacing outright rather than adding to a hardcoded
+  // margin: two competing margin classes on one element are settled by
+  // stylesheet order, which is not somewhere a layout decision should live.
+  className = 'mt-6 first:mt-0',
+}) => {
+  if (!text) return null;
+  return (
+    <div className={className}>
+      <p className={`${LABEL} mb-1.5`}>{label}</p>
+      <p className={`${FACT} max-w-[68ch]`}>{text}</p>
     </div>
   );
 };

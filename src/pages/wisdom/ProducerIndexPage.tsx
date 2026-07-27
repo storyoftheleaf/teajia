@@ -9,17 +9,26 @@ import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { PRODUCERS, marksOf, type Producer } from '../../wisdom';
 import {
-  AuthorshipNote,
   FACT,
+  GroupHead,
+  HoldingAuthorship,
   HoldingRow,
   IndexTable,
   Invitation,
   NoMatch,
   PageHead,
+  ViewSwitch,
   WisdomSubNav,
   WisdomToolbar,
   type IndexColumns,
 } from './wisdomShared';
+
+type View = 'kind' | 'alphabetical';
+
+const VIEWS: Array<{ id: View; label: string }> = [
+  { id: 'kind', label: 'By kind' },
+  { id: 'alphabetical', label: 'A to Z' },
+];
 
 const KIND_LABEL: Record<Producer['kind'], string> = {
   factory: 'Factory',
@@ -47,9 +56,44 @@ function matches(producer: Producer, query: string): boolean {
 
 const byName = (left: Producer, right: Producer) => left.name.localeCompare(right.name);
 
+const ProducerRows: React.FC<{ rows: Producer[] }> = ({ rows }) => (
+  <ul className="list-none m-0 p-0">
+    {rows.map(producer => {
+      // How many marks the base holds for this producer. The row opens the
+      // producer, whose record lists them and links each one. A producer we
+      // hold no mark for says so, rather than leaving the column blank.
+      const held = marksOf(producer).length;
+      return (
+        <HoldingRow
+          key={producer.id}
+          to={`/wisdom/producer/${producer.id}`}
+          name={producer.name}
+          chineseName={producer.chineseName}
+          cells={[
+            [producer.region, producer.country].filter(Boolean).join(', ') || { absent: 'Not recorded' },
+            KIND_LABEL[producer.kind],
+            held > 0 ? String(held) : { absent: 'None' },
+          ]}
+        />
+      );
+    })}
+  </ul>
+);
+
 const ProducerIndexPage: React.FC = () => {
+  const [view, setView] = useState<View>('alphabetical');
   const [query, setQuery] = useState('');
   const visible = useMemo(() => PRODUCERS.filter(producer => matches(producer, query)).sort(byName), [query]);
+
+  /** Factories, then houses, then brands: the order the record's own note reads in. */
+  const byKind = useMemo(() => {
+    const map = new Map<string, Producer[]>();
+    for (const producer of visible) {
+      const label = KIND_LABEL[producer.kind];
+      map.set(label, [...(map.get(label) ?? []), producer]);
+    }
+    return [...map.entries()].sort((left, right) => right[1].length - left[1].length || left[0].localeCompare(right[0]));
+  }, [visible]);
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -95,32 +139,23 @@ const ProducerIndexPage: React.FC = () => {
         visible={visible.length}
         total={PRODUCERS.length}
         noun="producers"
-      />
+        everywhere
+      >
+        <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the producers" />
+      </WisdomToolbar>
 
       {visible.length === 0 && <NoMatch noun="producer" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">
-          <ul className="list-none m-0 p-0">
-            {visible.map(producer => {
-              // How many marks the base holds for this producer. The row opens
-              // the producer, whose record lists them and links each one.
-              const held = marksOf(producer).length;
-              return (
-                <HoldingRow
-                  key={producer.id}
-                  to={`/wisdom/producer/${producer.id}`}
-                  name={producer.name}
-                  chineseName={producer.chineseName}
-                  cells={[
-                    [producer.region, producer.country].filter(Boolean).join(', '),
-                    KIND_LABEL[producer.kind],
-                    held > 0 ? String(held) : undefined,
-                  ]}
-                />
-              );
-            })}
-          </ul>
+          {view === 'alphabetical' && <ProducerRows rows={visible} />}
+          {view === 'kind' &&
+            byKind.map(([kind, rows]) => (
+              <section key={kind}>
+                <GroupHead label={kind} count={rows.length} />
+                <ProducerRows rows={rows} />
+              </section>
+            ))}
         </IndexTable>
       )}
 
@@ -130,7 +165,7 @@ const ProducerIndexPage: React.FC = () => {
           bought from, which is account-scoped and stays in the shop&rsquo;s own records. A producer is true for
           everyone: a 7572 was made by Menghai Tea Factory no matter whose shelf it sits on.
         </p>
-        <AuthorshipNote className="max-w-[64ch] mt-6" />
+        <HoldingAuthorship noun="producers" className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A producer that is missing" />

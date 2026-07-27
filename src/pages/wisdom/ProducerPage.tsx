@@ -10,7 +10,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
 import {
-  AuthorshipNote,
+  EntryAuthorship,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
@@ -133,9 +133,7 @@ const ProducerPage: React.FC = () => {
         </section>
       )}
 
-      <div className="mt-12 pt-8 border-t border-tea-border">
-        <AuthorshipNote id={producer.id} className="max-w-[64ch]" />
-      </div>
+      <EntryAuthorship id={producer.id} />
 
       <Invitation subject={`Producer: ${producer.name}`} />
     </article>

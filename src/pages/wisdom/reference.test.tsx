@@ -12,16 +12,21 @@ import { describe, expect, it } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import CultivarIndexPage from './CultivarIndexPage';
 import CultivarPage from './CultivarPage';
 import MarkIndexPage from './MarkIndexPage';
 import MarkPage from './MarkPage';
 import NamedTeaIndexPage, { traditionLabel } from './NamedTeaIndexPage';
+import ProducerIndexPage from './ProducerIndexPage';
 import ProducerPage from './ProducerPage';
 import RegionIndexPage from './RegionIndexPage';
 import RegionPage from './RegionPage';
-import WisdomHomePage from './WisdomHomePage';
+import StyleIndexPage from './StyleIndexPage';
+import WisdomHomePage, { readableDate } from './WisdomHomePage';
 import { WISDOM_SECTIONS, isMicroCapsLabel, searchHoldings } from './wisdomShared';
+import { DATASET_BUILT, DATASET_VERSION } from './datasetStamp';
 import { tidyName } from './LineageTree';
+import { AUTHORSHIP } from '../../wisdom/authorship';
 import { NAMING_TRADITIONS, REGIONS } from '../../wisdom';
 
 const render = (path: string) =>
@@ -30,17 +35,29 @@ const render = (path: string) =>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/wisdom" element={<WisdomHomePage />} />
+          <Route path="/wisdom/cultivars" element={<CultivarIndexPage />} />
           <Route path="/wisdom/regions" element={<RegionIndexPage />} />
           <Route path="/wisdom/region/:id" element={<RegionPage />} />
           <Route path="/wisdom/cultivar/:id" element={<CultivarPage />} />
+          <Route path="/wisdom/producers" element={<ProducerIndexPage />} />
           <Route path="/wisdom/marks" element={<MarkIndexPage />} />
           <Route path="/wisdom/mark/:id" element={<MarkPage />} />
           <Route path="/wisdom/producer/:id" element={<ProducerPage />} />
+          <Route path="/wisdom/styles" element={<StyleIndexPage />} />
           <Route path="/wisdom/named" element={<NamedTeaIndexPage />} />
         </Routes>
       </MemoryRouter>
     </HelmetProvider>,
   );
+
+const INDEX_PAGES = [
+  '/wisdom/cultivars',
+  '/wisdom/regions',
+  '/wisdom/producers',
+  '/wisdom/marks',
+  '/wisdom/styles',
+  '/wisdom/named',
+];
 
 const DETAIL_PAGES = [
   '/wisdom/cultivar/jin-xuan',
@@ -66,19 +83,108 @@ describe('wayfinding', () => {
       /aria-current="page"[^>]*>Regions|Regions<\/a>/,
     );
   });
+
+  it('collapses to one line on a phone and keeps all seven reachable', () => {
+    const html = render('/wisdom/regions');
+    // Seven serif items need two 44px rows at 390px. Below sm the strip is
+    // the holding you are in, and it opens in place.
+    expect(html).toContain('aria-controls="wisdom-holdings"');
+    expect(html).toContain('7 holdings');
+    // Both shapes are in the DOM, but `hidden` is display:none, so exactly one
+    // of them is in the accessibility tree at any width.
+    expect(html).toContain('class="sm:hidden"');
+    expect(html).toContain('class="hidden sm:block"');
+    for (const section of WISDOM_SECTIONS) {
+      expect(html).toContain(`href="${section.path}"`);
+    }
+  });
 });
 
 describe('the foot of a page', () => {
-  it('runs one line of authorship and no repeated scope footnote', () => {
+  it('does not repeat the scope footnote on every entry', () => {
     for (const path of DETAIL_PAGES) {
-      const html = render(path);
-      expect(html).toContain('Drafted from research.');
-      expect(html).not.toContain('account scoped');
+      expect(render(path)).not.toContain('account scoped');
     }
   });
 
   it('says the scope once, on the front door', () => {
     expect(render('/wisdom')).toContain('Nothing in the reference is account scoped');
+  });
+});
+
+describe('where the authorship line lives', () => {
+  it('states the rung once per holding while every entry sits on the same one', () => {
+    for (const path of INDEX_PAGES) {
+      expect(render(path)).toContain('was drafted from research');
+    }
+  });
+
+  it('does not repeat that sentence on all three hundred entries', () => {
+    for (const path of DETAIL_PAGES) {
+      expect(render(path)).not.toContain('Drafted from research.');
+    }
+  });
+
+  it('returns to the entry the moment a second rung exists', () => {
+    AUTHORSHIP['jin-xuan'] = { rung: 'reviewed', reviewer: 'Adrian', date: '2026-07-27' };
+    try {
+      // The reviewed entry credits the person who read it...
+      expect(render('/wisdom/cultivar/jin-xuan')).toContain('Reviewed and corrected by Adrian');
+      // ...and every other entry starts saying it is not that, because from
+      // here on the sentence tells one entry from the next.
+      expect(render('/wisdom/mark/7572')).toContain('Drafted from research.');
+      expect(render('/wisdom/cultivars')).toContain('states its own authorship');
+    } finally {
+      delete AUTHORSHIP['jin-xuan'];
+    }
+  });
+});
+
+describe('what the base is, as of when', () => {
+  it('states the version, the build date and a citation on the front door', () => {
+    // React writes comment separators between adjacent text nodes, so the
+    // rendered sentence is matched by its parts rather than as one string.
+    const html = render('/wisdom').replace(/<!-- -->/g, '');
+    expect(html).toContain(`Version ${DATASET_VERSION}`);
+    expect(html).toContain(`built ${readableDate(DATASET_BUILT)}`);
+    expect(html).toContain('Cite it as');
+  });
+
+  it('reads an ISO date as a date a person would write', () => {
+    expect(readableDate('2026-07-27')).toBe('27 July 2026');
+    expect(readableDate('2026-01-01')).toBe('1 January 2026');
+  });
+});
+
+describe('reaching the cross-holding search from inside a holding', () => {
+  it('offers the way across on every index', () => {
+    for (const path of INDEX_PAGES) {
+      expect(render(path)).toContain('Search every holding at once');
+    }
+  });
+
+  it('is not offered on the search itself', () => {
+    expect(render('/wisdom')).not.toContain('Search every holding at once');
+  });
+
+  it('opens the front door with the words already typed', () => {
+    expect(render('/wisdom?q=rou%20gui')).toContain('/wisdom/cultivar/rou-gui');
+  });
+});
+
+describe('a toolbar with nothing on it', () => {
+  it('gives every holding a way to order its own list', () => {
+    for (const path of INDEX_PAGES) {
+      expect(render(path)).toMatch(/aria-label="Browse the [a-z ]+"/);
+    }
+  });
+});
+
+describe('an empty cell', () => {
+  it('says a mark has no producer rather than leaving the column blank', () => {
+    const html = render('/wisdom/marks');
+    expect(html).toContain('No producer recorded');
+    expect(html).toContain('Not recorded');
   });
 });
 
@@ -93,6 +199,17 @@ describe('growing regions', () => {
     expect(REGIONS.length).toBeGreaterThan(150);
     expect(html).toContain(`${REGIONS.length} places`);
     expect(html).toContain('/wisdom/region/wuyi-mountains-fujian');
+  });
+
+  it('breaks the 98 places under China into groups a reader can land in', () => {
+    const html = render('/wisdom/regions');
+    // The country head, then the provinces inside it, then somewhere to jump.
+    expect(html).toContain('id="place-china"');
+    expect(html).toContain('id="place-china-fujian"');
+    expect(html).toContain('Province not recorded');
+    expect(html).toMatch(/<select[^>]*aria-label="Jump to a group of places"/);
+    // A heading that leaves with the first screenful is no heading at all.
+    expect(html).toMatch(/class="sticky top-0[^"]*"/);
   });
 
   it('names the plants recorded from a place, and says so when there are none', () => {

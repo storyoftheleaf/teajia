@@ -30,4 +30,42 @@
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
+  <!-- The public tea reference. The seven holding indexes are listed here; all
+       313 entry pages are listed in https://teajia.com/wisdom/sitemap.xml,
+       which scripts/export-wisdom-dataset.mjs writes from the base itself. -->
+  <url>
+    <loc>https://teajia.co/wisdom</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://teajia.co/wisdom/cultivars</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://teajia.co/wisdom/regions</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://teajia.co/wisdom/producers</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://teajia.co/wisdom/marks</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://teajia.co/wisdom/styles</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://teajia.co/wisdom/named</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>

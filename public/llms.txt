@@ -41,3 +41,28 @@ Teajia exposes an MCP server so AI assistants can help shoppers directly:
 
 - To help someone buy: search or browse the catalog, confirm teas and grams with the shopper, then call `prepare_order` and share the WhatsApp link. Always tell the user that final price, shipping, and availability are confirmed by the shop in the WhatsApp conversation.
 - Do not fabricate tasting notes, provenance, or prices. Read them from `get_tea` or the product page.
+
+## The tea reference, for people
+
+The same holdings as the open dataset, as reader-facing pages. Every entry has
+its own address, and every address has a `.json` twin at the same path.
+
+- Start here: https://teajia.com/wisdom (names every holding, and searches all of them at once)
+- The tea plants: https://teajia.com/wisdom/cultivars, one at https://teajia.com/wisdom/cultivar/{id}
+- Growing regions: https://teajia.com/wisdom/regions, one at https://teajia.com/wisdom/region/{id}
+- Producers: https://teajia.com/wisdom/producers, one at https://teajia.com/wisdom/producer/{id}
+- Marks: https://teajia.com/wisdom/marks, one at https://teajia.com/wisdom/mark/{id}
+- Styles: https://teajia.com/wisdom/styles, one at https://teajia.com/wisdom/style/{id}
+- Named teas: https://teajia.com/wisdom/named, one at https://teajia.com/wisdom/named/{id}
+- Every one of those addresses, listed: https://teajia.com/wisdom/sitemap.xml
+- Tea varieties are data only (`variety/{id}.json`) and have no reader-facing page.
+
+Each entry page carries JSON-LD (Taxon for a plant, Place for a region,
+Organization for a producer) and a breadcrumb back to its holding. The dataset
+contents page at /wisdom/index.json now states, per holding, both the record
+address (`record`) and the human page address (`page`), so either can be
+reached from the other without guessing.
+
+The dataset says what it is as of when: `version` and `generatedAt` in
+/wisdom/index.json, repeated on the reference's front door. Cite the version
+you read.

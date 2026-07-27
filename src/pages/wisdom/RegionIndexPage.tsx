@@ -8,15 +8,18 @@
  * not admit to having.
  *
  * Grouped by country, because a place list read A to Z puts Alishan next to
- * Anhua and asks the reader to hold the map themselves.
+ * Anhua and asks the reader to hold the map themselves. China is 98 of the 182,
+ * which is a scroll no country heading survives, so a country that large is
+ * split again by province and both headings stick.
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { REGIONS, type Region } from '../../wisdom';
 import {
-  AuthorshipNote,
   FACT,
   GroupHead,
+  GroupJump,
+  HoldingAuthorship,
   HoldingRow,
   IndexTable,
   Invitation,
@@ -42,7 +45,19 @@ const COLUMNS: IndexColumns = {
   labels: ['Province', 'Altitude'],
 };
 
+/**
+ * Above this many rows a country stops being a group and becomes a list again.
+ * China is the only one over it today, at 98.
+ */
+const SPLIT_ABOVE = 40;
+
+/** Three words, so it stays inside the micro-caps rule the group heads enforce. */
+const NO_PROVINCE = 'Province not recorded';
+
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
+
+const anchorId = (...parts: string[]) =>
+  `place-${parts.join('-').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
 
 function matches(region: Region, query: string): boolean {
   if (!query.trim()) return true;
@@ -50,6 +65,23 @@ function matches(region: Region, query: string): boolean {
   return [region.name, region.province, region.country]
     .filter(Boolean)
     .some(field => matchKey(field as string).includes(needle));
+}
+
+interface Group {
+  id: string;
+  label: string;
+  rows: Region[];
+  /** Present only where the group was too long to read as one list. */
+  parts?: Group[];
+}
+
+/** Biggest group first: a reader looking for a place is likeliest to want China. */
+const bySize = (left: Group, right: Group) => right.rows.length - left.rows.length;
+
+function groupBy(rows: Region[], key: (region: Region) => string, prefix: string[]): Group[] {
+  const map = new Map<string, Region[]>();
+  for (const region of rows) map.set(key(region), [...(map.get(key(region)) ?? []), region]);
+  return [...map.entries()].map(([label, group]) => ({ id: anchorId(...prefix, label), label, rows: group }));
 }
 
 const RegionRow: React.FC<{ region: Region }> = ({ region }) => (
@@ -60,19 +92,29 @@ const RegionRow: React.FC<{ region: Region }> = ({ region }) => (
   />
 );
 
-const Group: React.FC<{ label: string; rows: Region[] }> = ({ label, rows }) => {
-  if (rows.length === 0) return null;
-  return (
-    <section>
-      <GroupHead label={label} count={rows.length} />
-      <ul className="list-none m-0 p-0">
-        {rows.map(region => (
-          <RegionRow key={region.id} region={region} />
-        ))}
-      </ul>
-    </section>
-  );
-};
+const RegionRows: React.FC<{ rows: Region[] }> = ({ rows }) => (
+  <ul className="list-none m-0 p-0">
+    {rows.map(region => (
+      <RegionRow key={region.id} region={region} />
+    ))}
+  </ul>
+);
+
+const GroupSection: React.FC<{ group: Group }> = ({ group }) => (
+  <section>
+    <GroupHead id={group.id} label={group.label} count={group.rows.length} />
+    {group.parts ? (
+      group.parts.map(part => (
+        <section key={part.id}>
+          <GroupHead id={part.id} label={part.label} count={part.rows.length} sub />
+          <RegionRows rows={part.rows} />
+        </section>
+      ))
+    ) : (
+      <RegionRows rows={group.rows} />
+    )}
+  </section>
+);
 
 const RegionIndexPage: React.FC = () => {
   const [view, setView] = useState<View>('country');
@@ -83,20 +125,41 @@ const RegionIndexPage: React.FC = () => {
     [query],
   );
 
-  const byCountry = useMemo(() => {
-    const map = new Map<string, Region[]>();
-    for (const region of visible) map.set(region.country, [...(map.get(region.country) ?? []), region]);
-    return [...map.entries()].sort((left, right) => right[1].length - left[1].length);
-  }, [visible]);
+  const byCountry = useMemo(
+    () =>
+      groupBy(visible, region => region.country, [])
+        .sort(bySize)
+        .map(group =>
+          group.rows.length > SPLIT_ABOVE
+            ? {
+                ...group,
+                parts: groupBy(group.rows, region => region.province || NO_PROVINCE, [group.label]).sort(bySize),
+              }
+            : group,
+        ),
+    [visible],
+  );
 
-  const byLetter = useMemo(() => {
-    const map = new Map<string, Region[]>();
-    for (const region of visible) {
-      const letter = (region.name[0] ?? '#').toUpperCase();
-      map.set(letter, [...(map.get(letter) ?? []), region]);
-    }
-    return [...map.entries()].sort(([left], [right]) => left.localeCompare(right));
-  }, [visible]);
+  const byLetter = useMemo(
+    () => groupBy(visible, region => (region.name[0] ?? '#').toUpperCase(), ['letter']).sort((left, right) => left.label.localeCompare(right.label)),
+    [visible],
+  );
+
+  const groups = view === 'country' ? byCountry : byLetter;
+
+  /** A subdivided country puts its provinces in the jump too, or China is one stop. */
+  const jumpTo = useMemo(
+    () =>
+      groups.flatMap(group => [
+        { id: group.id, label: group.label, count: group.rows.length },
+        ...(group.parts ?? []).map(part => ({
+          id: part.id,
+          label: `${group.label} · ${part.label}`,
+          count: part.rows.length,
+        })),
+      ]),
+    [groups],
+  );
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -143,16 +206,19 @@ const RegionIndexPage: React.FC = () => {
         visible={visible.length}
         total={REGIONS.length}
         noun="places"
+        everywhere
       >
         <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the places" />
+        <GroupJump groups={jumpTo} rows={visible.length} label="Jump to a group of places" />
       </WisdomToolbar>
 
       {visible.length === 0 && <NoMatch noun="place" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">
-          {view === 'country' && byCountry.map(([country, rows]) => <Group key={country} label={country} rows={rows} />)}
-          {view === 'alphabetical' && byLetter.map(([letter, rows]) => <Group key={letter} label={letter} rows={rows} />)}
+          {groups.map(group => (
+            <GroupSection key={group.id} group={group} />
+          ))}
         </IndexTable>
       )}
 
@@ -163,7 +229,7 @@ const RegionIndexPage: React.FC = () => {
           that says &ldquo;Anxi&rdquo; and a record that says &ldquo;Anxi County, Fujian&rdquo; are both real, and
           collapsing one into the other would quietly change what a grower wrote.
         </p>
-        <AuthorshipNote className="max-w-[64ch] mt-6" />
+        <HoldingAuthorship noun="places" className="max-w-[64ch] mt-6" />
       </div>
 
       <Invitation subject="A growing place that is missing" />
