@@ -9,6 +9,7 @@ import {
   type WisdomDetail,
   type WisdomEntryUsage,
   type WisdomFact,
+  type WisdomRun,
   type WisdomSection,
 } from './config';
 
@@ -196,17 +197,44 @@ interface NavProps {
   total: number;
   onPrev?: () => void;
   onNext?: () => void;
+  /** True when the run is narrower than the holding and the header says why. */
+  narrowed?: boolean;
 }
+
+/** The fraction, in one treatment, so the toolbar and the run sentence match. */
+export const RunFraction: React.FC<{
+  position: number;
+  total: number;
+  className?: string;
+  hidden?: boolean;
+}> = ({ position, total, className = 'text-tea-text-dim', hidden }) => (
+  <span className={`font-mono text-ui-11 tabular-nums ${className}`} aria-hidden={hidden || undefined}>
+    {position} / {total}
+  </span>
+);
 
 /**
  * Reading through a holding used to mean closing and reopening for every entry.
  * The position rides beside the arrows so a reader knows how far in they are,
  * the same way the product panel says it.
+ *
+ * When the run is narrower than the holding the denominator is not the size of
+ * the holding, and the header says which run it is. The two sat at opposite ends
+ * of the header with nothing between them; the label carries the reader across
+ * now, and the sentence repeats the fraction in this same mono.
  */
-export const WisdomPanelNav: React.FC<NavProps> = ({ position, total, onPrev, onNext }) => (
+export const WisdomPanelNav: React.FC<NavProps> = ({ position, total, onPrev, onNext, narrowed }) => (
   <div className="flex items-center gap-1">
-    <span className="font-mono text-ui-11 tabular-nums text-tea-text-dim">
-      {position} / {total}
+    <RunFraction
+      position={position}
+      total={total}
+      className={narrowed ? 'text-tea-text-sec' : 'text-tea-text-dim'}
+      hidden
+    />
+    <span className="sr-only">
+      {narrowed
+        ? `Entry ${position} of the ${total} this run walks, described below the title`
+        : `Entry ${position} of ${total}`}
     </span>
     <button
       type="button"
@@ -331,8 +359,8 @@ interface Props {
   nav?: React.ReactNode;
   /** Which grouped section this entry sits in, when the list behind is grouped. */
   section?: WisdomSection;
-  /** What run prev and next walk, when it is narrower than the whole holding. */
-  runNote?: string;
+  /** Where in the run this entry sits, when the run is narrower than the holding. */
+  run?: WisdomRun;
   /** This entry's page on the public reference, when it has one. */
   publicHref?: string;
   /** How many products resolve through this entry right now. */
@@ -340,7 +368,7 @@ interface Props {
 }
 
 export const WisdomDetailPanel: React.FC<Props> = ({
-  detail, id, onClose, nav, section, runNote, publicHref, usage,
+  detail, id, onClose, nav, section, run, publicHref, usage,
 }) => (
   <Modal isOpen onClose={onClose} variant="panel" ariaLabel={detail.name} headerActions={nav}>
     <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2 pb-nav-gap sm:px-6">
@@ -349,7 +377,7 @@ export const WisdomDetailPanel: React.FC<Props> = ({
           detail={detail}
           id={id}
           section={section}
-          runNote={runNote}
+          run={run}
           publicHref={publicHref}
           usage={usage}
         />
@@ -368,10 +396,10 @@ export const WisdomDetailHeader: React.FC<{
   detail: WisdomDetail;
   id: string;
   section?: WisdomSection;
-  runNote?: string;
+  run?: WisdomRun;
   publicHref?: string;
   usage?: WisdomEntryUsage;
-}> = ({ detail, id, section, runNote, publicHref, usage }) => (
+}> = ({ detail, id, section, run, publicHref, usage }) => (
   <header>
     {/* The eyebrow says what this is, and, when prev/next is walking a grouped
         holding, which heading it is currently under. Crossing from the last
@@ -405,10 +433,21 @@ export const WisdomDetailHeader: React.FC<{
         that list: the gap filter, the find field and a folded section. The gap
         one re-tests on its own, the moment the account's products resolve, so
         "3 of 15" could become "3 of 9" with the panel open and nothing said.
-        The run says what it is, and changes when it changes. */}
-    {runNote && (
-      <p className="mt-2 text-ui-12 text-tea-text-dim" data-testid="wisdom-run-note" aria-live="polite">
-        {runNote}
+        The run says what it is, and changes when it changes.
+
+        The fraction leads the sentence, in the toolbar's own mono and tabular
+        figures. It is deliberately the same glyphs in the same treatment at both
+        ends of the header: the toolbar's "3 / 9" was a number with no stated
+        denominator and this was a sentence about a run with no stated position,
+        and a reader had to notice that the 9 in each was the same 9. */}
+    {run && (
+      <p
+        className="mt-2 flex flex-wrap items-baseline gap-x-2 text-ui-12 text-tea-text-dim"
+        data-testid="wisdom-run-note"
+        aria-live="polite"
+      >
+        <RunFraction position={run.position} total={run.total} className="text-tea-text-sec" />
+        <span className="min-w-0">{run.note}</span>
       </p>
     )}
     <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-ui-12">

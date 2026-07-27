@@ -4,7 +4,13 @@ import { Modal } from '../../../components/shared/Modal';
 import { TYPOGRAPHY_CLASSES } from '../../../designTokens';
 import { childrenOf, findRegion, loadCultivarStory, parentsOf } from '../../../wisdom';
 import type { Cultivar, CultivarStory } from '../../../wisdom';
-import { WISDOM_TYPE, type WisdomEntryUsage, type WisdomLink, type WisdomSection } from './config';
+import {
+  WISDOM_TYPE,
+  type WisdomEntryUsage,
+  type WisdomLink,
+  type WisdomRun,
+  type WisdomSection,
+} from './config';
 import { FactGrid, LabelledBlock, WisdomChip, WisdomDetailHeader, WisdomRoving } from './WisdomDetailPanel';
 
 interface Props {
@@ -18,8 +24,8 @@ interface Props {
   nav?: React.ReactNode;
   /** Which grouped section this cultivar sits in, when the list is grouped. */
   section?: WisdomSection;
-  /** What run prev and next walk, when it is narrower than the whole holding. */
-  runNote?: string;
+  /** Where in the run this cultivar sits, when the run is narrower than the holding. */
+  run?: WisdomRun;
   /** This cultivar's page on the public reference. */
   publicHref?: string;
   /** How many products resolve through this cultivar right now. */
@@ -38,7 +44,7 @@ interface Props {
  * a reading measure, because only prose gets harder to read as it gets wider.
  */
 export const CultivarDetailPanel: React.FC<Props> = ({
-  cultivar, onClose, onSelectCultivar, jump, nav, section, runNote, publicHref, usage,
+  cultivar, onClose, onSelectCultivar, jump, nav, section, run, publicHref, usage,
 }) => {
   const [story, setStory] = useState<CultivarStory | null>(null);
   const [loadingStory, setLoadingStory] = useState(true);
@@ -84,7 +90,7 @@ export const CultivarDetailPanel: React.FC<Props> = ({
             }}
             id={cultivar.id}
             section={section}
-            runNote={runNote}
+            run={run}
             publicHref={publicHref}
             usage={usage}
           />

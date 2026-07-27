@@ -22,6 +22,7 @@ const { WisdomBrowser } = await import('./WisdomBrowser');
 const { WISDOM_HOLDINGS } = await import('./holdings');
 const { ALL_FOLDED, OPEN_MARK } = await import('./config');
 type WisdomUsage = import('./usage').WisdomUsage;
+type WisdomBorrowed = import('./config').WisdomBorrowed;
 
 const cultivars = WISDOM_HOLDINGS[0];
 
@@ -29,6 +30,8 @@ interface RenderOptions {
   groupKey?: string;
   collapsed?: string[];
   gapOnly?: boolean;
+  /** What the gap filter took on loan, as a shared link would carry it. */
+  borrowed?: WisdomBorrowed;
   query?: string;
   selectedId?: string;
   usage?: WisdomUsage;
@@ -54,6 +57,7 @@ const render = (holding = cultivars, options: RenderOptions = {}) =>
         groupKey: options.groupKey ?? '',
         collapsed: options.collapsed ?? [],
         gapOnly: options.gapOnly ?? false,
+        borrowed: options.borrowed ?? null,
       }}
       onPrefsChange={() => {}}
     />
@@ -244,6 +248,71 @@ describe('WisdomBrowser', () => {
     expect(render(cultivars)).not.toContain('data-testid="wisdom-gap-provisional"');
   });
 
+  // A qualification that vanishes leaves a reader who was told a number was
+  // conditional never told it had settled.
+  it('resolves the provisional count instead of letting it disappear', () => {
+    const regions = WISDOM_HOLDINGS.find(holding => holding.id === 'regions')!;
+    const counted: WisdomUsage = { total: 139, byHolding: new Map(), byHoldingTotal: new Map() };
+    const settled = render(regions, { usage: counted });
+    expect(settled).toContain('data-testid="wisdom-gap-settled"');
+    expect(settled).toContain('Counted against all 139 products in this account');
+
+    // An account holding no products is a third state, and it used to wear the
+    // first one forever: waiting on a reading that had already happened.
+    const none: WisdomUsage = { total: 0, byHolding: new Map(), byHoldingTotal: new Map() };
+    const empty = render(regions, { usage: none });
+    expect(empty).toContain('data-testid="wisdom-gap-base-only"');
+    expect(empty).not.toContain('data-testid="wisdom-gap-provisional"');
+    expect(empty).not.toContain('data-testid="wisdom-gap-settled"');
+
+    // None of the three ever appear on a gap the base can answer on its own.
+    for (const testId of ['provisional', 'base-only', 'settled']) {
+      expect(render(cultivars, { usage: counted })).not.toContain(`data-testid="wisdom-gap-${testId}"`);
+    }
+  });
+
+  // The loan lived in a ref, so a link carrying the gap AND the grouping it took
+  // arrived with nothing marked as borrowed and Show all kept it for good.
+  it('marks a borrowed grouping as borrowed when it arrives in a link', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const plain = render(marks, { gapOnly: true, groupKey: 'producer' });
+    expect(plain).not.toContain('data-testid="wisdom-gap-grouped"');
+
+    const onLoan = render(marks, {
+      gapOnly: true,
+      groupKey: 'producer',
+      borrowed: { groupKey: 'era', collapsed: [] },
+    });
+    expect(onLoan).toContain('data-testid="wisdom-gap-grouped"');
+    expect(onLoan).toContain('Show all gives back your grouping by era');
+  });
+
+  // And the folded shape it unfolded to make room, which moved in total silence.
+  it('names the folded shape the gap toggle unfolded, not just the grouping', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const some = render(marks, {
+      gapOnly: true,
+      groupKey: 'producer',
+      borrowed: { groupKey: 'era', collapsed: ['Vintage', 'Modern'] },
+    });
+    expect(some).toContain('and the 2 sections you had folded');
+
+    const all = render(marks, {
+      gapOnly: true,
+      groupKey: 'producer',
+      borrowed: { groupKey: 'era', collapsed: [ALL_FOLDED] },
+    });
+    expect(all).toContain('and every section you had folded');
+
+    // A reader who had no grouping at all is owed exactly that back.
+    const fromNone = render(marks, {
+      gapOnly: true,
+      groupKey: 'producer',
+      borrowed: { groupKey: '', collapsed: [] },
+    });
+    expect(fromNone).toContain('Show all gives back your ungrouped list.');
+  });
+
   // The one link an operator most wants to send, and until now the only part of
   // the shape that did not survive being sent.
   it('takes the gap filter from the preferences the address carries', () => {
@@ -367,12 +436,33 @@ describe('WisdomBrowser', () => {
     expect(render(marks, { selectedId: marks.idOf(marks.rows[0]) })).not.toContain('data-testid="wisdom-run-note"');
   });
 
+  // The fraction was in the toolbar and the sentence about the run was at the
+  // other end of the header, and a reader had to work out that the denominator
+  // in one was the count in the other.
+  it('prints the toolbar fraction at the head of the sentence that explains it', () => {
+    const marks = WISDOM_HOLDINGS.find(holding => holding.id === 'marks')!;
+    const gapped = marks.rows.filter(row => marks.gap!.test(row));
+    const html = render(marks, { gapOnly: true, selectedId: marks.idOf(gapped[0]) });
+    const note = html.slice(html.indexOf('data-testid="wisdom-run-note"'));
+    // Same fraction, same mono, inside the run sentence.
+    expect(note).toContain(`1 / ${gapped.length}`);
+    expect(note).toContain('tabular-nums');
+    // And the toolbar copy of it is not read out twice by a screen reader.
+    expect(html).toContain(`Entry 1 of the ${gapped.length} this run walks`);
+    // Walking the whole holding, the fraction stands on its own.
+    const whole = render(marks, { selectedId: marks.idOf(marks.rows[0]) });
+    expect(whole).toContain(`Entry 1 of ${marks.rows.length}`);
+  });
+
   // Two searches on one screen. The field intersects every word across every
   // field; typing at the list is a prefix on the axis the list is ordered by.
   it('states both searches side by side, so the difference is not a surprise', () => {
     const html = render();
     expect(html).toContain('Type → Cultivar');
-    expect(html).toContain('Find → every field');
+    // "Every field" was a claim the data could falsify. Every COLUMN is a claim
+    // defineHolding guarantees, and holdings.test.ts holds it to that.
+    expect(html).toContain('Find → every column');
+    expect(html).not.toContain('every field');
     // The intersection says itself the moment it is doing something.
     expect(render(cultivars, { query: 'da hong' })).toContain('every word must match');
     expect(render(cultivars, { query: 'dahong' })).not.toContain('every word must match');

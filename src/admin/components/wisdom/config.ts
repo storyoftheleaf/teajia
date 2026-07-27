@@ -269,7 +269,14 @@ export interface WisdomHolding<T> {
   noun: string;
   rows: readonly T[];
   idOf: (row: T) => string;
-  /** Everything a search should look inside, joined. */
+  /**
+   * What a search should look inside, BEYOND the columns.
+   *
+   * Every column is folded in for free by `defineHolding`, so this holds only
+   * what the row carries and the list does not show: Chinese names, aliases, the
+   * country behind a region. Writing a column in here as well is harmless and
+   * redundant.
+   */
   searchText: (row: T) => string;
   placeholder: string;
   columns: ReadonlyArray<WisdomColumn<T>>;
@@ -321,8 +328,8 @@ export interface WisdomPanelCtx {
   nav?: React.ReactNode;
   /** Which grouped section the open entry sits in, when the list is grouped. */
   section?: WisdomSection;
-  /** What run prev and next are walking, when it is narrower than the holding. */
-  runNote?: string;
+  /** Where in the run this entry sits, and what the run is. */
+  run?: WisdomRun;
   /** The public page for this entry, when the holding publishes one. */
   publicHref?: string;
   /** How many products resolve through this entry right now. */
@@ -375,6 +382,24 @@ export interface WisdomSection {
 }
 
 /**
+ * The run prev and next are walking, and where in it this entry sits.
+ *
+ * The two used to be separate: a fraction in the header toolbar and, at the
+ * other end of the header, a sentence about the run. Nothing tied them, so a
+ * reader met "3 / 9" in one place and "prev and next walk 9 of the 15 marks" in
+ * another and had to work out that the 9 in each was the same 9. They travel
+ * together now, and the panel prints the fraction at the head of the sentence in
+ * the toolbar's own mono, which is the tie.
+ */
+export interface WisdomRun {
+  /** One-based position of the open entry inside the run. */
+  position: number;
+  total: number;
+  /** Why the run is narrower than the holding. A sentence, never micro-caps. */
+  note: string;
+}
+
+/**
  * What survives a tab change: how a holding was sorted and grouped.
  *
  * The find field deliberately resets, because a query for a cultivar means
@@ -404,6 +429,25 @@ export interface WisdomPrefs {
    * producer", and until this moved here that link arrived showing all fifteen.
    */
   gapOnly: boolean;
+  /**
+   * The shape the gap filter took on loan, so it can be given back.
+   *
+   * Showing a gap sets the grouping that reveals it, and that grouping's
+   * headings are not the reader's, so their own folded shape is unfolded to make
+   * room. Both were held in a ref, which is to say in this session and nowhere
+   * else: the link an operator sends carries the gap AND the borrowed grouping,
+   * and it used to arrive with nothing marked as on loan, so Show all kept the
+   * grouping and never said it had been borrowed. Null means the grouping on
+   * screen is the reader's own and there is nothing to hand back.
+   */
+  borrowed: WisdomBorrowed | null;
+}
+
+/** What the gap filter displaced: the reader's grouping and their folded shape. */
+export interface WisdomBorrowed {
+  /** Empty string is a real value: the reader had no grouping at all. */
+  groupKey: string;
+  collapsed: readonly string[];
 }
 
 export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
@@ -411,6 +455,7 @@ export const defaultPrefs = (holding: AnyWisdomHolding): WisdomPrefs => ({
   groupKey: '',
   collapsed: [],
   gapOnly: false,
+  borrowed: null,
 });
 
 /**
@@ -514,7 +559,12 @@ export const WISDOM_PARAM = {
   sort: 'sort',
   fold: 'fold',
   gap: 'gap',
+  borrow: 'borrow',
+  borrowFold: 'borrowfold',
 } as const;
+
+/** A borrowed grouping of "none". Group keys are words, so a dash cannot be one. */
+const NO_GROUP = '-';
 
 /**
  * Where the inventory takes a wisdom entry as a filter, and the address that
@@ -525,6 +575,15 @@ export const INVENTORY_WISDOM_PARAM = 'wisdom';
 
 export const wisdomInventoryHref = (holding: string, entry: string): string =>
   `/admin/inventory?${INVENTORY_WISDOM_PARAM}=${encodeURIComponent(`${holding}:${entry}`)}`;
+
+/**
+ * The way back. A crossing built only one way: the panel handed the inventory a
+ * filter and the inventory could not name the entry that had filtered it, let
+ * alone return to it. The chip carries this now, so the two screens are a round
+ * trip rather than a one-way door.
+ */
+export const wisdomEntryHref = (holding: string, entry: string): string =>
+  `/admin/wisdom?${WISDOM_PARAM.tab}=${encodeURIComponent(holding)}&${WISDOM_PARAM.entry}=${encodeURIComponent(entry)}`;
 
 /** Section keys are country and producer names, so the separator must not be one. */
 const FOLD_SEPARATOR = '~';
@@ -549,7 +608,18 @@ export function wisdomPrefsToParams(prefs: WisdomPrefs, holding: AnyWisdomHoldin
   }
   // A gap filter on a holding that counts no gap is not a state that exists, so
   // the caller checks that before writing it, exactly as fold checks grouping.
-  if (prefs.gapOnly && holding.gap) out[WISDOM_PARAM.gap] = '1';
+  if (prefs.gapOnly && holding.gap) {
+    out[WISDOM_PARAM.gap] = '1';
+    // What the gap filter took on loan travels with it, because "Show all gives
+    // your grouping back" is a promise only the session that made the loan could
+    // keep. A shared link now carries the debt as well as the state.
+    if (prefs.borrowed) {
+      out[WISDOM_PARAM.borrow] = prefs.borrowed.groupKey || NO_GROUP;
+      if (prefs.borrowed.groupKey && prefs.borrowed.collapsed.length > 0) {
+        out[WISDOM_PARAM.borrowFold] = prefs.borrowed.collapsed.join(FOLD_SEPARATOR);
+      }
+    }
+  }
   return out;
 }
 
@@ -581,7 +651,23 @@ export function wisdomPrefsFromParams(
 
   const gapOnly = Boolean(holding.gap) && read(WISDOM_PARAM.gap) === '1';
 
-  return { sort, groupKey, collapsed: groupKey ? collapsed : [], gapOnly };
+  // A loan only exists while the gap filter that took it is on, and only ever
+  // names a grouping this holding has. Anything else arrived hand-edited and is
+  // dropped rather than promising to give back something that does not exist.
+  let borrowed: WisdomBorrowed | null = null;
+  const askedBorrow = gapOnly ? read(WISDOM_PARAM.borrow) : null;
+  if (askedBorrow !== null) {
+    const key = askedBorrow === NO_GROUP ? '' : askedBorrow;
+    if (key === '' || holding.groups?.some(group => group.key === key)) {
+      const askedBorrowFold = key ? read(WISDOM_PARAM.borrowFold) ?? '' : '';
+      borrowed = {
+        groupKey: key,
+        collapsed: askedBorrowFold ? askedBorrowFold.split(FOLD_SEPARATOR).filter(Boolean) : [],
+      };
+    }
+  }
+
+  return { sort, groupKey, collapsed: groupKey ? collapsed : [], gapOnly, borrowed };
 }
 
 /**
@@ -590,7 +676,26 @@ export function wisdomPrefsFromParams(
  */
 export type AnyWisdomHolding = WisdomHolding<any>;
 
-export const defineHolding = <T,>(holding: WisdomHolding<T>): AnyWisdomHolding => holding;
+/**
+ * A holding, with its own searchable text widened to cover every column.
+ *
+ * The keyboard band promises the find field reads across the columns, and that
+ * was a claim seven hand-written haystacks could falsify one at a time: a
+ * cultivar's year, a region's altitude, a producer's kind and founding year, a
+ * mark's applies-to and a named tea's provenance were all on screen and none of
+ * them were findable. Auditing the seven would have fixed it until the eighth
+ * column was added.
+ *
+ * So the guarantee is structural rather than remembered. Every column's own
+ * sortable value is folded into the haystack here, which is the same value the
+ * cell renders, so a word the reader can SEE is a word the field can find. A
+ * holding's `searchText` is then only for what the row carries and the list does
+ * not show: Chinese names, aliases, the country behind a region.
+ */
+export const defineHolding = <T,>(holding: WisdomHolding<T>): AnyWisdomHolding => ({
+  ...holding,
+  searchText: row => haystack(holding.searchText(row), ...holding.columns.map(column => column.value(row))),
+});
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -752,6 +857,16 @@ export interface WisdomNearMiss {
 export const NEAR_MISS_LIMIT = 3;
 
 /**
+ * Whether a query is even long enough to have a near miss.
+ *
+ * Under four folded characters everything is one edit from everything else. It
+ * is exported because the empty state has to say it is looking BEFORE the scan
+ * settles, and promising to look at a query that will never be scanned is worse
+ * than the silence it replaced.
+ */
+export const mayNearMiss = (query: string): boolean => wisdomKey(query).length >= 4;
+
+/**
  * The entries a query nearly asked for, nearest first.
  *
  * Exact recognition is the easy half. A query one character off a held entry is
@@ -777,8 +892,10 @@ export function nearestWisdom(
   siblings: readonly AnyWisdomHolding[] = [],
 ): WisdomNearMiss[] {
   const key = wisdomKey(query);
-  // Under four characters everything is one edit from everything else.
-  if (key.length < 4) return [];
+  // Under four characters everything is one edit from everything else. Read
+  // through the same test the empty state uses, so the promise to look and the
+  // looking itself can never disagree.
+  if (!mayNearMiss(query)) return [];
   const max = key.length <= 6 ? 1 : 2;
 
   const found: Array<WisdomNearMiss & { distance: number }> = [];

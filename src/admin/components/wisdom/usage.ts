@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { resolveTea } from '../../../wisdom';
 import type { Product } from '../../types';
 import { ALL_VARIETIES, findHolding } from './holdings';
-import type { WisdomUsageProduct } from './config';
+import { wisdomEntryHref, type WisdomUsageProduct } from './config';
 
 /**
  * The blast radius of an edit, counted rather than described.
@@ -44,11 +44,22 @@ export interface WisdomUsage {
 }
 
 /**
- * There is deliberately no empty-usage constant. "Not counted yet" is
- * `undefined`, and every reader of it answers that by staying silent; a zeroed
- * object would let a panel say "no product resolves through this entry" before
- * anything had been counted, which is a confident wrong answer.
+ * Three states, not two, and the third one used to be indistinguishable from the
+ * first.
+ *
+ * `undefined` is "not counted yet", and every reader answers it by staying
+ * silent, because a confident "no product resolves through this entry" said
+ * before anything is counted is a wrong answer. This constant is the other
+ * absence: the products WERE read and the account holds none. Both leave every
+ * `total === 0` guard behaving exactly as it did; the difference is that a gap
+ * counted from the base alone can now say whether it is still waiting or has
+ * settled at a number that will not move until stock arrives.
  */
+const COUNTED_NOTHING: WisdomUsage = {
+  total: 0,
+  byHolding: new Map(),
+  byHoldingTotal: new Map(),
+};
 
 /** Varieties have no id of their own in the base, so the flat list carries it. */
 const varietyId = (type: string, name: string): string | null =>
@@ -142,6 +153,17 @@ export interface WisdomInventoryScope {
   ids: ReadonlySet<string>;
   /** The entry's own name, for the chip that offers to clear the filter. */
   label: string;
+  /**
+   * What KIND of thing the name is: Cultivar, Region, Mark.
+   *
+   * A vendor, a batch and a wisdom entry all reached the chip as one truncating
+   * label, so a plant named the same as a supplier was indistinguishable from
+   * it and the chip could not say which of the three it would clear. The kind is
+   * the holding's own panel eyebrow, so the two screens use one word for it.
+   */
+  kind: string;
+  /** The way back to the entry that filtered the list. */
+  href: string;
 }
 
 /** `holding:entry`, the form `wisdomInventoryHref` writes. */
@@ -158,12 +180,17 @@ export function readWisdomScope(
 
   const row = holding.rows.find(entry => holding.idOf(entry) === entryId);
   const label = row ? String(holding.columns[0].value(row) ?? entryId) : entryId;
+  // The holding's own word for what this is, so the chip says "Cultivar" where
+  // the panel says "Cultivar". A hand-edited address naming an entry the base
+  // does not hold falls back to the holding's label rather than to nothing.
+  const kind = row ? holding.detail(row).kind : holding.label;
+  const href = wisdomEntryHref(holding.id, entryId);
   // An empty set while the products are still loading, so the grid shows nothing
   // rather than everything. The batch filter above it behaves the same way.
-  if (!products || products.length === 0) return { ids: new Set<string>(), label };
+  if (!products || products.length === 0) return { ids: new Set<string>(), label, kind, href };
 
   const bucket = wisdomUsageFor(products).byHolding.get(holding.id)?.get(entryId);
-  return { ids: new Set((bucket?.products ?? []).map(product => product.id)), label };
+  return { ids: new Set((bucket?.products ?? []).map(product => product.id)), label, kind, href };
 }
 
 type IdleWindow = Window & {
@@ -183,15 +210,26 @@ type IdleWindow = Window & {
  * `undefined` until it is known, which every reader of it already handles by
  * staying silent. A confident "no products" that later turns into eleven is
  * worse than saying nothing.
+ *
+ * An account that HOLDS no products is a different answer from an account whose
+ * products have not been read, and it used to be the same one: both were
+ * `undefined`, so a gap counted from the base alone sat under "until the
+ * products in this account are read" waiting on a reading that had already
+ * happened and had nothing to say. An empty list now counts to zero.
  */
 export function useWisdomUsage(products: readonly Product[] | undefined): WisdomUsage | undefined {
-  const [usage, setUsage] = useState<WisdomUsage | undefined>(() =>
-    products && products.length > 0 ? answered.get(products) : undefined,
-  );
+  const [usage, setUsage] = useState<WisdomUsage | undefined>(() => {
+    if (!products) return undefined;
+    return products.length === 0 ? COUNTED_NOTHING : answered.get(products);
+  });
 
   useEffect(() => {
-    if (!products || products.length === 0) {
+    if (!products) {
       setUsage(undefined);
+      return;
+    }
+    if (products.length === 0) {
+      setUsage(COUNTED_NOTHING);
       return;
     }
     const held = answered.get(products);

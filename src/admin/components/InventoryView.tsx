@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallba
 import { mediaUrl } from '../../lib/mediaUrl';
 import { AnchoredMenu } from '../../components/shared/AnchoredMenu';
 import { BottomSheet, SheetOption } from '../../components/shared/BottomSheet';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import {
   Loader2, FileSpreadsheet, Plus, Download,
   AlertTriangle, Archive, ArrowUpDown, ArrowUp, ArrowDown, Layers, MoreHorizontal, Check, X as XIcon, Star, Sparkles, RefreshCw, ChevronDown, ChevronRight, MapPin, Search, Leaf, Image as ImageIcon, History, SlidersHorizontal
@@ -277,6 +277,47 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   // resolveTea pass the wisdom screen counts with, and cached against the
   // product list itself, so this costs nothing when no wisdom link was followed.
   const wisdomScope = useMemo(() => readWisdomScope(wisdomFilter, products), [wisdomFilter, products]);
+
+  /**
+   * Clearing ONE filter clears that filter.
+   *
+   * The chip used to reset the whole address, which is three other contexts it
+   * never named: the open product panel, the incoming shipment view and the
+   * receipt being read all live in these same params, and all three were dropped
+   * by a control whose label was a vendor name.
+   */
+  const clearFilter = useCallback(
+    (key: string) => setSearchParams(prev => { prev.delete(key); return prev; }, { replace: true }),
+    [setSearchParams],
+  );
+
+  /**
+   * The active filters, each one saying WHAT KIND of filter it is.
+   *
+   * A vendor, a batch and a wisdom entry reached the header as one truncating
+   * gold label, so a cultivar named the same as a supplier was indistinguishable
+   * from it and there was no way to tell which of the three a press would clear.
+   * The kind is a word from the thing itself: the vendor column's own header,
+   * the batch, or the wisdom holding's panel eyebrow.
+   *
+   * A wisdom chip also carries the way back. The crossing was built one way
+   * only: the panel could hand the inventory a filter and the inventory could
+   * not return to the entry that had filtered it.
+   */
+  const contextChips = useMemo(() => {
+    const chips: Array<{ key: string; kind: string; label: string; back?: string }> = [];
+    if (vendorFilter) chips.push({ key: 'vendor', kind: 'Source', label: vendorFilter });
+    if (batchFilter) chips.push({ key: 'batch', kind: 'Batch', label: activeBatch?.label || 'Batch' });
+    if (wisdomFilter) {
+      chips.push({
+        key: INVENTORY_WISDOM_PARAM,
+        kind: wisdomScope?.kind || 'Wisdom',
+        label: wisdomScope?.label || wisdomFilter,
+        back: wisdomScope?.href,
+      });
+    }
+    return chips;
+  }, [vendorFilter, batchFilter, activeBatch, wisdomFilter, wisdomScope]);
 
   // Initialize/Sync Local Products for Optimistic Updates
   // Vendor filter narrows to one source; batch filter narrows to one shipment;
@@ -1720,7 +1761,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
   const vendorMenu = (
     <AnchoredMenu align="right" width={208} open={showVendorDropdown} onOpenChange={setShowVendorDropdown} trigger={(props) => <button {...props} className={chromeBtn} aria-label="Filter by vendor">Vendor</button>}>
-      {(close) => <><button role="menuitem" onClick={() => { setSearchParams({}); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setSearchParams({ vendor: vendor! }); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
+      {/* "All vendors" clears the vendor, and only the vendor. It used to reset
+          the whole address, taking the open panel and the receipt with it. */}
+      {(close) => <><button role="menuitem" onClick={() => { clearFilter('vendor'); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">All vendors</button>{[...new Set(localProducts.map(p => p.vendor).filter(Boolean))].sort().map(vendor => <button key={vendor} role="menuitem" onClick={() => { setSearchParams({ vendor: vendor! }); close(); }} className="w-full px-3 py-2 text-left text-ui-11 text-tea-text-sec">{vendor}</button>)}</>}
     </AnchoredMenu>
   );
 
@@ -1798,7 +1841,27 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                     <span className="font-mono text-ui-11 text-tea-text-dim" title={activeAccountName}>{activeAccountName.replace(/^Teajia\s+/i, '') || 'Bali'}</span>
                     <span className="text-tea-border" aria-hidden="true">·</span>
                     <select value={currency} onChange={(event) => setCurrency(event.target.value as typeof currency)} aria-label="Select currency" className="tap-target shrink-0 appearance-none bg-transparent font-mono text-ui-11 text-tea-text-sec outline-none">{rates.map(rate => <option key={rate.currency} value={rate.currency}>{rate.currency}</option>)}</select>
-                    {(vendorFilter || batchFilter || wisdomFilter) && <button type="button" onClick={() => setSearchParams({})} aria-label="Clear inventory context" className="tap-target max-w-[96px] truncate font-mono text-ui-11 text-tea-gold">{vendorFilter || wisdomScope?.label || activeBatch?.label || 'Batch'} ×</button>}
+                    {/* One chip per filter, each naming its kind and clearing
+                        only itself. A wisdom chip is also the way back to the
+                        entry that filtered the list. The whole group shrinks
+                        before the row does, so the labels truncate rather than
+                        pushing the actions off a 390px screen. */}
+                    {contextChips.map(chip => {
+                      const body = (
+                        <>
+                          <span className="shrink-0 font-mono text-ui-10 uppercase tracking-[0.08em] text-tea-text-dim">{chip.kind}</span>
+                          <span className="min-w-0 max-w-[104px] truncate font-mono text-ui-11 text-tea-gold group-hover:text-tea-gold-lt">{chip.label}</span>
+                        </>
+                      );
+                      return (
+                        <span key={chip.key} data-testid={`inventory-context-${chip.key}`} className="flex min-w-0 shrink items-center gap-1">
+                          {chip.back
+                            ? <Link to={chip.back} aria-label={`Back to ${chip.label} in Wisdom`} className="tap-target group flex min-w-0 items-baseline gap-1 hover:underline underline-offset-2">{body}</Link>
+                            : <span className="flex min-w-0 items-baseline gap-1">{body}</span>}
+                          <button type="button" onClick={() => clearFilter(chip.key)} aria-label={`Clear the ${chip.kind.toLowerCase()} filter ${chip.label}`} className="tap-target shrink-0 justify-center font-mono text-ui-11 text-tea-gold hover:text-tea-gold-lt">×</button>
+                        </span>
+                      );
+                    })}
 
                     {/* find — mobile icon (desktop uses the field above; md:!hidden beats .tap-target) */}
                     <button type="button" onClick={() => setMobileSearchExpanded(true)} aria-label="Search inventory" className="tap-target md:!hidden text-tea-text-sec hover:text-tea-text"><Search size={18} /></button>

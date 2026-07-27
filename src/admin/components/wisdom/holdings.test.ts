@@ -13,7 +13,9 @@ import {
   readFold,
   recogniseQuery,
   toggleFold,
+  wisdomEntryHref,
   wisdomInventoryHref,
+  wisdomKey,
   wisdomMatches,
   wisdomPrefsFromParams,
   wisdomPrefsToParams,
@@ -68,6 +70,49 @@ describe('wisdom holdings', () => {
         expect(sorted.length, `${holding.id}.${column.key}`).toBe(holding.rows.length);
       }
     }
+  });
+
+  // "Find reads every column" was a claim seven hand-written haystacks could
+  // falsify, and five of them did: a cultivar's year, a region's altitude, a
+  // producer's kind and founding year, a mark's applies-to and a named tea's
+  // provenance were all on screen and none of them were findable. The guarantee
+  // is structural now, so an eighth column cannot quietly break it.
+  it('puts every column a reader can see into the text find reads', () => {
+    for (const holding of WISDOM_HOLDINGS) {
+      for (const row of holding.rows) {
+        const hay = wisdomKey(holding.searchText(row));
+        for (const column of holding.columns) {
+          const value = column.value(row);
+          if (value === null || value === undefined || value === '') continue;
+          expect(hay.includes(wisdomKey(String(value))), `${holding.id}.${column.key} = ${value}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  // The five that used to fall through, named so the regression is legible.
+  it('finds the columns that were on screen and unfindable before', () => {
+    const find = (holding: ReturnType<typeof holdingBy>, row: unknown, query: string) =>
+      wisdomMatches(holding.searchText(row), wisdomQueryTokens(query));
+
+    const cultivars = holdingBy('cultivars');
+    const dated = cultivars.rows.find(row => row.developedYear)!;
+    expect(find(cultivars, dated, String(dated.developedYear))).toBe(true);
+
+    const producers = holdingBy('producers');
+    const founded = producers.rows.find(row => row.founded)!;
+    expect(find(producers, founded, String(founded.founded))).toBe(true);
+    const kindColumn = producers.columns.find(column => column.key === 'kind')!;
+    expect(find(producers, founded, String(kindColumn.value(founded)))).toBe(true);
+
+    const marks = holdingBy('marks');
+    const applied = marks.rows.find(row => row.appliesToTypes?.length)!;
+    expect(find(marks, applied, applied.appliesToTypes[0])).toBe(true);
+
+    const namedTeas = holdingBy('named-teas');
+    const provenance = namedTeas.columns.find(column => column.key === 'provenance')!;
+    const named = namedTeas.rows[0];
+    expect(find(namedTeas, named, String(provenance.value(named)))).toBe(true);
   });
 
   it('searches names, Chinese names and aliases', () => {
@@ -375,6 +420,7 @@ describe('the wisdom address', () => {
       groupKey: 'country',
       collapsed: ['China', 'Japan'],
       gapOnly: false,
+      borrowed: null,
     };
     const params = wisdomPrefsToParams(shaped, regions);
     expect(params).toEqual({ group: 'country', sort: '-altitude', fold: 'China~Japan' });
@@ -404,6 +450,7 @@ describe('the wisdom address', () => {
       groupKey: 'country',
       collapsed: [ALL_FOLDED],
       gapOnly: false,
+      borrowed: null,
     };
     const params = wisdomPrefsToParams(folded, regions);
     expect(params).toEqual({ group: 'country', fold: ALL_FOLDED });
@@ -418,11 +465,49 @@ describe('the wisdom address', () => {
       groupKey: 'country',
       collapsed: [ALL_FOLDED, `${OPEN_MARK}China`],
       gapOnly: false,
+      borrowed: null,
     };
     const params = wisdomPrefsToParams(shaped, regions);
     expect(params.fold).toBe(`${ALL_FOLDED}~${OPEN_MARK}China`);
     expect(params.fold.length).toBeLessThan(12);
     expect(wisdomPrefsFromParams(key => params[key] ?? null, regions)).toEqual(shaped);
+  });
+
+  // A grouping the gap filter took on loan is a debt, and a debt that lives in a
+  // ref is a promise only the session that made it can keep.
+  it('carries what the gap filter borrowed, so a link can give it back', () => {
+    const marks = holdingBy('marks');
+    const onLoan: WisdomPrefs = {
+      ...defaultPrefs(marks),
+      groupKey: 'producer',
+      gapOnly: true,
+      borrowed: { groupKey: 'era', collapsed: [ALL_FOLDED] },
+    };
+    const params = wisdomPrefsToParams(onLoan, marks);
+    expect(params).toEqual({ group: 'producer', gap: '1', borrow: 'era', borrowfold: ALL_FOLDED });
+    expect(wisdomPrefsFromParams(key => params[key] ?? null, marks)).toEqual(onLoan);
+
+    // "No grouping at all" is a real thing to hand back, and says so in one char.
+    const fromNone: WisdomPrefs = {
+      ...defaultPrefs(marks),
+      groupKey: 'producer',
+      gapOnly: true,
+      borrowed: { groupKey: '', collapsed: [] },
+    };
+    const bare = wisdomPrefsToParams(fromNone, marks);
+    expect(bare.borrow).toBe('-');
+    expect(bare.borrowfold).toBeUndefined();
+    expect(wisdomPrefsFromParams(key => bare[key] ?? null, marks)).toEqual(fromNone);
+  });
+
+  it('refuses a loan with no gap filter to belong to, or a grouping it cannot repay', () => {
+    const marks = holdingBy('marks');
+    // Nothing is on loan when the gap filter is off, however addressed.
+    const orphan: Record<string, string> = { group: 'producer', borrow: 'era' };
+    expect(wisdomPrefsFromParams(key => orphan[key] ?? null, marks).borrowed).toBe(null);
+    // And a grouping this holding does not have is not a promise worth keeping.
+    const nonsense: Record<string, string> = { gap: '1', group: 'producer', borrow: 'nonsense' };
+    expect(wisdomPrefsFromParams(key => nonsense[key] ?? null, marks).borrowed).toBe(null);
   });
 
   it('falls back rather than obeying an address the holding cannot honour', () => {
@@ -510,12 +595,25 @@ describe('the state of each record', () => {
   });
 });
 
-describe('wisdomInventoryHref', () => {
+describe('the crossing between wisdom and the inventory', () => {
   it('addresses the inventory by the entry, not by a list of product ids', () => {
     const href = wisdomInventoryHref('cultivars', 'rou-gui');
     expect(href).toBe('/admin/inventory?wisdom=cultivars%3Arou-gui');
     // Short whatever the blast radius is: sixty ids would be a kilobyte.
     expect(href.length).toBeLessThan(60);
+  });
+
+  // The crossing was built one way only, so a filtered inventory could not say
+  // which entry had filtered it, let alone go back to it.
+  it('has a return leg that lands on the entry the filter names', () => {
+    expect(wisdomEntryHref('cultivars', 'rou-gui')).toBe('/admin/wisdom?tab=cultivars&entry=rou-gui');
+    // And the two are inverses over every holding the base actually has.
+    for (const holding of WISDOM_HOLDINGS) {
+      const row = holding.rows[0];
+      const back = new URLSearchParams(wisdomEntryHref(holding.id, holding.idOf(row)).split('?')[1]);
+      expect(back.get('tab')).toBe(holding.id);
+      expect(back.get('entry')).toBe(holding.idOf(row));
+    }
   });
 });
 

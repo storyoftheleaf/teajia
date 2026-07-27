@@ -316,7 +316,7 @@ const cultivars = defineHolding<Cultivar>({
       jump={ctx.jump}
       nav={ctx.nav}
       section={ctx.section}
-      runNote={ctx.runNote}
+      run={ctx.run}
       publicHref={ctx.publicHref}
       usage={ctx.usage}
     />

@@ -17,6 +17,7 @@ import {
   compareWisdom,
   defaultPrefs,
   isSectionFolded,
+  mayNearMiss,
   nearestWisdom,
   readFold,
   recogniseQuery,
@@ -32,6 +33,7 @@ import {
   type WisdomLink,
   type WisdomLinkCtx,
   type WisdomPrefs,
+  type WisdomRun,
   type WisdomSection,
 } from './config';
 
@@ -87,12 +89,18 @@ const NEAR_MISS_SETTLE_MS = 250;
  *
  * The last two hints exist as a PAIR, and must stay one. This screen holds two
  * different searches: the find field intersects every word of a query across
- * every field a row carries, while typing at the list is a prefix on the one
+ * every column a row shows, while typing at the list is a prefix on the one
  * axis the list is currently ordered by. The same word put into each lands in
  * two different places, and until these sat side by side nothing said why.
+ *
+ * It read "every field", which was a promise the data could falsify and did: a
+ * cultivar's year, a region's altitude and a producer's kind were all on screen
+ * and none of them were findable. `defineHolding` now guarantees every column is
+ * in the haystack, so the claim is one the base cannot fall short of, and it
+ * names columns because columns are what the reader can check.
  */
 const keyHints = (jumpLabel: string) =>
-  ['↑ ↓ move', 'Home End jump', 'Enter open', `Type → ${jumpLabel}`, 'Find → every field'] as const;
+  ['↑ ↓ move', 'Home End jump', 'Enter open', `Type → ${jumpLabel}`, 'Find → every column'] as const;
 
 interface Props {
   holding: AnyWisdomHolding;
@@ -284,14 +292,28 @@ export const WisdomBrowser: React.FC<Props> = ({
   }, [usage, holding]);
 
   /**
-   * True while a gap that needs the account is being answered by the base alone.
+   * How far a gap that needs the account has got, in three states rather than
+   * two.
    *
    * Regions counted ninety three on arrival and narrowed a beat later, once the
    * products resolved. Both numbers were correct and nothing said so, and a
-   * count that moves on its own reads as a fault. It is stated as provisional
-   * instead, and the statement leaves when the products land.
+   * count that moves on its own reads as a fault, so it was stated as
+   * provisional. But the statement then VANISHED rather than resolving: the
+   * reader was told a number was conditional and never told it had settled, and
+   * an account holding no products at all sat under "until the products are
+   * read" forever, waiting on a reading that had already happened.
+   *
+   *   waiting   the products have not been read yet, so the count can only fall
+   *   none      they were read and the account holds none, so it cannot fall yet
+   *   settled   they were read, and this is the count against all of them
    */
-  const gapProvisional = Boolean(holding.gap?.needsAccount) && usage === undefined;
+  const gapAccount: 'waiting' | 'none' | 'settled' | null = !holding.gap?.needsAccount
+    ? null
+    : usage === undefined
+      ? 'waiting'
+      : usage.total === 0
+        ? 'none'
+        : 'settled';
 
   /** The rows the gap line is counting. Computed once, and it is also the filter. */
   const gapRows = useMemo(
@@ -359,6 +381,24 @@ export const WisdomBrowser: React.FC<Props> = ({
         : [],
     [filtered.length, holding, query, settledQuery, recognition, siblings],
   );
+
+  /**
+   * The quarter second between emptying the list and knowing what was nearly
+   * asked for.
+   *
+   * The settle was added so a reader deleting characters back towards a match
+   * pays for one scan per pause instead of one per key. What it bought in work
+   * it spent in nerve: the screen said "no cultivars match" and then, a beat
+   * later and with no warning, grew a suggestion under it. A beat of nothing
+   * reads as a finished answer, so the second one arrives as a correction.
+   *
+   * Said out loud, the same beat is a search in progress. Only ever claimed for
+   * a query the scan will actually run: under four folded characters
+   * `nearestWisdom` returns nothing, and promising to look at a word nobody will
+   * look at is worse than the silence it replaced.
+   */
+  const nearMissSettling =
+    filtered.length === 0 && !recognition && settledQuery !== query && mayNearMiss(query);
 
   const group = useMemo(
     () => holding.groups?.find(entry => entry.key === groupKey) ?? null,
@@ -521,31 +561,69 @@ export const WisdomBrowser: React.FC<Props> = ({
    * so the heading names the reason the rows are here; putting the gap away
    * gives the reader back the grouping they had, because the grouping was
    * borrowed, not chosen.
+   *
+   * The loan lived in a ref, which is to say in this session and nowhere else,
+   * and it took the reader's FOLDED SHAPE with it without a word: a hundred and
+   * eighty two regions folded to sixteen countries, one press on the gap, and
+   * sixteen sections were unfolded in silence. Both halves of the loan are in
+   * the preferences now, which means both halves are in the address, so a link
+   * carrying a borrowed grouping arrives marked as borrowed and Show all keeps
+   * its promise on a screen that never made it.
    */
-  const borrowedGroup = useRef<string | null>(null);
+  const borrowed = held.borrowed;
 
   const toggleGapOnly = () => {
     const gapNext = !gapOnly;
-    const reveal = holding.gap?.revealBy;
-    const canReveal = Boolean(reveal) && Boolean(holding.groups?.some(option => option.key === reveal));
-    if (!canReveal) {
-      setPrefs({ ...held, gapOnly: gapNext });
+    // Putting the gap away always settles the debt, whether this session took it
+    // on or a link arrived carrying it.
+    if (!gapNext) {
+      setPrefs(
+        borrowed
+          ? { sort, groupKey: borrowed.groupKey, collapsed: borrowed.collapsed, gapOnly: false, borrowed: null }
+          : { ...held, gapOnly: false },
+      );
       return;
     }
-    if (gapNext) {
-      if (groupKey === reveal) {
-        setPrefs({ ...held, gapOnly: gapNext });
-        return;
-      }
-      borrowedGroup.current = groupKey;
-      setPrefs({ sort, groupKey: reveal!, collapsed: [], gapOnly: gapNext });
-    } else if (borrowedGroup.current !== null) {
-      setPrefs({ sort, groupKey: borrowedGroup.current, collapsed: [], gapOnly: gapNext });
-      borrowedGroup.current = null;
-    } else {
-      setPrefs({ ...held, gapOnly: gapNext });
+    const reveal = holding.gap?.revealBy;
+    const canReveal = Boolean(reveal) && Boolean(holding.groups?.some(option => option.key === reveal));
+    // Nothing to reveal by, or the reader is already reading it that way, so
+    // there is nothing to borrow and nothing to give back.
+    if (!canReveal || groupKey === reveal) {
+      setPrefs({ ...held, gapOnly: true });
+      return;
     }
+    setPrefs({
+      sort,
+      groupKey: reveal!,
+      collapsed: [],
+      gapOnly: true,
+      borrowed: { groupKey, collapsed: held.collapsed },
+    });
   };
+
+  /**
+   * What Show all will hand back, said before it is pressed.
+   *
+   * Two things are on loan and only one of them was ever mentioned. The folded
+   * shape is named by its size rather than by its headings, because sixteen
+   * country names in a sentence is the same wall of text the sentinel exists to
+   * keep out of the address.
+   */
+  const borrowedGiveBack = useMemo<string | null>(() => {
+    if (!borrowed) return null;
+    const groupLabel = holding.groups?.find(option => option.key === borrowed.groupKey)?.label ?? null;
+    const shape = readFold(borrowed.collapsed);
+    const folded = shape.all ? -1 : shape.keys.size;
+    const parts = [
+      groupLabel ? `your grouping by ${groupLabel.toLowerCase()}` : 'your ungrouped list',
+      folded === -1
+        ? 'every section you had folded'
+        : folded > 0
+          ? `the ${folded} ${folded === 1 ? 'section' : 'sections'} you had folded`
+          : null,
+    ].filter(Boolean);
+    return parts.join(' and ');
+  }, [borrowed, holding]);
 
   const toggleSort = (key: string) =>
     setPrefs({
@@ -659,7 +737,7 @@ export const WisdomBrowser: React.FC<Props> = ({
    * The bridge between the two searches, offered at the one moment the
    * difference between them actually bites: a word that starts no row on the
    * jump axis, which the find field would very likely still find, because it
-   * reads every field rather than one.
+   * reads every column rather than one.
    */
   const findTypedInstead = () => {
     if (typeTimer.current) clearTimeout(typeTimer.current);
@@ -668,6 +746,38 @@ export const WisdomBrowser: React.FC<Props> = ({
     setTypeMiss(false);
     changeQuery(word);
   };
+
+  /**
+   * What the type-ahead buffer is doing, in words.
+   *
+   * Built once and seated twice, because it used to live only in the toolbar
+   * slot that is `hidden` below md. Below that width a burst that started no row
+   * was answered with silence, which is precisely where a reader has the least
+   * context to work out why nothing moved: the sort arrow is off screen, most
+   * columns are off screen, and the axis being jumped by is a thing they cannot
+   * see. The band under the toolbar is the phone's half of the same slot, so it
+   * takes the same statement and the same offer.
+   */
+  const typedStatus = (testId: string) =>
+    typeMiss ? (
+      // The one moment the two searches visibly disagree, said in words with the
+      // other one offered rather than left to be guessed at.
+      <span data-testid={testId}>
+        No {jumpBy.label.toLowerCase()} starts with{' '}
+        <span className="font-mono text-tea-text-sec">{typed}</span>.{' '}
+        <button
+          type="button"
+          onClick={findTypedInstead}
+          className="text-tea-gold transition-colors hover:text-tea-gold-lt"
+        >
+          Find it in every column
+        </button>
+      </span>
+    ) : (
+      <span className="font-mono text-tea-gold">
+        Jumping to {typed} by {jumpBy.label.toLowerCase()}
+      </span>
+    );
 
   const onListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     // Only a row drives the cursor. A group header lives in this container too,
@@ -763,8 +873,7 @@ export const WisdomBrowser: React.FC<Props> = ({
                 // the old one means nothing and is dropped rather than kept.
                 // It is also a grouping the reader chose, so the gap toggle no
                 // longer has one on loan to give back.
-                borrowedGroup.current = null;
-                setPrefs({ ...held, groupKey: option.key, collapsed: [] });
+                setPrefs({ ...held, groupKey: option.key, collapsed: [], borrowed: null });
                 close();
               }}
               className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-ui-12 ${
@@ -959,30 +1068,7 @@ export const WisdomBrowser: React.FC<Props> = ({
           {condensed && <div className="shrink-0">{tabs(true)}</div>}
           <SearchBox value={query} onChange={changeQuery} placeholder={holding.placeholder} />
           <p className="hidden min-w-0 shrink truncate text-ui-11 text-tea-text-dim md:block">
-            {typed ? (
-              typeMiss ? (
-                // The one moment the two searches visibly disagree, said in
-                // words with the other one offered rather than left to be
-                // guessed at.
-                <span data-testid="wisdom-type-miss">
-                  No {jumpBy.label.toLowerCase()} starts with{' '}
-                  <span className="font-mono text-tea-text-sec">{typed}</span>.{' '}
-                  <button
-                    type="button"
-                    onClick={findTypedInstead}
-                    className="text-tea-gold transition-colors hover:text-tea-gold-lt"
-                  >
-                    Find it in every field
-                  </button>
-                </span>
-              ) : (
-                <span className="font-mono text-tea-gold">
-                  Jumping to {typed} by {jumpBy.label.toLowerCase()}
-                </span>
-              )
-            ) : (
-              statusLine(true, !condensed)
-            )}
+            {typed ? typedStatus('wisdom-type-miss') : statusLine(true, !condensed)}
           </p>
           <div className="flex shrink-0 items-center gap-3">{foldAll}{sortMenu}{groupMenu}</div>
         </div>
@@ -997,7 +1083,13 @@ export const WisdomBrowser: React.FC<Props> = ({
           className={`flex h-6 items-center gap-3 px-3 md:px-4 ${condensed ? 'md:hidden' : ''}`}
           data-testid="wisdom-status-band"
         >
-          <p className="min-w-0 truncate text-ui-11 text-tea-text-dim md:hidden">{statusLine(false)}</p>
+          {/* The phone's half of the toolbar slot. A burst that starts no row
+              says so here, in the same words and with the same offer, rather
+              than being answered with the count line as though nothing had been
+              typed at all. */}
+          <p className="min-w-0 truncate text-ui-11 text-tea-text-dim md:hidden">
+            {typed ? typedStatus('wisdom-type-miss-sm') : statusLine(false)}
+          </p>
           <div className="hidden min-w-0 items-center gap-3 md:flex" data-testid="wisdom-key-hints">
             {keyHints(jumpBy.label).map((hint, index) => (
               <React.Fragment key={hint}>
@@ -1104,10 +1196,26 @@ export const WisdomBrowser: React.FC<Props> = ({
               </p>
               {/* A number that moves on its own reads as a fault. This one is
                   an over-count until the account's own products are read, and
-                  it says so rather than quietly narrowing a beat after arrival. */}
-              {gapProvisional && gapRows.length > 0 && (
+                  it says so rather than quietly narrowing a beat after arrival.
+                  It also says when it has stopped being an over-count, which is
+                  the half that was missing: the qualification used to vanish,
+                  and a reader told a number was conditional was never told it
+                  had settled. An account holding no products is the third state
+                  and used to wear the first one forever, waiting on a reading
+                  that had already happened and had nothing to say. */}
+              {gapAccount === 'waiting' && gapRows.length > 0 && (
                 <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-provisional">
                   Counted from the base alone until the products in this account are read, so it can only fall.
+                </p>
+              )}
+              {gapAccount === 'none' && gapRows.length > 0 && (
+                <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-base-only">
+                  This account holds no products, so the count is the base alone. It will fall when stock arrives.
+                </p>
+              )}
+              {gapAccount === 'settled' && gapRows.length > 0 && (
+                <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-settled">
+                  Counted against all {usage!.total} products in this account, so this number is settled.
                 </p>
               )}
               {(gapRows.length > 0 || gapOnly) && (
@@ -1120,12 +1228,15 @@ export const WisdomBrowser: React.FC<Props> = ({
                   {gapOnly ? 'Show all' : 'Show only these'}
                 </button>
               )}
-              {/* Said, not done silently. The reader pressed one control and two
-                  things moved, and a grouping that changes without a word is the
-                  kind of thing that reads as a bug the first time it happens. */}
-              {gapOnly && borrowedGroup.current !== null && group && (
+              {/* Said, not done silently. The reader pressed one control and up
+                  to three things moved, and a grouping that changes without a
+                  word is the kind of thing that reads as a bug the first time it
+                  happens. The folded shape was the one that moved unannounced:
+                  sixteen sections unfolded to make room for headings the reader
+                  had not asked for. Both are named, both come back. */}
+              {gapOnly && borrowedGiveBack && group && (
                 <p className="min-w-0 text-ui-11 text-tea-text-dim" data-testid="wisdom-gap-grouped">
-                  Grouped by {group.label.toLowerCase()} to show them. Show all gives your grouping back.
+                  Grouped by {group.label.toLowerCase()} to show them. Show all gives back {borrowedGiveBack}.
                 </p>
               )}
             </>
@@ -1213,6 +1324,15 @@ export const WisdomBrowser: React.FC<Props> = ({
             <p className="text-ui-13 text-tea-text-dim">
               No {holding.noun} match &quot;{query}&quot;.
             </p>
+            {/* The beat before the near miss, spent saying so. An empty screen
+                that grows a suggestion a quarter second later reads as a
+                correction to a finished answer; the same beat announced reads as
+                a search still running. */}
+            {nearMissSettling && (
+              <p className="mt-2 text-ui-12 text-tea-text-dim" data-testid="wisdom-near-settling" aria-live="polite">
+                Looking for what the base holds near that.
+              </p>
+            )}
             {/* One candidate is a statement; several are a choice, and only the
                 reader can make it. A query two edits from three held entries used
                 to be answered with one of them, picked by edit distance and
@@ -1289,10 +1409,18 @@ export const WisdomBrowser: React.FC<Props> = ({
       <div className="pb-6" />
 
       {selected && (() => {
+        // The fraction and the sentence about the run are one fact now, built
+        // in one place, so the toolbar can never say "3 / 9" while the header
+        // describes some other nine.
+        const run: WisdomRun | undefined =
+          runNote && selectedIndex >= 0
+            ? { position: selectedIndex + 1, total: ordered.length, note: runNote }
+            : undefined;
         const nav = selectedIndex >= 0 ? (
           <WisdomPanelNav
             position={selectedIndex + 1}
             total={ordered.length}
+            narrowed={Boolean(run)}
             onPrev={selectedIndex > 0 ? () => step(-1) : undefined}
             onNext={selectedIndex < ordered.length - 1 ? () => step(1) : undefined}
           />
@@ -1306,7 +1434,7 @@ export const WisdomBrowser: React.FC<Props> = ({
               jump: onJump,
               nav,
               section: selectedSection,
-              runNote,
+              run,
               publicHref,
               usage: entryLoad,
             })
@@ -1317,7 +1445,7 @@ export const WisdomBrowser: React.FC<Props> = ({
               onClose={() => onSelect(null)}
               nav={nav}
               section={selectedSection}
-              runNote={runNote}
+              run={run}
               publicHref={publicHref}
               usage={entryLoad}
             />
