@@ -2598,7 +2598,7 @@ export default function ArticlePage() {
     ...((article.updated_at || article.created_at) && { dateModified: article.updated_at || article.created_at }),
     ...(articleAuthor && { author: { '@type': 'Person', name: articleAuthor } }),
     publisher: { '@type': 'Organization', name: 'Teajia' },
-    mainEntityOfPage: `https://teajia.co/article/${articleSlug}`,
+    mainEntityOfPage: `https://teajia.com/article/${articleSlug}`,
   };
 
   return (

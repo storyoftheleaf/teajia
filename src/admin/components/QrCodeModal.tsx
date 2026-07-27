@@ -12,7 +12,7 @@ interface QrCodeModalProps {
 export const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, product }) => {
   if (!isOpen || !product) return null;
 
-  const qrValue = `https://teajia.co/shop/${product.id}`;
+  const qrValue = `https://teajia.com/shop/${product.id}`;
 
   const handlePrint = () => {
     window.print();

@@ -17,15 +17,15 @@ Teajia exposes an MCP server so AI assistants can help shoppers directly:
 
 ## Shop & catalog
 
-- Shop: https://teajia.co/shop
-- Individual products: https://teajia.co/shop/product/<id> (each carries Product + Offer JSON-LD)
-- Sitemap: https://teajia.co/sitemap.xml
+- Shop: https://teajia.com/shop
+- Individual products: https://teajia.com/shop/product/<id> (each carries Product + Offer JSON-LD)
+- Sitemap: https://teajia.com/sitemap.xml
 
 ## Reading & learning
 
-- Journal (articles & visual stories): https://teajia.co/read
-- Courses & education: https://teajia.co/learn
-- Start here: https://teajia.co/start-here
+- Journal (articles & visual stories): https://teajia.com/read
+- Courses & education: https://teajia.com/learn
+- Start here: https://teajia.com/start-here
 
 ## Open data
 
