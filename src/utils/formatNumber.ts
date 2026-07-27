@@ -8,6 +8,27 @@
  * for a uniform visual treatment in JetBrains Mono.
  */
 
+/**
+ * These print dollars, unconditionally, and that is now their whole job.
+ *
+ * The `$` is not a formatting choice here, it is a statement that the figure is
+ * in the shop's record currency. That is right for structured data, an
+ * operator's books and an order reference, and wrong for anything a shopping
+ * reader looks at, because the reader chose a currency and the cart has honoured
+ * it since long before the rest of the shop did.
+ *
+ * Round six gave the product page and the shop card `useShopPrice`. Round seven
+ * finished the sweep: the compare view, the saved-teas card, both collection
+ * surfaces and the quick-add sheet all called straight into these two and so
+ * stayed dollar-only, which meant a reader browsing in Rupiah met dollars the
+ * moment they saved a tea, compared two, or opened a collection someone had
+ * shared with them.
+ *
+ * If you are writing a price a customer will read, use `useShopPrice` from
+ * components/shop/shopPrice. If you are writing a price into markup, a ledger
+ * or an invoice, use these.
+ */
+
 /** Format a USD price: "$12.50", "$1,250.00" */
 export function fmtPrice(amount: number, decimals = 2): string {
   return '$' + fmtNum(amount, decimals);

@@ -6,7 +6,7 @@ import { Heart } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { useInventory } from '../../context/InventoryContext';
 import type { InventoryItem } from '../../types';
-import { fmtPricePerGram } from '../../utils/formatNumber';
+import { useShopPrice } from '../shop/shopPrice';
 import { TastingSession, type TastingItem } from '../tasting/TastingSession';
 import { ListShell } from './primitives';
 
@@ -20,6 +20,8 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
   const { inventory } = useInventory();
   const [copied, setCopied] = useState(false);
   const [tastingItem, setTastingItem] = useState<InventoryItem | null>(null);
+  // The saved list is the shop, remembered. Same prices, same currency.
+  const shopPrice = useShopPrice();
 
   const favoriteItems = useMemo(() => {
     return favoriteTeas
@@ -146,7 +148,7 @@ export const MyCollection: React.FC<MyCollectionProps> = ({ onBack, onViewItem }
       <ListShell>
         {favoriteItems.map((item) => {
           const meta = [item.type, item.origin].filter(Boolean).join(' · ');
-          const price = fmtPricePerGram(parseFloat(item.price_per_gram || '0'));
+          const price = shopPrice.perGram(parseFloat(item.price_per_gram || '0'));
 
           const leading = item.image ? (
             <button

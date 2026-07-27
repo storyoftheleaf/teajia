@@ -21,6 +21,13 @@ import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
  * from the surfaces that already own them, so there is one exchange rate in the
  * session rather than one per component.
  *
+ * Round seven made this the only place the conversion is written. The public
+ * cart and its rows each carried a private copy of the same four lines, which
+ * is two conversions against one rate table and two chances for them to drift.
+ * The sample, collection and compare surfaces called the raw `$` formatters
+ * directly, so a reader browsing in Rupiah met dollars the moment they left the
+ * product page. They all read this now.
+ *
  * Deliberately not applied to structured data. `PUBLISHED_CURRENCY` on the
  * product page stays USD, because markup that varies per visitor is worse than
  * markup that is honestly fixed.
@@ -28,6 +35,11 @@ import { fmtShopPrice, fmtShopPricePerGram } from '../../utils/formatNumber';
 export interface ShopPrice {
   /** True when the reader is being shown something other than the shop's USD. */
   localised: boolean;
+  /**
+   * The code the figures below are quoted in. Written into the WhatsApp
+   * message so the basket the customer sends names its own currency.
+   */
+  code: string;
   /** A total, rounded up to a whole unit, as the shop has always quoted totals. */
   total: (usd: number) => string;
   /** A rate, carrying its own `/g`. */
@@ -40,6 +52,7 @@ export function useShopPrice(): ShopPrice {
 
   // USD needs no table, and an empty table is not a reason to invent a rate.
   const localised = currency !== 'USD' && rates.length > 0;
+  const code = localised ? currency : 'USD';
 
   const total = useCallback(
     (usd: number) => (localised ? formatCurrency(Math.ceil(usd), currency, rates) : fmtShopPrice(usd)),
@@ -52,5 +65,5 @@ export function useShopPrice(): ShopPrice {
     [localised, currency, rates],
   );
 
-  return useMemo(() => ({ localised, total, perGram }), [localised, total, perGram]);
+  return useMemo(() => ({ localised, code, total, perGram }), [localised, code, total, perGram]);
 }

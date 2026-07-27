@@ -820,11 +820,24 @@ input[type="number"]::-webkit-outer-spin-button {
    here: pills come in wrapping rows, and invisible boxes stacked one row apart
    overlap and steal each other's taps, which is worse than a small target.
 */
+/* The floor is stated here, once.
+
+   Round six put `min-height: 44px` on this class and, separately, `tap-target
+   min-h-11` on twenty-four call sites, so the same rule was written twice for
+   the same button and neither copy knew about the other. That is not merely
+   redundant: `tap-target` also carries `min-width: 44px` and centres its
+   contents, and it loads after Tailwind, so a pill inside a `justify-between`
+   row was silently pulled to the middle of it and a two-character filter chip
+   was inflated to a 44px square it did not need to be. The width floor belongs
+   with the height floor, so it is here now and the call sites carry neither.
+
+   `:where()` for the alignment so any caller's own `justify-*` still wins. */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
+  min-width: 44px;
   min-height: 44px;
   border-radius: 6px;
   border: none;
@@ -837,9 +850,33 @@ input[type="number"]::-webkit-outer-spin-button {
   color: var(--tea-text-dim);
 }
 
+:where(.pill, .pill-quiet, .pill-dense) {
+  justify-content: center;
+}
+
 .pill:hover {
   background: rgb(var(--tea-gold-rgb) / 0.07);
   color: var(--tea-text-sec);
+}
+
+/* Dense pill: the deliberate exception to the 44px floor.
+
+   Some rows are not toolbars. A one-line notice that says "Logged 'Bai Ji Guan'
+   from Wuyi Origins, 3 May" and offers Same / Different / dismiss is a sentence
+   with two words in it you can press, and giving those two words a 44px square
+   each turned a 26px strip into a 47px band that pushed the capture form it was
+   warning about below the fold. WCAG 2.5.5 is the AAA target; 2.5.8 sets the AA
+   floor at 24px, which this clears, and every one of these rows is a
+   pointer-driven operator surface behind an admin login rather than something a
+   customer meets on a phone.
+
+   Not a general-purpose escape hatch. Using it obliges the call site to say, in
+   a comment, which row it is in and why that row cannot afford 44px. A customer
+   surface never qualifies. */
+.pill-dense {
+  min-width: 0;
+  min-height: 28px;
+  padding: 3px 8px;
 }
 
 .pill-active {
@@ -896,7 +933,9 @@ input[type="number"]::-webkit-outer-spin-button {
   gap: 4px;
   padding: 4px 9px;
   /* Declares the shape from scratch rather than extending .pill, so the floor
-     has to be stated twice. Same 44px, same reason. */
+     has to be stated twice. Same 44px, same reason, and the same width floor —
+     without it the call sites had to reach for `tap-target` to get one. */
+  min-width: 44px;
   min-height: 44px;
   border-radius: 6px;
   border: none;
@@ -2262,15 +2301,20 @@ input[type="number"]::-webkit-outer-spin-button {
   opacity: 0.6;
 }
 
-/* Tasting note in sensory grid — tap target + hover color. */
+/* Tasting note in sensory grid — tap target + hover color.
+
+   No font-size, no family, no weight. This block set body at 13px: the fifth
+   private step in a card whose commerce footer had just given up its own two,
+   one block below this one. Same defect, same fix, and the same trap behind it
+   — a rule in this stylesheet loads after Tailwind and beats a class the
+   component sets on the same element, so a BODY the JSX asked for never landed.
+   The component applies BODY now, and this block carries only shape, spacing
+   and state. */
 .alcove-note-btn {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 7px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 300;
   background: none;
   border: none;
   padding: 9px 4px;
@@ -2604,6 +2648,114 @@ input[type="number"]::-webkit-outer-spin-button {
   height: 10px;
   flex-shrink: 0;
   background: var(--tea-border);
+}
+
+/* Unit stepper (teaware buys by the piece, not by the gram).
+
+   The teaware card drew this with sixty lines of inline style and two 32px
+   buttons, which is a control a finger misses. Same 44px floor as every other
+   control in this footer, and the colours are tokens the lint can read. No
+   font-size: the component sets the roles. */
+.alcove-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--tea-border);
+  border-radius: 3px;
+}
+.alcove-stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  color: var(--tea-text-sec);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.alcove-stepper-btn:hover:not(:disabled) {
+  background: var(--tea-accent-sub);
+  color: var(--tea-text);
+}
+.alcove-stepper-btn:disabled {
+  color: var(--tea-text-dim);
+  cursor: default;
+}
+.alcove-stepper-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0 4px;
+  color: var(--tea-text);
+  box-shadow: inset 1px 0 0 var(--tea-border), inset -1px 0 0 var(--tea-border);
+}
+
+/* Teaware hero. A pot is bought by looking at it, so it keeps a full square
+   above the fold where a tea keeps a thumbnail strip. Everything below was an
+   inline style, including a gradient built from a JavaScript colour bag. */
+.alcove-hero {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--tea-surface);
+  border: none;
+  padding: 0;
+  cursor: zoom-in;
+  display: block;
+}
+.alcove-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: fadeIn 0.3s ease-out;
+}
+.alcove-hero-fade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  pointer-events: none;
+  background: linear-gradient(to top, var(--alcove-bg, var(--tea-bg)), transparent);
+}
+.alcove-hero-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+/* The dot is the mark; the button around it is the 44px a finger needs. */
+.alcove-hero-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.alcove-hero-dot::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--tea-text-dim);
+  transition: width 200ms ease, background-color 200ms ease;
+}
+.alcove-hero-dot[data-active="true"]::before {
+  width: 16px;
+  background: var(--tea-gold);
 }
 
 /* Modals. One backdrop, one panel, so a third modal cannot invent a fourth

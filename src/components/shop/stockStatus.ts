@@ -25,16 +25,33 @@ export interface StockStatus {
 }
 
 /**
+ * What "low" means depends on what is being counted.
+ *
+ * The stock column holds grams for loose leaf and whole pieces for teaware, in
+ * the same field. Reading it as grams for both is why the teaware card carried
+ * its own stock function: under the shared one, three teapots on the shelf read
+ * "Low Stock" and so did the last three hundred, because everything below a
+ * hundred is low when a hundred is a small bag of tea and a warehouse of pots.
+ *
+ * One vocabulary, two thresholds, both stated here rather than reinvented per
+ * surface. A hundred grams is roughly the smallest bag worth posting; two
+ * pieces is the point at which a teaware line is about to end.
+ */
+export type StockUnit = 'g' | 'piece';
+
+const LOW_THRESHOLD: Record<StockUnit, number> = { g: 100, piece: 3 };
+
+/**
  * The card's version also accepted a written `status` string and treated
  * "Sold Out" as authoritative. `InventoryItem` carries no such field, so that
  * branch had never once been reachable from either surface: the card called it
- * with one argument. The gram count is the only fact either surface has.
+ * with one argument. The count is the only fact either surface has.
  */
-export function getStockStatus(stockG: number): StockStatus {
-  if (stockG <= 0) {
+export function getStockStatus(stock: number, unit: StockUnit = 'g'): StockStatus {
+  if (stock <= 0) {
     return { label: 'Sold Out', colorClass: 'text-tea-text-dim', level: 'out' };
   }
-  if (stockG < 100) {
+  if (stock < LOW_THRESHOLD[unit]) {
     return { label: 'Low Stock', colorClass: 'text-tea-gold', level: 'low' };
   }
   return { label: 'In Stock', colorClass: 'text-tea-text-sec', level: 'ok' };

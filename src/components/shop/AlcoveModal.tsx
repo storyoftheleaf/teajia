@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AlcoveCard } from './AlcoveCard';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
 
@@ -50,10 +51,26 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const slideTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const cardRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const justNavigatedRef = useRef(false);
+
+  /**
+   * The trap is the shared hook now, not thirty lines of it written again.
+   *
+   * This dialog kept its own Tab cycle, its own focusable-element query and its
+   * own previously-focused element, twenty lines from the three sample, custom
+   * amount and image dialogs that round six moved onto `useFocusTrap`. Two
+   * implementations of one behaviour is how one of them quietly stops matching:
+   * this copy read the focusable list on every keypress but restored focus from
+   * an effect that only ran when `item` changed, so stepping through the
+   * carousel and then closing returned focus to whatever had been focused
+   * before the *last* card, not before the modal.
+   *
+   * The hook needed two things this copy already had, so both moved into it:
+   * it skips `[inert]` and `[aria-hidden="true"]` subtrees (the peeking preview
+   * cards), and it reads the focusable list at Tab time rather than at arm
+   * time (the card is swapped out from under it by the arrow keys).
+   */
+  const dialogRef = useFocusTrap<HTMLDivElement>(isOpen, { initialFocus: '[data-alcove-close]' });
 
   const currentIndex = item ? items.findIndex(i => i.id === item.id) : -1;
   const isFirst = currentIndex <= 0;
@@ -81,21 +98,22 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
     onItemChange(items[currentIndex - 1]);
   }, [item, onItemChange, items, currentIndex, isFirst]);
 
+  // The preview cards are `aria-hidden` in the markup, which is what the focus
+  // trap reads. `inert` is set here as well so a pointer cannot reach into them
+  // either; it is a property rather than an attribute because React does not
+  // serialise it on every version this app runs on.
   useEffect(() => {
     if (item) {
-      previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       requestAnimationFrame(() => setIsVisible(true));
       requestAnimationFrame(() => {
         dialogRef.current?.querySelectorAll<HTMLElement>('[data-alcove-preview]').forEach((el) => {
           (el as HTMLElement & { inert: boolean }).inert = true;
         });
-        closeButtonRef.current?.focus();
       });
     } else {
       setIsVisible(false);
-      previouslyFocusedRef.current?.focus();
     }
-  }, [item]);
+  }, [item, dialogRef]);
 
   // Keyboard navigation (Escape + arrow keys)
   useEffect(() => {
@@ -188,29 +206,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
       goNext();
       return;
     }
-    if (e.key !== 'Tab') return;
-
-    const focusable = Array.from(
-      dialogRef.current?.querySelectorAll<HTMLElement>(
-        'a[href], button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])'
-      ) ?? []
-    ).filter(el => !el.closest('[aria-hidden="true"]') && el.offsetParent !== null);
-
-    if (focusable.length === 0) {
-      e.preventDefault();
-      closeButtonRef.current?.focus();
-      return;
-    }
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
+    // Tab is `useFocusTrap`'s business.
   };
 
   return (
@@ -298,7 +294,7 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
           >
           {/* On desktop, constrain size. On mobile (<lg), leave just enough
               clearance at the bottom for the global BottomTabBar so the alcove
-              commerce footer sits low — close above the floating capsule — instead
+              commerce footer sits low, close above the floating capsule, instead
               of leaving a dead gap. The capsule floats 12px off the bottom, so we
               reserve 32px here and the footer drops nearer to it. */}
           <style>{`
@@ -332,9 +328,9 @@ export const AlcoveModal: React.FC<AlcoveModalProps> = ({
               onEditProductTasting={onEditProductTasting}
               isAdmin={isAdmin}
             />
-            {/* Close button — top-left of the card per CLAUDE.md panel header rule */}
+            {/* Close button: top-left of the card per CLAUDE.md panel header rule */}
             <button
-              ref={closeButtonRef}
+              data-alcove-close
               className="tap-target absolute top-2 left-2 z-10 flex items-center justify-center text-tea-text-sec hover:text-tea-text transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tea-gold/50"
               onClick={onClose}
               aria-label="Close"

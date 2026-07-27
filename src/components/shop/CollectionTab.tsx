@@ -8,7 +8,7 @@ import { SectionDivider } from '../shared/SectionDivider';
 import { useProductUrl } from '../../hooks/useProductUrl';
 import { useAppStore } from '../../lib/store';
 import type { InventoryItem } from '../../types';
-import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
+import { useShopPrice } from './shopPrice';
 import { AddToSampleButton } from '../samples/AddToSampleButton';
 
 interface CollectionTabProps {
@@ -24,6 +24,9 @@ const ItemCard: React.FC<{
   isSaved?: boolean;
   onToggleSave?: (id: string) => void;
 }> = ({ item, onView, onAddToCart, isSaved, onToggleSave }) => {
+  // The saved-teas card quoted whole dollars while the product page it opens
+  // quoted the reader's currency, so a tea changed price by being tapped.
+  const shopPrice = useShopPrice();
   const pricePerGram = parseFloat(item.price_per_gram || '0');
   // For teaware/misc: price_50g is actually per-unit price (legacy field name)
   const priceUnit = parseFloat(item.price_50g || '0');
@@ -129,12 +132,12 @@ const ItemCard: React.FC<{
             <div>
               {isTea ? (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtShopPrice(pricePerGram * 50)}</span>
+                  <span className="num text-sm text-tea-gold">{shopPrice.total(pricePerGram * 50)}</span>
                   <span className="text-tea-text-sec text-xs ml-1">/ 50g</span>
                 </>
               ) : (
                 <>
-                  <span className="num text-sm text-tea-gold">{fmtShopPrice(priceUnit)}</span>
+                  <span className="num text-sm text-tea-gold">{shopPrice.total(priceUnit)}</span>
                   <span className="text-tea-text-sec text-xs ml-1">each</span>
                 </>
               )}
@@ -210,7 +213,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
     setViewItem(item as InventoryItem); // item is always a full InventoryItem at runtime
   }, []);
 
-  // Saved items — resolved from favorite IDs
+  // Saved items, resolved from favorite IDs
   const savedItems = useMemo(
     () => favoriteTeas
       .map(id => inventory.find(item => item.id === id))
@@ -218,7 +221,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
     [favoriteTeas, inventory]
   );
 
-  // Our picks — featured items, excluding already-saved ones
+  // Our picks: featured items, excluding already-saved ones
   const recommendedItems = useMemo(
     () => inventory.filter(item => item.isFeatured && !favoriteTeas.includes(item.id)),
     [inventory, favoriteTeas]
@@ -265,7 +268,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
           For You
         </h2>
         <p className="text-sm text-tea-text-sec leading-relaxed max-w-lg">
-          Teas you've saved and teas we think you'll love. Tap the heart on any tea across the shop to add it here — your own shortlist for when you're ready to order.
+          Teas you've saved and teas we think you'll love. Tap the heart on any tea across the shop to add it here. Your own shortlist for when you're ready to order.
         </p>
       </div>
 
@@ -308,7 +311,7 @@ export const CollectionTab: React.FC<CollectionTabProps> = ({ inventory, onAddTo
         <>
           <SectionDivider
             label="Our Picks"
-            subtitle="Teas we keep coming back to — worth a try if you haven't already."
+            subtitle="Teas we keep coming back to. Worth a try if you haven't already."
           />
           <div className="flex flex-col gap-6 md:gap-8">
             {recommendedItems.map(item => (

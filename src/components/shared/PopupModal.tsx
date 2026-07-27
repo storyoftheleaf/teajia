@@ -4,7 +4,7 @@ import { HapticSlider } from './HapticSlider';
 import { TeaPlaceholder } from '../shop/TeaPlaceholder';
 import { useScrollLock } from '../../hooks/useScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { fmtShopPrice } from '../../utils/formatNumber';
+import { useShopPrice } from '../shop/shopPrice';
 
 export interface PopupItem {
   id: string;
@@ -53,6 +53,9 @@ export const PopupModal: React.FC<PopupModalProps> = ({
   const isOpen = !!item;
   useScrollLock(isOpen);
   const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
+  // The quick-add sheet quoted whole dollars on the button that spends the
+  // money, beside a cart that quoted the reader's own currency.
+  const shopPrice = useShopPrice();
 
   // Escape key handler
   useEffect(() => {
@@ -208,7 +211,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
-            <span className="num">{fmtShopPrice(totalPrice)}</span>
+            <span className="num">{shopPrice.total(totalPrice)}</span>
           </button>
         </>
       ) : (
@@ -235,7 +238,7 @@ export const PopupModal: React.FC<PopupModalProps> = ({
           >
             <span>Add to Cart</span>
             <span className="opacity-50">•</span>
-            <span className="num">{fmtShopPrice(totalPrice)}</span>
+            <span className="num">{shopPrice.total(totalPrice)}</span>
           </button>
         </>
       )}

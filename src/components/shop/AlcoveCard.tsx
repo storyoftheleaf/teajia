@@ -22,12 +22,56 @@ import { AlcoveJournalSection } from './alcove/AlcoveJournalSection';
 import { AlcoveCommerceFooter } from './alcove/AlcoveCommerceFooter';
 import { SampleModal, CustomAmountModal, ImageOverlayModal } from './alcove/AlcoveModals';
 import { ProductImpressions, type ProductImpression } from './ProductImpressions';
+import { ProductReviews } from './ProductReviews';
 import { TeaReference, type TeaReferenceProduct } from '../wisdom/TeaReference';
 import { FactGrid } from '../wisdom/FactGrid';
 import { getStockStatus } from './stockStatus';
 import { useShopPrice } from './shopPrice';
 import { BODY, LABEL } from '../shared/typeRoles';
 
+/**
+ * What a quick view is for, and what it is therefore allowed to omit.
+ *
+ * Six rounds have gone the same way: someone finds a block the page has and the
+ * card does not, moves it across, and the next round finds another one. Round
+ * six moved the plant, the maker and the brew; round seven opened on the card
+ * still having no reviews and no related teas. The disagreement kept moving
+ * because nobody had written down what the difference is supposed to be, so
+ * every difference looked like an oversight and every fix was a guess.
+ *
+ * The rule, written down so the next round can apply it instead of relitigating
+ * it:
+ *
+ *   The quick view carries everything that is ABOUT this tea.
+ *   The page additionally carries everything that LEADS AWAY from it.
+ *
+ * A reader opens this card from a grid to decide about one tea without losing
+ * their place in that grid. Anything that describes the tea helps them decide,
+ * so it belongs here: the identity, the story, the plant, the maker, the brew,
+ * the tasting notes, the selected impressions, and now the network's reviews.
+ * A reader opens the page from a link, a search result or a share, with no grid
+ * behind them, so the page also has to be a place they can travel from.
+ *
+ * By that rule:
+ *
+ *   Reviews          BOTH. Other people's sessions are testimony about this
+ *                    tea, which is exactly what a reader is weighing.
+ *   Related teas     PAGE ONLY. Not a fact about this tea, and the grid this
+ *                    card is floating over already is the related teas. A
+ *                    "Same place" strip inside an overlay would ask a reader to
+ *                    navigate out of the overlay they opened to avoid
+ *                    navigating.
+ *   Breadcrumbs,     PAGE ONLY, same reason: doors, and the card has one door,
+ *   type/region        which is closing it.
+ *   filter links
+ *   Structured data  PAGE ONLY. A card has no address to publish.
+ *   Empty states     PAGE ONLY. A tea's own address should account for the
+ *                    absence of reviews; a 480px scrolling column should not
+ *                    spend a row saying there is nothing to say.
+ *
+ * When the two surfaces next differ, decide it with that rule and add the row
+ * to the table rather than moving another block across on instinct.
+ */
 interface AlcoveCardProps {
   item: InventoryItem;
   onAddToCart?: (item: InventoryItem, qty: number, total: number) => void;
@@ -344,9 +388,7 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
         item={item}
         productName={productName}
         givenName={givenName}
-        teaType={teaType}
-        origin={origin || ''}
-        vintage={vintage}
+        facts={[teaType, origin, vintage]}
         isAdmin={isAdmin}
         onNavigateSource={() => navigate(`/admin/people?tab=sources&search=${encodeURIComponent(item.supplier!)}`)}
       />
@@ -471,6 +513,17 @@ export const AlcoveCard: React.FC<AlcoveCardProps> = ({ item, onAddToCart, onClo
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* What the network wrote about this tea. About the tea, so it is here.
+          See the doctrine at the head of this file. */}
+      {item.category === 'tea' && (
+        <div className="alcove-body-section mt-7">
+          <ProductReviews
+            productId={item.id}
+            teaKey={(item as InventoryItem & { tea_key?: string }).tea_key}
+          />
         </div>
       )}
 

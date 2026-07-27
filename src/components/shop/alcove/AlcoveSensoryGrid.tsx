@@ -8,7 +8,7 @@ import {
 } from '../../../data/tastingTaxonomy';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, ChevronRight } from 'lucide-react';
-import { LABEL } from '../../shared/typeRoles';
+import { BODY, LABEL } from '../../shared/typeRoles';
 
 interface AlcoveSensoryGridProps {
   item: InventoryItem;
@@ -108,7 +108,7 @@ export const AlcoveSensoryGrid: React.FC<AlcoveSensoryGridProps> = ({
                 key={noteItem.key}
                 type={onTermClick ? 'button' : undefined}
                 onClick={onTermClick ? () => onTermClick(noteItem.termId, noteItem.categoryId || 'flavor') : undefined}
-                className={`alcove-note-btn ${isOddLast ? 'col-span-2' : ''}`}
+                className={`alcove-note-btn ${BODY} ${isOddLast ? 'col-span-2' : ''}`}
                 data-readonly={!onTermClick}
                 data-col={isLeftCol && !isOddLast ? 'left' : 'right'}
                 data-rule={!isLastRow}

@@ -653,7 +653,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
                  <button
                     onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType('All'); setOpenFilter(null); }}
-                    className={`pill tap-target ${activeType === 'All' ? 'pill-active' : ''}`}
+                    className={`pill ${activeType === 'All' ? 'pill-active' : ''}`}
                  >
                     All
                  </button>
@@ -661,7 +661,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={t}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveType(prev => prev === t ? 'All' : t); setOpenFilter(null); }}
-                       className={`pill tap-target ${activeType === t ? 'pill-active' : ''}`}
+                       className={`pill ${activeType === t ? 'pill-active' : ''}`}
                     >
                        {t}
                     </button>
@@ -672,7 +672,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
               <div className="flex flex-wrap gap-1.5 pb-3 animate-[fadeIn_0.15s_ease-out]">
                  <button
                     onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveRegion(null); setOpenFilter(null); }}
-                    className={`pill tap-target ${activeRegion === null ? 'pill-active' : ''}`}
+                    className={`pill ${activeRegion === null ? 'pill-active' : ''}`}
                  >
                     All
                  </button>
@@ -680,7 +680,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={region.key}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveRegion(prev => prev === region.key ? null : region.key); setOpenFilter(null); }}
-                       className={`pill tap-target ${activeRegion === region.key ? 'pill-active' : ''}`}
+                       className={`pill ${activeRegion === region.key ? 'pill-active' : ''}`}
                     >
                        {region.label}
                     </button>
@@ -692,7 +692,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                  {activeFeeling && (
                     <button
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(null); setOpenFilter(null); }}
-                       className="pill tap-target"
+                       className="pill"
                     >
                        Clear
                     </button>
@@ -701,7 +701,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={f.id}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setActiveFeeling(prev => prev === f.id ? null : f.id); setOpenFilter(null); }}
-                       className={`pill tap-target ${activeFeeling === f.id ? 'pill-active' : ''}`}
+                       className={`pill ${activeFeeling === f.id ? 'pill-active' : ''}`}
                     >
                        {f.label}
                     </button>
@@ -714,7 +714,7 @@ export const TeaInventory: React.FC<TeaInventoryProps> = ({ inventory, onAddToCa
                     <button
                        key={o.id}
                        onClick={() => { if ('vibrate' in navigator) navigator.vibrate?.(10); setShopSort(o.id); setOpenFilter(null); }}
-                       className={`pill tap-target ${shopSort === o.id ? 'pill-active' : ''}`}
+                       className={`pill ${shopSort === o.id ? 'pill-active' : ''}`}
                     >
                        {o.label}
                     </button>

@@ -8,11 +8,9 @@ import { useAppStore } from '../lib/store';
 import { Icons } from '../components/Icons';
 import { TeaPlaceholder } from '../components/shop/TeaPlaceholder';
 import { HapticSlider } from '../components/shared/HapticSlider';
-import { fmtPricePerGram, fmtShopPrice } from '../utils/formatNumber';
-import type { InventoryItem, TastingData } from '../types';
+import type { InventoryItem } from '../types';
 import { buildWhatsAppUrl, buildOrderMessage } from '../lib/whatsapp';
 import { api } from '../lib/api';
-import { resolveTermLabel, flattenTastingNotes } from '../data/tastingTaxonomy';
 import { getBrewingProfile } from '../data/brewing-profiles';
 import { getTeaColor } from '../designTokens';
 import { normalizeTeaType } from '../wisdom';
@@ -22,6 +20,7 @@ import { useAuth } from '../hooks/useAuth';
 import { TastingEditorModal } from '../admin/components/TastingEditorModal';
 import type { Product } from '../admin/types';
 import { ProductImpressions, type ProductImpression } from '../components/shop/ProductImpressions';
+import { ProductReviews } from '../components/shop/ProductReviews';
 import { getStockStatus } from '../components/shop/stockStatus';
 import { useShopPrice } from '../components/shop/shopPrice';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -30,127 +29,6 @@ import { TeaReference, type TeaReferenceProduct } from '../components/wisdom/Tea
 import { FactGrid } from '../components/wisdom/FactGrid';
 import { BODY, HEADING, HIT_AREA, LABEL, LABEL_GAP, LINK, NUMERAL, SECTION, TITLE } from '../components/shared/typeRoles';
 
-// ── Feature 4: Public tea reviews section ────────────────────────────────────
-
-interface PublicTeaReview {
-  id: string;
-  tea_key: string;
-  author_name?: string;
-  author_account_name?: string;
-  // The API also returns `rating`, a number out of ten. It is deliberately not
-  // read here. Scoring is banned outright on this site, and a number rating a
-  // tea is not a fact about the tea: it is one person's compression of a
-  // session into a digit, printed in the face reserved for the numbers a
-  // customer transacts on, which lent it the authority of a price. The verdict
-  // and the note below say the same thing in the taster's own words, which is
-  // what a reader can actually weigh.
-  notes?: string;
-  voice_notes?: string[];
-  tasting?: TastingData;
-  verdict?: string;
-  session_date?: string;
-  created_at: string;
-  visibility: string;
-}
-
-const PublicReviewsSection: React.FC<{ productId: string; teaKey?: string }> = ({ productId, teaKey }) => {
-  const { data: reviews = [], isLoading } = useQuery<PublicTeaReview[]>({
-    queryKey: ['public-tea-reviews', productId, teaKey],
-    queryFn: () => api.teaReviews.list({
-      product_id: productId,
-      ...(teaKey ? { tea_key: teaKey } : {}),
-      visibility: 'network',
-    }),
-    staleTime: 60_000,
-  });
-
-  const networkReviews = reviews.filter(r => r.visibility === 'network');
-  const { data: impressions = [] } = useQuery<ProductImpression[]>({
-    queryKey: ['product-impressions', productId],
-    queryFn: () => api.productImpressions.list(productId),
-    staleTime: 60_000,
-  });
-
-  if (isLoading) return null;
-
-  if (networkReviews.length === 0 && impressions.length === 0) {
-    return (
-      <div className="mt-6 pt-6 border-t border-tea-border">
-        <h2 className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>Reviews</h2>
-        <p className={`${BODY} text-tea-text-dim italic`}>No reviews yet.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-6 pt-6 border-t border-tea-border">
-      <ProductImpressions impressions={impressions} />
-      {networkReviews.length > 0 && <>
-        {/* One word, one case. The count used to ride inside the label in
-            normal case, which made this the only label on the page setting two
-            cases in one line, and it was counting entries that are listed
-            directly beneath it in full. A number a reader can see is not a
-            fact the heading has to carry. */}
-        <h2 className={`${LABEL} ${LABEL_GAP} text-tea-text-dim`}>Reviews</h2>
-        {/* Flat entries, separated by the same hairline every other section on
-            this page is separated by. This was the last bordered, filled card
-            left standing after the brewing card dissolved into a fact grid, and
-            one surviving card among flat sections reads as a leftover widget
-            rather than as part of the page. Hierarchy inside an entry is colour
-            only: the note is secondary, everything about the note is dim. */}
-        <div className="space-y-5">
-        {networkReviews.map(r => {
-          const flavorTerms = r.tasting ? flattenTastingNotes(r.tasting) : [];
-          const brewedAt = r.tasting?.brewingTemp
-            ? [`Brewed at ${r.tasting.brewingTemp}°C`, r.tasting.brewingTime, r.tasting.brewingVessel]
-                .filter(Boolean)
-                .join(' · ')
-            : '';
-          return (
-            <article key={r.id} className="space-y-1 border-t border-tea-border pt-5 first:border-t-0 first:pt-0">
-              <div className={`${BODY} flex flex-wrap items-baseline gap-x-2 text-tea-text-dim`}>
-                <span className="text-tea-text">
-                  {r.author_name ? r.author_name.charAt(0) + '.' : 'Anonymous'}
-                </span>
-                {r.author_account_name && <span>· {r.author_account_name}</span>}
-                {r.verdict && <span className="capitalize text-tea-text-sec">{r.verdict}</span>}
-                <span className={`${NUMERAL} ml-auto`}>
-                  {(r.session_date || r.created_at).slice(0, 10)}
-                </span>
-              </div>
-
-              {/* Terms a reader cannot tap are a caption, not a row of pills.
-                  The metadata under the title stopped pretending to be links in
-                  round two; these were the same promise, still unkept. */}
-              {flavorTerms.length > 0 && (
-                <p className={`${BODY} text-tea-text-dim`}>
-                  {flavorTerms.slice(0, 6).map(termId => resolveTermLabel(termId)).join(' · ')}
-                </p>
-              )}
-
-              {r.notes && (
-                <p className={`${BODY} italic text-tea-text-sec`}>{r.notes}</p>
-              )}
-
-              {r.voice_notes && r.voice_notes.length > 0 && (
-                <div className="space-y-1">
-                  {r.voice_notes.map((n, i) => (
-                    <p key={i} className={`${BODY} italic text-tea-text-sec`}>&ldquo;{n}&rdquo;</p>
-                  ))}
-                </div>
-              )}
-
-              {brewedAt && <p className={`${BODY} text-tea-text-dim`}>{brewedAt}</p>}
-            </article>
-          );
-        })}
-        </div>
-      </>}
-    </div>
-  );
-};
-
-// ── End Feature 4 ────────────────────────────────────────────────────────────
 
 const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || '';
 
@@ -249,6 +127,16 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
    */
   const shopPrice = useShopPrice();
 
+  // Keyed on the id from the address rather than on the resolved item, so this
+  // is one hook call on every render including the one where inventory has not
+  // arrived yet. See the note above the "Not found" return.
+  const { data: pageImpressions = [] } = useQuery<ProductImpression[]>({
+    queryKey: ['product-impressions', id],
+    queryFn: () => api.productImpressions.list(id!),
+    enabled: Boolean(id),
+    staleTime: 60_000,
+  });
+
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
@@ -331,6 +219,39 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
     return groups;
   }, [relatedTeas]);
 
+  /**
+   * Everything this page asks React for, asked before the page can decide it
+   * has nothing to show.
+   *
+   * These four sat below the "Not found" return. React identifies a hook by the
+   * order it is called in, so a render that returned early called four hooks
+   * fewer than a render that did not, and the next render with a product threw
+   * "Rendered more hooks than during the previous render" and took the route
+   * down with it. That is not a hypothetical: `inventory` arrives empty on the
+   * first paint of a cold load, so /shop/product/:id resolves to no item, then
+   * to an item, on every direct visit. The page has been one slow network away
+   * from a white screen since the tasting editor was added.
+   *
+   * `useProductTasting` and `adminProductShim` already accept a missing item and
+   * return null, so nothing below this point had to change.
+   */
+  const resolvedTasting = useProductTasting(item);
+  const { isAdmin } = useAuth();
+  const [tastingEditorOpen, setTastingEditorOpen] = useState(false);
+
+  // Minimal Product shape TastingEditorModal needs; mapped from the public InventoryItem.
+  const adminProductShim: Product | null = useMemo(() => {
+    if (!item) return null;
+    return {
+      id: item.id,
+      givenName: item.name,
+      productName: item.variant || item.name,
+      type: item.type as Product['type'],
+      imageUrl: item.image || '',
+      tasting: item.tasting,
+    } as Product;
+  }, [item]);
+
   if (!item) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6 animate-[fadeIn_0.5s_ease-out]">
@@ -376,22 +297,6 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
   const terroir = item.terroir || '';
   const processing = item.processingNotes || '';
   const brewingProfile = item.category === 'tea' ? getBrewingProfile(item.type) : undefined;
-  const resolvedTasting = useProductTasting(item);
-  const { isAdmin } = useAuth();
-  const [tastingEditorOpen, setTastingEditorOpen] = useState(false);
-
-  // Minimal Product shape TastingEditorModal needs; mapped from the public InventoryItem.
-  const adminProductShim: Product | null = useMemo(() => {
-    if (!item) return null;
-    return {
-      id: item.id,
-      givenName: item.name,
-      productName: item.variant || item.name,
-      type: item.type as Product['type'],
-      imageUrl: item.image || '',
-      tasting: item.tasting,
-    } as Product;
-  }, [item]);
 
   const handleAdd = () => {
     if (isSoldOut) return;
@@ -949,6 +854,17 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
           {/* WhatsApp checkout handoff */}
           {!isSoldOut && (
             <div className="pt-4 mt-2">
+              {/* The message quotes the page, not the ledger.
+                  It was built from the raw dollar formatters while the block
+                  three inches above it quoted the reader's own currency, so one
+                  tap produced two numbers for one basket: a customer who set
+                  Rupiah read "Rp1,375,000" on the button and sent Adrian "$84".
+                  Neither of them could tell which one they had agreed to.
+                  The page is authoritative, because the page is what the
+                  customer read before they pressed anything. The currency is
+                  named in the note beneath the lines so the figures cannot be
+                  misread on the operator's side, and the published markup is
+                  untouched: it stays USD, per PUBLISHED_CURRENCY above. */}
               <button
                 onClick={() => {
                   const message = buildOrderMessage({
@@ -957,11 +873,12 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
                       name: item.variant || item.name,
                       quantity: grams,
                       unit: 'g',
-                      price: fmtPricePerGram(pricePerGram),
-                      total: fmtShopPrice(total),
+                      price: shopPrice.perGram(pricePerGram),
+                      total: shopPrice.total(total),
                     }],
-                    subtotal: fmtShopPrice(total),
-                    total: fmtShopPrice(total),
+                    subtotal: shopPrice.total(total),
+                    total: shopPrice.total(total),
+                    notes: `Prices as shown on the site, in ${shopPrice.code}.`,
                   });
                   window.open(buildWhatsAppUrl(WHATSAPP_NUMBER, message), '_blank');
                 }}
@@ -979,9 +896,21 @@ export const ProductPage: React.FC<ProductPageProps> = ({ onAddToCart }) => {
         </div>
       </div>
 
-      {/* Feature 4: Public tea reviews */}
+      {/* Selected impressions, then what the network wrote.
+          Both of these also render in the quick view, because both are about
+          this tea. See the doctrine at the head of components/shop/AlcoveCard
+          for what the two surfaces are allowed to differ on: only the empty
+          state is page-only, because a tea's own address should account for an
+          absence and a 480px card should not spend a row on one. */}
       {item.category === 'tea' && (
-        <PublicReviewsSection productId={item.id} teaKey={(item as InventoryItem & { tea_key?: string }).tea_key} />
+        <div className="mt-6 pt-6 border-t border-tea-border">
+          <ProductImpressions impressions={pageImpressions} />
+          <ProductReviews
+            productId={item.id}
+            teaKey={(item as InventoryItem & { tea_key?: string }).tea_key}
+            emptyState
+          />
+        </div>
       )}
 
       {/* Related teas. Each group is headed by the fact its teas share, not by

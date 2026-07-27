@@ -2,10 +2,7 @@
 import React from 'react';
 import { CartItem as PublicCartItemType } from '../../types';
 import { Icons } from '../Icons';
-import { fmtShopPrice } from '../../utils/formatNumber';
-import { useAppStore } from '../../lib/store';
-import { formatCurrency } from '../../admin/utils';
-import { useRates } from '../../admin/hooks/useAdminData';
+import { useShopPrice } from '../shop/shopPrice';
 
 interface CartItemProps {
   item: PublicCartItemType;
@@ -14,16 +11,10 @@ interface CartItemProps {
 }
 
 export const CartItemRow: React.FC<CartItemProps> = ({ item, onRemove, onUpdateQuantity }) => {
-  const currency = useAppStore(s => s.currency);
-  const { data: rates = [] } = useRates();
-
-  const displayPrice = (usd: number) => {
-    const rounded = Math.ceil(usd);
-    if (rates.length > 0 && currency !== 'USD') {
-      return formatCurrency(rounded, currency, rates);
-    }
-    return fmtShopPrice(usd);
-  };
+  // The row and the cart total it adds up to were converted by two identical
+  // private copies of the same four lines, each reading the same rate table.
+  // One helper, so a row can never round differently from the sum of rows.
+  const { total: displayPrice } = useShopPrice();
   const step = item.category === 'tea' ? 10 : 1;
 
   // Suppress variant when it duplicates the product name (case-insensitive)

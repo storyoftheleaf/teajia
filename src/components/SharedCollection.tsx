@@ -4,12 +4,15 @@ import { SealIcon } from './Icons';
 import { useInventory } from '../context/InventoryContext';
 import { AlcoveModal } from './shop/AlcoveModal';
 import type { InventoryItem } from '../types';
-import { fmtPricePerGram } from '../utils/formatNumber';
+import { useShopPrice } from './shop/shopPrice';
 
 export const SharedCollection: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { inventory } = useInventory();
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
+  // A shared collection is a shop page someone else built. It quoted dollars
+  // while the shop it links into quoted the reader's own currency.
+  const shopPrice = useShopPrice();
 
   const collectionIds = useMemo(() => {
     const encoded = searchParams.get('c');
@@ -98,7 +101,7 @@ export const SharedCollection: React.FC = () => {
                 {item.year ? ` · ${item.year}` : ''}
               </p>
               <p className="font-mono text-ui-13 text-tea-text-sec mt-1.5 tabular-nums">
-                {fmtPricePerGram(parseFloat(item.price_per_gram || '0'))}
+                {shopPrice.perGram(parseFloat(item.price_per_gram || '0'))}
               </p>
             </div>
           </button>

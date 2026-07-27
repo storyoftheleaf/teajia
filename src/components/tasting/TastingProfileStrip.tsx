@@ -34,13 +34,24 @@ function shopFilterHref(categoryId: string, termId: string): string | null {
   return null;
 }
 
-const CATEGORY_DOT_COLORS: Record<string, string> = {
-  body: '#a08060',
-  feeling: '#7a9a80',
-  flavor: '#9a7a6a',
-  finish: '#8a8a72',
-  'liquor-color': '#8a7a6a',
-};
+/**
+ * Categories are told apart by their icon, not by a hue of their own.
+ *
+ * This block used to be five hardcoded hex values, plus two `#8a8a80`
+ * fallbacks and a `#888`: eight colour literals, all of them painted through
+ * an inline style, on the component the product page renders third from the
+ * top. `npm run lint:colors` reads className strings, so an inline style is
+ * exactly the blind spot round six closed on the shop card, and these were the
+ * same defect one folder over.
+ *
+ * None of the five adapted to the theme, none was near a token, and all five
+ * were muted browns within about fifteen percent of each other, which is not a
+ * legible code even before the light-mode background moves under them. The
+ * component already owns a per-category icon and used it in the grouped
+ * variant. The cloud variant now uses the same icon, so the legend and the
+ * terms it explains are marked with one thing rather than two, and the code
+ * survives a theme flip and a colour-blind reader.
+ */
 
 /** Category display labels - small uppercase */
 const CATEGORY_LABELS: Record<string, string> = {
@@ -133,12 +144,15 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
         {/* Legend row — non-color categories only */}
         {activeCats.length > 1 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {activeCats.map(group => (
-              <span key={group.categoryId} className={`${LABEL} inline-flex items-center gap-1 text-tea-text-dim`}>
-                <span className="shrink-0 rounded-full" style={{ width: 5, height: 5, background: CATEGORY_DOT_COLORS[group.categoryId] ?? '#8a8a80', display: 'inline-block', opacity: 0.9 }} />
-                {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
-              </span>
-            ))}
+            {activeCats.map(group => {
+              const LegendIcon = CATEGORY_HEADER_ICONS[group.categoryId];
+              return (
+                <span key={group.categoryId} className={`${LABEL} inline-flex items-center gap-1 text-tea-text-dim`}>
+                  {LegendIcon && <LegendIcon size={9} className="shrink-0" />}
+                  {CATEGORY_LABELS[group.categoryId] ?? group.categoryId}
+                </span>
+              );
+            })}
           </div>
         )}
 
@@ -146,7 +160,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
         <div className="flex flex-wrap gap-1.5">
           {nonColorGroups.map(group =>
             group.terms.map(termId => {
-              const dotColor = CATEGORY_DOT_COLORS[group.categoryId] ?? '#8a8a80';
+              const TagIcon = CATEGORY_HEADER_ICONS[group.categoryId];
               const label = resolveTermLabel(termId);
               return (
                 <button
@@ -157,7 +171,7 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                   aria-label={onRemove ? `Remove ${label}` : label}
                   style={{ gap: '6px' }}
                 >
-                  <span className="shrink-0 rounded-full" style={{ width: 6, height: 6, background: dotColor, display: 'inline-block', opacity: 0.7 }} />
+                  {TagIcon && <TagIcon size={9} className="shrink-0" />}
                   {label}
                   {onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
                 </button>
@@ -167,7 +181,12 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
 
           {/* Liquor-color swatches — rendered as color circles, not text pills */}
           {colorGroup?.terms.map(termId => {
-            const hex = LIQUOR_COLORS[termId] ?? '#888';
+            // The liquor's own colour is the one colour on this component that
+            // is data rather than styling: it is what the tea looks like in the
+            // cup, so it is read from the taxonomy and painted as given. A term
+            // the taxonomy has no colour for gets no swatch and no tint, rather
+            // than an invented grey standing in for a measurement nobody made.
+            const hex: string | undefined = LIQUOR_COLORS[termId];
             const label = resolveTermLabel(termId);
             return (
               <button
@@ -181,9 +200,11 @@ const TastingProfileStripInner: React.FC<TastingProfileStripProps> = ({ value, t
                 // else in the app, and the swatch dot inside already carries a
                 // ring in the same hue, so the outline was drawing the colour
                 // twice on one pill.
-                style={{ background: `${hex}22` }}
+                style={hex ? { background: `${hex}22` } : undefined}
               >
-                <span className="shrink-0 rounded-full" style={{ width: 10, height: 10, background: hex, display: 'inline-block', boxShadow: `0 0 0 1px ${hex}80` }} />
+                {hex && (
+                  <span className="shrink-0 rounded-full" style={{ width: 10, height: 10, background: hex, display: 'inline-block', boxShadow: `0 0 0 1px ${hex}80` }} />
+                )}
                 {label}
                 {onRemove && <X size={8} className="shrink-0 opacity-0 group-hover:opacity-50 transition-opacity" />}
               </button>

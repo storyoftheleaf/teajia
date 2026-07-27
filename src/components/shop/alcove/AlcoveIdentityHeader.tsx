@@ -7,9 +7,17 @@ interface AlcoveIdentityHeaderProps {
   item: InventoryItem;
   productName: string;
   givenName: string;
-  teaType: string;
-  origin: string;
-  vintage: string | number | undefined;
+  /**
+   * The caption of facts under the name, strongest first.
+   *
+   * A list rather than three named fields, because the two cards caption a
+   * product with different facts: a tea is type, origin and year, a teapot is
+   * material, capacity and where it was thrown. The teaware card used to write
+   * its own header to say that, in its own type scale, which is how one shop
+   * ended up setting the same product name at 32px on one card and 28px on the
+   * other. Empty entries are dropped so no separator is left hanging.
+   */
+  facts: Array<string | number | undefined | null>;
   isAdmin?: boolean;
   onNavigateSource: () => void;
 }
@@ -18,12 +26,11 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
   item,
   productName,
   givenName,
-  teaType,
-  origin,
-  vintage,
+  facts,
   isAdmin,
   onNavigateSource,
 }) => {
+  const captionFacts = facts.filter(Boolean) as Array<string | number>;
   return (
     // `alcove-measure` is the container the TITLE role reads its size from.
     // Without it the role clamps against the window, so a 480px card on a
@@ -48,15 +55,20 @@ export const AlcoveIdentityHeader: React.FC<AlcoveIdentityHeaderProps> = ({
           {givenName}
         </p>
       )}
-      {/* Tea type · origin · year: a caption of three facts, on the same
-          separator the product page joins the same three facts with. */}
-      <div className="alcove-caption" data-tight={Boolean(givenName)}>
-        <p className={`${BODY} m-0 text-center text-tea-text-dim`}>
-          {teaType}
-          {origin && <><span className="select-none"> · </span>{origin}</>}
-          {vintage && <><span className="select-none"> · </span>{vintage}</>}
-        </p>
-      </div>
+      {/* A caption of facts, on the same separator the product page joins the
+          same facts with. */}
+      {captionFacts.length > 0 && (
+        <div className="alcove-caption" data-tight={Boolean(givenName)}>
+          <p className={`${BODY} m-0 text-center text-tea-text-dim`}>
+            {captionFacts.map((fact, idx) => (
+              <React.Fragment key={`${fact}-${idx}`}>
+                {idx > 0 && <span className="select-none"> · </span>}
+                {fact}
+              </React.Fragment>
+            ))}
+          </p>
+        </div>
+      )}
       {/* Vendor / Source: admin-only link to the source profile. */}
       {item.supplier && isAdmin && (
         <div className="pt-1 text-center">

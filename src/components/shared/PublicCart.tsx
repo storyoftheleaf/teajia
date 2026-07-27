@@ -1,12 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CartItem as PublicCartItem } from '../../types';
-import { fmtPrice, fmtShopPrice } from '../../utils/formatNumber';
 import { buildOrderMessage } from '../../lib/whatsapp';
 import { CONTACT_UNAVAILABLE, resolveContactChannels } from '../../lib/contact';
 import { useAppStore } from '../../lib/store';
-import { formatCurrency } from '../../admin/utils';
 import { useRates } from '../../admin/hooks/useAdminData';
+import { useShopPrice } from '../shop/shopPrice';
 import { Icons } from '../Icons';
 import { Button } from './Button';
 import { CartItemRow } from './CartItem';
@@ -58,13 +57,20 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
   const setCurrency = useAppStore(s => s.setCurrency);
   const { data: rates = [] } = useRates();
 
-  const displayPrice = useCallback((usd: number) => {
-    const rounded = Math.ceil(usd);
-    if (rates.length > 0 && currency !== 'USD') {
-      return formatCurrency(rounded, currency, rates);
-    }
-    return fmtShopPrice(usd);
-  }, [currency, rates]);
+  /**
+   * One conversion, owned by the shop.
+   *
+   * This was four lines of private arithmetic against the same rate table the
+   * shop price helper already reads, and `CartItem` one file over held a
+   * verbatim copy of it. Two conversions against one table is two chances to
+   * round differently, and the row total and the cart total are the two numbers
+   * a customer is most likely to compare.
+   *
+   * `rates` is still read here, but only to decide whether the currency
+   * selector and the exchange-rate line have anything to offer.
+   */
+  const shopPrice = useShopPrice();
+  const displayPrice = useCallback((usd: number) => shopPrice.total(usd), [shopPrice]);
 
   const orderRef = useMemo(() => {
     const stored = localStorage.getItem('teajia_orderRef');
@@ -151,18 +157,27 @@ export const PublicCart: React.FC<PublicCartProps> = ({ cart, onRemoveItem, onUp
     customerName: details.name,
     customerContact: details.contact,
     customerLocation: details.location,
-    notes: details.notes,
+    notes: [details.notes, `Prices as shown on the site, in ${shopPrice.code}.`]
+      .filter(Boolean)
+      .join('\n\n'),
     items: cart.map(item => ({
       name: item.name,
       variant: item.variant,
       quantity: item.quantityGrams,
       unit: item.category === 'tea' ? 'g' : '\u00d7',
-      price: fmtPrice(item.pricePerGram),
-      total: fmtShopPrice(item.totalPrice),
+      // The same figures the reader has been looking at for three steps. These
+      // were the raw dollar formatters while the totals beside them were
+      // localised, so the review screen and the message it produced disagreed
+      // about the price of the same basket. Loose leaf is quoted per gram, a
+      // pot per pot, which is how each of them is sold.
+      price: item.category === 'tea'
+        ? shopPrice.perGram(item.pricePerGram)
+        : shopPrice.total(item.pricePerGram),
+      total: shopPrice.total(item.totalPrice),
     })),
-    subtotal: fmtShopPrice(subtotal),
-    total: fmtShopPrice(subtotal),
-  }), [cart, details, subtotal, orderRef]);
+    subtotal: shopPrice.total(subtotal),
+    total: shopPrice.total(subtotal),
+  }), [cart, details, subtotal, orderRef, shopPrice]);
   const contactChannels = useMemo(() => resolveContactChannels({ whatsappNumber, email: contactEmail, subject: `Tea Order - ${details.name}`, message: orderMessage }), [whatsappNumber, contactEmail, details.name, orderMessage]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────

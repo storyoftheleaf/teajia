@@ -5,7 +5,7 @@ import type { InventoryItem } from '../../types';
 import { TeaPlaceholder } from './TeaPlaceholder';
 import { TEA_TYPES as WISDOM_TEA_TYPES } from '../../wisdom';
 
-// 'All' is a UI sentinel, not a tea type — kept alongside the shared vocabulary.
+// 'All' is a UI sentinel, not a tea type. Kept alongside the shared vocabulary.
 const TEA_TYPES = ['All', ...WISDOM_TEA_TYPES];
 
 interface ShopSearchProps {

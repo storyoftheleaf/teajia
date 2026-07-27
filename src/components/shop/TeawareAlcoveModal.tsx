@@ -210,9 +210,9 @@ export const TeawareAlcoveModal: React.FC<TeawareAlcoveModalProps> = ({
             ref={cardRef}
             className="relative w-full max-w-[480px] md:max-w-[560px]"
             style={{
-              // Mobile reserves 32px so the commerce footer sits low — close
+              // Mobile reserves 32px so the commerce footer sits low, close
               // above the floating bottom nav (which stays visible above the
-              // alcove) — matching the tea alcove. Desktop keeps 90vh / 820px.
+              // alcove), matching the tea alcove. Desktop keeps 90vh / 820px.
               height: 'min(calc(100dvh - 32px - env(safe-area-inset-bottom, 0px)), 820px)',
               minHeight: '480px',
               width: 'min(480px, 85vw)',
