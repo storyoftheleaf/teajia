@@ -7,14 +7,12 @@ import { Helmet } from 'react-helmet-async';
 import { findStyleById } from '../../wisdom';
 import {
   AuthorshipNote,
-  BackLink,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
   Invitation,
   LABEL,
   PageHead,
-  ScopeNote,
   WisdomSubNav,
 } from './wisdomShared';
 
@@ -52,6 +50,7 @@ const StylePage: React.FC = () => {
   if (!style) {
     return (
       <HoldingNotFound
+        section="styles"
         heading="Not a style we hold"
         backTo="/wisdom/styles"
         backLabel="All styles"
@@ -73,9 +72,7 @@ const StylePage: React.FC = () => {
 
       <WisdomSubNav active="styles" />
 
-      <BackLink to="/wisdom/styles" label="All styles" />
-
-      <div className="mt-2">
+      <div className="mt-4">
         <PageHead
           title={style.name}
           chineseName={style.chineseName}
@@ -97,7 +94,6 @@ const StylePage: React.FC = () => {
 
       <div className="mt-12 pt-8 border-t border-tea-border">
         <AuthorshipNote id={style.id} className="max-w-[64ch]" />
-        <ScopeNote noun="style" />
       </div>
 
       <Invitation subject={`Style: ${style.name}`} />

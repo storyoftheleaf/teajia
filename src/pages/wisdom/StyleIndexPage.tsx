@@ -88,7 +88,7 @@ const StyleIndexPage: React.FC = () => {
         noun="styles"
       />
 
-      {visible.length === 0 && <NoMatch noun="style" />}
+      {visible.length === 0 && <NoMatch noun="style" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">

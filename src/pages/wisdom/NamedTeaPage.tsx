@@ -12,7 +12,6 @@ import { Helmet } from 'react-helmet-async';
 import { findNamedTeaById } from '../../wisdom';
 import {
   AuthorshipNote,
-  BackLink,
   CELL,
   FACT,
   FACT_CLASS,
@@ -21,7 +20,6 @@ import {
   Invitation,
   LABEL,
   PageHead,
-  ScopeNote,
   WisdomSubNav,
 } from './wisdomShared';
 
@@ -71,6 +69,7 @@ const NamedTeaPage: React.FC = () => {
   if (!tea) {
     return (
       <HoldingNotFound
+        section="named"
         heading="Not a named tea we hold"
         backTo="/wisdom/named"
         backLabel="All named teas"
@@ -92,9 +91,7 @@ const NamedTeaPage: React.FC = () => {
 
       <WisdomSubNav active="named" />
 
-      <BackLink to="/wisdom/named" label="All named teas" />
-
-      <div className="mt-2">
+      <div className="mt-4">
         <PageHead
           title={tea.name}
           chineseName={tea.chineseName}
@@ -123,7 +120,6 @@ const NamedTeaPage: React.FC = () => {
 
       <div className="mt-12 pt-8 border-t border-tea-border">
         <AuthorshipNote id={tea.id} className="max-w-[64ch]" />
-        <ScopeNote noun="tea as named" />
       </div>
 
       <Invitation subject={`Named tea: ${tea.name}`} />

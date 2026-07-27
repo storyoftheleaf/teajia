@@ -1,27 +1,34 @@
 /**
  * /wisdom. The front door to the public tea reference.
  *
- * Names every holding the wisdom base carries, with a count and a link. The
- * cultivar-specific intro ("what is a cultivar") stays on /wisdom/cultivars;
- * this page only says what the reference as a whole is.
+ * Names every holding the wisdom base carries, with a count and a link, and
+ * carries the one search that reaches across all of them. A reader who knows
+ * "Rou Gui" but not that it is a plant should not have to guess a holding
+ * before the reference will let them look; the hit says which holding it came
+ * out of, so the guess is answered rather than demanded.
  *
- * This is the one index whose rows carry a sentence, because five rows each
+ * This is the one index whose rows carry a sentence, because six rows each
  * need saying what they hold. It is set as prose in sentence case, not as the
  * 10px caps the reference used to run under every row on every page.
  */
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, STYLES } from '../../wisdom';
+import { CULTIVARS, MARKS, NAMED_TEAS, PRODUCERS, REGIONS, STYLES } from '../../wisdom';
 import {
   AuthorshipNote,
   FACT,
+  FOOTNOTE,
   HoldingRow,
   IndexTable,
   Invitation,
   LABEL,
+  NoMatch,
   PageHead,
   QUIET_LINK,
+  ScopeNote,
   WisdomSubNav,
+  WisdomToolbar,
+  searchHoldings,
   type IndexColumns,
 } from './wisdomShared';
 
@@ -32,10 +39,17 @@ interface Holding {
   description: string;
 }
 
-const COLUMNS: IndexColumns = {
+const HOLDING_COLUMNS: IndexColumns = {
   template: 'minmax(0,1fr) 88px',
   nameLabel: 'Holding',
   labels: ['Entries'],
+};
+
+/** A hit needs to say what it is before it says where it is from. */
+const HIT_COLUMNS: IndexColumns = {
+  template: 'minmax(0,1fr) 104px 148px',
+  nameLabel: 'Name',
+  labels: ['Holding', 'Where'],
 };
 
 const HOLDINGS: Holding[] = [
@@ -44,6 +58,12 @@ const HOLDINGS: Holding[] = [
     to: '/wisdom/cultivars',
     count: CULTIVARS.length,
     description: 'Cultivars: breeding lineage, origin, and the teas made from each plant.',
+  },
+  {
+    label: 'Growing Regions',
+    to: '/wisdom/regions',
+    count: REGIONS.length,
+    description: 'The ground itself: country, province, altitude and climate, and what grows there.',
   },
   {
     label: 'Producers',
@@ -71,12 +91,21 @@ const HOLDINGS: Holding[] = [
   },
 ];
 
+const TOTAL_ENTRIES = HOLDINGS.reduce((sum, holding) => sum + holding.count, 0);
+
+/** Enough to answer a name, short enough that the list is still readable. */
+const HIT_LIMIT = 40;
+
 const WisdomHomePage: React.FC = () => {
+  const [query, setQuery] = useState('');
+  const searching = query.trim().length > 0;
+  const hits = useMemo(() => searchHoldings(query, HIT_LIMIT), [query]);
+
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     name: 'The Tea Wisdom Base',
-    description: "A public reference of what a tea is, held once and true for everyone: plants, producers, marks, styles, and teas known only by name.",
+    description: "A public reference of what a tea is, held once and true for everyone: plants, growing regions, producers, marks, styles, and teas known only by name.",
     inLanguage: 'en',
     isPartOf: { '@type': 'WebSite', name: 'Teajia' },
     hasPart: HOLDINGS.map(holding => ({
@@ -92,38 +121,75 @@ const WisdomHomePage: React.FC = () => {
         <title>The Tea Wisdom Base · Teajia</title>
         <meta
           name="description"
-          content="A public reference of what a tea is: tea plants, producers, marks, styles, and teas known only by the name they were given."
+          content="A public reference of what a tea is: tea plants, growing regions, producers, marks, styles, and teas known only by the name they were given."
         />
         <meta property="og:title" content="The Tea Wisdom Base · Teajia" />
         <meta
           property="og:description"
-          content="Plants, producers, marks, styles, and named teas, held once and true for everyone who reads them."
+          content="Plants, places, producers, marks, styles, and named teas, held once and true for everyone who reads them."
         />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
 
       <WisdomSubNav active="overview" />
 
-      <div className="mt-4">
+      <div className="mt-4 mb-2">
         <PageHead
           title="The Tea Wisdom Base"
           note="What a tea is, held once, true regardless of who stocks it. Not a product catalog."
         />
       </div>
 
-      <IndexTable columns={COLUMNS} className="mt-5">
-        <ul className="list-none m-0 p-0">
-          {HOLDINGS.map(holding => (
-            <HoldingRow
-              key={holding.to}
-              to={holding.to}
-              name={holding.label}
-              cells={[String(holding.count)]}
-              note={holding.description}
-            />
-          ))}
-        </ul>
-      </IndexTable>
+      <WisdomToolbar
+        query={query}
+        onQueryChange={setQuery}
+        placeholder="Search every holding"
+        searchLabel="Search every holding by name, Chinese name or alias"
+        visible={searching ? hits.length : TOTAL_ENTRIES}
+        total={TOTAL_ENTRIES}
+        noun="entries"
+      />
+
+      {!searching && (
+        <IndexTable columns={HOLDING_COLUMNS} className="mt-3">
+          <ul className="list-none m-0 p-0">
+            {HOLDINGS.map(holding => (
+              <HoldingRow
+                key={holding.to}
+                to={holding.to}
+                name={holding.label}
+                cells={[String(holding.count)]}
+                note={holding.description}
+              />
+            ))}
+          </ul>
+        </IndexTable>
+      )}
+
+      {searching && hits.length === 0 && <NoMatch noun="entry" query={query} />}
+
+      {searching && hits.length > 0 && (
+        <>
+          <IndexTable columns={HIT_COLUMNS} className="mt-3">
+            <ul className="list-none m-0 p-0">
+              {hits.map(hit => (
+                <HoldingRow
+                  key={hit.to}
+                  to={hit.to}
+                  name={hit.name}
+                  chineseName={hit.chineseName}
+                  cells={[hit.holding, hit.where]}
+                />
+              ))}
+            </ul>
+          </IndexTable>
+          {hits.length === HIT_LIMIT && (
+            <p className={`${FOOTNOTE} mt-4`}>
+              The closest {HIT_LIMIT} names. Narrow the search, or open the holding itself.
+            </p>
+          )}
+        </>
+      )}
 
       <div className="mt-12 pt-8 border-t border-tea-border">
         <p className={LABEL}>The open dataset</p>
@@ -140,6 +206,7 @@ const WisdomHomePage: React.FC = () => {
 
       <div className="mt-8 pt-8 border-t border-tea-border">
         <AuthorshipNote className="max-w-[64ch]" />
+        <ScopeNote className="max-w-[64ch] mt-1" />
       </div>
 
       <Invitation subject="The wisdom base" />

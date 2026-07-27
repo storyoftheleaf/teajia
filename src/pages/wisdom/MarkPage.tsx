@@ -10,7 +10,6 @@ import { Helmet } from 'react-helmet-async';
 import { findMarkById, findProducerById } from '../../wisdom';
 import {
   AuthorshipNote,
-  BackLink,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
@@ -18,7 +17,6 @@ import {
   LABEL,
   PageHead,
   QUIET_LINK,
-  ScopeNote,
   WisdomSubNav,
 } from './wisdomShared';
 
@@ -57,6 +55,7 @@ const MarkPage: React.FC = () => {
   if (!mark) {
     return (
       <HoldingNotFound
+        section="marks"
         heading="Not a mark we hold"
         backTo="/wisdom/marks"
         backLabel="All marks"
@@ -78,9 +77,7 @@ const MarkPage: React.FC = () => {
 
       <WisdomSubNav active="marks" />
 
-      <BackLink to="/wisdom/marks" label="All marks" />
-
-      <div className="mt-2">
+      <div className="mt-4">
         <PageHead
           title={mark.name}
           chineseName={mark.chineseName}
@@ -91,12 +88,17 @@ const MarkPage: React.FC = () => {
       <div className="mt-6">
         <Fact label="Era">{mark.era}</Fact>
         <Fact label="Applies to">{mark.appliesToTypes.join(', ') || null}</Fact>
+        {/* A producer the base holds is somewhere to go. One the record does
+            not name is said plainly rather than left as a missing row, which
+            reads as an oversight instead of a fact about the record. */}
         <Fact label="Producer">
           {producer ? (
             <Link to={`/wisdom/producer/${producer.id}`} className={QUIET_LINK}>
               {producer.name}
             </Link>
-          ) : null}
+          ) : (
+            <span className="text-tea-text-sec">Not recorded</span>
+          )}
         </Fact>
       </div>
 
@@ -109,7 +111,6 @@ const MarkPage: React.FC = () => {
 
       <div className="mt-12 pt-8 border-t border-tea-border">
         <AuthorshipNote id={mark.id} className="max-w-[64ch]" />
-        <ScopeNote noun="mark" />
       </div>
 
       <Invitation subject={`Mark: ${mark.name}`} />

@@ -9,72 +9,57 @@
  * block competing with the content, a labelled column header row, utilities on
  * one toolbar line, and serif reserved for the primary switcher. It is not a
  * spreadsheet. It is a contents page that knows what its columns are.
+ *
+ * The type roles, the nav strip and the loading frame live in `./frame`, which
+ * imports no data so `App.tsx` can render it in the first frame. This module
+ * re-exports the lot, so a page still imports from one place.
  */
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import {
   CULTIVARS,
+  MARKS,
+  NAMED_TEAS,
+  PRODUCERS,
   REGIONS,
+  STYLES,
   TEA_TYPES,
   findRegion,
   loadCultivarStory,
   normalizeTeaType,
+  type Cultivar,
   type CultivarStory,
   type Region,
   type TeaType,
 } from '../../wisdom';
 import { authorshipLine } from '../../wisdom/authorship';
+import {
+  CELL,
+  CELL_CLASS,
+  FACT,
+  FACT_CLASS,
+  FOOTNOTE,
+  LABEL,
+  LABEL_CLASS,
+  NAME_CLASS,
+  QUIET_LINK,
+  TITLE_CLASS,
+  WISDOM_SECTIONS,
+  WisdomSubNav,
+  isMicroCapsLabel,
+  switchMark,
+  type WisdomSection,
+} from './frame';
+
+export * from './frame';
 
 /** The one address corrections arrive at. Governance is one editor with an inbox. */
 export const WISDOM_INBOX = 'hello@teajia.com';
 
 export const mailtoWisdom = (subject?: string): string =>
   `mailto:${WISDOM_INBOX}${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`;
-
-// ─── The four type roles ─────────────────────────────────────────────────────
-
-/**
- * Four roles, four sizes, and nothing else on any page of the reference.
- *
- *   TITLE  28px display  the one heading a page carries
- *   NAME   17px display  a row name, an entry name, the section switcher
- *   FACT   15px body     running prose, and any fact written as a phrase
- *   LABEL  11px sans     micro-caps, and ONLY for a label of three words or fewer
- *
- * CELL is the LABEL size and family with the caps taken off. It is what a value
- * inside a column is set in, because caps at 11px is unreadable for a place
- * name or a sentence. Case and colour, not size, tell a header from its values.
- *
- * That is the whole scale. Nothing on a wisdom page may introduce a fifth step.
- */
-export const TITLE_CLASS = 'font-display text-ui-28 font-normal leading-[1.15] tracking-[0.01em]';
-export const NAME_CLASS = 'font-display text-ui-17 font-normal leading-[1.35] tracking-[0.02em]';
-export const FACT_CLASS = 'font-body text-ui-15 font-normal leading-[1.65]';
-export const LABEL_CLASS = 'font-sans text-ui-11 font-normal uppercase tracking-[1.2px] leading-[1.4]';
-export const CELL_CLASS = 'font-sans text-ui-11 font-normal tracking-[0.02em] leading-[1.4]';
-
-/** A micro-caps label. Dim, always subordinate to what it labels. */
-export const LABEL = `${LABEL_CLASS} text-tea-text-dim`;
-/** A value in a column, or any short piece of metadata. Never caps. */
-export const CELL = `${CELL_CLASS} text-tea-text-sec`;
-/** A footnote: a sentence that must not compete with the record above it. */
-export const FOOTNOTE = `${CELL_CLASS} text-tea-text-dim leading-relaxed`;
-/** Running prose. */
-export const FACT = `${FACT_CLASS} text-tea-text-sec`;
-
-export const QUIET_LINK =
-  'text-tea-readgold underline underline-offset-4 decoration-tea-gold/40 hover:decoration-tea-gold transition-colors';
-
-/**
- * The caps rule, enforced rather than remembered. A label of three words or
- * fewer is set in micro-caps; anything longer is a phrase, and a phrase set in
- * caps at 11px cannot be read. Group labels come out of the data (a naming
- * tradition can run to a dozen words), so the decision cannot live at the call
- * site.
- */
-export const isMicroCapsLabel = (text: string): boolean => text.trim().split(/\s+/).length <= 3;
 
 // ─── Section head ────────────────────────────────────────────────────────────
 
@@ -111,21 +96,28 @@ export const PageHead: React.FC<{ title: string; chineseName?: string; note?: st
 // ─── Authorship ──────────────────────────────────────────────────────────────
 
 /**
- * The rung this entry sits on, said plainly. Most of the corpus was AI-drafted
- * from research and published before a human read it line by line. That is
- * stated, not hidden and not apologised for.
+ * The rung this entry sits on, said plainly, in one line. Most of the corpus
+ * was AI-drafted from research and published before a human read it line by
+ * line. That is stated, not hidden and not apologised for.
  *
- * Pass an entity `id` on a detail page to report that entity's own rung via
- * `authorshipLine`. Omitted on an index page, where no single id applies and
- * the rung defaults to "drafted", true of nearly everything in the base today.
+ * One line is the whole budget. The foot of an entry used to run four lines of
+ * 11px text: this note in two, then a scope footnote in two more, repeating on
+ * every page of the reference what is true of the reference as a whole. The
+ * scope is now said once, on the front door.
  */
 export const AuthorshipNote: React.FC<{ id?: string | null; className?: string }> = ({ id = null, className = '' }) => (
-  <p className={`${FOOTNOTE} ${className}`}>{authorshipLine(id)} Corrections are applied by hand and credited.</p>
+  <p className={`${FOOTNOTE} ${className}`}>{authorshipLine(id)}</p>
 );
 
-/** The scope footnote every detail page closes with. Nothing here is a shop's. */
-export const ScopeNote: React.FC<{ noun: string }> = ({ noun }) => (
-  <p className={`${FOOTNOTE} mt-2`}>Nothing on this page is account scoped. It is true of the {noun}, not of any shop.</p>
+/**
+ * The scope of the whole reference, said once on the front door. Nothing here
+ * is a shop's, and a reader who has read that sentence on /wisdom does not need
+ * it again at the foot of all 300-odd entries.
+ */
+export const ScopeNote: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <p className={`${FOOTNOTE} ${className}`}>
+    Nothing in the reference is account scoped. Every entry is true of the tea, not of any shop.
+  </p>
 );
 
 // ─── The invitation ──────────────────────────────────────────────────────────
@@ -138,79 +130,9 @@ export const Invitation: React.FC<{ subject?: string }> = ({ subject }) => (
       <a href={mailtoWisdom(subject)} className={QUIET_LINK}>
         send it
       </a>
-      .
+      . One editor reads it, and every correction is credited.
     </p>
-    <p className={`${FOOTNOTE} mt-3`}>One address, one editor, every correction credited in the entry.</p>
   </aside>
-);
-
-// ─── Navigation ──────────────────────────────────────────────────────────────
-
-/** The one back-link device every reference page uses, above the fold, top-left. */
-export const BackLink: React.FC<{ to: string; label: string }> = ({ to, label }) => (
-  <Link
-    to={to}
-    className="inline-flex items-center gap-2 min-h-[44px] text-tea-text-sec hover:text-tea-text transition-colors"
-  >
-    <ArrowLeft size={16} strokeWidth={1.5} aria-hidden />
-    <span className={LABEL_CLASS}>{label}</span>
-  </Link>
-);
-
-/**
- * Every holding the reference covers, in the order the front door lists them.
- * The one place this list is written, so the sub-nav and the front door cannot
- * drift out of step with each other.
- */
-export interface WisdomSection {
-  id: string;
-  label: string;
-  path: string;
-}
-
-export const WISDOM_SECTIONS: WisdomSection[] = [
-  { id: 'overview', label: 'Overview', path: '/wisdom' },
-  { id: 'cultivars', label: 'Plants', path: '/wisdom/cultivars' },
-  { id: 'producers', label: 'Producers', path: '/wisdom/producers' },
-  { id: 'marks', label: 'Marks', path: '/wisdom/marks' },
-  { id: 'styles', label: 'Styles', path: '/wisdom/styles' },
-  { id: 'named', label: 'Named', path: '/wisdom/named' },
-];
-
-/**
- * The mark the inventory's lens rail uses: gold text plus a 2px gold bar seated
- * on the strip's own rule. Colour alone was not enough to find at a glance,
- * especially outdoors where the bronze reads close to the secondary text.
- */
-const switchMark = (active: boolean): string =>
-  active
-    ? 'text-tea-gold after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-tea-gold after:rounded-full'
-    : 'text-tea-text-sec hover:text-tea-text';
-
-/**
- * The persistent way around, and the only serif switcher on the page. Wraps at
- * narrow widths rather than scrolling sideways: a nav you have to discover by
- * swiping is a nav half the readers never see.
- */
-export const WisdomSubNav: React.FC<{ active: WisdomSection['id'] }> = ({ active }) => (
-  <nav
-    aria-label="The wisdom base"
-    className="flex flex-wrap items-center gap-x-5 sm:gap-x-6 border-b border-tea-border"
-  >
-    {WISDOM_SECTIONS.map(section => {
-      const isActive = section.id === active;
-      return (
-        <Link
-          key={section.id}
-          to={section.path}
-          aria-current={isActive ? 'page' : undefined}
-          className={`relative inline-flex items-center min-h-[44px] ${NAME_CLASS} transition-colors ${switchMark(isActive)}`}
-        >
-          {section.label}
-        </Link>
-      );
-    })}
-  </nav>
 );
 
 // ─── The toolbar ─────────────────────────────────────────────────────────────
@@ -358,66 +280,111 @@ export const GroupHead: React.FC<{ label: string; count: number }> = ({ label, c
 );
 
 /**
+ * A cell that is itself somewhere to go. Used where the base holds a real
+ * relation and the reader is entitled to follow it: a mark's producer, for
+ * instance. A name the base does not hold is a plain string and stays one.
+ */
+export interface CellLink {
+  text: string;
+  to: string;
+}
+
+export type RowCell = string | CellLink | undefined;
+
+const cellText = (cell: RowCell): string => (typeof cell === 'string' ? cell : (cell?.text ?? ''));
+
+/**
  * One line of record. A serif name (plus the Chinese name when the record has
  * one), then one value per column. No description line: a 90-character sentence
  * under every row triples the ink and halves how many rows reach the screen,
  * and everything it said is on the entry's own page one click away.
  *
- * `note` exists for the front door only, where five rows each need a sentence
- * saying what the holding is. It is set as prose, in sentence case, never caps.
+ * The whole row is still one click, but it is not one anchor: the name link
+ * stretches over the row with `after:inset-0`, which leaves a cell free to be
+ * its own link without nesting anchors. That is what lets a mark's row reach
+ * its producer directly.
+ *
+ * `note` exists for the front door only, where a handful of rows each need a
+ * sentence saying what the holding is. It is set as prose, in sentence case.
  */
 export const HoldingRow: React.FC<{
   to: string;
   name: string;
   chineseName?: string;
-  cells?: Array<string | undefined>;
+  cells?: RowCell[];
   note?: string;
 }> = ({ to, name, chineseName, cells = [], note }) => {
   const columns = useContext(IndexColumnsContext);
   return (
     <li className="border-t border-tea-border first:border-t-0">
-      <Link
-        to={to}
-        className={`group ${ROW_LAYOUT} ${ROW_HOVER} min-h-[44px] py-2.5 -mx-2 px-2 rounded-md transition-colors`}
+      <div
+        className={`group relative ${ROW_LAYOUT} ${ROW_HOVER} min-h-[44px] py-2.5 -mx-2 px-2 rounded-md transition-colors`}
         style={columns ? columnStyle(columns) : undefined}
       >
         <span className="basis-full sm:basis-auto min-w-0 inline-flex items-baseline gap-2 flex-wrap">
-          <span className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors`}>{name}</span>
+          <Link
+            to={to}
+            className={`${NAME_CLASS} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words after:absolute after:inset-0 after:content-['']`}
+          >
+            {name}
+          </Link>
           {chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{chineseName}</span>}
         </span>
-        {cells.map((cell, index) => (
-          <span key={index} className={`${CELL} min-w-0 truncate tabular-nums`}>
-            {cell ?? ''}
-          </span>
-        ))}
-        {note && (
-          <span className={`${FACT} basis-full sm:col-span-full sm:mt-1 max-w-[68ch]`}>{note}</span>
+        {cells.map((cell, index) =>
+          typeof cell === 'object' && cell ? (
+            <span key={index} className={`${CELL} min-w-0 break-words`}>
+              {/* `relative` lifts it above the name link's stretched ::after so
+                  the cell is its own destination. `py-2` grows the hit box on an
+                  inline element without touching the line box, so the column
+                  baseline the header sets is unaffected. No `truncate` here:
+                  overflow-hidden would clip that padding straight off again. */}
+              <Link to={cell.to} className={`relative py-2 ${QUIET_LINK}`}>
+                {cell.text}
+              </Link>
+            </span>
+          ) : (
+            <span key={index} className={`${CELL} min-w-0 truncate tabular-nums`}>
+              {cellText(cell)}
+            </span>
+          ),
         )}
-      </Link>
+        {note && <span className={`${FACT} basis-full sm:col-span-full sm:mt-1 max-w-[68ch]`}>{note}</span>}
+      </div>
     </li>
   );
 };
 
-/** Nothing matched the filter. Same sentence shape on every index. */
-export const NoMatch: React.FC<{ noun: string }> = ({ noun }) => (
-  <p className={`${FACT} py-14 text-center`}>
-    No {noun} here answers to that name. If it should, send it and it will be added.
+/**
+ * Nothing matched the filter. Names what was searched, so a reader who mistypes
+ * can see the mistake instead of wondering whether the page broke. The count in
+ * the toolbar reading zero is not an answer.
+ */
+export const NoMatch: React.FC<{ noun: string; query?: string }> = ({ noun, query }) => (
+  <p className={`${FACT} py-10 text-center max-w-[46ch] mx-auto`}>
+    {query?.trim() ? (
+      <>
+        No {noun} here answers to &ldquo;{query.trim()}&rdquo;. If one should, send it and it will be added.
+      </>
+    ) : (
+      <>No {noun} here answers to that name. If one should, send it and it will be added.</>
+    )}
   </p>
 );
 
 /** A holding's id did not resolve. Same shape on every detail page in the reference. */
 export const HoldingNotFound: React.FC<{
+  section: WisdomSection['id'];
   heading: string;
   backTo: string;
   backLabel: string;
   subject: string;
-}> = ({ heading, backTo, backLabel, subject }) => (
+}> = ({ section, heading, backTo, backLabel, subject }) => (
   <article className="w-full max-w-3xl mx-auto pt-4 pb-nav">
     <Helmet>
       <title>Not found · Teajia</title>
     </Helmet>
-    <BackLink to={backTo} label={backLabel} />
-    <h1 className={`${TITLE_CLASS} text-tea-text mt-4`}>{heading}</h1>
+    <WisdomSubNav active={section} />
+    <h1 className={`${TITLE_CLASS} text-tea-text mt-6`}>{heading}</h1>
     <p className={`${FACT} mt-3 max-w-[56ch]`}>
       Nothing in the reference answers to that name yet.{' '}
       <Link to={backTo} className={QUIET_LINK}>
@@ -446,15 +413,101 @@ export const Fact: React.FC<{ label: string; children?: React.ReactNode }> = ({ 
   );
 };
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
+// ─── Searching every holding at once ─────────────────────────────────────────
 
-export const ProseSkeleton: React.FC<{ lines?: number }> = ({ lines = 3 }) => (
-  <div className="space-y-3" aria-hidden>
-    {Array.from({ length: lines }).map((_, index) => (
-      <div key={index} className="shimmer-warm h-3" style={{ width: `${92 - index * 11}%` }} />
-    ))}
-  </div>
-);
+/**
+ * One hit from the front door's search, carrying which holding it came out of.
+ * A reader who knows "Rou Gui" but not that it is a plant should not have to
+ * guess a holding before they are allowed to look.
+ */
+export interface HoldingHit {
+  name: string;
+  chineseName?: string;
+  /** The holding's nav label, so the reader learns where the name lives. */
+  holding: string;
+  to: string;
+  /** One fact that tells two similarly named things apart. */
+  where?: string;
+}
+
+const searchKey = (value: string) => value.normalize('NFKD').toLowerCase();
+
+const sectionLabel = (id: string): string => WISDOM_SECTIONS.find(section => section.id === id)?.label ?? id;
+const sectionOrder = (label: string): number => WISDOM_SECTIONS.findIndex(section => section.label === label);
+
+/**
+ * Names only, across every holding. Deliberately not a full-text search: the
+ * base carries paragraphs of climate and description, and matching inside them
+ * would answer "Fujian" with a hundred rows and bury the plant someone asked
+ * for. An exact name sorts above a leading match, which sorts above a partial.
+ */
+export function searchHoldings(query: string, limit = 40): HoldingHit[] {
+  const needle = searchKey(query.trim());
+  if (!needle) return [];
+
+  const hits: Array<HoldingHit & { rank: number }> = [];
+  const consider = (
+    holding: string,
+    to: string,
+    name: string,
+    chineseName: string | undefined,
+    altNames: Array<string | undefined>,
+    where?: string,
+  ) => {
+    let rank = 3;
+    for (const field of [name, chineseName, ...altNames]) {
+      if (!field) continue;
+      const key = searchKey(field);
+      if (key === needle) rank = Math.min(rank, 0);
+      else if (key.startsWith(needle)) rank = Math.min(rank, 1);
+      else if (key.includes(needle)) rank = Math.min(rank, 2);
+    }
+    if (rank < 3) hits.push({ name, chineseName, holding, to, where, rank });
+  };
+
+  for (const cultivar of CULTIVARS) {
+    consider(
+      sectionLabel('cultivars'),
+      `/wisdom/cultivar/${cultivar.id}`,
+      cultivar.name,
+      cultivar.chineseName,
+      cultivar.altNames,
+      cultivar.originRegion || cultivar.originCountry,
+    );
+  }
+  for (const region of REGIONS) {
+    consider(sectionLabel('regions'), `/wisdom/region/${region.id}`, region.name, undefined, [], region.country);
+  }
+  for (const producer of PRODUCERS) {
+    consider(
+      sectionLabel('producers'),
+      `/wisdom/producer/${producer.id}`,
+      producer.name,
+      producer.chineseName,
+      producer.altNames,
+      [producer.region, producer.country].filter(Boolean).join(', ') || undefined,
+    );
+  }
+  for (const mark of MARKS) {
+    consider(sectionLabel('marks'), `/wisdom/mark/${mark.id}`, mark.name, mark.chineseName, mark.altNames, mark.era);
+  }
+  for (const style of STYLES) {
+    consider(sectionLabel('styles'), `/wisdom/style/${style.id}`, style.name, style.chineseName, style.altNames, style.region);
+  }
+  for (const tea of NAMED_TEAS) {
+    consider(sectionLabel('named'), `/wisdom/named/${tea.id}`, tea.name, tea.chineseName, tea.altNames, tea.type);
+  }
+
+  return hits
+    .sort(
+      (left, right) =>
+        left.rank - right.rank ||
+        sectionOrder(left.holding) - sectionOrder(right.holding) ||
+        left.name.localeCompare(right.name),
+    )
+    .slice(0, limit)
+    .map(({ rank: _rank, ...hit }) => hit);
+}
 
 // ─── Reading the wisdom base ─────────────────────────────────────────────────
 
@@ -579,4 +632,16 @@ export function growingPlace(originRegion: string | null | undefined): Region | 
   }
 
   return direct;
+}
+
+/**
+ * The plants whose recorded origin walks back to this place. The reverse of
+ * `growingPlace`, and the only reason a region page is worth opening: 182
+ * places with an altitude are a table, but "thirteen plants come from here" is
+ * a reason to read one.
+ */
+export function plantsGrownIn(region: Region): Cultivar[] {
+  return CULTIVARS.filter(cultivar => growingPlace(cultivar.originRegion)?.id === region.id).sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
 }

@@ -13,6 +13,7 @@ import { NAMED_TEAS, NAMING_TRADITIONS, namedTeasInTradition, type NamedTea } fr
 import {
   AuthorshipNote,
   FACT,
+  FOOTNOTE,
   GroupHead,
   HoldingRow,
   IndexTable,
@@ -29,6 +30,46 @@ const COLUMNS: IndexColumns = {
   nameLabel: 'Tea',
   labels: ['Type', 'Form'],
 };
+
+/**
+ * A tradition is written in the base as an explanation, not as a label:
+ * "Chinese poetic tea-naming (named for the feeling of origin rather than a
+ * technical specification)" is sixteen words. Sixteen words cannot head a
+ * group. Three things come off, none of which carry any distinguishing weight:
+ *
+ *   the parenthetical  an explanation, which belongs on the entry, not the head
+ *   "Chinese"          true of nearly every group, so it separates nothing
+ *   "naming"           true of every group without exception, it IS the axis
+ *
+ * What is left is the word the tradition actually turns on: Poetic, Proverbial,
+ * Private-collection. Hyphens are kept as the source wrote them, which is part
+ * of what holds a label inside the three-word micro-caps rule.
+ *
+ * Anything still over three words is cut from the front, not the back, because
+ * the specific part of an English noun phrase is at its end: "undocumented
+ * export or trade-route" is distinguished by the export, not by the fact that
+ * it is undocumented. Three words is a hard ceiling, so the rule cannot be
+ * broken by a tradition somebody adds later. The full sentence is still shown,
+ * once, on the tea's own page.
+ */
+export function traditionLabel(tradition: string): string {
+  const head = (tradition.split('(')[0] ?? tradition).trim();
+  const cleaned = head
+    .split(',')
+    .map(clause =>
+      clause
+        .replace(/^\s*chinese\s+/i, '')
+        .replace(/\b(tea-)?naming\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join(', ');
+  if (!cleaned) return tradition;
+  const words = cleaned.split(/\s+/);
+  const label = words.length > 3 ? words.slice(-3).join(' ') : cleaned;
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
 
@@ -100,13 +141,21 @@ const NamedTeaIndexPage: React.FC = () => {
         noun="named teas"
       />
 
-      {visibleCount === 0 && <NoMatch noun="named tea" />}
+      {visibleCount === 0 && <NoMatch noun="named tea" query={query} />}
+
+      {/* The one line the group heads no longer have to carry. Said here once,
+          in place of a naming tradition written out in full above every group. */}
+      {visibleCount > 0 && (
+        <p className={`${FOOTNOTE} mt-3`}>
+          Grouped by how the tea came by its name. Each entry states its tradition in full.
+        </p>
+      )}
 
       {visibleCount > 0 && (
-        <IndexTable columns={COLUMNS} className="mt-3">
+        <IndexTable columns={COLUMNS} className="mt-1">
           {groups.map(([tradition, rows]) => (
             <section key={tradition}>
-              <GroupHead label={tradition} count={rows.length} />
+              <GroupHead label={traditionLabel(tradition)} count={rows.length} />
               <ul className="list-none m-0 p-0">
                 {rows.map(tea => (
                   <HoldingRow

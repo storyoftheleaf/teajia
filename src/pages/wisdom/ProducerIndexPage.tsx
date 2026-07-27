@@ -7,7 +7,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { PRODUCERS, type Producer } from '../../wisdom';
+import { PRODUCERS, marksOf, type Producer } from '../../wisdom';
 import {
   AuthorshipNote,
   FACT,
@@ -30,9 +30,9 @@ const KIND_LABEL: Record<Producer['kind'], string> = {
 };
 
 const COLUMNS: IndexColumns = {
-  template: 'minmax(0,1fr) 188px 116px',
+  template: 'minmax(0,1fr) 172px 96px 60px',
   nameLabel: 'Producer',
-  labels: ['Operates in', 'Kind'],
+  labels: ['Operates in', 'Kind', 'Marks'],
 };
 
 const matchKey = (value: string) => value.normalize('NFKD').toLowerCase();
@@ -97,20 +97,29 @@ const ProducerIndexPage: React.FC = () => {
         noun="producers"
       />
 
-      {visible.length === 0 && <NoMatch noun="producer" />}
+      {visible.length === 0 && <NoMatch noun="producer" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">
           <ul className="list-none m-0 p-0">
-            {visible.map(producer => (
-              <HoldingRow
-                key={producer.id}
-                to={`/wisdom/producer/${producer.id}`}
-                name={producer.name}
-                chineseName={producer.chineseName}
-                cells={[[producer.region, producer.country].filter(Boolean).join(', '), KIND_LABEL[producer.kind]]}
-              />
-            ))}
+            {visible.map(producer => {
+              // How many marks the base holds for this producer. The row opens
+              // the producer, whose record lists them and links each one.
+              const held = marksOf(producer).length;
+              return (
+                <HoldingRow
+                  key={producer.id}
+                  to={`/wisdom/producer/${producer.id}`}
+                  name={producer.name}
+                  chineseName={producer.chineseName}
+                  cells={[
+                    [producer.region, producer.country].filter(Boolean).join(', '),
+                    KIND_LABEL[producer.kind],
+                    held > 0 ? String(held) : undefined,
+                  ]}
+                />
+              );
+            })}
           </ul>
         </IndexTable>
       )}

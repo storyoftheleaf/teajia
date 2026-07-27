@@ -49,13 +49,25 @@ function grandparentsOf(parent: Cultivar): Array<Cultivar | string> {
 
 export const isCultivar = (value: Cultivar | string): value is Cultivar => typeof value !== 'string';
 
-/** Strips the stray bracket a split leaves behind on "(Jin Xuan x Qing Xin) x Cui Yu". */
+/**
+ * Repairs what splitting on the cross operator does to a written parentage.
+ *
+ * Three cases, all real in the corpus:
+ *   "(Jin Xuan x Qing Xin) x Cui Yu"  leaves a lone opening bracket on the head
+ *   "C. sinensis var. assamica (Burma) x C. formosensis (Taiwanese Wild Tea)"
+ *     leaves each side with one bracket and no partner
+ *   "'Saemidori' x a hybrid of 'Sofu' and 'Makura-Cd86'." leaves a trailing stop
+ *
+ * A dangling bracket is closed rather than deleted, because "(Burma" is the
+ * start of a real qualification and dropping it would change what the record
+ * says. Nothing here invents a word.
+ */
 export function tidyName(text: string): string {
-  let value = text.trim().replace(/^['"]+|['"]+$/g, '');
+  let value = text.trim().replace(/^['"]+|['"]+$/g, '').replace(/\.$/, '').trim();
   const opens = (value.match(/\(/g) ?? []).length;
   const closes = (value.match(/\)/g) ?? []).length;
-  if (opens > closes && value.startsWith('(')) value = value.slice(1).trim();
-  if (closes > opens && value.endsWith(')')) value = value.slice(0, -1).trim();
+  if (opens > closes) value = value.startsWith('(') ? value.slice(1).trim() : `${value})`;
+  else if (closes > opens) value = value.endsWith(')') ? value.slice(0, -1).trim() : `(${value}`;
   return value;
 }
 
@@ -109,18 +121,24 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
   // a fifth one.
   const nameClass = small ? 'font-display text-ui-15 leading-[1.35]' : NAME_CLASS;
 
+  // At 390px the deepest rail leaves 306px of line. A 35-character unheld name
+  // ("C. formosensis (Taiwanese Wild Tea)") plus the tag does not fit on one
+  // line there, so the tag has to be able to drop to the next line whole. Left
+  // to itself it broke as "not held / here", which reads as two failures.
   const title = held ? (
     <Link
       to={`/wisdom/cultivar/${node.id}`}
-      className="group inline-flex items-baseline gap-2 flex-wrap min-h-[44px]"
+      className="group inline-flex items-baseline gap-2 flex-wrap min-w-0 min-h-[44px]"
     >
-      <span className={`${nameClass} text-tea-text group-hover:text-tea-gold-lt transition-colors`}>{node.name}</span>
+      <span className={`${nameClass} text-tea-text group-hover:text-tea-gold-lt transition-colors break-words`}>
+        {node.name}
+      </span>
       {node.chineseName && <span className="font-display text-ui-15 text-tea-text-dim">{node.chineseName}</span>}
     </Link>
   ) : (
-    <span className="inline-flex items-baseline gap-2 flex-wrap">
-      <span className={`${nameClass} text-tea-text-sec`}>{tidyName(node)}</span>
-      <span className={LABEL}>not held here</span>
+    <span className="inline-flex items-baseline gap-2 flex-wrap min-w-0">
+      <span className={`${nameClass} text-tea-text-sec break-words`}>{tidyName(node)}</span>
+      <span className={`${LABEL} whitespace-nowrap`}>not held here</span>
     </span>
   );
 
@@ -130,10 +148,10 @@ const NodeRow: React.FC<NodeRowProps> = ({ node, tone, rail, small = false, chil
         <span aria-hidden className={`absolute left-[3px] w-px bg-tea-border ${(small ? SMALL_RAIL_CLASS : RAIL_CLASS)[rail]}`} />
         <span aria-hidden className={`absolute left-[3px] ${tickTop} h-px ${small ? 'w-3' : 'w-4'} bg-tea-border`} />
         <span aria-hidden className={`absolute ${markerLeft} ${markerTop} rounded-full ${marker}`} />
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 justify-between">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 justify-between min-w-0">
           {title}
           {held && placeAndYear(node) && (
-            <span className={`${CELL_CLASS} text-tea-text-dim`}>{placeAndYear(node)}</span>
+            <span className={`${CELL_CLASS} text-tea-text-dim min-w-0 break-words`}>{placeAndYear(node)}</span>
           )}
         </div>
         {children}
@@ -168,8 +186,8 @@ export const LineageTree: React.FC<{ cultivar: Cultivar }> = ({ cultivar }) => {
 
       {lineage.raw && lineage.kind === 'cross' && (
         <p className="mb-4 flex flex-wrap items-baseline gap-x-2">
-          <span className={LABEL}>Recorded as</span>
-          <span className={`${CELL} tabular-nums`}>{lineage.raw}</span>
+          <span className={`${LABEL} whitespace-nowrap`}>Recorded as</span>
+          <span className={`${CELL} min-w-0 break-words tabular-nums`}>{lineage.raw}</span>
         </p>
       )}
 

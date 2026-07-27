@@ -85,20 +85,29 @@ const MarkIndexPage: React.FC = () => {
         noun="marks"
       />
 
-      {visible.length === 0 && <NoMatch noun="mark" />}
+      {visible.length === 0 && <NoMatch noun="mark" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">
           <ul className="list-none m-0 p-0">
-            {visible.map(mark => (
-              <HoldingRow
-                key={mark.id}
-                to={`/wisdom/mark/${mark.id}`}
-                name={mark.name}
-                chineseName={mark.chineseName}
-                cells={[mark.era, findProducerById(mark.producerId)?.name]}
-              />
-            ))}
+            {visible.map(mark => {
+              // The producer column is a real relation, so it is a real link.
+              // A mark whose producer the base does not hold keeps a plain
+              // cell rather than a link that goes nowhere.
+              const producer = findProducerById(mark.producerId);
+              return (
+                <HoldingRow
+                  key={mark.id}
+                  to={`/wisdom/mark/${mark.id}`}
+                  name={mark.name}
+                  chineseName={mark.chineseName}
+                  cells={[
+                    mark.era,
+                    producer ? { text: producer.name, to: `/wisdom/producer/${producer.id}` } : undefined,
+                  ]}
+                />
+              );
+            })}
           </ul>
         </IndexTable>
       )}

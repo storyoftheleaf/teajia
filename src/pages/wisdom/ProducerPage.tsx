@@ -11,7 +11,6 @@ import { Helmet } from 'react-helmet-async';
 import { findProducerById, marksOf, markNamesOf, type Producer } from '../../wisdom';
 import {
   AuthorshipNote,
-  BackLink,
   FACT_CLASS,
   Fact,
   HoldingNotFound,
@@ -19,7 +18,6 @@ import {
   LABEL,
   PageHead,
   QUIET_LINK,
-  ScopeNote,
   WisdomSubNav,
 } from './wisdomShared';
 
@@ -70,6 +68,7 @@ const ProducerPage: React.FC = () => {
   if (!producer) {
     return (
       <HoldingNotFound
+        section="producers"
         heading="Not a producer we hold"
         backTo="/wisdom/producers"
         backLabel="All producers"
@@ -91,9 +90,7 @@ const ProducerPage: React.FC = () => {
 
       <WisdomSubNav active="producers" />
 
-      <BackLink to="/wisdom/producers" label="All producers" />
-
-      <div className="mt-2">
+      <div className="mt-4">
         <PageHead
           title={producer.name}
           chineseName={producer.chineseName}
@@ -138,7 +135,6 @@ const ProducerPage: React.FC = () => {
 
       <div className="mt-12 pt-8 border-t border-tea-border">
         <AuthorshipNote id={producer.id} className="max-w-[64ch]" />
-        <ScopeNote noun="producer" />
       </div>
 
       <Invitation subject={`Producer: ${producer.name}`} />

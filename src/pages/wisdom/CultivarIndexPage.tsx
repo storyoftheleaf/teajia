@@ -169,7 +169,7 @@ const CultivarIndexPage: React.FC = () => {
         <ViewSwitch options={VIEWS} value={view} onChange={next => setView(next)} label="Browse the plants" />
       </WisdomToolbar>
 
-      {visible.length === 0 && <NoMatch noun="plant" />}
+      {visible.length === 0 && <NoMatch noun="plant" query={query} />}
 
       {visible.length > 0 && (
         <IndexTable columns={COLUMNS} className="mt-3">

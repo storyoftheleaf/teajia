@@ -7,12 +7,11 @@
  * as a Taxon so an agent reading this page gets the same lineage a person does.
  */
 import React, { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { findCultivarById } from '../../wisdom';
 import {
   AuthorshipNote,
-  BackLink,
   CELL,
   FACT,
   FACT_CLASS,
@@ -23,7 +22,7 @@ import {
   NAME_CLASS,
   PageHead,
   ProseSkeleton,
-  ScopeNote,
+  QUIET_LINK,
   SectionHead,
   WisdomSubNav,
   growingPlace,
@@ -122,6 +121,7 @@ const CultivarPage: React.FC = () => {
   if (!cultivar) {
     return (
       <HoldingNotFound
+        section="cultivars"
         heading="Not a plant we hold"
         backTo="/wisdom/cultivars"
         backLabel="All tea plants"
@@ -151,9 +151,7 @@ const CultivarPage: React.FC = () => {
 
       <WisdomSubNav active="cultivars" />
 
-      <BackLink to="/wisdom/cultivars" label="All tea plants" />
-
-      <div className="mt-2">
+      <div className="mt-4">
         <PageHead
           title={cultivar.name}
           chineseName={cultivar.chineseName}
@@ -286,9 +284,23 @@ const CultivarPage: React.FC = () => {
         </section>
       )}
 
+      {/* The reverse link the design doc promises, done honestly. Products are
+          not available to the reference and must never be copied into it, so
+          this says what is true and points at the shop rather than inventing a
+          list of teas attributed to the plant. */}
+      <section className="mt-12">
+        <SectionHead glyph="◉" label="In the shop" />
+        <p className={`${FACT} max-w-[64ch]`}>
+          The reference does not hold what any shop stocks, so nothing on sale is currently attributed to this plant.{' '}
+          <Link to="/shop" className={QUIET_LINK}>
+            Browse the shop
+          </Link>{' '}
+          and look for {cultivar.name} by name.
+        </p>
+      </section>
+
       <div className="mt-12 pt-8 border-t border-tea-border">
         <AuthorshipNote id={cultivar.id} className="max-w-[64ch]" />
-        <ScopeNote noun="plant" />
       </div>
 
       <Invitation subject={`Cultivar: ${cultivar.name}`} />

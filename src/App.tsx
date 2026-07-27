@@ -154,6 +154,8 @@ const MarkIndexPage = lazy(() => import('./pages/wisdom/MarkIndexPage'));
 const MarkPage = lazy(() => import('./pages/wisdom/MarkPage'));
 const StyleIndexPage = lazy(() => import('./pages/wisdom/StyleIndexPage'));
 const StylePage = lazy(() => import('./pages/wisdom/StylePage'));
+const RegionIndexPage = lazy(() => import('./pages/wisdom/RegionIndexPage'));
+const RegionPage = lazy(() => import('./pages/wisdom/RegionPage'));
 const NamedTeaIndexPage = lazy(() => import('./pages/wisdom/NamedTeaIndexPage'));
 const NamedTeaPage = lazy(() => import('./pages/wisdom/NamedTeaPage'));
 
@@ -195,6 +197,7 @@ import AboutPage from './AboutPage';
 import Footer from './components/shared/Footer';
 import { ErrorBoundary } from './admin/components/ErrorBoundary';
 import { EmblemLoader } from './components/shared/EmblemLoader';
+import { WisdomFallback } from './pages/wisdom/frame';
 import { PullToRefreshIndicator } from './components/shared/PullToRefreshIndicator';
 import { NetworkStatus } from './components/shared/NetworkStatus';
 import { SessionExpiredNotice } from './components/shared/SessionExpiredNotice';
@@ -980,37 +983,43 @@ const AppContent = () => {
                 {/* The public tea reference. /wisdom is the front door naming every holding;
                     each holding has its own index and detail page. */}
                 <Route path="/wisdom" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><WisdomHomePage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><WisdomHomePage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/cultivars" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CultivarIndexPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><CultivarIndexPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/cultivar/:id" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><CultivarPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><CultivarPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/regions" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><RegionIndexPage /></Suspense></ErrorBoundary>
+                } />
+                <Route path="/wisdom/region/:id" element={
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><RegionPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/producers" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProducerIndexPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><ProducerIndexPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/producer/:id" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><ProducerPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><ProducerPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/marks" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><MarkIndexPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><MarkIndexPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/mark/:id" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><MarkPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><MarkPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/styles" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><StyleIndexPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><StyleIndexPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/style/:id" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><StylePage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><StylePage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/named" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><NamedTeaIndexPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaIndexPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/wisdom/named/:id" element={
-                  <ErrorBoundary><Suspense fallback={<EmblemLoader />}><NamedTeaPage /></Suspense></ErrorBoundary>
+                  <ErrorBoundary><Suspense fallback={<WisdomFallback />}><NamedTeaPage /></Suspense></ErrorBoundary>
                 } />
                 <Route path="/about" element={<ErrorBoundary><AboutPage /></ErrorBoundary>} />
                 <Route path="/mcp" element={<ErrorBoundary><Suspense fallback={<EmblemLoader />}><McpPage /></Suspense></ErrorBoundary>} />
