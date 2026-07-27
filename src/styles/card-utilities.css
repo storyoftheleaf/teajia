@@ -2739,13 +2739,17 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
 [data-curate-source].surface-warm::before { opacity: 0.3; }
 [data-curate-source].surface-warm::after { opacity: 0.025; }
 
+/* Micro-caps are for labels of three words or fewer. At 10px against a 16px
+   value the label recedes to a caption and the value reads first, instead of
+   12px and 16px competing inside the same 44px box. */
 .curate-inline-label {
   color: var(--tea-text-dim);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: 0.02em;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .curate-floating-label {
@@ -2755,14 +2759,100 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   z-index: 1;
   color: var(--tea-text-dim);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   pointer-events: none;
 }
 
+/* One lane above the value carries everything that is not the value: the label
+   and its state on the left, where labels live; provenance on the right. */
+.curate-field-lane {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.curate-field-lane .curate-floating-label {
+  position: static;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Confirm is a state, not a button. It wears the label type, sits beside the
+   label rather than in the top-right corner where actions live, and carries a
+   bronze dot so it reads as "unresolved" instead of "press me". */
+.curate-field-flag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--tea-gold);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.curate-field-flag::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  flex: none;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+/* Where a value came from, and what a field can offer. Dim and never bronze,
+   so provenance cannot be confused with something the operator must resolve. */
+.curate-field-marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding-left: 0.5rem;
+  color: var(--tea-text-dim);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The two jobs the slot under a field can have, told apart at a glance:
+   a derived fact is dim and unmarked, a warning is bronze and carries a mark. */
+.curate-field-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding-left: 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.curate-field-note-derived { color: var(--tea-text-dim); }
+.curate-field-note-warning {
+  color: var(--tea-gold);
+  font-weight: 500;
+}
+
 .curate-field-with-label {
-  padding-top: 0.875rem;
+  padding-top: 0.9375rem;
   padding-bottom: 0.125rem;
 }
 
@@ -2780,6 +2870,19 @@ body:has([data-tasting-session-overlay]) [data-testid="bottom-tab-bar"] {
   -webkit-appearance: none;
   appearance: none;
   padding-right: 2rem;
+}
+
+/* A field still waiting on the operator carries a bronze gutter and a breath of
+   accent wash, so a blocked field and a settled one stop looking identical
+   without touching a single border colour. Declared after the base focus rule
+   so the gutter survives focus. */
+.curate-field-attention {
+  background: color-mix(in srgb, var(--tea-surface) 92%, var(--tea-gold));
+  box-shadow: inset 2px 0 0 var(--tea-gold);
+}
+.curate-field-attention:focus,
+.curate-field-attention:focus-visible {
+  box-shadow: inset 2px 0 0 var(--tea-gold), 0 0 0 2px var(--tea-accent-sub);
 }
 .curate-action:hover { color: var(--tea-text); }
 .curate-action:focus-visible {
